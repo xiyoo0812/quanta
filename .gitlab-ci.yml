@@ -1,0 +1,9 @@
+stages:
+  - linting
+
+luacheck:
+  stage: linting
+  image: pipelinecomponents/luacheck
+  script: luacheck .
+  tags: 
+    - luacheck
