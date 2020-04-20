@@ -10,7 +10,7 @@ local tostring  = tostring
 local ssub      = string.sub
 local sformat   = string.format
 local dgetinfo  = debug.getinfo
-local tdcopy    = lua_extend.deep_copy
+local tdcopy    = quanta_extend.deep_copy
 local getmetatable = getmetatable
 local setmetatable = setmetatable
 

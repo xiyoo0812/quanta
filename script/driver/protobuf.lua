@@ -12,7 +12,7 @@ local tinsert = table.insert
 local rawget = rawget
 local rawset = rawset
 local log_err = logger.err
-local is_array = lua_extend.is_array
+local is_array = quanta_extend.is_array
 
 local M = {}
 

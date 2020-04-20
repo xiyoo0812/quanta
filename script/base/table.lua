@@ -5,7 +5,7 @@ local mrandom = math.random
 local tinsert = table.insert
 
 --------------------------------------------------------------------------------
-function lua_extend.random(tab)
+function quanta_extend.random(tab)
     local keys = {}
     for k in pairs(tab) do
         tinsert(keys, k)
@@ -17,14 +17,14 @@ function lua_extend.random(tab)
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.random_array(tab)
+function quanta_extend.random_array(tab)
     if #tab > 0 then
         return tab[mrandom(#tab)]
     end
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.indexof(tab, val)
+function quanta_extend.indexof(tab, val)
     for i, v in pairs(tab) do
         if v == val then
             return i
@@ -34,7 +34,7 @@ function lua_extend.indexof(tab, val)
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.is_array(tab)
+function quanta_extend.is_array(tab)
     if not tab then
         return false
     end
@@ -53,7 +53,7 @@ function lua_extend.is_array(tab)
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.size(t)
+function quanta_extend.size(t)
     local c = 0
     for _, v in pairs(t or {}) do
         c = c + 1
@@ -62,7 +62,7 @@ function lua_extend.size(t)
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.copy(src, dst)
+function quanta_extend.copy(src, dst)
     local ndst = dst or {}
     for field, value in pairs(src) do
         ndst[field] = value
@@ -71,13 +71,13 @@ function lua_extend.copy(src, dst)
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.deep_copy(src, dst)
+function quanta_extend.deep_copy(src, dst)
     local ndst = dst or {}
     for key, value in pairs(src or {}) do
         if is_class(value) then
             ndst[key] = value()
         elseif (type(value) == "table") then
-            ndst[key] = lua_extend.deep_copy(value)
+            ndst[key] = quanta_extend.deep_copy(value)
         else
             ndst[key] = value
         end
@@ -86,7 +86,7 @@ function lua_extend.deep_copy(src, dst)
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.delete(stab, val, num)
+function quanta_extend.delete(stab, val, num)
     num = num or 1
     local ntabs = {}
     for _, value in pairs(stab or {}) do
@@ -103,7 +103,7 @@ function lua_extend.delete(stab, val, num)
 end
 
 --------------------------------------------------------------------------------
-function lua_extend.join(src, dst)
+function quanta_extend.join(src, dst)
     local ndst = dst or {}
     for _, v in pairs(src) do
         tinsert(ndst, v)
@@ -112,7 +112,7 @@ function lua_extend.join(src, dst)
 end
 
 -- map转为{key,value}类型的array
-function lua_extend.map2array(src)
+function quanta_extend.map2array(src)
     local dst = {}
     for key, value in pairs(src or {}) do
         tinsert(dst, {key = key, value = value})
@@ -121,7 +121,7 @@ function lua_extend.map2array(src)
 end
 
 -- {key,value}array转为map
-function lua_extend.array2map(src)
+function quanta_extend.array2map(src)
     local dst = {}
     for _, pair in pairs(src or {}) do
         dst[pair.key] = pair.value
@@ -130,7 +130,7 @@ function lua_extend.array2map(src)
 end
 
 -- map中的value抽出来变成array (会丢失key信息)
-function lua_extend.mapv2array(src)
+function quanta_extend.mapv2array(src)
     local dst = {}
     for _, value in pairs(src or {}) do
         tinsert(dst, value)
@@ -139,7 +139,7 @@ function lua_extend.mapv2array(src)
 end
 
 -- map中的kay抽出来编程array(丢失value信息)
-function lua_extend.mapk2array(src)
+function quanta_extend.mapk2array(src)
     local dst = {}
     for key, _ in pairs(src or {}) do
         tinsert(dst, key)

@@ -14,7 +14,7 @@ local sformat       = string.format
 local tinsert       = table.insert
 local tpack         = table.pack
 local tconcat       = table.concat
-local tarray        = lua_extend.is_array
+local tarray        = quanta_extend.is_array
 
 logger = {}
 

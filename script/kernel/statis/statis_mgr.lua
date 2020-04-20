@@ -1,5 +1,5 @@
 --statis_mgr.lua
-import("share/statis/linux.lua")
+import("kernel/statis/linux.lua")
 
 local pairs         = pairs
 local log_info      = logger.info

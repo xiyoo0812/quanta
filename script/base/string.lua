@@ -10,7 +10,7 @@ local slower    = string.lower
 local sformat   = string.format
 
 --------------------------------------------------------------------------------
-function lua_extend.parse(str)
+function quanta_extend.parse(str)
     if str == nil then
         str = tostring(str)
     elseif type(str) ~= "string" then
@@ -23,15 +23,15 @@ function lua_extend.parse(str)
 end
 
 
-function lua_extend.title(value)
+function quanta_extend.title(value)
     return supper(ssub(value, 1, 1)) .. ssub(value, 2, #value)
 end
 
-function lua_extend.untitle(value)
+function quanta_extend.untitle(value)
     return slower(ssub(value, 1, 1)) .. ssub(value, 2, #value)
 end
 
-function lua_extend.split(str, token)
+function quanta_extend.split(str, token)
     local t = {}
     while #str > 0 do
         local pos = sfind(str, token)

@@ -51,15 +51,15 @@ end
 signal.check = function()
     local quanta_signal = quanta.signal
     if quanta_signal & (1 << sys_signal.SIGINT) ~= 0 then
-        log_info("signal.check ->SIGINT")
+        log_info("[signal][check] ->SIGINT")
         return true
     end
     if quanta_signal & (1 << sys_signal.SIGQUIT) ~= 0 then
-        log_info("signal.check ->SIGQUIT")
+        log_info("[signal][check] ->SIGQUIT")
         return true
     end
     if quanta_signal & (1 << sys_signal.SIGTERM) ~= 0 then
-        log_info("signal.check ->SIGTERM")
+        log_info("[signal][check] ->SIGTERM")
         return true
     end
     return false

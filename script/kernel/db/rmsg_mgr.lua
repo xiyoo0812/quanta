@@ -1,5 +1,5 @@
 --rmsg_mgr.lua
-import("share/db/mongo_agent.lua")
+import("agent/mongo.lua")
 
 local tsort     = table.sort
 local errcode   = err.Code

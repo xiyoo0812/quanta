@@ -1,7 +1,6 @@
 --thread_mgr.lua
 local select        = select
 local log_err       = logger.err
-local tcopy         = lua_extend.copy
 local tremove       = table.remove
 local tunpack       = table.unpack
 local tinsert       = table.insert
@@ -9,6 +8,7 @@ local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running     -- 获取当前运行协程
+local tcopy         = quanta_extend.copy
 local get_time_ms   = quanta.get_time_ms
 local qxpcall       = quanta.xpcall
 

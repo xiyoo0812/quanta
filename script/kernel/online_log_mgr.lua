@@ -3,7 +3,7 @@ local OnlineLogAgent= import("share/monitor/online_log_agent.lua")
 local next          = next
 local otime         = os.time
 local log_debug     = logger.debug
-local ssplit        = lua_extend.split
+local ssplit        = quanta_extend.split
 local serialize     = logger.serialize
 
 local router_mgr    = quanta.router_mgr

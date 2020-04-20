@@ -3,7 +3,7 @@ stds.quanta = {
     globals = {
     	 --common
 	 "tonubmer", "lfs", 
-	 "extend", "util", "coroutine", "quanta_const",
+	 "quanta_extend", "util", "coroutine", "quanta_const",
 	 "quanta", "environ", "signal", "http", "guid", "luabt", "service", "logger", "utility", "platform",
 	 "import", "class", "interface", "property", "singleton", "super", "implemented", "classof", "is_class", "is_subclass", "instanceof", "conv_class",
     }

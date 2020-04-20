@@ -1,17 +1,17 @@
 --base.lua
 
-import("common/math.lua")
-import("common/table.lua")
-import("common/string.lua")
-import("common/logger.lua")
-import("common/guid.lua")
-import("common/class.lua")
-import("common/interface.lua")
-import("common/property.lua")
+import("base/math.lua")
+import("base/table.lua")
+import("base/string.lua")
+import("base/logger.lua")
+import("base/guid.lua")
+import("base/class.lua")
+import("base/interface.lua")
+import("base/property.lua")
 
 local log_err       = logger.err
 local dtraceback    = debug.traceback
-local Listener      = import("common/listener.lua")
+local Listener      = import("base/listener.lua")
 
 --函数装饰器: 保护性的调用指定函数,如果出错则写日志
 --主要用于一些C回调函数,它们本身不写错误日志
@@ -25,7 +25,7 @@ function quanta.xpcall(func, format, ...)
 end
 
 --系统扩展函数名字空间
-lua_extend      = lua_extend or {}
+quanta_extend   = quanta_extend or {}
 --quanta全局变量名字空间
 quanta_const    = quanta_const or {}
 

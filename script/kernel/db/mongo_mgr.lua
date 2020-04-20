@@ -1,5 +1,5 @@
 --mongo_mgr.lua
-local driver        = require("lua.common.mongo")
+local driver        = require("driver.mongo")
 local MONGO_CFGS    = import("config/mongo_cfg.lua")
 
 local type          = type

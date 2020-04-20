@@ -10,7 +10,7 @@ local json_decode       = ljson.decode
 local tinsert           = table.insert
 local env_table         = environ.table
 local services          = service.groups
-local ssplit            = lua_extend.split
+local ssplit            = quanta_extend.split
 
 local errcode           = err.Code
 

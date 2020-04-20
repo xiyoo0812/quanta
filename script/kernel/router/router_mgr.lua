@@ -5,7 +5,7 @@ local Listener      = import("common/listener.lua")
 local RouterGroup   = import("share/router/router_group.lua")
 
 local pairs         = pairs
-local ssplit        = lua_extend.split
+local ssplit        = quanta_extend.split
 local sget_group    = service.get_group
 local sgroup_name   = service.get_group_by_name
 local services      = service.groups

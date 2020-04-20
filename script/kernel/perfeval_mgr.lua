@@ -1,8 +1,8 @@
 --perfeval_mgr.lua
 local pairs         = pairs
 local mhuge         = math.huge
-local mmax          = lua_extend.max
-local mmin          = lua_extend.min
+local mmax          = quanta_extend.max
+local mmin          = quanta_extend.min
 local tpack         = table.pack
 local tunpack       = table.unpack
 local log_info      = logger.info

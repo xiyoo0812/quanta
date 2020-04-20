@@ -1,12 +1,12 @@
 --monitor_agent.lua
 local ljson = require("luacjson")
 ljson.encode_sparse_array(true)
-local cmd_parser    = require("lua.share.monitor.cmdline")
-local args_parser   = require("lua.share.monitor.cmdlist")
+local cmd_parser    = require("utility.cmdline")
+local args_parser   = require("utility.cmdlist")
 local DxConnection  = import("share/dx/dx_connection.lua")
 
 local tunpack       = table.unpack
-local tjoin         = lua_extend.join
+local tjoin         = quanta_extend.join
 local json_encode   = ljson.encode
 local json_decode   = ljson.decode
 local sformat       = string.format
@@ -28,7 +28,7 @@ local WEB_LOG_FUNC_NAME = quantaconst.WEB_LOG_FUNC_NAME
 
 local timer_mgr     = quanta.timer_mgr
 local router_mgr    = quanta.router_mgr
-local thread_mgr = quanta.thread_mgr
+local thread_mgr    = quanta.thread_mgr
 
 local RECONNECT_TIME    = 5
 local TIMER_PERIOD      = 5000
