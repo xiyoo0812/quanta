@@ -1,12 +1,11 @@
 --session_mgr.lua
-local Listener      = import("common/listener.lua")
+local Listener      = import("base/listener.lua")
 
 local log_err       = logger.err
 local log_info      = logger.info
 local env_addr      = environ.addr
 local qxpcall       = quanta.xpcall
 
-local socket_mgr    = quanta.socket_mgr
 local thread_mgr    = quanta.thread_mgr
 local protobuf_mgr  = quanta.protobuf_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
@@ -37,6 +36,7 @@ function NetServer:setup(env_name)
     -- 开启监听
     local listen_proto_type = 1
     local ip, port = env_addr(env_name)
+    local socket_mgr = quanta.socket_mgr
     self.listener = socket_mgr.listen(ip, port, listen_proto_type)
     if not self.listener then
         log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, port, listen_proto_type)

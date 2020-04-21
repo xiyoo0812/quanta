@@ -12,7 +12,6 @@ local lattributes   = lfs.attributes
 local ssub          = string.sub
 local sfind         = string.find
 local sgsub         = string.gsub
-local supper        = string.upper
 local sformat       = string.format
 local tconcat       = table.concat
 local tinsert       = table.insert
@@ -20,10 +19,11 @@ local tunpack       = table.unpack
 local mtointeger    = math.tointeger
 local slower        = string.lower
 
-local slash = "/"
+local slash         = "/"
+local version       = 10000
 
 --设置utf8
-if hive.platform == "linux" then
+if quanta.platform == "linux" then
     local locale = os.setlocale("C.UTF-8")
     if not locale then
         print("switch utf8 mode failed!")
@@ -73,6 +73,7 @@ local value_func = {
     end,
 }
 
+
 --获取cell value
 local function get_sheet_value(sheet, row, col, field_type)
     local cell = sheet:cell(row, col)
@@ -89,7 +90,8 @@ end
 
 --导出到lua
 local function export_records_to_lua(output, title, records)
-    local filename = output .. slash .. title .. ".lua"
+    local table_name = sformat("%s_cfg", title)
+    local filename = sformat("%s%s%s.lua", output, slash, table_name)
 
     local export_file = iopen(filename, "w")
     if not export_file then
@@ -97,33 +99,26 @@ local function export_records_to_lua(output, title, records)
         return
     end
     local lines = {}
-    local title_upper = supper(title)
-    tinsert(lines, "--" .. title .. ".lua")
-    tinsert(lines, "--luacheck: ignore 631")
-    tinsert(lines, "local " .. title_upper .. " =")
-    tinsert(lines, "{")
+    tinsert(lines, sformat("--%s.lua", table_name))
+    tinsert(lines, "--luacheck: ignore 631\n")
+    tinsert(lines, "--获取配置表\nlocal config_mgr = quanta.config_mgr")
+    tinsert(lines, sformat('local %s = config_mgr:get_table("%s")\n', title, title))
+    tinsert(lines, sformat("--导出版本号\n%s:set_version(%s)\n", title, version))
+
+    tinsert(lines, "--导出配置内容")
     for _, record in pairs(records) do
         for index, info in ipairs(record) do
             local key, value, ftype = tunpack(info)
             if index == 1 then
-                if key == "id" then
-                    if type(value) == "string" then
-                        tinsert(lines, "    " .. value .. " =")
-                    else
-                        tinsert(lines, "    [" .. tointeger(value) .. "] =")
-                    end
-                end
-                tinsert(lines, "    {")
+                tinsert(lines, sformat("%s:upsert({", title))
             end
             if type(value) == "string" and ftype ~= "array" then
                 value = "'" .. value .. "'"
             end
-            tinsert(lines, "        " .. key .. "=" .. tostring(value) .. ",")
+            tinsert(lines, sformat("    %s = %s,", key, tostring(value)))
         end
-        tinsert(lines, "    },")
+        tinsert(lines, "})\n")
     end
-    tinsert(lines, "}")
-    tinsert(lines, "return " .. title_upper)
 
     local output_data = tconcat(lines, "\n")
     export_file:write(output_data)
@@ -223,7 +218,7 @@ local function export_excel(input, output)
                 print(sformat("export excel %s sheet %s empty!", file, sheet_name))
                 break
             end
-            local title = slower(sheet_name) .. "_cfg" -- ssub(file, 0, pos - 1)
+            local title = slower(sheet_name)
             export_sheet_to_table(sheet, output, title, dim)
         end
         :: continue ::
@@ -234,7 +229,7 @@ end
 local function export_config()
     local input = lcurdir()
     local output = lcurdir()
-    local options = get_options(hive.args, {})
+    local options = get_options(quanta.args, {})
     if not options.input or #options.input == 0 then
         print("input dir not config!")
         input = input
@@ -248,6 +243,9 @@ local function export_config()
         output = output .. slash .. options.output
         lmkdir(output)
     end
+    if options.version then
+        version = tointeger(options.version)
+    end
     return input, output
 end
 
@@ -259,4 +257,3 @@ if not ok then
     print("export excel to lua failed:", err)
 end
 print("success export excels to lua!")
---os.exit()

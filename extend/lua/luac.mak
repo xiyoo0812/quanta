@@ -4,7 +4,7 @@ PROJECT_NAME = luac
 PROJECT_TYPE = exe
 
 #是否静态库，定义后生成.a文件，否则生成.so文件
-#_LIB=
+#_STATIC=
 
 #c99
 STDC_EX= -std=gnu99
@@ -40,4 +40,3 @@ pre_build:
 
 #后编译
 post_build:
-	cp TARGET_PATH ../../tools

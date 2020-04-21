@@ -4,7 +4,7 @@ PROJECT_NAME = lua
 PROJECT_TYPE = lib
 
 #是否静态库，定义后生成.a文件，否则生成.so文件
-#_LIB=
+#_STATIC=
 
 #c99
 STDC_EX= -std=gnu99

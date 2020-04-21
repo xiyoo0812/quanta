@@ -4,7 +4,7 @@ PROJECT_NAME = sproto
 PROJECT_TYPE = lib
 
 #是否静态库，定义后生成.a文件，否则生成.so文件
-#_LIB=
+#_STATIC=
 
 #目标文件前缀，不定义则.so和.a加lib前缀，否则不加
 PROJECT_NO_PREFIX=1

@@ -32,8 +32,10 @@ endif
 MYLIBS += -lstdc++
 
 #源代码目录
+ifndef SRC_DIRS
 ifndef SRC_DIR
 SRC_DIR = ./src
+endif
 endif
 
 #临时文件目录
@@ -42,11 +44,13 @@ INT_DIR = ../temp/$(PROJECT_NAME)
 endif
 
 #目标目录
-ifdef _LIB
+ifndef TARGET_DIR
+ifdef _STATIC
 TARGET_DIR = ../../library
 else
 TARGET_DIR = ../../bin
 MYCFLAGS += -fPIC
+endif
 endif
 
 #目标名
@@ -66,7 +70,7 @@ endif
 
 #确定输出文件名
 ifeq ($(PROJECT_TYPE), lib)
-ifdef _LIB
+ifdef _STATIC
 TARGET = $(PROJECT_PREFIX)$(TARGET_NAME).a
 else
 TARGET = $(PROJECT_PREFIX)$(TARGET_NAME).so
@@ -82,9 +86,15 @@ endif
 
 #若没有指定源文件列表则把 SRC_DIR 目录下的所有源文件作为要编译的文件列表
 ifndef MYOBJS
-MYOBJS = $(patsubst $(SRC_DIR)/%.cpp, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(SRC_DIR)/*.cpp)))
-MYOBJS += $(patsubst $(SRC_DIR)/%.c, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(SRC_DIR)/*.c)))
-MYOBJS += $(patsubst $(SRC_DIR)/%.cc, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(SRC_DIR)/*.cc)))
+for dir in echo $(SRC_DIRS) | cut -d ';' -f 1-;
+MYOBJS = $(patsubst $(dir)/%.cpp, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(dir)/*.cpp)))
+MYOBJS += $(patsubst $(dir)/%.c, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(dir)/*.c)))
+MYOBJS += $(patsubst $(dir)/%.cc, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(dir)/*.cc)))
+else
+MYOBJS = $(patsubst $(dir)/%.cpp, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(dir)/*.cpp)))
+MYOBJS += $(patsubst $(dir)/%.c, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(dir)/*.c)))
+MYOBJS += $(patsubst $(dir)/%.cc, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE_FILE), $(wildcard $(dir)/*.cc)))
+done
 endif
 
 #输出目标
@@ -92,7 +102,7 @@ TARGET_PATH = $(TARGET_DIR)/$(TARGET)
 
 #根据PROJECT_TYPE的值产生不同的目标文件
 ifeq ($(PROJECT_TYPE), lib)
-ifdef _LIB
+ifdef _STATIC
 $(TARGET_PATH) : $(MYOBJS)
 	ar rcs $@ $(MYOBJS)
 	ranlib $@

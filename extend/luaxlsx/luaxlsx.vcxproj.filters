@@ -70,6 +70,7 @@
       <Filter>zlib</Filter>
     </ClCompile>
     <ClCompile Include="src\MiniExcel.cpp" />
+    <ClCompile Include="src\luaxlsx.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\tinyxml2\tinyxml2.h">
