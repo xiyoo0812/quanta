@@ -43,9 +43,9 @@ endif
 
 #目标目录
 ifdef _LIB
-TARGET_DIR = ../lib
+TARGET_DIR = ../../library
 else
-TARGET_DIR = ../bin
+TARGET_DIR = ../../bin
 MYCFLAGS += -fPIC
 endif
 

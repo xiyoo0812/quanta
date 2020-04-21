@@ -105,7 +105,8 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
+      <Command>copy /y $(TargetPath) ..\..\bin\
+copy /y $(TargetPath) ..\..\tools\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
@@ -131,7 +132,8 @@
       </ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
+      <Command>copy /y $(TargetPath) ..\..\bin\
+copy /y $(TargetPath) ..\..\tools\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

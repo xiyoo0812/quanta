@@ -40,6 +40,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bson", "extend\bson\bson.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sproto", "extend\sproto\sproto.vcxproj", "{07588F60-510F-4B30-8413-26404A6535E4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luac", "extend\lua\luac.vcxproj", "{001BCFDF-426A-476B-B709-D7E40A374229}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luaxlsx", "extend\luaxlsx\luaxlsx.vcxproj", "{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		ReleaseDebug|x64 = ReleaseDebug|x64
@@ -90,6 +94,14 @@ Global
 		{07588F60-510F-4B30-8413-26404A6535E4}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
 		{07588F60-510F-4B30-8413-26404A6535E4}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
 		{07588F60-510F-4B30-8413-26404A6535E4}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{001BCFDF-426A-476B-B709-D7E40A374229}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{001BCFDF-426A-476B-B709-D7E40A374229}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{001BCFDF-426A-476B-B709-D7E40A374229}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{001BCFDF-426A-476B-B709-D7E40A374229}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -108,6 +120,8 @@ Global
 		{F70FF6C0-FD69-49DD-A63B-54CD33AA35DB} = {1D4D6BAB-BDCA-48C7-B032-575D40D1D349}
 		{D006D7B6-1807-4BD4-BF1A-9510B170DFE5} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 		{07588F60-510F-4B30-8413-26404A6535E4} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
+		{001BCFDF-426A-476B-B709-D7E40A374229} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
+		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {89F4D576-CC3C-458E-ACD6-30B42E1869FA}

@@ -40,3 +40,4 @@ pre_build:
 
 #后编译
 post_build:
+	cp TARGET_PATH ../../tools

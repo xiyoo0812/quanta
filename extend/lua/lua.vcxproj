@@ -81,7 +81,7 @@
       <AdditionalIncludeDirectories>../../../../../include;../../../../../dependencies/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
+      <OutputFile>$(OutDir)$(ProjectName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -93,7 +93,8 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
+      <Command>copy /y $(TargetPath) ..\..\bin\
+copy /y $(TargetPath) ..\..\tools\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
@@ -115,7 +116,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
     </ClCompile>
     <Link>
-      <OutputFile>$(OutDir)$(ProjectName).dll</OutputFile>
+      <OutputFile>$(OutDir)$(ProjectName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -127,7 +128,7 @@
     </Link>
     <PostBuildEvent>
       <Command>copy /y $(TargetPath) ..\..\bin\
-</Command>
+copy /y $(TargetPath) ..\..\tools\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
