@@ -15,7 +15,7 @@ local getmetatable = getmetatable
 local setmetatable = setmetatable
 
 --类模板
-local class_temples = quanta.class_temples or {}
+local class_temples = class_temples or {}
 
 local function interface_init(class, object, ...)
     if class.__super then

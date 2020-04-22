@@ -9,15 +9,15 @@ local log_info  = logger.info
 
 local mongo_agent = quanta.mongo_agent
 
-local RMsgMgr = class()
+local RmsgMgr = class()
 
-function RMsgMgr:__init(name)
+function RmsgMgr:__init(name)
     self.db_table_name = name
-    log_info("[RMsgMgr][init] init rmsg table: %s", name)
+    log_info("[RmsgMgr][init] init rmsg table: %s", name)
 end
 
 -- 查询未处理消息列表
-function RMsgMgr:list_message(to)
+function RmsgMgr:list_message(to)
     local query = {self.db_table_name, {to = to, deal_time = 0}, {_id = 0}}
     local ok, code, result = mongo_agent:find(to, query)
     if ok and code == errcode.SUCCESS then
@@ -29,20 +29,20 @@ function RMsgMgr:list_message(to)
 end
 
 -- 设置信息为已处理
-function RMsgMgr:deal_message(to, uuid)
-    log_info("[RMsgMgr][deal_message] deal message: %s", uuid)
+function RmsgMgr:deal_message(to, uuid)
+    log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
     local query = {self.db_table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid}}
     mongo_agent:update(to, query)
 end
 
 -- 删除消息
-function RMsgMgr:delete_message(to, uuid)
-    log_info("[RMsgMgr][delete_message] delete message: %s", uuid)
+function RmsgMgr:delete_message(to, uuid)
+    log_info("[RmsgMgr][delete_message] delete message: %s", uuid)
     mongo_agent:delete(to, {self.db_table_name, {uuid = uuid}})
 end
 
 -- 发送消息
-function RMsgMgr:send_message(from, to, typ, body, id)
+function RmsgMgr:send_message(from, to, typ, body, id)
     local uuid = id or new_guid()
     local doc = {
         uuid = uuid,
@@ -53,11 +53,11 @@ function RMsgMgr:send_message(from, to, typ, body, id)
     }
     local ok = mongo_agent:insert(to, {self.db_table_name, doc})
     if not ok then
-        log_err("[RMsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
+        log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
     else
-        log_info("[RMsgMgr][send_message] send message succeed: %s, %s, %s, %s", uuid, from, to, typ)
+        log_info("[RmsgMgr][send_message] send message succeed: %s, %s, %s, %s", uuid, from, to, typ)
     end
     return ok
 end
 
-return RMsgMgr
+return RmsgMgr

@@ -14,7 +14,7 @@ local tinsert       = table.insert
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
 
-local interface_temples = quanta.interface_temples or {}
+local interface_temples = interface_temples or {}
 
 local function index(interface, field)
     return interface.__vtbl[field]

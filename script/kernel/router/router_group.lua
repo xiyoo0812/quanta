@@ -19,8 +19,7 @@ local timer_mgr         = quanta.timer_mgr
 local socket_mgr        = quanta.socket_mgr
 local statis_mgr        = quanta.statis_mgr
 local perfeval_mgr      = quanta.perfeval_mgr
-local thread_mgr     = quanta.thread_mgr
---local serialize         = logger.serialize
+local thread_mgr        = quanta.thread_mgr
 
 local errcode           = err.Code
 local SUCCESS           = errcode.SUCCESS
@@ -364,12 +363,6 @@ function RouterGroup:server_register(id, group, router_id)
             listener:on_server_register(id, group, router_id)
         end
     end
-end
-
--- 冲突退出
-function RouterGroup:confilict_exit(conflict_ip)
-    log_err("[RouterGroup][confilict_exit]->conflict_ip:%s", conflict_ip)
-    signal_quit()
 end
 
 return RouterGroup

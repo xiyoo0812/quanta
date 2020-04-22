@@ -21,9 +21,6 @@ prop:accessor("session", nil)       --连接成功对象
 prop:accessor("decoder", nil)       --解码函数
 prop:accessor("encoder", nil)       --编码函数
 prop:accessor("wait_list", {})      --等待协议列表
-prop:accessor("hb_req_id", 1001)    --心跳请求
-prop:accessor("hb_ack_id", 1002)    --心跳回执
-prop:accessor("serial", 0)          --心跳序列号
 
 function NetClient:__init()
 end
@@ -108,11 +105,6 @@ function NetClient:on_call_dx(cmd_id, flag, session_id, data)
         log_err("[NetClient][on_call_dx] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
     end
-    -- 内核消息提前处理
-    if cmd_id == self.hb_ack_id then
-        self.serial = body.serial
-        return
-    end
     if session_id == 0 or flag == RPC_TYPE_REQ then
         -- 执行消息分发
         local function dispatch_rpc_message()
@@ -135,7 +127,6 @@ end
 function NetClient:close()
     if self.session then
         self.session.close()
-        self.serial = 0
     end
 end
 
@@ -197,7 +188,6 @@ end
 
 -- 数据回调
 function NetClient:on_recv(cmd_id, body)
-    --log_debug("NetClient:on_recv: token=%s, cmd=%d", self:get_token(), cmd_id)
 end
 
 -- 连接关闭回调
@@ -209,12 +199,6 @@ end
 
 -- 连接关闭回调实现，用于派生类业务处理
 function NetClient:on_close_impl(err)
-
-end
-
--- 发送心跳
-function NetClient:send_hbbeat_req()
-    self:send_dx(self.hb_req_id, {serial = self.serial})
 end
 
 return NetClient
