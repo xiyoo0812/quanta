@@ -2,15 +2,14 @@
 local lhttp = require("luahttp")
 
 local pairs         = pairs
-local tostring      = tostring
 local tinsert       = table.insert
 local tconcat       = table.concat
 local sformat       = string.format
-local log_info      = logger.info
 local log_debug     = logger.debug
+local log_warn      = logger.warn
 local serialize     = logger.serialize
 
-local thread_mgr = quanta.thread_mgr
+local thread_mgr    = quanta.thread_mgr
 
 local HTTP_RPC_TIMEOUT  = 5000
 
@@ -38,37 +37,45 @@ local function url_format(path, querys)
     return path
 end
 
-http = {}
-http.args_format = args_format
-http.client = function(host, port, timeout)
-    local client = lhttp.client(host, port, timeout)
-    client.on_call = function(session_id, status, body)
-        thread_mgr:response(session_id, true, status, body)
-    end
-    client.call_get = function(path, querys, headers)
-        local session_id = thread_mgr:build_session_id()
-        client.get(url_format(path, querys), header_format(headers), session_id)
+local http = {}
+quanta.http = http
+
+--创建client对象
+http.client = lhttp.client()
+--设置回调
+http.client.on_response = function(session_id, status, body)
+    thread_mgr:response(session_id, true, status, body)
+end
+quanta.join(http.client)
+
+--get接口
+http.call_get = function(url, querys, headers)
+    headers = header_format(headers)
+    local full_url = url_format(url, querys)
+
+    local session_id = thread_mgr:build_session_id()
+    local ok, err = http.client.get(full_url, "", headers, session_id)
+    if ok then
         return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
+    else
+        log_warn("[http.call_get] ok=%s,err=%s", ok, err)
+        return ok, err
     end
-    client.call_del = function(path, body, headers, contont_type)
-        local session_id = thread_mgr:build_session_id()
-        client.del(path, header_format(headers), body, contont_type or "application/json", session_id)
+end
+
+--post接口
+http.call_post = function(url, querys, post_data, headers)
+    headers = header_format(headers)
+    local full_url = url_format(url, querys)
+
+    local session_id = thread_mgr:build_session_id()
+    local ok, err = http.client.post(full_url, post_data, headers, session_id)
+    if ok then
         return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
+    else
+        log_warn("[http.call_get] ok=%s,err=%s", ok, err)
+        return ok, err
     end
-    client.call_put = function(path, body, headers, contont_type)
-        local session_id = thread_mgr:build_session_id()
-        client.put(path, header_format(headers), body, contont_type or "application/json", session_id)
-        return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
-    end
-    client.call_post = function(path, body, headers, contont_type)
-        local session_id = thread_mgr:build_session_id()
-        client.post(path, header_format(headers), body, contont_type or "application/json", session_id)
-        return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
-    end
-    log_info("[HttpMgr][new_client] %s:%s success", host, port)
-    --添加到自动更新列表
-    quanta.join(client)
-    return client
 end
 
 http.server = function()

@@ -4,7 +4,7 @@ local iopen         = io.open
 local tonumber      = tonumber
 local ssub          = string.sub
 local sformat       = string.format
-local ssplit        = quanta_extend.split
+local ssplit        = string_ext.split
 --local log_info      = logger.info
 
 local LinuxStatis = singleton()

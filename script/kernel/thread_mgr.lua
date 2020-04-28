@@ -8,7 +8,7 @@ local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running     -- 获取当前运行协程
-local tcopy         = quanta_extend.copy
+local tcopy         = table_ext.copy
 local get_time_ms   = quanta.get_time_ms
 local qxpcall       = quanta.xpcall
 

@@ -5,8 +5,8 @@ local cmd_parser    = require("utility.cmdline")
 local args_parser   = require("utility.cmdlist")
 local DxConnection  = import("share/dx/dx_connection.lua")
 
+local tjoin         = table.join
 local tunpack       = table.unpack
-local tjoin         = quanta_extend.join
 local json_encode   = ljson.encode
 local json_decode   = ljson.decode
 local sformat       = string.format

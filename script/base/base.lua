@@ -25,7 +25,9 @@ function quanta.xpcall(func, format, ...)
 end
 
 --系统扩展函数名字空间
-quanta_extend   = quanta_extend or {}
+math_ext    = math_ext or {}
+table_ext   = table_ext or {}
+string_ext  = string_ext or {}
 --quanta全局变量名字空间
 quanta_const    = quanta_const or {}
 

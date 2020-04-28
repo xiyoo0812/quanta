@@ -4,7 +4,7 @@ local tonumber    = tonumber
 local ogetenv     = os.getenv
 local tunpack     = table.unpack
 local sformat     = string.format
-local ssplit      = quanta_extend.split
+local ssplit      = string_ext.split
 
 local ENV = {
     --app id
@@ -19,8 +19,6 @@ local ENV = {
     ENV_MONGO_GROUP         = "1",
     -- mysql group
     ENV_MYSQL_GROUP         = "1",
-    -- router group
-    ENV_ROUTER_GROUP        = "0",
     -- 最大连接数
     ENV_MAX_CONNECTION      = "4096",
     -- daemon

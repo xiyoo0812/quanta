@@ -115,6 +115,7 @@ copy /y .\src\openssl\bin\$(Platform)\* ..\..\bin\</Command>
   <ItemGroup>
     <ClInclude Include="src\httplib.h" />
     <ClInclude Include="src\http.h" />
+    <ClInclude Include="src\utility.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,18 +1,18 @@
 local c = require "pbc"
 
-local setmetatable = setmetatable
+local io = io
 local type = type
-local table = table
-local assert = assert
 local pairs = pairs
 local ipairs = ipairs
+local assert = assert
 local string = string
-local io = io
-local tinsert = table.insert
 local rawget = rawget
 local rawset = rawset
+local setmetatable = setmetatable
 local log_err = logger.err
-local is_array = quanta_extend.is_array
+local tinsert = table.insert
+local tconcat = table.concat
+local is_array = table_ext.is_array
 
 local M = {}
 
@@ -392,14 +392,14 @@ local function _pattern_create(pattern)
         tinsert(cpat,v .. " " .. t[1])
         tinsert(lua,t[2])
     end
-    local cobj = c._pattern_new(P, message , "@" .. table.concat(cpat," "))
+    local cobj = c._pattern_new(P, message , "@" .. tconcat(cpat," "))
     if cobj == nil then
         return
     end
     c._add_pattern(GC, cobj)
     local pat = {
         CObj = cobj,
-        format = table.concat(lua),
+        format = tconcat(lua),
         size = 0
     }
     pat.size = c._pattern_size(pat.format)

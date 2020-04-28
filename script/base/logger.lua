@@ -14,7 +14,7 @@ local sformat       = string.format
 local tinsert       = table.insert
 local tpack         = table.pack
 local tconcat       = table.concat
-local tarray        = quanta_extend.is_array
+local tarray        = table_ext.is_array
 
 logger = {}
 
@@ -42,14 +42,12 @@ function logger.init(max_line)
     --构建日志目录
     local log_path = environ.get("ENV_LOGGER_PATH")
     lmkdir(log_path)
-    if quanta.service then
-        log_path = sformat("%s/%s", log_path, quanta.service)
-        lmkdir(log_path)
-    end
+    log_file_path = sformat("%s/%s", log_path, quanta.service)
+    lmkdir(log_file_path)
     if log_daemon then
         quanta.daemon(1, 1)
     end
-    log_filename = sformat("%s/%s-%d", log_path, quanta.service, quanta.index)
+    log_filename = sformat("%s/%s-%d", log_file_path, quanta.service, quanta.index)
 end
 
 function logger.level(level)

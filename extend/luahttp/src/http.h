@@ -3,6 +3,7 @@
 #include "lua.hpp"
 #include "luna.h"
 #include "httplib.h"
+#include "utility.h"
 
 
 inline void native_to_lua(lua_State* L, const httplib::Headers& v)
@@ -18,36 +19,38 @@ inline void native_to_lua(lua_State* L, const httplib::Headers& v)
 class http_client
 {
 public:
-    http_client(lua_State* L, const char *host, int port = 80, time_t timeout_sec = 10);
+    http_client(lua_State* lua_vm, int thread_count = 6, size_t max_pending_req = 2048);
+
     ~http_client();
 
-    void update();
-
-    int put(lua_State* L);
-
-	int post(lua_State* L);
-
     int get(lua_State* L);
-    
+    int put(lua_State* L);
+    int post(lua_State* L);
     int del(lua_State* L);
 
-    int follow_location(lua_State* L);
+    // tick函数
+    void update();
 
-	DECLARE_LUA_CLASS(http_client);
-
+    DECLARE_LUA_CLASS(http_client);
 protected:
-    inline void enqueue(std::function<void()> fn)
-    {
-        std::unique_lock<std::mutex> lock(mutex_job);
-        jobs_.push_back(fn);
-    }
+    // lua参数解析
+    bool parse_lua_request(lua_State* L, std::string& url, std::string& param,
+        httplib::Headers& headers, uint64_t& context_id, int& lua_ret, std::string& lua_err);
+
+    // 执行请求：在工作线程运行
+    void do_request(const std::string& url, const std::string& method, const std::string& param,
+        const httplib::Headers& headers, uint64_t context_id);
+
+    // 通知结果: 在主线程运行
+    void do_response(int state, const std::string& body, uint64_t context_id);
 
 private:
-    httplib::Client m_cli;
-    httplib::ThreadPool m_threads;
-    lua_State* m_lvm = nullptr;
-    std::mutex mutex_job;
-    std::list<std::function<void()>> jobs_;
+    lua_State*                       m_lua_state;
+    std::thread::id                  m_main_tid;     // 主线程ID
+    std::mutex                       m_mutex;
+    std::list<std::function<void()>> m_responses;    // 响应列表 
+    httplib::ThreadPool              m_requests;     // 请求列表
+    size_t                           m_max_pending_req;  // 最大未执行完成的任务
 };
 
 class http_server

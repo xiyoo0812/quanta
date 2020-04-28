@@ -18,17 +18,11 @@ local ssub          = string.sub
 local sfind         = string.find
 local sformat       = string.format
 local tinsert       = table.insert
-local mrandomseed   = math.randomseed
-local env_get       = environ.get
-local env_number    = environ.number
+local sig_check     = signal.check
 local log_warn      = logger.warn
 local log_info      = logger.info
-local sid2name      = service.id2name
-local smake_id      = service.make_id
-local services      = service.groups
-local signal_check  = signal.check
-local collectgarbage= collectgarbage
 local get_time_ms   = quanta.get_time_ms
+local collectgarbage= collectgarbage
 
 local timer_mgr     = quanta.timer_mgr
 local statis_mgr    = quanta.statis_mgr
@@ -37,8 +31,8 @@ local thread_mgr    = quanta.thread_mgr
 local protobuf_mgr  = quanta.protobuf_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 
---获取命令行参数
-local function get_options(args, opts)
+--初始化命令行参数
+local function options_init(args, opts)
     for _, arg in pairs(args) do
         if #arg > 2 and ssub(arg, 1, 2) == "--" then
             local pos = sfind(arg, "=", 1, true)
@@ -51,42 +45,46 @@ local function get_options(args, opts)
     return opts
 end
 
-function quanta.init(service, opts, protos, enums)
-    --初始化命令行参数
-    local group = services[service]
-    local options = get_options(quanta.args, opts)
-    if not group then
-        os.exit()
-    end
-
-    --初始化quanta环境
+--初始化quanta环境
+function quanta_env_init(options, service_name, service_id)
     quanta.frame = 0
     quanta.now = otime()
-    quanta.group = group
-    quanta.service = service
+    quanta.service_id = service_id
+    quanta.service_name = service_name
     quanta.options = options
     quanta.now_ms = get_time_ms()
     quanta.start_time = get_time_ms()
     quanta.index = tonumber(options.index)
-    quanta.id = smake_id(group, options.index)
+    quanta.id = service.make_id(service_id, options.index)
+    quanta.name = service.id2nick(quanta.id)
     quanta.pid = quanta.get_pid()
-    quanta.name = sid2name(quanta.id)
     quanta.objects = {}
     quanta.dumps = {}
+end
 
+function quanta.init(service_name, opts, protos, enums)
     --注册信号
     signal.init()
+    --初始化服务节点
+    log_info("pid: %d", quanta.pid)
+    local service_id = service.init(service_name)
+    if not service_id then
+        os.exit()
+    end
+    --初始化命令行参数
+    local options = options_init(quanta.args, opts)
     --初始化环境变量
     environ.init(options)
+    --初始化quanta环境
+    quanta_env_init(options, service_name, service_id)
     --初始化日志
-    logger.init()
-
-    log_info("pid: %d", quanta.pid)
+    logger.init(options.index)
     --初始化随机种子
-    mrandomseed(quanta.start_time)
+    math.randomseed(quanta.start_time)
 
     -- 网络模块初始化
-    socket_mgr = lbus.create_socket_mgr(env_number("ENV_MAX_CONNECTION"))
+    local max_conn = environ.number("ENV_MAX_CONNECTION")
+    socket_mgr = lbus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
 
     -- 初始核心管理器
@@ -96,12 +94,11 @@ function quanta.init(service, opts, protos, enums)
     protobuf_mgr:setup(protos, enums)
 
     -- 路由管理器初始化
-    local router_group = env_get("ENV_ROUTER_GROUP")
-    if router_group > 0 then
+    local router_group = service.router_group(quanta.id)
+    if next(router_group) then
         import("kernel/router/router_mgr.lua")
-        import("kernel/router/router_quanta_extend.lua")
+        quanta.router_mgr:setup(router_group)
     end
-
     if quanta.platform == "windows" then
         os.execute(sformat("title %s_%d", service, quanta.index))
     end
@@ -157,7 +154,7 @@ function quanta.update()
             lua_collectgarbage()
         end
         --检查信号
-        if signal_check() then
+        if sig_check() then
             for _, obj in pairs(quanta.dumps) do
                 obj:dump(true)
             end

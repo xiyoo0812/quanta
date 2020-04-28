@@ -1,7 +1,8 @@
+#include "stdafx.h"
 #include <string>
 #include <vector>
 #include "http.h"
-
+#include "utility.h"
 
 EXPORT_CLASS_BEGIN(http_client)
 EXPORT_LUA_FUNCTION(update)
@@ -9,8 +10,8 @@ EXPORT_LUA_FUNCTION(post)
 EXPORT_LUA_FUNCTION(put)
 EXPORT_LUA_FUNCTION(get)
 EXPORT_LUA_FUNCTION(del)
-EXPORT_LUA_FUNCTION(follow_location)
 EXPORT_CLASS_END()
+
 EXPORT_CLASS_BEGIN(http_server)
 EXPORT_LUA_FUNCTION(listen)
 EXPORT_LUA_FUNCTION(update)
@@ -23,163 +24,162 @@ EXPORT_CLASS_END()
 
 const int WORK_COUNT_PER_FRAME = 20;
 
-http_client::http_client(lua_State* L, const char *host, int port /* = 80 */, time_t timeout_sec /* = 10 */) 
-    : m_threads(2), m_lvm(L), m_cli(host, port, timeout_sec)
+///////////////////////////////////////////////////////////////////////////////////
+
+http_client::http_client(lua_State* lua_vm, int thread_count, size_t max_pending_req) :
+    m_lua_state(lua_vm),
+    m_requests(thread_count),
+    m_max_pending_req(max_pending_req)
 {
+
 }
 
 http_client::~http_client()
 {
-    m_threads.shutdown();
-    m_lvm = nullptr;
-}
-
-int http_client::follow_location(lua_State* L)
-{
-    m_cli.follow_location(lua_toboolean(L, 1));
-    return 0;
-}
-
-void http_client::update()
-{
-    std::vector<std::function<void()>> fn_list;
-    {
-        std::unique_lock<std::mutex> lock(mutex_job);
-        int count = WORK_COUNT_PER_FRAME;
-        while (!jobs_.empty() && count-- > 0)
-        {
-            fn_list.push_back(jobs_.front());
-            jobs_.pop_front();
-        }
-    }
-    for (auto it : fn_list) it();
-}
-
-int http_client::post(lua_State* L)
-{
-    int index = 1;
-    httplib::Headers herders;
-    const char* path = lua_tostring(L, index++);
-    if (lua_type(L, index) == LUA_TTABLE)
-    {
-        lua_pushnil(L);
-        while (lua_next(L, index))
-        {
-            lua_pushvalue(L, -2);
-            const char* key = lua_tostring(L, -1);
-            const char* value = lua_tostring(L, -2);
-            herders.insert(std::make_pair(key, value));
-            lua_pop(L, 2);
-        }
-        index++;
-    }
-    const char* body = lua_tostring(L, index++);
-    const char* content_type = lua_tostring(L, index++);
-    uint32_t session = lua_tointeger(L, index++);
-    m_threads.enqueue([=]() {
-        auto res = m_cli.Post(path, herders, body, content_type);
-        if (session > 0) {
-            enqueue([=]() {
-                lua_guard g(m_lvm);
-                lua_call_object_function(m_lvm, nullptr, this, "on_call", std::tie(), session, res ? res->status : 404, res ? res->body : "");
-            });
-        }
-    });
-    return 0;
-}
-
-int http_client::put(lua_State* L)
-{
-    int index = 1;
-    httplib::Headers herders;
-    const char* path = lua_tostring(L, index++);
-    if (lua_type(L, index) == LUA_TTABLE)
-    {
-        lua_pushnil(L);
-        while (lua_next(L, index))
-        {
-            lua_pushvalue(L, -2);
-            const char* key = lua_tostring(L, -1);
-            const char* value = lua_tostring(L, -2);
-            herders.insert(std::make_pair(key, value));
-            lua_pop(L, 2);
-        }
-        index++;
-    }
-    const char* body = lua_tostring(L, index++);
-    const char* content_type = lua_tostring(L, index++);
-    uint32_t session = lua_tointeger(L, index++);
-    m_threads.enqueue([=]() {
-        auto res = m_cli.Put(path, herders, body, content_type);
-        if (session > 0) {
-            enqueue([=]() {
-                lua_guard g(m_lvm);
-                lua_call_object_function(m_lvm, nullptr, this, "on_call", std::tie(), session, res ? res->status : 404, res ? res->body : "");
-            });
-        }
-    });
-    return 0;
+    m_requests.shutdown();
 }
 
 int http_client::get(lua_State* L)
 {
-    httplib::Headers herders;
-    const char* path = lua_tostring(L, 1);
-
-    lua_pushnil(L);
-    while (lua_next(L, 2))
+    if (m_requests.task_count() >= m_max_pending_req)
     {
-        lua_pushvalue(L, -2);
-        const char* key = lua_tostring(L, -1);
-        const char* value = lua_tostring(L, -2);
-        herders.insert(std::make_pair(key, value));
-        lua_pop(L, 2);
+        lua_pushboolean(L, false);
+        lua_pushstring(L, "too match pending task");
+        return 2;
     }
-    uint32_t session = lua_tointeger(L, 3);
-    m_threads.enqueue([=]() {
-        auto res = m_cli.Get(path, herders);
-        if (session > 0) {
-            enqueue([=]() {
-                lua_guard g(m_lvm);
-                lua_call_object_function(m_lvm, nullptr, this, "on_call", std::tie(), session, res ? res->status : 404, res ? res->body : "");
-            });
-        }
+
+    std::string url; 
+    std::string param;
+    httplib::Headers headers;
+    uint64_t context_id = 0; 
+    int lua_ret = 0; 
+    std::string lua_err;
+
+    if (!parse_lua_request(L, url, param, headers, context_id, lua_ret, lua_err))
+    {
+        lua_pushboolean(L, false);
+        lua_pushstring(L, lua_err.c_str());
+        return 2;
+    }
+
+    m_requests.enqueue([=](void)->void {
+        this->do_request(url, "GET", param, headers, context_id);
     });
-    return 0;
+
+    lua_pushinteger(L, true);
+    return 1;
+}
+
+int http_client::post(lua_State* L)
+{
+    if (m_requests.task_count() >= m_max_pending_req)
+    {
+        lua_pushinteger(L, false);
+        lua_pushstring(L, "too match pending task");
+        return 2;
+    }
+
+    std::string url;
+    std::string param;
+    httplib::Headers headers;
+    uint64_t context_id = 0;
+    int lua_ret = 0;
+    std::string lua_err;
+
+    if (!parse_lua_request(L, url, param, headers, context_id, lua_ret, lua_err))
+    {
+        lua_pushboolean(L, false);
+        lua_pushstring(L, lua_err.c_str());
+        return 2;
+    }
+
+    m_requests.enqueue([=](void)->void {
+        this->do_request(url, "POST", param, headers, context_id);
+    });
+
+    lua_pushinteger(L, true);
+    return 1;
+}
+
+int http_client::put(lua_State* L)
+{
+    lua_pushboolean(L, false);
+    lua_pushstring(L, "not support");
+    return 2;
 }
 
 int http_client::del(lua_State* L)
 {
-    int index = 1;
-    httplib::Headers herders;
-    const char* path = lua_tostring(L, index++);
-    if (lua_type(L, index) == LUA_TTABLE)
-    {
-        lua_pushnil(L);
-        while (lua_next(L, index))
-        {
-            lua_pushvalue(L, -2);
-            const char* key = lua_tostring(L, -1);
-            const char* value = lua_tostring(L, -2);
-            herders.insert(std::make_pair(key, value));
-            lua_pop(L, 2);
-        }
-        index++;
-    }
-    const char* body = lua_tostring(L, index++);
-    const char* content_type = lua_tostring(L, index++);
-    uint32_t session = lua_tointeger(L, index++);
-    m_threads.enqueue([=]() {
-        auto res = m_cli.Delete(path, herders, body, content_type);
-        if (session > 0) {
-            enqueue([=]() {
-                lua_guard g(m_lvm);
-                lua_call_object_function(m_lvm, nullptr, this, "on_call", std::tie(), session, res ? res->status : 404, res ? res->body : "");
-            });
-        }
-    });
-    return 0;
+    lua_pushboolean(L, false);
+    lua_pushstring(L, "not support");
+    return 2;
 }
+
+void http_client::update()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_responses.size() <= 0)
+        return;
+
+    auto job_cb = m_responses.back();
+    job_cb();
+    m_responses.pop_back();
+}
+
+bool http_client::parse_lua_request(lua_State* L, std::string& url, std::string& param,
+    httplib::Headers& headers, uint64_t& context_id, int& lua_ret, std::string& lua_err)
+{
+    lua_guard g(L);
+    // 参数获取： url param headers context_id
+    int top = lua_gettop(L);
+    if ((4 != top) || !lua_isstring(L, 1) || !lua_isstring(L, 2) || !lua_istable(L, 3) || !lua_isinteger(L, 4))
+    {
+        lua_ret = -1;
+        lua_err = "need 4 parameter: url{string},param{string},headers{table},context_id{number}";
+        return false;
+    }
+
+    url   = lua_tostring(L, 1);
+    param = lua_tostring(L, 2);
+
+    lua_pushnil(L);
+    while (lua_next(L, 3))
+    {
+        lua_pushvalue(L, -2);
+        const char* key = lua_tostring(L, -1);
+        const char* value = lua_tostring(L, -2);
+        headers.insert(std::make_pair(key, value));
+        lua_pop(L, 2);
+    }
+    context_id = lua_tointeger(L, 4);
+    return true;
+}
+
+void http_client::do_request(const std::string& url, const std::string& method, const std::string& param,
+    const httplib::Headers& headers, uint64_t context_id)
+{
+    std::shared_ptr<httplib::Response> res_ptr;
+    int ret = http_request(url, method, param, headers, 3, res_ptr);
+    int status = 404;
+    std::string body;
+    if (0 == ret)
+    {
+        status = res_ptr->status;
+        body = res_ptr->body;
+    }
+    std::unique_lock<std::mutex> lock(m_mutex);
+    m_responses.push_back([=](void)->void {
+        do_response(status, body, context_id);
+    });
+}
+
+void http_client::do_response(int status, const std::string& body, uint64_t context_id)
+{
+    lua_guard g(m_lua_state);
+    lua_call_object_function(m_lua_state, nullptr, this, "on_response", std::tie(), context_id, status, body);
+}
+
+///////////////////////////////////////////////////////////////////////////////////
 http_server::http_server(lua_State* L) :m_lvm(L), m_svr()
 {
 }

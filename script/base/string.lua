@@ -10,7 +10,7 @@ local slower    = string.lower
 local sformat   = string.format
 
 --------------------------------------------------------------------------------
-function quanta_extend.parse(str)
+function string_ext.parse(str)
     if str == nil then
         str = tostring(str)
     elseif type(str) ~= "string" then
@@ -23,15 +23,15 @@ function quanta_extend.parse(str)
 end
 
 
-function quanta_extend.title(value)
+function string_ext.title(value)
     return supper(ssub(value, 1, 1)) .. ssub(value, 2, #value)
 end
 
-function quanta_extend.untitle(value)
+function string_ext.untitle(value)
     return slower(ssub(value, 1, 1)) .. ssub(value, 2, #value)
 end
 
-function quanta_extend.split(str, token)
+function string_ext.split(str, token)
     local t = {}
     while #str > 0 do
         local pos = sfind(str, token)

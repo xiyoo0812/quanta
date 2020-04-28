@@ -1,4 +1,8 @@
 --cfg_table.lua
+local next          = next
+local pairs         = pairs
+local ipairs        = ipairs
+local sformat       = string.format
 local tinsert       = table.insert
 local tconcat       = table.concat
 local log_err       = logger.err
@@ -11,17 +15,17 @@ local prop = property(ConfigTable)
 prop:reader("name", nil)
 prop:reader("rows", {})
 prop:reader("indexs", {})
-prop:accessor("version", 0)
+prop:reader("version", 0)
 
 -- 初始化一个配置表，indexs最多支持三个
-function ConfigTable:__init(tab_name, indexs)
-    local size = #indexs
-    if size <= 0 and size >= TABLE_MAX_INDEX then
-        self.name = tab_name
-        self.indexs = indexs
-        import("config/" .. self.name .. ".lua")
+function ConfigTable:__init(name, ...)
+    local size = select("#", ...)
+    if size > 0 and size < TABLE_MAX_INDEX then
+        self.name = name
+        self.indexs = {...}
+        import(sformat("config/%s_cfg.lua", name))
     else
-        log_err("[ConfigTable][init_table] keys len illegal. tab_name=%s, size=%s", tab_name, size)
+        log_err("[ConfigTable][init_table] keys len illegal. name=%s, size=%s", name, size)
     end
 end
 
@@ -38,7 +42,7 @@ function ConfigTable:upsert(row)
         log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", serialize(row), serialize(self.indexs))
         return
     end
-    local row_index = tconcat(indexs, "_")
+    local row_index = tconcat(indexs, "@@")
     if row_index then
         self.rows[row_index] = row
     end
@@ -47,14 +51,14 @@ end
 -- 获取一项，
 -- query{ val1, val2, val3}，必须与初始化index对应。
 function ConfigTable:find_one(query)
-    local row_index = tconcat(query, "_")
+    local row_index = tconcat(query, "@@")
     if row_index then
         return self.rows[row_index]
     end
 end
 
 -- 获取所有项，参数{field1=val1,field2=val2,field3=val3}，与初始化index无关
-function ConfigTable:select(query)
+function ConfigTable:select(query, single)
     local rows = {}
     for _, row in pairs(self.rows) do
         for field, value in pairs(query or {}) do
@@ -63,9 +67,25 @@ function ConfigTable:select(query)
             end
         end
         tinsert(rows, row)
+        if single then
+            return rows
+        end
         ::continue::
     end
     return rows
+end
+
+--迭代器
+function ConfigTable:iterator()
+    local index = nil
+    local rows = self.rows
+    local function iter()
+        index = next(rows, index)
+        if index then
+            return index, rows[index]
+        end
+    end
+    return iter
 end
 
 return ConfigTable

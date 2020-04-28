@@ -2,14 +2,13 @@
 local pairs             = pairs
 local ipairs            = ipairs
 local mrandom           = math.random
-local ssplit            = quanta_extend.split
+local ssplit            = string_ext.split
 local tunpack           = table.unpack
 local tinsert           = table.insert
-local signal_quit       = signal.quit
-local sid2name          = service.id2name
 local smake_id          = service.make_id
-local sget_group        = service.get_group
-local services          = service.groups
+local sid2nick          = service.id2nick
+local sid2name          = service.id2name
+local sname2sid         = service.name2sid
 local log_err           = logger.err
 local log_info          = logger.info
 local uhash_code        = utility.hash_code
@@ -34,7 +33,7 @@ local LUC_RPC_TYPE_REQ  = 0 --lua rpc 请求类型
 local LUC_RPC_TYPE_RES  = 1 --lua rpc 响应类型
 
 local RouterGroup = class()
-function RouterGroup:__init(routers_addr)
+function RouterGroup:__init()
     self.master             = nil
     self.routers            = {}
     self.candidates         = {}
@@ -42,29 +41,31 @@ function RouterGroup:__init(routers_addr)
     self.watch_reg_server   = {}
     self.rpc_timeout        = LUA_RPC_TIMEOUT
 
-    self:setup(routers_addr)
+    self:setup()
 end
 
 --初始化
-function RouterGroup:setup(routers_addr)
-    self:update_routers(routers_addr)
+function RouterGroup:setup()
     --心跳定时器
     timer_mgr:loop(PERIOD_HEARTBEAT, function()
         self:call_router_all("heartbeat")
     end)
+    --添加帧更新
+    quanta.join(self)
 end
 
-function RouterGroup:update_routers(routers_addr)
-    for _, data in ipairs(routers_addr) do
-        local router_id = smake_id(services.router, data.index)
-        if not self.routers[router_id] then
-            local ip, port = tunpack(ssplit(data.addr, ":"))
-            self.routers[router_id] = {addr = data.addr, ip=ip, port=port, next_connect_time=0, router_id = router_id }
-        end
+--添加router
+function RouterGroup:add_router(router_conf)
+    local service_id = sname2sid("router")
+    local router_id = smake_id(service_id, router_conf.index)
+    if not self.routers[router_id] then
+        local ip, port = tunpack(ssplit(router_conf.addr, ":"))
+        self.routers[router_id] = {addr = router_conf.addr, ip=ip, port=port, next_connect_time=0, router_id = router_id }
     end
 end
 
-function RouterGroup:on_call_luabus(rpc, send_len)
+--调用router后续处理
+function RouterGroup:on_call_router(rpc, send_len)
     if send_len > 0 then
         statis_mgr:statis_notify("on_rpc_send", rpc, send_len)
         return true, send_len
@@ -84,27 +85,27 @@ function RouterGroup:connect(node)
     end
     socket.call_lua = function(rpc, ...)
         local send_len = socket.call(0, LUC_RPC_TYPE_REQ, quanta.id, rpc, ...)
-        return self:on_call_luabus(rpc, send_len)
+        return self:on_call_router(rpc, send_len)
     end
     socket.call_target = function(session_id, target, rpc, ...)
         local send_len = socket.forward_target(session_id, LUC_RPC_TYPE_REQ, quanta.id, target, rpc, ...)
-        return self:on_call_luabus(rpc, send_len)
+        return self:on_call_router(rpc, send_len)
     end
     socket.callback_target = function(session_id, target, rpc, ...)
         local send_len = socket.forward_target(session_id, LUC_RPC_TYPE_RES, quanta.id, target, rpc, ...)
-        return self:on_call_luabus(rpc, send_len)
+        return self:on_call_router(rpc, send_len)
     end
-    socket.call_hash = function(session_id, group, hash_key, rpc, ...)
-        local send_len = socket.forward_hash(session_id, LUC_RPC_TYPE_REQ, quanta.id, group, hash_key, rpc, ...)
-        return self:on_call_luabus(rpc, send_len)
+    socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
+        local send_len = socket.forward_hash(session_id, LUC_RPC_TYPE_REQ, quanta.id, service_id, hash_key, rpc, ...)
+        return self:on_call_router(rpc, send_len)
     end
-    socket.call_master = function(session_id, group, rpc, ...)
-        local send_len = socket.forward_master(session_id, LUC_RPC_TYPE_REQ, quanta.id, group, rpc, ...)
-        return self:on_call_luabus(rpc, send_len)
+    socket.call_master = function(session_id, service_id, rpc, ...)
+        local send_len = socket.forward_master(session_id, LUC_RPC_TYPE_REQ, quanta.id, service_id, rpc, ...)
+        return self:on_call_router(rpc, send_len)
     end
-    socket.call_broadcast = function(session_id, group, rpc, ...)
-        local send_len = socket.forward_broadcast(session_id, LUC_RPC_TYPE_REQ, quanta.id, group, rpc, ...)
-        return self:on_call_luabus(rpc, send_len)
+    socket.call_broadcast = function(session_id, service_id, rpc, ...)
+        local send_len = socket.forward_broadcast(session_id, LUC_RPC_TYPE_REQ, quanta.id, service_id, rpc, ...)
+        return self:on_call_router(rpc, send_len)
     end
     socket.on_error = function(err)
         qxpcall(self.socket_on_error, "socket_on_error: %s", self, node, err)
@@ -214,8 +215,8 @@ function RouterGroup:forward_router(method, node, session_id, ...)
     return false, "router not connected"
 end
 
-function RouterGroup:forward_broadcast(group, rpc, ...)
-    return self:forward_router("call_broadcast", self.master, 0, group, rpc, ...)
+function RouterGroup:forward_broadcast(service_id, rpc, ...)
+    return self:forward_router("call_broadcast", self.master, 0, service_id, rpc, ...)
 end
 
 --发送给router all
@@ -271,9 +272,6 @@ function RouterGroup:hash_router(hash_key)
     end
 end
 
---类似于call_target,但是不走当前router,而是随机
---注意,有时序不一致的风险,如果调用此函数,请确保你知道意味着什么
---一般用于分散出口流量,减少单个进程往某个router输出流量过大的风险
 function RouterGroup:random_call(target, rpc, ...)
     local node = self:random_router()
     local session_id = thread_mgr:build_session_id()
@@ -296,71 +294,66 @@ function RouterGroup:router_send(router_id, target, rpc, ...)
     return self:forward_router("call_target", node, 0, target, rpc, ...)
 end
 
---发送给指定组的hash
-function RouterGroup:call_hash(group, hash_key, rpc, ...)
+--发送给指定service的hash
+function RouterGroup:call_hash(service_id, hash_key, rpc, ...)
     local hash_node = self:hash_router(hash_key)
     local session_id = thread_mgr:build_session_id()
-    return self:forward_router("call_hash", hash_node, session_id, group, hash_key, rpc, ...)
+    return self:forward_router("call_hash", hash_node, session_id, service_id, hash_key, rpc, ...)
 end
 
---发送给指定组的hash
-function RouterGroup:send_hash(group, hash_key, rpc, ...)
+--发送给指定service的hash
+function RouterGroup:send_hash(service_id, hash_key, rpc, ...)
     local hash_node = self:hash_router(hash_key)
-    return self:forward_router("call_hash", hash_node, 0, group, hash_key, rpc, ...)
+    return self:forward_router("call_hash", hash_node, 0, service_id, hash_key, rpc, ...)
 end
 
---发送给指定组的master
-function RouterGroup:call_master(group, rpc, ...)
+--发送给指定service的master
+function RouterGroup:call_master(service_id, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return self:forward_router("call_master", self.master, session_id, group, rpc, ...)
+    return self:forward_router("call_master", self.master, session_id, service_id, rpc, ...)
 end
 
---发送给指定组的master
-function RouterGroup:send_master(group, rpc, ...)
-    return self:forward_router("call_master", self.master, 0, group, rpc, ...)
+--发送给指定service的master
+function RouterGroup:send_master(service_id, rpc, ...)
+    return self:forward_router("call_master", self.master, 0, service_id, rpc, ...)
 end
 
---监听服务器断开
-function RouterGroup:watch_server_close(listener, group)
-    if not self.watch_server[group] then
-        self.watch_server[group] = {}
+--监听服务断开
+function RouterGroup:watch_service_close(listener, service_id)
+    if not self.watch_server[service_id] then
+        self.watch_server[service_id] = {}
     end
-    self.watch_server[group][listener] = true
+    self.watch_server[service_id][listener] = true
 end
 
---监听服务器注册
-function RouterGroup:watch_server_register(listener, group)
-    if not self.watch_reg_server[group] then
-        self.watch_reg_server[group] = {}
+--监听服务注册
+function RouterGroup:watch_service_register(listener, service_id)
+    if not self.watch_reg_server[service_id] then
+        self.watch_reg_server[service_id] = {}
     end
-    self.watch_reg_server[group][listener] = true
+    self.watch_reg_server[service_id][listener] = true
 end
 
 --rpc
 -------------------------------------------------------------------
 --服务器关闭
-function RouterGroup:server_close(id)
-    log_info("RouterGroup:server_close->name:%s", sid2name(id))
-
-    local group = sget_group(id)
-    local listener_set = self.watch_server[group]
-    if not listener_set then return end
-
-    for listener in pairs(listener_set) do
-        if listener and type(listener.on_server_close) == "function" then
-            listener:on_server_close(id, group)
+function RouterGroup:service_close(id)
+    log_info("RouterGroup:service_close->name:%s", sid2nick(id))
+    local ser_name = sid2name(id)
+    local listener_set = self.watch_server[ser_name]
+    for listener in pairs(listener_set or {}) do
+        if listener and type(listener.on_service_close) == "function" then
+            listener:on_service_close(id, ser_name)
         end
     end
 end
 
 --服务器注册
-function RouterGroup:server_register(id, group, router_id)
-    local listener_set = self.watch_reg_server[group]
-    if not listener_set then return end
-
-    for listener in pairs(listener_set) do
-        if listener and type(listener.on_server_register) == "function" then
-            listener:on_server_register(id, group, router_id)
+function RouterGroup:service_register(id, ser_name, router_id)
+    local listener_set = self.watch_reg_server[ser_name]
+    for listener in pairs(listener_set or {}) do
+        if listener and type(listener.on_service_register) == "function" then
+            listener:on_service_register(id, ser_name, router_id)
         end
     end
 end

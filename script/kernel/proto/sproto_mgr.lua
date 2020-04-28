@@ -8,7 +8,7 @@ local open_file     = io.open
 local sfind         = string.find
 local tunpack       = table.unpack
 local log_err       = logger.err
-local ssplit        = quanta_extend.split
+local ssplit        = string_ext.split
 
 local SprotoMgr = singleton()
 function SprotoMgr:__init()

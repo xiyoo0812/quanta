@@ -32,7 +32,7 @@ local function encrypt(lua_dir, encrypt_dir)
     end
 end
 
-if hive.platform == "linux" then
+if quanta.platform == "linux" then
     local encrypt_dir = lcurdir() .. slash .. "encrypt_lua"
     lmkdir(encrypt_dir)
 

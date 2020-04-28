@@ -10,61 +10,79 @@ local sfind     = string.find
 local sformat   = string.format
 local log_warn  = logger.warn
 
+local config_mgr = quanta.config_mgr
+
 --服务组常量
-local GROUPS = {}
-local GROUP_NAMES = {}
+local SERVICES = {}
+local SERVICE_NAMES = {}
+local service_tab = config_mgr:get_table("service")
 
 service = {}
-service.groups = GROUPS
+service.ids = SERVICES
 
 --定义服务器组
-function service.define(group, group_name)
-    if GROUP_NAMES[group] then
-        log_warn("[service][define] redefine group: %d, name: %s", group, group_name)
+function service.init(name)
+    for _, conf in service_tab:iterator() do
+        SERVICES[conf.name] = conf.id
+        SERVICE_NAMES[conf.id] = conf.name
     end
-    GROUPS[group_name] = group
-    GROUP_NAMES[group] = group_name
+    return SERVICES[name]
 end
 
-function service.make_id(group, index)
-    return (group << 16) | index
+--生成节点id
+function service.make_id(service_id, index)
+    return (service_id << 16) | index
 end
 
--- max : 255
-function service.get_group(sid)
-    return (sid >> 16) & 0xff
+--获取节点路由组
+function service.router_group(quanta_id)
+    local group_id = (quanta_id >> 16) & 0xff
+    local conf = service_tab:find_one(group_id)
+    if conf then
+        return conf.router_group
+    end
 end
 
-function service.get_name_by_id(sid)
-    return GROUP_NAMES[sid >> 16]
+--节点id获取服务id
+function service.id2sid(quanta_id)
+    return (quanta_id >> 16) & 0xff
 end
 
-function service.get_name(group)
-    return GROUP_NAMES[group]
+--节点id转服务名
+function service.id2name(quanta_id)
+    return SERVICE_NAMES[quanta_id >> 16]
 end
 
--- max : 1023
-function service.get_index(sid)
-    return sid & 0x3ff
+--服务id转服务名
+function service.sid2name(service_id)
+    return SERVICE_NAMES[service_id]
 end
 
-function service.id2name(sid)
-    if sid == nil or sid == 0 then
+--服务名转服务id
+function service.name2sid(name)
+    return SERVICES[name]
+end
+
+--节点id获取服务index
+function service.id2index(quanta_id)
+    return quanta_id & 0x3ff
+end
+
+--节点id转服务昵称
+function service.id2nick(quanta_id)
+    if quanta_id == nil or quanta_id == 0 then
         return "nil"
     end
-    local group = sid >> 16
-    local index = sid & 0x3ff
-    return sformat("%s_%s", GROUP_NAMES[group], index)
+    local index = quanta_id & 0x3ff
+    local service_id = quanta_id >> 16
+    return sformat("%s_%s", SERVICE_NAMES[service_id], index)
 end
 
-function service.name2id(name)
-    local pos = sfind(name, "_")
-    local gname = ssub(name, 1, pos - 1)
-    local index = ssub(name, pos + 1, #name)
-    local group = GROUPS[gname]
-    return service.make_id(group, tonumber(index))
+--服务昵称转节点id
+function service.nick2id(nick)
+    local pos = sfind(nick, "_")
+    local sname = ssub(nick, 1, pos - 1)
+    local index = ssub(nick, pos + 1, #nick)
+    return service.make_id(SERVICES[sname], tonumber(index))
 end
 
-function service.get_group_by_name(name)
-    return GROUPS[name]
-end
