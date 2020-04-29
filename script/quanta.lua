@@ -1,9 +1,9 @@
 --quanta_frame.lua
-local lbus = require("luabus")
 import("base/base.lua")
 import("utility/signal.lua")
 import("utility/service.lua")
 import("utility/environ.lua")
+import("utility/constant.lua")
 import("utility/utility.lua")
 import("kernel/perfeval_mgr.lua")
 import("kernel/thread_mgr.lua")
@@ -83,6 +83,7 @@ function quanta.init(service_name, opts, protos, enums)
     math.randomseed(quanta.start_time)
 
     -- 网络模块初始化
+    local lbus = require("luabus")
     local max_conn = environ.number("ENV_MAX_CONNECTION")
     socket_mgr = lbus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr

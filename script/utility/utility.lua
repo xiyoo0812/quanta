@@ -9,7 +9,7 @@ local dtraceback    = debug.traceback
 local log_err       = logger.err
 local new_guid      = guid.new
 
-local SUCCESS       = 0
+local SUCCESS       = quanta.err_code.SUCCESS
 
 utility = {}
 function utility.check_success(code)

@@ -99,7 +99,7 @@ local function log_write(cate, color, fmt, ...)
         return
     end
     log_line_count = log_line_count + 1
-    listener:notify_trigger("log_output", line)
+    listener:notify_trigger("on_log_output", line)
 end
 
 -- 字体颜色

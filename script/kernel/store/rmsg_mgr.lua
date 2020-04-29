@@ -1,13 +1,13 @@
 --rmsg_mgr.lua
-import("agent/mongo.lua")
+import("store/mongo_proxy.lua")
 
 local tsort     = table.sort
-local errcode   = err.Code
 local new_guid  = guid.new
 local log_err   = logger.err
 local log_info  = logger.info
 
-local mongo_agent = quanta.mongo_agent
+local mongo_proxy   = quanta.mongo_proxy
+local check_success = utility.check_success
 
 local RmsgMgr = class()
 
@@ -19,8 +19,8 @@ end
 -- 查询未处理消息列表
 function RmsgMgr:list_message(to)
     local query = {self.db_table_name, {to = to, deal_time = 0}, {_id = 0}}
-    local ok, code, result = mongo_agent:find(to, query)
-    if ok and code == errcode.SUCCESS then
+    local ok, code, result = mongo_proxy:find(to, query)
+    if ok and check_success(code) then
         tsort(result, function(a, b)
             return a.time < b.time
         end)
@@ -32,13 +32,13 @@ end
 function RmsgMgr:deal_message(to, uuid)
     log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
     local query = {self.db_table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid}}
-    mongo_agent:update(to, query)
+    mongo_proxy:update(to, query)
 end
 
 -- 删除消息
 function RmsgMgr:delete_message(to, uuid)
     log_info("[RmsgMgr][delete_message] delete message: %s", uuid)
-    mongo_agent:delete(to, {self.db_table_name, {uuid = uuid}})
+    mongo_proxy:delete(to, {self.db_table_name, {uuid = uuid}})
 end
 
 -- 发送消息
@@ -51,7 +51,7 @@ function RmsgMgr:send_message(from, to, typ, body, id)
         time = quanta.now,
         deal_time = 0,
     }
-    local ok = mongo_agent:insert(to, {self.db_table_name, doc})
+    local ok = mongo_proxy:insert(to, {self.db_table_name, doc})
     if not ok then
         log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
     else

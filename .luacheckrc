@@ -5,7 +5,8 @@ stds.quanta = {
         "tonubmer", "lfs", "util", "coroutine",
         "quanta_const", "table_ext", "string_ext", "math_ext",
         "quanta", "environ", "signal", "http", "guid", "luabt", "service", "logger", "utility", "platform",
-        "import", "class", "interface", "property", "singleton", "super", "implemented", "classof", "is_class", "is_subclass", "instanceof", "conv_class",
+        "import", "class", "enum", "interface", "property", "singleton", "super", "implemented", 
+        "classof", "is_class", "is_subclass", "instanceof", "conv_class",
     }
 }
 std = "max+quanta"

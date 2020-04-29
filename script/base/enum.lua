@@ -32,35 +32,29 @@ local function enum_tostring(eo)
     return sformat("enum:%s(max:%s, list:%s)", eo.__name, eo.__vmax, serialize(eo.__vlist))
 end
 
-local function enum_new(enum, field, value)
-    value = value or enum.__vmax
+local function enum_new(emobj, field, value)
+    value = value or emobj.__vmax
     if field then
-        enum.__vlist[field] = value
-        if value >= enum.__vmax then
-            enum.__vmax = value + 1
+        emobj.__vlist[field] = value
+        if value >= emobj.__vmax then
+            emobj.__vmax = value + 1
         end
     end
     return value
 end
 
-local function enum_index(enum, field)
-    return enum.__vlist[field]
+local function enum_index(emobj, field)
+    return emobj.__vlist[field]
 end
 
-local function enum_newindex(enum, field, value)
-    enum.__vlist[field] = value
-    if value >= enum.__vmax then
-        enum.__vmax = value + 1
+local function enum_newindex(emobj, field, value)
+    local vlist = emobj.__vlist
+    if vlist[field] then
+        log_warn("enum %s redefine field %s!", emobj.__name, field)
     end
-end
-
-local function enum_init(enum, base, ...)
-    enum.__vlist = {}
-    enum.__vmax = base
-    local values = { ... }
-    for _, key in ipairs(values) do
-        enum.__vlist[key] = enum.__vmax
-        enum.__vmax = enum.__vmax + 1
+    vlist[field] = value
+    if value >= emobj.__vmax then
+        emobj.__vmax = value + 1
     end
 end
 
@@ -71,29 +65,35 @@ local enumMT = {
     __tostring = enum_tostring,
 }
 
-local function enum_list(em)
-    local elist = rawget(em, "__list")
+local function enum_init(emobj, base, ...)
+    emobj.__vlist = {}
+    emobj.__vmax = base
+    for _, field in ipairs({ ... }) do
+        emobj.__vlist[field] = emobj.__vmax
+        emobj.__vmax = emobj.__vmax + 1
+    end
+end
+
+local function enum_list(enums)
+    local elist = rawget(enums, "__list")
     if not elist then
         elist = {}
-        rawset(em, "__list", elist)
+        rawset(enums, "__list", elist)
     end
     return elist
 end
 
-local function new(em, name, base, ...)
+local function new(enums, name, base, ...)
     local info = dgetinfo(2, "S")
     local moudle = info.short_src
-    local lists = enum_list(em)
+    local lists = enum_list(enums)
     local eobj = lists[name]
-    if not eobj then
-        eobj = {
-            __name = name,
-            __moudle = moudle,
-        }
-    else
+    if eobj then
         if eobj.__moudle ~= moudle then
             log_warn("enum %s redefined! moudle:%s", name, moudle)
         end
+    else
+        eobj = { __name = name, __moudle = moudle }
     end
     enum_init(eobj, base, ...)
     setmetatable(eobj, enumMT)
@@ -101,20 +101,21 @@ local function new(em, name, base, ...)
     return eobj
 end
 
-local function index(em, field)
-    local lists = enum_list(em)
+local function index(enums, field)
+    local lists = enum_list(enums)
     return lists[field]
-end
-
-local function newindex(em, field, value)
-    local lists = enum_list(em)
-    lists[field] = value
 end
 
 local MT = {
     __call = new,
     __index = index,
-    __newindex = newindex
 }
+setmetatable(enums, MT)
 
-return setmetatable(enums, MT)
+function enum(name, base, ...)
+    if base then
+        return enums(name, base, ...)
+    end
+    --没有传base参数表示查询
+    return enums[name]
+end
