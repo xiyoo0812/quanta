@@ -1,16 +1,16 @@
 --quanta_frame.lua
-import("base/base.lua")
+import("basic/basic.lua")
 import("utility/signal.lua")
 import("utility/service.lua")
 import("utility/environ.lua")
 import("utility/constant.lua")
 import("utility/utility.lua")
-import("kernel/perfeval_mgr.lua")
-import("kernel/thread_mgr.lua")
-import("kernel/timer_mgr.lua")
+import("kernel/statis/perfeval_mgr.lua")
+import("kernel/basic/thread_mgr.lua")
+import("kernel/basic/timer_mgr.lua")
+import("kernel/statis/statis_mgr.lua")
 import("kernel/proto/sproto_mgr.lua")
 import("kernel/proto/protobuf_mgr.lua")
-import("kernel/statis/statis_mgr.lua")
 
 local pairs         = pairs
 local otime         = os.time

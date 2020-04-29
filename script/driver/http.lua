@@ -5,8 +5,9 @@ local pairs         = pairs
 local tinsert       = table.insert
 local tconcat       = table.concat
 local sformat       = string.format
-local log_debug     = logger.debug
+local log_err       = logger.err
 local log_warn      = logger.warn
+local log_debug     = logger.debug
 local serialize     = logger.serialize
 
 local thread_mgr    = quanta.thread_mgr
@@ -38,15 +39,15 @@ local function url_format(path, querys)
 end
 
 local http = {}
-quanta.http = http
 
 --创建client对象
-http.client = lhttp.client()
+local client = lhttp.client()
 --设置回调
-http.client.on_response = function(session_id, status, body)
+client.on_response = function(session_id, status, body)
     thread_mgr:response(session_id, true, status, body)
 end
-quanta.join(http.client)
+--加入帧更新
+quanta.join(client)
 
 --get接口
 http.call_get = function(url, querys, headers)
@@ -54,7 +55,7 @@ http.call_get = function(url, querys, headers)
     local full_url = url_format(url, querys)
 
     local session_id = thread_mgr:build_session_id()
-    local ok, err = http.client.get(full_url, "", headers, session_id)
+    local ok, err = client.get(full_url, "", headers, session_id)
     if ok then
         return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
     else
@@ -69,7 +70,7 @@ http.call_post = function(url, querys, post_data, headers)
     local full_url = url_format(url, querys)
 
     local session_id = thread_mgr:build_session_id()
-    local ok, err = http.client.post(full_url, post_data, headers, session_id)
+    local ok, err = client.post(full_url, post_data, headers, session_id)
     if ok then
         return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
     else
@@ -84,7 +85,7 @@ http.server = function()
         log_debug("[httpsvr][logger]: %s, %s, %s, %s, %s", path, serialize(header), body, status, res)
     end
     server.on_error = function(path, header, body, status, res)
-        log_debug("[httpsvr][error]: %s, %s, %s, %s, %s", path, serialize(header), body, status, res)
+        log_err("[httpsvr][error]: %s, %s, %s, %s, %s", path, serialize(header), body, status, res)
     end
     server.error("on_error")
     server.logger("on_logger")
@@ -92,3 +93,7 @@ http.server = function()
     quanta.join(server)
     return server
 end
+
+quanta.http = http
+
+return http

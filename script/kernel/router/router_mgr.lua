@@ -1,7 +1,7 @@
 --本文件供除router以外的所有服务进程共同引用
 --主要定义了各种rpc工具函数
 
-local Listener      = import("base/listener.lua")
+local Listener      = import("basic/listener.lua")
 local RouterGroup   = import("kernel/router/router_group.lua")
 
 local pairs         = pairs

@@ -1,10 +1,10 @@
 --etcd.lua
-import("common/http.lua")
 local ljson = require("luacjson")
+local http  = import("driver/http.lua")
 ljson.encode_sparse_array(true)
 
+local sformat       = string.format
 local json_encode   = ljson.encode
-local args_format   = http.args_format
 
 local contont_type  = "application/x-www-form-urlencoded"
 
@@ -16,10 +16,9 @@ local CLIENT_ENDPOINTS = {
     stats_leader    = '/v2/stats/leader',
 }
 
-
 local Etcd = class()
-function Etcd:__init(etcd_url, port, timeout)
-    self.client = http.client(etcd_url, port, timeout)
+function Etcd:__init(etcd_url)
+    self.etcd_url = etcd_url
 end
 
 function Etcd:_set(path, value, opts)
@@ -34,12 +33,12 @@ function Etcd:_set(path, value, opts)
     else
         body.value = (type(value) == "table") and json_encode(value) or value
     end
-    local url = CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path
+    local url = sformat("%s%s", self.etcd_url, CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path)
     local ok, status, res
     if opts.inOrder then
-        ok, status, res = self.client.call_post(url, args_format(body), header, contont_type)
+        ok, status, res = http.call_post(url, nil, json_encode(body), header)
     else
-        ok, status, res = self.client.call_put(url, args_format(body), header, contont_type)
+        ok, status, res = http.call_put(url, nil, json_encode(body), header)
     end
     if ok and (status == 200 or status == 201) then
         return true, res
@@ -56,7 +55,7 @@ function Etcd:_get(path, opts)
         consistent = opts.consistent,
     }
     local url = CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path
-    local ok, status, res = self.client.call_get(url, query)
+    local ok, status, res = http.call_get(url, query)
     if ok and status == 200 then
         return true, res
     end
@@ -71,8 +70,8 @@ function Etcd:_del(path, opts)
         prevIndex = opts.prevIndex,
         prevValue = opts.prevValue and json_encode(opts.prevValue) or nil
     }
-    local url = CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path
-    local ok, status, res = self.client.call_del(url, "", query)
+    local url = sformat("%s%s", self.etcd_url, CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path)
+    local ok, status, res = http.call_del(url, "", query)
     if ok and status == 200 then
         return true, res
     end
@@ -202,7 +201,8 @@ function Etcd:setTTL(key, ttl)
             dir = old.node.dir,
             value = old.node.value
         }
-        local ok, status, res = self.client.call_put(key, json_encode(body), header)
+        local url = sformat("%s%s", self.etcd_url, key)
+        local ok, status, res = http.call_put(url, nil, json_encode(body), header)
         if ok and status == 200 then
             return true, res
         end

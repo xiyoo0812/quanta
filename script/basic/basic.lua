@@ -1,18 +1,18 @@
---base.lua
+--basic.lua
 
-import("base/math.lua")
-import("base/table.lua")
-import("base/string.lua")
-import("base/logger.lua")
-import("base/guid.lua")
-import("base/enum.lua")
-import("base/class.lua")
-import("base/interface.lua")
-import("base/property.lua")
+import("basic/math.lua")
+import("basic/table.lua")
+import("basic/string.lua")
+import("basic/logger.lua")
+import("basic/guid.lua")
+import("basic/enum.lua")
+import("basic/class.lua")
+import("basic/interface.lua")
+import("basic/property.lua")
 
 local log_err       = logger.err
 local dtraceback    = debug.traceback
-local Listener      = import("base/listener.lua")
+local Listener      = import("basic/listener.lua")
 
 --函数装饰器: 保护性的调用指定函数,如果出错则写日志
 --主要用于一些C回调函数,它们本身不写错误日志
@@ -21,7 +21,7 @@ function quanta.xpcall(func, format, ...)
     local ok, err = xpcall(func, dtraceback, ...)
     if not ok then
         log_err(format, err)
-        listener:notify_trigger("report_feishu", "代码异常", err)
+        listener:notify_trigger("on_feishu_log", "代码异常", err)
     end
 end
 
