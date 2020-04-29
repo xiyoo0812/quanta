@@ -14,7 +14,6 @@
     <ClInclude Include="src\quanta.h" />
     <ClInclude Include="src\lfs.h" />
     <ClInclude Include="src\tools.h" />
-    <ClInclude Include="src\stdafx.h" />
     <ClInclude Include="src\util.h" />
   </ItemGroup>
   <ItemGroup>
@@ -22,10 +21,6 @@
     <ClCompile Include="src\lfs.cpp" />
     <ClCompile Include="src\tools.cpp" />
     <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">Create</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="src\util.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -86,7 +81,7 @@
       <AdditionalIncludeDirectories>../../extend/lua/src;../luna/src;../luabus/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4251;4996</DisableSpecificWarnings>
@@ -114,7 +109,7 @@ copy /y $(TargetPath) ..\..\tools\</Command>
       <AdditionalIncludeDirectories>../../extend/lua/src;../luna/src;../luabus/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4251;4996</DisableSpecificWarnings>

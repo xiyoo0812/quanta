@@ -22,6 +22,8 @@ using uint64_t = unsigned long long;
 #include <netdb.h>
 #include <sys/stat.h>
 using BYTE = unsigned char;
+#else
+#include <windows.h>
 #endif
 
 #include <string>

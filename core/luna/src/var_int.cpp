@@ -4,7 +4,6 @@
 */
 #include <stddef.h>
 #include <stdint.h>
-#include "stdafx.h"
 #include "var_int.h"
 
 size_t encode_u64(unsigned char* buffer, size_t buffer_size, uint64_t value)

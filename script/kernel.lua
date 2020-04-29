@@ -1,4 +1,5 @@
 --quanta_frame.lua
+require("sandbox.lua")
 import("basic/basic.lua")
 import("utility/signal.lua")
 import("utility/service.lua")

@@ -19,7 +19,6 @@
 **   lfs.unlock (fh)
 */
 
-#include "stdafx.h"
 #ifndef LFS_DO_NOT_USE_LARGE_FILE
 #ifndef _WIN32
 #ifndef _AIX

@@ -3,7 +3,6 @@
 ** trumanzhao, 2016/10/19, trumanzhao@foxmail.com
 */
 
-#include "stdafx.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>

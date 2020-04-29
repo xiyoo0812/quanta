@@ -3,7 +3,6 @@
 ** trumanzhao, 2017-05-13, trumanzhao@foxmail.com
 */
 
-#include "stdafx.h"
 #include <stdio.h>
 #include <locale>
 #include "tools.h"

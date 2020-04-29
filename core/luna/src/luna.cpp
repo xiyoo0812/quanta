@@ -3,7 +3,6 @@
 ** trumanzhao, 2016/06/18, trumanzhao@foxmail.com
 */
 
-#include "stdafx.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 #ifdef __linux

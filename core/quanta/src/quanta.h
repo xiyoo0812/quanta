@@ -31,8 +31,8 @@ public:
 public:
     void __gc() { } // custom gc, just do nothing
     void set_signal(int n);
-    void die(const std::string& err);
     void run(int argc, const char* argv[]);
+    void load_config(const char* config);
 
     DECLARE_LUA_CLASS(quanta_app);
 private:

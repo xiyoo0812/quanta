@@ -247,6 +247,3 @@ quanta.input = function(ch)
         end
     end
 end
-
-quanta.print = logger.debug
-quanta.error = logger.err

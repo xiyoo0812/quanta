@@ -3,7 +3,6 @@
 ** trumanzhao, 2017-05-13, trumanzhao@foxmail.com
 */
 
-#include "stdafx.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -17,6 +16,7 @@
 #include "util.h"
 #if WIN32
 #include <conio.h>
+#define setenv(k,v,o) _putenv_s(k, v);
 #endif
 
 quanta_app* g_app = nullptr;
@@ -141,125 +141,6 @@ void quanta_app::set_signal(int n)
     m_signal |= mask;
 }
 
-static const char* g_sandbox = u8R"__(
-local pcall     = pcall
-local pairs     = pairs
-local loadfile  = loadfile
-local otime     = os.time
-local mabs      = math.abs
-local ssub      = string.sub
-local sfind     = string.find
-local sformat   = string.format
-local file_time = quanta.get_file_time
-local full_path = quanta.get_full_path
-
-quanta.files      = {}
-quanta.scriptpath = ""
-
-quanta.print = function(fmt, ...)
-    print(...)
-end
-quanta.error = function(fmt, ...)
-    print(...)
-end
-
-local try_load = function(node)
-    local fullpath = node.fullpath
-    local filename = node.filename
-    local trunk, msg = loadfile(fullpath)
-    if not trunk then
-        quanta.error(sformat("load file: %s ... ... [failed]", filename))
-        quanta.error(msg)
-        return
-    end
-    local ok, res_or_err = pcall(trunk)
-    if not ok then
-        quanta.error(sformat("exec file: %s ... ... [failed]", filename))
-        quanta.error(res_or_err)
-        return
-    end
-    if node.res then
-        --使用复制方式热更新
-        for field, value in pairs(res_or_err) do
-            node.res[field] = value
-        end
-    else
-        node.res = res_or_err
-    end
-    print(sformat("load file: %s ... ... [ok]", filename))
-end
-
-local get_filenode = function(filename)
-    local withroot = quanta.scriptpath .. filename
-    local fullpath = full_path(withroot) or withroot
-    local node = quanta.files[fullpath]
-    if node then
-        return node
-    end
-    node = {fullpath=fullpath, filename=filename}
-    quanta.files[fullpath] = node
-    return node
-end
-
-quanta.import = function(filename)
-    local node = get_filenode(filename)
-    if node.time then
-        return
-    end
-    node.time = file_time(node.fullpath)
-    local trunk, code_err = loadfile(node.fullpath)
-    if not trunk then
-        quanta.error(code_err)
-        return
-    end
-    local i, j = sfind(filename, '/')
-    if i and j then
-        quanta.scriptpath = ssub(filename, 1, i)
-    end
-    local ok, err = pcall(trunk)
-    if not ok then
-        quanta.error(err)
-    end
-end
-
-function import(filename)
-    local node = get_filenode(filename)
-    if not node.time then
-        node.time = file_time(node.fullpath)
-        try_load(node)
-    end
-    return node.res
-end
-
-quanta.reload = function()
-    local now = otime()
-    for path, node in pairs(quanta.files) do
-        local filetime = file_time(node.fullpath)
-        if filetime ~= node.time and filetime ~= 0 and mabs(now - filetime) > 1 then
-            node.time = filetime
-            try_load(node)
-        end
-    end
-end
-
-quanta.input = function(cmd)
-    print(cmd)
-end
-)__";
-
-void quanta_app::die(const std::string& err)
-{
-    std::string path = m_entry + ".err";
-    FILE* file = fopen(path.c_str(), "w");
-    if (file != nullptr)
-    {
-        fwrite(err.c_str(), err.length(), 1, file);
-        fclose(file);
-    }
-    fprintf(stderr,"%s", err.c_str());
-    exit(1);
-}
-
 void quanta_app::check_input(lua_State* L)
 {
 #ifdef WIN32
@@ -279,16 +160,39 @@ void quanta_app::check_input(lua_State* L)
 #endif
 }
 
-void quanta_app::run(int argc, const char* argv[])
+void quanta_app::load_config(const char* config)
 {
     lua_State* L = luaL_newstate();
-    int64_t last_check = ::get_time_ms();
-    const char* filename = argv[1];
+    luaL_openlibs(L);
+    luaL_dofile(L, config);
+    lua_getglobal(L, "lua_path");
+    const char* lua_path = lua_tostring(L, -1, LUA_PATH_DEFAULT);
+    setenv("LUA_PATH", lua_path, 1);
+    lua_pop(L, 1);
+    lua_getglobal(L, "lua_cpath");
+    const char* lua_cpath = lua_tostring(L, -1, LUA_CPATH_DEFAULT);
+    setenv("LUA_CPATH", lua_cpath, 1);
+    lua_pop(L, 1);
+    lua_getglobal(L, "sandbox");
+    const char* sandbox = lua_tostring(L, -1, "sandbox.lua");
+    setenv("QUANTA_SANDBOX", sandbox, 1);
+    lua_pop(L, 1);
+    lua_getglobal(L, "entry");
+    const char* entry = lua_tostring(L, -1, config);
+    setenv("QUANTA_ENTRY", entry, 1);
+    lua_pop(L, 1);
+    lua_close(L);
+}
 
+void quanta_app::run(int argc, const char* argv[])
+{
+    const char* filename = argv[1];
+    load_config(filename);
+
+    lua_State* L = luaL_newstate();
     luaL_openlibs(L);
 	luaopen_lfs(L);
 	luaopen_util(L);
-    m_entry = filename;
     lua_push_object(L, this);
     lua_push_object(L, this);
     lua_setglobal(L, "quanta");
@@ -302,21 +206,20 @@ void quanta_app::run(int argc, const char* argv[])
 	lua_setfield(L, -2, "args");
 	lua_pushstring(L, get_platform());
 	lua_setfield(L, -2, "platform");
-	
-    luaL_dostring(L, g_sandbox);
+
+    m_entry = getenv("QUANTA_ENTRY");
+    luaL_dofile(L, getenv("QUANTA_SANDBOX"));
+    luaL_dofile(L, m_entry.c_str());
 
     std::string err;
     int top = lua_gettop(L);
 
-    if(!lua_call_object_function(L, &err, this, "import", std::tie(), filename))
-        die(err);
-
+    int64_t last_check = ::get_time_ms();
     while (lua_get_object_function(L, this, "run"))
     {
         check_input(L);
 
-        if(!lua_call_function(L, &err, 0, 0))
-            die(err);
+        lua_call_function(L, &err, 0, 0);
 
         int64_t now = ::get_time_ms();
         if (now > last_check + m_reload_time)
@@ -326,6 +229,5 @@ void quanta_app::run(int argc, const char* argv[])
         }
         lua_settop(L, top);
     }
-
     lua_close(L);
 }

@@ -3,7 +3,6 @@
 ** trumanzhao, 2017-10-26, trumanzhao@foxmail.com
 */
 
-#include "stdafx.h"
 #include <iostream>
 #include <string>
 #include "http.h"

@@ -2,8 +2,6 @@
 ** repository: https://github.com/trumanzhao/luna
 ** trumanzhao, 2016/10/19, trumanzhao@foxmail.com
 */
-
-#include "stdafx.h"
 #include <stdint.h>
 #include <string.h>
 #include <algorithm>
