@@ -40,9 +40,8 @@ function service.make_nick(service, index)
 end
 
 --获取节点路由组
-function service.router_group(quanta_id)
-    local group_id = (quanta_id >> 16) & 0xff
-    local conf = service_tab:find_one(group_id)
+function service.router_group(service_id)
+    local conf = service_tab:find_one(service_id)
     if conf then
         return conf.router_group
     end

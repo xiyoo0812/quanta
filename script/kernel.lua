@@ -82,7 +82,7 @@ function quanta.init(protos, enums)
     protobuf_mgr:setup(protos, enums)
 
     -- 路由管理器初始化
-    local router_group = service.router_group(quanta.id)
+    local router_group = service.router_group(quanta.service_id)
     if next(router_group) then
         --加载router配置
         config_mgr:init_table("router", "id")
