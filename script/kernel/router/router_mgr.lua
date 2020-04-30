@@ -12,6 +12,7 @@ local signal_quit   = signal.quit
 local log_err       = logger.err
 local log_info      = logger.info
 
+local config_mgr    = quanta.config_mgr
 local router_tab    = config_mgr:get_table("router")
 local service_tab   = config_mgr:get_table("service")
 
@@ -37,7 +38,7 @@ function RouterMgr:setup(groups)
             if group_id == router.group then
                 local router_group = self.router_groups[group_id]
                 if router_group then
-                    router_group:add_router(router.addr)
+                    router_group:add_router(router)
                 else
                     router_group = RouterGroup()
                     router_group:add_router(router)

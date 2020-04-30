@@ -107,10 +107,10 @@ function RouterGroup:connect(node)
         return self:on_call_router(rpc, send_len)
     end
     socket.on_error = function(err)
-        qxpcall(self.socket_on_error, "socket_on_error: %s", self, node, err)
+        qxpcall(self.on_socket_error, "on_socket_error: %s", self, node, err)
     end
     socket.on_connect = function(res)
-        qxpcall(self.socket_on_connect, "socket_on_connect: %s", self, socket, node, res)
+        qxpcall(self.on_socket_connect, "on_socket_connect: %s", self, socket, node, res)
     end
     node.socket = socket
 end
@@ -132,15 +132,19 @@ function RouterGroup:socket_rpc(node, session_id, rpc_type, source, rpc, ...)
 end
 
 --错误处理
-function RouterGroup:socket_on_error(node, err)
-    log_err("router lost %s:%s, err=%s", node.ip, node.port, err)
+function RouterGroup:on_socket_error(node, err)
     node.socket = nil
-    node.alive = false
-    self:switch_master()
+    if node.alive then
+        log_err("router lost %s:%s, err=%s", node.ip, node.port, err)
+        node.alive = false
+        self:switch_master()
+    else
+        log_err("router connected %s:%s failed, err=%s", node.ip, node.port, err)
+    end
 end
 
 --连接成功
-function RouterGroup:socket_on_connect(socket, node, res)
+function RouterGroup:on_socket_connect(socket, node, res)
     if res ~= "ok" then
         node.socket = nil
         log_err("failed to connect router %s:%s, reason=%s", node.ip, node.port, res)
@@ -154,7 +158,7 @@ function RouterGroup:socket_on_connect(socket, node, res)
     socket.call_lua("register", quanta.id)
 
     quanta.router_mgr:notify_trigger("connect_success_ntf")
-    log_info("[RouterGroup][socket_on_connect] router %s:%s success!", node.ip, node.port)
+    log_info("[RouterGroup][on_socket_connect] router %s:%s success!", node.ip, node.port)
 end
 
 --切换主router

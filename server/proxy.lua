@@ -1,6 +1,5 @@
---router.lua
+--proxy.lua
 import("kernel.lua")
-
 local log_info      = logger.info
 local qxpcall       = quanta.xpcall
 local quanta_update = quanta.update
@@ -9,9 +8,9 @@ if not quanta.init_flag then
     --初始化quanta
     qxpcall(quanta.init, "quanta.init error: %s")
 
-    import("kernel/router/server_mgr.lua")
+    import("proxy/proxy_mgr.lua")
 
-    log_info("routor %d now startup!", quanta.id)
+    log_info("proxy %d now startup!", quanta.id)
     quanta.init_flag = true
 end
 

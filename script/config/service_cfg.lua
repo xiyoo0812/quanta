@@ -95,7 +95,7 @@ service:upsert({
 
 service:upsert({
     id = 15,
-    name = 'logsvr',
+    name = 'proxy',
     router_group = {1},
 })
 

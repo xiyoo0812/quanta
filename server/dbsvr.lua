@@ -2,17 +2,12 @@
 import("kernel.lua")
 
 local log_info      = logger.info
-local hxpcall       = quanta.xpcall
+local qxpcall       = quanta.xpcall
 local quanta_update = quanta.update
 
 if not quanta.init_flag then
-    local opts =
-    {
-        index   = 1,        --instance index
-        log     = "dbsvr",  --log file: router
-    }
     --初始化quanta
-    quanta.init("dbsvr", opts)
+    qxpcall(quanta.init, "quanta.init error: %s")
 
     import("kernel/store/mongo_mgr.lua")
 
@@ -21,5 +16,5 @@ if not quanta.init_flag then
 end
 
 quanta.run = function()
-    hxpcall(quanta_update, "quanta_update error: %s")
+    qxpcall(quanta_update, "quanta_update error: %s")
 end

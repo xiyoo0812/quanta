@@ -1,6 +1,7 @@
 --server_mgr.lua
 local pairs         = pairs
 local xpcall        = xpcall
+local tonumber      = tonumber
 local mhuge         = math.huge
 local log_err       = logger.err
 local log_info      = logger.info
@@ -16,7 +17,7 @@ local hxpcall       = quanta.xpcall
 local socket_mgr    = quanta.socket_mgr
 
 local SERVICE_TIMEOUT   = 10000
-local RPC_FAILED        = err.Code.RPC_FAILED
+local RPC_FAILED        = quanta.err_code.RPC_FAILED
 
 local ServerMgr = singleton()
 function ServerMgr:__init()
@@ -32,13 +33,18 @@ end
 
 --初始化
 function ServerMgr:setup()
-    local ip, port = env_addr("ENV_ROUTER_LISTEN_ADDR")
-    self.listener = socket_mgr.listen(ip, port)
-    if not self.listener then
-        log_info("routor now listen %s:%s failed", ip, port)
+    local ip, port = env_addr("QUANTA_ROUTER_ADDR")
+    if not ip or not port then
+        log_err("routor QUANTA_ROUTER_ADDR is nil")
         os.exit(1)
     end
-    log_info("routor now listen %s:%s success!", ip, port)
+    local real_port = tonumber(port) + quanta.index
+    self.listener = socket_mgr.listen(ip, real_port)
+    if not self.listener then
+        log_err("routor now listen %s:%s failed", ip, real_port)
+        os.exit(1)
+    end
+    log_info("routor now listen %s:%s success!", ip, real_port)
     self.listener.on_accept = function(server)
         hxpcall(self.on_server_accept, "on_server_accept: %s", self, server)
     end

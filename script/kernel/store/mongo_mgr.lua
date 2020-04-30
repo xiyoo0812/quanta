@@ -27,7 +27,7 @@ end
 
 --初始化
 function MongoMgr:setup()
-    config_mgr:init_table("database", "id")
+    config_mgr:init_table("database", "group", "index")
     local group = env_number("QUANTA_MONGO")
     local database = config_mgr:get_table("database")
     for _, conf in database:iterator() do

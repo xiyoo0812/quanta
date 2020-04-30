@@ -91,7 +91,7 @@ function quanta.init(protos, enums)
         quanta.router_mgr:setup(router_group)
     end
     if quanta.platform == "windows" then
-        os.execute(sformat("title %s_%d", service, quanta.index))
+        os.execute(sformat("title %s", quanta.name))
     end
 end
 
