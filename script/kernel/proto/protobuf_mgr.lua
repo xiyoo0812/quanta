@@ -1,5 +1,6 @@
 --protobuf_mgr.lua
-local protobuf = require("driver.protobuf")
+local lfs       = require('lfs')
+local protobuf  = require("driver.protobuf")
 
 local pairs         = pairs
 local pcall         = pcall
@@ -22,8 +23,8 @@ end
 
 --加载pb文件
 function ProtobufMgr:setup(pb_files, enum_defs)
-    self.proto_files = pb_files
-    for _, filename in ipairs(pb_files) do
+    self.proto_files = pb_files or {}
+    for _, filename in ipairs(pb_files or {}) do
         protobuf.register_file("proto/" .. filename..".pb")
     end
     self:define_enum(enum_defs)
@@ -65,8 +66,8 @@ local function pbenum(package, enum_type)
 end
 
 function ProtobufMgr:define_enum(enum_defs)
-    self.enum_defs = enum_defs
-    for package, enums in pairs(enum_defs) do
+    self.enum_defs = enum_defs or {}
+    for package, enums in pairs(enum_defs or {}) do
         for _, enum_type in pairs(enums) do
             if not quanta_const[package] then
                 quanta_const[package] = {}

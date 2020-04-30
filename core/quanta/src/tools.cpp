@@ -21,6 +21,7 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 #endif
+
 #include <list>
 #include "tools.h"
 
@@ -148,6 +149,4 @@ bool get_full_path(std::string& fullpath, const char* path)
     }
     return true;
 }
-
-
 

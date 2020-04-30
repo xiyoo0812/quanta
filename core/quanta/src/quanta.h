@@ -32,7 +32,7 @@ public:
     void __gc() { } // custom gc, just do nothing
     void set_signal(int n);
     void run(int argc, const char* argv[]);
-    void load_config(const char* config);
+    void load_config(int argc, const char* argv[]);
 
     DECLARE_LUA_CLASS(quanta_app);
 private:

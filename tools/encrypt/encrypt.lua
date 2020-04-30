@@ -1,9 +1,10 @@
 --encrypt.lua
+local lfs = require('lfs')
 
-local lattributes = lfs.attributes
-local lcurdir = lfs.currentdir
-local lmkdir = lfs.mkdir
 local ldir = lfs.dir
+local lmkdir = lfs.mkdir
+local lcurdir = lfs.currentdir
+local lattributes = lfs.attributes
 local oexec = os.execute
 
 local slash = "/"

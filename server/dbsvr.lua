@@ -1,5 +1,5 @@
 --dbsvr.lua
-import("quanta.lua")
+import("kernel.lua")
 
 local log_info      = logger.info
 local hxpcall       = quanta.xpcall

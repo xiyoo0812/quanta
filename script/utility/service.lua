@@ -1,9 +1,9 @@
---每个服务进程都有一个唯一的服务标识,由服务分组(group)和服务索引(index)两部分构成
+--每个服务进程都有一个唯一的服务标识,由服务(servcie)和服务索引(index)两部分构成
 --有三种形式:
---servcie_id(string): 2.1
---service_id(number): 131073
---service_name: lobby.1
---在上面的示例中,服务id 2.1中的2表明服务分组(group)为2(lobby),实例编号(index)为1
+--servcie: lobby
+--service_id: 131073
+--service_nick: lobby.1
+--在上面的示例中,服务id 2.1中的2表明服务分(servcie)为2(lobby),实例编号(index)为1
 local tonumber  = tonumber
 local ssub      = string.sub
 local sfind     = string.find
@@ -15,7 +15,7 @@ local config_mgr = quanta.config_mgr
 --服务组常量
 local SERVICES = {}
 local SERVICE_NAMES = {}
-local service_tab = config_mgr:get_table("service")
+local service_tab = config_mgr:init_table("service", "id")
 
 service = {}
 service.ids = SERVICES
@@ -32,6 +32,11 @@ end
 --生成节点id
 function service.make_id(service_id, index)
     return (service_id << 16) | index
+end
+
+--生成节点nick
+function service.make_nick(service, index)
+    return sformat("%s_%s", service, index)
 end
 
 --获取节点路由组

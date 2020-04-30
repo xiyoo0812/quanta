@@ -32,7 +32,6 @@ end
 
 --初始化
 function ServerMgr:setup()
-    local options = quanta.options
     local ip, port = env_addr("ENV_ROUTER_LISTEN_ADDR")
     self.listener = socket_mgr.listen(ip, port)
     if not self.listener then
@@ -40,7 +39,6 @@ function ServerMgr:setup()
         os.exit(1)
     end
     log_info("routor now listen %s:%s success!", ip, port)
-    quanta.id = smake_id(sname2sid("router"), options.index)
     self.listener.on_accept = function(server)
         hxpcall(self.on_server_accept, "on_server_accept: %s", self, server)
     end

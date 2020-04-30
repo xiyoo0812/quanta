@@ -28,7 +28,7 @@ function Feishu:__init()
 end
 
 function Feishu:on_feishu_log(title, log_context)
-    if not env_status("ENV_FEISHU_STATE") then
+    if not env_status("QUANTA_FEISHU") then
         return
     end
     local now = otime()

@@ -50,7 +50,7 @@ function StatisMgr:setup()
     if quanta.platform == "linux" then
         linux_statis:setup()
     end
-    self.statis_status  = env_status("ENV_STATIS_STATE")
+    self.statis_status  = env_status("QUANTA_STATIS")
     -- 加入dump
     quanta.join_dump(self)
 

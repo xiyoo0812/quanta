@@ -1,5 +1,4 @@
 --quanta_frame.lua
-require("sandbox.lua")
 import("basic/basic.lua")
 import("utility/signal.lua")
 import("utility/service.lua")
@@ -22,70 +21,57 @@ local tinsert       = table.insert
 local sig_check     = signal.check
 local log_warn      = logger.warn
 local log_info      = logger.info
+local env_get       = environ.get
+local env_number    = environ.number
 local get_time_ms   = quanta.get_time_ms
 local collectgarbage= collectgarbage
 
 local timer_mgr     = quanta.timer_mgr
+local config_mgr    = quanta.config_mgr
 local statis_mgr    = quanta.statis_mgr
 local socket_mgr    = quanta.socket_mgr
 local thread_mgr    = quanta.thread_mgr
 local protobuf_mgr  = quanta.protobuf_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 
---初始化命令行参数
-local function options_init(args, opts)
-    for _, arg in pairs(args) do
-        if #arg > 2 and ssub(arg, 1, 2) == "--" then
-            local pos = sfind(arg, "=", 1, true)
-            if pos then
-                local opt = ssub(arg, 3, pos - 1)
-                opts[opt] = ssub(arg, pos + 1)
-            end
-        end
-    end
-    return opts
-end
-
---初始化quanta环境
-function quanta_env_init(options, service_name, service_id)
+--quanta启动
+function quanta.startup()
+    local quanta_index = env_number("QUANTA_INDEX", 1)
+    assert(quanta_index, "index not exist, quanta startup failed!")
+    local quanta_service = env_get("QUANTA_SERVICE")
+    assert(quanta_service, "service not exist, quanta startup failed!")
+    local quanta_service_id = service.init(quanta_service)
+    assert(quanta_service_id, "service_id exist, quanta startup failed!")
     quanta.frame = 0
     quanta.now = otime()
-    quanta.service_id = service_id
-    quanta.service_name = service_name
-    quanta.options = options
     quanta.now_ms = get_time_ms()
-    quanta.start_time = get_time_ms()
-    quanta.index = tonumber(options.index)
-    quanta.id = service.make_id(service_id, options.index)
-    quanta.name = service.id2nick(quanta.id)
+    quanta.start_ms = get_time_ms()
+    quanta.index = quanta_index
+    quanta.service = quanta_service
+    quanta.service_id = quanta_service_id
+    quanta.id = service.make_id(quanta_service_id, quanta_index)
+    quanta.name = service.make_nick(quanta_service, quanta_index)
     quanta.pid = quanta.get_pid()
     quanta.objects = {}
     quanta.dumps = {}
 end
 
-function quanta.init(service_name, opts, protos, enums)
+function quanta.init(protos, enums)
+    --启动quanta
+    quanta.startup()
+    --初始化环境变量
+    environ.init()
     --注册信号
     signal.init()
-    --初始化服务节点
-    log_info("pid: %d", quanta.pid)
-    local service_id = service.init(service_name)
-    if not service_id then
-        os.exit()
-    end
-    --初始化命令行参数
-    local options = options_init(quanta.args, opts)
-    --初始化环境变量
-    environ.init(options)
-    --初始化quanta环境
-    quanta_env_init(options, service_name, service_id)
     --初始化日志
-    logger.init(options.index)
+    logger.init()
     --初始化随机种子
-    math.randomseed(quanta.start_time)
+    math.randomseed(quanta.start_ms)
+    log_info("pid: %d", quanta.pid)
 
     -- 网络模块初始化
     local lbus = require("luabus")
-    local max_conn = environ.number("ENV_MAX_CONNECTION")
+    local max_conn = env_number("QUANTA_MAX_CONN", 64)
     socket_mgr = lbus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
 
@@ -98,13 +84,15 @@ function quanta.init(service_name, opts, protos, enums)
     -- 路由管理器初始化
     local router_group = service.router_group(quanta.id)
     if next(router_group) then
+        --加载router配置
+        config_mgr:init_table("router", "id")
         import("kernel/router/router_mgr.lua")
+        --初始化路由管理器
         quanta.router_mgr:setup(router_group)
     end
     if quanta.platform == "windows" then
         os.execute(sformat("title %s_%d", service, quanta.index))
     end
-    return options
 end
 
 --添加对象到主更新循环
@@ -146,7 +134,7 @@ function quanta.update()
         timer_mgr:update(escape_ms)
         thread_mgr:update()
         --业务更新
-        local frame = (now_ms - quanta.start_time) // 100
+        local frame = (now_ms - quanta.start_ms) // 100
         for _, obj in pairs(quanta.objects) do
             obj:update(frame)
         end

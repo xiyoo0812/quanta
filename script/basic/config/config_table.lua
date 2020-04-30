@@ -15,17 +15,20 @@ local prop = property(ConfigTable)
 prop:reader("name", nil)
 prop:reader("rows", {})
 prop:reader("indexs", {})
-prop:reader("version", 0)
+prop:accessor("version", 0)
 
 -- 初始化一个配置表，indexs最多支持三个
-function ConfigTable:__init(name, ...)
+function ConfigTable:__init()
+end
+
+function ConfigTable:setup(name, ...)
     local size = select("#", ...)
     if size > 0 and size < TABLE_MAX_INDEX then
         self.name = name
         self.indexs = {...}
         import(sformat("config/%s_cfg.lua", name))
     else
-        log_err("[ConfigTable][init_table] keys len illegal. name=%s, size=%s", name, size)
+        log_err("[ConfigTable][__init] keys len illegal. name=%s, size=%s", name, size)
     end
 end
 
@@ -42,16 +45,17 @@ function ConfigTable:upsert(row)
         log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", serialize(row), serialize(self.indexs))
         return
     end
-    local row_index = tconcat(indexs, "@@")
+    local row_index = tconcat(row_indexs, "@@")
     if row_index then
+        row.version = self.version
         self.rows[row_index] = row
     end
 end
 
 -- 获取一项，
 -- query{ val1, val2, val3}，必须与初始化index对应。
-function ConfigTable:find_one(query)
-    local row_index = tconcat(query, "@@")
+function ConfigTable:find_one(...)
+    local row_index = tconcat({...}, "@@")
     if row_index then
         return self.rows[row_index]
     end

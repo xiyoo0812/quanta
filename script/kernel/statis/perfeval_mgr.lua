@@ -30,7 +30,7 @@ function PerfevalMgr:setup()
     -- 加入dump
     quanta.join_dump(self)
     -- 初始化开关
-    self:set_perfeval(env_status("ENV_PERFEVAL_STATE"))
+    self:set_perfeval(env_status("QUANTA_PERFEVAL"))
 end
 
 function PerfevalMgr:set_perfeval(status)

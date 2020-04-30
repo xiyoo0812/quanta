@@ -5,6 +5,7 @@ local pairs     = pairs
 local loadfile  = loadfile
 local otime     = os.time
 local mabs      = math.abs
+local tinsert   = table.insert
 local sformat   = string.format
 local file_time = quanta.get_file_time
 
@@ -15,14 +16,13 @@ local function ssplit(str, token)
     local t = {}
     while #str > 0 do
         local pos = str:find(token)
-        if not pos then
+        if pos then
+            tinsert(t, str:sub(1, pos - 1))
+            str = str:sub(pos + 1, #str)
+        else
             t[#t + 1] = str
             break
         end
-        if pos > 1 then
-            t[#t + 1] = str:sub(1, pos - 1)
-        end
-        str = str:sub(pos + 1, #str)
     end
     return t
 end
@@ -53,15 +53,15 @@ end
 local function try_load(node)
     local trunk = search_load(node)
     if not trunk then
-        print(sformat("load file: %s ... ... [failed]", node.filename))
+        print(sformat("load file: %s ... [failed]", node.filename))
         return
     end
     local ok, res = pcall(trunk)
     if not ok then
-        print(sformat("exec file: %s ... ... [failed]", node.filename))
+        print(sformat("exec file: %s ... [failed]\nerror : %s", node.filename, res))
         return
     end
-    print(sformat("load file: %s ... ... [ok]", node.filename))
+    print(sformat("load file: %s ... [ok]", node.filename))
     return res
 end
 

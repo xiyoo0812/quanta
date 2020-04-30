@@ -1,14 +1,15 @@
 --sproto_mgr.lua
-local sproto_mgr = require("driver.sproto")
+local lfs       = require('lfs')
+local sproto    = require("driver.sproto")
 
-local pairs         = pairs
-local pcall         = pcall
-local ldir          = lfs.dir
-local open_file     = io.open
-local sfind         = string.find
-local tunpack       = table.unpack
-local log_err       = logger.err
-local ssplit        = string_ext.split
+local pairs     = pairs
+local pcall     = pcall
+local ldir      = lfs.dir
+local open_file = io.open
+local sfind     = string.find
+local tunpack   = table.unpack
+local ssplit    = string_ext.split
+local log_err   = logger.err
 
 local SprotoMgr = singleton()
 function SprotoMgr:__init()

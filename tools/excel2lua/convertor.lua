@@ -1,10 +1,12 @@
 --convertor.lua
+local lfs    = require('lfs')
 local lexcel = require('luaxlsx')
 
 local type          = type
 local pairs         = pairs
 local tostring      = tostring
 local iopen         = io.open
+local ogetenv       = os.getenv
 local ldir          = lfs.dir
 local lmkdir        = lfs.mkdir
 local lcurdir       = lfs.currentdir
@@ -39,20 +41,6 @@ end
 local function tointeger(v)
     local iv = mtointeger(v)
     return iv or v
-end
-
---读取启动参数
-local function get_options(args, confs)
-    for _, arg in pairs(args) do
-        if #arg > 2 and ssub(arg, 1, 2) == "--" then
-            local pos = sfind(arg, "=", 1, true)
-            if pos then
-                local opt = ssub(arg, 3, pos - 1)
-                confs[opt] = ssub(arg, pos + 1)
-            end
-        end
-    end
-    return confs
 end
 
 local value_func = {
@@ -229,22 +217,24 @@ end
 local function export_config()
     local input = lcurdir()
     local output = lcurdir()
-    local options = get_options(quanta.args, {})
-    if not options.input or #options.input == 0 then
+    local env_input = ogetenv("QUANTA_INPUT")
+    if not env_input or #env_input == 0 then
         print("input dir not config!")
         input = input
     else
-        input = input .. slash .. options.input
+        input = input .. slash .. env_input
     end
-    if not options.output or #options.output == 0 then
+    local env_output = ogetenv("QUANTA_OUTPUT")
+    if not env_output or #env_output == 0 then
         print("output dir not config!")
-        output = input
+        output = output
     else
-        output = output .. slash .. options.output
+        output = output .. slash .. env_output
         lmkdir(output)
     end
-    if options.version then
-        version = tointeger(options.version)
+    local env_output = ogetenv("QUANTA_OUTPUT")
+    if env_version then
+        version = tointeger(env_version)
     end
     return input, output
 end

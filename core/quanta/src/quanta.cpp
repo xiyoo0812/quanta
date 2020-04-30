@@ -12,8 +12,6 @@
 #include <signal.h>
 #include "quanta.h"
 #include "tools.h"
-#include "lfs.h"
-#include "util.h"
 #if WIN32
 #include <conio.h>
 #define setenv(k,v,o) _putenv_s(k, v);
@@ -160,39 +158,53 @@ void quanta_app::check_input(lua_State* L)
 #endif
 }
 
-void quanta_app::load_config(const char* config)
+int set_env(lua_State *L)
 {
+    const char* env_name = lua_tostring(L, 1);
+    const char* env_value = lua_tostring(L, 2);
+    setenv(env_name, env_value, 1);
+    return 0;
+}
+
+void quanta_app::load_config(int argc, const char* argv[])
+{
+    const char* conf_file = argv[1];
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
-    luaL_dofile(L, config);
-    lua_getglobal(L, "lua_path");
-    const char* lua_path = lua_tostring(L, -1, LUA_PATH_DEFAULT);
-    setenv("LUA_PATH", lua_path, 1);
-    lua_pop(L, 1);
-    lua_getglobal(L, "lua_cpath");
-    const char* lua_cpath = lua_tostring(L, -1, LUA_CPATH_DEFAULT);
-    setenv("LUA_CPATH", lua_cpath, 1);
-    lua_pop(L, 1);
-    lua_getglobal(L, "sandbox");
-    const char* sandbox = lua_tostring(L, -1, "sandbox.lua");
-    setenv("QUANTA_SANDBOX", sandbox, 1);
-    lua_pop(L, 1);
-    lua_getglobal(L, "entry");
-    const char* entry = lua_tostring(L, -1, config);
-    setenv("QUANTA_ENTRY", entry, 1);
-    lua_pop(L, 1);
+
+    lua_pushstring(L, get_platform());
+    lua_setglobal(L, "platform");
+    lua_register_function(L, "set_env", set_env);
+
+    //设置默认INDEX
+    setenv("QUANTA_INDEX", "1", 1);
+    //将启动参数转换成环境变量
+    for (int i = 2; i < argc; ++i)
+    {
+        const char* begin = argv[i];
+        const char* pos = strchr(argv[i], '=');
+        if (*(begin++) == '-' && *(begin++) == '-' && pos != NULL && begin != pos)
+        {
+            char env_n[256] = { 0 };
+            strcpy(env_n, "QUANTA_");
+            strncpy(env_n + strlen(env_n), begin, pos - begin);
+            lua_pushlstring(L, ++pos, (argv[i] + strlen(argv[i]) - pos));
+            char* env_name = strupr(env_n);
+            const char* env_value = lua_tostring(L, -1);
+            setenv(env_name, env_value, 1);
+            lua_pop(L, 1);
+        }
+    }
+
+    luaL_dofile(L, conf_file);
     lua_close(L);
 }
 
 void quanta_app::run(int argc, const char* argv[])
 {
-    const char* filename = argv[1];
-    load_config(filename);
-
+    load_config(argc, argv);
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
-	luaopen_lfs(L);
-	luaopen_util(L);
     lua_push_object(L, this);
     lua_push_object(L, this);
     lua_setglobal(L, "quanta");
@@ -207,11 +219,11 @@ void quanta_app::run(int argc, const char* argv[])
 	lua_pushstring(L, get_platform());
 	lua_setfield(L, -2, "platform");
 
-    m_entry = getenv("QUANTA_ENTRY");
-    luaL_dofile(L, getenv("QUANTA_SANDBOX"));
-    luaL_dofile(L, m_entry.c_str());
-
     std::string err;
+    m_entry = getenv("QUANTA_ENTRY");
+    lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_SANDBOX"));
+    lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_ENTRY"));
+
     int top = lua_gettop(L);
 
     int64_t last_check = ::get_time_ms();

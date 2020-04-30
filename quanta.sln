@@ -44,6 +44,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luac", "extend\lua\luac.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luaxlsx", "extend\luaxlsx\luaxlsx.vcxproj", "{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lfs", "extend\lfs\lfs.vcxproj", "{3D32C183-3733-44C4-BE9F-EFD213D07900}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "msocket", "extend\msocket\msocket.vcxproj", "{0D80750F-4463-4EF0-A6A6-E9EDA32F207E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		ReleaseDebug|x64 = ReleaseDebug|x64
@@ -102,6 +106,14 @@ Global
 		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
 		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
 		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{3D32C183-3733-44C4-BE9F-EFD213D07900}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{3D32C183-3733-44C4-BE9F-EFD213D07900}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{3D32C183-3733-44C4-BE9F-EFD213D07900}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{3D32C183-3733-44C4-BE9F-EFD213D07900}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{0D80750F-4463-4EF0-A6A6-E9EDA32F207E}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{0D80750F-4463-4EF0-A6A6-E9EDA32F207E}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{0D80750F-4463-4EF0-A6A6-E9EDA32F207E}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{0D80750F-4463-4EF0-A6A6-E9EDA32F207E}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -122,6 +134,8 @@ Global
 		{07588F60-510F-4B30-8413-26404A6535E4} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 		{001BCFDF-426A-476B-B709-D7E40A374229} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 		{C1D0F16D-0B61-4B54-92B2-4A612BB0673B} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
+		{3D32C183-3733-44C4-BE9F-EFD213D07900} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
+		{0D80750F-4463-4EF0-A6A6-E9EDA32F207E} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {89F4D576-CC3C-458E-ACD6-30B42E1869FA}

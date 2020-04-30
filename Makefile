@@ -13,7 +13,7 @@ proj: core extend
 
 core: luna luabus quanta luahttp
 
-extend: lua luna lpeg luacjson proto mongo
+extend: lua lfs luna lpeg luacjson proto mongo
 
 proto: pbc bson sproto
 
@@ -34,6 +34,9 @@ bson:
 
 lpeg:
 	cd extend/lpeg; make -f lpeg.mak;
+
+lfs:
+	cd extend/lfs; make -f lfs.mak;
 
 luacjson:
 	cd extend/luacjson; make -f luacjson.mak;

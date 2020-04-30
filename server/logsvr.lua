@@ -1,5 +1,5 @@
 #!./hive
-import("share/hive.lua")
+import("kernel.lua")
 local hive_update   = hive.update
 local log_info      = logger.info
 local hxpcall       = hive.xpcall

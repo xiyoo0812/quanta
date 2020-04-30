@@ -95,7 +95,6 @@ constexpr int _countof(T(&_array)[N]) { return N; }
 char* get_error_string(char buffer[], int len, int no);
 void get_error_string(std::string& err, int no);
 
-
 bool get_full_path(std::string& fullpath, const char* path);
 
 

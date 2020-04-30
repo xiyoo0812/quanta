@@ -1,11 +1,10 @@
 --cfg_mgr.lua
-local Listener      = import("common/listener.lua")
-local ConfigTable   = import("kernel/config/config_table.lua")
+local ConfigTable   = import("basic/config/config_table.lua")
 
 local tunpack       = table.unpack
 
 -- 配置管理器
-local ConfigMgr = singleton(Listener)
+local ConfigMgr = singleton()
 function ConfigMgr:__init()
     -- 配置对象列表
     self.table_list = {}
@@ -13,8 +12,9 @@ end
 
 -- 初始化配置表
 function ConfigMgr:init_table(name, ...)
-    local conf_tab = ConfigTable(name, ...)
+    local conf_tab = ConfigTable()
     self.table_list[name] = conf_tab
+    conf_tab:setup(name, ...)
     return conf_tab
 end
 
