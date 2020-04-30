@@ -41,7 +41,6 @@ EXPORT_LUA_FUNCTION(default_signal)
 EXPORT_LUA_FUNCTION(ignore_signal)
 EXPORT_LUA_INT64(m_signal)
 EXPORT_LUA_INT(m_reload_time)
-EXPORT_LUA_STD_STR_R(m_entry)
 EXPORT_CLASS_END()
 
 int quanta_app::get_version(lua_State* L)
@@ -200,6 +199,18 @@ void quanta_app::load_config(int argc, const char* argv[])
     lua_close(L);
 }
 
+void quanta_app::die(const std::string& err)
+{
+    FILE* file = fopen("quanta.err", "w");
+    if (file != nullptr)
+    {
+        fwrite(err.c_str(), err.length(), 1, file);
+        fclose(file);
+    }
+    fprintf(stderr, "%s", err.c_str());
+    exit(1);
+}
+
 void quanta_app::run(int argc, const char* argv[])
 {
     load_config(argc, argv);
@@ -220,17 +231,20 @@ void quanta_app::run(int argc, const char* argv[])
 	lua_setfield(L, -2, "platform");
 
     std::string err;
-    m_entry = getenv("QUANTA_ENTRY");
-    lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_SANDBOX"));
-    lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_ENTRY"));
+    if (!lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_SANDBOX"))) 
+    {
+        die(err);
+    }
+    if (!lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_ENTRY")))
+    {
+        die(err);
+    }
 
     int top = lua_gettop(L);
-
     int64_t last_check = ::get_time_ms();
     while (lua_get_object_function(L, this, "run"))
     {
         check_input(L);
-
         lua_call_function(L, &err, 0, 0);
 
         int64_t now = ::get_time_ms();

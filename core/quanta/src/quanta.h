@@ -31,6 +31,7 @@ public:
 public:
     void __gc() { } // custom gc, just do nothing
     void set_signal(int n);
+    void die(const std::string& err);
     void run(int argc, const char* argv[]);
     void load_config(int argc, const char* argv[]);
 
@@ -38,7 +39,6 @@ public:
 private:
     uint64_t m_signal = 0;
     int m_reload_time = 2000;
-    std::string m_entry;
 };
 
 extern quanta_app* g_app;
