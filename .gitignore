@@ -9,7 +9,8 @@
 *.dat 
 
 #ignore this dir##
-/.vs/
+.vs
+.vscode
 temp
 
 # Prerequisites
