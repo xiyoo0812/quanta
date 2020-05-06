@@ -3,29 +3,13 @@
 *.dll
 *.log
 *.exe
-bin/hive
 *.txt
 *.dump
 *.dmp
-.vs/
-temp/
-lib/
 *.dat 
-
-static/
 
 #ignore this dir##
 /.vs/
-/lib/
-/temp/
-/ipch/
-/bin/log/
-bin/.vscode/
-/bin/lua/.vscode
-/bin/env/gaven
-/bin/excel2lua/cfg_dir
-/bin/excel2lua/cfg_xls
-
 
 # Prerequisites
 *.d
@@ -75,15 +59,6 @@ bin/.vscode/
 #hive
 *.err
 
-/bin/env-enic
-/bin/env-enic-db
 *.zip
 *.7z
 *.tar
-bin/luac
-/.vscode/settings.json
-/bin/start-enic-test.bat
-bin/start-enic-db.sh
-bin/start-enic-db-t.sh
-bin/start-enic-db-t.bat
-bin/start-enic-db.bat
