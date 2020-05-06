@@ -35,6 +35,7 @@ end
 local function search_load(node)
     local load_path = node.fullpath
     if load_path then
+        node.time = file_time(load_path)
         return loadfile(load_path)
     end
     local trunk
