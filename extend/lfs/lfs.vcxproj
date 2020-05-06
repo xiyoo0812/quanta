@@ -89,8 +89,7 @@
       </ForceFileOutput>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\
-copy /y $(TargetPath) ..\..\tools\</Command>
+      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
@@ -119,8 +118,7 @@ copy /y $(TargetPath) ..\..\tools\</Command>
       </ForceFileOutput>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\
-copy /y $(TargetPath) ..\..\tools\</Command>
+      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -93,8 +93,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\
-copy /y $(TargetPath) ..\..\tools\</Command>
+      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
@@ -127,8 +126,7 @@ copy /y $(TargetPath) ..\..\tools\</Command>
       <ImportLibrary>../../library/$(Platform)/$(TargetName).lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\
-copy /y $(TargetPath) ..\..\tools\</Command>
+      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

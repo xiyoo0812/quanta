@@ -10,6 +10,7 @@
 
 #ignore this dir##
 /.vs/
+temp
 
 # Prerequisites
 *.d
