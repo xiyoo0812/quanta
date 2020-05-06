@@ -523,6 +523,13 @@ function M.register_file(filename)
     f:close()
 end
 
+function M.parse_file(filename)
+    local f = assert(io.open(filename , "rb"))
+    local t = M.decode("google.protobuf.FileDescriptorSet", f:read("*a"))
+    f:close()
+    return t.file[1]
+end
+
 function M.enum_id(enum_type, enum_name)
     return c._env_enum_id(P, enum_type, enum_name)
 end

@@ -34,8 +34,8 @@ function environ.init()
     print("----------------------------------------------------------")
 end
 
-function environ.get(key)
-    return QUANTA_ENV[key] or ogetenv(key)
+function environ.get(key, def)
+    return QUANTA_ENV[key] or ogetenv(key) or def
 end
 
 function environ.number(key, def)

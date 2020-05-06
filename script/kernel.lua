@@ -9,7 +9,6 @@ import("kernel/statis/perfeval_mgr.lua")
 import("kernel/basic/thread_mgr.lua")
 import("kernel/basic/timer_mgr.lua")
 import("kernel/statis/statis_mgr.lua")
-import("kernel/proto/sproto_mgr.lua")
 import("kernel/proto/protobuf_mgr.lua")
 
 local pairs         = pairs
@@ -56,7 +55,7 @@ function quanta.startup()
     quanta.dumps = {}
 end
 
-function quanta.init(protos, enums)
+function quanta.init()
     --启动quanta
     quanta.startup()
     --初始化环境变量
@@ -78,8 +77,6 @@ function quanta.init(protos, enums)
     -- 初始核心管理器
     statis_mgr:setup()
     perfeval_mgr:setup()
-    --默认使用protobuf协议
-    protobuf_mgr:setup(protos, enums)
 
     -- 路由管理器初始化
     local router_group = service.router_group(quanta.service_id)

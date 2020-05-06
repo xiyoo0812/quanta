@@ -6,9 +6,11 @@ local pairs     = pairs
 local pcall     = pcall
 local ldir      = lfs.dir
 local open_file = io.open
+local env_get   = environ.get
 local sfind     = string.find
-local tunpack   = table.unpack
+local sformat   = string.format
 local ssplit    = string_ext.split
+local tunpack   = table.unpack
 local log_err   = logger.err
 
 local SprotoMgr = singleton()
@@ -17,20 +19,27 @@ function SprotoMgr:__init()
     self.id_to_files = {}
     self.id_to_protos = {}
     self.open_reload_pb = false
+    --初始化
+    self:load_protos()
 end
 
 --加载pb文件
-function SprotoMgr:setup(spb_files)
-    self.proto_files = {}
-    for _, filename in ipairs(spb_files) do
-        local file = open_file("proto/"..file_name..".sproto", "rb")
-        if file then
-            local spb_data = file:read("*all")
-            self.proto_files[filename] = sproto.parse(spb_data)
-            file:close()
+function SprotoMgr:load_protos()
+    local proto_dir = env_get("QUANTA_PROTO")
+    if proto_dir then
+        for file_name in ldir(proto_dir) do
+            local pos = sfind(file_name, ".sproto")
+            if pos then
+                local full_name = sformat("%s%s", proto_dir, file_name)
+                local file = open_file(full_name, "rb")
+                local spb_data = file:read("*all")
+                local pack_name = ssub(file_name, 1, pos - 1)
+                self.proto_files[pack_name] = sproto.parse(spb_data)
+                file:close()
+            end
         end
+        self:define_command(proto_dir)
     end
-    self:define_command()
 end
 
 function SprotoMgr:encode(cmd_id, data)
@@ -59,17 +68,17 @@ function SprotoMgr:decode(cmd_id, pb_str)
     end
 end
 
-function SprotoMgr:define_command()
-    for file_name in ldir("./proto/") do
+function SprotoMgr:define_command(proto_dir)
+    for file_name in ldir(proto_dir) do
         local pos = sfind(file_name, "%.lua")
         if pos then
-            import("../proto/"..file_name..".lua")
-            for id, name in pairs(quanta[file_name]) do
+            local res = import(sformat("%s%s", proto_dir, file_name))
+            for id, name in pairs(res or {}) do
                 if self.id_to_protos[id] then
                     log_err("[SprotoMgr][define_command] repeat id:%s, old:%s, new:%s", id, self.id_to_protos[id], name)
                 end
-                local pack_name, proto_name = tunpack(ssplit(name, "."))
-                self.id_to_files[id] = pack_name
+                local pack_name, proto_name = tunpack(ssplit(name, "%."))
+                self.id_to_files[id] = self.proto_files[pack_name]
                 self.id_to_protos[id] = proto_name
             end
         end
@@ -83,16 +92,7 @@ function SprotoMgr:reload()
         return
     end
     -- register sproto文件
-    for filename in pairs(self.proto_files) do
-        local file = open_file("proto/"..file_name..".sproto", "rb")
-        if file then
-            local spb_data = file:read("*all")
-            self.proto_files[filename] = sproto.parse(spb_data)
-            file:close()
-        end
-    end
-    -- 映射id与pb消息名
-    self:define_command()
+    self:load_protos()
 end
 
 quanta.sproto_mgr = SprotoMgr()
