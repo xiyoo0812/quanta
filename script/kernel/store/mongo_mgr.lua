@@ -12,9 +12,9 @@ local router_mgr    = quanta.router_mgr
 local timer_mgr     = quanta.timer_mgr
 local config_mgr    = quanta.config_mgr
 
-local errcode       = quanta.err_code
-local SUCCESS       = errcode.SUCCESS
-local MONGO_FAILED  = errcode.MONGO_FAILED
+local KernCode      = enum("KernelCode")
+local SUCCESS       = KernCode.SUCCESS
+local MONGO_FAILED  = KernCode.MONGO_FAILED
 
 local CONNECT_WAIT_TIME = 5
 local PERIOD_UPDATE     = 1000

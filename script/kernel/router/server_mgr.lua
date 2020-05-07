@@ -17,7 +17,8 @@ local hxpcall       = quanta.xpcall
 local socket_mgr    = quanta.socket_mgr
 
 local SERVICE_TIMEOUT   = 10000
-local RPC_FAILED        = quanta.err_code.RPC_FAILED
+local KernCode          = enum("KernelCode")
+local RPC_FAILED        = KernCode.RPC_FAILED
 
 local ServerMgr = singleton()
 function ServerMgr:__init()

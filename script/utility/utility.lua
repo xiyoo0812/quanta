@@ -9,7 +9,8 @@ local dtraceback    = debug.traceback
 local log_err       = logger.err
 local new_guid      = guid.new
 
-local SUCCESS       = quanta.err_code.SUCCESS
+local KernCode      = enum("KernelCode")
+local SUCCESS       = KernCode.SUCCESS
 
 utility = {}
 function utility.check_success(code)

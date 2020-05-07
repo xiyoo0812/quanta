@@ -20,7 +20,8 @@ local statis_mgr        = quanta.statis_mgr
 local perfeval_mgr      = quanta.perfeval_mgr
 local thread_mgr        = quanta.thread_mgr
 
-local SUCCESS           = quanta.err_code.SUCCESS
+local KernCode          = enum("KernelCode")
+local SUCCESS           = KernCode.SUCCESS
 
 local RECONNECT_TIME    = 5
 local CONNECT_WAIT_TIME = 2000
