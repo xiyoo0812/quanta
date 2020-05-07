@@ -8,6 +8,7 @@ local pairs         = pairs
 local tindexof      = table_ext.indexof
 local ssplit        = string_ext.split
 local sid2sid       = service.id2sid
+local sname2sid     = service.name2sid
 local signal_quit   = signal.quit
 local log_err       = logger.err
 local log_info      = logger.info
@@ -65,16 +66,16 @@ function RouterMgr:hash_router(service, hash_key)
 end
 
 --random router
-function RouterMgr:random_router(service)
-    local router_group = self:get_router_group(service)
+function RouterMgr:random_router(service_id)
+    local router_group = self:get_router_group(service_id)
     if router_group then
         return router_group:random_router()
     end
 end
 
--- 根据目标service获取router group对象
-function RouterMgr:get_router_group(service)
-    return self.index_groups[service]
+-- 根据目标service_id获取router group对象
+function RouterMgr:get_router_group(service_id)
+    return self.index_groups[service_id]
 end
 
 -- 根据router_id获取router group对象
@@ -151,7 +152,8 @@ function RouterMgr:forward_broadcast(service_id, rpc, ...)
 end
 
 --监听服务断开
-function RouterMgr:watch_service_close(listener, service_id)
+function RouterMgr:watch_service_close(listener, service)
+    local service_id = sname2sid(service)
     local router_group = self:get_router_group(service_id)
     if router_group then
         router_group:watch_service_close(listener, service_id)
@@ -159,7 +161,8 @@ function RouterMgr:watch_service_close(listener, service_id)
 end
 
 --监听服务注册
-function RouterMgr:watch_service_register(listener, service_id)
+function RouterMgr:watch_service_register(listener, service)
+    local service_id = sname2sid(service)
     local router_group = self:get_router_group(service_id)
     if router_group then
         router_group:watch_service_register(listener, service_id)
