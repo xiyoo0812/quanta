@@ -12,7 +12,7 @@ local serialize     = logger.serialize
 
 local thread_mgr    = quanta.thread_mgr
 
-local HTTP_RPC_TIMEOUT  = 5000
+local NetwkTime     = enum("NetwkTime")
 
 local function header_format(header)
     local new_header = {}
@@ -57,7 +57,7 @@ http.call_get = function(url, querys, headers)
     local session_id = thread_mgr:build_session_id()
     local ok, err = client.get(full_url, "", headers, session_id)
     if ok then
-        return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
+        return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
     else
         log_warn("[http.call_get] ok=%s,err=%s", ok, err)
         return ok, err
@@ -72,7 +72,7 @@ http.call_post = function(url, querys, post_data, headers)
     local session_id = thread_mgr:build_session_id()
     local ok, err = client.post(full_url, post_data, headers, session_id)
     if ok then
-        return thread_mgr:yield(session_id, HTTP_RPC_TIMEOUT)
+        return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
     else
         log_warn("[http.call_get] ok=%s,err=%s", ok, err)
         return ok, err

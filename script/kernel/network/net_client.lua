@@ -10,10 +10,8 @@ local protobuf_mgr      = quanta.protobuf_mgr
 local perfeval_mgr      = quanta.perfeval_mgr
 local statis_mgr        = quanta.statis_mgr
 
-local CONNECT_WAIT_TIME = 3000
-local NET_RPC_TIMEOUT   = 6000
-local RPC_TYPE_REQ      = 0 --rpc 请求类型
-local RPC_TYPE_RES      = 1 --rpc 响应类型
+local RpcType           = enum("RpcType")
+local NetwkTime         = enum("NetwkTime", 0)
 
 local NetClient = class()
 local prop = property(NetClient)
@@ -35,7 +33,7 @@ function NetClient:connect(ip, port, block)
     if self.session then
         return true
     end
-    local session, res = socket_mgr.connect(ip, port, CONNECT_WAIT_TIME, 1)
+    local session, res = socket_mgr.connect(ip, port, NetwkTime.CONNECT_TIMEOUT, 1)
 
     -- 函数调用失败
     if not session then
@@ -79,7 +77,7 @@ function NetClient:connect(ip, port, block)
     end
     --阻塞模式挂起
     if block_id then
-        return thread_mgr:yield(block_id, CONNECT_WAIT_TIME)
+        return thread_mgr:yield(block_id, NetwkTime.CONNECT_TIMEOUT)
     end
     return true
 end
@@ -105,7 +103,7 @@ function NetClient:on_call_dx(cmd_id, flag, session_id, data)
         log_err("[NetClient][on_call_dx] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
     end
-    if session_id == 0 or flag == RPC_TYPE_REQ then
+    if session_id == 0 or flag == RpcType.RPC_REQ then
         -- 执行消息分发
         local function dispatch_rpc_message()
             self:on_recv(cmd_id, body, session_id)
@@ -142,7 +140,7 @@ function NetClient:write(cmd_id, data, session_id, flag)
     end
     -- call lbus
     local session_id = session_id or 0
-    local send_len = self.session.call_dx(cmd_id, flag or RPC_TYPE_REQ, session_id, body)
+    local send_len = self.session.call_dx(cmd_id, flag or RpcType.RPC_REQ, session_id, body)
     if send_len < 0 then
         log_err("[NetClient][write] call_dx failed! code:%s", send_len)
         return false
@@ -157,7 +155,7 @@ end
 
 -- 回调数据
 function NetClient:callback_dx(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, RPC_TYPE_RES)
+    return self:write(cmd_id, data, session_id, RpcType.RPC_RES)
 end
 
 -- 发起远程调用
@@ -166,7 +164,7 @@ function NetClient:call_dx(cmd_id, data)
     if not self:write(cmd_id, data, session_id) then
         return false
     end
-    return thread_mgr:yield(session_id, NET_RPC_TIMEOUT)
+    return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
 end
 
 -- 等待远程调用

@@ -1,7 +1,6 @@
 --http_server.lua
-import("driver/http.lua")
+local http  = import("driver/http.lua")
 local ljson = require("luacjson")
-ljson.encode_sparse_array(true)
 
 local type          = type
 local ssplit        = string_ex.split
@@ -12,10 +11,9 @@ local log_info      = logger.info
 local server        = http.server()
 local thread_mgr    = quanta.thread_mgr
 
-local HttpServer = class(http_addr)
+local HttpServer = class()
 function HttpServer:__init()
-    --初始化
-    self:setup(http_addr)
+    ljson.encode_sparse_array(true)
 end
 
 --初始化

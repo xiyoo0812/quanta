@@ -12,7 +12,7 @@ local router_mgr    = quanta.router_mgr
 local timer_mgr     = quanta.timer_mgr
 local config_mgr    = quanta.config_mgr
 
-local KernCode      = enum("KernelCode")
+local KernCode      = enum("KernCode")
 local SUCCESS       = KernCode.SUCCESS
 local MONGO_FAILED  = KernCode.MONGO_FAILED
 

@@ -11,10 +11,8 @@ local protobuf_mgr  = quanta.protobuf_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 local statis_mgr    = quanta.statis_mgr
 
-local HEARTBEAT_TIMEOUT = 35 * 1000 -- 业务心跳周期(单位秒)
-local NET_RPC_TIMEOUT   = 6000
-local RPC_TYPE_REQ      = 0 --rpc 请求类型
-local RPC_TYPE_RES      = 1 --rpc 响应类型
+local RpcType       = enum("RpcType")
+local NetwkTime     = enum("NetwkTime")
 
 -- Dx协议会话对象管理器
 local NetServer = class(Listener)
@@ -32,12 +30,13 @@ function NetServer:__init(session_type)
     self.session_type = session_type
 end
 
-function NetServer:setup(env_name)
+--induce：根据index推导port
+function NetServer:setup(env_name, induce)
     -- 开启监听
     local listen_proto_type = 1
     local ip, port = env_addr(env_name)
     local socket_mgr = quanta.socket_mgr
-    local real_port = tonumber(port) + quanta.index
+    local real_port = induce and (tonumber(port) + quanta.index) or port
     self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
     if not self.listener then
         log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)
@@ -62,7 +61,7 @@ function NetServer:on_session_accept(session)
     self:add_session(session)
 
     -- 设置超时(心跳)
-    session.set_timeout(HEARTBEAT_TIMEOUT)
+    session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
 
     -- 绑定dx调用回调
     session.on_call_dx = function(recv_len, cmd_id, flag, session_id, data)
@@ -92,7 +91,7 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     session.serial = session.serial + 1
     -- call lbus
     local session_id = session_id or 0
-    local send_len = session.call_dx(cmd_id, flag or RPC_TYPE_REQ, session_id, body)
+    local send_len = session.call_dx(cmd_id, flag or RpcType.RPC_REQ, session_id, body)
     if send_len > 0 then
         statis_mgr:statis_notify("on_dx_send", cmd_id, send_len)
         return true
@@ -108,7 +107,7 @@ end
 
 -- 回调数据
 function NetServer:callback_dx(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id, RPC_TYPE_RES)
+    return self:write(session, cmd_id, data, session_id, RpcType.RPC_RES)
 end
 
 -- 发起远程调用
@@ -117,7 +116,7 @@ function NetServer:call_dx(session, cmd_id, data)
     if not self:write(session, cmd_id, data, session_id) then
         return false
     end
-    return thread_mgr:yield(session_id, NET_RPC_TIMEOUT)
+    return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
 end
 
 function NetServer:encode(cmd_id, data)
@@ -159,7 +158,7 @@ function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
         self:send_dx(session, self.hb_ack_id, { serial = sserial, time = now_tick })
         return
     end
-    if session_id == 0 or flag == RPC_TYPE_REQ then
+    if session_id == 0 or flag == RpcType.RPC_REQ then
         local function dispatch_rpc_message(session, cmd, bd)
             local result = self:notify_listener("on_session_cmd", session, cmd, bd, session_id)
             if not result[1] then
