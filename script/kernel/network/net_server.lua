@@ -145,6 +145,16 @@ function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
     thread_mgr:response(session_id, true, body)
 end
 
+--检查序列号
+function NetServer:check_serial(session, cserial)
+    local sserial = session.serial
+    if cserial and cserial ~= session.serial_sync then
+        event_mgr:notify_listener("on_session_sync", session)
+    end
+    session.serial_sync = sserial
+    return sserial
+end
+
 -- 关闭会话
 -- @param session: 会话对象
 function NetServer:close_session(session)
