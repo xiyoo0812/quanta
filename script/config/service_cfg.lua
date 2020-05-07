@@ -11,114 +11,192 @@ service:set_version(10000)
 --导出配置内容
 service:upsert({
     id = 1,
+    group = 1,
+    group_name = 'service_pub',
     name = 'router',
     router_group = {},
 })
 
 service:upsert({
     id = 2,
-    name = 'lobby',
-    router_group = {1,3},
-})
-
-service:upsert({
-    id = 3,
-    name = 'dbsvr',
-    router_group = {1,2},
-})
-
-service:upsert({
-    id = 4,
-    name = 'datasvr',
-    router_group = {3},
-})
-
-service:upsert({
-    id = 5,
-    name = 'dirsvr',
-    router_group = {1},
-})
-
-service:upsert({
-    id = 6,
-    name = 'matchsvr',
-    router_group = {1},
-})
-
-service:upsert({
-    id = 7,
-    name = 'indexsvr',
-    router_group = {1},
-})
-
-service:upsert({
-    id = 8,
-    name = 'roomsvr',
-    router_group = {1,2},
-})
-
-service:upsert({
-    id = 9,
-    name = 'teamsvr',
-    router_group = {1},
-})
-
-service:upsert({
-    id = 10,
-    name = 'collectsvr',
-    router_group = {1},
-})
-
-service:upsert({
-    id = 11,
-    name = 'dscenter',
-    router_group = {2},
-})
-
-service:upsert({
-    id = 12,
-    name = 'dsagent',
-    router_group = {2},
-})
-
-service:upsert({
-    id = 13,
+    group = 1,
+    group_name = 'service_pub',
     name = 'monitor',
     router_group = {},
 })
 
 service:upsert({
-    id = 14,
+    id = 3,
+    group = 1,
+    group_name = 'service_pub',
+    name = 'gateway',
+    router_group = {1},
+})
+
+service:upsert({
+    id = 4,
+    group = 1,
+    group_name = 'service_pub',
+    name = 'platform',
+    router_group = {1},
+})
+
+service:upsert({
+    id = 5,
+    group = 1,
+    group_name = 'service_pub',
     name = 'httpsvr',
     router_group = {1},
 })
 
 service:upsert({
-    id = 15,
+    id = 6,
+    group = 1,
+    group_name = 'service_pub',
     name = 'proxy',
     router_group = {1},
 })
 
 service:upsert({
-    id = 16,
+    id = 7,
+    group = 1,
+    group_name = 'service_pub',
     name = 'test',
-    router_group = {},
+    router_group = {1},
 })
 
 service:upsert({
-    id = 17,
+    id = 8,
+    group = 1,
+    group_name = 'service_pub',
     name = 'robot',
     router_group = {1},
 })
 
 service:upsert({
-    id = 31,
-    name = 'gateway',
-    router_group = {4},
+    id = 1,
+    group = 2,
+    group_name = 'service_dev',
+    name = 'router',
+    router_group = {},
 })
 
 service:upsert({
-    id = 32,
+    id = 2,
+    group = 2,
+    group_name = 'service_dev',
+    name = 'monitor',
+    router_group = {},
+})
+
+service:upsert({
+    id = 3,
+    group = 2,
+    group_name = 'service_dev',
+    name = 'gateway',
+    router_group = {2},
+})
+
+service:upsert({
+    id = 4,
+    group = 2,
+    group_name = 'service_dev',
     name = 'platform',
-    router_group = {4},
+    router_group = {2},
+})
+
+service:upsert({
+    id = 5,
+    group = 2,
+    group_name = 'service_dev',
+    name = 'httpsvr',
+    router_group = {2},
+})
+
+service:upsert({
+    id = 6,
+    group = 2,
+    group_name = 'service_dev',
+    name = 'proxy',
+    router_group = {2},
+})
+
+service:upsert({
+    id = 7,
+    group = 2,
+    group_name = 'service_dev',
+    name = 'test',
+    router_group = {2},
+})
+
+service:upsert({
+    id = 8,
+    group = 2,
+    group_name = 'service_dev',
+    name = 'robot',
+    router_group = {2},
+})
+
+service:upsert({
+    id = 1,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'router',
+    router_group = {},
+})
+
+service:upsert({
+    id = 2,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'monitor',
+    router_group = {},
+})
+
+service:upsert({
+    id = 3,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'gateway',
+    router_group = {3},
+})
+
+service:upsert({
+    id = 4,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'platform',
+    router_group = {3},
+})
+
+service:upsert({
+    id = 5,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'httpsvr',
+    router_group = {3},
+})
+
+service:upsert({
+    id = 6,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'proxy',
+    router_group = {3},
+})
+
+service:upsert({
+    id = 7,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'test',
+    router_group = {3},
+})
+
+service:upsert({
+    id = 8,
+    group = 3,
+    group_name = 'service_loc',
+    name = 'robot',
+    router_group = {3},
 })

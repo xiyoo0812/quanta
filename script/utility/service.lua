@@ -4,27 +4,30 @@
 --service_id: 131073
 --service_nick: lobby.1
 --在上面的示例中,服务id 2.1中的2表明服务分(servcie)为2(lobby),实例编号(index)为1
-local tonumber  = tonumber
-local ssub      = string.sub
-local sfind     = string.find
-local sformat   = string.format
-local log_warn  = logger.warn
+local tonumber      = tonumber
+local ssub          = string.sub
+local sfind         = string.find
+local sformat       = string.format
+local env_number    = environ.number
+local log_warn      = logger.warn
 
-local config_mgr = quanta.config_mgr
+local config_mgr    = quanta.config_mgr
 
 --服务组常量
 local SERVICES = {}
 local SERVICE_NAMES = {}
-local service_tab = config_mgr:init_table("service", "id")
+local service_tab = config_mgr:init_table("service", "id", "group")
 
 service = {}
-service.ids = SERVICES
 
 --定义服务器组
 function service.init(name)
+    local group = env_number("QUANTA_GROUP", 1)
     for _, conf in service_tab:iterator() do
-        SERVICES[conf.name] = conf.id
-        SERVICE_NAMES[conf.id] = conf.name
+        if conf.group == group then
+            SERVICES[conf.name] = conf.id
+            SERVICE_NAMES[conf.id] = conf.name
+        end
     end
     return SERVICES[name]
 end
@@ -41,7 +44,8 @@ end
 
 --获取节点路由组
 function service.router_group(service_id)
-    local conf = service_tab:find_one(service_id)
+    local group = env_number("QUANTA_GROUP", 1)
+    local conf = service_tab:find_one(service_id, group)
     if conf then
         return conf.router_group
     end

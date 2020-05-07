@@ -24,10 +24,10 @@ function ConfigMgr:get_table(name)
 end
 
 -- 获取配置表一条记录
-function ConfigMgr:find_one(name, query)
+function ConfigMgr:find_one(name, ...)
     local conf_tab = self.table_list[name]
     if conf_tab then
-        return conf_tab:find_one(query)
+        return conf_tab:find_one(...)
     end
 end
 

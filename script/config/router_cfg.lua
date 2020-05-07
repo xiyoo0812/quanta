@@ -13,62 +13,38 @@ router:upsert({
     id = 1,
     group = 1,
     index = 1,
-    group_name = 'main_group',
-    addr = '127.0.0.1:9001',
+    group_name = 'klbq_plat_router_pub',
+    addr = '10.72.17.44:9601',
 })
 
 router:upsert({
     id = 2,
     group = 1,
     index = 2,
-    group_name = 'main_group',
-    addr = '127.0.0.1:9002',
+    group_name = 'klbq_plat_router_pub',
+    addr = '10.72.17.44:9602',
 })
 
 router:upsert({
-    id = 3,
+    id = 1001,
     group = 2,
-    index = 3,
-    group_name = 'ds_group',
-    addr = '127.0.0.1:9003',
+    index = 1,
+    group_name = 'klbq_plat_router_dev',
+    addr = '192.168.131.208:9601',
 })
 
 router:upsert({
-    id = 4,
+    id = 1002,
     group = 2,
-    index = 4,
-    group_name = 'ds_group',
-    addr = '127.0.0.1:9004',
+    index = 2,
+    group_name = 'klbq_plat_router_dev',
+    addr = '192.168.131.208:9602',
 })
 
 router:upsert({
-    id = 5,
+    id = 2001,
     group = 3,
-    index = 5,
-    group_name = 'data_group',
-    addr = '127.0.0.1:9005',
-})
-
-router:upsert({
-    id = 6,
-    group = 3,
-    index = 6,
-    group_name = 'data_group',
-    addr = '127.0.0.1:9006',
-})
-
-router:upsert({
-    id = 7,
-    group = 4,
-    index = 7,
-    group_name = 'plat_group',
-    addr = '127.0.0.1:9007',
-})
-
-router:upsert({
-    id = 8,
-    group = 4,
-    index = 8,
-    group_name = 'plat_group',
-    addr = '127.0.0.1:9008',
+    index = 1,
+    group_name = 'klbq_plat_router_loc',
+    addr = '127.0.0.1:9601',
 })

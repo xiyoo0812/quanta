@@ -13,8 +13,8 @@ database:upsert({
     group = 1,
     index = 1,
     driver = 'mongo',
-    db = 'paperman_1',
-    host = '127.0.0.1',
+    db = 'klbq_plat_pub',
+    host = '10.72.17.44',
     port = 27017,
 })
 
@@ -22,17 +22,8 @@ database:upsert({
     group = 2,
     index = 1,
     driver = 'mongo',
-    db = 'paperman_2',
-    host = '127.0.0.1',
-    port = 27017,
-})
-
-database:upsert({
-    group = 3,
-    index = 1,
-    driver = 'mongo',
-    db = 'paperman_3',
-    host = '127.0.0.1',
+    db = 'klbq_plat_rmsg_pub',
+    host = '10.72.17.44',
     port = 27017,
 })
 
@@ -40,16 +31,16 @@ database:upsert({
     group = 1000,
     index = 1,
     driver = 'mongo',
-    db = 'msg_queue',
-    host = '127.0.0.1',
+    db = 'klbq_plat_dev',
+    host = '10.72.17.44',
     port = 27017,
 })
 
 database:upsert({
-    group = 2000,
+    group = 1001,
     index = 1,
     driver = 'mongo',
-    db = 'global_collect',
-    host = '127.0.0.1',
+    db = 'klbq_plat_rmsg_dev',
+    host = '10.72.17.44',
     port = 27017,
 })

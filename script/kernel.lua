@@ -1,8 +1,8 @@
 --quanta_frame.lua
 import("basic/basic.lua")
 import("utility/signal.lua")
-import("utility/service.lua")
 import("utility/environ.lua")
+import("utility/service.lua")
 import("utility/constant.lua")
 import("utility/utility.lua")
 import("kernel/statis/perfeval_mgr.lua")
