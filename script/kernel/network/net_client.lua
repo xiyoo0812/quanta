@@ -36,7 +36,8 @@ function NetClient:connect(block)
     if self.socket then
         return true
     end
-    local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT, 1)
+    local listen_proto_type = 1
+    local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT, listen_proto_type)
     --设置阻塞id
     local block_id = block and thread_mgr:build_session_id()
     -- 调用成功，开始安装回调函数
