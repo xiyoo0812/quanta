@@ -12,13 +12,13 @@ local KernCode      = enum("KernCode")
 local NetwkTime     = enum("NetwkTime")
 local SUCCESS       = KernCode.SUCCESS
 
+local event_mgr     = quanta.event_mgr
 local thread_mgr    = quanta.thread_mgr
 local socket_mgr    = quanta.socket_mgr
 local statis_mgr    = quanta.statis_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 
-local Listener  = import("basic/listener.lua")
-local RpcServer = singleton(Listener)
+local RpcServer = singleton()
 
 local prop = property(RpcServer)
 prop:accessor("clients", {})
@@ -30,21 +30,21 @@ end
 function RpcServer:setup(env_name, induce)
     local ip, port = env_addr(env_name)
     if not ip or not port then
-        log_err("routor %s is nil", env_name)
+        log_err("[RpcServer][setup] %s is nil", env_name)
         os.exit(1)
     end
     local real_port = induce and (tonumber(port) + quanta.index) or port
     self.listener = socket_mgr.listen(ip, real_port)
     if not self.listener then
-        log_err("routor now listen %s:%s failed", ip, real_port)
+        log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)
         os.exit(1)
     end
-    log_info("routor now listen %s:%s success!", ip, real_port)
+    log_info("[RpcServer][setup] now listen %s:%s success!", ip, real_port)
     self.listener.on_accept = function(client)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
     end
     --监听事件
-    self:add_listener(self, "rpc_heartbeat")
+    event_mgr:add_listener(self, "rpc_heartbeat")
 end
 
 --rpc事件
@@ -52,7 +52,7 @@ function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_type, source, ...)
     client.alive_time = quanta.now
     if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         local function dispatch_rpc_message(...)
-            local rpc_datas = self:notify_listener(rpc, client, ...)
+            local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
                 client.call_rpc(session_id, RpcType.RPC_RES, source, rpc, tunpack(rpc_datas))
             end
@@ -68,7 +68,7 @@ function RpcServer:on_socket_close(client, err)
     local client_token = client.token
     log_err("[RpcServer][on_socket_close] %s lost: %s", client.name or client_token, err)
     self.clients[client_token] = nil
-    self:notify_listener("on_socket_close", client, client_token, err)
+    event_mgr:notify_listener("on_socket_close", client, client_token, err)
 end
 
 --accept事件
@@ -96,7 +96,7 @@ function RpcServer:on_socket_accept(client)
         qxpcall(self.on_socket_close, "on_socket_close: %s", self, client, err)
     end
     --通知收到新client
-    self:notify_listener("on_socket_accept", client)
+    event_mgr:notify_listener("on_socket_accept", client)
 end
 
 --send接口

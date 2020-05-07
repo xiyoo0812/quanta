@@ -4,6 +4,8 @@
 local log_err           = logger.err
 local qxpcall           = quanta.xpcall
 
+local event_mgr         = quanta.event_mgr
+local timer_mgr         = quanta.timer_mgr
 local socket_mgr        = quanta.socket_mgr
 local thread_mgr        = quanta.thread_mgr
 local protobuf_mgr      = quanta.protobuf_mgr
@@ -15,71 +17,66 @@ local NetwkTime         = enum("NetwkTime", 0)
 
 local NetClient = class()
 local prop = property(NetClient)
-prop:accessor("session", nil)       --连接成功对象
+prop:accessor("alive", false)
+prop:accessor("socket", nil)        --连接成功对象
+prop:accessor("holder", nil)        --持有者
 prop:accessor("decoder", nil)       --解码函数
 prop:accessor("encoder", nil)       --编码函数
 prop:accessor("wait_list", {})      --等待协议列表
 
-function NetClient:__init()
-end
-
-function NetClient:get_token()
-    return self.session and self.session.token
+function NetClient:__init(holder, ip, port)
+    self.holder = holder
+    self.port = port
+    self.ip = ip
 end
 
 -- 发起连接
-function NetClient:connect(ip, port, block)
-    --log_debug("NetClient:connect try connect: %s-%d", ip, port)
-    if self.session then
+function NetClient:connect(block)
+    --log_debug("NetClient:connect try connect: %s-%d", self.ip, self.port)
+    if self.socket then
         return true
     end
-    local session, res = socket_mgr.connect(ip, port, NetwkTime.CONNECT_TIMEOUT, 1)
-
-    -- 函数调用失败
-    if not session then
-        self:on_close(res)
-        return false, res
-    end
-
-    self.session = session
+    local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT, 1)
     --设置阻塞id
     local block_id = block and thread_mgr:build_session_id()
     -- 调用成功，开始安装回调函数
-    self.session.on_connect = function(result)
-        local succes = (result == "ok")
+    socket.on_connect = function(res)
+        local succes = (res == "ok")
         local function dispatch_connect()
             if not succes then
-                self:on_close(result)
+                self:on_socket_err(socket, res)
                 return
             end
-            self:on_connect()
+            self:on_socket_connect(socket)
         end
         thread_mgr:fork(dispatch_connect)
         if block_id then
             --阻塞回调
-            thread_mgr:response(block_id, succes, result)
+            thread_mgr:response(block_id, succes, res)
         end
     end
-
-    self.session.on_call_dx = function(recv_len, cmd_id, flag, session_id, data)
+    socket.on_call_dx = function(recv_len, cmd_id, rpc_type, session_id, data)
         statis_mgr:statis_notify("on_dx_recv", cmd_id, recv_len)
         local eval = perfeval_mgr:begin_eval("dx_c_cmd_" .. cmd_id)
-        qxpcall(self.on_call_dx, "on_call_dx: %s", self, cmd_id, flag, session_id, data)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, rpc_type, session_id, data)
         perfeval_mgr:end_eval(eval)
     end
-
-    self.session.on_error = function(err)
-        -- 执行消息分发
-        local function dispatch_close()
-            self:on_close(err)
+    socket.on_error = function(err)
+        local function dispatch_err()
+            self:on_socket_err(socket, err)
         end
-        thread_mgr:fork(dispatch_close)
+        thread_mgr:fork(dispatch_err)
     end
+    self.socket = socket
     --阻塞模式挂起
     if block_id then
         return thread_mgr:yield(block_id, NetwkTime.CONNECT_TIMEOUT)
     end
     return true
+end
+
+function NetClient:get_token()
+    return self.socket and self.socket.token
 end
 
 function NetClient:encode(cmd_id, data)
@@ -96,17 +93,17 @@ function NetClient:decode(cmd_id, data)
     return protobuf_mgr:decode(cmd_id, data)
 end
 
-function NetClient:on_call_dx(cmd_id, flag, session_id, data)
-    self.session.alive_time = quanta.now
+function NetClient:on_socket_rpc(socket, cmd_id, rpc_type, session_id, data)
+    socket.alive_time = quanta.now
     local body = self:decode(cmd_id, data)
     if not body  then
-        log_err("[NetClient][on_call_dx] decode failed! cmd_id:%s，data:%s", cmd_id, data)
+        log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
     end
-    if session_id == 0 or flag == RpcType.RPC_REQ then
+    if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         -- 执行消息分发
         local function dispatch_rpc_message()
-            self:on_recv(cmd_id, body, session_id)
+            event_mgr:notify_command(cmd_id, body)
         end
         thread_mgr:fork(dispatch_rpc_message)
         --等待协议处理
@@ -123,16 +120,17 @@ end
 
 -- 主动关闭连接
 function NetClient:close()
-    if self.session then
-        self.session.close()
+    if self.socket then
+        self.socket.close()
+        self.alive = false
+        self.socket = nil
     end
 end
 
-function NetClient:write(cmd_id, data, session_id, flag)
-    if not self.session then
+function NetClient:write(cmd_id, data, session_id, rpc_type)
+    if not self.alive then
         return false
     end
-
     local body = self:encode(cmd_id, data)
     if not body then
         log_err("[NetClient][send_dx] encode failed! cmd_id:%s", cmd_id)
@@ -140,7 +138,7 @@ function NetClient:write(cmd_id, data, session_id, flag)
     end
     -- call lbus
     local session_id = session_id or 0
-    local send_len = self.session.call_dx(cmd_id, flag or RpcType.RPC_REQ, session_id, body)
+    local send_len = self.socket.call_dx(cmd_id, rpc_type or RpcType.RPC_REQ, session_id, body)
     if send_len < 0 then
         log_err("[NetClient][write] call_dx failed! code:%s", send_len)
         return false
@@ -175,28 +173,18 @@ function NetClient:wait_dx(cmd_id, time)
 end
 
 -- 连接成回调
-function NetClient:on_connect()
-    self:on_connect_impl()
-end
-
--- 连接回调实现，用于派生类业务处理
-function NetClient:on_connect_impl()
-
-end
-
--- 数据回调
-function NetClient:on_recv(cmd_id, body)
+function NetClient:on_socket_connect(socket)
+    self.alive = true
+    socket.alive_time = quanta.now
+    self.holder:on_socket_connect(self)
 end
 
 -- 连接关闭回调
-function NetClient:on_close(err)
-    self.session = nil
+function NetClient:on_socket_err(socket, err)
+    self.socket = nil
+    self.alive = false
     self.wait_list = {}
-    self:on_close_impl(err)
-end
-
--- 连接关闭回调实现，用于派生类业务处理
-function NetClient:on_close_impl(err)
+    self.holder:on_socket_err(self, err)
 end
 
 return NetClient

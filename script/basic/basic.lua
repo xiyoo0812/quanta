@@ -36,4 +36,4 @@ end
 quanta_const    = quanta_const or {}
 
 --创建全局监听器
-quanta.listener = Listener()
+quanta.event_mgr = Listener()

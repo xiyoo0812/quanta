@@ -23,8 +23,6 @@ prop:accessor("session_count", 0)       --会话数量
 prop:accessor("listener", nil)          --监听器
 prop:accessor("decoder", nil)           --解码函数
 prop:accessor("encoder", nil)           --编码函数
-prop:accessor("hb_req_id", 1001)        --心跳请求
-prop:accessor("hb_ack_id", 1002)        --心跳回执
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -141,21 +139,6 @@ function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
     local body = self:decode(cmd_id, data)
     if not body then
         log_err("[NetServer][on_call_dx] decode failed! cmd_id:%s", cmd_id)
-        return
-    end
-    if cmd_id == self.hb_req_id then
-        --todo 使用body.time防止加速
-        local cserial = body.serial
-        local sserial = session.serial
-        if cserial and cserial ~= session.serial_sync then
-            --需要同步状态给客户端
-            local function dispatch_rpc_message(session)
-                self:notify_listener("on_session_sync", session)
-            end
-            thread_mgr:fork(dispatch_rpc_message, session)
-        end
-        session.serial_sync = sserial
-        self:send_dx(session, self.hb_ack_id, { serial = sserial, time = now_tick })
         return
     end
     if session_id == 0 or flag == RpcType.RPC_REQ then

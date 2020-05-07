@@ -51,11 +51,9 @@ quanta.join(client)
 
 --get接口
 http.call_get = function(url, querys, headers)
-    headers = header_format(headers)
     local full_url = url_format(url, querys)
-
     local session_id = thread_mgr:build_session_id()
-    local ok, err = client.get(full_url, "", headers, session_id)
+    local ok, err = client.get(full_url, "", header_format(headers), session_id)
     if ok then
         return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
     else
@@ -66,15 +64,13 @@ end
 
 --post接口
 http.call_post = function(url, querys, post_data, headers)
-    headers = header_format(headers)
     local full_url = url_format(url, querys)
-
     local session_id = thread_mgr:build_session_id()
-    local ok, err = client.post(full_url, post_data, headers, session_id)
+    local ok, err = client.post(full_url, post_data, header_format(headers), session_id)
     if ok then
         return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
     else
-        log_warn("[http.call_get] ok=%s,err=%s", ok, err)
+        log_warn("[http.call_post] ok=%s,err=%s", ok, err)
         return ok, err
     end
 end

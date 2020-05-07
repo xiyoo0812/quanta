@@ -64,6 +64,7 @@ end
 function Listener:notify_listener(event, ...)
     local listener = self._listeners[event]
     if not listener or not listener[event] then
+        log_err("event %s handler is nil!", event)
         return tpack(false, "event handler is nil")
     end
     local result = tpack(pcall(listener[event], listener, ...))
@@ -76,11 +77,13 @@ end
 function Listener:notify_command(cmd, ...)
     local context = self._commands[cmd]
     if not context then
-        return tpack(false, "event handler is nil")
+        log_err("command %s handler is nil!", cmd)
+        return tpack(false, "command handler is nil")
     end
     local listener, event = tunpack(context)
     if not listener or not listener[event] then
-        return tpack(false, "event handler is nil")
+        log_err("command %s handler is nil!", cmd)
+        return tpack(false, "command handler is nil")
     end
     local result = tpack(pcall(listener[event], listener, ...))
     if not result[1] then

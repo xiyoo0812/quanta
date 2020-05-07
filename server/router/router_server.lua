@@ -12,6 +12,7 @@ local KernCode      = enum("KernCode")
 local RPC_FAILED    = KernCode.RPC_FAILED
 local RpcServer     = import("kernel/network/rpc_server.lua")
 
+local event_mgr     = quanta.event_mgr
 local socket_mgr    = quanta.socket_mgr
 
 local RouterServer = singleton()
@@ -23,9 +24,9 @@ function RouterServer:__init()
     self.rpc_server = RpcServer()
     self.rpc_server:setup("QUANTA_ROUTER_ADDR", true)
     --监听事件
-    self.rpc_server:add_listener(self, "on_socket_close")
-    self.rpc_server:add_listener(self, "on_socket_accept")
-    self.rpc_server:add_listener(self, "rpc_router_register")
+    event_mgr:add_listener(self, "on_socket_close")
+    event_mgr:add_listener(self, "on_socket_accept")
+    event_mgr:add_listener(self, "rpc_router_register")
 end
 
 --其他服务器节点关闭

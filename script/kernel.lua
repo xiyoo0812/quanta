@@ -87,6 +87,10 @@ function quanta.init()
         --初始化路由管理器
         quanta.router_mgr:setup(router_group)
     end
+    if env_get("QUANTA_MONITOR_ADDR") then
+        --加载monotor
+        import("kernel/monitor/monitor_proxy.lua")
+    end
 end
 
 --添加对象到主更新循环

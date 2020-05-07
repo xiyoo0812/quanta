@@ -3,8 +3,8 @@ local cmd_parser    = import("utility/cmdline.lua")
 local args_parser   = import("utility/cmdlist.lua")
 local RpcClient     = import("kernel/network/rpc_client.lua")
 
+local tjoin         = table.join
 local tunpack       = table.unpack
-local tjoin         = table_ex.join
 local sformat       = string.format
 local env_addr      = environ.addr
 local signal_quit   = signal.quit
@@ -18,6 +18,7 @@ local check_failed  = utility.check_failed
 local KernCode      = enum("KernCode")
 local NetwkTime     = enum("NetwkTime")
 
+local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
 local router_mgr    = quanta.router_mgr
 local thread_mgr    = quanta.thread_mgr
@@ -40,6 +41,11 @@ function MonitorProxy:__init()
     end)
     --检查连接
     self:check_conn()
+    --注册事件
+    event_mgr:add_listener(self, "on_heartbeat")
+end
+
+function MonitorProxy:on_heartbeat()
 end
 
 function MonitorProxy:on_timer()
@@ -50,7 +56,7 @@ function MonitorProxy:on_timer()
 end
 
 -- 连接关闭回调
-function MonitorProxy:on_socket_error(socket, err)
+function MonitorProxy:on_socket_error(client, err)
     if err == "active-close" then
         -- 主动关闭连接不走重连逻辑
         return
@@ -60,7 +66,7 @@ function MonitorProxy:on_socket_error(socket, err)
 end
 
 -- 连接成回调
-function MonitorProxy:on_socket_connect()
+function MonitorProxy:on_socket_connect(client)
     log_info("[MonitorProxy][on_socket_connect]: connect monitor success!")
     -- 到monitor注册
     self.client:send("rpc_monitor_register", quanta.id, quanta.service_id, quanta.index, quanta.name)
@@ -143,7 +149,7 @@ function MonitorProxy:rpc_quanta_quit(reason)
     -- 关闭会话连接
     thread_mgr:fork(function()
         thread_mgr:sleep(1000)
-        --self.client:close()
+        self.client:close()
     end)
     timer_mgr:once(1000, function()
         log_warn("[MonitorProxy][rpc_quanta_quit]->service:%s", quanta.name)
@@ -195,6 +201,6 @@ function MonitorProxy:rpc_remote_command(cmd)
     return {code = 0, data = res}
 end
 
-hive.monitor = MonitorProxy()
+quanta.monitor = MonitorProxy()
 
 return MonitorProxy
