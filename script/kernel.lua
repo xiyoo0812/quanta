@@ -87,9 +87,6 @@ function quanta.init()
         --初始化路由管理器
         quanta.router_mgr:setup(router_group)
     end
-    if quanta.platform == "windows" then
-        os.execute(sformat("title %s", quanta.name))
-    end
 end
 
 --添加对象到主更新循环
