@@ -37,12 +37,13 @@ function NetServer:setup(env_name)
     local listen_proto_type = 1
     local ip, port = env_addr(env_name)
     local socket_mgr = quanta.socket_mgr
-    self.listener = socket_mgr.listen(ip, port, listen_proto_type)
+    local real_port = tonumber(port) + quanta.index
+    self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
     if not self.listener then
-        log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, port, listen_proto_type)
+        log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)
         os.exit(1)
     end
-    log_info("[NetServer][setup] start listen at: %s:%d type=%d", ip, port, listen_proto_type)
+    log_info("[NetServer][setup] start listen at: %s:%d type=%d", ip, real_port, listen_proto_type)
     -- 安装回调
     self.listener.on_accept = function(session)
         qxpcall(self.on_session_accept, "on_dx_accept: %s", self, session)
