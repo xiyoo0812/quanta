@@ -13,7 +13,7 @@ local raw_running   = coroutine.running
 local get_time_ms   = quanta.get_time_ms
 
 --性能统计打印时间
-local DUMP_PERIOD   = 10 * 60 * 1000
+local PeriodTime    = enum("PeriodTime")
 
 local PerfevalMgr = singleton()
 function PerfevalMgr:__init()
@@ -40,7 +40,7 @@ function PerfevalMgr:set_perfeval(status)
     end
     self.perfeval = status
     if status then
-        self.timer_id = timer_mgr:loop(DUMP_PERIOD, function()
+        self.timer_id = timer_mgr:loop(PeriodTime.MINUTE_10_MS, function()
            self:dump()
         end)
     end

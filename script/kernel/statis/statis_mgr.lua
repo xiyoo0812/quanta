@@ -9,9 +9,7 @@ local env_status    = environ.status
 local timer_mgr     = quanta.timer_mgr
 local linux_statis  = quanta.linux_statis
 
-local MINUTE_TICK   = 60 * 1000
-local SECOND_TICK   = 1000
-local HOUR_MINUTE   = 60
+local PeriodTime    = enum("PeriodTime")
 
 local StatisMgr = singleton()
 function StatisMgr:__init()
@@ -55,7 +53,7 @@ function StatisMgr:setup()
     quanta.join_dump(self)
 
     --定时器
-    timer_mgr:loop(SECOND_TICK, function(escape)
+    timer_mgr:loop(PeriodTime.SECOND_MS, function(escape)
         self:on_timer(escape)
     end)
 end
@@ -118,14 +116,14 @@ function StatisMgr:on_timer(escape)
     -- 秒
     self:_second_update()
     -- 分钟
-    if self.escape_ms >= MINUTE_TICK then
+    if self.escape_ms >= PeriodTime.MINUTE_MS then
         self.escape_minute = self.escape_minute + 1
-        self.escape_ms = self.escape_ms - MINUTE_TICK
+        self.escape_ms = self.escape_ms - PeriodTime.MINUTE_MS
         self:_minute_update()
     --    self:dump(false)
     end
     -- 小时
-    if self.escape_minute >= HOUR_MINUTE then
+    if self.escape_minute >= PeriodTime.HOUR_M then
         self.escape_minute = 0
         self:_hour_update()
         self:dump(true)

@@ -12,13 +12,12 @@ local timer_mgr     = quanta.timer_mgr
 local router_mgr    = quanta.router_mgr
 local thread_mgr    = quanta.thread_mgr
 
-local FEISHU_LIMIT_COUNT = 3        -- 周期内最大次数
-local FEISHU_LIMIT_CYCLE = 60 * 60  -- 频率控制周期
+local PeriodTime    = enum("PeriodTime")
 
+local FEISHU_LIMIT_COUNT = 3        -- 周期内最大次数
 local ROBOT_URL = "http://open.feishu.cn//open-apis/bot/hook/56b34b9e1c0b4fc0acadef8ebc3894ad"
 
 local Feishu = singleton()
-
 function Feishu:__init()
     --控制同样消息的发送频率
     self.feishu_limit = {}
@@ -37,7 +36,7 @@ function Feishu:on_feishu_log(title, log_context)
         log_info = {time = 0, count = 0}
         self.feishu_limit[body] = log_info
     end
-    if now - log_info.time > FEISHU_LIMIT_CYCLE then
+    if now - log_info.time > PeriodTime.HOUR_S then
         log_info = {time = now, count = 0}
     end
     if log_info.count > FEISHU_LIMIT_COUNT then

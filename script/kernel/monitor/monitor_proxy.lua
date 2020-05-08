@@ -17,13 +17,12 @@ local check_failed  = utility.check_failed
 
 local KernCode      = enum("KernCode")
 local NetwkTime     = enum("NetwkTime")
+local PeriodTime    = enum("PeriodTime")
 
 local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
 local router_mgr    = quanta.router_mgr
 local thread_mgr    = quanta.thread_mgr
-
-local TIMER_PERIOD  = 1000
 
 local MonitorProxy = singleton()
 local prop = property(MonitorProxy)
@@ -105,7 +104,7 @@ function MonitorProxy:report_cmd()
         if ok and check_success(code) then
             log_info("[MonitorProxy][report_cmd] success!")
         else
-            timer_mgr:once(TIMER_PERIOD, function()
+            timer_mgr:once(PeriodTime.SECOND_MS, function()
                 self:report_cmd()
             end)
         end
@@ -135,10 +134,10 @@ function MonitorProxy:rpc_quanta_quit(reason)
     end
     -- 关闭会话连接
     thread_mgr:fork(function()
-        thread_mgr:sleep(1000)
+        thread_mgr:sleep(PeriodTime.SECOND_MS)
         self.client:close()
     end)
-    timer_mgr:once(1000, function()
+    timer_mgr:once(PeriodTime.SECOND_MS, function()
         log_warn("[MonitorProxy][rpc_quanta_quit]->service:%s", quanta.name)
         signal_quit()
     end)

@@ -13,11 +13,10 @@ local timer_mgr     = quanta.timer_mgr
 local config_mgr    = quanta.config_mgr
 
 local KernCode      = enum("KernCode")
+local NetwkTime     = enum("NetwkTime")
+local PeriodTime    = enum("PeriodTime")
 local SUCCESS       = KernCode.SUCCESS
 local MONGO_FAILED  = KernCode.MONGO_FAILED
-
-local CONNECT_WAIT_TIME = 5
-local PERIOD_UPDATE     = 1000
 
 local MongoMgr = singleton()
 function MongoMgr:__init()
@@ -37,7 +36,7 @@ function MongoMgr:setup()
         end
     end
     --update
-    timer_mgr:loop(PERIOD_UPDATE, function()
+    timer_mgr:loop(PeriodTime.SECOND_MS, function()
         self:check_dbs()
     end)
     event_mgr:add_listener(self, "mongo_find")
@@ -93,7 +92,7 @@ function MongoMgr:check_dbs()
             if quanta.now > node.connect_tick then
                 node.db = self:create_db(id, node)
                 if not node.db then
-                    node.connect_tick = quanta.now + CONNECT_WAIT_TIME
+                    node.connect_tick = quanta.now + NetwkTime.RECONNECT_TIME
                 end
             end
         end

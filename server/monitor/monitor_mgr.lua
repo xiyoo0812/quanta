@@ -4,17 +4,19 @@ local http      = import("driver/http.lua")
 local RpcServer = import("kernel/network/rpc_server.lua")
 local HttpServer= import("kernel/network/http_server.lua")
 
-local jdecode           = ljson.decode
-local jencode           = ljson.encode
-local sformat           = string.format
-local env_get           = environ.get
-local env_addr          = environ.addr
-local log_info          = logger.info
-local log_debug         = logger.debug
-local serialize         = logger.serialize
+local jdecode       = ljson.decode
+local jencode       = ljson.encode
+local sformat       = string.format
+local env_get       = environ.get
+local env_addr      = environ.addr
+local log_info      = logger.info
+local log_debug     = logger.debug
+local serialize     = logger.serialize
 
-local event_mgr         = quanta.event_mgr
-local thread_mgr        = quanta.thread_mgr
+local event_mgr     = quanta.event_mgr
+local thread_mgr    = quanta.thread_mgr
+
+local PeriodTime    = enum("PeriodTime")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
@@ -60,7 +62,7 @@ function MonitorMgr:post_node_status(client, status)
                 id      = client.id,
                 status  = status,
             }
-            thread_mgr:sleep(1000)
+            thread_mgr:sleep(PeriodTime.SECOND_MS)
             if self:forward_request("node_status", "call_post", nil, jencode(data)) == 0 then
                 log_info("[MonitorMgr][post_node_status] node : %s success!", client.name, node.id)
                 break

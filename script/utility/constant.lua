@@ -22,8 +22,29 @@ NetwkTime.CONNECT_TIMEOUT   = 3000      --连接等待时间
 NetwkTime.RPC_CALL_TIMEOUT  = 5000      --RPC调用超时时间
 NetwkTime.ROUTER_TIMEOUT    = 10000     --router连接超时时间
 NetwkTime.NETWORK_TIMEOUT   = 35000     --其他网络连接超时时间
-NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间
+NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间（s）
 NetwkTime.HEARTBEAT_TIME    = 1000      --RPC连接心跳时间
+
+--常用时间周期
+local PeriodTime = enum("PeriodTime", 0)
+PeriodTime.SECOND_MS        = 1000      --1秒（ms）
+PeriodTime.SECOND_5_MS      = 5000      --5秒（ms）
+PeriodTime.SECOND_10_MS     = 10000     --10秒（ms）
+PeriodTime.SECOND_30_MS     = 30000     --30秒（ms）
+PeriodTime.MINUTE_MS        = 60000     --60秒（ms）
+PeriodTime.MINUTE_5_MS      = 300000    --5分钟（ms）
+PeriodTime.MINUTE_10_MS     = 600000    --10分钟（ms）
+PeriodTime.SECOND_5_S       = 5         --5秒（s）
+PeriodTime.SECOND_10_S      = 10        --10秒（s）
+PeriodTime.SECOND_30_S      = 30        --30秒（s）
+PeriodTime.MINUTE_S         = 60        --60秒（s）
+PeriodTime.MINUTE_5_S       = 300       --5分钟（s）
+PeriodTime.MINUTE_10_S      = 600       --10分钟（s）
+PeriodTime.MINUTE_30_S      = 1800      --30分钟（s）
+PeriodTime.HOUR_S           = 3600      --1小时（s）
+PeriodTime.DAY_S            = 86400     --1天（s）
+PeriodTime.WEEK_S           = 604800    --1周（s）
+PeriodTime.HOUR_M           = 60        --1小时（m）
 
 --数据加载状态
 local DBLoading = enum("DBLoading", 0, "INIT", "LOADING", "SUCCESS")

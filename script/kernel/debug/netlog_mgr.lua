@@ -1,5 +1,4 @@
--- Netllog_mgr.lua
-local NetlogAgent   = import("share/monitor/Netllog_agent.lua")
+-- netllog_mgr.lua
 local next          = next
 local otime         = os.time
 local log_debug     = logger.debug
@@ -10,12 +9,11 @@ local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
 local listener      = quanta.listener
 
+local PeriodTime    = enum("PeriodTime")
+
 local PULL_CNT_MAX  = 10
-local TIMER_PERIOD  = 1000
-local OVERDUE_TIME  = 10 * 1000
 
 local NetlogMgr = singleton()
-
 function NetlogMgr:__init()
     self.sessions = {}
     self:setup()
@@ -26,7 +24,7 @@ function NetlogMgr:setup()
     event_mgr:add_listener(self, "rpc_query_log")
     event_mgr:add_listener(self, "rpc_close_log")
 
-    timer_mgr:loop(TIMER_PERIOD, function()
+    timer_mgr:loop(PeriodTime.SECOND_MS, function()
         self:on_timer()
     end)
 end
@@ -113,7 +111,7 @@ function NetlogMgr:on_timer()
     local overdue = {}
     local cur_time = otime()
     for session_id, session in pairs(self.sessions) do
-        if cur_time - session.active_time > OVERDUE_TIME then
+        if cur_time - session.active_time > PeriodTime.SECOND_10_MS then
             overdue[session_id] = 1
         end
     end
