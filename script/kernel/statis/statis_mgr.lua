@@ -129,7 +129,7 @@ function StatisMgr:on_timer(escape)
         self:dump(true)
     end
     -- 10秒统计系统信息
-    if (self.escape_ms // SECOND_TICK) % 10 == 0 then
+    if (self.escape_ms // PeriodTime.SECOND_MS) % 10 == 0 then
         self:_system_update()
     end
 end
