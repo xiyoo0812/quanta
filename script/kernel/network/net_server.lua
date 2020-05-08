@@ -28,10 +28,13 @@ function NetServer:__init(session_type)
 end
 
 --induce：根据index推导port
-function NetServer:setup(env_name, induce)
+function NetServer:setup(ip, port, induce)
     -- 开启监听
+    if not ip or not port then
+        log_err("[NetServer][setup] ip:%s or port:%s is nil", ip, port)
+        os.exit(1)
+    end
     local listen_proto_type = 1
-    local ip, port = env_addr(env_name)
     local socket_mgr = quanta.socket_mgr
     local real_port = induce and (tonumber(port) + quanta.index) or port
     self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
