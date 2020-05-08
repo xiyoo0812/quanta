@@ -39,12 +39,12 @@ function RpcClient:on_call_router(rpc, send_len)
 end
 
 --检测存活
-function RpcClient:check_alive(now)
-    if self.alive and now - self.alive_time > NetwkTime.RPC_LINK_TIMEOUT then
-        self.alive = false
-        self.socket = nil
+function RpcClient:check_lost(now)
+    if now - self.socket.alive_time > NetwkTime.ROUTER_TIMEOUT then
+        self:close()
         return true
     end
+    self:send("rpc_heartbeat", quanta.id)
 end
 
 --连接服务器

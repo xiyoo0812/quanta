@@ -52,7 +52,7 @@ function MonitorProxy:on_timer()
     --检查连接
     self:check_conn()
     --心跳
-    self.client:send("rpc_heartbeat", quanta.id)
+    self.client:check_lost(quanta.now)
 end
 
 -- 连接关闭回调
