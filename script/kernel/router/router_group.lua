@@ -94,7 +94,7 @@ function RouterGroup:update()
                 client:connect()
             end
         else
-            if client:check_alive() then
+            if client:check_alive(now_tick) then
                 log_info("[RouterGroup][update] router timeout: %s:%s", client.ip, client.port)
                 if node == self.master then
                     self:switch_master()

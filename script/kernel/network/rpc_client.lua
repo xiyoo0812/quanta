@@ -34,7 +34,7 @@ function RpcClient:on_call_router(rpc, send_len)
         statis_mgr:statis_notify("on_rpc_send", rpc, send_len)
         return true, send_len
     end
-    log_err("[RpcClient][call_luabus] rpc %s call failed! code:%s", rpc, send_len)
+    log_err("[RpcClient][on_call_router] rpc %s call failed! code:%s", rpc, send_len)
     return false
 end
 

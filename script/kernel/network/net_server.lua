@@ -1,7 +1,6 @@
 --session_mgr.lua
 local log_err       = logger.err
 local log_info      = logger.info
-local env_addr      = environ.addr
 local qxpcall       = quanta.xpcall
 
 local event_mgr     = quanta.event_mgr

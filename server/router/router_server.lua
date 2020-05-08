@@ -123,8 +123,8 @@ function RouterServer:rpc_router_register(server, id)
         for _, exist_server in self.rpc_server:iterator() do
             local exist_server_id = exist_server.id
             if exist_server_id and exist_server_id ~= id then
-                exist_server.call_lua("on_service_register", id, service_id, router_id)
-                server.call_lua("on_service_register", exist_server_id, exist_server.service_id, router_id)
+                exist_server.call_rpc("on_service_register", id, service_id, router_id)
+                server.call_rpc("on_service_register", exist_server_id, exist_server.service_id, router_id)
             end
         end
     end
