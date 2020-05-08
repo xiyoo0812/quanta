@@ -21,6 +21,7 @@ local config_mgr    = quanta.config_mgr
 local RouterServer = singleton()
 local prop = property(RouterServer)
 prop:accessor("rpc_server", nil)
+prop:accessor("kick_servers", {})
 prop:accessor("service_masters", {})
 function RouterServer:__init()
     self:setup()
@@ -123,8 +124,8 @@ function RouterServer:rpc_router_register(server, id)
         for _, exist_server in self.rpc_server:iterator() do
             local exist_server_id = exist_server.id
             if exist_server_id and exist_server_id ~= id then
-                exist_server.call_rpc("on_service_register", id, service_id, router_id)
-                server.call_rpc("on_service_register", exist_server_id, exist_server.service_id, router_id)
+                self.rpc_server:send(exist_server, "on_service_register", id, service_id, router_id)
+                self.rpc_server:send(server, "on_service_register", exist_server_id, exist_server.service_id, router_id)
             end
         end
     end
