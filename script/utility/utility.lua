@@ -2,14 +2,12 @@
 local type          = type
 local otime         = os.time
 local odate         = os.date
-local mrandom       = math.random
 local sbyte         = string.byte
 local tunpack       = table.unpack
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 local ssplit        = string_ext.split
 local log_err       = logger.err
-local new_guid      = guid.new
 
 local KernCode      = enum("KernCode")
 local SUCCESS       = KernCode.SUCCESS

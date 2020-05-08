@@ -44,7 +44,7 @@ function logger.init(max_line)
     --构建日志目录
     local log_path = environ.get("QUANTA_LOG_PATH")
     lmkdir(log_path)
-    log_file_path = sformat("%s/%s", log_path, quanta.service)
+    local log_file_path = sformat("%s/%s", log_path, quanta.service)
     lmkdir(log_file_path)
     if log_daemon then
         quanta.daemon(1, 1)

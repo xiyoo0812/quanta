@@ -3,11 +3,11 @@ local cmd_parser    = import("utility/cmdline.lua")
 local args_parser   = import("utility/cmdlist.lua")
 local RpcClient     = import("kernel/network/rpc_client.lua")
 
-local tjoin         = table.join
 local tunpack       = table.unpack
 local sformat       = string.format
-local env_addr      = environ.addr
 local signal_quit   = signal.quit
+local env_addr      = environ.addr
+local tjoin         = table_ext.join
 local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
@@ -38,6 +38,10 @@ function MonitorProxy:__init()
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
         self:on_timer()
     end)
+    --注册事件
+    event_mgr:add_listener(self, "on_quanta_quit")
+    event_mgr:add_listener(self, "on_remote_message")
+    event_mgr:add_listener(self, "on_remote_command")
 end
 
 function MonitorProxy:on_timer()
@@ -127,7 +131,7 @@ function MonitorProxy:service_request(api_name, data)
 end
 
 -- 处理Monitor通知退出消息
-function MonitorProxy:rpc_quanta_quit(reason)
+function MonitorProxy:on_quanta_quit(reason)
     -- 发个退出通知
     if router_mgr then
         router_mgr:notify_trigger("on_quanta_quit", reason)
@@ -138,25 +142,25 @@ function MonitorProxy:rpc_quanta_quit(reason)
         self.client:close()
     end)
     timer_mgr:once(PeriodTime.SECOND_MS, function()
-        log_warn("[MonitorProxy][rpc_quanta_quit]->service:%s", quanta.name)
+        log_warn("[MonitorProxy][on_quanta_quit]->service:%s", quanta.name)
         signal_quit()
     end)
     return { code = 0 }
 end
 
 --执行远程rpc消息
-function MonitorProxy:rpc_remote_message(rpc, ...)
+function MonitorProxy:on_remote_message(rpc, ...)
     local ok, code, res = tunpack(router_mgr:notify_listener(rpc, ...))
     if not ok or check_failed(code) then
-        log_err("[MonitorProxy][rpc_remote_message] web_rpc faild: ok=%s, ec=%s", serialize(ok), code)
+        log_err("[MonitorProxy][on_remote_message] web_rpc faild: ok=%s, ec=%s", serialize(ok), code)
         return { code = ok and code or KernCode.RPC_FAILED, msg = ok and "" or code}
     end
     return { code = 0 , data = res}
 end
 
 -- 处理Monitor通知执行GM指令
-function MonitorProxy:rpc_remote_command(cmd)
-    log_info("[MonitorProxy][rpc_remote_command] cmd : %s", cmd)
+function MonitorProxy:on_remote_command(cmd)
+    log_info("[MonitorProxy][on_remote_command] cmd : %s", cmd)
     local cmd_info = cmd_parser(cmd)
     if not router_mgr or not cmd_info then
         return { code = 1, msg = "command not exist" }

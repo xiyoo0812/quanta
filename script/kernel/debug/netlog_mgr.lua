@@ -2,6 +2,7 @@
 local next          = next
 local otime         = os.time
 local log_debug     = logger.debug
+local tinsert       = table.insert
 local ssplit        = string_ext.split
 local serialize     = logger.serialize
 

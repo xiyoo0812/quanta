@@ -14,7 +14,9 @@ KernCode.OPERATOR_SELF      = 7     --不能对自己操作
 KernCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
 
 --rpc 类型定义
-local RpcType = enum("RpcType", 0, "RPC_REQ", "RPC_RES")
+local RpcType = enum("RpcType", 0)
+RpcType.RPC_REQ = 0
+RpcType.RPC_RES = 1
 
 --网络时间常量定义
 local NetwkTime = enum("NetwkTime", 0)
@@ -47,4 +49,7 @@ PeriodTime.WEEK_S           = 604800    --1周（s）
 PeriodTime.HOUR_M           = 60        --1小时（m）
 
 --数据加载状态
-local DBLoading = enum("DBLoading", 0, "INIT", "LOADING", "SUCCESS")
+local DBLoading = enum("DBLoading", 0)
+DBLoading.INIT = 0
+DBLoading.LOADING = 1
+DBLoading.SUCCESS = 2

@@ -4,12 +4,11 @@
 local RouterGroup   = import("kernel/router/router_group.lua")
 
 local pairs         = pairs
+local sformat       = string.format
 local tindexof      = table_ext.indexof
-local ssplit        = string_ext.split
 local sid2sid       = service.id2sid
 local sname2sid     = service.name2sid
 local signal_quit   = signal.quit
-local log_err       = logger.err
 local log_info      = logger.info
 
 local event_mgr     = quanta.event_mgr
@@ -23,11 +22,40 @@ function RouterMgr:__init()
     self.router_groups = {}
 end
 
+--生成针对服务的访问接口
+function RouterMgr:build_service_method(service)
+    local service_id = sname2sid(service)
+    local method_list = {
+        ["call_%s_hash"] = function(hash_key, rpc, ...)
+            return self:forward_group("call_hash", service_id, service_id, hash_key, rpc, ...)
+        end,
+        ["send_%s_hash"] = function(hash_key, rpc, ...)
+            return self:forward_group("send_hash", service_id, service_id, hash_key, rpc, ...)
+        end,
+        ["call_%s_master"] = function(rpc, ...)
+            return self:forward_group("call_master", service_id, service_id, rpc, ...)
+        end,
+        ["send_%s_master"] = function(rpc, ...)
+            return self:forward_group("send_master", service_id, service_id, rpc, ...)
+        end,
+        ["send_%s_all"] = function(rpc, ...)
+            return self:forward_group("forward_broadcast", service_id, service_id, rpc, ...)
+        end,
+    }
+    for fmt_key, handler in pairs(method_list) do
+        local method = sformat(fmt_key, service)
+        if not RouterMgr[method] then
+            RouterMgr[method] = handler
+        end
+    end
+end
+
 --建立router_group索引
 function RouterMgr:build_index_groups(group_id, router_group)
     for _, service in service_tab:iterator() do
         if tindexof(service.router_group, group_id) then
             self.index_groups[service.id] = router_group
+            self:build_service_method(service.name)
         end
     end
 end
@@ -57,8 +85,8 @@ function RouterMgr:setup(groups)
 end
 
 --hash router
-function RouterMgr:hash_router(service, hash_key)
-    local router_group = self:get_router_group(service)
+function RouterMgr:hash_router(service_id, hash_key)
+    local router_group = self:get_router_group(service_id)
     if router_group then
         return router_group:hash_router(hash_key)
     end
@@ -87,8 +115,8 @@ function RouterMgr:get_router_group_by_id(router_id)
 end
 
 --代理router_group发送
-function RouterMgr:forward_group(method, service_id, ...)
-    local router_group = self:get_router_group(service_id)
+function RouterMgr:forward_group(method, service, ...)
+    local router_group = self:get_router_group(service)
     if router_group then
         return router_group[method](router_group, ... )
     end
@@ -125,31 +153,6 @@ function RouterMgr:router_send(router_id, target, rpc, ...)
     return self:forward_group("router_send", sid2sid(target), router_id, target, rpc, ...)
 end
 
---发送给指定servic的hash
-function RouterMgr:call_hash(service_id, hash_key, rpc, ...)
-    return self:forward_group("call_hash", service_id, service_id, hash_key, rpc, ...)
-end
-
---发送给指定servic的hash
-function RouterMgr:send_hash(service_id, hash_key, rpc, ...)
-    return self:forward_group("send_hash", service_id, service_id, hash_key, rpc, ...)
-end
-
---发送给指定servic的master
-function RouterMgr:call_master(service_id, rpc, ...)
-    return self:forward_group("call_master", service_id, service_id, rpc, ...)
-end
-
---发送给指定servic的master
-function RouterMgr:send_master(service_id, rpc, ...)
-    return self:forward_group("send_master", service_id, service_id, rpc, ...)
-end
-
---广播给指定servic
-function RouterMgr:forward_broadcast(service_id, rpc, ...)
-    return self:forward_group("forward_broadcast", service_id, service_id, rpc, ...)
-end
-
 --监听服务断开
 function RouterMgr:watch_service_close(listener, service)
     local service_id = sname2sid(service)
@@ -168,6 +171,8 @@ function RouterMgr:watch_service_register(listener, service)
     end
 end
 
+--业务事件响应
+-------------------------------------------------------------------------------
 -- 刷新router配置
 function RouterMgr:on_router_update()
     for group_id, router_group in pairs(self.router_groups) do

@@ -6,8 +6,6 @@ ljson.encode_sparse_array(true)
 local sformat       = string.format
 local json_encode   = ljson.encode
 
-local contont_type  = "application/x-www-form-urlencoded"
-
 local CLIENT_KEYS   = '/v2/keys'
 local CLIENT_ENDPOINTS = {
     version         = '/version',

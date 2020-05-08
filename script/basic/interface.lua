@@ -14,7 +14,7 @@ local tinsert       = table.insert
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
 
-local interface_temples = interface_temples or {}
+local interface_tpls = {}
 
 local function index(interface, field)
     return interface.__vtbl[field]
@@ -91,7 +91,7 @@ end
 function interface(...)
     local info = dgetinfo(2, "S")
     local moudle = info.short_src
-    local interface_tpl = interface_temples[moudle]
+    local interface_tpl = interface_tpls[moudle]
     if not interface_tpl then
         local interface = {
             __vtbl = {},
@@ -101,7 +101,7 @@ function interface(...)
             __tostring = interface_tostring,
         }
         interface_tpl = setmetatable(interface, interfaceMT)
-        interface_temples[moudle] = interface_tpl
+        interface_tpls[moudle] = interface_tpl
     end
     return interface_tpl
 end

@@ -50,7 +50,7 @@ end
 
 -- 连接回调
 function NetServer:on_session_accept(session)
-    log_debug("[on_session_accept]: token:%s, ip:%s", session.token, session.ip)
+    --log_debug("[on_session_accept]: token:%s, ip:%s", session.token, session.ip)
     self:add_session(session)
     -- 设置超时(心跳)
     session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
@@ -80,8 +80,7 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     end
     session.serial = session.serial + 1
     -- call lbus
-    local session_id = session_id or 0
-    local send_len = session.call_dx(cmd_id, flag or RpcType.RPC_REQ, session_id, body)
+    local send_len = session.call_dx(cmd_id, flag or RpcType.RPC_REQ, session_id or 0, body)
     if send_len > 0 then
         statis_mgr:statis_notify("on_dx_send", cmd_id, send_len)
         return true
@@ -134,8 +133,8 @@ function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
         return
     end
     if session_id == 0 or flag == RpcType.RPC_REQ then
-        local function dispatch_rpc_message(session, cmd, bd)
-            local result = event_mgr:notify_listener("on_session_cmd", session, cmd, bd, session_id)
+        local function dispatch_rpc_message(_session, cmd, bd)
+            local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
             if not result[1] then
                 log_err("[NetServer][on_call_dx] on_session_cmd failed! cmd_id:%s", cmd_id)
             end

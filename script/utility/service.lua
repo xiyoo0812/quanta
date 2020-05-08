@@ -8,7 +8,6 @@ local tonumber      = tonumber
 local ssub          = string.sub
 local sfind         = string.find
 local sformat       = string.format
-local log_warn      = logger.warn
 
 local config_mgr    = quanta.config_mgr
 

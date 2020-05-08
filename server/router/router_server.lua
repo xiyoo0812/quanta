@@ -1,6 +1,5 @@
 --router_server.lua
 
-local pairs         = pairs
 local mhuge         = math.huge
 local log_err       = logger.err
 local log_info      = logger.info
@@ -9,7 +8,6 @@ local util_addr     = utility.addr
 local env_number    = environ.number
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
-local smake_id      = service.make_id
 
 local KernCode      = enum("KernCode")
 local RpcServer     = import("kernel/network/rpc_server.lua")

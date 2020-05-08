@@ -70,7 +70,7 @@ service:upsert({
     quanta_deploy_name = 'klbq_plat_pub',
     id = 8,
     name = 'robot',
-    router_group = {1},
+    router_group = {},
 })
 
 service:upsert({
@@ -134,7 +134,7 @@ service:upsert({
     quanta_deploy_name = 'klbq_plat_dev',
     id = 8,
     name = 'robot',
-    router_group = {1},
+    router_group = {},
 })
 
 service:upsert({
@@ -198,5 +198,5 @@ service:upsert({
     quanta_deploy_name = 'klbq_plat_loc',
     id = 8,
     name = 'robot',
-    router_group = {1},
+    router_group = {},
 })

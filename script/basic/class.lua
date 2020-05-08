@@ -15,7 +15,7 @@ local getmetatable = getmetatable
 local setmetatable = setmetatable
 
 --类模板
-local class_temples = class_temples or {}
+local class_tpls = {}
 
 local function interface_init(class, object, ...)
     if class.__super then
@@ -101,7 +101,7 @@ local classMT = {
 local function class_constructor(class, super, ...)
     local info = dgetinfo(2, "S")
     local moudle = info.short_src
-    local class_tpl = class_temples[moudle]
+    local class_tpl = class_tpls[moudle]
     if not class_tpl then
         local vtbl = {
             __class = class,
@@ -118,7 +118,7 @@ local function class_constructor(class, super, ...)
         class.__interfaces = {}
         class_tpl = setmetatable(class, classMT)
         implemented(class, { ... })
-        class_temples[moudle] = class_tpl
+        class_tpls[moudle] = class_tpl
     end
     return class_tpl
 end
@@ -171,3 +171,4 @@ function conv_class(name)
         return obj
     end
 end
+

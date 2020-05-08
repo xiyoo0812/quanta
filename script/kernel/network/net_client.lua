@@ -5,7 +5,6 @@ local log_err           = logger.err
 local qxpcall           = quanta.xpcall
 
 local event_mgr         = quanta.event_mgr
-local timer_mgr         = quanta.timer_mgr
 local socket_mgr        = quanta.socket_mgr
 local thread_mgr        = quanta.thread_mgr
 local protobuf_mgr      = quanta.protobuf_mgr
@@ -138,8 +137,7 @@ function NetClient:write(cmd_id, data, session_id, rpc_type)
         return false
     end
     -- call lbus
-    local session_id = session_id or 0
-    local send_len = self.socket.call_dx(cmd_id, rpc_type or RpcType.RPC_REQ, session_id, body)
+    local send_len = self.socket.call_dx(cmd_id, rpc_type or RpcType.RPC_REQ, session_id or 0, body)
     if send_len < 0 then
         log_err("[NetClient][write] call_dx failed! code:%s", send_len)
         return false

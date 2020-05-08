@@ -5,7 +5,6 @@ local protobuf  = require("driver.protobuf")
 local pairs         = pairs
 local ipairs        = ipairs
 local pcall         = pcall
-local open_file     = io.open
 local ldir          = lfs.dir
 local sfind         = string.find
 local sgsub         = string.gsub

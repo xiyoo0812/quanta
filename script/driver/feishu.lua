@@ -8,7 +8,6 @@ local env_status    = environ.status
 local sname2sid     = service.name2sid
 
 local listener      = quanta.listener
-local timer_mgr     = quanta.timer_mgr
 local router_mgr    = quanta.router_mgr
 local thread_mgr    = quanta.thread_mgr
 
@@ -21,7 +20,7 @@ local Feishu = singleton()
 function Feishu:__init()
     --控制同样消息的发送频率
     self.feishu_limit = {}
-    self.service_id = sname2sid("dbsvr")
+    self.service_id = sname2sid("proxy")
     --添加事件监听
     listener:add_trigger(self, "on_feishu_log")
 end
@@ -34,7 +33,7 @@ function Feishu:on_feishu_log(title, log_context)
     local log_info = self.feishu_limit[log_context]
     if not log_info then
         log_info = {time = 0, count = 0}
-        self.feishu_limit[body] = log_info
+        self.feishu_limit[log_context] = log_info
     end
     if now - log_info.time > PeriodTime.HOUR_S then
         log_info = {time = now, count = 0}

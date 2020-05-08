@@ -9,9 +9,9 @@ local jencode       = ljson.encode
 local sformat       = string.format
 local env_get       = environ.get
 local env_addr      = environ.addr
+local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
-local serialize     = logger.serialize
 
 local event_mgr     = quanta.event_mgr
 local thread_mgr    = quanta.thread_mgr
@@ -27,8 +27,9 @@ prop:accessor("http_server", nil)
 function MonitorMgr:__init()
     ljson.encode_sparse_array(true)
     --创建rpc服务器
+    local ip, port = env_addr("QUANTA_MONITOR_HOST")
     self.rpc_server = RpcServer()
-    self.rpc_server:setup(env_addr("QUANTA_MONITOR_HOST"))
+    self.rpc_server:setup(ip, port)
     --监听事件
     event_mgr:add_listener(self, "on_socket_close")
     event_mgr:add_listener(self, "on_socket_accept")
@@ -64,7 +65,7 @@ function MonitorMgr:post_node_status(client, status)
             }
             thread_mgr:sleep(PeriodTime.SECOND_MS)
             if self:forward_request("node_status", "call_post", nil, jencode(data)) == 0 then
-                log_info("[MonitorMgr][post_node_status] node : %s success!", client.name, node.id)
+                log_info("[MonitorMgr][post_node_status] node : %s success!", client.name)
                 break
             end
         end
@@ -157,12 +158,12 @@ function MonitorMgr:on_monitor_post(path, body, headers)
     end
     --执行函数
     local function handler_cmd(jbody)
-        local data_req = json_decode(jbody)
+        local data_req = jdecode(jbody)
         if data_req.service then
             return self:broadcast(data_req.rpc, data_req.service, data_req.data)
         else
             return self:call(data_req.id, data_req.rpc, data_req.data)
-        end 
+        end
     end
     --开始执行
     local ok, res = pcall(handler_cmd, self, body)

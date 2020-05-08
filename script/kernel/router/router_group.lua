@@ -33,7 +33,6 @@ function RouterGroup:setup()
     --心跳定时器
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
         self:on_timer()
-        
     end)
 end
 

@@ -1,8 +1,6 @@
 --cfg_mgr.lua
 local ConfigTable   = import("basic/config/config_table.lua")
 
-local tunpack       = table.unpack
-
 -- 配置管理器
 local ConfigMgr = singleton()
 function ConfigMgr:__init()

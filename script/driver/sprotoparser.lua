@@ -1,3 +1,4 @@
+--luacheck: ignore
 local lpeg = require "lpeg"
 local table = require "table"
 

@@ -29,7 +29,7 @@ function HttpTest:setup()
         quanta.server = HttpServer("0.0.0.0:8888", on_post, on_get)
     elseif quanta.index == 2 then
         thread_mgr:fork(function()
-            local ok, status, res = client.call_get("http://127.0.0.1:8888/test", data)
+            local ok, status, res = http.call_get("http://127.0.0.1:8888/test", json_encode(data))
             --local ok, status, res = client.call_post("http://127.0.0.1:8888/test", data, json_encode(data))
             print(ok, status, res)
         end)

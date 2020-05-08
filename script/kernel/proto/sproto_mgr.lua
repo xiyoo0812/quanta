@@ -7,6 +7,7 @@ local pcall     = pcall
 local ldir      = lfs.dir
 local open_file = io.open
 local env_get   = environ.get
+local ssub      = string.sub
 local sfind     = string.find
 local sformat   = string.format
 local ssplit    = string_ext.split

@@ -21,7 +21,7 @@ if not quanta.init_flag then
     ]]
 
     log_info("testsvr %d now startup!", quanta.id)
-    quanta.init_flag = true  
+    quanta.init_flag = true
     -- 设置启动标记
 end
 

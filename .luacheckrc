@@ -14,7 +14,8 @@ max_cyclomatic_complexity = 12
 max_code_line_length = 160
 max_comment_line_length = 160
 include_files = {
-    "bin/lua/*",
+    "script/*",
+    "server/*",
     "bin/proto/*.lua",
 }
 ignore = {"212", "213", "512"}

@@ -74,19 +74,19 @@ local function enum_init(emobj, base, ...)
     end
 end
 
-local function enum_list(enums)
-    local elist = rawget(enums, "__list")
+local function enum_list(ems)
+    local elist = rawget(ems, "__list")
     if not elist then
         elist = {}
-        rawset(enums, "__list", elist)
+        rawset(ems, "__list", elist)
     end
     return elist
 end
 
-local function new(enums, name, base, ...)
+local function new(ems, name, base, ...)
     local info = dgetinfo(2, "S")
     local moudle = info.short_src
-    local lists = enum_list(enums)
+    local lists = enum_list(ems)
     local eobj = lists[name]
     if eobj then
         if eobj.__moudle ~= moudle then
@@ -101,8 +101,8 @@ local function new(enums, name, base, ...)
     return eobj
 end
 
-local function index(enums, field)
-    local lists = enum_list(enums)
+local function index(ems, field)
+    local lists = enum_list(ems)
     return lists[field]
 end
 
