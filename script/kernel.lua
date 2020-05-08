@@ -35,22 +35,21 @@ local perfeval_mgr  = quanta.perfeval_mgr
 
 --quanta启动
 function quanta.startup()
-    local quanta_service = env_get("QUANTA_SERVICE")
-    assert(quanta_service, "service not exist, quanta startup failed!")
-    local quanta_group = env_number("QUANTA_GROUP", 1)
-    local quanta_index = env_number("QUANTA_INDEX", 1)
-    local quanta_service_id = service.init(quanta_group, quanta_service)
-    assert(quanta_service_id, "service_id not exist, quanta startup failed!")
     quanta.frame = 0
     quanta.now = otime()
     quanta.now_ms = get_time_ms()
     quanta.start_ms = get_time_ms()
-    quanta.index = quanta_index
-    quanta.group = quanta_group
+    quanta.index = env_number("QUANTA_INDEX", 1)
+    quanta.deploy = env_number("QUANTA_DEPLOY", 1)
+    local quanta_deploy = env_number("QUANTA_DEPLOY", 1)
+    local quanta_service = env_get("QUANTA_SERVICE")
+    assert(quanta_service, "service not exist, quanta startup failed!")
+    local quanta_service_id = service.init(quanta_service)
+    assert(quanta_service_id, "service_id not exist, quanta startup failed!")
     quanta.service = quanta_service
     quanta.service_id = quanta_service_id
-    quanta.id = service.make_id(quanta_service_id, quanta_index)
-    quanta.name = service.make_nick(quanta_service, quanta_index)
+    quanta.id = service.make_id(quanta_service_id, quanta.index)
+    quanta.name = service.make_nick(quanta_service, quanta.index)
     quanta.pid = quanta.get_pid()
     quanta.objects = {}
     quanta.dumps = {}

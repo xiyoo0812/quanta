@@ -10,41 +10,41 @@ router:set_version(10000)
 
 --导出配置内容
 router:upsert({
-    id = 1,
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     group = 1,
     index = 1,
-    group_name = 'klbq_plat_router_pub',
     addr = '10.72.17.44:9601',
 })
 
 router:upsert({
-    id = 2,
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     group = 1,
     index = 2,
-    group_name = 'klbq_plat_router_pub',
     addr = '10.72.17.44:9602',
 })
 
 router:upsert({
-    id = 1001,
-    group = 2,
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
+    group = 1,
     index = 1,
-    group_name = 'klbq_plat_router_dev',
     addr = '192.168.131.208:9601',
 })
 
 router:upsert({
-    id = 1002,
-    group = 2,
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
+    group = 1,
     index = 2,
-    group_name = 'klbq_plat_router_dev',
     addr = '192.168.131.208:9602',
 })
 
 router:upsert({
-    id = 2001,
-    group = 3,
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
+    group = 1,
     index = 1,
-    group_name = 'klbq_plat_router_loc',
     addr = '127.0.0.1:9601',
 })
