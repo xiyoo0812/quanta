@@ -39,8 +39,6 @@ function MonitorProxy:__init()
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
         self:on_timer()
     end)
-    --检查连接
-    self:check_conn()
     --注册事件
     event_mgr:add_listener(self, "on_heartbeat")
 end
@@ -49,10 +47,15 @@ function MonitorProxy:on_heartbeat()
 end
 
 function MonitorProxy:on_timer()
-    --检查连接
-    self:check_conn()
-    --心跳
-    self.client:check_lost(quanta.now)
+    local now = quanta.now
+    if not self.client:is_alive() then
+        if now >= self.next_connect_time then
+            self.next_connect_time = now + NetwkTime.RECONNECT_TIME
+            self.client:connect()
+        end
+    else
+        self.client:check_lost(now)
+    end
 end
 
 -- 连接关闭回调
@@ -72,17 +75,6 @@ function MonitorProxy:on_socket_connect(client)
     self.client:send("rpc_monitor_register", quanta.id, quanta.service_id, quanta.index, quanta.name)
     -- 上报gm列表
     self:report_cmd()
-end
-
---检查连接
-function MonitorProxy:check_conn()
-    if not self.client:is_alive() then
-        local now = quanta.now
-        if now>= self.next_connect_time then
-            self.next_connect_time = now + NetwkTime.RECONNECT_TIME
-            self.client:connect()
-        end
-    end
 end
 
 function MonitorProxy:build_cmd()
