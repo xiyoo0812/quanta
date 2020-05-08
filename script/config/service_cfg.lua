@@ -10,193 +10,193 @@ service:set_version(10000)
 
 --导出配置内容
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 1,
-    group = 1,
-    group_name = 'service_pub',
     name = 'router',
     router_group = {},
 })
 
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 2,
-    group = 1,
-    group_name = 'service_pub',
     name = 'monitor',
     router_group = {},
 })
 
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 3,
-    group = 1,
-    group_name = 'service_pub',
     name = 'gateway',
     router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 4,
-    group = 1,
-    group_name = 'service_pub',
     name = 'platform',
     router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 5,
-    group = 1,
-    group_name = 'service_pub',
-    name = 'httpsvr',
+    name = 'dbsvr',
     router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 6,
-    group = 1,
-    group_name = 'service_pub',
     name = 'proxy',
     router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 7,
-    group = 1,
-    group_name = 'service_pub',
     name = 'test',
     router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 1,
+    quanta_deploy_name = 'klbq_plat_pub',
     id = 8,
-    group = 1,
-    group_name = 'service_pub',
     name = 'robot',
     router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 1,
-    group = 2,
-    group_name = 'service_dev',
     name = 'router',
     router_group = {},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 2,
-    group = 2,
-    group_name = 'service_dev',
     name = 'monitor',
     router_group = {},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 3,
-    group = 2,
-    group_name = 'service_dev',
     name = 'gateway',
-    router_group = {2},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 4,
-    group = 2,
-    group_name = 'service_dev',
     name = 'platform',
-    router_group = {2},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 5,
-    group = 2,
-    group_name = 'service_dev',
-    name = 'httpsvr',
-    router_group = {2},
+    name = 'dbsvr',
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 6,
-    group = 2,
-    group_name = 'service_dev',
     name = 'proxy',
-    router_group = {2},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 7,
-    group = 2,
-    group_name = 'service_dev',
     name = 'test',
-    router_group = {2},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 2,
+    quanta_deploy_name = 'klbq_plat_dev',
     id = 8,
-    group = 2,
-    group_name = 'service_dev',
     name = 'robot',
-    router_group = {2},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 1,
-    group = 3,
-    group_name = 'service_loc',
     name = 'router',
     router_group = {},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 2,
-    group = 3,
-    group_name = 'service_loc',
     name = 'monitor',
     router_group = {},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 3,
-    group = 3,
-    group_name = 'service_loc',
     name = 'gateway',
-    router_group = {3},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 4,
-    group = 3,
-    group_name = 'service_loc',
     name = 'platform',
-    router_group = {3},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 5,
-    group = 3,
-    group_name = 'service_loc',
-    name = 'httpsvr',
-    router_group = {3},
+    name = 'dbsvr',
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 6,
-    group = 3,
-    group_name = 'service_loc',
     name = 'proxy',
-    router_group = {3},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 7,
-    group = 3,
-    group_name = 'service_loc',
     name = 'test',
-    router_group = {3},
+    router_group = {1},
 })
 
 service:upsert({
+    quanta_deploy = 3,
+    quanta_deploy_name = 'klbq_plat_loc',
     id = 8,
-    group = 3,
-    group_name = 'service_loc',
     name = 'robot',
-    router_group = {3},
+    router_group = {1},
 })

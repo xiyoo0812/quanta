@@ -2,14 +2,14 @@
 local http = import("driver/http.lua")
 local log_err       = logger.err
 
-local router_mgr    = quanta.router_mgr
+local event_mgr     = quanta.event_mgr
 
 local LogMgr = singleton()
 
 function LogMgr:__init()
     -- 注册事件
-    router_mgr:add_listener(self, "rpc_http_post")
-    router_mgr:add_listener(self, "rpc_http_get")
+    event_mgr:add_listener(self, "rpc_http_post")
+    event_mgr:add_listener(self, "rpc_http_get")
 end
 
 function LogMgr:rpc_http_get(url, query, headers)

@@ -27,11 +27,11 @@ local LOG_LEVEL_WARN    = 3     -- 程序运行时发生异常
 local LOG_LEVEL_ERROR   = 4     -- 程序运行时发生可预料的错误,此时通过错误处理,可以让程序恢复正常运行
 local LOG_LEVEL_OFF     = 100   -- 关闭所有消息输出
 
+local event_mgr         = nil
 local log_file          = nil
 local log_filename      = nil
 local log_daemon        = false
 local log_input         = false
-local log_listener      = nil
 local log_buffer        = ""
 local log_line_count    = 0
 local log_max_line      = 100000
@@ -49,7 +49,7 @@ function logger.init(max_line)
     if log_daemon then
         quanta.daemon(1, 1)
     end
-    log_listener = quanta.listener
+    event_mgr = quanta.event_mgr
     log_filename = sformat("%s/%s-%d", log_file_path, quanta.service, quanta.index)
 end
 
@@ -102,7 +102,7 @@ local function log_write(cate, color, fmt, ...)
         return
     end
     log_line_count = log_line_count + 1
-    log_listener:notify_trigger("on_log_output", line)
+    event_mgr:notify_trigger("on_log_output", line)
 end
 
 -- 字体颜色

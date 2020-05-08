@@ -2,30 +2,45 @@
 
 local pairs         = pairs
 local mhuge         = math.huge
+local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
+local util_addr     = utility.addr
+local env_number    = environ.number
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
 local smake_id      = service.make_id
 
 local KernCode      = enum("KernCode")
-local RPC_FAILED    = KernCode.RPC_FAILED
 local RpcServer     = import("kernel/network/rpc_server.lua")
 
+local event_mgr     = quanta.event_mgr
 local socket_mgr    = quanta.socket_mgr
+local config_mgr    = quanta.config_mgr
 
 local RouterServer = singleton()
 local prop = property(RouterServer)
-prop:accessor("rpc_server", {})
-prop:accessor("service_masters", {})
 prop:accessor("rpc_server", nil)
+prop:accessor("kick_servers", {})
+prop:accessor("service_masters", {})
 function RouterServer:__init()
+    self:setup()
+end
+
+function RouterServer:setup()
+    local router_tab = config_mgr:get_table("router")
+    local router_group = env_number("QUANTA_ROUTER_GROUP")
+    local router_conf = router_tab:find_one(router_group, quanta.index)
+    if not router_conf then
+        log_err("[RouterServer][setup] router_conf is nil group:%s index:%s", router_group, quanta.index)
+        os.exit(1)
+    end
     self.rpc_server = RpcServer()
-    self.rpc_server:setup("QUANTA_ROUTER_ADDR", true)
+    self.rpc_server:setup(util_addr(router_conf.addr))
     --监听事件
-    self.rpc_server:add_listener(self, "on_socket_close")
-    self.rpc_server:add_listener(self, "on_socket_accept")
-    self.rpc_server:add_listener(self, "rpc_router_register")
+    event_mgr:add_listener(self, "on_socket_close")
+    event_mgr:add_listener(self, "on_socket_accept")
+    event_mgr:add_listener(self, "rpc_router_register")
 end
 
 --其他服务器节点关闭
@@ -72,7 +87,7 @@ function RouterServer:on_socket_accept(server)
     log_info("[RouterServer][on_socket_accept] new connection, token=%s", server.token)
     server.on_router_error = function(session_id, rpc_type, source)
         log_info("[RouterServer][on_router_error] on_router_error, session_id=%s", session_id)
-        server.call(session_id, 1, quanta.id, "on_router_error", false, RPC_FAILED, "router con't find target!")
+        server.call(session_id, 1, quanta.id, "on_router_error", false, KernCode.RPC_FAILED, "router con't find target!")
     end
 end
 
@@ -109,8 +124,8 @@ function RouterServer:rpc_router_register(server, id)
         for _, exist_server in self.rpc_server:iterator() do
             local exist_server_id = exist_server.id
             if exist_server_id and exist_server_id ~= id then
-                exist_server.call_lua("on_service_register", id, service_id, router_id)
-                server.call_lua("on_service_register", exist_server_id, exist_server.service_id, router_id)
+                self.rpc_server:send(exist_server, "on_service_register", id, service_id, router_id)
+                self.rpc_server:send(server, "on_service_register", exist_server_id, exist_server.service_id, router_id)
             end
         end
     end

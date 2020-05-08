@@ -8,7 +8,7 @@ local log_info      = logger.info
 local log_warn      = logger.warn
 local env_number    = environ.number
 
-local router_mgr    = quanta.router_mgr
+local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
 local config_mgr    = quanta.config_mgr
 
@@ -40,11 +40,11 @@ function MongoMgr:setup()
     timer_mgr:loop(PERIOD_UPDATE, function()
         self:check_dbs()
     end)
-    router_mgr:add_listener(self, "mongo_find")
-    router_mgr:add_listener(self, "mongo_insert")
-    router_mgr:add_listener(self, "mongo_delete")
-    router_mgr:add_listener(self, "mongo_update")
-    router_mgr:add_listener(self, "mongo_find_one")
+    event_mgr:add_listener(self, "mongo_find")
+    event_mgr:add_listener(self, "mongo_insert")
+    event_mgr:add_listener(self, "mongo_delete")
+    event_mgr:add_listener(self, "mongo_update")
+    event_mgr:add_listener(self, "mongo_find_one")
 end
 
 function MongoMgr:create_db(id, node)

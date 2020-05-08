@@ -32,10 +32,9 @@ end
 function RouterGroup:setup()
     --心跳定时器
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
-        self:call_router_all("rpc_heartbeat", quanta.id)
+        self:on_timer()
+        
     end)
-    --添加帧更新
-    quanta.join(self)
 end
 
 --添加router
@@ -84,18 +83,18 @@ function RouterGroup:switch_master()
 end
 
 --更新
-function RouterGroup:update()
+function RouterGroup:on_timer()
     local now_tick = quanta.now
     for _, node in pairs(self.routers) do
         local client = node.client
-        if not client:get_socket() then
+        if not client:is_alive() then
             if now_tick > node.next_connect_time then
                 node.next_connect_time = now_tick + NetwkTime.RECONNECT_TIME
                 client:connect()
             end
         else
-            if client:check_alive() then
-                log_info("[RouterGroup][update] router timeout: %s:%s", client.ip, client.port)
+            if client:check_lost(now_tick) then
+                log_info("[RouterGroup][update_router] router lost: %s:%s", client.ip, client.port)
                 if node == self.master then
                     self:switch_master()
                 end
@@ -106,13 +105,6 @@ end
 
 function RouterGroup:forward_broadcast(service_id, rpc, ...)
     return self.master.client:forward_socket("call_broadcast", 0, service_id, rpc, ...)
-end
-
---发送给router all
-function RouterGroup:call_router_all(rpc, ...)
-    for _, node in pairs(self.routers) do
-        node.client:send(rpc, ...)
-    end
 end
 
 --发送给指定目标

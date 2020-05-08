@@ -1,10 +1,10 @@
 --environ.lua
-local pairs       = pairs
-local tonumber    = tonumber
-local ogetenv     = os.getenv
-local tunpack     = table.unpack
-local sformat     = string.format
-local ssplit      = string_ext.split
+local pairs     = pairs
+local tonumber  = tonumber
+local ogetenv   = os.getenv
+local tunpack   = table.unpack
+local sformat   = string.format
+local ssplit    = string_ext.split
 
 --内存临时环境变量表
 local QUANTA_ENV = {}

@@ -4,6 +4,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local qxpcall       = quanta.xpcall
 
+local event_mgr     = quanta.event_mgr
 local socket_mgr    = quanta.socket_mgr
 local statis_mgr    = quanta.statis_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
@@ -20,9 +21,9 @@ prop:accessor("ip", nil)
 prop:accessor("port", nil)
 prop:accessor("alive", false)
 prop:accessor("socket", nil)
-prop:accessor("rpc_mgr", nil)
-function RpcClient:__init(rpc_mgr, ip, port)
-    self.rpc_mgr = rpc_mgr
+prop:accessor("holder", nil)    --持有者
+function RpcClient:__init(holder, ip, port)
+    self.holder = holder
     self.port = port
     self.ip = ip
 end
@@ -33,24 +34,23 @@ function RpcClient:on_call_router(rpc, send_len)
         statis_mgr:statis_notify("on_rpc_send", rpc, send_len)
         return true, send_len
     end
-    log_err("[RpcClient][call_luabus] rpc %s call failed! code:%s", rpc, send_len)
+    log_err("[RpcClient][on_call_router] rpc %s call failed! code:%s", rpc, send_len)
     return false
 end
 
 --检测存活
-function RpcClient:check_alive(now)
-    if self.alive and now - self.alive_time > NetwkTime.RPC_LINK_TIMEOUT then
-        self.alive = false
-        self.socket = nil
+function RpcClient:check_lost(now)
+    if now - self.socket.alive_time > NetwkTime.ROUTER_TIMEOUT then
+        self:close()
         return true
     end
+    self:send("rpc_heartbeat", quanta.id)
 end
 
 --连接服务器
 function RpcClient:connect()
     --开始连接
-    local ip, port = self.ip, self.port
-    local socket = socket_mgr.connect(ip, port, NetwkTime.CONNECT_TIMEOUT)
+    local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
     socket.on_call = function(recv_len, session_id, rpc_type, source, rpc, ...)
         statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
         local eval = perfeval_mgr:begin_eval("rpc_doer_" .. rpc)
@@ -86,14 +86,25 @@ function RpcClient:connect()
     end
     socket.on_connect = function(res)
         if res == "ok" then
-            log_info("[RpcClient][connect] connect to %s:%s success!", ip, port)
             qxpcall(self.on_socket_connect, "on_socket_connect: %s", self, socket, res)
         else
-            log_err("[RpcClient][connect] connect to %s:%s failed, reason=%s", ip, port, res)
             self:on_socket_error(socket, res)
         end
     end
     self.socket = socket
+end
+
+-- 主动关闭连接
+function RpcClient:close()
+    if self.socket then
+        self.socket.close()
+        self.alive = false
+        self.socket = nil
+    end
+end
+
+--心跳回复
+function RpcClient:on_heartbeat(socket, qid)
 end
 
 --rpc事件
@@ -101,7 +112,14 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_type, source, rpc, ...)
     socket.alive_time = quanta.now
     if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         local function dispatch_rpc_message(...)
-            local rpc_datas = quanta.router_mgr:notify_listener(rpc, ...)
+            if self[rpc] then
+                local rpc_datas = pcall(self[rpc], self, socket, ...)
+                if session_id > 0 then
+                    socket.callback_target(session_id, source, rpc, tunpack(rpc_datas))
+                end
+                return
+            end
+            local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
                 socket.callback_target(session_id, source, rpc, tunpack(rpc_datas))
             end
@@ -114,23 +132,24 @@ end
 
 --错误处理
 function RpcClient:on_socket_error(socket, err)
+    log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
     self.socket = nil
     self.alive = false
-    self.rpc_mgr:on_socket_error(self, err)
+    self.holder:on_socket_error(self, err)
 end
 
 --连接成功
 function RpcClient:on_socket_connect(socket)
+    log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
     self.alive = true
     socket.alive_time = quanta.now
-    self.rpc_mgr:on_socket_connect(self)
+    self.holder:on_socket_connect(self)
 end
 
 --转发系列接口
 function RpcClient:forward_socket(method, session_id, ...)
-    local socket = self.socket
-    if socket then
-        if socket[method](session_id, ...) then
+    if self.alive then
+        if self.socket[method](session_id, ...) then
             if session_id > 0 then
                 return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
             end
@@ -143,19 +162,17 @@ end
 
 --直接发送接口
 function RpcClient:send(rpc, ...)
-    local socket = self.socket
-    if socket then
-        socket.call_rpc(0, RpcType.RPC_REQ, rpc, ...)
+    if self.alive then
+        self.socket.call_rpc(0, RpcType.RPC_REQ, rpc, ...)
     end
     return false, "socket not connected"
 end
 
 --直接发送接口
 function RpcClient:call(rpc, ...)
-    local socket = self.socket
-    if socket then
+    if self.alive then
         local session_id = thread_mgr:build_session_id()
-        if socket.call_rpc(session_id, RpcType.RPC_REQ, rpc, ...) then
+        if self.socket.call_rpc(session_id, RpcType.RPC_REQ, rpc, ...) then
             return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
         end
     end

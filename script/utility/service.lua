@@ -8,7 +8,6 @@ local tonumber      = tonumber
 local ssub          = string.sub
 local sfind         = string.find
 local sformat       = string.format
-local env_number    = environ.number
 local log_warn      = logger.warn
 
 local config_mgr    = quanta.config_mgr
@@ -16,18 +15,17 @@ local config_mgr    = quanta.config_mgr
 --服务组常量
 local SERVICES = {}
 local SERVICE_NAMES = {}
-local service_tab = config_mgr:init_table("service", "id", "group")
+local SERVICE_ROUTERS = {}
 
 service = {}
 
 --定义服务器组
 function service.init(name)
-    local group = env_number("QUANTA_GROUP", 1)
+    local service_tab = config_mgr:init_table("service", "id")
     for _, conf in service_tab:iterator() do
-        if conf.group == group then
-            SERVICES[conf.name] = conf.id
-            SERVICE_NAMES[conf.id] = conf.name
-        end
+        SERVICES[conf.name] = conf.id
+        SERVICE_NAMES[conf.id] = conf.name
+        SERVICE_ROUTERS[conf.id] = conf.router_group
     end
     return SERVICES[name]
 end
@@ -44,11 +42,7 @@ end
 
 --获取节点路由组
 function service.router_group(service_id)
-    local group = env_number("QUANTA_GROUP", 1)
-    local conf = service_tab:find_one(service_id, group)
-    if conf then
-        return conf.router_group
-    end
+    return SERVICE_ROUTERS[service_id]
 end
 
 --节点id获取服务id

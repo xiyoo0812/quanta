@@ -1,7 +1,6 @@
 --本文件供除router以外的所有服务进程共同引用
 --主要定义了各种rpc工具函数
 
-local Listener      = import("basic/listener.lua")
 local RouterGroup   = import("kernel/router/router_group.lua")
 
 local pairs         = pairs
@@ -13,11 +12,12 @@ local signal_quit   = signal.quit
 local log_err       = logger.err
 local log_info      = logger.info
 
+local event_mgr     = quanta.event_mgr
 local config_mgr    = quanta.config_mgr
 local router_tab    = config_mgr:get_table("router")
 local service_tab   = config_mgr:get_table("service")
 
-local RouterMgr = singleton(Listener)
+local RouterMgr = singleton()
 function RouterMgr:__init()
     self.index_groups = {}
     self.router_groups = {}
@@ -50,11 +50,10 @@ function RouterMgr:setup(groups)
         end
     end
     --注册事件
-    self:add_listener(self, "on_heartbeat")
-    self:add_listener(self, "on_router_update")
-    self:add_listener(self, "on_service_close")
-    self:add_listener(self, "on_service_register")
-    self:add_listener(self, "on_service_kickout")
+    event_mgr:add_listener(self, "on_router_update")
+    event_mgr:add_listener(self, "on_service_close")
+    event_mgr:add_listener(self, "on_service_register")
+    event_mgr:add_listener(self, "on_service_kickout")
 end
 
 --hash router
@@ -167,12 +166,6 @@ function RouterMgr:watch_service_register(listener, service)
     if router_group then
         router_group:watch_service_register(listener, service_id)
     end
-end
-
---事件监听
-----------------------------------------------------------------
-function RouterMgr:on_heartbeat()
-    --暂不处理
 end
 
 -- 刷新router配置

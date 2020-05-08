@@ -2,10 +2,12 @@
 local type          = type
 local otime         = os.time
 local odate         = os.date
-local sbyte         = string.byte
 local mrandom       = math.random
+local sbyte         = string.byte
+local tunpack       = table.unpack
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
+local ssplit        = string_ext.split
 local log_err       = logger.err
 local new_guid      = guid.new
 
@@ -74,4 +76,8 @@ function utility.edition(period, time)
         edition = (t.day - 1) * 24 + t.hour
     end
     return edition
+end
+
+function utility.addr(addr)
+    return tunpack(ssplit(addr, ":"))
 end

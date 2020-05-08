@@ -3,10 +3,10 @@ local http  = import("driver/http.lua")
 local ljson = require("luacjson")
 
 local type          = type
-local ssplit        = string_ex.split
 local tunpack       = table.unpack
-local json_encode   = ljson.encode
 local log_info      = logger.info
+local json_encode   = ljson.encode
+local ssplit        = string_ext.split
 
 local server        = http.server()
 local thread_mgr    = quanta.thread_mgr
@@ -38,10 +38,10 @@ function HttpServer:setup(http_addr, post_handler, get_handler)
     end
     local ip, port = tunpack(ssplit(http_addr, ":"))
     if not server.listen(ip, port) then
-        log_info("http now listen %s failed", http_addr)
+        log_info("[HttpServer][setup]  now listen %s failed", http_addr)
         os.exit(1)
     end
-    log_info("http now listen %s success!", http_addr)
+    log_info("[HttpServer][setup]  now listen %s success!", http_addr)
 end
 
 function HttpServer:response(session, resp)

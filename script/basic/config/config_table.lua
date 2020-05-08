@@ -37,6 +37,11 @@ function ConfigTable:upsert(row)
     if not self.name then
         return
     end
+    local conf_deploy = row.quanta_deploy
+    if conf_deploy and conf_deploy ~= quanta.deploy then
+        --部署环境不一样，不加载配置
+        return
+    end
     local row_indexs = {}
     for _, index in ipairs(self.indexs) do
         tinsert(row_indexs, row[index])

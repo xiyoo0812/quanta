@@ -6,7 +6,7 @@ local log_debug     = logger.debug
 local ssplit        = string_ext.split
 local serialize     = logger.serialize
 
-local router_mgr    = quanta.router_mgr
+local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
 local listener      = quanta.listener
 
@@ -22,9 +22,9 @@ function NetlogMgr:__init()
 end
 
 function NetlogMgr:setup()
-    router_mgr:add_listener(self, "pull_log")
-    router_mgr:add_listener(self, "query_log")
-    router_mgr:add_listener(self, "close_log")
+    event_mgr:add_listener(self, "rpc_pull_log")
+    event_mgr:add_listener(self, "rpc_query_log")
+    event_mgr:add_listener(self, "rpc_close_log")
 
     timer_mgr:loop(TIMER_PERIOD, function()
         self:on_timer()
@@ -55,9 +55,9 @@ function NetlogMgr:on_log_output(log_context)
     end
 end
 
-function NetlogMgr:query_log(json_data)
-    log_debug("[NetlogMgr][query_log]->json_data:%s", serialize(json_data))
-    local session_id, context = json_data.session, json_data.context
+function NetlogMgr:rpc_query_log(data)
+    log_debug("[NetlogMgr][rpc_query_log]->data:%s", serialize(data))
+    local session_id, context = data.session_id, data.context
     if not session_id then
         return { code = 1, msg= "param errror!" }
     end
@@ -71,15 +71,15 @@ function NetlogMgr:query_log(json_data)
     if not session then
         session = self:open_session(session_id)
     end
-    session.filters = ssplit(json_data.context, ",")
-    return { name = "query_log", code = 0, session = session_id }
+    session.filters = ssplit(data.context, ",")
+    return { name = "rpc_query_log", code = 0, session_id = session_id }
 end
 
-function NetlogMgr:pull_log(json_data)
-    local session_id = json_data.session
+function NetlogMgr:rpc_pull_log(data)
+    local session_id = data.session_id
     local session = self.sessions[session_id]
     if not session then
-        return {name = "pull_log", code = 1, msg = "find agent failed!"}
+        return {name = "rpc_pull_log", code = 1, msg = "find agent failed!"}
     end
     local pull_logs = {}
     session.active_time = otime()
@@ -96,17 +96,17 @@ function NetlogMgr:pull_log(json_data)
             session.pull_index = 0
         end
     end
-    return {name = "pull_log", code = 0, session = session_id,  logs = pull_logs}
+    return {name = "rpc_pull_log", code = 0, session_id = session_id,  logs = pull_logs}
 end
 
-function NetlogMgr:close_log(json_data)
-    log_debug("[NetlogMgr][pull_log]->json_data", serialize(json_data))
-    local session_id = json_data.session
+function NetlogMgr:rpc_close_log(data)
+    log_debug("[NetlogMgr][rpc_close_log]->data", serialize(data))
+    local session_id = data.session_id
     if not session_id then
-        return { name = "close_log", code = 1, msg = "session id empty!" }
+        return { name = "rpc_close_log", code = 1, msg = "session id empty!" }
     end
     self:close_session(session_id)
-    return { name = "close_log", code = 0 }
+    return { name = "rpc_close_log", code = 0 }
 end
 
 function NetlogMgr:on_timer()
