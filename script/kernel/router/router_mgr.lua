@@ -50,7 +50,6 @@ function RouterMgr:setup(groups)
         end
     end
     --注册事件
-    event_mgr:add_listener(self, "on_heartbeat")
     event_mgr:add_listener(self, "on_router_update")
     event_mgr:add_listener(self, "on_service_close")
     event_mgr:add_listener(self, "on_service_register")
@@ -167,12 +166,6 @@ function RouterMgr:watch_service_register(listener, service)
     if router_group then
         router_group:watch_service_register(listener, service_id)
     end
-end
-
---事件监听
-----------------------------------------------------------------
-function RouterMgr:on_heartbeat()
-    --暂不处理
 end
 
 -- 刷新router配置

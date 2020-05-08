@@ -103,11 +103,22 @@ function RpcClient:close()
     end
 end
 
+--心跳回复
+function RpcClient:on_heartbeat(socket, qid)
+end
+
 --rpc事件
 function RpcClient:on_socket_rpc(socket, session_id, rpc_type, source, rpc, ...)
     socket.alive_time = quanta.now
     if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         local function dispatch_rpc_message(...)
+            if self[rpc] then
+                local rpc_datas = pcall(self[rpc], self, socket, ...)
+                if session_id > 0 then
+                    socket.callback_target(session_id, source, rpc, tunpack(rpc_datas))
+                end
+                return
+            end
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
                 socket.callback_target(session_id, source, rpc, tunpack(rpc_datas))

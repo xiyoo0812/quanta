@@ -39,11 +39,6 @@ function MonitorProxy:__init()
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
         self:on_timer()
     end)
-    --注册事件
-    event_mgr:add_listener(self, "on_heartbeat")
-end
-
-function MonitorProxy:on_heartbeat()
 end
 
 function MonitorProxy:on_timer()

@@ -41,8 +41,6 @@ function RpcServer:setup(ip, port, induce)
     self.listener.on_accept = function(client)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
     end
-    --监听事件
-    event_mgr:add_listener(self, "rpc_heartbeat")
 end
 
 --rpc事件
@@ -50,6 +48,13 @@ function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_type, source, ...)
     client.alive_time = quanta.now
     if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         local function dispatch_rpc_message(...)
+            if self[rpc] then
+                local rpc_datas = pcall(self[rpc], self, client, ...)
+                if session_id > 0 then
+                    client.call_rpc(session_id, RpcType.RPC_RES, source, rpc, tunpack(rpc_datas))
+                end
+                return
+            end
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
                 client.call_rpc(session_id, RpcType.RPC_RES, source, rpc, tunpack(rpc_datas))
@@ -134,7 +139,7 @@ end
 --rpc回执
 -----------------------------------------------------------------------------
 --服务器心跳协议
-function RpcServer:rpc_heartbeat(client)
+function RpcServer:rpc_heartbeat(client, qid)
     self:send(client, "on_heartbeat", quanta.id)
 end
 
