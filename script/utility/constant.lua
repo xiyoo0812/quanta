@@ -10,8 +10,8 @@ KernCode.MONGO_FAILED       = 3     --MONGO执行失败
 KernCode.NETWORK_ERROR      = 4     --网络错误
 KernCode.PARAM_ERROR        = 5     --业务参数错误
 KernCode.RPC_FAILED         = 6     --RPC调用失败
-PlatCode.OPERATOR_SELF      = 7     --不能对自己操作
-PlatCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
+KernCode.OPERATOR_SELF      = 7     --不能对自己操作
+KernCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
 
 --rpc 类型定义
 local RpcType = enum("RpcType", 0, "RPC_REQ", "RPC_RES")
