@@ -24,3 +24,6 @@ NetwkTime.ROUTER_TIMEOUT    = 10000     --router连接超时时间
 NetwkTime.NETWORK_TIMEOUT   = 35000     --其他网络连接超时时间
 NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间
 NetwkTime.HEARTBEAT_TIME    = 1000      --RPC连接心跳时间
+
+--数据加载状态
+local DBLoading = enum("DBLoading", 0, "INIT", "LOADING", "SUCCESS")

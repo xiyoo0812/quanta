@@ -32,7 +32,7 @@ function MongoTest:setup()
                 log_err("find: code: %s, res: %s", code, serialize(res))
             end
 
-            local ok1, code1, res1 = mongo_proxy:find_one(hive.id, {"test_table", })
+            local ok1, code1, res1 = mongo_proxy:find_one(quanta.id, {"test_table", })
             if not ok1 or check_failed(code1) then
                 log_err("find_one: code: %s, res: %s", code1, serialize(res1))
             end
@@ -52,6 +52,6 @@ function MongoTest:setup()
 end
 
 -- export
-hive.mongo_test = MongoTest()
+quanta.mongo_test = MongoTest()
 
 return MongoTest

@@ -50,6 +50,6 @@ function Feishu:on_feishu_log(title, log_context)
     end)
 end
 
-hive.feishu = Feishu()
+quanta.feishu = Feishu()
 
 return Feishu
