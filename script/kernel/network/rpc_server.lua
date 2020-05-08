@@ -4,7 +4,6 @@ local pairs         = pairs
 local tonumber      = tonumber
 local log_err       = logger.err
 local log_info      = logger.info
-local env_addr      = environ.addr
 local qxpcall       = quanta.xpcall
 
 local RpcType       = enum("RpcType")
@@ -27,10 +26,9 @@ function RpcServer:__init()
 end
 
 --初始化
-function RpcServer:setup(env_name, induce)
-    local ip, port = env_addr(env_name)
+function RpcServer:setup(ip, port, induce)
     if not ip or not port then
-        log_err("[RpcServer][setup] %s is nil", env_name)
+        log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)
         os.exit(1)
     end
     local real_port = induce and (tonumber(port) + quanta.index) or port

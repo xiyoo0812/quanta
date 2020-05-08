@@ -4,6 +4,7 @@ local pairs         = pairs
 local mhuge         = math.huge
 local log_info      = logger.info
 local log_warn      = logger.warn
+local util_addr     = utility.addr
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
 local smake_id      = service.make_id
@@ -14,15 +15,23 @@ local RpcServer     = import("kernel/network/rpc_server.lua")
 
 local event_mgr     = quanta.event_mgr
 local socket_mgr    = quanta.socket_mgr
+local router_tab    = config_mgr:get_table("router")
 
 local RouterServer = singleton()
 local prop = property(RouterServer)
-prop:accessor("rpc_server", {})
-prop:accessor("service_masters", {})
 prop:accessor("rpc_server", nil)
+prop:accessor("service_masters", {})
 function RouterServer:__init()
+    self:setup()
+end
+
+function RouterServer:setup()
+    local router_conf = router_tab:get_one(quanta.group, quanta.index)
+    if not router_conf then
+        log_err("[RouterServer][setup] router_conf is nil group:%s index:%s", group, quanta.index)
+    end
     self.rpc_server = RpcServer()
-    self.rpc_server:setup("QUANTA_ROUTER_ADDR", true)
+    self.rpc_server:setup(util_addr(router_conf.addr))
     --监听事件
     event_mgr:add_listener(self, "on_socket_close")
     event_mgr:add_listener(self, "on_socket_accept")

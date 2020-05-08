@@ -35,17 +35,18 @@ local perfeval_mgr  = quanta.perfeval_mgr
 
 --quanta启动
 function quanta.startup()
-    local quanta_index = env_number("QUANTA_INDEX", 1)
-    assert(quanta_index, "index not exist, quanta startup failed!")
     local quanta_service = env_get("QUANTA_SERVICE")
     assert(quanta_service, "service not exist, quanta startup failed!")
-    local quanta_service_id = service.init(quanta_service)
-    assert(quanta_service_id, "service_id exist, quanta startup failed!")
+    local quanta_group = env_number("QUANTA_GROUP", 1)
+    local quanta_index = env_number("QUANTA_INDEX", 1)
+    local quanta_service_id = service.init(quanta_group, quanta_service)
+    assert(quanta_service_id, "service_id not exist, quanta startup failed!")
     quanta.frame = 0
     quanta.now = otime()
     quanta.now_ms = get_time_ms()
     quanta.start_ms = get_time_ms()
     quanta.index = quanta_index
+    quanta.group = quanta_group
     quanta.service = quanta_service
     quanta.service_id = quanta_service_id
     quanta.id = service.make_id(quanta_service_id, quanta_index)
@@ -78,11 +79,11 @@ function quanta.init()
     statis_mgr:setup()
     perfeval_mgr:setup()
 
-    -- 路由管理器初始化
+    --加载router配置
+    config_mgr:init_table("router", "group", "index")
+    --路由管理器初始化
     local router_group = service.router_group(quanta.service_id)
     if next(router_group) then
-        --加载router配置
-        config_mgr:init_table("router", "id")
         import("kernel/router/router_mgr.lua")
         --初始化路由管理器
         quanta.router_mgr:setup(router_group)

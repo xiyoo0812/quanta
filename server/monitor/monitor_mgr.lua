@@ -8,6 +8,7 @@ local jdecode           = ljson.decode
 local jencode           = ljson.encode
 local sformat           = string.format
 local env_get           = environ.get
+local env_addr          = environ.addr
 local log_info          = logger.info
 local log_debug         = logger.debug
 local serialize         = logger.serialize
@@ -25,7 +26,7 @@ function MonitorMgr:__init()
     ljson.encode_sparse_array(true)
     --创建rpc服务器
     self.rpc_server = RpcServer()
-    self.rpc_server:setup("QUANTA_MONITOR_HOST")
+    self.rpc_server:setup(env_addr("QUANTA_MONITOR_HOST"))
     --监听事件
     event_mgr:add_listener(self, "on_socket_close")
     event_mgr:add_listener(self, "on_socket_accept")

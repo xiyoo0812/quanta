@@ -21,8 +21,7 @@ local service_tab = config_mgr:init_table("service", "id", "group")
 service = {}
 
 --定义服务器组
-function service.init(name)
-    local group = env_number("QUANTA_GROUP", 1)
+function service.init(group, name)
     for _, conf in service_tab:iterator() do
         if conf.group == group then
             SERVICES[conf.name] = conf.id
@@ -44,8 +43,7 @@ end
 
 --获取节点路由组
 function service.router_group(service_id)
-    local group = env_number("QUANTA_GROUP", 1)
-    local conf = service_tab:find_one(service_id, group)
+    local conf = service_tab:find_one(service_id, quanta.group)
     if conf then
         return conf.router_group
     end
