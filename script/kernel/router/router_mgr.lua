@@ -13,8 +13,8 @@ local log_info      = logger.info
 
 local event_mgr     = quanta.event_mgr
 local config_mgr    = quanta.config_mgr
-local router_tab    = config_mgr:get_table("router")
-local service_tab   = config_mgr:get_table("service")
+local router_db     = config_mgr:get_table("router")
+local service_db    = config_mgr:get_table("service")
 
 local RouterMgr = singleton()
 function RouterMgr:__init()
@@ -52,7 +52,7 @@ end
 
 --建立router_group索引
 function RouterMgr:build_index_groups(group_id, router_group)
-    for _, service in service_tab:iterator() do
+    for _, service in service_db:iterator() do
         if tindexof(service.router_group, group_id) then
             self.index_groups[service.id] = router_group
             self:build_service_method(service.name)
@@ -63,7 +63,7 @@ end
 --初始化
 function RouterMgr:setup(groups)
     for _, group_id in pairs(groups) do
-        for _, router in router_tab:iterator() do
+        for _, router in router_db:iterator() do
             if group_id == router.group then
                 local router_group = self.router_groups[group_id]
                 if router_group then
@@ -177,7 +177,7 @@ end
 function RouterMgr:on_router_update()
     for group_id, router_group in pairs(self.router_groups) do
         self:build_index_groups(group_id, router_group)
-        for _, router in router_tab:iterator() do
+        for _, router in router_db:iterator() do
             if group_id == router.group then
                 router_group:add_router(router)
             end
