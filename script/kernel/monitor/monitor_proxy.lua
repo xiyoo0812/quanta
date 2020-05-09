@@ -133,9 +133,7 @@ end
 -- 处理Monitor通知退出消息
 function MonitorProxy:on_quanta_quit(reason)
     -- 发个退出通知
-    if router_mgr then
-        router_mgr:notify_trigger("on_quanta_quit", reason)
-    end
+    event_mgr:notify_trigger("on_quanta_quit", reason)
     -- 关闭会话连接
     thread_mgr:fork(function()
         thread_mgr:sleep(PeriodTime.SECOND_MS)
