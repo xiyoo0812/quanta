@@ -20,8 +20,8 @@ service = {}
 
 --定义服务器组
 function service.init(name)
-    local service_tab = config_mgr:init_table("service", "id")
-    for _, conf in service_tab:iterator() do
+    local service_db = config_mgr:init_table("service", "id")
+    for _, conf in service_db:iterator() do
         SERVICES[conf.name] = conf.id
         SERVICE_NAMES[conf.id] = conf.name
         SERVICE_ROUTERS[conf.id] = conf.router_group

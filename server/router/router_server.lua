@@ -26,9 +26,9 @@ function RouterServer:__init()
 end
 
 function RouterServer:setup()
-    local router_tab = config_mgr:get_table("router")
+    local router_db = config_mgr:get_table("router")
     local router_group = env_number("QUANTA_ROUTER_GROUP")
-    local router_conf = router_tab:find_one(router_group, quanta.index)
+    local router_conf = router_db:find_one(router_group, quanta.index)
     if not router_conf then
         log_err("[RouterServer][setup] router_conf is nil group:%s index:%s", router_group, quanta.index)
         os.exit(1)
