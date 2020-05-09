@@ -6,12 +6,14 @@ local qxpcall       = quanta.xpcall
 local quanta_update = quanta.update
 
 if not quanta.init_flag then
-    --初始化quanta
-    qxpcall(quanta.init, "quanta.init error: %s")
-
-    import("kernel/store/mongo_mgr.lua")
-
-    log_info("dbsvr %d now startup!", quanta.id)
+    local function startup()
+        --初始化quanta
+        quanta.init()
+        --初始化dbsvr
+        import("kernel/store/mongo_mgr.lua")
+        log_info("dbsvr %d now startup!", quanta.id)
+    end
+    qxpcall(startup, "quanta startup error: %s")
     quanta.init_flag = true
 end
 
