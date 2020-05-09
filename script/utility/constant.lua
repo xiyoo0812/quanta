@@ -12,6 +12,7 @@ KernCode.PARAM_ERROR        = 5     --业务参数错误
 KernCode.RPC_FAILED         = 6     --RPC调用失败
 KernCode.OPERATOR_SELF      = 7     --不能对自己操作
 KernCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
+KernCode.TOKEN_ERROR        = 9     --登录token错误
 
 --rpc 类型定义
 local RpcType = enum("RpcType", 0)

@@ -1,5 +1,5 @@
 --rmsg_mgr.lua
-import("store/mongo_proxy.lua")
+import("kernel/store/mongo_proxy.lua")
 
 local tsort     = table.sort
 local new_guid  = guid.new

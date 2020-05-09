@@ -18,6 +18,7 @@ if not quanta.init_flag then
         import("qtest/json_test.lua")
         import("qtest/pack_test.lua")
         import("qtest/mongo_test.lua")
+        import("qtest/router_test.lua")
         import("qtest/protobuf_test.lua")
         ]]
         log_info("qtest %d now startup!", quanta.id)
