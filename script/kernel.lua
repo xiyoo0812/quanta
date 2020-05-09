@@ -18,6 +18,7 @@ local sig_check     = signal.check
 local log_warn      = logger.warn
 local log_info      = logger.info
 local env_get       = environ.get
+local env_status    = environ.status
 local env_number    = environ.number
 local get_time_ms   = quanta.get_time_ms
 local collectgarbage= collectgarbage
@@ -69,7 +70,7 @@ function quanta.init()
     socket_mgr = lbus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
 
-    -- 初始核心管理器
+    -- 初始化统计管理器
     statis_mgr:setup()
     perfeval_mgr:setup()
 
@@ -86,6 +87,10 @@ function quanta.init()
         --加载monotor
         import("kernel/monitor/monitor_proxy.lua")
         import("kernel/debug/netlog_mgr.lua")
+    end
+    if env_status("QUANTA_FEISHU") then
+        --飞书上报
+        import("driver/feishu.lua")
     end
 end
 

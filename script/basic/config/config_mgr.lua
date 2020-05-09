@@ -10,9 +10,12 @@ end
 
 -- 初始化配置表
 function ConfigMgr:init_table(name, ...)
-    local conf_tab = ConfigTable()
-    self.table_list[name] = conf_tab
-    conf_tab:setup(name, ...)
+    local conf_tab = self.table_list[name]
+    if not conf_tab then
+        conf_tab = ConfigTable()
+        self.table_list[name] = conf_tab
+        conf_tab:setup(name, ...)
+    end
     return conf_tab
 end
 
