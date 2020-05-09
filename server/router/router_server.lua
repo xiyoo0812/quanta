@@ -6,8 +6,9 @@ local log_info      = logger.info
 local log_warn      = logger.warn
 local util_addr     = utility.addr
 local env_number    = environ.number
+local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
-local sid2name      = service.id2name
+local ssid2name     = service.sid2name
 
 local KernCode      = enum("KernCode")
 local RpcServer     = import("kernel/network/rpc_server.lua")
@@ -94,8 +95,9 @@ end
 --注册服务器
 function RouterServer:rpc_router_register(server, id)
     if not server.id then
-        local service_id = sid2name(id)
+        local service_id = sid2sid(id)
         local server_name = sid2nick(id)
+        local servive_name = ssid2name(id)
         local server_token = server.token
         -- 检查是否顶号
         for exist_token, exist_server in self.rpc_server:iterator() do
@@ -108,8 +110,9 @@ function RouterServer:rpc_router_register(server, id)
         server.id = id
         server.name = server_name
         server.service_id = service_id
+        server.servive_name = servive_name
         socket_mgr.map_token(id, server_token)
-        log_info("[RouterServer][rpc_router_register] service: %s", server.name)
+        log_info("[RouterServer][rpc_router_register] service: %s", servive_name)
         --switch master
         local group_master = self.service_masters[service_id] or mhuge
         if id < group_master then
@@ -122,8 +125,8 @@ function RouterServer:rpc_router_register(server, id)
         for _, exist_server in self.rpc_server:iterator() do
             local exist_server_id = exist_server.id
             if exist_server_id and exist_server_id ~= id then
-                self.rpc_server:send(exist_server, "on_service_register", id, service_id, router_id)
-                self.rpc_server:send(server, "on_service_register", exist_server_id, exist_server.service_id, router_id)
+                self.rpc_server:send(exist_server, "on_service_register", id, servive_name, router_id)
+                self.rpc_server:send(server, "on_service_register", exist_server_id, exist_server.servive_name, router_id)
             end
         end
     end

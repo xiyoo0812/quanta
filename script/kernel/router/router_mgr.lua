@@ -194,10 +194,10 @@ function RouterMgr:on_service_close(quanta_id, router_id)
 end
 
 --服务注册
-function RouterMgr:on_service_register(quanta_id, service_id, router_id)
+function RouterMgr:on_service_register(quanta_id, server_name, router_id)
     local router_group = self:get_router_group_by_id(router_id)
     if router_group then
-        router_group:on_service_register(quanta_id, service_id, router_id)
+        router_group:on_service_register(quanta_id, server_name, router_id)
     end
 end
 

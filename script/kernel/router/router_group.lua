@@ -208,21 +208,21 @@ end
 --服务器关闭
 function RouterGroup:on_service_close(id)
     log_info("RouterGroup:on_service_close->name:%s", sid2nick(id))
-    local ser_name = sid2name(id)
-    local listener_set = self.watch_server[ser_name]
+    local server_name = sid2name(id)
+    local listener_set = self.watch_server[server_name]
     for listener in pairs(listener_set or {}) do
-        if listener and type(listener.on_service_close) == "function" then
-            listener:on_service_close(id, ser_name)
+        if listener then
+            listener:on_service_close(id, server_name)
         end
     end
 end
 
 --服务器注册
-function RouterGroup:on_service_register(id, ser_name, router_id)
-    local listener_set = self.watch_reg_server[ser_name]
+function RouterGroup:on_service_register(id, server_name, router_id)
+    local listener_set = self.watch_reg_server[server_name]
     for listener in pairs(listener_set or {}) do
-        if listener and type(listener.on_service_register) == "function" then
-            listener:on_service_register(id, ser_name, router_id)
+        if listener then
+            listener:on_service_register(id, server_name, router_id)
         end
     end
 end
