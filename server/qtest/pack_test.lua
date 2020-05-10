@@ -8,10 +8,10 @@ local router_mgr    = quanta.router_mgr
 
 local PackTest = singleton()
 function PackTest:__init()
-    router_mgr:watch_service_register(self, "proxy")
+    router_mgr:watch_service_ready(self, "proxy")
 end
 
-function PackTest:on_service_register(quanta_id)
+function PackTest:on_service_ready(quanta_id)
     local service_id = sname2sid("proxy")
     local router = router_mgr:random_router(service_id)
     if router then

@@ -46,13 +46,16 @@ end
 
 function MonitorProxy:on_timer()
     local now = quanta.now
-    if not self.client:is_alive() then
+    local client = self.client
+    if not client:is_alive() then
         if now >= self.next_connect_time then
             self.next_connect_time = now + NetwkTime.RECONNECT_TIME
-            self.client:connect()
+            client:connect()
         end
     else
-        self.client:check_lost(now)
+        if not client:check_lost(now) then
+            client:heartbeat()
+        end
     end
 end
 

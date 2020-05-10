@@ -26,20 +26,20 @@ end
 function RouterMgr:build_service_method(service)
     local service_id = sname2sid(service)
     local method_list = {
-        ["call_%s_hash"] = function(hash_key, rpc, ...)
-            return self:forward_group("call_hash", service_id, service_id, hash_key, rpc, ...)
+        ["call_%s_hash"] = function(obj, hash_key, rpc, ...)
+            return obj:forward_group("call_hash", service_id, service_id, hash_key, rpc, ...)
         end,
-        ["send_%s_hash"] = function(hash_key, rpc, ...)
-            return self:forward_group("send_hash", service_id, service_id, hash_key, rpc, ...)
+        ["send_%s_hash"] = function(obj, hash_key, rpc, ...)
+            return obj:forward_group("send_hash", service_id, service_id, hash_key, rpc, ...)
         end,
-        ["call_%s_master"] = function(rpc, ...)
-            return self:forward_group("call_master", service_id, service_id, rpc, ...)
+        ["call_%s_master"] = function(obj, rpc, ...)
+            return obj:forward_group("call_master", service_id, service_id, rpc, ...)
         end,
-        ["send_%s_master"] = function(rpc, ...)
-            return self:forward_group("send_master", service_id, service_id, rpc, ...)
+        ["send_%s_master"] = function(obj, rpc, ...)
+            return obj:forward_group("send_master", service_id, service_id, rpc, ...)
         end,
-        ["send_%s_all"] = function(rpc, ...)
-            return self:forward_group("forward_broadcast", service_id, service_id, rpc, ...)
+        ["call_%s_all"] = function(obj, rpc, ...)
+            return obj:forward_group("forward_broadcast", service_id, service_id, rpc, ...)
         end,
     }
     for fmt_key, handler in pairs(method_list) do
@@ -78,10 +78,10 @@ function RouterMgr:setup(groups)
         end
     end
     --注册事件
-    event_mgr:add_listener(self, "on_router_update")
-    event_mgr:add_listener(self, "on_service_close")
-    event_mgr:add_listener(self, "on_service_register")
-    event_mgr:add_listener(self, "on_service_kickout")
+    event_mgr:add_listener(self, "rpc_router_update")
+    event_mgr:add_listener(self, "rpc_service_close")
+    event_mgr:add_listener(self, "rpc_service_ready")
+    event_mgr:add_listener(self, "rpc_service_kickout")
 end
 
 --hash router
@@ -115,8 +115,8 @@ function RouterMgr:get_router_group_by_id(router_id)
 end
 
 --代理router_group发送
-function RouterMgr:forward_group(method, service, ...)
-    local router_group = self:get_router_group(service)
+function RouterMgr:forward_group(method, service_id, ...)
+    local router_group = self:get_router_group(service_id)
     if router_group then
         return router_group[method](router_group, ... )
     end
@@ -154,27 +154,27 @@ function RouterMgr:router_send(router_id, target, rpc, ...)
 end
 
 --监听服务断开
-function RouterMgr:watch_service_close(listener, service)
-    local service_id = sname2sid(service)
+function RouterMgr:watch_service_close(listener, service_name)
+    local service_id = sname2sid(service_name)
     local router_group = self:get_router_group(service_id)
     if router_group then
-        router_group:watch_service_close(listener, service_id)
+        router_group:watch_service_close(listener, service_name)
     end
 end
 
 --监听服务注册
-function RouterMgr:watch_service_register(listener, service)
-    local service_id = sname2sid(service)
+function RouterMgr:watch_service_ready(listener, service_name)
+    local service_id = sname2sid(service_name)
     local router_group = self:get_router_group(service_id)
     if router_group then
-        router_group:watch_service_register(listener, service_id)
+        router_group:watch_service_ready(listener, service_name)
     end
 end
 
 --业务事件响应
 -------------------------------------------------------------------------------
 -- 刷新router配置
-function RouterMgr:on_router_update()
+function RouterMgr:rpc_router_update()
     for group_id, router_group in pairs(self.router_groups) do
         self:build_index_groups(group_id, router_group)
         for _, router in router_db:iterator() do
@@ -186,24 +186,24 @@ function RouterMgr:on_router_update()
 end
 
 --服务关闭
-function RouterMgr:on_service_close(quanta_id, router_id)
+function RouterMgr:rpc_service_close(quanta_id, router_id)
     local router_group = self:get_router_group_by_id(router_id)
     if router_group then
-        router_group:on_service_close(quanta_id)
+        router_group:rpc_service_close(quanta_id)
     end
 end
 
 --服务注册
-function RouterMgr:on_service_register(quanta_id, server_name, router_id)
+function RouterMgr:rpc_service_ready(quanta_id, server_name, router_id)
     local router_group = self:get_router_group_by_id(router_id)
     if router_group then
-        router_group:on_service_register(quanta_id, server_name, router_id)
+        router_group:rpc_service_ready(quanta_id, server_name, router_id)
     end
 end
 
 --服务被踢下线
-function RouterMgr:on_service_kickout(router_id, kick_ip)
-    log_info("[RouterMgr][on_service_kickout] router_id:%s, kick_ip:%s", router_id, kick_ip)
+function RouterMgr:rpc_service_kickout(router_id, kick_ip)
+    log_info("[RouterMgr][rpc_service_kickout] router_id:%s, kick_ip:%s", router_id, kick_ip)
     signal_quit()
 end
 

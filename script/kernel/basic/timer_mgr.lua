@@ -49,7 +49,7 @@ function TimerMgr:loop(period, cb, ...)
     return self:register(period, period, -1, cb, ...)
 end
 
-function TimerMgr:register(period, interval, times, cb, ...)
+function TimerMgr:register(interval, period, times, cb, ...)
     local params = {...}
     tinsert(params, 0)
     local stimes = times or 1

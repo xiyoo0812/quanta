@@ -8,7 +8,7 @@ local util_addr     = utility.addr
 local env_number    = environ.number
 local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
-local ssid2name     = service.sid2name
+local sid2name      = service.id2name
 
 local KernCode      = enum("KernCode")
 local RpcServer     = import("kernel/network/rpc_server.lua")
@@ -39,7 +39,7 @@ function RouterServer:setup()
     --监听事件
     event_mgr:add_listener(self, "on_socket_close")
     event_mgr:add_listener(self, "on_socket_accept")
-    event_mgr:add_listener(self, "rpc_router_register")
+    event_mgr:add_listener(self, "rpc_service_register")
 end
 
 --其他服务器节点关闭
@@ -67,7 +67,7 @@ function RouterServer:on_socket_close(server, server_token, err)
     local router_id = quanta.id
     local new_master, new_master_token = mhuge, nil
     for exist_token, exist_server in self.rpc_server:iterator() do
-        self.rpc_server:send(exist_server, "on_service_close", server_id, router_id)
+        self.rpc_server:send(exist_server, "rpc_service_close", server_id, router_id)
         if is_master and exist_server.service_id == service_id and exist_server.id < new_master then
             new_master = exist_server.id
             new_master_token = exist_token
@@ -83,7 +83,7 @@ end
 
 --accept事件
 function RouterServer:on_socket_accept(server)
-    log_info("[RouterServer][on_socket_accept] new connection, token=%s", server.token)
+    --log_info("[RouterServer][on_socket_accept] new connection, token=%s", server.token)
     server.on_router_error = function(session_id, rpc_type, source)
         log_info("[RouterServer][on_router_error] on_router_error, session_id=%s", session_id)
         server.call(session_id, 1, quanta.id, "on_router_error", false, KernCode.RPC_FAILED, "router con't find target!")
@@ -93,17 +93,17 @@ end
 --rpc事件处理
 ------------------------------------------------------------------
 --注册服务器
-function RouterServer:rpc_router_register(server, id)
+function RouterServer:rpc_service_register(server, id)
     if not server.id then
         local service_id = sid2sid(id)
         local server_name = sid2nick(id)
-        local servive_name = ssid2name(id)
+        local servive_name = sid2name(id)
         local server_token = server.token
         -- 检查是否顶号
         for exist_token, exist_server in self.rpc_server:iterator() do
             if exist_server.id == id then
                 self.kick_servers[exist_token] = id
-                self.rpc_server:send(exist_server, "on_service_kickout", quanta.id, exist_server.ip)
+                self.rpc_server:send(exist_server, "rpc_service_kickout", quanta.id, exist_server.ip)
                 break
             end
         end
@@ -112,21 +112,21 @@ function RouterServer:rpc_router_register(server, id)
         server.service_id = service_id
         server.servive_name = servive_name
         socket_mgr.map_token(id, server_token)
-        log_info("[RouterServer][rpc_router_register] service: %s", servive_name)
+        log_info("[RouterServer][rpc_service_register] service: %s", server_name)
         --switch master
         local group_master = self.service_masters[service_id] or mhuge
         if id < group_master then
             self.service_masters[service_id] = id
             socket_mgr.set_master(service_id, server_token)
-            log_info("[RouterServer][rpc_router_register] switch master --> %s", server_name)
+            log_info("[RouterServer][rpc_service_register] switch master --> %s", server_name)
         end
         --通知其他服务器
         local router_id = quanta.id
         for _, exist_server in self.rpc_server:iterator() do
             local exist_server_id = exist_server.id
             if exist_server_id and exist_server_id ~= id then
-                self.rpc_server:send(exist_server, "on_service_register", id, servive_name, router_id)
-                self.rpc_server:send(server, "on_service_register", exist_server_id, exist_server.servive_name, router_id)
+                self.rpc_server:send(exist_server, "rpc_service_ready", id, servive_name, router_id)
+                self.rpc_server:send(server, "rpc_service_ready", exist_server_id, exist_server.servive_name, router_id)
             end
         end
     end

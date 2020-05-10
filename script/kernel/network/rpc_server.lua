@@ -70,14 +70,14 @@ end
 --连接关闭
 function RpcServer:on_socket_close(client, err)
     local client_token = client.token
-    log_err("[RpcServer][on_socket_close] %s lost: %s", client.name or client_token, err)
+    --log_err("[RpcServer][on_socket_close] %s lost: %s", client.name or client_token, err)
     self.clients[client_token] = nil
     event_mgr:notify_listener("on_socket_close", client, client_token, err)
 end
 
 --accept事件
 function RpcServer:on_socket_accept(client)
-    log_info("[RpcServer][on_socket_accept] new connection, token=%s", client.token)
+    --log_info("[RpcServer][on_socket_accept] new connection, token=%s", client.token)
     client.set_timeout(NetwkTime.ROUTER_TIMEOUT)
     self.clients[client.token] = client
 

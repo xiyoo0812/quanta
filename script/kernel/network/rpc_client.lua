@@ -44,6 +44,10 @@ function RpcClient:check_lost(now)
         self:close()
         return true
     end
+end
+
+--发送心跳
+function RpcClient:heartbeat()
     self:send("rpc_heartbeat", quanta.id)
 end
 
@@ -132,7 +136,7 @@ end
 
 --错误处理
 function RpcClient:on_socket_error(socket, err)
-    log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
+    --log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
     self.socket = nil
     self.alive = false
     self.holder:on_socket_error(self, err)
@@ -140,7 +144,7 @@ end
 
 --连接成功
 function RpcClient:on_socket_connect(socket)
-    log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
+    --log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
     self.alive = true
     socket.alive_time = quanta.now
     self.holder:on_socket_connect(self)

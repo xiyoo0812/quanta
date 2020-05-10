@@ -22,17 +22,21 @@ local prop = property(RouterGroup)
 prop:accessor("master", nil)
 prop:accessor("routers", {})
 prop:accessor("candidates", {})
-prop:accessor("watch_server", {})
-prop:accessor("watch_reg_server", {})
+prop:accessor("ready_watchers", {})
+prop:accessor("close_watchers", {})
 function RouterGroup:__init()
     self:setup()
 end
 
 --初始化
 function RouterGroup:setup()
+    --加入更新
+    quanta.join(self)
     --心跳定时器
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
-        self:on_timer()
+        for _, node in pairs(self.routers) do
+            node.client:heartbeat()
+        end
     end)
 end
 
@@ -63,14 +67,14 @@ function RouterGroup:on_socket_connect(client, res)
     --switch master
     self:switch_master()
     --server register
-    client:send("rpc_router_register", quanta.id)
+    client:send("rpc_service_register", quanta.id)
 end
 
 --切换主router
 function RouterGroup:switch_master()
     self.candidates = {}
     for _, node in pairs(self.routers) do
-        if node.alive then
+        if node.client:is_alive() then
             tinsert(self.candidates, node)
         end
     end
@@ -82,7 +86,7 @@ function RouterGroup:switch_master()
 end
 
 --更新
-function RouterGroup:on_timer()
+function RouterGroup:update()
     local now_tick = quanta.now
     for _, node in pairs(self.routers) do
         local client = node.client
@@ -100,23 +104,6 @@ function RouterGroup:on_timer()
             end
         end
     end
-end
-
-function RouterGroup:forward_broadcast(service_id, rpc, ...)
-    return self.master.client:forward_socket("call_broadcast", 0, service_id, rpc, ...)
-end
-
---发送给指定目标
-function RouterGroup:call_target(target, rpc, ...)
-    local session_id = thread_mgr:build_session_id()
-    local hash_node = self:hash_router(target)
-    return hash_node.client:forward_router("call_target", session_id, target, rpc, ...)
-end
-
---发送给指定目标
-function RouterGroup:send_target(target, rpc, ...)
-    local hash_node = self:hash_router(target)
-    return hash_node.client:forward_router("call_target", 0, target, rpc, ...)
 end
 
 --查找指定router
@@ -141,89 +128,100 @@ function RouterGroup:hash_router(hash_key)
     end
 end
 
-function RouterGroup:random_call(target, rpc, ...)
-    local node = self:random_router()
+function RouterGroup:forward_client(router, method, ...)
+    if router then
+        return router.client:forward_socket(method, ...)
+    end
+    return false, "router not connected"
+end
+
+function RouterGroup:forward_broadcast(service_id, rpc, ...)
+    return self:forward_client(self.master, "call_broadcast", 0, service_id, rpc, ...)
+end
+
+--发送给指定目标
+function RouterGroup:call_target(target, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return node.client:forward_router("call_target", session_id, target, rpc, ...)
+    return self:forward_client(self:hash_router(target), "call_target", session_id, target, rpc, ...)
+end
+
+--发送给指定目标
+function RouterGroup:send_target(target, rpc, ...)
+    return self:forward_client(self:hash_router(target), "call_target", 0, target, rpc, ...)
+end
+
+function RouterGroup:random_call(target, rpc, ...)
+    local session_id = thread_mgr:build_session_id()
+    return self:forward_client(self:random_router(target), "call_target", session_id, target, rpc, ...)
 end
 
 function RouterGroup:random_send(target, rpc, ...)
-    local node = self:random_router()
-    return node.client:forward_router("call_target", 0, target, rpc, ...)
+    return self:forward_client(self:random_router(target), "call_target", 0, target, rpc, ...)
 end
 
 function RouterGroup:router_call(router_id, target, rpc, ...)
-    local node = self:get_router(router_id)
     local session_id = thread_mgr:build_session_id()
-    return node.client:forward_router("call_target", session_id, target, rpc, ...)
+    return self:forward_client(self:get_router(router_id), "call_target", session_id, target, rpc, ...)
 end
 
 function RouterGroup:router_send(router_id, target, rpc, ...)
-    local node = self:get_router(router_id)
-    return node.client:forward_router("call_target", 0, target, rpc, ...)
+    return self:forward_client(self:get_router(router_id), "call_target", 0, target, rpc, ...)
 end
 
 --发送给指定service的hash
 function RouterGroup:call_hash(service_id, hash_key, rpc, ...)
-    local hash_node = self:hash_router(hash_key)
     local session_id = thread_mgr:build_session_id()
-    return hash_node.client:forward_router("call_hash", session_id, service_id, hash_key, rpc, ...)
+    return self:forward_client(self:hash_router(hash_key), "call_hash", session_id, service_id, hash_key, rpc, ...)
 end
 
 --发送给指定service的hash
 function RouterGroup:send_hash(service_id, hash_key, rpc, ...)
-    local hash_node = self:hash_router(hash_key)
-    return hash_node.client:forward_router("call_hash", 0, service_id, hash_key, rpc, ...)
+    return self:forward_client(self:hash_router(hash_key), "call_hash", 0, service_id, hash_key, rpc, ...)
 end
 
 --发送给指定service的master
 function RouterGroup:call_master(service_id, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return self.master.client:forward_router("call_master", session_id, service_id, rpc, ...)
+    return self:forward_client(self.master, "call_master", session_id, service_id, rpc, ...)
 end
 
 --发送给指定service的master
 function RouterGroup:send_master(service_id, rpc, ...)
-    return self.master.client:forward_router("call_master", 0, service_id, rpc, ...)
+    return self:forward_client(self.master, "call_master", 0, service_id, rpc, ...)
 end
 
 --监听服务断开
-function RouterGroup:watch_service_close(listener, service_id)
-    if not self.watch_server[service_id] then
-        self.watch_server[service_id] = {}
+function RouterGroup:watch_service_close(listener, service_name)
+    if not self.close_watchers[service_name] then
+        self.close_watchers[service_name] = {}
     end
-    self.watch_server[service_id][listener] = true
+    self.close_watchers[service_name][listener] = true
 end
 
 --监听服务注册
-function RouterGroup:watch_service_register(listener, service_id)
-    if not self.watch_reg_server[service_id] then
-        self.watch_reg_server[service_id] = {}
+function RouterGroup:watch_service_ready(listener, service_name)
+    if not self.ready_watchers[service_name] then
+        self.ready_watchers[service_name] = {}
     end
-    self.watch_reg_server[service_id][listener] = true
+    self.ready_watchers[service_name][listener] = true
 end
 
 --rpc
 -------------------------------------------------------------------
 --服务器关闭
-function RouterGroup:on_service_close(id)
-    log_info("RouterGroup:on_service_close->name:%s", sid2nick(id))
+function RouterGroup:rpc_service_close(id)
     local server_name = sid2name(id)
-    local listener_set = self.watch_server[server_name]
+    local listener_set = self.close_watchers[server_name]
     for listener in pairs(listener_set or {}) do
-        if listener then
-            listener:on_service_close(id, server_name)
-        end
+        listener:on_service_close(id, server_name)
     end
 end
 
 --服务器注册
-function RouterGroup:on_service_register(id, server_name, router_id)
-    local listener_set = self.watch_reg_server[server_name]
+function RouterGroup:rpc_service_ready(id, server_name, router_id)
+    local listener_set = self.ready_watchers[server_name]
     for listener in pairs(listener_set or {}) do
-        if listener then
-            listener:on_service_register(id, server_name, router_id)
-        end
+        listener:on_service_ready(id, server_name, router_id)
     end
 end
 
