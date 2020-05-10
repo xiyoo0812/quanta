@@ -37,8 +37,8 @@ function ConfigTable:upsert(row)
     if not self.name then
         return
     end
-    local conf_deploy = row.quanta_deploy
-    if conf_deploy and conf_deploy ~= quanta.deploy then
+    local deploy = row.quanta_deploy
+    if deploy and deploy ~= quanta.deploy then
         --部署环境不一样，不加载配置
         return
     end

@@ -159,9 +159,17 @@ void quanta_app::check_input(lua_State* L)
 
 int set_env(lua_State *L)
 {
+    bool replae = false;
     const char* env_name = lua_tostring(L, 1);
     const char* env_value = lua_tostring(L, 2);
-    setenv(env_name, env_value, 1);
+    if (lua_gettop(L) == 3)
+    {
+        replae = lua_toboolean(L, 3);
+    }
+    if (replae || !getenv(env_name))
+    {
+        setenv(env_name, env_value, 1);
+    }
     return 0;
 }
 
@@ -175,6 +183,8 @@ void quanta_app::load_config(int argc, const char* argv[])
     lua_setglobal(L, "platform");
     lua_register_function(L, "set_env", set_env);
 
+    //加载配置表
+    luaL_dofile(L, conf_file);
     //设置默认INDEX
     setenv("QUANTA_INDEX", "1", 1);
     //将启动参数转换成环境变量
@@ -195,7 +205,6 @@ void quanta_app::load_config(int argc, const char* argv[])
         }
     }
 
-    luaL_dofile(L, conf_file);
     lua_close(L);
 }
 

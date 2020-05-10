@@ -105,7 +105,6 @@ end
 
 function ProtobufMgr:define_enum(package, enum_type)
     local pb_enum = build_enum(package)
-    print(pb_enum, _G)
     pb_enum[enum_type] = setmetatable({}, {__index = pbenum(package, enum_type)})
 end
 

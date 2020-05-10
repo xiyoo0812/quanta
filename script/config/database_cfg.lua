@@ -10,8 +10,7 @@ database:set_version(10000)
 
 --导出配置内容
 database:upsert({
-    quanta_deploy = 1,
-    quanta_deploy_name = 'klbq_plat_pub',
+    quanta_deploy = 'publish',
     group = 1,
     index = 1,
     driver = 'mongo',
@@ -21,8 +20,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 1,
-    quanta_deploy_name = 'klbq_plat_pub',
+    quanta_deploy = 'publish',
     group = 1,
     index = 2,
     driver = 'mongo',
@@ -32,8 +30,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 2,
-    quanta_deploy_name = 'klbq_plat_dev',
+    quanta_deploy = 'devlop',
     group = 1,
     index = 1,
     driver = 'mongo',
@@ -43,8 +40,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 2,
-    quanta_deploy_name = 'klbq_plat_dev',
+    quanta_deploy = 'devlop',
     group = 1,
     index = 2,
     driver = 'mongo',
@@ -54,23 +50,21 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 3,
-    quanta_deploy_name = 'klbq_plat_loc',
+    quanta_deploy = 'local',
     group = 1,
     index = 1,
     driver = 'mongo',
     db = 'klbq_plat_loc',
-    host = '127.0.0.1',
+    host = '10.72.17.44',
     port = 27017,
 })
 
 database:upsert({
-    quanta_deploy = 3,
-    quanta_deploy_name = 'klbq_plat_loc',
+    quanta_deploy = 'local',
     group = 1,
     index = 2,
     driver = 'mongo',
     db = 'klbq_plat_rmsg_loc',
-    host = '127.0.0.1',
+    host = '10.72.17.44',
     port = 27017,
 })
