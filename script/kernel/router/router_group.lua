@@ -5,9 +5,7 @@ local ssplit            = string_ext.split
 local tunpack           = table.unpack
 local tinsert           = table.insert
 local smake_id          = service.make_id
-local sid2nick          = service.id2nick
 local sid2name          = service.id2name
-local sname2sid         = service.name2sid
 local log_err           = logger.err
 local log_info          = logger.info
 local uhash_code        = utility.hash_code
@@ -42,8 +40,7 @@ end
 
 --添加router
 function RouterGroup:add_router(router_conf)
-    local service_id = sname2sid("router")
-    local router_id = smake_id(service_id, router_conf.index)
+    local router_id = smake_id("router", router_conf.index)
     if not self.routers[router_id] then
         local ip, port = tunpack(ssplit(router_conf.addr, ":"))
         local RpcClient = import("kernel/network/rpc_client.lua")
