@@ -27,7 +27,6 @@ local LOG_LEVEL_WARN    = 3     -- 程序运行时发生异常
 local LOG_LEVEL_ERROR   = 4     -- 程序运行时发生可预料的错误,此时通过错误处理,可以让程序恢复正常运行
 local LOG_LEVEL_OFF     = 100   -- 关闭所有消息输出
 
-local event_mgr         = nil
 local log_file          = nil
 local log_filename      = nil
 local log_daemon        = false
@@ -36,6 +35,7 @@ local log_buffer        = ""
 local log_line_count    = 0
 local log_max_line      = 100000
 local log_lvl           = LOG_LEVEL_INFO
+local event_mgr         = quanta.event_mgr
 
 function logger.init(max_line)
     log_max_line = max_line or log_max_line

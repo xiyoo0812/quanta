@@ -21,7 +21,6 @@ local PeriodTime    = enum("PeriodTime")
 
 local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
-local router_mgr    = quanta.router_mgr
 local thread_mgr    = quanta.thread_mgr
 
 local MonitorProxy = singleton()
@@ -151,7 +150,7 @@ end
 
 --执行远程rpc消息
 function MonitorProxy:on_remote_message(rpc, ...)
-    local ok, code, res = tunpack(router_mgr:notify_listener(rpc, ...))
+    local ok, code, res = tunpack(event_mgr:notify_listener(rpc, ...))
     if not ok or check_failed(code) then
         log_err("[MonitorProxy][on_remote_message] web_rpc faild: ok=%s, ec=%s", serialize(ok), code)
         return { code = ok and code or KernCode.RPC_FAILED, msg = ok and "" or code}
@@ -163,7 +162,7 @@ end
 function MonitorProxy:on_remote_command(cmd)
     log_info("[MonitorProxy][on_remote_command] cmd : %s", cmd)
     local cmd_info = cmd_parser(cmd)
-    if not router_mgr or not cmd_info then
+    if not cmd_info then
         return { code = 1, msg = "command not exist" }
     end
     local cmd_name = cmd_info.name
@@ -185,7 +184,7 @@ function MonitorProxy:on_remote_command(cmd)
             args[i] = arg
         end
     end
-    local ok, res = tunpack(router_mgr:notify_listener(cmd_name, tunpack(args)))
+    local ok, res = tunpack(event_mgr:notify_listener(cmd_name, tunpack(args)))
     if not ok then
         return {code = 1, msg = res}
     end

@@ -4,7 +4,6 @@ ljson.encode_sparse_array(true)
 
 local otime         = os.time
 local json_encode   = ljson.encode
-local env_status    = environ.status
 
 local event_mgr     = quanta.event_mgr
 local router_mgr    = quanta.router_mgr

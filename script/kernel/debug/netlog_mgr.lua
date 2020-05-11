@@ -8,7 +8,6 @@ local serialize     = logger.serialize
 
 local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
-local listener      = quanta.listener
 
 local PeriodTime    = enum("PeriodTime")
 
@@ -44,7 +43,7 @@ end
 function NetlogMgr:close_session(session_id)
     self.sessions[session_id] = nil
     if not next(self.sessions) then
-        listener:remove_trigger(self, "on_log_output")
+        event_mgr:remove_trigger(self, "on_log_output")
     end
 end
 
@@ -64,7 +63,7 @@ function NetlogMgr:rpc_query_log(data)
         return { code = 1, msg = "filter words empty!" }
     end
     if not next(self.sessions) then
-        listener:add_trigger(self, "on_log_output")
+        event_mgr:add_trigger(self, "on_log_output")
     end
     local session = self.sessions[session_id]
     if not session then

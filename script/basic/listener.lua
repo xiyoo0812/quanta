@@ -92,4 +92,7 @@ function Listener:notify_command(cmd, ...)
     return result
 end
 
+--创建全局监听器
+quanta.event_mgr = Listener()
+
 return Listener
