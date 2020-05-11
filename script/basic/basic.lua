@@ -9,13 +9,13 @@ string_ext  = string_ext or {}
 import("basic/math.lua")
 import("basic/table.lua")
 import("basic/string.lua")
-import("basic/listener.lua")
 import("basic/logger.lua")
 import("basic/guid.lua")
 import("basic/enum.lua")
 import("basic/class.lua")
 import("basic/interface.lua")
 import("basic/property.lua")
+import("basic/listener.lua")
 import("basic/config/config_mgr.lua")
 
 local log_err       = logger.err

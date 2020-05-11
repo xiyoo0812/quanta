@@ -38,14 +38,14 @@ function quanta.startup()
     quanta.start_ms = get_time_ms()
     quanta.index = env_number("QUANTA_INDEX", 1)
     quanta.deploy = env_get("QUANTA_DEPLOY", "devlop")
-    local quanta_service = env_get("QUANTA_SERVICE")
-    assert(quanta_service, "service not exist, quanta startup failed!")
-    local quanta_service_id = service.init(quanta_service)
-    assert(quanta_service_id, "service_id not exist, quanta startup failed!")
-    quanta.service = quanta_service
-    quanta.service_id = quanta_service_id
-    quanta.id = service.make_id(quanta_service_id, quanta.index)
-    quanta.name = service.make_nick(quanta_service, quanta.index)
+    local service_name = env_get("QUANTA_SERVICE")
+    assert(service_name, "service not exist, quanta startup failed!")
+    local service_id = service.init(service_name)
+    assert(service_id, "service_id not exist, quanta startup failed!")
+    quanta.service = service_name
+    quanta.service_id = service_id
+    quanta.id = service.make_id(service_name, quanta.index)
+    quanta.name = service.make_nick(service_name, quanta.index)
     quanta.pid = quanta.get_pid()
     quanta.objects = {}
     quanta.dumps = {}

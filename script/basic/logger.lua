@@ -35,7 +35,7 @@ local log_buffer        = ""
 local log_line_count    = 0
 local log_max_line      = 100000
 local log_lvl           = LOG_LEVEL_INFO
-local event_mgr         = quanta.event_mgr
+local event_mgr         = nil
 
 function logger.init(max_line)
     log_max_line = max_line or log_max_line
