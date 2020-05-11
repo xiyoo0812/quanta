@@ -23,13 +23,13 @@ local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
 local thread_mgr    = quanta.thread_mgr
 
-local MonitorProxy = singleton()
-local prop = property(MonitorProxy)
+local MonitorAgent = singleton()
+local prop = property(MonitorAgent)
 prop:accessor("client", nil)
 prop:accessor("cmd_list", {})
 prop:accessor("cmd_argds", {})
 prop:accessor("next_connect_time", 0)
-function MonitorProxy:__init()
+function MonitorAgent:__init()
     --创建连接
     local ip, port = env_addr("QUANTA_MONITOR_ADDR")
     self.client = RpcClient(self, ip, port)
@@ -43,7 +43,7 @@ function MonitorProxy:__init()
     event_mgr:add_listener(self, "on_remote_command")
 end
 
-function MonitorProxy:on_timer()
+function MonitorAgent:on_timer()
     local now = quanta.now
     local client = self.client
     if not client:is_alive() then
@@ -59,7 +59,7 @@ function MonitorProxy:on_timer()
 end
 
 -- 连接关闭回调
-function MonitorProxy:on_socket_error(client, err)
+function MonitorAgent:on_socket_error(client, err)
     if err == "active-close" then
         -- 主动关闭连接不走重连逻辑
         return
@@ -69,36 +69,36 @@ function MonitorProxy:on_socket_error(client, err)
 end
 
 -- 连接成回调
-function MonitorProxy:on_socket_connect(client)
-    log_info("[MonitorProxy][on_socket_connect]: connect monitor success!")
+function MonitorAgent:on_socket_connect(client)
+    log_info("[MonitorAgent][on_socket_connect]: connect monitor success!")
     -- 到monitor注册
     self.client:send("rpc_monitor_register", quanta.id, quanta.service_id, quanta.index, quanta.name)
     -- 上报gm列表
     self:report_cmd()
 end
 
-function MonitorProxy:build_cmd()
+function MonitorAgent:build_cmd()
     self.cmd_argds = {}
     for _, cmd in pairs(self.cmd_list) do
         self.cmd_argds[cmd.name] = args_parser(cmd.args)
     end
 end
 
-function MonitorProxy:insert_cmd(cmd_list)
+function MonitorAgent:insert_cmd(cmd_list)
     self.cmd_list = tjoin(cmd_list, self.cmd_list)
     self:build_cmd()
 end
 
-function MonitorProxy:replace_cmd(cmd_list)
+function MonitorAgent:replace_cmd(cmd_list)
     self.cmd_list = cmd_list
     self:build_cmd()
 end
 
-function MonitorProxy:get_cmd_argds()
+function MonitorAgent:get_cmd_argds()
     return self.cmd_argds or {}
 end
 
-function MonitorProxy:report_cmd()
+function MonitorAgent:report_cmd()
     if #self.cmd_list > 0 then
         local data = {
             id  = quanta.id,
@@ -108,7 +108,7 @@ function MonitorProxy:report_cmd()
         }
         local ok, code = self.client:call("rpc_monitor_post", "gm_report", data)
         if ok and check_success(code) then
-            log_info("[MonitorProxy][report_cmd] success!")
+            log_info("[MonitorAgent][report_cmd] success!")
         else
             timer_mgr:once(PeriodTime.SECOND_MS, function()
                 self:report_cmd()
@@ -118,7 +118,7 @@ function MonitorProxy:report_cmd()
 end
 
 -- 请求服务
-function MonitorProxy:service_request(api_name, data)
+function MonitorAgent:service_request(api_name, data)
     local req = {
         data = data,
         id  = quanta.id,
@@ -133,7 +133,7 @@ function MonitorProxy:service_request(api_name, data)
 end
 
 -- 处理Monitor通知退出消息
-function MonitorProxy:on_quanta_quit(reason)
+function MonitorAgent:on_quanta_quit(reason)
     -- 发个退出通知
     event_mgr:notify_trigger("on_quanta_quit", reason)
     -- 关闭会话连接
@@ -142,25 +142,25 @@ function MonitorProxy:on_quanta_quit(reason)
         self.client:close()
     end)
     timer_mgr:once(PeriodTime.SECOND_MS, function()
-        log_warn("[MonitorProxy][on_quanta_quit]->service:%s", quanta.name)
+        log_warn("[MonitorAgent][on_quanta_quit]->service:%s", quanta.name)
         signal_quit()
     end)
     return { code = 0 }
 end
 
 --执行远程rpc消息
-function MonitorProxy:on_remote_message(rpc, ...)
+function MonitorAgent:on_remote_message(rpc, ...)
     local ok, code, res = tunpack(event_mgr:notify_listener(rpc, ...))
     if not ok or check_failed(code) then
-        log_err("[MonitorProxy][on_remote_message] web_rpc faild: ok=%s, ec=%s", serialize(ok), code)
+        log_err("[MonitorAgent][on_remote_message] web_rpc faild: ok=%s, ec=%s", serialize(ok), code)
         return { code = ok and code or KernCode.RPC_FAILED, msg = ok and "" or code}
     end
     return { code = 0 , data = res}
 end
 
 -- 处理Monitor通知执行GM指令
-function MonitorProxy:on_remote_command(cmd)
-    log_info("[MonitorProxy][on_remote_command] cmd : %s", cmd)
+function MonitorAgent:on_remote_command(cmd)
+    log_info("[MonitorAgent][on_remote_command] cmd : %s", cmd)
     local cmd_info = cmd_parser(cmd)
     if not cmd_info then
         return { code = 1, msg = "command not exist" }
@@ -191,6 +191,6 @@ function MonitorProxy:on_remote_command(cmd)
     return {code = 0, data = res}
 end
 
-quanta.monitor = MonitorProxy()
+quanta.monitor = MonitorAgent()
 
-return MonitorProxy
+return MonitorAgent

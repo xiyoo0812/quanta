@@ -11,7 +11,7 @@ local perfeval_mgr      = quanta.perfeval_mgr
 local statis_mgr        = quanta.statis_mgr
 
 local RpcType           = enum("RpcType")
-local NetwkTime         = enum("NetwkTime", 0)
+local NetwkTime         = enum("NetwkTime")
 
 local NetClient = class()
 local prop = property(NetClient)

@@ -136,17 +136,23 @@ end
 --错误处理
 function RpcClient:on_socket_error(socket, err)
     --log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
-    self.socket = nil
-    self.alive = false
-    self.holder:on_socket_error(self, err)
+    local socket_error = function()
+        self.socket = nil
+        self.alive = false
+        self.holder:on_socket_error(self, err)
+    end
+    thread_mgr:fork(socket_error)
 end
 
 --连接成功
 function RpcClient:on_socket_connect(socket)
     --log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
-    self.alive = true
-    socket.alive_time = quanta.now
-    self.holder:on_socket_connect(self)
+    local socket_connect = function()
+        self.alive = true
+        socket.alive_time = quanta.now
+        self.holder:on_socket_connect(self)
+    end
+    thread_mgr:fork(socket_connect)
 end
 
 --转发系列接口
