@@ -1,4 +1,4 @@
---mongo_proxy.lua
+--mongo_agent.lua
 local tunpack       = table.unpack
 
 local router_mgr    = quanta.router_mgr
@@ -35,6 +35,6 @@ function MongoProxy:insert(hash_key, mongo_query, dbid)
 end
 
 ------------------------------------------------------------------
-quanta.mongo_proxy = MongoProxy()
+quanta.mongo_agent = MongoProxy()
 
 return MongoProxy

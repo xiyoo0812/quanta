@@ -1,4 +1,4 @@
---monitor_proxy.lua
+--monitor_agent.lua
 local cmd_parser    = import("utility/cmdline.lua")
 local args_parser   = import("utility/cmdlist.lua")
 local RpcClient     = import("kernel/network/rpc_client.lua")

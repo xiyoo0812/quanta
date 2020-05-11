@@ -85,7 +85,7 @@ function quanta.init()
     end
     if env_get("QUANTA_MONITOR_ADDR") then
         --加载monotor
-        import("kernel/monitor/monitor_proxy.lua")
+        import("kernel/monitor/monitor_agent.lua")
         import("kernel/debug/netlog_mgr.lua")
     end
     if env_status("QUANTA_FEISHU") then
