@@ -4,7 +4,6 @@
 local log_err           = logger.err
 local qxpcall           = quanta.xpcall
 
-local event_mgr         = quanta.event_mgr
 local socket_mgr        = quanta.socket_mgr
 local thread_mgr        = quanta.thread_mgr
 local protobuf_mgr      = quanta.protobuf_mgr
@@ -103,7 +102,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, rpc_type, session_id, data)
     if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         -- 执行消息分发
         local function dispatch_rpc_message()
-            event_mgr:notify_command(cmd_id, body)
+            self.holder:on_socket_rpc(self, cmd_id, body, session_id)
         end
         thread_mgr:fork(dispatch_rpc_message)
         --等待协议处理
