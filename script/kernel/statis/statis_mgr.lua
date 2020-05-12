@@ -41,6 +41,9 @@ function StatisMgr:__init()
     -- lua_mem          lua mem 统计
     -- co_info          协程 统计
     self.statis_list    = {}
+
+    --setup
+    self:setup()
 end
 
 --初始化

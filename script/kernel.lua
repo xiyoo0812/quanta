@@ -8,8 +8,6 @@ import("utility/utility.lua")
 import("kernel/statis/perfeval_mgr.lua")
 import("kernel/basic/thread_mgr.lua")
 import("kernel/basic/timer_mgr.lua")
-import("kernel/statis/statis_mgr.lua")
-import("kernel/proto/protobuf_mgr.lua")
 
 local pairs         = pairs
 local otime         = os.time
@@ -25,7 +23,6 @@ local collectgarbage= collectgarbage
 
 local timer_mgr     = quanta.timer_mgr
 local config_mgr    = quanta.config_mgr
-local statis_mgr    = quanta.statis_mgr
 local socket_mgr    = quanta.socket_mgr
 local thread_mgr    = quanta.thread_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
@@ -71,8 +68,9 @@ function quanta.init()
     quanta.socket_mgr = socket_mgr
 
     -- 初始化统计管理器
-    statis_mgr:setup()
     perfeval_mgr:setup()
+    import("kernel/statis/statis_mgr.lua")
+    import("kernel/proto/protobuf_mgr.lua")
 
     --加载router配置
     config_mgr:init_table("router", "group", "index")
