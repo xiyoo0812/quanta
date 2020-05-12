@@ -125,8 +125,8 @@ function MonitorAgent:service_request(api_name, data)
         index = quanta.index,
         service  = quanta.service_id,
     }
-    local ok, res = self.client:call("rpc_monitor_post", api_name, {}, req)
-    if ok then
+    local ok, code, res = self.client:call("rpc_monitor_post", api_name, {}, req)
+    if ok and check_success(code) then
         return tunpack(res)
     end
     return false
