@@ -52,13 +52,13 @@ function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_type, source, ...)
             if self[rpc] then
                 local rpc_datas = pcall(self[rpc], self, client, ...)
                 if session_id > 0 then
-                    client.call_rpc(session_id, RpcType.RPC_RES, source, rpc, tunpack(rpc_datas))
+                    client.call_rpc(session_id, RpcType.RPC_RES, rpc, tunpack(rpc_datas))
                 end
                 return
             end
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
-                client.call_rpc(session_id, RpcType.RPC_RES, source, rpc, tunpack(rpc_datas))
+                client.call_rpc(session_id, RpcType.RPC_RES, rpc, tunpack(rpc_datas))
             end
         end
         thread_mgr:fork(dispatch_rpc_message, ...)

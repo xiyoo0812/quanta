@@ -106,7 +106,7 @@ function MonitorAgent:report_cmd()
             service  = quanta.service_id,
             cmd_list = self.cmd_list
         }
-        local ok, code = self.client:call("rpc_monitor_post", "gm_report", data)
+        local ok, code = self.client:call("rpc_monitor_post", "gm_report", {}, data)
         if ok and check_success(code) then
             log_info("[MonitorAgent][report_cmd] success!")
         else
@@ -125,7 +125,7 @@ function MonitorAgent:service_request(api_name, data)
         index = quanta.index,
         service  = quanta.service_id,
     }
-    local ok, res = self.client:call("rpc_monitor_post", api_name, req)
+    local ok, res = self.client:call("rpc_monitor_post", api_name, {}, req)
     if ok then
         return tunpack(res)
     end
