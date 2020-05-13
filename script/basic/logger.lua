@@ -9,6 +9,7 @@ local iopen         = io.open
 local stdout        = io.stdout
 local otime         = os.time
 local odate         = os.date
+local oexec         = os.execute
 local lmkdir        = lfs.mkdir
 local ssub          = string.sub
 local schar         = string.char
@@ -51,6 +52,9 @@ function logger.init(max_line)
     end
     event_mgr = quanta.event_mgr
     log_filename = sformat("%s/%s-%d", log_file_path, quanta.service, quanta.index)
+    if quanta.platform == "windows" then
+        oexec("echo log active color")
+    end
 end
 
 function logger.level(level)
@@ -110,25 +114,25 @@ end
 
 function logger.debug(fmt, ...)
     if log_lvl <= LOG_LEVEL_DEBUG then
-        log_write("DEBUG", "\x1B[37m", fmt, ...)
+        log_write("DEBUG", "\27[37m", fmt, ...)
     end
 end
 
 function logger.info(fmt, ...)
     if log_lvl <= LOG_LEVEL_INFO then
-        log_write("INFO", "\x1B[32m", fmt, ...)
+        log_write("INFO", "\27[32m", fmt, ...)
     end
 end
 
 function logger.warn(fmt, ...)
     if log_lvl <= LOG_LEVEL_WARN then
-        log_write("WARN", "\x1B[33m", fmt, ...)
+        log_write("WARN", "\27[33m", fmt, ...)
     end
 end
 
 function logger.err(fmt, ...)
     if log_lvl <= LOG_LEVEL_ERROR then
-        log_write("ERROR", "\x1B[31m", fmt, ...)
+        log_write("ERROR", "\27[31m", fmt, ...)
     end
 end
 
