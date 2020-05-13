@@ -46,3 +46,7 @@ function string_ext.split(str, token)
     end
     return t
 end
+
+function string_ext.ends_with(str, ending)
+    return str:sub(-#ending) == ending
+end
