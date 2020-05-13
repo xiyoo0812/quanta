@@ -6,4 +6,4 @@ luacheck:
   image: pipelinecomponents/luacheck
   script: luacheck .
   tags: 
-    - luacheck
+    - quanta
