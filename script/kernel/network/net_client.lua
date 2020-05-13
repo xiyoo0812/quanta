@@ -1,6 +1,4 @@
--- @author: errorcpp@qq.com
--- @date:   2019-07-22
-
+local encrypt           = require("encrypt")
 local log_err           = logger.err
 local qxpcall           = quanta.xpcall
 
@@ -16,11 +14,12 @@ local NetwkTime         = enum("NetwkTime")
 local NetClient = class()
 local prop = property(NetClient)
 prop:accessor("alive", false)
-prop:accessor("socket", nil)        --连接成功对象
-prop:accessor("holder", nil)        --持有者
-prop:accessor("decoder", nil)       --解码函数
-prop:accessor("encoder", nil)       --编码函数
-prop:accessor("wait_list", {})      --等待协议列表
+prop:accessor("socket", nil)           --连接成功对象
+prop:accessor("holder", nil)           --持有者
+prop:accessor("decoder", nil)          --解码函数
+prop:accessor("encoder", nil)          --编码函数
+prop:accessor("wait_list", {})         --等待协议列表
+prop:accessor("enable_encrypt", false) --开启加密
 
 function NetClient:__init(holder, ip, port)
     self.holder = holder
@@ -82,12 +81,18 @@ function NetClient:encode(cmd_id, data)
     if self.encoder then
         return self.encoder(cmd_id, data)
     end
+    if self.enable_encrypt then
+        data = encrypt.decrypt(data)
+    end
     return protobuf_mgr:encode(cmd_id, data)
 end
 
 function NetClient:decode(cmd_id, data)
     if self.decoder then
         return self.decoder(cmd_id, data)
+    end
+    if self.enable_encrypt then
+        data = self.encrypt(data)
     end
     return protobuf_mgr:decode(cmd_id, data)
 end

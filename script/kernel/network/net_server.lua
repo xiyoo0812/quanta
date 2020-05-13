@@ -1,4 +1,7 @@
 --session_mgr.lua
+local encrypt       = require("encrypt")
+local otime         = os.time
+
 local log_err       = logger.err
 local log_info      = logger.info
 local qxpcall       = quanta.xpcall
@@ -15,12 +18,17 @@ local NetwkTime     = enum("NetwkTime")
 -- Dx协议会话对象管理器
 local NetServer = class()
 local prop = property(NetServer)
-prop:accessor("sessions", {})           --会话列表
-prop:accessor("session_type", "default")--会话类型
-prop:accessor("session_count", 0)       --会话数量
-prop:accessor("listener", nil)          --监听器
-prop:accessor("decoder", nil)           --解码函数
-prop:accessor("encoder", nil)           --编码函数
+prop:accessor("sessions", {})             --会话列表
+prop:accessor("session_type", "default")  --会话类型
+prop:accessor("session_count", 0)         --会话数量
+prop:accessor("listener", nil)            --监听器
+prop:accessor("decoder", nil)             --解码函数
+prop:accessor("encoder", nil)             --编码函数
+prop:accessor("enable_encrypt", false)    --开启加密
+prop:accessor("enable_flow_ctrl", false)  --开启流量控制
+prop:accessor("flow_ctrl_check_cycle", 30) -- 流控检测周期
+prop:accessor("fc_packet_limit", 60*3)    --每秒入包数量限制
+prop:accessor("fc_bytes_limit", 15*1024)  --每秒数据流量限制
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -46,16 +54,44 @@ function NetServer:setup(ip, port, induce)
     self.listener.on_accept = function(session)
         qxpcall(self.on_session_accept, "on_dx_accept: %s", self, session)
     end
+
+
+end
+
+function NetServer:on_timer()
+    local cur_time = otime()
+    -- 流量控制检测
+    if self.enable_flow_ctrl and self.flow_ctrl_check_cycle > 0 then
+        for _, session in pairs(self.sessions) do
+            -- 达到检测周期
+            if cur_time < self.flow_ctrl_check_cycle + session.last_fc_time then
+                -- 检查是否超过配置范围
+                if session.fc_packet_statis / self.flow_ctrl_check_cycle > self.fc_packet_limit
+                    or session.fc_bytes_statis / self.flow_ctrl_check_cycle > self.fc_bytes_statis
+                then
+                    self:close_session(session)
+                end
+                session.fc_packet_statis = 0
+                session.fc_bytes_statis  = 0
+            end
+        end
+    end
 end
 
 -- 连接回调
 function NetServer:on_session_accept(session)
     --log_debug("[on_session_accept]: token:%s, ip:%s", session.token, session.ip)
     self:add_session(session)
+    -- 流控配置
+    session.last_fc_time = otime()
+    session.fc_packet_statis = 0
+    session.fc_bytes_statis  = 0
     -- 设置超时(心跳)
     session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
     -- 绑定call回调
     session.on_call_dx = function(recv_len, cmd_id, flag, session_id, data)
+        session.fc_packet_statis = session.fc_packet_statis + 1
+        session.fc_bytes_statis  = session.fc_bytes_statis  + 1
         statis_mgr:statis_notify("on_dx_recv", cmd_id, recv_len)
         local eval = perfeval_mgr:begin_eval("dx_s_cmd_" .. cmd_id)
         qxpcall(self.on_call_dx, "on_call_dx: %s", self, session, cmd_id, flag, session_id, data)
@@ -112,12 +148,18 @@ function NetServer:encode(cmd_id, data)
     if self.encoder then
         return self.encoder(cmd_id, data)
     end
+    if self.enable_encrypt then
+        data = self.encrypt(data)
+    end
     return protobuf_mgr:encode(cmd_id, data)
 end
 
 function NetServer:decode(cmd_id, data)
     if self.decoder then
         return self.decoder(cmd_id, data)
+    end
+    if self.enable_encrypt then
+        data = encrypt.decrypt(data)
     end
     return protobuf_mgr:decode(cmd_id, data)
 end

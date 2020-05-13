@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="encrypt">
+      <UniqueIdentifier>{21e30b49-a553-44ea-8985-9cabbe74471b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="lua_bind">
+      <UniqueIdentifier>{2431aff1-3658-4ab0-a423-10cb795933b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="internal">
+      <UniqueIdentifier>{29bb5402-6332-4e38-abff-0dd3637d9544}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="internal\QuickZip">
+      <UniqueIdentifier>{6f2ef6b8-4caa-45df-88df-8cc02e765629}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\map_encrypt.cpp">
+      <Filter>encrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lua-encrypt.cc">
+      <Filter>lua_bind</Filter>
+    </ClCompile>
+    <ClCompile Include="src\encryptor.cpp">
+      <Filter>encrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="src\internal\QuickZip\src\byte_counter.cpp">
+      <Filter>internal\QuickZip</Filter>
+    </ClCompile>
+    <ClCompile Include="src\internal\QuickZip\src\huffman_tree.cpp">
+      <Filter>internal\QuickZip</Filter>
+    </ClCompile>
+    <ClCompile Include="src\internal\QuickZip\src\quick_zip.cpp">
+      <Filter>internal\QuickZip</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\map_encrypt.h">
+      <Filter>encrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="src\xor_encrypt.h">
+      <Filter>encrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="src\encryptor.h">
+      <Filter>encrypt</Filter>
+    </ClInclude>
+    <ClInclude Include="src\internal\config.h">
+      <Filter>internal</Filter>
+    </ClInclude>
+    <ClInclude Include="src\internal\QuickZip\inc\huffman_tree.h">
+      <Filter>internal\QuickZip</Filter>
+    </ClInclude>
+    <ClInclude Include="src\internal\QuickZip\src\byte_counter.h">
+      <Filter>internal\QuickZip</Filter>
+    </ClInclude>
+    <ClInclude Include="src\internal\QuickZip\src\quick_zip.h">
+      <Filter>internal\QuickZip</Filter>
+    </ClInclude>
+    <ClInclude Include="src\internal\QuickZip\src\quick_zip_types.h">
+      <Filter>internal\QuickZip</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
