@@ -34,9 +34,13 @@ end
 
 -- 发起连接
 function NetClient:connect(block)
-    --log_debug("NetClient:connect try connect: %s-%d", self.ip, self.port)
+    --log_debug("[NetClient][connect] try connect: %s-%d", self.ip, self.port)
     if self.socket then
         return true
+    end
+    if not self.ip or not self.port then
+        log_err("[NetClient][connect] try connect: ip:%s or port: %d is nil", self.ip, self.port)
+        return false
     end
     local listen_proto_type = 1
     local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT, listen_proto_type)
@@ -129,7 +133,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
     end
-    if session_id == 0 or (flag & FlagMask.REQ) then
+    if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
             local eval = perfeval_mgr:begin_eval("ccmd_doer_" .. cmd_id)
