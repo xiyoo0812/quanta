@@ -1,6 +1,7 @@
 local encrypt           = require("encrypt")
 local log_err           = logger.err
 local qxpcall           = quanta.xpcall
+local env_status        = environ.status
 
 local socket_mgr        = quanta.socket_mgr
 local thread_mgr        = quanta.thread_mgr
@@ -11,6 +12,9 @@ local statis_mgr        = quanta.statis_mgr
 local FlagMask          = enum("FlagMask")
 local NetwkTime         = enum("NetwkTime")
 
+local out_press         = env_status("QUANTA_OUT_PRESS")
+local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
+
 local NetClient = class()
 local prop = property(NetClient)
 prop:accessor("alive", false)
@@ -19,7 +23,6 @@ prop:accessor("holder", nil)           --持有者
 prop:accessor("decoder", nil)          --解码函数
 prop:accessor("encoder", nil)          --编码函数
 prop:accessor("wait_list", {})         --等待协议列表
-prop:accessor("enable_encrypt", false) --开启加密
 
 function NetClient:__init(holder, ip, port)
     self.holder = holder
@@ -75,29 +78,51 @@ function NetClient:get_token()
     return self.socket and self.socket.token
 end
 
-function NetClient:encode(cmd_id, data)
+function NetClient:encode(cmd_id, data, flag)
+    local encode_data
     if self.encoder then
-        return self.encoder(cmd_id, data)
+        encode_data = self.encoder(cmd_id, data)
+    else
+        encode_data = protobuf_mgr:encode(cmd_id, data)
     end
-    if self.enable_encrypt then
-        data = encrypt.decrypt(data)
+    if encode_data then
+        -- 加密处理
+        if out_encrypt then
+            encode_data = encrypt.encrypt(encode_data)
+            flag = flag | FlagMask.ENCRYPT
+        end
+        -- 压缩处理
+        if out_press then
+            encode_data = encrypt.quick_zip(encode_data)
+            flag = flag | FlagMask.QZIP
+        end
     end
-    return protobuf_mgr:encode(cmd_id, data)
+    return encode_data, flag
 end
 
-function NetClient:decode(cmd_id, data)
+function NetClient:decode(cmd_id, data, flag)
+    local decode_data
     if self.decoder then
-        return self.decoder(cmd_id, data)
+        decode_data = self.decoder(cmd_id, data)
+    else
+        decode_data = protobuf_mgr:decode(cmd_id, data)
     end
-    if self.enable_encrypt then
-        data = self.encrypt(data)
+    if decode_data then
+        --解压处理
+        if flag & FlagMask.QZIP == FlagMask.QZIP then
+            decode_data = encrypt.quick_unzip(decode_data)
+        end
+        --解密处理
+        if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
+            decode_data = encrypt.decrypt(decode_data)
+        end
     end
-    return protobuf_mgr:decode(cmd_id, data)
+    return decode_data
 end
 
 function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
     socket.alive_time = quanta.now
-    local body = self:decode(cmd_id, data)
+    local body = self:decode(cmd_id, data, flag)
     if not body  then
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
@@ -135,13 +160,13 @@ function NetClient:write(cmd_id, data, session_id, flag)
     if not self.alive then
         return false
     end
-    local body = self:encode(cmd_id, data)
+    local body, pflag = self:encode(cmd_id, data, flag)
     if not body then
         log_err("[NetClient][send_dx] encode failed! cmd_id:%s", cmd_id)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_dx(cmd_id, flag, session_id or 0, body)
+    local send_len = self.socket.call_dx(cmd_id, pflag, session_id or 0, body)
     if send_len < 0 then
         log_err("[NetClient][write] call_dx failed! code:%s", send_len)
         return false

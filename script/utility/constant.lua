@@ -18,10 +18,8 @@ KernCode.TOKEN_ERROR        = 9     --登录token错误
 local FlagMask = enum("FlagMask", 0)
 FlagMask.REQ     = 0x01  -- 请求
 FlagMask.RES     = 0x02  -- 响应
-FlagMask.RPT     = 0x04  -- 上报
-FlagMask.NTF     = 0x08  -- 通知
-FlagMask.ENCRYPT = 0x10  -- 开启加密
-FlagMask.QZIP    = 0x20  -- 开启qzip压缩
+FlagMask.ENCRYPT = 0x04  -- 开启加密
+FlagMask.QZIP    = 0x08  -- 开启qzip压缩
 
 --rpc 类型定义
 local RpcType = enum("RpcType", 0)
