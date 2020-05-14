@@ -8,7 +8,7 @@ local protobuf_mgr      = quanta.protobuf_mgr
 local perfeval_mgr      = quanta.perfeval_mgr
 local statis_mgr        = quanta.statis_mgr
 
-local RpcType           = enum("RpcType")
+local FlagMask          = enum("FlagMask")
 local NetwkTime         = enum("NetwkTime")
 
 local NetClient = class()
@@ -53,10 +53,10 @@ function NetClient:connect(block)
             thread_mgr:response(block_id, succes, res)
         end
     end
-    socket.on_call_dx = function(recv_len, cmd_id, rpc_type, session_id, data)
+    socket.on_call_dx = function(recv_len, cmd_id, flag, session_id, data)
         statis_mgr:statis_notify("on_dx_recv", cmd_id, recv_len)
         local eval = perfeval_mgr:begin_eval("dx_c_cmd_" .. cmd_id)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, rpc_type, session_id, data)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, data)
         perfeval_mgr:end_eval(eval)
     end
     socket.on_error = function(err)
@@ -97,14 +97,14 @@ function NetClient:decode(cmd_id, data)
     return protobuf_mgr:decode(cmd_id, data)
 end
 
-function NetClient:on_socket_rpc(socket, cmd_id, rpc_type, session_id, data)
+function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
     socket.alive_time = quanta.now
     local body = self:decode(cmd_id, data)
     if not body  then
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
     end
-    if session_id == 0 or rpc_type == RpcType.RPC_REQ then
+    if session_id == 0 or (flag & FlagMask.REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
             self.holder:on_socket_rpc(self, cmd_id, body, session_id)
@@ -131,7 +131,7 @@ function NetClient:close()
     end
 end
 
-function NetClient:write(cmd_id, data, session_id, rpc_type)
+function NetClient:write(cmd_id, data, session_id, flag)
     if not self.alive then
         return false
     end
@@ -141,7 +141,7 @@ function NetClient:write(cmd_id, data, session_id, rpc_type)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_dx(cmd_id, rpc_type or RpcType.RPC_REQ, session_id or 0, body)
+    local send_len = self.socket.call_dx(cmd_id, flag, session_id or 0, body)
     if send_len < 0 then
         log_err("[NetClient][write] call_dx failed! code:%s", send_len)
         return false
@@ -151,12 +151,12 @@ end
 
 -- 发送数据
 function NetClient:send_dx(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id)
+    return self:write(cmd_id, data, session_id, 0)
 end
 
 -- 回调数据
 function NetClient:callback_dx(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, RpcType.RPC_RES)
+    return self:write(cmd_id, data, session_id, FlagMask.REQ)
 end
 
 -- 发起远程调用

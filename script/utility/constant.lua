@@ -14,6 +14,15 @@ KernCode.OPERATOR_SELF      = 7     --不能对自己操作
 KernCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
 KernCode.TOKEN_ERROR        = 9     --登录token错误
 
+--dx协议投flag掩码
+local FlagMask = enum("FlagMask", 0)
+FlagMask.REQ     = 0x01  -- 请求
+FlagMask.RES     = 0x02  -- 响应
+FlagMask.RPT     = 0x04  -- 上报
+FlagMask.NTF     = 0x08  -- 通知
+FlagMask.ENCRYPT = 0x10  -- 开启加密
+FlagMask.QZIP    = 0x20  -- 开启qzip压缩
+
 --rpc 类型定义
 local RpcType = enum("RpcType", 0)
 RpcType.RPC_REQ = 0

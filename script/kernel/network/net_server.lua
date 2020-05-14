@@ -5,6 +5,8 @@ local otime         = os.time
 local log_err       = logger.err
 local log_info      = logger.info
 local qxpcall       = quanta.xpcall
+local env_status    = environ.status
+local env_number    = environ.env_number
 
 local event_mgr     = quanta.event_mgr
 local thread_mgr    = quanta.thread_mgr
@@ -12,6 +14,7 @@ local protobuf_mgr  = quanta.protobuf_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 local statis_mgr    = quanta.statis_mgr
 
+local FlagMask    = enum("FlagMask")
 local RpcType       = enum("RpcType")
 local NetwkTime     = enum("NetwkTime")
 
@@ -24,11 +27,8 @@ prop:accessor("session_count", 0)         --会话数量
 prop:accessor("listener", nil)            --监听器
 prop:accessor("decoder", nil)             --解码函数
 prop:accessor("encoder", nil)             --编码函数
-prop:accessor("enable_encrypt", false)    --开启加密
-prop:accessor("enable_flow_ctrl", false)  --开启流量控制
-prop:accessor("flow_ctrl_check_cycle", 30) -- 流控检测周期
-prop:accessor("fc_packet_limit", 60*3)    --每秒入包数量限制
-prop:accessor("fc_bytes_limit", 15*1024)  --每秒数据流量限制
+prop:accessor("fc_packet_limit", 0)       --每秒入包数量限制
+prop:accessor("fc_bytes_limit", 0)        --每秒数据流量限制
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -56,26 +56,6 @@ function NetServer:setup(ip, port, induce)
     end
 
 
-end
-
-function NetServer:on_timer()
-    local cur_time = otime()
-    -- 流量控制检测
-    if self.enable_flow_ctrl and self.flow_ctrl_check_cycle > 0 then
-        for _, session in pairs(self.sessions) do
-            -- 达到检测周期
-            if cur_time < self.flow_ctrl_check_cycle + session.last_fc_time then
-                -- 检查是否超过配置范围
-                if session.fc_packet_statis / self.flow_ctrl_check_cycle > self.fc_packet_limit
-                    or session.fc_bytes_statis / self.flow_ctrl_check_cycle > self.fc_bytes_statis
-                then
-                    self:close_session(session)
-                end
-                session.fc_packet_statis = 0
-                session.fc_bytes_statis  = 0
-            end
-        end
-    end
 end
 
 -- 连接回调
@@ -115,8 +95,18 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
         return false
     end
     session.serial = session.serial + 1
+    -- 加密处理
+    if env_status("QUANTA_OUT_ENCRYPT") then
+        body = encrypt.encrypt(body)
+        flag = flag | FlagMask.ENCRYPT
+    end
+    -- 压缩处理
+    if env_status("QUANTA_ENABLE_OUT_QZIP") then
+        body = encrypt.quick_zip(body)
+        flag = flag | FlagMask.QZIP
+    end
     -- call lbus
-    local send_len = session.call_dx(cmd_id, flag or RpcType.RPC_REQ, session_id or 0, body)
+    local send_len = session.call_dx(cmd_id, flag, session_id or 0, body)
     if send_len > 0 then
         statis_mgr:statis_notify("on_dx_send", cmd_id, send_len)
         return true
@@ -127,7 +117,7 @@ end
 
 -- 发送数据
 function NetServer:send_dx(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id)
+    return self:write(session, cmd_id, data, session_id, 0)
 end
 
 -- 回调数据
@@ -148,18 +138,12 @@ function NetServer:encode(cmd_id, data)
     if self.encoder then
         return self.encoder(cmd_id, data)
     end
-    if self.enable_encrypt then
-        data = self.encrypt(data)
-    end
     return protobuf_mgr:encode(cmd_id, data)
 end
 
 function NetServer:decode(cmd_id, data)
     if self.decoder then
         return self.decoder(cmd_id, data)
-    end
-    if self.enable_encrypt then
-        data = encrypt.decrypt(data)
     end
     return protobuf_mgr:decode(cmd_id, data)
 end
@@ -168,13 +152,23 @@ end
 function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
     local now_tick = quanta.now
     session.alive_time = now_tick
+
+    --解压处理
+    if flag & FlagMask.QZIP then
+        data = encrypt.quick_unzip(data)
+    end
+    --解密处理
+    if flag & FlagMask.ENCRYPT then
+        data = encrypt.decrypt(data)
+    end
+
     -- 解码
     local body = self:decode(cmd_id, data)
     if not body then
         log_err("[NetServer][on_call_dx] decode failed! cmd_id:%s", cmd_id)
         return
     end
-    if session_id == 0 or flag == RpcType.RPC_REQ then
+    if session_id == 0 or  (flag & FlagMask.REQ) or (flag & FlagMask.RPT) then
         local function dispatch_rpc_message(_session, cmd, bd)
             local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
             if not result[1] then
@@ -190,11 +184,30 @@ end
 
 --检查序列号
 function NetServer:check_serial(session, cserial)
+    local cur_time = otime()
     local sserial = session.serial
     if cserial and cserial ~= session.serial_sync then
         event_mgr:notify_listener("on_session_sync", session)
     end
     session.serial_sync = sserial
+
+    -- 流量控制检测
+    local flow_ctrl_period = env_number("QUANTA_FLOW_CTRL_PERIOD")
+    if env_status("QUANTA_FLOW_CTRL") and flow_ctrl_period > 0 then
+        -- 达到检测周期
+        if cur_time < flow_ctrl_period + session.last_fc_time then
+            -- 检查是否超过配置范围
+            if session.fc_packet_statis / flow_ctrl_period > self.fc_packet_limit
+                or session.fc_bytes_statis / flow_ctrl_period > self.fc_bytes_statis
+            then
+                self:close_session(session)
+            end
+
+            session.fc_packet_statis = 0
+            session.fc_bytes_statis  = 0
+        end
+    end
+
     return sserial
 end
 

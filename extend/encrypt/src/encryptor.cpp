@@ -9,8 +9,6 @@ using bytes_t = encryptor::bytes_t;
 
 static uint8_t sg_xor_key     = 0xce;
 static uint8_t sg_map_key     = 0xdf;
-static bool    sg_enable_qzip = true;
-
 
 encryptor::encryptor()
 {
@@ -24,18 +22,7 @@ encryptor::~encryptor()
 
 bytes_t encryptor::encrypt(uint8_t* data_ptr, size_t data_len)
 {
-    bytes_t bytes;
-    if (sg_enable_qzip)
-    {
-        QuickZip zip;
-        ByteContainer zip_bytes = zip.Zip((char*)data_ptr, (uint32_t)data_len);
-        bytes.attach((uint8_t*)zip_bytes.buffer, zip_bytes.size);
-    }
-    else
-    {
-        bytes.assign(data_ptr, data_len);
-    }
-    
+    bytes_t bytes(data_ptr, data_len);
     xor_encrypt(sg_xor_key, bytes.data(), bytes.size());
     map_encrypt(sg_map_key, bytes.data(), bytes.size());
 
@@ -48,13 +35,25 @@ bytes_t encryptor::decrypt(uint8_t* data_ptr, size_t data_len)
     map_decrypt(sg_map_key, bytes.data(), bytes.size());
     xor_decrypt(sg_xor_key, bytes.data(), bytes.size());
 
-    if (sg_enable_qzip)
-    {
-        QuickZip zip;
-        ByteContainer unzip_bytes = zip.Unzip((char*)bytes.data(), (uint32_t)bytes.size());
-        bytes.clear();
-        bytes.attach((uint8_t*)unzip_bytes.buffer, unzip_bytes.size);
-    }
+    return bytes;
+}
+
+bytes_t encryptor::quick_zip(uint8_t* data_ptr, size_t data_len)
+{
+    QuickZip zip;
+    bytes_t bytes;
+    ByteContainer zip_bytes = zip.Zip((char*)data_ptr, data_len);
+    bytes.attach((uint8_t*)zip_bytes.buffer, zip_bytes.size);
+
+    return bytes;
+}
+
+bytes_t encryptor::quick_unzip(uint8_t* data_ptr, size_t data_len)
+{
+    QuickZip zip;
+    bytes_t bytes;
+    ByteContainer unzip_bytes = zip.Unzip((char*)data_ptr, data_len);
+    bytes.attach((uint8_t*)unzip_bytes.buffer, unzip_bytes.size);
 
     return bytes;
 }
@@ -196,9 +195,14 @@ int test()
     size_t len = sizeof(data);
     while (true)
     {
-        auto encode_bytes = en.encrypt(data, len);
-        auto decode_bytes = en.decrypt(encode_bytes.data(), encode_bytes.size());
-        int r = memcmp(decode_bytes.data(), data_v, len);
+        //auto encode_bytes = en.encrypt(data, len);
+        //auto decode_bytes = en.decrypt(encode_bytes.data(), encode_bytes.size());
+        
+        auto bytes = en.encrypt(data, len);
+        bytes = en.quick_zip(bytes.data(), bytes.size());
+        bytes = en.quick_unzip(bytes.data(), bytes.size());
+        bytes = en.decrypt(bytes.data(), bytes.size());
+        int r = memcmp(bytes.data(), data_v, len);
         int* break_ptr = NULL;
         if (0 != r)
             *break_ptr = 1;
@@ -216,4 +220,5 @@ int main()
 {
     return 0;
 }
+
 */
