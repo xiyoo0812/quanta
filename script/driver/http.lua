@@ -38,24 +38,30 @@ local function url_format(path, querys)
     return path
 end
 
-local http = {}
+local Http = singleton()
+local prop = property(Http)
+prop:accessor("client", nil)
+prop:accessor("server", nil)
 
---创建client对象
-local client = lhttp.client()
---设置回调
-client.on_response = function(session_id, status, body)
-    thread_mgr:response(session_id, true, status, body)
+function Http:__init()
+    --创建client对象
+    local client = lhttp.client()
+    --设置回调
+    client.on_response = function(session_id, status, body)
+        thread_mgr:response(session_id, true, status, body, session_id)
+    end
+    --加入帧更新
+    quanta.join(client)
+    self.client = client
 end
---加入帧更新
-quanta.join(client)
 
 --get接口
-http.call_get = function(url, querys, headers)
+function Http:call_get(url, querys, headers)
     local full_url = url_format(url, querys)
     local session_id = thread_mgr:build_session_id()
-    local ok, err = client.get(full_url, "", header_format(headers), session_id)
+    local ok, err = self.client.get(full_url, "", header_format(headers), session_id)
     if ok then
-        return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
+        return thread_mgr:yield(session_id, NetwkTime.HTTP_CALL_TIMEOUT)
     else
         log_warn("[http.call_get] ok=%s,err=%s", ok, err)
         return ok, err
@@ -63,24 +69,24 @@ http.call_get = function(url, querys, headers)
 end
 
 --post接口
-http.call_post = function(url, querys, post_data, headers)
+function Http:call_post(url, querys, post_data, headers)
     local full_url = url_format(url, querys)
     local session_id = thread_mgr:build_session_id()
-    local ok, err = client.post(full_url, post_data, header_format(headers), session_id)
+    local ok, err = self.client.post(full_url, post_data, header_format(headers), session_id)
     if ok then
-        return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
+        return thread_mgr:yield(session_id, NetwkTime.HTTP_CALL_TIMEOUT)
     else
         log_warn("[http.call_post] ok=%s,err=%s", ok, err)
         return ok, err
     end
 end
 
-http.server = function()
+function Http:create_server(log_method, err_method)
     local server = lhttp.server()
-    server.on_logger = function(path, header, body, status, res)
+    server.on_logger = log_method or function(path, header, body, status, res)
         log_debug("[httpsvr][logger]: %s, %s, %s, %s, %s", path, serialize(header), body, status, res)
     end
-    server.on_error = function(path, header, body, status, res)
+    server.on_error = err_method or function(path, header, body, status, res)
         log_err("[httpsvr][error]: %s, %s, %s, %s, %s", path, serialize(header), body, status, res)
     end
     server.error("on_error")
@@ -90,6 +96,6 @@ http.server = function()
     return server
 end
 
-quanta.http = http
+quanta.http = Http()
 
-return http
+return Http

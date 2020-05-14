@@ -1,4 +1,4 @@
---session_mgr.lua
+--net_server.lua
 local encrypt       = require("encrypt")
 local otime         = os.time
 
@@ -14,8 +14,8 @@ local protobuf_mgr  = quanta.protobuf_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 local statis_mgr    = quanta.statis_mgr
 
-local FlagMask    = enum("FlagMask")
 local RpcType       = enum("RpcType")
+local FlagMask      = enum("FlagMask")
 local NetwkTime     = enum("NetwkTime")
 
 -- Dx协议会话对象管理器
@@ -73,9 +73,7 @@ function NetServer:on_session_accept(session)
         session.fc_packet_statis = session.fc_packet_statis + 1
         session.fc_bytes_statis  = session.fc_bytes_statis  + 1
         statis_mgr:statis_notify("on_dx_recv", cmd_id, recv_len)
-        local eval = perfeval_mgr:begin_eval("dx_s_cmd_" .. cmd_id)
         qxpcall(self.on_call_dx, "on_call_dx: %s", self, session, cmd_id, flag, session_id, data)
-        perfeval_mgr:end_eval(eval)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(err)
@@ -170,10 +168,12 @@ function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
     end
     if session_id == 0 or  (flag & FlagMask.REQ) or (flag & FlagMask.RPT) then
         local function dispatch_rpc_message(_session, cmd, bd)
+            local eval = perfeval_mgr:begin_eval("scmd_doer_" .. cmd_id)
             local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
             if not result[1] then
                 log_err("[NetServer][on_call_dx] on_session_cmd failed! cmd_id:%s", cmd_id)
             end
+            perfeval_mgr:end_eval(eval)
         end
         thread_mgr:fork(dispatch_rpc_message, session, cmd_id, body)
         return

@@ -1,5 +1,5 @@
 --http_server.lua
-local http  = import("driver/http.lua")
+import("driver/http.lua")
 local ljson = require("luacjson")
 
 local type          = type
@@ -8,8 +8,9 @@ local log_info      = logger.info
 local json_encode   = ljson.encode
 local ssplit        = string_ext.split
 
-local server        = http.server()
+local http          = quanta.http
 local thread_mgr    = quanta.thread_mgr
+local server        = http:create_server()
 
 local HttpServer = class()
 function HttpServer:__init()

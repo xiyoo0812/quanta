@@ -13,7 +13,6 @@ local sends_with   = string_ext.ends_with
 local ssplit        = string_ext.split
 local tunpack       = table.unpack
 local log_err       = logger.err
-local log_warn      = logger.warn
 local env_get       = environ.get
 local setmetatable  = setmetatable
 local pb_decode     = protobuf.decode
@@ -124,25 +123,22 @@ function ProtobufMgr:define_command(pb_info)
     if sfind(pb_info.package, ".") then
         package_name = tunpack(ssplit(pb_info.package, "%."))
     end
-    if not _G[package_name] then
-        log_warn("[ProtobufMgr][define_command]->find enum package failed! name:%s", package_name)
+    local enum_set = _G[package_name]
+    if not enum_set then
         return
     end
-
-    local enum_set = _G[package_name]
     for _, data in ipairs(pb_info.message_type) do
         local proto_name = data.name
         local msg_name = "NID_" .. supper(proto_name)
         if sends_with(proto_name, "_req") or sends_with(proto_name, "_res") or sends_with(proto_name, "_ntf") then
             local msg_id = nil
             for enum_type, enum in pairs(enum_set) do
-                local var = pb_enum_id(package_name .. "." .. enum_type, msg_name)
+                local var = enum[msg_name]
                 if var then
                     msg_id = var
                     break
                 end
             end
-
             if msg_id then
                 if self.id_to_protos[msg_id] then
                     log_err("[ProtobufMgr][define_command] repeat id:%s, old:%s, new:%s", msg_id, self.id_to_protos[msg_id], proto_name)

@@ -1,8 +1,9 @@
 -- http_test.lua
+import("driver/http.lua")
 local ljson = require("luacjson")
-local http  = import("driver/http.lua")
 ljson.encode_sparse_array(true)
 
+local http          = quanta.http
 local json_encode   = ljson.encode
 local serialize     = logger.serialize
 
@@ -28,11 +29,14 @@ function HttpTest:setup()
         local HttpServer = import("kernel/network/http_server.lua")
         quanta.server = HttpServer("0.0.0.0:8888", on_post, on_get)
     elseif quanta.index == 2 then
-        thread_mgr:fork(function()
-            local ok, status, res = http.call_get("http://127.0.0.1:8888/test", json_encode(data))
-            --local ok, status, res = client.call_post("http://127.0.0.1:8888/test", data, json_encode(data))
-            print(ok, status, res)
-        end)
+        for i = 1, 50 do
+            thread_mgr:fork(function()
+                local tk = quanta.get_time_ms()
+                local ok, status, res = http:call_post("http://10.72.17.44:8080/node_status", {}, json_encode(data))
+                local now = quanta.get_time_ms()
+                logger.info("node_status : %s, %s, %s, %s", now - tk, ok, status, res)
+            end)
+        end
     end
 end
 

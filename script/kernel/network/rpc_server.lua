@@ -42,6 +42,7 @@ function RpcServer:setup(ip, port, induce)
     self.listener.on_accept = function(client)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
     end
+    event_mgr:add_listener(self, "rpc_heartbeat")
 end
 
 --rpc事件
@@ -49,17 +50,12 @@ function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_type, source, ...)
     client.alive_time = quanta.now
     if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         local function dispatch_rpc_message(...)
-            if self[rpc] then
-                local rpc_datas = pcall(self[rpc], self, client, ...)
-                if session_id > 0 then
-                    client.call_rpc(session_id, RpcType.RPC_RES, rpc, tunpack(rpc_datas))
-                end
-                return
-            end
+            local eval = perfeval_mgr:begin_eval("rpc_doer_" .. rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
                 client.call_rpc(session_id, RpcType.RPC_RES, rpc, tunpack(rpc_datas))
             end
+            perfeval_mgr:end_eval(eval)
         end
         thread_mgr:fork(dispatch_rpc_message, ...)
         return
@@ -92,9 +88,7 @@ function RpcServer:on_socket_accept(client)
     end
     client.on_call = function(recv_len, session_id, rpc_type, source, rpc, ...)
         statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
-        local eval = perfeval_mgr:begin_eval("rpc_doer_" .. rpc)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, rpc, session_id, rpc_type, source, ...)
-        perfeval_mgr:end_eval(eval)
     end
     client.on_error = function(err)
         qxpcall(self.on_socket_close, "on_socket_close: %s", self, client, err)

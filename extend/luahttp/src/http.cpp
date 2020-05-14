@@ -120,16 +120,16 @@ void http_client::update()
     if (m_responses.size() <= 0)
         return;
 
-    auto job_cb = m_responses.back();
+    auto job_cb = m_responses.front();
     job_cb();
-    m_responses.pop_back();
+    m_responses.pop_front();
 }
 
 bool http_client::parse_lua_request(lua_State* L, std::string& url, std::string& param,
     httplib::Headers& headers, uint64_t& context_id, int& lua_ret, std::string& lua_err)
 {
     lua_guard g(L);
-    // ²ÎÊý»ñÈ¡£º url param headers context_id
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ url param headers context_id
     int top = lua_gettop(L);
     if ((4 != top) || !lua_isstring(L, 1) || !lua_isstring(L, 2) || !lua_istable(L, 3) || !lua_isinteger(L, 4))
     {

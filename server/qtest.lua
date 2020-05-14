@@ -13,7 +13,6 @@ if not quanta.init_flag then
         --初始化test
         --[[
         import("qtest/oop_test.lua")
-        import("qtest/http_test.lua")
         import("qtest/etcd_test.lua")
         import("qtest/json_test.lua")
         import("qtest/pack_test.lua")
@@ -21,6 +20,7 @@ if not quanta.init_flag then
         import("qtest/router_test.lua")
         import("qtest/protobuf_test.lua")
         ]]
+        import("qtest/http_test.lua")
         log_info("qtest %d now startup!", quanta.id)
     end
     qxpcall(startup, "quanta startup error: %s")

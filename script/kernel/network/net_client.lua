@@ -55,9 +55,7 @@ function NetClient:connect(block)
     end
     socket.on_call_dx = function(recv_len, cmd_id, flag, session_id, data)
         statis_mgr:statis_notify("on_dx_recv", cmd_id, recv_len)
-        local eval = perfeval_mgr:begin_eval("dx_c_cmd_" .. cmd_id)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, data)
-        perfeval_mgr:end_eval(eval)
     end
     socket.on_error = function(err)
         local function dispatch_err()
@@ -107,7 +105,9 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
     if session_id == 0 or (flag & FlagMask.REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
+            local eval = perfeval_mgr:begin_eval("ccmd_doer_" .. cmd_id)
             self.holder:on_socket_rpc(self, cmd_id, body, session_id)
+            perfeval_mgr:end_eval(eval)
         end
         thread_mgr:fork(dispatch_rpc_message)
         --等待协议处理

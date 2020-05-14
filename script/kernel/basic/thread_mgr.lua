@@ -72,7 +72,7 @@ function ThreadMgr:update()
     for session_id, context in pairs(session_id_coroutine) do
         if context.to <= now then
             self.session_id_coroutine[session_id] = nil
-            self:resume(context.co, false, "timeout")
+            self:resume(context.co, false, "timeout", session_id)
         end
     end
 end

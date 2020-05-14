@@ -24,7 +24,7 @@ function PackTest:on_service_ready(quanta_id)
             tinsert(args, ss)
         end
         local _, send_len = router.socket.call_target(quanta_id, "test_log", 0, "arg_1", args, "arg_3")
-        log_info("[PackTest][on_server_register] send size : %s", send_len)
+        log_info("[PackTest][on_service_ready] send size : %s", send_len)
     end
 end
 
