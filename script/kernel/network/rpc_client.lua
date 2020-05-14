@@ -25,8 +25,6 @@ function RpcClient:__init(holder, ip, port)
     self.holder = holder
     self.port = port
     self.ip = ip
-    --事件监听
-    event_mgr:add_listener(self, "on_heartbeat")
 end
 
 --调用rpc后续处理
@@ -113,6 +111,9 @@ end
 --rpc事件
 function RpcClient:on_socket_rpc(socket, session_id, rpc_type, source, rpc, ...)
     socket.alive_time = quanta.now
+    if rpc == "on_heartbeat" then
+        return self:on_heartbeat(...)
+    end
     if session_id == 0 or rpc_type == RpcType.RPC_REQ then
         local function dispatch_rpc_message(...)
             local eval = perfeval_mgr:begin_eval("rpc_doer_" .. rpc)

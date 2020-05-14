@@ -1,6 +1,6 @@
 --monitor_mgr.lua
+import("driver/http.lua")
 local ljson     = require("luacjson")
-local http      = import("driver/http.lua")
 local RpcServer = import("kernel/network/rpc_server.lua")
 local HttpServer= import("kernel/network/http_server.lua")
 
@@ -13,6 +13,7 @@ local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
 
+local http          = quanta.http
 local event_mgr     = quanta.event_mgr
 local thread_mgr    = quanta.thread_mgr
 
@@ -107,7 +108,7 @@ end
 
 -- node请求服务
 function MonitorMgr:forward_request(api_name, method, ...)
-    local ok, code, res = http[method](sformat("%s/%s",self.url_host, api_name), ...)
+    local ok, code, res = http[method](http, sformat("%s/%s", self.url_host, api_name), ...)
     if not ok or code ~= 200 then
         return ok and code or 404
     end

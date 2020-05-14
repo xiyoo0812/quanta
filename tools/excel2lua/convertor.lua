@@ -7,6 +7,7 @@ local pairs         = pairs
 local tostring      = tostring
 local iopen         = io.open
 local ogetenv       = os.getenv
+local otime         = os.time
 local ldir          = lfs.dir
 local lmkdir        = lfs.mkdir
 local lcurdir       = lfs.currentdir
@@ -15,6 +16,7 @@ local ssub          = string.sub
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
+local smatch        = string.match
 local tconcat       = table.concat
 local tinsert       = table.insert
 local tunpack       = table.unpack
@@ -50,6 +52,7 @@ local value_func = {
         return value == "1"
     end,
     ["array"] = function(value)
+        value = slower(value)
         if sfind(value, '[(]') then
             -- 替换'('&')' 为 '{' & '}'
             return sgsub(value, '[(.*)]', function (s)
@@ -71,6 +74,11 @@ local function get_sheet_value(sheet, row, col, field_type)
             if func then
                 return func(cell.value)
             end
+        end
+
+        local year, month, day, hour, min, sec = smatch(cell.value, "(%d+)-(%d+)-(%d+) (%d+):(%d+):(%d+)")
+        if year and month and day and hour and min and sec then
+            return otime({day = day,month = month,year = year, hour = hour, min = min, sec = sec})
         end
         return cell.value
     end

@@ -95,7 +95,7 @@ local function pbenum(package, enum_type)
     return function(_, enum_name)
         local enum_val = pb_enum_id(package .. "." .. enum_type, enum_name)
         if not enum_val then
-            log_err("[ProtobufMgr][decode] no enum %s.%s.%s", package, enum_type, enum_name)
+            log_err("[pbenum] no enum %s.%s.%s", package, enum_type, enum_name)
         end
         return enum_val
     end
@@ -133,7 +133,7 @@ function ProtobufMgr:define_command(pb_info)
         if sends_with(proto_name, "_req") or sends_with(proto_name, "_res") or sends_with(proto_name, "_ntf") then
             local msg_id = nil
             for enum_type, enum in pairs(enum_set) do
-                local var = enum[msg_name]
+                local var = pb_enum_id(package_name .. "." .. enum_type, msg_name)
                 if var then
                     msg_id = var
                     break
