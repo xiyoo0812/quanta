@@ -14,7 +14,6 @@ local protobuf_mgr  = quanta.protobuf_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 local statis_mgr    = quanta.statis_mgr
 
-local RpcType       = enum("RpcType")
 local FlagMask      = enum("FlagMask")
 local NetwkTime     = enum("NetwkTime")
 
@@ -110,18 +109,18 @@ end
 
 -- 发送数据
 function NetServer:send_dx(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id, 0)
+    return self:write(session, cmd_id, data, session_id, FlagMask.REQ)
 end
 
 -- 回调数据
 function NetServer:callback_dx(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id, RpcType.RPC_RES)
+    return self:write(session, cmd_id, data, session_id, FlagMask.RES)
 end
 
 -- 发起远程调用
 function NetServer:call_dx(session, cmd_id, data)
     local session_id = thread_mgr:build_session_id()
-    if not self:write(session, cmd_id, data, session_id) then
+    if not self:write(session, cmd_id, data, session_id, FlagMask.REQ) then
         return false
     end
     return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)

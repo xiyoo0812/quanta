@@ -31,7 +31,7 @@ struct service_node
 
 struct router_header
 {
-    uint64_t rpc_type = 0;
+    uint64_t rpc_flag = 0;
     uint64_t source_id = 0;
     uint64_t session_id = 0;
 };

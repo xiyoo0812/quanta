@@ -97,7 +97,7 @@ int lua_socket_node::call_dx(lua_State* L)
         return 1;
     }
 
-    // Ö´ĞĞÊµ¼Ê·¢ËÍº¯Êı
+    // Ö´ï¿½ï¿½Êµï¿½Ê·ï¿½ï¿½Íºï¿½ï¿½ï¿½
     sendv_item items[] = { { &header, sizeof(dx_pkt_header) }, {data_ptr, data_len} };
     m_mgr->sendv(m_token, items, _countof(items));
     
@@ -110,7 +110,7 @@ size_t lua_socket_node::format_header(lua_State* L, BYTE* header_data, size_t da
     uint32_t offset = 0;
     router_header header;
     header.session_id = (uint32_t)lua_tointeger(L, 1);
-    header.rpc_type = (uint32_t)lua_tointeger(L, 2);
+    header.rpc_flag = (uint32_t)lua_tointeger(L, 2);
     header.source_id = (uint32_t)lua_tointeger(L, 3);
     return m_router->format_header(header_data, data_len, &header, msgid);
 }
@@ -126,7 +126,7 @@ size_t lua_socket_node::parse_header(BYTE* data, size_t data_len, uint64_t* msgi
     if (len == 0)
         return 0;
     offset += len;
-    len = decode_u64(&header->rpc_type, data + offset, data_len - offset);
+    len = decode_u64(&header->rpc_flag, data + offset, data_len - offset);
     if (len == 0)
         return 0;
     offset += len;
@@ -366,14 +366,14 @@ void lua_socket_node::on_recv(char* data, size_t data_len)
 
 void lua_socket_node::on_router_error(router_header* header)
 {
-    if (header->session_id > 0 && header->source_id > 0 && header->rpc_type == 0)
+    if (header->session_id > 0 && header->source_id > 0 && header->rpc_flag == 0)
     {
         lua_guard g(m_lvm);
         if (!lua_get_object_function(m_lvm, this, "on_router_error"))
             return;
 
         lua_pushinteger(m_lvm, header->session_id);
-        lua_pushinteger(m_lvm, header->rpc_type);
+        lua_pushinteger(m_lvm, header->rpc_flag);
         lua_pushinteger(m_lvm, header->source_id);
 
         lua_call_function(m_lvm, nullptr, 3, 0);
@@ -388,7 +388,7 @@ void lua_socket_node::on_call(router_header* header, char* data, size_t data_len
 
     lua_pushinteger(m_lvm, data_len);
     lua_pushinteger(m_lvm, header->session_id);
-    lua_pushinteger(m_lvm, header->rpc_type);
+    lua_pushinteger(m_lvm, header->rpc_flag);
     lua_pushinteger(m_lvm, header->source_id);
     int param_count = m_archiver->load(m_lvm, data, data_len);
     if (param_count == 0)

@@ -9,7 +9,7 @@ local statis_mgr    = quanta.statis_mgr
 local perfeval_mgr  = quanta.perfeval_mgr
 local thread_mgr    = quanta.thread_mgr
 
-local RpcType       = enum("RpcType")
+local FlagMask      = enum("FlagMask")
 local KernCode      = enum("KernCode")
 local NetwkTime     = enum("NetwkTime")
 local SUCCESS       = KernCode.SUCCESS
@@ -54,32 +54,32 @@ end
 function RpcClient:connect()
     --开始连接
     local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
-    socket.on_call = function(recv_len, session_id, rpc_type, source, rpc, ...)
+    socket.on_call = function(recv_len, session_id, rpc_flag, source, rpc, ...)
         statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_type, source, rpc, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, source, rpc, ...)
     end
-    socket.call_rpc = function(session_id, rpc_type, rpc, ...)
-        local send_len = socket.call(session_id, rpc_type, quanta.id, rpc, ...)
+    socket.call_rpc = function(session_id, rpc_flag, rpc, ...)
+        local send_len = socket.call(session_id, rpc_flag, quanta.id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_target = function(session_id, target, rpc, ...)
-        local send_len = socket.forward_target(session_id, RpcType.RPC_REQ, quanta.id, target, rpc, ...)
+        local send_len = socket.forward_target(session_id, FlagMask.REQ, quanta.id, target, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.callback_target = function(session_id, target, rpc, ...)
-        local send_len = socket.forward_target(session_id, RpcType.RPC_RES, quanta.id, target, rpc, ...)
+        local send_len = socket.forward_target(session_id, FlagMask.RES, quanta.id, target, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
-        local send_len = socket.forward_hash(session_id, RpcType.RPC_REQ, quanta.id, service_id, hash_key, rpc, ...)
+        local send_len = socket.forward_hash(session_id, FlagMask.REQ, quanta.id, service_id, hash_key, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_master = function(session_id, service_id, rpc, ...)
-        local send_len = socket.forward_master(session_id, RpcType.RPC_REQ, quanta.id, service_id, rpc, ...)
+        local send_len = socket.forward_master(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_broadcast = function(session_id, service_id, rpc, ...)
-        local send_len = socket.forward_broadcast(session_id, RpcType.RPC_REQ, quanta.id, service_id, rpc, ...)
+        local send_len = socket.forward_broadcast(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.on_error = function(err)
@@ -109,12 +109,12 @@ function RpcClient:on_heartbeat(socket, qid)
 end
 
 --rpc事件
-function RpcClient:on_socket_rpc(socket, session_id, rpc_type, source, rpc, ...)
+function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, source, rpc, ...)
     socket.alive_time = quanta.now
     if rpc == "on_heartbeat" then
         return self:on_heartbeat(...)
     end
-    if session_id == 0 or rpc_type == RpcType.RPC_REQ then
+    if session_id == 0 or rpc_flag == FlagMask.REQ then
         local function dispatch_rpc_message(...)
             local eval = perfeval_mgr:begin_eval("rpc_doer_" .. rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
@@ -168,7 +168,7 @@ end
 --直接发送接口
 function RpcClient:send(rpc, ...)
     if self.alive then
-        self.socket.call_rpc(0, RpcType.RPC_REQ, rpc, ...)
+        self.socket.call_rpc(0, FlagMask.REQ, rpc, ...)
     end
     return false, "socket not connected"
 end
@@ -177,7 +177,7 @@ end
 function RpcClient:call(rpc, ...)
     if self.alive then
         local session_id = thread_mgr:build_session_id()
-        if self.socket.call_rpc(session_id, RpcType.RPC_REQ, rpc, ...) then
+        if self.socket.call_rpc(session_id, FlagMask.REQ, rpc, ...) then
             return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
         end
     end

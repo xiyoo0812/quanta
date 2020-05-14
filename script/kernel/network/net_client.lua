@@ -17,6 +17,8 @@ local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
 
 local NetClient = class()
 local prop = property(NetClient)
+prop:accessor("ip", nil)
+prop:accessor("port", nil)
 prop:accessor("alive", false)
 prop:accessor("socket", nil)           --连接成功对象
 prop:accessor("holder", nil)           --持有者
@@ -176,18 +178,18 @@ end
 
 -- 发送数据
 function NetClient:send_dx(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, 0)
+    return self:write(cmd_id, data, session_id, FlagMask.REQ)
 end
 
 -- 回调数据
 function NetClient:callback_dx(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, FlagMask.REQ)
+    return self:write(cmd_id, data, session_id, FlagMask.RES)
 end
 
 -- 发起远程调用
 function NetClient:call_dx(cmd_id, data)
     local session_id = thread_mgr:build_session_id()
-    if not self:write(cmd_id, data, session_id) then
+    if not self:write(cmd_id, data, session_id, FlagMask.REQ) then
         return false
     end
     return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)

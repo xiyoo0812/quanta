@@ -21,11 +21,6 @@ FlagMask.RES     = 0x02  -- 响应
 FlagMask.ENCRYPT = 0x04  -- 开启加密
 FlagMask.QZIP    = 0x08  -- 开启qzip压缩
 
---rpc 类型定义
-local RpcType = enum("RpcType", 0)
-RpcType.RPC_REQ = 0
-RpcType.RPC_RES = 1
-
 --网络时间常量定义
 local NetwkTime = enum("NetwkTime", 0)
 NetwkTime.CONNECT_TIMEOUT   = 3000      --连接等待时间

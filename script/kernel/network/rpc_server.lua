@@ -7,7 +7,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local qxpcall       = quanta.xpcall
 
-local RpcType       = enum("RpcType")
+local FlagMask      = enum("FlagMask")
 local KernCode      = enum("KernCode")
 local NetwkTime     = enum("NetwkTime")
 local SUCCESS       = KernCode.SUCCESS
@@ -46,14 +46,14 @@ function RpcServer:setup(ip, port, induce)
 end
 
 --rpc事件
-function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_type, source, ...)
+function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_flag, source, ...)
     client.alive_time = quanta.now
-    if session_id == 0 or rpc_type == RpcType.RPC_REQ then
+    if session_id == 0 or rpc_flag == FlagMask.REQ then
         local function dispatch_rpc_message(...)
             local eval = perfeval_mgr:begin_eval("rpc_doer_" .. rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
-                client.call_rpc(session_id, RpcType.RPC_RES, rpc, tunpack(rpc_datas))
+                client.call_rpc(session_id, FlagMask.RES, rpc, tunpack(rpc_datas))
             end
             perfeval_mgr:end_eval(eval)
         end
@@ -77,8 +77,8 @@ function RpcServer:on_socket_accept(client)
     client.set_timeout(NetwkTime.ROUTER_TIMEOUT)
     self.clients[client.token] = client
 
-    client.call_rpc = function(session_id, rpc_type, rpc, ...)
-        local send_len = client.call(session_id, rpc_type, quanta.id, rpc, ...)
+    client.call_rpc = function(session_id, rpc_flag, rpc, ...)
+        local send_len = client.call(session_id, rpc_flag, quanta.id, rpc, ...)
         if send_len < 0 then
             statis_mgr:statis_notify("on_rpc_send", rpc, send_len)
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
@@ -86,9 +86,9 @@ function RpcServer:on_socket_accept(client)
         end
         return true, SUCCESS
     end
-    client.on_call = function(recv_len, session_id, rpc_type, source, rpc, ...)
+    client.on_call = function(recv_len, session_id, rpc_flag, source, rpc, ...)
         statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, rpc, session_id, rpc_type, source, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, rpc, session_id, rpc_flag, source, ...)
     end
     client.on_error = function(err)
         qxpcall(self.on_socket_close, "on_socket_close: %s", self, client, err)
@@ -100,7 +100,7 @@ end
 --send接口
 function RpcServer:call(client, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    if client.call_rpc(session_id, RpcType.RPC_REQ, rpc, ...) then
+    if client.call_rpc(session_id, FlagMask.REQ, rpc, ...) then
         return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
     end
     return false, "rpc server send failed"
@@ -108,13 +108,13 @@ end
 
 --send接口
 function RpcServer:send(client, rpc, ...)
-    return client.call_rpc(0, RpcType.RPC_REQ, rpc, ...)
+    return client.call_rpc(0, FlagMask.REQ, rpc, ...)
 end
 
 --boardcast接口
 function RpcServer:boardcast(rpc, ...)
     for _, client in pairs(self.clients) do
-        client.call_rpc(0, RpcType.RPC_REQ, rpc, ...)
+        client.call_rpc(0, FlagMask.REQ, rpc, ...)
     end
 end
 

@@ -57,7 +57,7 @@ size_t socket_router::format_header(BYTE* header_data, size_t data_len, router_h
     size_t offset = 0;
     offset += encode_u64(header_data + offset, data_len - offset, (char)msgid);
     offset += encode_u64(header_data + offset, data_len - offset, header->session_id);
-    offset += encode_u64(header_data + offset, data_len - offset, header->rpc_type);
+    offset += encode_u64(header_data + offset, data_len - offset, header->rpc_flag);
     offset += encode_u64(header_data + offset, data_len - offset, header->source_id);
     return offset;
 }
