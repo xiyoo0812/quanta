@@ -110,6 +110,7 @@ local function export_records_to_lua(output, title, records)
             end
             if type(value) == "string" and ftype ~= "array" then
                 value = "'" .. value .. "'"
+                value = sgsub(value, "\n", "\\n")
             end
             tinsert(lines, sformat("    %s = %s,", key, tostring(value)))
         end
