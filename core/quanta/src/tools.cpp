@@ -150,3 +150,15 @@ bool get_full_path(std::string& fullpath, const char* path)
     return true;
 }
 
+#ifndef _WIN32
+char *strupr(char *str)
+{
+    char *ptr = str;
+    while (*ptr != '\0') {
+        if (islower(*ptr))
+            *ptr = toupper(*ptr);
+        ptr++;
+    }
+    return str;
+}
+#endif

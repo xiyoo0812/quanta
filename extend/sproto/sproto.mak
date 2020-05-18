@@ -10,7 +10,7 @@ PROJECT_TYPE = lib
 PROJECT_NO_PREFIX=1
 
 #c99
-#STDC_EX= -std=gnu99
+STDC_EX= -std=gnu99
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
 MYCFLAGS = -I../lua/src

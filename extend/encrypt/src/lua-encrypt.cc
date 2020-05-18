@@ -1,5 +1,5 @@
 
-#include "internal/config.h"
+#include "config.h"
 #include <lua.hpp>
 #include <string>
 #include "encryptor.h"

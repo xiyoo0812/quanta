@@ -2,7 +2,7 @@
 #include "encryptor.h"
 #include "xor_encrypt.h"
 #include "map_encrypt.h"
-#include "internal/QuickZip/src/quick_zip.h"
+#include "quickzip/quick_zip.h"
 #include <string.h>
 
 using bytes_t = encryptor::bytes_t;

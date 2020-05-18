@@ -348,7 +348,7 @@ void ExcelFile::readCell(Cell* c, const char* t, const char* s, tinyxml2::XMLEle
             c->type = "date";
             //25569 => 1970.1.1 0:0:0
             char temp_value[256];
-            sprintf_s(temp_value, "%.0f", 86400 * (atof(v->GetText()) - 25569) - 28800);
+            sprintf(temp_value, "%.0f", 86400 * (atof(v->GetText()) - 25569) - 28800);
             c->value = temp_value;
         }
         else 

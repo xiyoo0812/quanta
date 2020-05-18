@@ -11,6 +11,7 @@
    This program is distributed under the terms of the same license as zlib.
    See the accompanying LICENSE file for the full text of the license.
 */
+#ifdef _WIN32
 
 #ifndef _IOWIN32_H
 #define _IOWIN32_H
@@ -28,6 +29,8 @@ void fill_win32_filefunc64W OF((zlib_filefunc64_def* pzlib_filefunc_def));
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif
 
 #endif

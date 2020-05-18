@@ -90,6 +90,10 @@ template <typename T, int N>
 constexpr int _countof(T(&_array)[N]) { return N; }
 #endif
 
+#ifndef _WIN32
+char *strupr(char *str);
+#endif
+
 #define MAX_ERROR_TXT 128
 
 char* get_error_string(char buffer[], int len, int no);

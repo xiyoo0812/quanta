@@ -4,12 +4,27 @@
     <Filter Include="src">
       <UniqueIdentifier>{e7642c4e-2850-43fb-befd-cf60c1941a19}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\internal">
-      <UniqueIdentifier>{5a9ccda7-b921-4bda-8776-54fc2d733c11}</UniqueIdentifier>
+    <Filter Include="quickzip">
+      <UniqueIdentifier>{2431aff1-3658-4ab0-a423-10cb795933b1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\internal\QuickZip">
-      <UniqueIdentifier>{3268941e-cf9d-4597-9348-3c82df0999b2}</UniqueIdentifier>
-    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\map_encrypt.cpp">
+      <Filter>encrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="src\encryptor.cpp">
+      <Filter>encrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lua-encrypt.cc" />
+    <ClCompile Include="src\quickzip\byte_counter.cpp">
+      <Filter>quickzip</Filter>
+    </ClCompile>
+    <ClCompile Include="src\quickzip\huffman_tree.cpp">
+      <Filter>quickzip</Filter>
+    </ClCompile>
+    <ClCompile Include="src\quickzip\quick_zip.cpp">
+      <Filter>quickzip</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\encrypt_export.h">
@@ -24,40 +39,18 @@
     <ClInclude Include="src\xor_encrypt.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\internal\config.h">
-      <Filter>src\internal</Filter>
+    <ClInclude Include="src\quickzip\byte_counter.h">
+      <Filter>quickzip</Filter>
     </ClInclude>
-    <ClInclude Include="src\internal\QuickZip\src\byte_counter.h">
-      <Filter>src\internal\QuickZip</Filter>
+    <ClInclude Include="src\quickzip\huffman_tree.h">
+      <Filter>quickzip</Filter>
     </ClInclude>
-    <ClInclude Include="src\internal\QuickZip\src\huffman_tree.h">
-      <Filter>src\internal\QuickZip</Filter>
+    <ClInclude Include="src\quickzip\quick_zip.h">
+      <Filter>quickzip</Filter>
     </ClInclude>
-    <ClInclude Include="src\internal\QuickZip\src\quick_zip.h">
-      <Filter>src\internal\QuickZip</Filter>
+    <ClInclude Include="src\quickzip\quick_zip_types.h">
+      <Filter>quickzip</Filter>
     </ClInclude>
-    <ClInclude Include="src\internal\QuickZip\src\quick_zip_types.h">
-      <Filter>src\internal\QuickZip</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\encryptor.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\lua-encrypt.cc">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\map_encrypt.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\internal\QuickZip\src\byte_counter.cpp">
-      <Filter>src\internal\QuickZip</Filter>
-    </ClCompile>
-    <ClCompile Include="src\internal\QuickZip\src\huffman_tree.cpp">
-      <Filter>src\internal\QuickZip</Filter>
-    </ClCompile>
-    <ClCompile Include="src\internal\QuickZip\src\quick_zip.cpp">
-      <Filter>src\internal\QuickZip</Filter>
-    </ClCompile>
+    <ClInclude Include="src\config.h" />
   </ItemGroup>
 </Project>

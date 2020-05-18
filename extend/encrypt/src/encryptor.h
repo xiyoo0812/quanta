@@ -1,8 +1,9 @@
 #pragma once
 
-#include "internal/config.h"
+#include "config.h"
 #include <cstdint>
 #include <vector>
+#include <cstring>
 
 class ENCRYPT_API encryptor
 {

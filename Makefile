@@ -5,17 +5,17 @@ empty:
 	@echo "====server is composed of dbx,session,gate,name and world. You can only compile the module you need."
 
 
-.PHONY: clean lua luna lpeg luacjson luahttp pbc bson mongo luabus quanta sproto proto
+.PHONY: clean lua luna lpeg cjson xlsx http pbc bson mongo luabus quanta sproto proto encrypt
 
-all: clean core extend
+all: clean core extend proto
 
 proj: core extend
 
-core: luna luabus quanta luahttp
+core: luna luabus quanta
 
-extend: lua lfs luna lpeg luacjson proto mongo
+extend: lua lfs luna lpeg cjson mongo xlsx http
 
-proto: pbc bson sproto
+proto: pbc bson sproto encrypt
 
 clean:
 	rm -rf temp;
@@ -38,14 +38,21 @@ lpeg:
 lfs:
 	cd extend/lfs; make -f lfs.mak;
 
-luacjson:
+cjson:
 	cd extend/luacjson; make -f luacjson.mak;
 
-luahttp:
+http:
 	cd extend/luahttp; make -f luahttp.mak;
 
+encrypt:
+	cd extend/encrypt; make -f encrypt.mak;
+
+xlsx:
+	cd extend/luaxlsx; make -f luaxlsx.mak;
+
 mongo:
-	cd extend/mongo; make -f bson.mak;
+	cd extend/mongo; make -f mongo.mak;
+	cd extend/msocket; make -f msocket.mak;
 
 luna:
 	cd core/luna; make -f luna.mak;

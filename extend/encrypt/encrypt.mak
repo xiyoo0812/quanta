@@ -13,7 +13,7 @@ PROJECT_NO_PREFIX=1
 #STDC_EX= -std=gnu99
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS = -I../lua/src
+MYCFLAGS = -I../lua/src -I./src/quickzip
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 MYLDFLAGS = 
@@ -22,13 +22,15 @@ MYLDFLAGS =
 MYLIBS =
 
 #源文件路径
-#SRC_DIR= ./src
-
-#目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
-#MYOBJS=
+SRC_DIR= ./src
 
 #需要排除的源文件
 #EXCLUDE_FILE=
+
+#目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
+#MYOBJS=
+MYOBJS = $(patsubst $(SRC_DIR)/%.cpp, $(INT_DIR)/%.o, $(wildcard $(SRC_DIR)/*.cpp))
+MYOBJS += $(patsubst $(SRC_DIR)/quickzip/%.cpp, $(INT_DIR)/quickzip/%.o, $(wildcard $(SRC_DIR)/quickzip/*.cpp))
 
 #伪目标
 .PHONY: clean all target pre_build post_build
@@ -40,7 +42,12 @@ include ../../share/share.mak
 #预编译
 pre_build:
 	mkdir -p $(INT_DIR)
+	mkdir -p $(INT_DIR)/quickzip
 	mkdir -p $(TARGET_DIR)
+
+#指定quickzip编译
+$(INT_DIR)/quickzip/%.o : $(SRC_DIR)/quickzip/%.cpp
+	$(CX) $(CXXFLAGS) -c $< -o $@
 
 #后编译
 post_build:
