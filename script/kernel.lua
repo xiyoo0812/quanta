@@ -75,7 +75,7 @@ function quanta.init()
     --加载router配置
     config_mgr:init_table("router", "group", "index")
     --路由管理器初始化
-    local router_group = service.router_group(quanta.service_id)
+    local router_group = service.router_group(quanta.id)
     if next(router_group) then
         import("kernel/router/router_mgr.lua")
         --初始化路由管理器

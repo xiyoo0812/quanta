@@ -20,11 +20,13 @@ service = {}
 
 --定义服务器组
 function service.init(name)
-    local service_db = config_mgr:init_table("service", "id")
+    local service_db = config_mgr:init_table("service", "id", "index")
     for _, conf in service_db:iterator() do
         SERVICES[conf.name] = conf.id
         SERVICE_NAMES[conf.id] = conf.name
-        SERVICE_ROUTERS[conf.id] = conf.router_group
+        --保存router_group
+        local quanta_id = (conf.id << 16) | conf.index
+        SERVICE_ROUTERS[quanta_id] = conf.router_group
     end
     return SERVICES[name]
 end
@@ -41,8 +43,8 @@ function service.make_nick(service, index)
 end
 
 --获取节点路由组
-function service.router_group(service_id)
-    return SERVICE_ROUTERS[service_id]
+function service.router_group(quanta_id)
+    return SERVICE_ROUTERS[quanta_id]
 end
 
 --节点id获取服务id
