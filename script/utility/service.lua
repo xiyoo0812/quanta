@@ -46,7 +46,7 @@ end
 function service.router_group(quanta_id)
     local rgroup = SERVICE_ROUTERS[quanta_id]
     if not rgroup then
-        local qid = quanta.service << 16
+        local qid = quanta.service_id << 16
         rgroup = SERVICE_ROUTERS[qid]
     end
     return rgroup
