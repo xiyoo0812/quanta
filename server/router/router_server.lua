@@ -5,7 +5,6 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
 local util_addr     = utility.addr
-local env_number    = environ.number
 local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
@@ -28,10 +27,9 @@ end
 
 function RouterServer:setup()
     local router_db = config_mgr:get_table("router")
-    local router_group = env_number("QUANTA_ROUTER_GROUP")
-    local router_conf = router_db:find_one(router_group, quanta.index)
+    local router_conf = router_db:find_one(quanta.index)
     if not router_conf then
-        log_err("[RouterServer][setup] router_conf is nil group:%s index:%s", router_group, quanta.index)
+        log_err("[RouterServer][setup] router_conf is nil index:%s", quanta.index)
         os.exit(1)
     end
     self.rpc_server = RpcServer()

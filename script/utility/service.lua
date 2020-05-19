@@ -44,7 +44,12 @@ end
 
 --获取节点路由组
 function service.router_group(quanta_id)
-    return SERVICE_ROUTERS[quanta_id]
+    local rgroup = SERVICE_ROUTERS[quanta_id]
+    if not rgroup then
+        local qid = quanta.service << 16
+        rgroup = SERVICE_ROUTERS[qid]
+    end
+    return rgroup
 end
 
 --节点id获取服务id

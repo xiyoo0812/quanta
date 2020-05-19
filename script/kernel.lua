@@ -74,15 +74,15 @@ function quanta.init()
     import("kernel/proto/protobuf_mgr.lua")
 
     --加载router配置
-    config_mgr:init_table("router", "group", "index")
+    config_mgr:init_table("router", "index")
     --获取路由组配置
     local router_group = service.router_group(quanta.id)
-    if not router_group and quanta.service ~= "router" then
+    if not router_group then
         log_err("[quanta][init] %s router group is nil, check the service_cfg.lua!", quanta.name)
         os.exit()
     end
     --初始化路由管理器
-    if router_group and next(router_group) then
+    if next(router_group) then
         import("kernel/router/router_mgr.lua")
         quanta.router_mgr:setup(router_group)
     end

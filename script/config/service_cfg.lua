@@ -12,21 +12,21 @@ service:set_version(10000)
 service:upsert({
     id = 1,
     name = 'router',
-    index = 1,
+    index = 0,
     router_group = {},
 })
 
 service:upsert({
     id = 2,
     name = 'monitor',
-    index = 1,
+    index = 0,
     router_group = {},
 })
 
 service:upsert({
     id = 3,
     name = 'robot',
-    index = 1,
+    index = 0,
     router_group = {},
 })
 
