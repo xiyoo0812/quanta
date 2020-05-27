@@ -16,6 +16,7 @@ prop:reader("name", nil)
 prop:reader("rows", {})
 prop:reader("indexs", {})
 prop:accessor("version", 0)
+prop:accessor("count", 0)
 
 -- 初始化一个配置表，indexs最多支持三个
 function ConfigTable:__init()
@@ -53,6 +54,9 @@ function ConfigTable:upsert(row)
     local row_index = tconcat(row_indexs, "@@")
     if row_index then
         row.version = self.version
+        if not self.rows[row_index] then
+            self.count = self.count + 1
+        end
         self.rows[row_index] = row
     end
 end
