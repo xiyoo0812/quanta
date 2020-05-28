@@ -7,11 +7,11 @@ empty:
 
 .PHONY: clean lua luna lpeg cjson xlsx http pbc bson mongo luabus quanta sproto proto encrypt
 
-all: clean core extend proto
+all: clean core extend proto quanta
 
-proj: core extend
+proj: core extend quanta
 
-core: luna luabus quanta
+core: luna luabus
 
 extend: lua lfs luna lpeg cjson mongo xlsx http
 

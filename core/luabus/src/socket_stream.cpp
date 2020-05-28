@@ -331,72 +331,38 @@ void socket_stream::stream_send(const char* data, size_t data_len)
     if (m_closed)
         return;
 
-    if (!m_send_buffer->empty())
-    {
-        if (!m_send_buffer->push_data(data, data_len))
-        {
-            on_error("send-buffer-full");
-        }
-        return;
-    }
-
     while (data_len > 0)
     {
-        int send_len = ::send(m_socket, data, (int)data_len, 0);
-        if (send_len == SOCKET_ERROR)
+        size_t space_len;
+        m_send_buffer->peek_space(&space_len);
+        if (space_len == 0)
         {
-            int err = get_socket_error();
-
-#ifdef _MSC_VER
-            if (err == WSAEWOULDBLOCK)
-            {
-                if (!m_send_buffer->push_data(data, data_len))
-                {
-                    on_error("send-buffer-full");
-                    return;
-                }
-                if (!wsa_send_empty(m_socket, m_send_ovl))
-                {
-                    on_error("send-failed");
-                    return;
-                }
-                m_ovl_ref++;
-                return;
-            }
-#endif
-
-#if defined(__linux) || defined(__APPLE__)
-            if (err == EINTR)
-                continue;
-
-            if (err == EAGAIN)
-            {
-                if (!m_send_buffer->push_data(data, data_len))
-                {
-                    on_error("send-buffer-full");
-                    return;
-                }
-                if (!m_mgr->watch_send(m_socket, this, true))
-                {
-                    on_error("watch-error");
-                    return;
-                }
-                return;
-            }
-#endif
+            on_error("send-buffer-full");
+            return;
+        }
+        size_t try_len = std::min<size_t>(space_len, data_len);
+        if (!m_send_buffer->push_data(data, try_len))
+        {
             on_error("send-failed");
             return;
         }
-
-        if (send_len == 0)
-        {
-            on_error("connection-lost");
-            return;
-        }
-
-        data += send_len;
-        data_len -= send_len;
+        data_len -= try_len;
+        data += try_len;
     }
+#if _MSC_VER
+    if (!wsa_send_empty(m_socket, m_send_ovl))
+    {
+        on_error("send-failed");
+        return;
+    }
+    m_ovl_ref++;
+#else
+    if (!m_mgr->watch_send(m_socket, this, true))
+    {
+        on_error("watch-error");
+        return;
+    }
+#endif
 }
 
 #ifdef _MSC_VER

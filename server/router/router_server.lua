@@ -32,8 +32,9 @@ function RouterServer:setup()
         log_err("[RouterServer][setup] router_conf is nil index:%s", quanta.index)
         os.exit(1)
     end
+    local ip, port = util_addr(router_conf.addr)
     self.rpc_server = RpcServer()
-    self.rpc_server:setup(util_addr(router_conf.addr))
+    self.rpc_server:setup(ip, port)
     --监听事件
     event_mgr:add_listener(self, "on_socket_close")
     event_mgr:add_listener(self, "on_socket_accept")

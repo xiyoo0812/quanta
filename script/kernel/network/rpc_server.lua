@@ -32,7 +32,7 @@ function RpcServer:setup(ip, port, induce)
         log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)
         os.exit(1)
     end
-    local real_port = induce and (tonumber(port) + quanta.index) or port
+    local real_port = induce and (tonumber(port) + quanta.index - 1) or port
     self.listener = socket_mgr.listen(ip, real_port)
     if not self.listener then
         log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)

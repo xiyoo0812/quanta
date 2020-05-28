@@ -34,12 +34,9 @@ struct io_buffer
 
     bool push_data(const void* data, size_t data_len)
     {
-        size_t space_len = 0;
-        auto* space = peek_space(&space_len);
-        if (space_len < data_len)
-            return false;
-
-        memcpy(space, data, data_len);
+        size_t space_len = m_buffer + m_buffer_size - m_data_end;
+        assert(space_len >= data_len);
+        memcpy(m_data_end, data, data_len);
         m_data_end += data_len;
         return true;
     }
@@ -48,10 +45,13 @@ struct io_buffer
     {
         assert(m_data_begin + uLen <= m_data_end);
         m_data_begin += uLen;
+        regularize();
 
         size_t data_len = (size_t)(m_data_end - m_data_begin);
         if (m_buffer_size > IO_BUFFER_DEF && data_len < m_buffer_size / 4)
+        {
             resize(m_buffer_size / 2);
+        }
     }
 
     size_t regularize()
@@ -60,8 +60,9 @@ struct io_buffer
         if (m_data_begin > m_buffer)
         {
             if (data_len > 0)
+            {
                 memmove(m_buffer, m_data_begin, data_len);
-
+            }
             m_data_end = m_buffer + data_len;
             m_data_begin = m_buffer;
         }
@@ -79,14 +80,9 @@ struct io_buffer
     {
         auto buffer_end = m_buffer + m_buffer_size;
         size_t space_len = buffer_end - m_data_end;
-
-        if (space_len  < IO_BUFFER_DEF / 4)
+        if (space_len < IO_BUFFER_DEF / 8)
         {
-            space_len = regularize();
-            if (space_len < IO_BUFFER_DEF / 8)
-            {
-                space_len = resize(m_buffer_size * 2);
-            }
+            space_len = resize(m_buffer_size * 2);
         }
         *len = space_len;
         return m_data_end;
