@@ -24,17 +24,17 @@ router:upsert({
 })
 
 router:upsert({
-    quanta_deploy = 'devlop',
+    quanta_deploy = 'develop',
     group = 1,
     index = 1,
-    addr = '192.168.131.208:9601',
+    addr = '192.168.124.208:9601',
 })
 
 router:upsert({
-    quanta_deploy = 'devlop',
+    quanta_deploy = 'develop',
     group = 1,
     index = 2,
-    addr = '192.168.131.208:9602',
+    addr = '192.168.124.208:9602',
 })
 
 router:upsert({
