@@ -1,11 +1,13 @@
 --encrypt.lua
 local lfs = require('lfs')
 
-local ldir = lfs.dir
-local lmkdir = lfs.mkdir
-local lcurdir = lfs.currentdir
-local lattributes = lfs.attributes
-local oexec = os.execute
+local ldir          = lfs.dir
+local lmkdir        = lfs.mkdir
+local lcurdir       = lfs.currentdir
+local lattributes   = lfs.attributes
+local oexec         = os.execute
+local ogetenv       = os.getenv
+local sfind         = string.find
 
 local slash = "/"
 
@@ -25,6 +27,10 @@ local function encrypt(lua_dir, encrypt_dir)
             goto continue
         end
 
+        if not sfind(file, ".lua") then
+            goto continue
+        end
+
         local luac_path = lcurdir() .. slash .. "luac"
         local params = " -o " .. encrypt_dir .. slash .. file .. " " .. full_name
         oexec(luac_path..params)
@@ -34,12 +40,22 @@ local function encrypt(lua_dir, encrypt_dir)
 end
 
 if quanta.platform == "linux" then
-    local encrypt_dir = lcurdir() .. slash .. "encrypt_lua"
-    lmkdir(encrypt_dir)
+    local input = lcurdir()
+    local output = lcurdir()
+    local env_input = ogetenv("QUANTA_INPUT")
+    if not env_input or #env_input == 0 then
+        print("input dir not config!")
+    else
+        input = input .. slash .. env_input
+    end
+    local env_output = ogetenv("QUANTA_OUTPUT")
+    if not env_output or #env_output == 0 then
+        print("output dir not config!")
+    else
+        output = output .. slash .. env_output
+        lmkdir(output)
+    end
 
-    local lua_dir = lcurdir() .. slash .. "lua"
-    print("lua_dir:", lua_dir)
-
-    encrypt(lua_dir, encrypt_dir)
+    encrypt(input, output)
 end
 os.exit()

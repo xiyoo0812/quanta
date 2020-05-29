@@ -9,8 +9,8 @@ PROJECT_TYPE = lib
 #目标文件前缀，不定义则.so和.a加lib前缀，否则不加
 PROJECT_NO_PREFIX=1
 
-#c99
-#STDC_EX= -std=gnu99
+#c++11
+STDC_EX= -std=c++11
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
 MYCFLAGS = -I../lua/src -I./src/quickzip
