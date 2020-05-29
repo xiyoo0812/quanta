@@ -1,13 +1,14 @@
-local bson = require "bson"
-local driver = require "mongo"
-local socket = require "msocket"
-local pairs = pairs
-local rawget = rawget
-local assert = assert
-local tostring = tostring
+local bson         = require "bson"
+local driver       = require "mongo"
+local socket       = require "msocket"
+local pairs        = pairs
+local rawget       = rawget
+local assert       = assert
+local tostring     = tostring
 local setmetatable = setmetatable
-local tinsert = table.insert
-local tunpack = table.unpack
+local tinsert      = table.insert
+local tunpack      = table.unpack
+local mtointeger   = math.tointeger
 
 local bson_encode = bson.encode
 local bson_encode_order = bson.encode_order
@@ -253,6 +254,17 @@ function mongo_collection:safe_delete(selector, single)
         limit = single and 1 or 0,
     })})
     return sock_err, werror(r)
+end
+
+function mongo_collection:count(selector)
+    if not selector then
+        selector = {}
+    end
+    local sock_err, ret = self.database:runCommand("count", self.name, "query", selector)
+
+    local ok = (1 == mtointeger(ret.ok))
+    local n  = ok and mtointeger(ret.n) or nil  -- count
+    return sock_err, {ok = ok, n = n}
 end
 
 function mongo_collection:findOne(query, selector)
