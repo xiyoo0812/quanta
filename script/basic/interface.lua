@@ -7,12 +7,14 @@
     接口无法实例化，必须依附到class上，接口函数的self都是属主class对象
     接口实例化操作目前相当于类型转换
 --]]
+local pcall         = pcall
 local pairs         = pairs
 local setmetatable  = setmetatable
-local log_warn      = logger.warn
 local tinsert       = table.insert
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
+local log_err       = logger.err
+local log_warn      = logger.warn
 
 local interface_tpls = {}
 
@@ -24,24 +26,42 @@ local function newindex(interface, field, value)
     interface.__vtbl[field] = value
 end
 
---collect==false 表示所有接口都完成
 local function invoke(object, method, ...)
-    local collect = false
     local class = object.__class
     for _, interface in ipairs(class.__interfaces) do
-        if interface[method] then
-            if interface[method](object, ...) then
-                collect = true
+        local interface_method = interface[method]
+        if interface_method then
+            local ok, res = pcall(interface_method, object, ...)
+            if not ok then
+                log_err("interface: %s invoke '%s' failed: %s.", interface.__moudle, method, res)
             end
         end
     end
+end
 
-    return collect
+--返回true表示所有接口都完成
+local function collect(object, method, ...)
+    local class = object.__class
+    for _, interface in ipairs(class.__interfaces) do
+        local interface_method = interface[method]
+        if interface_method then
+            local ok, res = pcall(interface_method, object, ...)
+            if not ok then
+                log_err("interface: %s collect '%s' failed: %s.", interface.__moudle, method, res)
+                return false
+            end
+            if not res then
+                return false
+            end
+        end
+    end
+    return true
 end
 
 --代理一个类的所有接口，并检测接口是否实现
 function implemented(class, interfaces)
     class.invoke = invoke
+    class.collect = collect
     for _, interface in ipairs(interfaces) do
         --属性处理
         for name, value in pairs(interface.__default) do
