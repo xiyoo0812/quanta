@@ -13,10 +13,10 @@ PROJECT_NO_PREFIX=1
 STDC_EX= -std=c++11
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS =-DCPPHTTPLIB_OPENSSL_SUPPORT -I../lua/src -I../../core/luna/src -I./src/openssl/include -w
+MYCFLAGS =-DCPPHTTPLIB_OPENSSL_SUPPORT -I../lua/src -I../../core/luna/src -I../openssl/include -w
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
-MYLDFLAGS =-L./src/openssl/lib/linux 
+MYLDFLAGS =-L../openssl/lib/linux 
 
 #share.mak包含了一些公用的库,这里加上其他所需的库
 MYLIBS =-Wl,--whole-archive -lssl -lcrypto -Wl,--no-whole-archive

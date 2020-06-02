@@ -38,6 +38,13 @@ service:upsert({
 })
 
 service:upsert({
+    id = 4,
+    name = 'test',
+    index = 2,
+    router_group = {1},
+})
+
+service:upsert({
     id = 5,
     name = 'dbsvr',
     index = 1,

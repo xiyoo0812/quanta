@@ -13,7 +13,7 @@ proj: core extend quanta
 
 core: luna luabus
 
-extend: lua lfs luna lpeg cjson mongo xlsx http
+extend: lua lfs luna lpeg cjson mongo xlsx http webclient
 
 proto: pbc bson sproto encrypt
 
@@ -62,3 +62,6 @@ luabus:
 
 quanta:
 	cd core/quanta; make -f quanta.mak;
+
+webclient:
+	cd extend/webclient; make -f webclient.mak;

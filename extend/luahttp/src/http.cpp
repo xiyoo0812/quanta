@@ -1,15 +1,16 @@
 #include <string>
 #include <vector>
 #include "http.h"
-#include "utility.h"
 
-EXPORT_CLASS_BEGIN(http_client)
-EXPORT_LUA_FUNCTION(update)
-EXPORT_LUA_FUNCTION(post)
-EXPORT_LUA_FUNCTION(put)
-EXPORT_LUA_FUNCTION(get)
-EXPORT_LUA_FUNCTION(del)
-EXPORT_CLASS_END()
+inline void native_to_lua(lua_State* L, const httplib::Headers& v)
+{
+    lua_newtable(L);
+    for (auto it : v)
+    {
+        lua_pushstring(L, it.second.c_str());
+        lua_setfield(L, -2, it.first.c_str());
+    }
+}
 
 EXPORT_CLASS_BEGIN(http_server)
 EXPORT_LUA_FUNCTION(listen)
@@ -22,161 +23,6 @@ EXPORT_LUA_FUNCTION(get)
 EXPORT_CLASS_END()
 
 const int WORK_COUNT_PER_FRAME = 20;
-
-///////////////////////////////////////////////////////////////////////////////////
-
-http_client::http_client(lua_State* lua_vm, int thread_count, size_t max_pending_req) :
-    m_lua_state(lua_vm),
-    m_requests(thread_count),
-    m_max_pending_req(max_pending_req)
-{
-
-}
-
-http_client::~http_client()
-{
-    m_requests.shutdown();
-}
-
-int http_client::get(lua_State* L)
-{
-    if (m_requests.task_count() >= m_max_pending_req)
-    {
-        lua_pushboolean(L, false);
-        lua_pushstring(L, "too match pending task");
-        return 2;
-    }
-
-    std::string url; 
-    std::string param;
-    httplib::Headers headers;
-    uint64_t context_id = 0; 
-    int lua_ret = 0; 
-    std::string lua_err;
-
-    if (!parse_lua_request(L, url, param, headers, context_id, lua_ret, lua_err))
-    {
-        lua_pushboolean(L, false);
-        lua_pushstring(L, lua_err.c_str());
-        return 2;
-    }
-
-    m_requests.enqueue([=](void)->void {
-        this->do_request(url, "GET", param, headers, context_id);
-    });
-
-    lua_pushinteger(L, true);
-    return 1;
-}
-
-int http_client::post(lua_State* L)
-{
-    if (m_requests.task_count() >= m_max_pending_req)
-    {
-        lua_pushinteger(L, false);
-        lua_pushstring(L, "too match pending task");
-        return 2;
-    }
-
-    std::string url;
-    std::string param;
-    httplib::Headers headers;
-    uint64_t context_id = 0;
-    int lua_ret = 0;
-    std::string lua_err;
-
-    if (!parse_lua_request(L, url, param, headers, context_id, lua_ret, lua_err))
-    {
-        lua_pushboolean(L, false);
-        lua_pushstring(L, lua_err.c_str());
-        return 2;
-    }
-
-    m_requests.enqueue([=](void)->void {
-        this->do_request(url, "POST", param, headers, context_id);
-    });
-
-    lua_pushinteger(L, true);
-    return 1;
-}
-
-int http_client::put(lua_State* L)
-{
-    lua_pushboolean(L, false);
-    lua_pushstring(L, "not support");
-    return 2;
-}
-
-int http_client::del(lua_State* L)
-{
-    lua_pushboolean(L, false);
-    lua_pushstring(L, "not support");
-    return 2;
-}
-
-void http_client::update()
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (m_responses.size() <= 0)
-        return;
-
-    auto job_cb = m_responses.front();
-    job_cb();
-    m_responses.pop_front();
-}
-
-bool http_client::parse_lua_request(lua_State* L, std::string& url, std::string& param,
-    httplib::Headers& headers, uint64_t& context_id, int& lua_ret, std::string& lua_err)
-{
-    lua_guard g(L);
-    // ������ȡ�� url param headers context_id
-    int top = lua_gettop(L);
-    if ((4 != top) || !lua_isstring(L, 1) || !lua_isstring(L, 2) || !lua_istable(L, 3) || !lua_isinteger(L, 4))
-    {
-        lua_ret = -1;
-        lua_err = "need 4 parameter: url{string},param{string},headers{table},context_id{number}";
-        return false;
-    }
-
-    url   = lua_tostring(L, 1);
-    param = lua_tostring(L, 2);
-
-    lua_pushnil(L);
-    while (lua_next(L, 3))
-    {
-        lua_pushvalue(L, -2);
-        const char* key = lua_tostring(L, -1);
-        const char* value = lua_tostring(L, -2);
-        headers.insert(std::make_pair(key, value));
-        lua_pop(L, 2);
-    }
-    context_id = lua_tointeger(L, 4);
-    return true;
-}
-
-void http_client::do_request(const std::string& url, const std::string& method, const std::string& param,
-    const httplib::Headers& headers, uint64_t context_id)
-{
-    std::shared_ptr<httplib::Response> res_ptr;
-    int ret = http_request(url, method, param, headers, 3, res_ptr);
-    int status = 404;
-    std::string body;
-    if (0 == ret)
-    {
-        status = res_ptr->status;
-        body = res_ptr->body;
-    }
-    std::unique_lock<std::mutex> lock(m_mutex);
-    m_responses.push_back([=](void)->void {
-        do_response(status, body, context_id);
-    });
-}
-
-void http_client::do_response(int status, const std::string& body, uint64_t context_id)
-{
-    lua_guard g(m_lua_state);
-    lua_call_object_function(m_lua_state, nullptr, this, "on_response", std::tie(), context_id, status, body);
-}
 
 ///////////////////////////////////////////////////////////////////////////////////
 http_server::http_server(lua_State* L) :m_lvm(L), m_svr()

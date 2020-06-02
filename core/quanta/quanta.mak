@@ -16,7 +16,7 @@ MYCFLAGS = -fpermissive -I../../extend/lua/src -I../luna/src -Wno-unused-paramet
 #MYLDFLAGS =
 
 #share.mak包含了一些公用的库,这里加上其他所需的库
-MYLIBS = -llua -lluna -lpthread
+MYLIBS = -llua -lluna -lpthread -lcurl
 
 #源文件路径
 #SRC_DIR=

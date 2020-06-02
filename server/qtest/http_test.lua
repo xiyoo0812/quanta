@@ -29,7 +29,14 @@ function HttpTest:setup()
         local HttpServer = import("kernel/network/http_server.lua")
         quanta.server = HttpServer("0.0.0.0:8888", on_post, on_get)
     elseif quanta.index == 2 then
-        for i = 1, 50 do
+        thread_mgr:fork(function()
+            local post_data = json_encode({title = "test", text = "http test"})
+        --    local ROBOT_URL = "https://open.feishu.cn/open-apis/bot/hook/56b34b9e1c0b4fc0acadef8ebc3894ad"
+            local ROBOT_URL = "https://open.feishu.cn/open-apis/bot/hook/56b34b9e1c0b4fc0acadef8ebc3894ad"
+            local ok, status, res = http:call_post(ROBOT_URL, {}, post_data)
+            logger.info("feishu test : %s, %s, %s", ok, status, res)
+        end)
+        for i = 1, 1 do
             thread_mgr:fork(function()
                 local tk = quanta.get_time_ms()
                 local ok, status, res = http:call_post("http://10.72.17.44:8080/node_status", {}, json_encode(data))
