@@ -54,13 +54,15 @@ temp
 *.opendb
 *.sdf
 *.opensdf
+*.zip
+*.7z
+*.tar
+
 
 #fgui
 *.info
 
-#hive
+#quanta
 *.err
-
-*.zip
-*.7z
-*.tar
+luac
+quanta
