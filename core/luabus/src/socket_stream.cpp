@@ -596,7 +596,11 @@ void socket_stream::dispatch_package()
                 break;
 
             header_len = sizeof(dx_pkt_header);
-            package_size = ((dx_pkt_header_ptr)data)->len - header_len;
+            uint64_t recv_len = ((dx_pkt_header_ptr)data)->len;
+            if (recv_len < header_len)
+                break;
+
+            package_size = recv_len - header_len;
 
             // 当前包头标识的数据超过最大长度
             if (header_len + package_size > NET_PACKET_MAX_LEN)
