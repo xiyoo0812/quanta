@@ -34,6 +34,11 @@ function MongoProxy:insert(hash_key, mongo_query, dbid)
     return router_mgr:call_dbsvr_hash(hash_key, "mongo_insert", dbid or 1, tunpack(mongo_query))
 end
 
+--{coll_name, selector}
+function MongoProxy:count(hash_key, mongo_query, dbid)
+    return router_mgr:call_dbsvr_hash(hash_key, "mongo_count", dbid or 1, tunpack(mongo_query))
+end
+
 ------------------------------------------------------------------
 quanta.mongo_agent = MongoProxy()
 

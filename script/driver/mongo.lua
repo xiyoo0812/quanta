@@ -264,6 +264,7 @@ function mongo_collection:count(selector)
 
     local ok = (1 == mtointeger(ret.ok))
     local n  = ok and mtointeger(ret.n) or nil  -- count
+
     return sock_err, {ok = ok, n = n}
 end
 
