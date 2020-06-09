@@ -25,7 +25,8 @@ logger = {}
 local LOG_LEVEL_DEBUG   = 1     -- 用于调试消息的输出
 local LOG_LEVEL_INFO    = 2     -- 用于跟踪程序运行进度
 local LOG_LEVEL_WARN    = 3     -- 程序运行时发生异常
-local LOG_LEVEL_ERROR   = 4     -- 程序运行时发生可预料的错误,此时通过错误处理,可以让程序恢复正常运行
+local LOG_LEVEL_DUMP    = 4     -- 数据异常dump
+local LOG_LEVEL_ERROR   = 5     -- 程序运行时发生可预料的错误,此时通过错误处理,可以让程序恢复正常运行
 local LOG_LEVEL_OFF     = 100   -- 关闭所有消息输出
 
 local log_file          = nil
@@ -37,6 +38,10 @@ local log_line_count    = 0
 local log_max_line      = 100000
 local log_lvl           = LOG_LEVEL_INFO
 local event_mgr         = nil
+local dump_line_count   = 0      -- 当前dump文件行数
+local dump_max_line     = 10000  -- dump文件最大行数
+local dump_filename     = nil
+local dump_file         = nil    -- dump文件句柄
 
 function logger.init(max_line)
     log_max_line = max_line or log_max_line
@@ -51,7 +56,8 @@ function logger.init(max_line)
         quanta.daemon(1, 1)
     end
     event_mgr = quanta.event_mgr
-    log_filename = sformat("%s/%s-%d", log_file_path, quanta.service, quanta.index)
+    log_filename  = sformat("%s/%s-%d", log_file_path, quanta.service, quanta.index)
+    dump_filename = sformat("%s/dump-%s-%d", log_file_path, quanta.service, quanta.index)
     if quanta.platform == "windows" then
         oexec("echo log active color")
     end
@@ -72,6 +78,36 @@ function logger.close()
     end
 end
 
+-- 写入到dump文件
+local function dump_write(cate, fmt, ...)
+    local time = odate("%Y%m%d-%H:%M:%S", otime())
+    fmt = sformat("%s/%s\t%s\n", time, cate, tostring(fmt))
+    local ok, line = pcall(sformat, fmt, ...)
+    if not ok then
+        line = sformat("%slogger error: %s\n%s", fmt, line, dtraceback())
+    end
+
+    if not dump_file or dump_line_count >= dump_max_line then
+        local file_time = odate("%Y%m%d-%H%M%S", otime())
+        local filename  = sformat("%s-%s.log", dump_filename, file_time)
+        dump_file = iopen(filename, "w")
+        if dump_file == nil then
+            return
+        end
+        dump_file:setvbuf("no")
+        dump_line_count = 0
+    end
+
+    if not dump_file:write(line) then
+        dump_file:close()
+        dump_file = nil
+        dump_line_count = 0
+        return
+    end
+
+    dump_line_count = dump_line_count + 1
+end
+
 local function log_write(cate, color, fmt, ...)
     local time = odate("%Y%m%d-%H:%M:%S", otime())
     fmt = sformat("%s/%s\t%s\n", time, cate, tostring(fmt))
@@ -86,12 +122,13 @@ local function log_write(cate, color, fmt, ...)
             stdout:write(line)
         end
     end
+
     if log_file == nil or log_line_count >= log_max_line then
         if log_file then
             log_file:close()
         end
         local file_time = odate("%Y%m%d-%H%M%S", otime())
-        local filename = sformat("%s-%s.log", log_filename, file_time)
+        local filename  = sformat("%s-%s.log", log_filename, file_time)
         log_file = iopen(filename, "w")
         if log_file == nil then
             return
@@ -127,6 +164,12 @@ end
 function logger.warn(fmt, ...)
     if log_lvl <= LOG_LEVEL_WARN then
         log_write("WARN", "\27[33m", fmt, ...)
+    end
+end
+
+function logger.dump(fmt, ...)
+    if log_lvl <= LOG_LEVEL_DUMP then
+        dump_write("DUMP", fmt, ...)
     end
 end
 
