@@ -11,6 +11,7 @@ function Listener:__init()
     self._triggers = {}     -- map<event, {listener = true, ...}
     self._listeners = {}    -- map<event, listener>
     self._commands = {}     -- map<cmd, listener>
+    self._verifers = {}     -- map<cmd, verifier>
 end
 
 function Listener:add_trigger(trigger, event)
@@ -38,16 +39,20 @@ function Listener:remove_listener(event)
     self._listeners[event] = nil
 end
 
-function Listener:add_cmd_listener(listener, cmd, event)
+function Listener:add_cmd_listener(listener, cmd, event, verifier)
     if self._commands[cmd] then
         log_err("add_cmd_listener cmd(%s) repeat!", cmd)
         return
     end
     self._commands[cmd] = {listener, event}
+    if verifier then
+        self._verifers[cmd] = {verifier, event}
+    end
 end
 
 function Listener:remove_cmd_listener(cmd)
     self._commands[cmd] = nil
+    self._verifers[cmd] = nil
 end
 
 function Listener:notify_trigger(event, ...)
@@ -75,13 +80,28 @@ function Listener:notify_listener(event, ...)
 end
 
 function Listener:notify_command(cmd, ...)
-    local context = self._commands[cmd]
-    if not context then
+    local listener_ctx = self._commands[cmd]
+    if not listener_ctx then
         log_err("command %s handler is nil!", cmd)
         return tpack(false, "command handler is nil")
     end
-    local listener, event = tunpack(context)
-    if not listener or not listener[event] then
+    --校验参数
+    local verifier_ctx = self._verifiers[cmd]
+    if verifier_ctx then
+        local verifier, event = tunpack(verifier_ctx)
+        if verifier[event] then
+            local ok, code = pcall(verifier[event], verifier, ...)
+            if not ok  then
+                return tpack(false, "verify handler exec failed")
+            end
+            if code ~= 0 then
+                return tpack(true, {code = code})
+            end
+        end
+    end
+    --执行事件
+    local listener, event = tunpack(listener_ctx)
+    if not listener[event] then
         log_err("command %s handler is nil!", cmd)
         return tpack(false, "command handler is nil")
     end

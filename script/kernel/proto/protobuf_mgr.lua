@@ -140,11 +140,16 @@ function ProtobufMgr:define_command(pb_info)
                 end
             end
             if msg_id then
-                if self.id_to_protos[msg_id] then
-                    log_err("[ProtobufMgr][define_command] repeat id:%s, old:%s, new:%s", msg_id, self.id_to_protos[msg_id], proto_name)
-                else
-                    self.id_to_protos[msg_id] = pb_info.package .. "." .. proto_name
+                local old_proto_name = self.id_to_protos[msg_id]
+                local new_proto_name = pb_info.package .. "." .. proto_name
+                if old_proto_name then
+                    local pos = old_proto_name:find("%.")
+                    local old_package = old_proto_name:sub(1, pos - 1)
+                    if old_package == pb_info.package then
+                        log_err("[ProtobufMgr][define_command] repeat id:%s, old:%s, new:%s", msg_id, old_proto_name, proto_name)
+                    end
                 end
+                self.id_to_protos[msg_id] = new_proto_name
             else
                 log_err("[ProtobufMgr][define_command] proto_name: [%s] can't find msg enum:[%s] !", proto_name, msg_name)
             end
