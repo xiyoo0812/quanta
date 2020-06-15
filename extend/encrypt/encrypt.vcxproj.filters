@@ -9,13 +9,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\map_encrypt.cpp">
-      <Filter>encrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="src\encryptor.cpp">
-      <Filter>encrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="src\lua-encrypt.cc" />
     <ClCompile Include="src\quickzip\byte_counter.cpp">
       <Filter>quickzip</Filter>
     </ClCompile>
@@ -25,11 +18,11 @@
     <ClCompile Include="src\quickzip\quick_zip.cpp">
       <Filter>quickzip</Filter>
     </ClCompile>
+    <ClCompile Include="src\encryptor.cpp" />
+    <ClCompile Include="src\map_encrypt.cpp" />
+    <ClCompile Include="src\lua-encrypt.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\encrypt_export.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="src\encryptor.h">
       <Filter>src</Filter>
     </ClInclude>

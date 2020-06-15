@@ -86,7 +86,7 @@ function Listener:notify_command(cmd, ...)
         return tpack(false, "command handler is nil")
     end
     --校验参数
-    local verifier_ctx = self._verifiers[cmd]
+    local verifier_ctx = self._verifers[cmd]
     if verifier_ctx then
         local verifier, event = tunpack(verifier_ctx)
         if verifier[event] then

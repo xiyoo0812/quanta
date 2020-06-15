@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\encryptor.cpp" />
-    <ClCompile Include="src\lua-encrypt.cc" />
+    <ClCompile Include="src\lua-encrypt.cpp" />
     <ClCompile Include="src\map_encrypt.cpp" />
     <ClCompile Include="src\quickzip\byte_counter.cpp" />
     <ClCompile Include="src\quickzip\huffman_tree.cpp" />
