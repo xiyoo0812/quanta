@@ -86,7 +86,7 @@ function Http:request(url, get, post, headers, timeout)
     local client = self.client
     local real_url = url_format(client, url, get)
     if post and type(post) == "table" then
-        post = args_format(client, get)
+        post = args_format(client, post)
     end
     local to = timeout or NetwkTime.HTTP_CALL_TIMEOUT
     local request, key = client:request(real_url, post, to)
