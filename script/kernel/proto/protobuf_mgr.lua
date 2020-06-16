@@ -9,7 +9,7 @@ local ldir          = lfs.dir
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
-local sends_with   = string_ext.ends_with
+local sends_with    = string_ext.ends_with
 local ssplit        = string_ext.split
 local tunpack       = table.unpack
 local log_err       = logger.err
@@ -21,25 +21,26 @@ local pb_enum_id    = protobuf.enum_id
 local supper        = string.upper
 
 local ProtobufMgr = singleton()
+local prop = property(ProtobufMgr)
+prop:accessor("pb_infos", {})
+prop:accessor("pb_indexs", {})
+prop:accessor("allow_reload", false)
+
 function ProtobufMgr:__init()
-    self.id_to_protos = {}
-    self.open_reload_pb = false
-    --初始化
     self:load_protos()
 end
 
 --加载pb文件
-function ProtobufMgr:register_file(proto_dir, proto_file, load_files)
+function ProtobufMgr:register_file(proto_dir, proto_file)
     local full_name = sformat("%s%s", proto_dir, proto_file)
-    if load_files[full_name] then
+    if self.pb_infos[full_name] then
         return
     end
-
     local pb_info = protobuf.parse_file(full_name)
     if pb_info then
         --注册依赖
         for _, dep_file in pairs(pb_info.dependency or {}) do
-            self:register_file(proto_dir, sgsub(dep_file, ".proto", ".pb"), load_files)
+            self:register_file(proto_dir, sgsub(dep_file, ".proto", ".pb"))
         end
         --注册pb文件
         protobuf.register_file(full_name)
@@ -47,9 +48,8 @@ function ProtobufMgr:register_file(proto_dir, proto_file, load_files)
         for _, enum_type in pairs(pb_info.enum_type or {}) do
             self:define_enum(pb_info.package, enum_type.name)
         end
-
         self:define_command(pb_info)
-        load_files[full_name] = true
+        self.pb_infos[full_name] = pb_info
     end
 end
 
@@ -57,18 +57,18 @@ end
 function ProtobufMgr:load_protos()
     local proto_dir = env_get("QUANTA_PROTO")
     if proto_dir then
-        local load_files = {}
+        self.pb_infos = {}
         for file_name in ldir(proto_dir) do
             local pos = sfind(file_name, ".pb")
             if pos then
-                self:register_file(proto_dir, file_name, load_files)
+                self:register_file(proto_dir, file_name)
             end
         end
     end
 end
 
 function ProtobufMgr:encode(cmd_id, data)
-    local proto_name = self.id_to_protos[cmd_id]
+    local proto_name = self.pb_indexs[cmd_id]
     if not proto_name then
         log_err("[ProtobufMgr][encode] find proto name failed! cmd_id:%s", cmd_id)
         return nil
@@ -80,7 +80,7 @@ function ProtobufMgr:encode(cmd_id, data)
 end
 
 function ProtobufMgr:decode(cmd_id, pb_str)
-    local proto_name = self.id_to_protos[cmd_id]
+    local proto_name = self.pb_indexs[cmd_id]
     if not proto_name then
         log_err("[ProtobufMgr][decode] find proto name failed! cmd_id:%s", cmd_id)
         return nil
@@ -140,7 +140,7 @@ function ProtobufMgr:define_command(pb_info)
                 end
             end
             if msg_id then
-                local old_proto_name = self.id_to_protos[msg_id]
+                local old_proto_name = self.pb_indexs[msg_id]
                 local new_proto_name = pb_info.package .. "." .. proto_name
                 if old_proto_name then
                     local pos = old_proto_name:find("%.")
@@ -149,19 +149,19 @@ function ProtobufMgr:define_command(pb_info)
                         log_err("[ProtobufMgr][define_command] repeat id:%s, old:%s, new:%s", msg_id, old_proto_name, proto_name)
                     end
                 end
-                self.id_to_protos[msg_id] = new_proto_name
+                self.pb_indexs[msg_id] = new_proto_name
             else
                 log_err("[ProtobufMgr][define_command] proto_name: [%s] can't find msg enum:[%s] !", proto_name, msg_name)
             end
         end
     end
 
-    self.open_reload_pb = true
+    self.allow_reload = true
 end
 
 -- 重新加载
 function ProtobufMgr:reload()
-    if not self.open_reload_pb then
+    if not self.allow_reload then
         return
     end
     -- gc env_
