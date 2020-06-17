@@ -31,16 +31,16 @@ function ProtobufMgr:__init()
 end
 
 --加载pb文件
-function ProtobufMgr:register_file(proto_dir, proto_file)
+function ProtobufMgr:register_file(proto_dir, proto_file, pb_files)
     local full_name = sformat("%s%s", proto_dir, proto_file)
-    if self.pb_infos[full_name] then
+    if pb_files[full_name] then
         return
     end
     local pb_info = protobuf.parse_file(full_name)
     if pb_info then
         --注册依赖
         for _, dep_file in pairs(pb_info.dependency or {}) do
-            self:register_file(proto_dir, sgsub(dep_file, ".proto", ".pb"))
+            self:register_file(proto_dir, sgsub(dep_file, ".proto", ".pb"), pb_files)
         end
         --注册pb文件
         protobuf.register_file(full_name)
@@ -49,7 +49,7 @@ function ProtobufMgr:register_file(proto_dir, proto_file)
             self:define_enum(pb_info.package, enum_type.name)
         end
         self:define_command(pb_info)
-        self.pb_infos[full_name] = pb_info
+        pb_files[full_name] = pb_info
     end
 end
 
@@ -57,11 +57,11 @@ end
 function ProtobufMgr:load_protos()
     local proto_dir = env_get("QUANTA_PROTO")
     if proto_dir then
-        self.pb_infos = {}
+        local pb_files = {}
         for file_name in ldir(proto_dir) do
             local pos = sfind(file_name, ".pb")
             if pos then
-                self:register_file(proto_dir, file_name)
+                self:register_file(proto_dir, file_name, pb_files)
             end
         end
     end
@@ -150,12 +150,12 @@ function ProtobufMgr:define_command(pb_info)
                     end
                 end
                 self.pb_indexs[msg_id] = new_proto_name
+                self.pb_infos[new_proto_name] = { id = msg_id, field = data.field }
             else
                 log_err("[ProtobufMgr][define_command] proto_name: [%s] can't find msg enum:[%s] !", proto_name, msg_name)
             end
         end
     end
-
     self.allow_reload = true
 end
 
