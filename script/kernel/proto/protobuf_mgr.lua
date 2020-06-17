@@ -130,6 +130,7 @@ function ProtobufMgr:define_command(pb_info)
     for _, data in ipairs(pb_info.message_type) do
         local proto_name = data.name
         local msg_name = "NID_" .. supper(proto_name)
+        local full_name = pb_info.package .. "." .. proto_name
         if sends_with(proto_name, "_req") or sends_with(proto_name, "_res") or sends_with(proto_name, "_ntf") then
             local msg_id = nil
             for enum_type, enum in pairs(enum_set) do
@@ -140,20 +141,21 @@ function ProtobufMgr:define_command(pb_info)
                 end
             end
             if msg_id then
-                local old_proto_name = self.pb_indexs[msg_id]
-                local new_proto_name = pb_info.package .. "." .. proto_name
-                if old_proto_name then
-                    local pos = old_proto_name:find("%.")
-                    local old_package = old_proto_name:sub(1, pos - 1)
+                local old_full_name = self.pb_indexs[msg_id]
+                if old_full_name then
+                    local pos = old_full_name:find("%.")
+                    local old_package = old_full_name:sub(1, pos - 1)
                     if old_package == pb_info.package then
-                        log_err("[ProtobufMgr][define_command] repeat id:%s, old:%s, new:%s", msg_id, old_proto_name, proto_name)
+                        log_err("[ProtobufMgr][define_command] repeat id:%s, old:%s, new:%s", msg_id, old_full_name, proto_name)
                     end
                 end
-                self.pb_indexs[msg_id] = new_proto_name
-                self.pb_infos[new_proto_name] = { id = msg_id, field = data.field }
+                self.pb_indexs[msg_id] = full_name
+                self.pb_infos[full_name] = { id = msg_id, field = data.field }
             else
                 log_err("[ProtobufMgr][define_command] proto_name: [%s] can't find msg enum:[%s] !", proto_name, msg_name)
             end
+        else
+            self.pb_infos[full_name] = { id = 0, field = data.field }
         end
     end
     self.allow_reload = true
