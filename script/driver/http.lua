@@ -54,24 +54,24 @@ end
 
 function Http:update()
     local client = self.client
-    while next(self.contexts) do
+    local finish_key, result = client:query()
+    while finish_key do
         --查询请求结果
-        local finish_key, result = client:query()
-        if finish_key then
-            local context = self.contexts[finish_key];
-            local request = context.request
-            local session_id = context.session_id
-            local content, err = client:get_respond(request)
-            local info = client:get_info(request)
-            if result == 0 then
-                thread_mgr:response(session_id, true, info.response_code, content)
-            else
-                thread_mgr:response(session_id, false, info.response_code, err)
-            end
-            client:remove_request(request)
-            self.contexts[finish_key] = nil
+        local context = self.contexts[finish_key];
+        local request = context.request
+        local session_id = context.session_id
+        local content, err = client:get_respond(request)
+        local info = client:get_info(request)
+        if result == 0 then
+            thread_mgr:response(session_id, true, info.response_code, content)
+        else
+            thread_mgr:response(session_id, false, info.response_code, err)
         end
+        client:remove_request(request)
+        self.contexts[finish_key] = nil
+        finish_key, result = client:query()
     end
+
     --清除超时请求
     local now_ms = quanta.now_ms
     for key, context in pairs(self.contexts) do
