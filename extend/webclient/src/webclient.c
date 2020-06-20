@@ -523,7 +523,7 @@ static int url_encoding(lua_State* l)
     size_t length = 0;
     const char* str = lua_tolstring(l, 2, &length);
     if (length <= 0){
-        lua_pushstring(l, NULL, 0);
+        lua_pushstring(l, NULL);
         return 1;
     }
     char* ret = curl_easy_escape(webclient->encoding_curl, str, (int)length);
