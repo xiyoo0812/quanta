@@ -41,7 +41,7 @@ function MonitorMgr:__init()
     --创建HTTP服务器
     self.http_server = HttpServer()
     local function monitor_post(path, body, headers)
-        return self:on_monitor_get(path, body, headers)
+        return self:on_monitor_post(path, body, headers)
     end
     local function monitor_get(path, headers)
         return self:on_monitor_get(path, headers)
@@ -102,7 +102,7 @@ end
 
 -- node上报数据
 function MonitorMgr:rpc_monitor_post(client, api_name, querys, data)
-    log_debug("[MonitorMgr][rpc_monitor_post]: client:%s, api_name:%s, data:%s", client.name, api_name, jencode(data))
+    --log_debug("[MonitorMgr][rpc_monitor_post]: client:%s, api_name:%s, data:%s", client.name, api_name, jencode(data))
     return self:forward_request(api_name, "call_post", querys, jencode(data))
 end
 
