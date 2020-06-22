@@ -15,23 +15,24 @@ local tunpack   = table.unpack
 local log_err   = logger.err
 
 local SprotoMgr = singleton()
+local prop = property(SprotoMgr)
+prop:accessor("proto_files", {})
+prop:accessor("id_to_files", {})
+prop:accessor("id_to_protos", {})
+prop:accessor("allow_reload", false)
 function SprotoMgr:__init()
-    self.proto_files = {}
-    self.id_to_files = {}
-    self.id_to_protos = {}
-    self.open_reload_pb = false
     --初始化
     self:load_protos()
 end
 
 --加载pb文件
 function SprotoMgr:load_protos()
-    local proto_dir = env_get("QUANTA_PROTO")
-    if proto_dir then
-        for file_name in ldir(proto_dir) do
+    local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH"), ";")
+    for _, proto_path in pairs(proto_paths) do
+        for file_name in ldir(proto_path) do
             local pos = sfind(file_name, ".sproto")
             if pos then
-                local full_name = sformat("%s%s", proto_dir, file_name)
+                local full_name = sformat("%s%s", proto_path, file_name)
                 local file = open_file(full_name, "rb")
                 local spb_data = file:read("*all")
                 local pack_name = ssub(file_name, 1, pos - 1)
@@ -39,7 +40,7 @@ function SprotoMgr:load_protos()
                 file:close()
             end
         end
-        self:define_command(proto_dir)
+        self:define_command(proto_path)
     end
 end
 
@@ -84,12 +85,12 @@ function SprotoMgr:define_command(proto_dir)
             end
         end
     end
-    self.open_reload_pb = true
+    self.allow_reload = true
 end
 
 -- 重新加载
 function SprotoMgr:reload()
-    if not self.open_reload_pb then
+    if not self.allow_reload then
         return
     end
     -- register sproto文件

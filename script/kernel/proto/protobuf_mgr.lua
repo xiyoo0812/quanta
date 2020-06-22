@@ -55,13 +55,13 @@ end
 
 --加载pb文件
 function ProtobufMgr:load_protos()
-    local proto_dir = env_get("QUANTA_PROTO")
-    if proto_dir then
+    local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH"), ";")
+    for _, proto_path in pairs(proto_paths) do
         local pb_files = {}
-        for file_name in ldir(proto_dir) do
+        for file_name in ldir(proto_path) do
             local pos = sfind(file_name, ".pb")
             if pos then
-                self:register_file(proto_dir, file_name, pb_files)
+                self:register_file(proto_path, file_name, pb_files)
             end
         end
     end
