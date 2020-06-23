@@ -45,6 +45,7 @@ function MongoMgr:setup()
     event_mgr:add_listener(self, "mongo_update")
     event_mgr:add_listener(self, "mongo_find_one")
     event_mgr:add_listener(self, "mongo_count")
+    event_mgr:add_listener(self, "mongo_aggregate")
 end
 
 function MongoMgr:create_db(id, node)
@@ -212,6 +213,31 @@ function MongoMgr:mongo_count(dbid, coll_name, selector)
         if ok then
             if 0 == err then
                 return SUCCESS, cnt
+            else
+                self:on_network_err(dbid)
+                return MONGO_FAILED, "mongo network error"
+            end
+        else
+            return MONGO_FAILED, err
+        end
+    end
+
+    return MONGO_FAILED, "mongo db not exist"
+end
+
+function MongoMgr:mongo_aggregate(dbid, coll_name, pipeline)
+    local collection = self:find_collection(dbid, coll_name)
+    if collection then
+        local ok, err, ret = pcall(collection.aggregate, collection, pipeline)
+        if ok then
+            -- 网络正常
+            if 0 == err then
+                -- mongo执行结果正常
+                if 1 == ret.ok then
+                    return SUCCESS, ret.result
+                else
+                    return MONGO_FAILED, ret.errmsg
+                end
             else
                 self:on_network_err(dbid)
                 return MONGO_FAILED, "mongo network error"

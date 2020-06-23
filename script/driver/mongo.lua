@@ -268,6 +268,26 @@ function mongo_collection:count(selector)
     return sock_err, {ok = ok, n = n}
 end
 
+--db.runCommand( {
+--    aggregate: "articles",
+--    pipeline: [
+--       { $project: { tags: 1 } },
+--       { $unwind: "$tags" },
+--       { $group: { _id: "$tags", count: { $sum : 1 } } }
+--    ],
+--    cursor: { }
+-- } )
+-- https://docs.mongodb.com/manual/reference/command/aggregate/
+function mongo_collection:aggregate(pipeline)
+    if not pipeline then
+        pipeline = {}
+    end
+
+    local sock_err, ret = self.database:runCommand("aggregate", self.name, "pipeline", pipeline)
+
+    return sock_err, ret
+end
+
 function mongo_collection:findOne(query, selector)
     local request_id = self.connection:genId()
     local sock = self.connection.__sock
