@@ -52,10 +52,12 @@ function table_ext.is_array(tab)
 end
 
 --------------------------------------------------------------------------------
-function table_ext.size(t)
+function table_ext.size(t, filter)
     local c = 0
     for _, v in pairs(t or {}) do
-        c = c + 1
+        if not filter or filter(v) then
+            c = c + 1
+        end
     end
     return c
 end

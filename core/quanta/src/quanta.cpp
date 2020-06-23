@@ -159,14 +159,14 @@ void quanta_app::check_input(lua_State* L)
 
 int set_env(lua_State *L)
 {
-    bool replae = false;
+    bool replace = false;
     const char* env_name = lua_tostring(L, 1);
     const char* env_value = lua_tostring(L, 2);
     if (lua_gettop(L) == 3)
     {
-        replae = lua_toboolean(L, 3);
+        replace = lua_toboolean(L, 3);
     }
-    if (replae || !getenv(env_name))
+    if (replace || !getenv(env_name))
     {
         setenv(env_name, env_value, 1);
     }

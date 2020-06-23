@@ -66,7 +66,7 @@ function SprotoMgr:decode(cmd_id, pb_str)
     end
     local ok, pb_data = pcall(parser.decode, parser, proto_name, pb_str)
     if ok then
-        return pb_data
+        return pb_data, proto_name
     end
 end
 

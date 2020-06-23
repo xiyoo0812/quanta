@@ -149,11 +149,11 @@ function NetServer:encode(cmd_id, data, flag)
 end
 
 function NetServer:decode(cmd_id, data, flag)
-    local de_data
+    local de_data, cmd_name
     if self.decoder then
-        de_data = self.decoder(cmd_id, data)
+        de_data, cmd_name = self.decoder(cmd_id, data)
     else
-        de_data = protobuf_mgr:decode(cmd_id, data)
+        de_data, cmd_name = protobuf_mgr:decode(cmd_id, data)
     end
     if de_data then
         --解压处理
@@ -165,7 +165,7 @@ function NetServer:decode(cmd_id, data, flag)
             de_data = encrypt.decrypt(de_data)
         end
     end
-    return de_data
+    return de_data, cmd_name
 end
 
 -- 收到远程调用回调
@@ -173,13 +173,13 @@ function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
     local now_tick = quanta.now
     session.alive_time = now_tick
     -- 解码
-    local body = self:decode(cmd_id, data, flag)
+    local body, cmd_name = self:decode(cmd_id, data, flag)
     if not body then
         return
     end
     if session_id == 0 or  (flag & FlagMask.REQ == FlagMask.REQ) then
         local function dispatch_rpc_message(_session, cmd, bd)
-            local eval = perfeval_mgr:begin_eval("scmd_doer_" .. cmd_id)
+            local eval = perfeval_mgr:begin_eval(cmd_name)
             local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
             if not result[1] then
                 log_err("[NetServer][on_call_dx] on_session_cmd failed! cmd_id:%s", cmd_id)

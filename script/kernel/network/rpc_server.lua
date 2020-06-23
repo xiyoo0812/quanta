@@ -50,7 +50,7 @@ function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_flag, source, ...)
     client.alive_time = quanta.now
     if session_id == 0 or rpc_flag == FlagMask.REQ then
         local function dispatch_rpc_message(...)
-            local eval = perfeval_mgr:begin_eval("rpc_doer_" .. rpc)
+            local eval = perfeval_mgr:begin_eval("rpc." .. rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
                 client.call_rpc(session_id, FlagMask.RES, rpc, tunpack(rpc_datas))

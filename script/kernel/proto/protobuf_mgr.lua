@@ -90,7 +90,7 @@ function ProtobufMgr:decode(cmd_id, pb_str)
     end
     local ok, pb_data = pcall(pb_decode, proto_name, pb_str)
     if ok then
-        return pb_data
+        return pb_data, proto_name
     end
 end
 

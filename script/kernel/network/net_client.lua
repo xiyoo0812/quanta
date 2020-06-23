@@ -107,11 +107,11 @@ function NetClient:encode(cmd_id, data, flag)
 end
 
 function NetClient:decode(cmd_id, data, flag)
-    local decode_data
+    local decode_data, cmd_name
     if self.decoder then
-        decode_data = self.decoder(cmd_id, data)
+        decode_data, cmd_name = self.decoder(cmd_id, data)
     else
-        decode_data = protobuf_mgr:decode(cmd_id, data)
+        decode_data, cmd_name = protobuf_mgr:decode(cmd_id, data)
     end
     if decode_data then
         --解压处理
@@ -123,12 +123,12 @@ function NetClient:decode(cmd_id, data, flag)
             decode_data = encrypt.decrypt(decode_data)
         end
     end
-    return decode_data
+    return decode_data, cmd_name
 end
 
 function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
     socket.alive_time = quanta.now
-    local body = self:decode(cmd_id, data, flag)
+    local body, cmd_name = self:decode(cmd_id, data, flag)
     if not body  then
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
@@ -136,7 +136,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
     if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
-            local eval = perfeval_mgr:begin_eval("ccmd_doer_" .. cmd_id)
+            local eval = perfeval_mgr:begin_eval(cmd_name)
             self.holder:on_socket_rpc(self, cmd_id, body, session_id)
             perfeval_mgr:end_eval(eval)
         end
