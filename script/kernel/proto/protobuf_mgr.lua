@@ -48,7 +48,6 @@ function ProtobufMgr:register_file(proto_dir, proto_file, pb_files)
         for _, enum_type in pairs(pb_info.enum_type or {}) do
             self:define_enum(pb_info.package, enum_type.name)
         end
-        self:define_command(pb_info)
         pb_files[full_name] = pb_info
     end
 end
@@ -63,6 +62,10 @@ function ProtobufMgr:load_protos()
             if pos then
                 self:register_file(proto_path, file_name, pb_files)
             end
+        end
+        --注册事件索引
+        for _, pb_info in pairs(pb_files) do
+            self:define_command(pb_info)
         end
     end
 end
