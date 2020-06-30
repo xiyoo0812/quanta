@@ -30,7 +30,7 @@ function logger.init(max_line)
     local log_name  = sformat("%s-%d", quanta.service, quanta.index)
     local log_path = sformat("%s/%s/", environ.get("QUANTA_LOG_PATH"), quanta.service)
     local log_daemon = environ.status("QUANTA_DAEMON")
-    llog.init(log_path, log_name, 0, max_line or 10000, log_daemon)
+    llog.init(log_path, log_name, 0, max_line or 100000, log_daemon)
     --llog.filter(environ.number("QUANTA_LOG_LVL"))
     if log_daemon then
         quanta.daemon(1, 1)

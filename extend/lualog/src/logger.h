@@ -113,8 +113,11 @@ public:
 	const std::string msg() const { return stream_.str(); }
 	const std::string source() const { return source_; }
 	const log_time & get_log_time()const { return log_time_; }
-	void clear() { stream_.clear(); }
-
+	void clear() 
+	{
+		stream_.clear(); 
+		stream_.str("");
+	}
 	template<class T>
 	log_message& operator<<(const T & value)
 	{
@@ -327,11 +330,13 @@ public:
 
 	virtual void write(std::shared_ptr<log_message> logmsg)
 	{
+		line_++;
 		if (rolling_evaler_.eval(this, logmsg) || line_ >= max_line_)
 		{
 			std::string file_path = new_log_file_path(logmsg);
 			create(file_path, logmsg->get_log_time(), "a+");
 			assert(file_);
+			line_ = 0;
 		}
 		log_file_base::write(logmsg);
 	}
@@ -341,13 +346,14 @@ protected:
 	{
 		char buf[64];
 		const log_time& ltime = logmsg->get_log_time();
-		snprintf(buf, sizeof(buf), "%s-%04d%02d%02d-%02d%02d%02d.%d.log", log_name_.c_str(),
+		snprintf(buf, sizeof(buf), "%s-%04d%02d%02d-%02d%02d%02d.%03d.p%d.log", log_name_.c_str(),
 			ltime.tm_year + 1900, 
 			ltime.tm_mon + 1,
 			ltime.tm_mday,
 			ltime.tm_hour,
 			ltime.tm_min,
 			ltime.tm_sec,
+			ltime.tm_usec,
 			log_service_->get_pid()
 		);
 		return log_path_.string() + std::string(buf);
