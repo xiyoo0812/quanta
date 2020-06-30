@@ -54,7 +54,7 @@ end
 
 --加载pb文件
 function ProtobufMgr:load_protos()
-    local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH"), ";")
+    local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH", ""), ";")
     for _, proto_path in pairs(proto_paths) do
         local pb_files = {}
         for file_name in ldir(proto_path) do

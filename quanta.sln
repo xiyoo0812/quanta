@@ -54,6 +54,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "curl", "extend\curl\curl.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luahttp", "extend\luahttp\luahttp.vcxproj", "{F582EF81-3D4F-4276-B63A-87863FAA483C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lualog", "extend\lualog\lualog.vcxproj", "{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		ReleaseDebug|x64 = ReleaseDebug|x64
@@ -132,6 +134,10 @@ Global
 		{F582EF81-3D4F-4276-B63A-87863FAA483C}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
 		{F582EF81-3D4F-4276-B63A-87863FAA483C}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
 		{F582EF81-3D4F-4276-B63A-87863FAA483C}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -157,6 +163,7 @@ Global
 		{B57BBE3F-7D7A-4B1C-A3AD-DB69B535C5E4} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 		{F784F798-837F-4193-A550-A6AE7125AC29} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 		{F582EF81-3D4F-4276-B63A-87863FAA483C} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
+		{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD} = {63562A69-5B42-42D7-A086-2BE59AAE7077}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {89F4D576-CC3C-458E-ACD6-30B42E1869FA}

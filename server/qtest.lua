@@ -20,8 +20,9 @@ if not quanta.init_flag then
         import("qtest/router_test.lua")
         import("qtest/protobuf_test.lua")
         import("qtest/http_test.lua")
-        ]]
         import("qtest/rpc_test.lua")
+        ]]
+        import("qtest/log_test.lua")
         log_info("qtest %d now startup!", quanta.id)
     end
     qxpcall(startup, "quanta startup error: %s")

@@ -1,23 +1,17 @@
 --logger.lua
 --logger功能支持
-local lfs = require('lfs')
+local llog  = require("lualog")
 
 local pcall         = pcall
 local pairs         = pairs
 local tostring      = tostring
-local iopen         = io.open
 local stdout        = io.stdout
-local otime         = os.time
-local odate         = os.date
-local oexec         = os.execute
-local lmkdir        = lfs.mkdir
 local ssub          = string.sub
 local schar         = string.char
 local sformat       = string.format
 local tinsert       = table.insert
 local tpack         = table.pack
 local tconcat       = table.concat
-local dtraceback    = debug.traceback
 local tarray        = table_ext.is_array
 
 logger = {}
@@ -27,160 +21,63 @@ local LOG_LEVEL_INFO    = 2     -- 用于跟踪程序运行进度
 local LOG_LEVEL_WARN    = 3     -- 程序运行时发生异常
 local LOG_LEVEL_DUMP    = 4     -- 数据异常dump
 local LOG_LEVEL_ERROR   = 5     -- 程序运行时发生可预料的错误,此时通过错误处理,可以让程序恢复正常运行
-local LOG_LEVEL_OFF     = 100   -- 关闭所有消息输出
 
-local log_file          = nil
-local log_filename      = nil
-local log_daemon        = false
 local log_input         = false
 local log_buffer        = ""
-local log_line_count    = 0
-local log_max_line      = 100000
-local log_lvl           = LOG_LEVEL_INFO
-local event_mgr         = nil
-local dump_line_count   = 0      -- 当前dump文件行数
-local dump_max_line     = 10000  -- dump文件最大行数
-local dump_filename     = nil
-local dump_file         = nil    -- dump文件句柄
+--local event_mgr         = nil
 
 function logger.init(max_line)
-    log_max_line = max_line or log_max_line
-    log_lvl = environ.number("QUANTA_LOG_LVL")
-    log_daemon = environ.status("QUANTA_DAEMON")
-    --构建日志目录
-    local log_path = environ.get("QUANTA_LOG_PATH")
-    lmkdir(log_path)
-    local log_file_path = sformat("%s/%s", log_path, quanta.service)
-    lmkdir(log_file_path)
+    local log_name  = sformat("%s-%d", quanta.service, quanta.index)
+    local log_path = sformat("%s/%s/", environ.get("QUANTA_LOG_PATH"), quanta.service)
+    local log_daemon = environ.status("QUANTA_DAEMON")
+    llog.init(log_path, log_name, 0, max_line or 10000, log_daemon)
+    --llog.filter(environ.number("QUANTA_LOG_LVL"))
     if log_daemon then
         quanta.daemon(1, 1)
     end
-    event_mgr = quanta.event_mgr
-    log_filename  = sformat("%s/%s-%d", log_file_path, quanta.service, quanta.index)
-    dump_filename = sformat("%s/dump-%s-%d", log_file_path, quanta.service, quanta.index)
-    if quanta.platform == "windows" then
-        oexec("echo log active color")
-    end
-end
-
-function logger.level(level)
-    log_lvl = level
-end
-
-function logger.off(level)
-    log_lvl = LOG_LEVEL_OFF
+    --event_mgr = quanta.event_mgr
 end
 
 function logger.close()
-    if log_file then
-        log_file:close()
-        log_file = nil
-    end
+    llog.close()
 end
 
--- 写入到dump文件
-local function dump_write(cate, fmt, ...)
-    local time = odate("%Y%m%d-%H:%M:%S", otime())
-    fmt = sformat("%s/%s\t%s\n", time, cate, tostring(fmt))
-    local ok, line = pcall(sformat, fmt, ...)
-    if not ok then
-        line = sformat("%slogger error: %s\n%s", fmt, line, dtraceback())
-    end
-
-    if not dump_file or dump_line_count >= dump_max_line then
-        local file_time = odate("%Y%m%d-%H%M%S", otime())
-        local filename  = sformat("%s-%s.log", dump_filename, file_time)
-        dump_file = iopen(filename, "w")
-        if dump_file == nil then
-            return
-        end
-        dump_file:setvbuf("no")
-        dump_line_count = 0
-    end
-
-    if not dump_file:write(line) then
-        dump_file:close()
-        dump_file = nil
-        dump_line_count = 0
-        return
-    end
-
-    dump_line_count = dump_line_count + 1
+function logger.filter(level)
+    llog.filter(level)
 end
-
-local function log_write(cate, color, fmt, ...)
-    local time = odate("%Y%m%d-%H:%M:%S", otime())
-    fmt = sformat("%s/%s\t%s\n", time, cate, tostring(fmt))
-    local ok, line = pcall(sformat, fmt, ...)
-    if not ok then
-        line = sformat("%slogger error: %s\n%s", fmt, line, dtraceback())
-    end
-    if not log_daemon then
-        if quanta.platform == "windows" then
-            stdout:write(color .. line)
-        else
-            stdout:write(line)
-        end
-    end
-
-    if log_file == nil or log_line_count >= log_max_line then
-        if log_file then
-            log_file:close()
-        end
-        local file_time = odate("%Y%m%d-%H%M%S", otime())
-        local filename  = sformat("%s-%s.log", log_filename, file_time)
-        log_file = iopen(filename, "w")
-        if log_file == nil then
-            return
-        end
-        log_file:setvbuf("no")
-        log_line_count = 0
-    end
-    if not log_file:write(line) then
-        log_file:close()
-        log_file = nil
-        log_line_count = 0
-        return
-    end
-    log_line_count = log_line_count + 1
-    event_mgr:notify_trigger("on_log_output", line)
-end
-
--- 字体颜色
--- 30:黑 31:红 32:绿 33:黄 34:蓝 35:紫 36:深绿 37:白色
 
 function logger.debug(fmt, ...)
-    if log_lvl <= LOG_LEVEL_DEBUG then
-        log_write("DEBUG", "\27[37m", fmt, ...)
+    if not llog.is_filter(LOG_LEVEL_DEBUG) then
+        llog.debug(sformat(fmt, ...))
     end
 end
 
 function logger.info(fmt, ...)
-    if log_lvl <= LOG_LEVEL_INFO then
-        log_write("INFO", "\27[32m", fmt, ...)
+    if not llog.is_filter(LOG_LEVEL_INFO) then
+        llog.info(sformat(fmt, ...))
     end
 end
 
 function logger.warn(fmt, ...)
-    if log_lvl <= LOG_LEVEL_WARN then
-        log_write("WARN", "\27[33m", fmt, ...)
+    if not llog.is_filter(LOG_LEVEL_WARN) then
+        llog.warn(sformat(fmt, ...))
     end
 end
 
 function logger.dump(fmt, ...)
-    if log_lvl <= LOG_LEVEL_DUMP then
-        dump_write("DUMP", fmt, ...)
+    if not llog.is_filter(LOG_LEVEL_DUMP) then
+        llog.dump(sformat(fmt, ...))
     end
 end
 
 function logger.err(fmt, ...)
-    if log_lvl <= LOG_LEVEL_ERROR then
-        log_write("ERROR", "\27[31m", fmt, ...)
+    if not llog.is_filter(LOG_LEVEL_ERROR) then
+        llog.error(sformat(fmt, ...))
     end
 end
 
 function logger.serialize(tab)
-    if log_lvl > LOG_LEVEL_DEBUG then
+    if llog.is_filter(LOG_LEVEL_DEBUG) then
         return tab
     end
     local mark = {}
@@ -285,14 +182,14 @@ quanta.input = function(ch)
                 exec_command(log_buffer)
             end
             stdout:write("\n")
-            log_daemon = environ.status("QUANTA_DAEMON")
+            llog.daemon(environ.status("QUANTA_DAEMON"))
             log_input = false
             log_buffer = ""
         end
     else
         if ch == 13 then
             log_input = true
-            log_daemon = true
+            llog.daemon(true)
             stdout:write("input> ")
         end
     end
