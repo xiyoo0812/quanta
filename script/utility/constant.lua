@@ -55,6 +55,7 @@ PeriodTime.HOUR_S           = 3600      --1小时（s）
 PeriodTime.DAY_S            = 86400     --1天（s）
 PeriodTime.WEEK_S           = 604800    --1周（s）
 PeriodTime.HOUR_M           = 60        --1小时（m）
+PeriodTime.RAW_OFFSET_S     = 28800     --8小时 (s)
 
 --数据加载状态
 local DBLoading = enum("DBLoading", 0)
