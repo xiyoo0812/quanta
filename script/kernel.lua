@@ -8,6 +8,7 @@ import("utility/utility.lua")
 import("kernel/statis/perfeval_mgr.lua")
 import("kernel/basic/thread_mgr.lua")
 import("kernel/basic/timer_mgr.lua")
+import("kernel/basic/wheel_map.lua")
 
 local pairs         = pairs
 local otime         = os.time
