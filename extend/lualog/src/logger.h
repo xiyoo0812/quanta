@@ -58,12 +58,12 @@ struct level_colors {};
 template <> struct level_colors<log_level> {
 	constexpr std::array<const char*, 6> operator()() const {
 		return {
-			"\027[32m",
-			"\027[37m",
-			"\027[32m",
-			"\027[33m",
-			"\027[32m",
-			"\027[31m",
+			"\x1b[32m",
+			"\x1b[37m",
+			"\x1b[32m",
+			"\x1b[33m",
+			"\x1b[32m",
+			"\x1b[31m",
 		};
 	}
 };
@@ -449,6 +449,9 @@ public:
 			add_dest(log_path, log_name, roll_type, max_line);
 			stop_msg_ = message_pool_->allocate();
 			std::thread(_worker(share_this)).swap(thread_);
+			std::stringstream stream;
+			stream << "echo logger init. pid:" << log_pid_;
+			system(stream.str().c_str());
 		}
 	}
 

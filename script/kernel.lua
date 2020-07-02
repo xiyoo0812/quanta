@@ -60,7 +60,6 @@ function quanta.init()
     logger.init()
     --初始化随机种子
     math.randomseed(quanta.start_ms)
-    log_info("pid: %d", quanta.pid)
 
     -- 网络模块初始化
     local lbus = require("luabus")
