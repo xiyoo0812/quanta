@@ -32,13 +32,13 @@ end
 function RmsgMgr:deal_message(to, uuid)
     log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
     local query = {self.db_table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid}}
-    mongo_agent:update(to, query, 2)
+    return mongo_agent:update(to, query, 2)
 end
 
 -- 删除消息
 function RmsgMgr:delete_message(to, uuid)
     log_info("[RmsgMgr][delete_message] delete message: %s", uuid)
-    mongo_agent:delete(to, {self.db_table_name, {uuid = uuid}}, 2)
+    return mongo_agent:delete(to, {self.db_table_name, {uuid = uuid}}, 2)
 end
 
 -- 发送消息
