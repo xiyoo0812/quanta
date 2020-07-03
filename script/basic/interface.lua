@@ -51,6 +51,7 @@ local function collect(object, method, ...)
                 return false
             end
             if not res then
+                log_warn("interface: %s collect '%s' failed: %s.", interface.__moudle, method, res)
                 return false
             end
         end
