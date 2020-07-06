@@ -39,11 +39,6 @@ function MongoProxy:count(hash_key, mongo_query, dbid)
     return router_mgr:call_dbsvr_hash(hash_key, "mongo_count", dbid or 1, tunpack(mongo_query))
 end
 
---{coll_name, pipeline}
-function MongoProxy:aggregate(hash_key, mongo_query, dbid)
-    return router_mgr:call_dbsvr_hash(hash_key, "mongo_aggregate", dbid or 1, tunpack(mongo_query))
-end
-
 ------------------------------------------------------------------
 quanta.mongo_agent = MongoProxy()
 

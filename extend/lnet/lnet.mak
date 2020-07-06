@@ -1,19 +1,19 @@
 #工程名字
-PROJECT_NAME = msocket
+PROJECT_NAME = lpeg
 #工程类型，可以是库(lib)或可执行程序(exe)
 PROJECT_TYPE = lib
-
-#是否静态库，定义后生成.a文件，否则生成.so文件
-#_LIB=
 
 #目标文件前缀，不定义则.so和.a加lib前缀，否则不加
 PROJECT_NO_PREFIX=1
 
+#是否静态库，定义后生成.a文件，否则生成.so文件
+#_STATIC=
+
 #c99
-#STDC_EX= -std=gnu99
+STDC_EX= -std=gnu99
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS = -I../lua/src
+MYCFLAGS = -I../lua/src -Wno-sign-compare
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 MYLDFLAGS = 
@@ -22,7 +22,7 @@ MYLDFLAGS =
 MYLIBS =
 
 #源文件路径
-#SRC_DIR= ./src
+#SRC_DIR=./src
 
 #目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
 #MYOBJS=

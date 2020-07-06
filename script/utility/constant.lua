@@ -26,6 +26,7 @@ local NetwkTime = enum("NetwkTime", 0)
 NetwkTime.CONNECT_TIMEOUT   = 3000      --连接等待时间
 NetwkTime.RPC_CALL_TIMEOUT  = 5000      --RPC调用超时时间
 NetwkTime.HTTP_CALL_TIMEOUT = 4500      --HTTP调用超时时间
+NetwkTime.MONGO_CALL_TIMEOUT= 5000      --MONGO调用超时时间
 NetwkTime.ROUTER_TIMEOUT    = 10000     --router连接超时时间
 NetwkTime.NETWORK_TIMEOUT   = 35000     --其他网络连接超时时间
 NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间（s）

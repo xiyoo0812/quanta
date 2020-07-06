@@ -5,7 +5,7 @@ empty:
 	@echo "====server is composed of dbx,session,gate,name and world. You can only compile the module you need."
 
 
-.PHONY: clean lua luna lpeg cjson xlsx http pbc bson mongo luabus quanta sproto proto encrypt lualog
+.PHONY: clean lua luna lpeg cjson xlsx http pbc bson lnet mongo luabus quanta sproto proto encrypt lualog
 
 all: clean core extend proto quanta
 
@@ -13,7 +13,7 @@ proj: core extend quanta
 
 core: luna luabus
 
-extend: lua lfs luna lpeg cjson mongo xlsx http webclient lualog
+extend: lua lfs luna lpeg cjson lnet mongo xlsx http webclient lualog
 
 proto: pbc bson sproto encrypt
 
@@ -47,6 +47,9 @@ http:
 lualog:
 	cd extend/lualog; make -f lualog.mak;
 
+lnet:
+	cd extend/lnet; make -f lnet.mak;
+
 encrypt:
 	cd extend/encrypt; make -f encrypt.mak;
 
@@ -55,7 +58,6 @@ xlsx:
 
 mongo:
 	cd extend/mongo; make -f mongo.mak;
-	cd extend/msocket; make -f msocket.mak;
 
 luna:
 	cd core/luna; make -f luna.mak;

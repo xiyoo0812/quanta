@@ -39,6 +39,15 @@ local function object_init(class, object, ...)
     return object
 end
 
+local function object_release(class, object, ...)
+    if type(class.__release) == "function" then
+        class.__release(object, ...)
+    end
+    if class.__super then
+        object_release(class.__super, object, ...)
+    end
+end
+
 local function object_default(class, object)
     if class.__super then
         object_default(class.__super, object)
@@ -92,6 +101,10 @@ local function newindex(class, field, value)
     class.__vtbl[field] = value
 end
 
+local function release(obj)
+    object_release(obj.__class, obj)
+end
+
 local classMT = {
     __call = new,
     __index = index,
@@ -108,6 +121,7 @@ local function class_constructor(class, super, ...)
             __moudle = moudle,
             __tostring = object_tostring,
         }
+        vtbl.__gc = release
         vtbl.__index = vtbl
         if super then
             setmetatable(vtbl, {__index = super})
