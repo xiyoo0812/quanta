@@ -2,19 +2,24 @@
 local lnet          = require "lnet"
 
 local log_err       = logger.err
-local poll          = quanta.poll
+
+local POLL_DEL      = 0
+local POLL_ADD      = 1
+local POLL_MOD      = 2
 
 local Socket = class()
 local prop = property(Socket)
 prop:accessor("fd", nil)
 prop:accessor("ip", nil)
+prop:accessor("poll", nil)
 prop:accessor("host", nil)
-prop:accessor("listener", nil)
+prop:accessor("listener", false)
 prop:accessor("port", 0)
 prop:accessor("sndbuf", "")
 prop:accessor("recvbuf", "")
 
-function Socket:__init(host)
+function Socket:__init(poll, host)
+    self.poll = poll
     self.host = host
 end
 
@@ -24,7 +29,7 @@ end
 
 function Socket:close(close_by_peer)
     if self.fd then
-        poll:control(self, 0)
+        self.poll:control(self, POLL_DEL)
         lnet.close(self.fd)
         self.fd = nil
         if close_by_peer then
@@ -33,7 +38,7 @@ function Socket:close(close_by_peer)
     end
 end
 
-function Socket:listen(listener, ip, port)
+function Socket:listen(ip, port)
     if self.fd then
         return self.fd
     end
@@ -47,9 +52,9 @@ function Socket:listen(listener, ip, port)
         log_err("[Socket][listen] listen tcp failed: %s", lerr)
         return
     end
-    self.listener = listener
+    self.listener = true
     self.fd, self.ip, self.port = fd, ip, port
-    poll:control(self, 1, true, false)
+    self.poll:control(self, POLL_ADD, true, false)
     return fd
 end
 
@@ -65,7 +70,7 @@ function Socket:connect(ip, port)
         return
     end
     self.fd, self.ip, self.port = fd, ip, port
-    poll:control(self, 1, true, false)
+    self.poll:control(self, POLL_ADD, true, false)
     return fd
 end
 
@@ -76,7 +81,7 @@ function Socket:accept(fd)
         return
     end
     self.fd, self.ip, self.port = fd, ip, port
-    poll:control(self, 1, true, false)
+    self.poll:control(self, POLL_ADD, true, false)
     self.host:on_socket_accept(self)
 end
 
@@ -84,13 +89,18 @@ function Socket:recv()
     if not self.fd then
         return false
     end
-    local ret, data_oe = lnet.recv(self.fd, 8000)
-    if ret < 0 then
-        log_err("[Socket][recv] recv failed: %s", data_oe)
-        self:close(true)
-        return false
+    while true do
+        local ret, data_oe = lnet.recv(self.fd, 8000)
+        if ret == 0 then
+            break
+        end
+        if ret < 0 then
+            log_err("[Socket][recv] recv failed: %s", data_oe)
+            self:close(true)
+            return false
+        end
+        self.recvbuf = self.recvbuf .. data_oe
     end
-    self.recvbuf = self.recvbuf .. data_oe
     self.host:on_socket_recv(self)
     return true
 end
@@ -115,33 +125,39 @@ function Socket:send(data)
         return false
     end
     if data then
-        self.sndbuf = self.sndbuf..data
+        self.sndbuf = self.sndbuf .. data
     end
-    local sndlen, err = lnet.send(self.fd, self.sndbuf)
-    if sndlen < 0 then
-        log_err("[Socket][send] send failed: %s", err)
-        self:close(true)
-        return false
-    end
-    if sndlen > 0 then
-        if sndlen == #self.sndbuf then
-            self.sndbuf = ""
-            poll:control(self, 2, true, false)
-        else
-            self.sndbuf = self.sndbuf:sub(sndlen + 1)
-            poll:control(self, 2, true, true)
+    while true do
+        local sndlen, err = lnet.send(self.fd, self.sndbuf)
+        if sndlen == 0 then
+            self.poll:control(self, POLL_MOD, true, true)
+            break
+        end
+        if sndlen < 0 then
+            log_err("[Socket][send] send failed: %s", err)
+            self:close(true)
+            return false
+        end
+        if sndlen > 0 then
+            if sndlen == #self.sndbuf then
+                self.poll:control(self, POLL_MOD, true, false)
+                self.sndbuf = ""
+                break
+            else
+                self.sndbuf = self.sndbuf:sub(sndlen + 1)
+            end
         end
     end
 	return true
 end
 
 function Socket:handle_event(bread, bwrite)
-    if self.listener and bread then
-        local socket = Socket(self.listener)
-        socket:accept(self.fd)
-        return
-    end
     if bread then
+        if self.listener then
+            local socket = Socket(self.poll, self.host)
+            socket:accept(self.fd)
+            return
+        end
         if not self:recv() then
             return
         end

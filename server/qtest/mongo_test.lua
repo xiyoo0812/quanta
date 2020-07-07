@@ -46,12 +46,12 @@ function MongoTest:setup()
             end
             log_info("db request end")
         else
-            local ucode, uerr = mongo_mgr:mongo_find(1, "test_mongo_1", {pid = 123456}, {_id = 0}, 6, 2)
-            log_info("db find code: %s, err = %s", ucode, serialize(uerr))
+            local icode, ierr = mongo_mgr:mongo_count(1, "test_mongo_1", {pid = 123456})
+            log_info("db count code: %s, err = %s", icode, serialize(ierr))
             --[[
             local icode, ierr = mongo_mgr:mongo_insert(1, "test_mongo_1", {pid = 123456, data = {a =1, b=2}})
             log_info("db insert code: %s, err = %s", icode, serialize(ierr))
-            icode, ierr = mongo_mgr:mongo_insert(1, "test_mongo_1", {pid = 123457, data = {a =1, b=2}})
+            local icode, ierr = mongo_mgr:mongo_insert(1, "test_mongo_1", {pid = 123457, data = {a =1, b=2}})
             log_info("db insert code: %s, err = %s", icode, ierr)
             local fcode, res = mongo_mgr:mongo_find(1, "test_mongo_1", {})
             log_info("db find code: %s, res = %s", fcode, serialize(res))
@@ -59,6 +59,8 @@ function MongoTest:setup()
             log_info("db find code: %s, res = %s", f1code, serialize(f1res))
             local ucode, uerr = mongo_mgr:mongo_update(1, "test_mongo_1", {pid = 123458, data = {a =1, b=4}}, {pid = 123457})
             log_info("db update code: %s, err = %s", ucode, uerr)
+            local icode, ierr = mongo_mgr:mongo_count(1, "test_mongo_1", {pid = 123456})
+            log_info("db count code: %s, err = %s", icode, serialize(ierr))
             ]]
         end
     end)

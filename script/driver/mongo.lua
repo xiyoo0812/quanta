@@ -8,6 +8,7 @@ local Socket        = import("driver/socket.lua")
 local ipairs        = ipairs
 local tinsert       = table.insert
 local tunpack       = table.unpack
+local mtointeger    = math.tointeger
 
 local log_info      = logger.info
 local bson_encode   = bson.encode
@@ -54,7 +55,7 @@ end
 
 function MongoDB:upadte()
     if not self.sock then
-        local sock = Socket(self)
+        local sock = Socket(quanta.poll, self)
         if sock:connect(self.ip, self.port) then
             log_info("[MongoDB][upadte] connect db(%s:%s) success!", self.ip, self.port)
             self.sock = sock
@@ -80,7 +81,9 @@ function MongoDB:on_socket_recv(sock)
 end
 
 function MongoDB:mongo_result(succ, doc)
-    doc = bson_decode(doc)
+    if type(doc) == "userdata" then
+        doc = bson_decode(doc) or {}
+    end
     if doc.writeErrors then
         return false, doc.writeErrors[1].errmsg
     end
@@ -94,22 +97,28 @@ function MongoDB:mongo_result(succ, doc)
 end
 
 function MongoDB:_query(full_name, query, selector, query_num, skip, flag)
+    if not self.sock then
+        return false, { errmsg = "db not connected" }
+    end
     local bson_query = query or empty_bson
     local bson_selector = selector or empty_bson
     local session_id = thread_mgr:build_session_id()
     local pack = driver.query(session_id, flag or 0, full_name, skip or 0, query_num or 1, bson_query, bson_selector)
     if not self.sock:send(pack) then
-        return false, "send failed"
+        return false, { errmsg = "send failed" }
     end
     return thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
 end
 
 
 function MongoDB:_more(full_name, cursor, query_num)
+    if not self.sock then
+        return false, { errmsg = "db not connected" }
+    end
     local session_id = thread_mgr:build_session_id()
     local pack = driver.more(session_id, full_name, query_num or 0, cursor)
     if not self.sock:send(pack) then
-        return false, "send failed"
+        return false, { errmsg = "send failed" }
     end
     local succ, doc, new_cursor = thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
     if not succ then
@@ -163,7 +172,11 @@ function MongoDB:count(collection, selector, limit, skip)
         tinsert(cmds, "skip")
         tinsert(cmds, skip)
     end
-    return self:runCommand("count", collection, "query", selector, tunpack(cmds))
+    local succ, doc = self:runCommand("count", collection, "query", selector, tunpack(cmds))
+    if not succ then
+        return succ, doc
+    end
+    return succ, mtointeger(doc.n)
 end
 
 function MongoDB:find_one(collection, query, selector)
