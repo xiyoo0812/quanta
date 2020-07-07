@@ -68,19 +68,26 @@ function MongoDB:on_socket_close()
 end
 
 function MongoDB:on_socket_recv(sock)
-    local hdata = sock:peek(4)
-    if hdata then
+    while true do
+        local hdata = sock:peek(4)
+        if not hdata then
+            break
+        end
         local length = driver.length(hdata)
         local bdata = sock:peek(length, 4)
-        if bdata then
-            sock:pop(4 + length)
-            local succ, session_id, doc, cursor_id, startfrom = driver.reply(bdata, self.documents)
-            thread_mgr:response(session_id, succ, doc, cursor_id, startfrom)
+        if not bdata then
+            break
         end
+        sock:pop(4 + length)
+        local succ, session_id, doc, cursor_id, startfrom = driver.reply(bdata, self.documents)
+        thread_mgr:response(session_id, succ, doc, cursor_id, startfrom)
     end
 end
 
 function MongoDB:mongo_result(succ, doc)
+    if type(doc) == "string" then
+        return succ, doc
+    end
     if type(doc) == "userdata" then
         doc = bson_decode(doc) or {}
     end
@@ -98,14 +105,14 @@ end
 
 function MongoDB:_query(full_name, query, selector, query_num, skip, flag)
     if not self.sock then
-        return false, { errmsg = "db not connected" }
+        return false, "db not connected"
     end
     local bson_query = query or empty_bson
     local bson_selector = selector or empty_bson
     local session_id = thread_mgr:build_session_id()
     local pack = driver.query(session_id, flag or 0, full_name, skip or 0, query_num or 1, bson_query, bson_selector)
     if not self.sock:send(pack) then
-        return false, { errmsg = "send failed" }
+        return false, "send failed"
     end
     return thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
 end
@@ -113,12 +120,12 @@ end
 
 function MongoDB:_more(full_name, cursor, query_num)
     if not self.sock then
-        return false, { errmsg = "db not connected" }
+        return false, "db not connected"
     end
     local session_id = thread_mgr:build_session_id()
     local pack = driver.more(session_id, full_name, query_num or 0, cursor)
     if not self.sock:send(pack) then
-        return false, { errmsg = "send failed" }
+        return false, "send failed"
     end
     local succ, doc, new_cursor = thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
     if not succ then
@@ -184,7 +191,10 @@ function MongoDB:find_one(collection, query, selector)
     local bson_query = query and bson_encode(query)
     local bson_selector = selector and bson_encode(selector)
     local succ, doc = self:_query(full_name, bson_query, bson_selector)
-    return succ, bson_decode(doc)
+    if succ then
+        return succ, bson_decode(doc)
+    end
+    return succ, doc
 end
 
 function MongoDB:find(collection, query, selector, limit, query_num)
