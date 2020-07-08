@@ -29,7 +29,6 @@ prop:accessor("sock", nil)          --网络连接对象
 prop:accessor("name", "")           --dbname
 prop:accessor("db_cmd", "")         --默认cmd
 prop:accessor("port", 27017)        --mongo端口
-prop:accessor("documents", nil)     --find的文档列表
 
 function MongoDB:__init(db_name, ip, port)
     self.ip = ip
@@ -79,8 +78,9 @@ function MongoDB:on_socket_recv(sock)
             break
         end
         sock:pop(4 + length)
-        local succ, session_id, doc, cursor_id, startfrom = driver.reply(bdata, self.documents)
-        thread_mgr:response(session_id, succ, doc, cursor_id, startfrom)
+        local documents = {}
+        local succ, session_id, doc, cursor_id = driver.reply(bdata, documents)
+        thread_mgr:response(session_id, succ, doc, cursor_id, documents)
     end
 end
 
@@ -127,11 +127,11 @@ function MongoDB:_more(full_name, cursor, query_num)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
-    local succ, doc, new_cursor = thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
+    local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
     if not succ then
         return self:mongo_result(succ, doc)
     end
-    return true, new_cursor
+    return true, new_cursor, documents
 end
 
 function MongoDB:runCommand(cmd, cmd_v, ...)
@@ -198,31 +198,29 @@ function MongoDB:find_one(collection, query, selector)
 end
 
 function MongoDB:find(collection, query, selector, limit, query_num)
-    self.documents = {}
     local real_limit = limit or 0
     local real_query_num = query_num or real_limit
     local full_name = self.name .. "." .. collection
     local bson_query = query and bson_encode(query)
     local bson_selector = selector and bson_encode(selector)
-    local succ, doc, cursor = self:_query(full_name, bson_query, bson_selector, real_query_num)
+    local succ, doc, cursor, documents = self:_query(full_name, bson_query, bson_selector, real_query_num)
     if not succ then
         return self:mongo_result(succ, doc)
     end
     local results = {}
-    for _, _doc in ipairs(self.documents) do
+    for _, _doc in ipairs(documents) do
         tinsert(results, bson_decode(_doc))
     end
     while cursor and #results < real_limit do
-        local _succ, _cursor_oe = self:_more(full_name, cursor, real_query_num)
+        local _succ, _cursor_oe, _documents = self:_more(full_name, cursor, real_query_num)
         if not _succ then
             return _succ, _cursor_oe
         end
-        for _, _doc in ipairs(self.documents) do
+        for _, _doc in ipairs(_documents) do
             tinsert(results, bson_decode(_doc))
         end
         cursor = _cursor_oe
     end
-    self.documents = nil
     return true, results
 end
 
