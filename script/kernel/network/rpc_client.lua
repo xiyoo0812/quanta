@@ -67,8 +67,13 @@ function RpcClient:connect()
         return self:on_call_router(rpc, send_len)
     end
     socket.callback_target = function(session_id, target, rpc, ...)
-        local send_len = socket.forward_target(session_id, FlagMask.RES, quanta.id, target, rpc, ...)
-        return self:on_call_router(rpc, send_len)
+        if target == 0 then
+            local send_len = socket.call(session_id, FlagMask.RES, quanta.id, rpc, ...)
+            return self:on_call_router(rpc, send_len)
+        else
+            local send_len = socket.forward_target(session_id, FlagMask.RES, quanta.id, target, rpc, ...)
+            return self:on_call_router(rpc, send_len)
+        end
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
         local send_len = socket.forward_hash(session_id, FlagMask.REQ, quanta.id, service_id, hash_key, rpc, ...)

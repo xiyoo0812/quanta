@@ -78,7 +78,7 @@ function RpcServer:on_socket_accept(client)
     self.clients[client.token] = client
 
     client.call_rpc = function(session_id, rpc_flag, rpc, ...)
-        local send_len = client.call(session_id, rpc_flag, quanta.id, rpc, ...)
+        local send_len = client.call(session_id, rpc_flag, 0, rpc, ...)
         if send_len < 0 then
             statis_mgr:statis_notify("on_rpc_send", rpc, send_len)
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
