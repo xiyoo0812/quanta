@@ -149,8 +149,11 @@ function MonitorAgent:on_quanta_quit(reason)
 end
 
 --执行远程rpc消息
-function MonitorAgent:on_remote_message(rpc, ...)
-    local ok, code, res = tunpack(event_mgr:notify_listener(rpc, ...))
+function MonitorAgent:on_remote_message(data, message)
+    if not message then
+        return {code = KernCode.RPC_FAILED, msg = "message is nil !"}
+    end
+    local ok, code, res = tunpack(event_mgr:notify_listener(message, data))
     if not ok or check_failed(code) then
         log_err("[MonitorAgent][on_remote_message] web_rpc faild: ok=%s, ec=%s", serialize(ok), code)
         return { code = ok and code or KernCode.RPC_FAILED, msg = ok and "" or code}

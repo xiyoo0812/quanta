@@ -130,12 +130,12 @@ function MonitorMgr:get_client_by_id(quanta_id)
 end
 
 --call
-function MonitorMgr:call(quanta_id, rpc, data)
+function MonitorMgr:call(quanta_id, rpc, ...)
     local client = self:get_client_by_id(quanta_id)
     if not client then
         return {code = 1, msg = "node not connect!"}
     end
-    local ok, code, res = self.rpc_server:call(client, rpc, data)
+    local ok, code, res = self.rpc_server:call(client, rpc, ...)
     if not ok then
         return {code = 1, msg = "call moniotor node failed!"}
     end
@@ -143,10 +143,10 @@ function MonitorMgr:call(quanta_id, rpc, data)
 end
 
 --broadcast
-function MonitorMgr:broadcast(rpc, service_id, data)
+function MonitorMgr:broadcast(rpc, service_id, ...)
     for token, client in self.rpc_server:iterator() do
         if service_id == 0 or service_id == client.service then
-            self.rpc_server:send(rpc, data)
+            self.rpc_server:send(client, rpc, ...)
         end
     end
     return {code = 0, msg = "broadcast all nodes server!"}
@@ -162,9 +162,9 @@ function MonitorMgr:on_monitor_post(path, body, headers)
     local function handler_cmd(jbody)
         local data_req = jdecode(jbody)
         if data_req.service then
-            return self:broadcast(data_req.rpc, data_req.service, data_req.data)
+            return self:broadcast(data_req.rpc, data_req.service, data_req.data, data_req.message)
         else
-            return self:call(data_req.svr_id, data_req.rpc, data_req.data)
+            return self:call(data_req.svr_id, data_req.rpc, data_req.data, data_req.message)
         end
     end
     --开始执行
