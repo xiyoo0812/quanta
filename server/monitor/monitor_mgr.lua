@@ -86,7 +86,8 @@ end
 
 -- node上报Monitor
 function MonitorMgr:rpc_monitor_register(client, quanta_id, service_id, quanta_index, quanta_name)
-    log_debug("[MonitorMgr][rpc_monitor_register]: service:%s, id:%s", service_id, quanta_id)
+    log_debug("[MonitorMgr][rpc_monitor_register]: service:%s, qname=%s, qindex=%s, qid:%s",
+        service_id, quanta_name, quanta_index, quanta_id)
     client.id = quanta_id
     client.name = quanta_name
     client.index = quanta_index
@@ -134,7 +135,7 @@ function MonitorMgr:call(quanta_id, rpc, data)
     if not client then
         return {code = 1, msg = "node not connect!"}
     end
-    local ok, code, res = self.rpc_server:call(rpc, data)
+    local ok, code, res = self.rpc_server:call(client, rpc, data)
     if not ok then
         return {code = 1, msg = "call moniotor node failed!"}
     end
@@ -163,11 +164,11 @@ function MonitorMgr:on_monitor_post(path, body, headers)
         if data_req.service then
             return self:broadcast(data_req.rpc, data_req.service, data_req.data)
         else
-            return self:call(data_req.id, data_req.rpc, data_req.data)
+            return self:call(data_req.svr_id, data_req.rpc, data_req.data)
         end
     end
     --开始执行
-    local ok, res = pcall(handler_cmd, self, body)
+    local ok, res = pcall(handler_cmd, body)
     if ok then  -- 解析成功在协程中等待业务返回
         return res
     else        -- 解析错误直接返回
