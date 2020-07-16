@@ -1,6 +1,5 @@
 --net_server.lua
 local encrypt       = require("encrypt")
-local otime         = os.time
 
 local log_err       = logger.err
 local log_info      = logger.info
@@ -20,19 +19,20 @@ local NetwkTime     = enum("NetwkTime")
 local out_press     = env_status("QUANTA_OUT_PRESS")
 local out_encrypt   = env_status("QUANTA_OUT_ENCRYPT")
 local flow_ctrl     = env_status("QUANTA_FLOW_CTRL")
-local fc_period     = env_number("QUANTA_FLOW_CTRL_PERIOD")
-local fc_package    = env_number("QUANTA_FLOW_CTRL_PACKAGE")
-local fc_bytes      = env_number("QUANTA_FLOW_CTRL_BYTES")
+local flow_cd       = env_status("QUANTA_FLOW_CTRL_CD")
+local fc_package    = env_number("QUANTA_FLOW_CTRL_PACKAGE") / 1000
+local fc_bytes      = env_number("QUANTA_FLOW_CTRL_BYTES") / 1000
 
 -- Dx协议会话对象管理器
 local NetServer = class()
 local prop = property(NetServer)
-prop:accessor("sessions", {})             --会话列表
-prop:accessor("session_type", "default")  --会话类型
-prop:accessor("session_count", 0)         --会话数量
-prop:accessor("listener", nil)            --监听器
-prop:accessor("decoder", nil)             --解码函数
-prop:accessor("encoder", nil)             --编码函数
+prop:accessor("sessions", {})               --会话列表
+prop:accessor("session_type", "default")    --会话类型
+prop:accessor("session_count", 0)           --会话数量
+prop:accessor("session_cmdcds", {})         --命令CD列表
+prop:accessor("listener", nil)              --监听器
+prop:accessor("decoder", nil)               --解码函数
+prop:accessor("encoder", nil)               --编码函数
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -67,9 +67,9 @@ function NetServer:on_session_accept(session)
     --log_debug("[on_session_accept]: token:%s, ip:%s", session.token, session.ip)
     self:add_session(session)
     -- 流控配置
-    session.last_fc_time = otime()
     session.fc_packet = 0
     session.fc_bytes  = 0
+    session.last_fc_time = quanta.now_ms
     -- 设置超时(心跳)
     session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
     -- 绑定call回调
@@ -170,14 +170,20 @@ end
 
 -- 收到远程调用回调
 function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
-    local now_tick = quanta.now
-    session.alive_time = now_tick
+    local now_ms = quanta.now_ms
+    local cmdcds = self.session_cmdcds
+    if cmdcds[cmd_id] and now_ms - cmdcds[cmd_id] < flow_cd then
+        --协议CD
+        return
+    end
+    cmdcds[cmd_id] = now_ms
+    session.alive_time = quanta.now
     -- 解码
     local body, cmd_name = self:decode(cmd_id, data, flag)
     if not body then
         return
     end
-    if session_id == 0 or  (flag & FlagMask.REQ == FlagMask.REQ) then
+    if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
         local function dispatch_rpc_message(_session, cmd, bd)
             local eval = perfeval_mgr:begin_eval(cmd_name)
             local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
@@ -195,7 +201,6 @@ end
 
 --检查序列号
 function NetServer:check_serial(session, cserial)
-    local cur_time = otime()
     local sserial = session.serial
     if cserial and cserial ~= session.serial_sync then
         event_mgr:notify_listener("on_session_sync", session)
@@ -203,16 +208,17 @@ function NetServer:check_serial(session, cserial)
     session.serial_sync = sserial
 
     -- 流量控制检测
-    if flow_ctrl and fc_period > 0 then
+    if flow_ctrl then
         -- 达到检测周期
-        if cur_time < fc_period + session.last_fc_time then
-            -- 检查是否超过配置
-            if session.fc_packet / fc_period > fc_package or session.fc_bytes > fc_bytes then
-                self:close_session(session)
-            end
-            session.fc_packet = 0
-            session.fc_bytes  = 0
+        local cur_time = quanta.now_ms
+        local escape_time = cur_time - session.last_fc_time
+        -- 检查是否超过配置
+        if session.fc_packet / escape_time > fc_package or session.fc_bytes / escape_time > fc_bytes then
+            self:close_session(session)
         end
+        session.fc_packet = 0
+        session.fc_bytes  = 0
+        session.last_fc_time = cur_time
     end
     return sserial
 end
