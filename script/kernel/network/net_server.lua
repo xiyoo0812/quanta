@@ -29,7 +29,6 @@ local prop = property(NetServer)
 prop:accessor("sessions", {})               --会话列表
 prop:accessor("session_type", "default")    --会话类型
 prop:accessor("session_count", 0)           --会话数量
-prop:accessor("session_cmdcds", {})         --命令CD列表
 prop:accessor("listener", nil)              --监听器
 prop:accessor("decoder", nil)               --解码函数
 prop:accessor("encoder", nil)               --编码函数
@@ -86,6 +85,7 @@ function NetServer:on_session_accept(session)
     --初始化序号
     session.serial = 0
     session.serial_sync = 0
+    session.command_times = {}
     --通知链接成功
     event_mgr:notify_listener("on_session_accept", session)
 end
@@ -171,12 +171,12 @@ end
 -- 收到远程调用回调
 function NetServer:on_call_dx(session, cmd_id, flag, session_id, data)
     local now_ms = quanta.now_ms
-    local cmdcds = self.session_cmdcds
-    if cmdcds[cmd_id] and now_ms - cmdcds[cmd_id] < flow_cd then
+    local command_times = session.command_times
+    if command_times[cmd_id] and now_ms - command_times[cmd_id] < flow_cd then
         --协议CD
         return
     end
-    cmdcds[cmd_id] = now_ms
+    command_times[cmd_id] = now_ms
     session.alive_time = quanta.now
     -- 解码
     local body, cmd_name = self:decode(cmd_id, data, flag)
