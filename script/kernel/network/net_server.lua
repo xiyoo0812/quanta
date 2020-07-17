@@ -19,7 +19,7 @@ local NetwkTime     = enum("NetwkTime")
 local out_press     = env_status("QUANTA_OUT_PRESS")
 local out_encrypt   = env_status("QUANTA_OUT_ENCRYPT")
 local flow_ctrl     = env_status("QUANTA_FLOW_CTRL")
-local flow_cd       = env_status("QUANTA_FLOW_CTRL_CD")
+local flow_cd       = env_number("QUANTA_FLOW_CTRL_CD")
 local fc_package    = env_number("QUANTA_FLOW_CTRL_PACKAGE") / 1000
 local fc_bytes      = env_number("QUANTA_FLOW_CTRL_BYTES") / 1000
 
