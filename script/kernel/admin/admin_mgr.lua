@@ -31,6 +31,7 @@ function AdminMgr:__init()
     event_mgr:add_listener(self, "on_web_command")
     event_mgr:add_listener(self, "on_web_message")
     event_mgr:add_listener(self, "rpc_report_gm_cmd")
+    event_mgr:add_listener(self, "rpc_execute_gm_cmd")
 end
 
 --执行上报gm给后台
@@ -62,11 +63,14 @@ function AdminMgr:rpc_report_gm_cmd(cmd_list, service_id)
     return self:report_cmd(cmd_list, service_id)
 end
 
+--执行远程gm
+function AdminMgr:rpc_execute_gm_cmd(command)
+    return self:exec_web_command(command)
+end
+
 --后台GM调用
-function AdminMgr:on_web_command(body, headers)
-    log_debug("[AdminMgr][on_web_command] body：%s", body)
-    local data_req = jdecode(body)
-    local cmd_data = cmd_parser(data_req.data)
+function AdminMgr:exec_web_command(command)
+    local cmd_data = cmd_parser(command)
     if not cmd_data then
         return { code = 1, msg = "command parser failed" }
     end
@@ -98,6 +102,12 @@ function AdminMgr:on_web_command(body, headers)
         return res
     end
     return { code = 1, msg = res }
+end
+
+--后台GM调用
+function AdminMgr:on_web_command(body, headers)
+    log_debug("[AdminMgr][on_web_command] body：%s", body)
+    return self:exec_web_command(jdecode(body))
 end
 
 --后台接口调用
