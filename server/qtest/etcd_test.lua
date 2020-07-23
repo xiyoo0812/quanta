@@ -10,7 +10,7 @@ end
 
 function EtcdTest:setup()
     --测试代码
-    local etcd = Etcd("http://10.72.17.44:2379")
+    local etcd = Etcd("http://10.100.0.19:2379")
     thread_mgr:fork(function()
         if quanta.index == 1 then
             local ok, res = etcd:version()

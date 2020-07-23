@@ -13,14 +13,14 @@ router:upsert({
     quanta_deploy = 'publish',
     group = 1,
     index = 1,
-    addr = '10.72.17.44:9601',
+    addr = '10.100.0.48:9601',
 })
 
 router:upsert({
     quanta_deploy = 'publish',
     group = 1,
     index = 2,
-    addr = '10.72.17.44:9602',
+    addr = '10.100.0.48:9602',
 })
 
 router:upsert({

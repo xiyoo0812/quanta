@@ -39,7 +39,7 @@ function HttpTest:setup()
         for i = 1, 1 do
             thread_mgr:fork(function()
                 local tk = quanta.get_time_ms()
-                local ok, status, res = http:call_post("http://10.72.17.44:8080/node_status", {}, json_encode(data))
+                local ok, status, res = http:call_post("http://10.100.0.19:8080/node_status", {}, json_encode(data))
                 local now = quanta.get_time_ms()
                 logger.info("node_status : %s, %s, %s, %s", now - tk, ok, status, res)
             end)
