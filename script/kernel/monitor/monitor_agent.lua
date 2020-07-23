@@ -1,13 +1,9 @@
 --monitor_agent.lua
-local cmd_parser    = import("utility/cmdline.lua")
-local args_parser   = import("utility/cmdlist.lua")
 local RpcClient     = import("kernel/network/rpc_client.lua")
 
 local tunpack       = table.unpack
-local sformat       = string.format
 local signal_quit   = signal.quit
 local env_addr      = environ.addr
-local tjoin         = table_ext.join
 local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
@@ -26,8 +22,6 @@ local thread_mgr    = quanta.thread_mgr
 local MonitorAgent = singleton()
 local prop = property(MonitorAgent)
 prop:accessor("client", nil)
-prop:accessor("cmd_list", {})
-prop:accessor("cmd_argds", {})
 prop:accessor("next_connect_time", 0)
 function MonitorAgent:__init()
     --创建连接
@@ -73,48 +67,6 @@ function MonitorAgent:on_socket_connect(client)
     log_info("[MonitorAgent][on_socket_connect]: connect monitor success!")
     -- 到monitor注册
     self.client:send("rpc_monitor_register", quanta.id, quanta.service_id, quanta.index, quanta.name)
-    -- 上报gm列表
-    self:report_cmd()
-end
-
-function MonitorAgent:build_cmd()
-    self.cmd_argds = {}
-    for _, cmd in pairs(self.cmd_list) do
-        self.cmd_argds[cmd.name] = args_parser(cmd.args)
-    end
-end
-
-function MonitorAgent:insert_cmd(cmd_list)
-    self.cmd_list = tjoin(cmd_list, self.cmd_list)
-    self:build_cmd()
-end
-
-function MonitorAgent:replace_cmd(cmd_list)
-    self.cmd_list = cmd_list
-    self:build_cmd()
-end
-
-function MonitorAgent:get_cmd_argds()
-    return self.cmd_argds or {}
-end
-
-function MonitorAgent:report_cmd()
-    if #self.cmd_list > 0 then
-        local data = {
-            id  = quanta.id,
-            index = quanta.index,
-            service  = quanta.service_id,
-            cmd_list = self.cmd_list
-        }
-        local ok, code = self.client:call("rpc_monitor_post", "gm_report", {}, data)
-        if ok and check_success(code) then
-            log_info("[MonitorAgent][report_cmd] success!")
-        else
-            timer_mgr:once(PeriodTime.SECOND_MS, function()
-                self:report_cmd()
-            end)
-        end
-    end
 end
 
 -- 请求服务
@@ -159,39 +111,6 @@ function MonitorAgent:on_remote_message(data, message)
         return { code = ok and code or KernCode.RPC_FAILED, msg = ok and "" or code}
     end
     return { code = 0 , data = res}
-end
-
--- 处理Monitor通知执行GM指令
-function MonitorAgent:on_remote_command(cmd)
-    log_info("[MonitorAgent][on_remote_command] cmd : %s", cmd)
-    local cmd_info = cmd_parser(cmd)
-    if not cmd_info then
-        return { code = 1, msg = "command not exist" }
-    end
-    local cmd_name = cmd_info.name
-    local cmd_argd = self.cmd_argds[cmd_name]
-    if not cmd_argd then
-        return { code = 1, msg = "command not exist!" }
-    end
-    local narg_num = #cmd_argd
-    local iarg_num = cmd_info.args and #cmd_info.args or 0
-    if iarg_num ~= narg_num then
-        return { code = 1, msg = sformat("args not match (need %d but get %d)!", narg_num, iarg_num) }
-    end
-    local args = {}
-    for i, arg in ipairs(cmd_info.args or {}) do
-        local arg_info = cmd_argd[i]
-        if arg_info and arg_info.unpack then
-            args[i] = arg_info.unpack(arg)
-        else
-            args[i] = arg
-        end
-    end
-    local ok, res = tunpack(event_mgr:notify_listener(cmd_name, tunpack(args)))
-    if not ok then
-        return {code = 1, msg = res}
-    end
-    return {code = 0, data = res}
 end
 
 quanta.monitor = MonitorAgent()

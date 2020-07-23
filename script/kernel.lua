@@ -97,6 +97,14 @@ function quanta.init()
     end
 end
 
+--初始化gm
+function quanta.init_gm(gm_service)
+    import("kernel/admin/gm_agent.lua")
+    if gm_service then
+        quanta.gm_agent:watch_service(gm_service)
+    end
+end
+
 --添加对象到主更新循环
 function quanta.join(obj)
     if obj.update then

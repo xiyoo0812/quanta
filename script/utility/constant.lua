@@ -63,3 +63,9 @@ local DBLoading = enum("DBLoading", 0)
 DBLoading.INIT = 0
 DBLoading.LOADING = 1
 DBLoading.SUCCESS = 2
+
+-- GM命令类型
+local GMType = enum("GMType", 0)
+GMType.PLAYER = 0       -- 玩家相关
+GMType.ROOM   = 1       -- 房间系统相关
+GMType.GLOBAL = 2       -- 全局相关
