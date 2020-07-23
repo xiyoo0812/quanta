@@ -15,7 +15,7 @@ database:upsert({
     index = 1,
     driver = 'mongo',
     db = 'klbq_plat_pub',
-    host = '10.72.17.44',
+    host = '10.100.0.19',
     port = 27017,
 })
 
@@ -25,7 +25,7 @@ database:upsert({
     index = 2,
     driver = 'mongo',
     db = 'klbq_plat_rmsg_pub',
-    host = '10.72.17.44',
+    host = '10.100.0.19',
     port = 27017,
 })
 
@@ -35,7 +35,7 @@ database:upsert({
     index = 1,
     driver = 'mongo',
     db = 'klbq_plat_dev',
-    host = '10.72.17.44',
+    host = '10.100.0.19',
     port = 27017,
 })
 
@@ -45,7 +45,7 @@ database:upsert({
     index = 2,
     driver = 'mongo',
     db = 'klbq_plat_rmsg_dev',
-    host = '10.72.17.44',
+    host = '10.100.0.19',
     port = 27017,
 })
 
@@ -55,7 +55,7 @@ database:upsert({
     index = 1,
     driver = 'mongo',
     db = 'klbq_plat_loc',
-    host = '10.72.17.44',
+    host = '10.100.0.19',
     port = 27017,
 })
 
@@ -65,6 +65,6 @@ database:upsert({
     index = 2,
     driver = 'mongo',
     db = 'klbq_plat_rmsg_loc',
-    host = '10.72.17.44',
+    host = '10.100.0.19',
     port = 27017,
 })
