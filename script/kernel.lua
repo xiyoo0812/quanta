@@ -86,7 +86,7 @@ function quanta.init()
         import("kernel/router/router_mgr.lua")
         quanta.router_mgr:setup(router_group)
     end
-    if env_get("QUANTA_MONITOR_ADDR") then
+    if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
         import("kernel/monitor/monitor_agent.lua")
         import("kernel/debug/netlog_mgr.lua")
