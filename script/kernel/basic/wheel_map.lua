@@ -8,6 +8,7 @@ local prop = property(WheelMap)
 prop:reader("host_maps", {})     -- 真实的map
 prop:reader("wheel_cnt", 1)     -- 轮子数量（最小为1）
 prop:reader("cur_wheel_no", 1)  -- 当前轮子号
+prop:reader("count", 0)         -- 数量
 
 
 -- 根据key获取对应的轮子no
@@ -37,6 +38,11 @@ function WheelMap:set(key, value)
     --self.host_map[key] = value
     local wheel_no = key_to_wheel_no(key, self.wheel_cnt)
     local host_map = self.host_maps[wheel_no]
+    if (not host_map or not host_map[key]) and value then
+        self.count = self.count + 1
+    elseif host_map and host_map[key] and not value then
+        self.count = self.count - 1
+    end
     if not host_map then
         host_map = {[key] = value}
         self.host_maps[self.wheel_no] = host_map
