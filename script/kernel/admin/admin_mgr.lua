@@ -105,19 +105,46 @@ function AdminMgr:exec_web_command(command)
 end
 
 --后台GM调用
+function AdminMgr:exec_web_message(cmd_data)
+    local cmd_name = cmd_data.name
+    local cmd_info = self.cmd_infos[cmd_name]
+    if not cmd_info then
+        return { code = 1, msg = "command not exist!" }
+    end
+    local args_def = self.cmd_args[cmd_name]
+    if not args_def then
+        return { code = 1, msg = "args define not exist!" }
+    end
+    local cmd_args = { cmd_name }
+    for _, arg_info in ipairs(args_def) do
+        local arg = cmd_data[arg_info.name]
+        if not arg then
+            return { code = 1, msg = sformat("args not match (need %s field)!", arg_info.name) }
+        end
+        if arg_info.unpack then
+            arg = arg_info.unpack(arg)
+        end
+        tinsert(cmd_args, arg)
+    end
+    local ok, res = tunpack(event_mgr:notify_listener("rpc_gm_dispatch", cmd_args, cmd_info.gm_type))
+    if ok then
+        return res
+    end
+    return { code = 1, msg = res }
+end
+
+--后台GM调用
 function AdminMgr:on_web_command(body, headers)
     log_debug("[AdminMgr][on_web_command] body：%s", body)
-    return self:exec_web_command(jdecode(body))
+    local cmd_req = jdecode(body)
+    return self:exec_web_command(cmd_req.data)
 end
 
 --后台接口调用
 function AdminMgr:on_web_message(body, headers)
     log_debug("[AdminMgr][on_web_message] body：%s", body)
-    local ok, res = tunpack(event_mgr:notify_listener("rpc_msg_dispatch", jdecode(body)))
-    if ok then
-        return res
-    end
-    return { code = 1, msg = res }
+    local cmd_req = jdecode(body)
+    return self:exec_web_message(cmd_req.data)
 end
 
 return AdminMgr

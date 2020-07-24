@@ -1,19 +1,19 @@
 --cmdlist.lua
-local lpeg = require("lpeg")
-local type = type
-local load = load
-local ipairs = ipairs
-local tonumber = tonumber
-local tostring = tostring
-local slower = string.lower
+local lpeg      = require("lpeg")
+local type      = type
+local load      = load
+local ipairs    = ipairs
+local tonumber  = tonumber
+local tostring  = tostring
+local slower    = string.lower
 
-local lpeg_c = lpeg.C
-local lpeg_p = lpeg.P
-local lpeg_r = lpeg.R
-local lpeg_s = lpeg.S
-local lpeg_ct = lpeg.Ct
-local lpeg_cg = lpeg.Cg
-local lpeg_match = lpeg.match
+local lpeg_c    = lpeg.C
+local lpeg_p    = lpeg.P
+local lpeg_r    = lpeg.R
+local lpeg_s    = lpeg.S
+local lpeg_ct   = lpeg.Ct
+local lpeg_cg   = lpeg.Cg
+local lpeg_match= lpeg.match
 
 local newline = (lpeg_s"#" * (lpeg_p(1) - lpeg_s"\r\n")^0)^-1 * lpeg_s"\r\n"
 local whitespace = lpeg_s" \t" + newline
