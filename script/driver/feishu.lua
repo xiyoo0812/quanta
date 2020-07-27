@@ -12,7 +12,7 @@ local thread_mgr    = quanta.thread_mgr
 local PeriodTime    = enum("PeriodTime")
 
 local FEISHU_LIMIT_COUNT = 3        -- 周期内最大次数
-local ROBOT_URL = "http://open.feishu.cn//open-apis/bot/hook/56b34b9e1c0b4fc0acadef8ebc3894ad"
+local ROBOT_URL = "https://open.feishu.cn/open-apis/bot/hook/f10d9faab78942f0b94045737894694a"
 
 local Feishu = singleton()
 function Feishu:__init()
@@ -38,7 +38,7 @@ function Feishu:on_feishu_log(title, log_context)
     log_info.count = log_info.count + 1
     thread_mgr:fork(function()
         local post_data = json_encode({title = title, text = log_context})
-        router_mgr:call_proxy_hash(quanta.id, "rpc_http_post", ROBOT_URL, {}, post_data, {})
+        router_mgr:call_proxy_hash(quanta.id, "rpc_http_post", ROBOT_URL, {}, post_data)
     end)
 end
 
