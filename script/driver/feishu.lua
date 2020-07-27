@@ -4,6 +4,7 @@ ljson.encode_sparse_array(true)
 
 local otime         = os.time
 local json_encode   = ljson.encode
+local env_get       = environ.get
 
 local event_mgr     = quanta.event_mgr
 local router_mgr    = quanta.router_mgr
@@ -11,15 +12,19 @@ local thread_mgr    = quanta.thread_mgr
 
 local PeriodTime    = enum("PeriodTime")
 
-local FEISHU_LIMIT_COUNT = 3        -- 周期内最大次数
-local ROBOT_URL = "https://open.feishu.cn/open-apis/bot/hook/f10d9faab78942f0b94045737894694a"
+local FEISHU_LIMIT_COUNT = 3    -- 周期内最大次数
 
 local Feishu = singleton()
+local prop = property(Feishu)
+prop:accessor("url", nil)           --飞书url地址
+prop:accessor("feishu_limit", {})   --控制同样消息的发送频率
 function Feishu:__init()
-    --控制同样消息的发送频率
-    self.feishu_limit = {}
+    local url = env_get("QUANTA_FEISHU_URL")
     --添加事件监听
-    event_mgr:add_trigger(self, "on_feishu_log")
+    if url and #url > 0 then
+        event_mgr:add_trigger(self, "on_feishu_log")
+        self.url = url
+    end
 end
 
 function Feishu:on_feishu_log(title, log_context)
@@ -38,7 +43,7 @@ function Feishu:on_feishu_log(title, log_context)
     log_info.count = log_info.count + 1
     thread_mgr:fork(function()
         local post_data = json_encode({title = title, text = log_context})
-        router_mgr:call_proxy_hash(quanta.id, "rpc_http_post", ROBOT_URL, {}, post_data)
+        router_mgr:call_proxy_hash(quanta.id, "rpc_http_post", self.url, {}, post_data)
     end)
 end
 

@@ -18,7 +18,6 @@ local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
 local env_get       = environ.get
-local env_status    = environ.status
 local env_number    = environ.number
 local get_time_ms   = quanta.get_time_ms
 local collectgarbage= collectgarbage
@@ -91,7 +90,7 @@ function quanta.init()
         import("kernel/monitor/monitor_agent.lua")
         import("kernel/debug/netlog_mgr.lua")
     end
-    if env_status("QUANTA_FEISHU") then
+    if env_get("QUANTA_FEISHU_URL") then
         --飞书上报
         import("driver/feishu.lua")
     end
