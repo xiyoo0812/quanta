@@ -65,7 +65,7 @@ function GMAgent:rpc_gm_execute(cmd_name, ...)
     if not ok then
         return {code = 1, msg = res}
     end
-    return {code = 0, data = res}
+    return res
 end
 
 -- 服务器启动准备事件
