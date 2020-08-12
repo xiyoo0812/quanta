@@ -136,15 +136,19 @@ local function export_sheet_to_table(sheet, output, title, dim)
         -- 读取第四行作为表头
         header[col] = get_sheet_value(sheet, 4, col)
     end
-    -- 搜索开始标记
-    local start_tag = get_sheet_value(sheet, 5, 1)
-    if not start_tag or start_tag ~= "Start" then
-        return
-    end
     local records = {}
+    local search_tag = true
     -- 从第五行开始处理
     for row = 5, dim.lastRow do
         local record = {}
+        -- 搜索开始标记
+        if search_tag then
+            local start_tag = get_sheet_value(sheet, row, 1)
+            if not start_tag or start_tag ~= "Start" then
+                goto continue
+            end
+            search_tag = false
+        end
         -- 遍历每一列
         for col = 2, dim.lastCol do
             -- 过滤掉没有配置的行
@@ -163,6 +167,7 @@ local function export_sheet_to_table(sheet, output, title, dim)
         if end_tag and end_tag == "End" then
             break
         end
+        :: continue ::
     end
     export_method(output, title, records)
 end
@@ -211,7 +216,7 @@ local function export_excel(input, output)
             end
             local dim = sheet:dimension()
             local sheet_name = sheet:name()
-            if dim.lastRow <= 4 or dim.lastCol <= 0 then
+            if dim.lastRow < 4 or dim.lastCol <= 0 then
                 print(sformat("export excel %s sheet %s empty!", file, sheet_name))
                 break
             end

@@ -32,6 +32,8 @@ prop:accessor("session_count", 0)           --会话数量
 prop:accessor("listener", nil)              --监听器
 prop:accessor("decoder", nil)               --解码函数
 prop:accessor("encoder", nil)               --编码函数
+prop:accessor("port", 0)                    --监听端口
+prop:accessor("ip", "")                     --监听ip
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -52,6 +54,7 @@ function NetServer:setup(ip, port, induce)
         log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)
         os.exit(1)
     end
+    self.ip, self.port = ip, real_port
     log_info("[NetServer][setup] start listen at: %s:%d type=%d", ip, real_port, listen_proto_type)
     -- 安装回调
     self.listener.on_accept = function(session)

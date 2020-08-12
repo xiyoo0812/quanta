@@ -23,6 +23,8 @@ local RpcServer = singleton()
 local prop = property(RpcServer)
 prop:accessor("clients", {})
 prop:accessor("listener", nil)
+prop:accessor("port", 0)                    --监听端口
+prop:accessor("ip", "")                     --监听ip
 function RpcServer:__init()
 end
 
@@ -38,6 +40,7 @@ function RpcServer:setup(ip, port, induce)
         log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)
         os.exit(1)
     end
+    self.ip, self.port = ip, real_port
     log_info("[RpcServer][setup] now listen %s:%s success!", ip, real_port)
     self.listener.on_accept = function(client)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
