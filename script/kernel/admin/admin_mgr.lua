@@ -28,10 +28,11 @@ prop:accessor("cmd_services", {})
 function AdminMgr:__init()
     ljson.encode_sparse_array(true)
     --监听事件
-    event_mgr:add_listener(self, "on_web_command")
-    event_mgr:add_listener(self, "on_web_message")
     event_mgr:add_listener(self, "rpc_report_gm_cmd")
     event_mgr:add_listener(self, "rpc_execute_gm_cmd")
+    --注册回调
+    web_mgr:register_post("/gm", "on_web_command", self)
+    web_mgr:register_post("/message", "on_web_message", self)
 end
 
 --执行上报gm给后台
