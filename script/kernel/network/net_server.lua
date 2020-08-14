@@ -48,7 +48,7 @@ function NetServer:setup(ip, port, induce)
     end
     local listen_proto_type = 1
     local socket_mgr = quanta.socket_mgr
-    local real_port = induce and (tonumber(port) + quanta.index - 1) or port
+    local real_port = induce and (port + quanta.index - 1) or port
     self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
     if not self.listener then
         log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)

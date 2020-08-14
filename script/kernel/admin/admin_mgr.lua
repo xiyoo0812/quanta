@@ -37,26 +37,28 @@ end
 
 --执行上报gm给后台
 function AdminMgr:report_cmd(cmd_list, service_id)
-    if not self.cmd_services[service_id] then
-        --同服务只执行一次
-        local cmd_args = self.cmd_args
-        local cmd_infos = self.cmd_infos
-        for _, cmd in pairs(cmd_list) do
-            if not cmd_infos[cmd.name] then
-                cmd_infos[cmd.name] = cmd
-                cmd_args[cmd.name] = args_parser(cmd.args)
-            end
-        end
-        local code, res = web_mgr:forward_request("gm_report", "call_post", {}, jencode(cmd_list))
-        if code == 200 then
-            log_info("[AdminMgr][report_cmd] success!")
-            return KernCode.SUCCESS, res
-        else
-            log_err("[AdminMgr][report_cmd] failed!")
-            return KernCode.RPC_FAILED, res
+    if self.cmd_services[service_id] then
+        return
+    end
+
+    --同服务只执行一次
+    local cmd_args = self.cmd_args
+    local cmd_infos = self.cmd_infos
+    for _, cmd in pairs(cmd_list) do
+        if not cmd_infos[cmd.name] then
+            cmd_infos[cmd.name] = cmd
+            cmd_args[cmd.name] = args_parser(cmd.args)
         end
     end
+    local code, res = web_mgr:forward_request("gm_report", "call_post", {}, jencode(cmd_list))
+    if code ~= 200 then
+        log_err("[AdminMgr][report_cmd] failed!")
+        return KernCode.RPC_FAILED, res
+    end
+
+    log_info("[AdminMgr][report_cmd] success!")
     self.cmd_services[service_id] = true
+    return KernCode.SUCCESS, res
 end
 
 --上报gm给后台

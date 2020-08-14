@@ -49,7 +49,16 @@ end
 function environ.addr(key)
     local addr = QUANTA_ENV[key] or ogetenv(key)
     if addr then
-        return tunpack(ssplit(addr, ":"))
+        local ip, port = tunpack(ssplit(addr, ":"))
+        return ip, tonumber(port)
+    end
+end
+
+function environ.colon(key)
+    local value = QUANTA_ENV[key] or ogetenv(key)
+    if value then
+        local arg1, arg2 = tunpack(ssplit(value, ":"))
+        return tonumber(arg1), tonumber(arg2)
     end
 end
 

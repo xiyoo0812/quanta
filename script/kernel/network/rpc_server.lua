@@ -1,7 +1,6 @@
 --rpc_server.lua
 local next          = next
 local pairs         = pairs
-local tonumber      = tonumber
 local tunpack       = table.unpack
 local log_err       = logger.err
 local log_info      = logger.info
@@ -34,7 +33,7 @@ function RpcServer:setup(ip, port, induce)
         log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)
         os.exit(1)
     end
-    local real_port = induce and (tonumber(port) + quanta.index - 1) or port
+    local real_port = induce and (port + quanta.index - 1) or port
     self.listener = socket_mgr.listen(ip, real_port)
     if not self.listener then
         log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)
