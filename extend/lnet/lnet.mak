@@ -1,5 +1,5 @@
 #工程名字
-PROJECT_NAME = lpeg
+PROJECT_NAME = lnet
 #工程类型，可以是库(lib)或可执行程序(exe)
 PROJECT_TYPE = lib
 
