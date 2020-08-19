@@ -60,14 +60,7 @@ service:upsert({
 
 service:upsert({
     id = 7,
-    name = 'gateway',
-    index = 1,
-    router_group = {1},
-})
-
-service:upsert({
-    id = 8,
-    name = 'platform',
+    name = 'cachesvr',
     index = 1,
     router_group = {1},
 })
