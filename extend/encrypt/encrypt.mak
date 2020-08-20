@@ -13,7 +13,7 @@ PROJECT_NO_PREFIX=1
 STDC_EX= -std=c++11
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS = -I../lua/src -I./src/quickzip
+MYCFLAGS = -I../lua/src -I./src/quickzip -I./src/md5
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 MYLDFLAGS = 
@@ -31,6 +31,7 @@ SRC_DIR= ./src
 #MYOBJS=
 MYOBJS = $(patsubst $(SRC_DIR)/%.cpp, $(INT_DIR)/%.o, $(wildcard $(SRC_DIR)/*.cpp))
 MYOBJS += $(patsubst $(SRC_DIR)/quickzip/%.cpp, $(INT_DIR)/quickzip/%.o, $(wildcard $(SRC_DIR)/quickzip/*.cpp))
+MYOBJS += $(patsubst $(SRC_DIR)/md5/%.cpp, $(INT_DIR)/md5/%.o, $(wildcard $(SRC_DIR)/md5/*.cpp))
 
 #伪目标
 .PHONY: clean all target pre_build post_build
@@ -43,10 +44,14 @@ include ../../share/share.mak
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(INT_DIR)/quickzip
+	mkdir -p $(INT_DIR)/md5
 	mkdir -p $(TARGET_DIR)
 
 #指定quickzip编译
 $(INT_DIR)/quickzip/%.o : $(SRC_DIR)/quickzip/%.cpp
+	$(CX) $(CXXFLAGS) -c $< -o $@
+
+$(INT_DIR)/md5/%.o : $(SRC_DIR)/md5/%.cpp
 	$(CX) $(CXXFLAGS) -c $< -o $@
 
 #后编译

@@ -33,7 +33,7 @@
 - luabus
 - luabt
 
-#支持功能
+# 支持功能
 - excel(xlsx/xlsm)配置导出
 - mongo数据库支持
 - mysql数据库支持

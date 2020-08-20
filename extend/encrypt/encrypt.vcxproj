@@ -14,6 +14,7 @@
     <ClCompile Include="src\encryptor.cpp" />
     <ClCompile Include="src\lua-encrypt.cpp" />
     <ClCompile Include="src\map_encrypt.cpp" />
+    <ClCompile Include="src\md5\md5.cpp" />
     <ClCompile Include="src\quickzip\byte_counter.cpp" />
     <ClCompile Include="src\quickzip\huffman_tree.cpp" />
     <ClCompile Include="src\quickzip\quick_zip.cpp" />
@@ -22,6 +23,7 @@
     <ClInclude Include="src\config.h" />
     <ClInclude Include="src\encryptor.h" />
     <ClInclude Include="src\map_encrypt.h" />
+    <ClInclude Include="src\md5\md5.h" />
     <ClInclude Include="src\quickzip\byte_counter.h" />
     <ClInclude Include="src\quickzip\huffman_tree.h" />
     <ClInclude Include="src\quickzip\quick_zip.h" />

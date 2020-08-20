@@ -7,6 +7,9 @@
     <Filter Include="quickzip">
       <UniqueIdentifier>{2431aff1-3658-4ab0-a423-10cb795933b1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="md5">
+      <UniqueIdentifier>{6d1bff21-5bb8-4fa7-8bc2-91ed7bf0d6b7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\quickzip\byte_counter.cpp">
@@ -21,6 +24,9 @@
     <ClCompile Include="src\encryptor.cpp" />
     <ClCompile Include="src\map_encrypt.cpp" />
     <ClCompile Include="src\lua-encrypt.cpp" />
+    <ClCompile Include="src\md5\md5.cpp">
+      <Filter>md5</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\encryptor.h">
@@ -45,5 +51,8 @@
       <Filter>quickzip</Filter>
     </ClInclude>
     <ClInclude Include="src\config.h" />
+    <ClInclude Include="src\md5\md5.h">
+      <Filter>md5</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

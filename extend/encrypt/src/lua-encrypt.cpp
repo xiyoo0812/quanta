@@ -3,6 +3,7 @@
 #include <lua.hpp>
 #include <string>
 #include "encryptor.h"
+#include "md5/md5.h"
 
 
 static int encrypt(lua_State* L) 
@@ -101,6 +102,30 @@ static int quick_unzip(lua_State* L)
     return 2;
 }
 
+static int md5str(lua_State* L)
+{
+    while (true)
+    {
+        int top = lua_gettop(L);
+        if (1 != top)
+            break;
+        else if (!lua_isstring(L, 1))
+            break;
+
+        size_t data_len = 0;
+        const char* data_ptr = lua_tolstring(L, 1, &data_len);
+        string resutl = MD5::md5str(data_ptr);
+
+        lua_pushboolean(L, true);
+        lua_pushlstring(L, resutl.data(), resutl.size());
+        return 2;
+    }
+
+    lua_pushboolean(L, false);
+    lua_pushstring(L, "md5str failed! check input parameters! ");
+    return 2;
+}
+
 extern "C" 
 ENCRYPT_API int luaopen_encrypt(lua_State* L) 
 {
@@ -111,6 +136,7 @@ ENCRYPT_API int luaopen_encrypt(lua_State* L)
         { "decrypt", decrypt},
         { "quick_zip", quick_zip},
         { "quick_unzip", quick_unzip},
+        { "md5str", md5str},
         { NULL, NULL },
     };
 
