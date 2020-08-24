@@ -15,6 +15,7 @@ local CacheRow  = import("kernel/cache/cache_row.lua")
 
 local CacheObj = class()
 local prop = property(CacheObj)
+prop:accessor("flush", false)           -- flush status
 prop:accessor("holding", true)          -- holding status
 prop:accessor("lock_node_id", 0)        -- lock node id
 prop:accessor("cache_key", "")          -- cache key
@@ -86,6 +87,9 @@ end
 
 function CacheObj:expired(tick)
     if next(self.dirty_records) then
+        return false
+    end
+    if not self.flush then
         return false
     end
     return self.active_tick < tick

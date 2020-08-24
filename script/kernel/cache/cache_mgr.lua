@@ -185,6 +185,7 @@ function CacheMgr:rpc_cache_load(quanta_id, req_data)
         if cache_obj:is_holding() then
             return CacheCode.CACHE_IS_HOLDING
         end
+        cache_obj:set_flush(false)
         cache_obj:set_lock_node_id(quanta_id)
     end
     return SUCCESS, cache_obj:pack()
@@ -285,6 +286,7 @@ function CacheMgr:rpc_cache_flush(quanta_id, req_data)
         return CacheCode.CACHE_IS_HOLDING
     end
     if cache_obj:save() then
+        cache_obj:set_flush(true)
         self.dirty_objs[cache_obj] = nil
         return SUCCESS
     end

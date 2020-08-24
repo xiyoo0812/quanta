@@ -70,3 +70,14 @@ GMType.PLAYER = 0       -- 玩家相关
 GMType.ROOM   = 1       -- 房间系统相关
 GMType.GLOBAL = 2       -- 全局相关
 GMType.PART   = 3       -- 小区相关
+
+--Cache错误码
+local CacheCode = enum("CacheCode", 0)
+CacheCode.CACHE_NOT_SUPPERT                 = 2051  -- 不支持的缓存类型
+CacheCode.CACHE_PKEY_IS_NOT_EXIST           = 2052  -- Pkey不存在
+CacheCode.CACHE_KEY_IS_NOT_EXIST            = 2053  -- key不存在
+CacheCode.CACHE_FLUSH_FAILED                = 2054  -- flush失败
+CacheCode.CACHE_KEY_LOCK_FAILD              = 2055  -- 用户锁失败
+CacheCode.CACHE_DELETE_SAVE_FAILD           = 2056  -- 缓存删除失败
+CacheCode.CACHE_IS_HOLDING                  = 2057  -- 缓存正在处理
+
