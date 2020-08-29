@@ -248,7 +248,8 @@ void ExcelFile::readSharedStrings(const char* filename)
             while (r)
             {
                 t = r->FirstChildElement("t");
-                value += t->GetText();
+                const char* text = t->GetText();
+                value += text ? text : "";
                 r = r->NextSiblingElement("r");
             }
             _sharedString.push_back(value);
