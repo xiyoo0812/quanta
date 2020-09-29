@@ -114,7 +114,7 @@ function MongoDB:_query(full_name, query, selector, query_num, skip, flag)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
-    return thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, "mongo_query", NetwkTime.MONGO_CALL_TIMEOUT)
 end
 
 
@@ -127,7 +127,7 @@ function MongoDB:_more(full_name, cursor, query_num)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
-    local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, NetwkTime.MONGO_CALL_TIMEOUT)
+    local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, "mongo_more", NetwkTime.MONGO_CALL_TIMEOUT)
     if not succ then
         return self:mongo_result(succ, doc)
     end

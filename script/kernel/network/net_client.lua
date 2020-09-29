@@ -75,7 +75,7 @@ function NetClient:connect(block)
     self.socket = socket
     --阻塞模式挂起
     if block_id then
-        return thread_mgr:yield(block_id, NetwkTime.CONNECT_TIMEOUT)
+        return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
     end
     return true
 end
@@ -196,14 +196,14 @@ function NetClient:call_dx(cmd_id, data)
     if not self:write(cmd_id, data, session_id, FlagMask.REQ) then
         return false
     end
-    return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, cmd_id, NetwkTime.RPC_CALL_TIMEOUT)
 end
 
 -- 等待远程调用
 function NetClient:wait_dx(cmd_id, time)
     local session_id = thread_mgr:build_session_id()
     self.wait_list[cmd_id] = session_id
-    return thread_mgr:yield(session_id, time)
+    return thread_mgr:yield(session_id, cmd_id, time)
 end
 
 -- 连接成回调

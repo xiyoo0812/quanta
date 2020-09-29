@@ -126,7 +126,7 @@ function NetServer:call_dx(session, cmd_id, data)
     if not self:write(session, cmd_id, data, session_id, FlagMask.REQ) then
         return false
     end
-    return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, cmd_id, NetwkTime.RPC_CALL_TIMEOUT)
 end
 
 function NetServer:encode(cmd_id, data, flag)

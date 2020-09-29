@@ -103,7 +103,7 @@ end
 function RpcServer:call(client, rpc, ...)
     local session_id = thread_mgr:build_session_id()
     if client.call_rpc(session_id, FlagMask.REQ, rpc, ...) then
-        return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
+        return thread_mgr:yield(session_id, rpc, NetwkTime.RPC_CALL_TIMEOUT)
     end
     return false, "rpc server send failed"
 end

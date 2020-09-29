@@ -103,7 +103,7 @@ function Http:request(url, get, post, headers, timeout)
         session_id = session_id,
         time = quanta.now_ms,
     }
-    return thread_mgr:yield(session_id, to)
+    return thread_mgr:yield(session_id, url, to)
 end
 
 --get接口

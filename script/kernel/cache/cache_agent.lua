@@ -21,10 +21,10 @@ function CacheAgent:__init()
 end
 
 -- 加载
-function CacheAgent:load(part_id, primary_key, cache_name)
-    local cachesvr_id = self:_find_cachesvr_id(part_id, primary_key)
+function CacheAgent:load(db_id, primary_key, cache_name)
+    local cachesvr_id = self:_find_cachesvr_id(db_id, primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][find] cachesvr not online: pid=%s,key=%s", part_id, primary_key)
+        log_err("[CacheAgent][find] cachesvr not online: pid=%s,key=%s", db_id, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key }
@@ -37,80 +37,80 @@ function CacheAgent:load(part_id, primary_key, cache_name)
 end
 
 -- 修改
-function CacheAgent:update(part_id, primary_key, table_name, table_data, cache_name)
-    local cachesvr_id = self:_find_cachesvr_id(part_id, primary_key)
+function CacheAgent:update(db_id, primary_key, table_name, table_data, cache_name)
+    local cachesvr_id = self:_find_cachesvr_id(db_id, primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][update] cachesvr not online: pid=%s,table=%s,key=%s", part_id, table_name, primary_key)
+        log_err("[CacheAgent][update] cachesvr not online: pid=%s,table=%s,key=%s", db_id, table_name, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key, table_name, table_data }
     local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_update", quanta.id, req_data)
     if not ok or check_failed(ec) then
-        log_err("[CacheAgent][update] faild: ec=%s,pid=%s,table=%s,key=%s", ec, part_id, table_name, primary_key)
+        log_err("[CacheAgent][update] faild: ec=%s,pid=%s,table=%s,key=%s", ec, db_id, table_name, primary_key)
         return ok and ec or KernCode.RPC_FAILED
     end
     return ec
 end
 
 -- 修改kv
-function CacheAgent:update_key(part_id, primary_key, table_name, table_key, table_value, cache_name)
-    local cachesvr_id = self:_find_cachesvr_id(part_id, primary_key)
+function CacheAgent:update_key(db_id, primary_key, table_name, table_key, table_value, cache_name)
+    local cachesvr_id = self:_find_cachesvr_id(db_id, primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][update_key] cachesvr not online: pid=%s,table=%s,key=%s", part_id, table_name, primary_key)
+        log_err("[CacheAgent][update_key] cachesvr not online: pid=%s,table=%s,key=%s", db_id, table_name, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key, table_name, table_key, table_value }
     local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_update_key", quanta.id, req_data)
     if not ok or check_failed(ec) then
-        log_err("[CacheAgent][update_key] faild: ec=%s,pid=%s,table=%s,key=%s", ec, part_id, table_name, primary_key)
+        log_err("[CacheAgent][update_key] faild: ec=%s,pid=%s,table=%s,key=%s", ec, db_id, table_name, primary_key)
         return ok and ec or KernCode.RPC_FAILED
     end
     return ec
 end
 
 -- 删除
-function CacheAgent:delete(part_id, primary_key, cache_name)
-    local cachesvr_id = self:_find_cachesvr_id(part_id, primary_key)
+function CacheAgent:delete(db_id, primary_key, cache_name)
+    local cachesvr_id = self:_find_cachesvr_id(db_id, primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][delete] cachesvr not online: pid=%s,key=%s", part_id, primary_key)
+        log_err("[CacheAgent][delete] cachesvr not online: pid=%s,key=%s", db_id, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key }
     local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_delete", quanta.id, req_data)
     if not ok or check_failed(ec) then
-        log_err("[CacheAgent][delete] faild: ec=%s,pid=%s,key=%s", ec, part_id, primary_key)
+        log_err("[CacheAgent][delete] faild: ec=%s,pid=%s,key=%s", ec, db_id, primary_key)
         return ok and ec or KernCode.RPC_FAILED
     end
     return ec
 end
 
 -- 重建
-function CacheAgent:rebuild(part_id, primary_keys, cache_name)
-    local cachesvr_id = self:_find_cachesvr_id(part_id, primary_keys)
+function CacheAgent:rebuild(db_id, primary_keys, cache_name)
+    local cachesvr_id = self:_find_cachesvr_id(db_id, primary_keys)
     if not cachesvr_id then
-        log_err("[CacheAgent][rebuild] cachesvr not online: pid=%s,key=%s", part_id, primary_keys)
+        log_err("[CacheAgent][rebuild] cachesvr not online: pid=%s,key=%s", db_id, primary_keys)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_keys }
     local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_rebuild", quanta.id, req_data)
     if not ok or check_failed(ec) then
-        log_err("[CacheAgent][rebuild] faild: ec=%s,pid=%s,key=%s", ec, part_id, primary_keys)
+        log_err("[CacheAgent][rebuild] faild: ec=%s,pid=%s,key=%s", ec, db_id, primary_keys)
         return ok and ec or KernCode.RPC_FAILED
     end
     return ec
 end
 
 -- flush
-function CacheAgent:flush(part_id, primary_key, cache_name)
-    local cachesvr_id = self:_find_cachesvr_id(part_id, primary_key)
+function CacheAgent:flush(db_id, primary_key, cache_name)
+    local cachesvr_id = self:_find_cachesvr_id(db_id, primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][flush] cachesvr not online: pid=%s,key=%s", part_id, primary_key)
+        log_err("[CacheAgent][flush] cachesvr not online: pid=%s,key=%s", db_id, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key }
     local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_flush", quanta.id, req_data)
     if not ok or check_failed(ec) then
-        log_err("[CacheAgent][flush] faild: ec=%s,pid=%s,key=%s", ec, part_id, primary_key)
+        log_err("[CacheAgent][flush] faild: ec=%s,pid=%s,key=%s", ec, db_id, primary_key)
         return ok and ec or KernCode.RPC_FAILED
     end
     return ec
@@ -125,11 +125,11 @@ function CacheAgent:on_service_ready(quanta_id, service_name)
         log_err("[CacheAgent][on_service_ready] load_cache failed! id=%s, service_name=%s", quanta_id, service_name)
         return
     end
-    if not self._pid2dcount[res.part_id] then
-        self._pid2dcount[res.part_id] = res.db_count
+    if not self._pid2dcount[res.db_id] then
+        self._pid2dcount[res.db_id] = res.db_count
     end
-    log_info("[CacheAgent][on_service_ready] add cachesvr node: part_id=%s, hash_key=%s", res.part_id, res.db_hash)
-    self:_insert_cachesvr_id(res.part_id, res.db_hash, res.quanta_id)
+    log_info("[CacheAgent][on_service_ready] add cachesvr node: db_id=%s, hash_key=%s", res.db_id, res.db_hash)
+    self:_insert_cachesvr_id(res.db_id, res.db_hash, res.quanta_id)
     --通知缓存重建
     event_mgr:notify_listener("evt_cache_rebuild", res.db_hash, res.db_count)
 end
@@ -149,22 +149,22 @@ end
 
 --根据小区和哈希key获取对应的cachesvr节点id
 --返回节点的quanta_id或者nil
-function CacheAgent:_find_cachesvr_id(part_id, hash_key)
+function CacheAgent:_find_cachesvr_id(db_id, hash_key)
     --获取小区对应的id列表
-    local ids = self._pid2dids[part_id]
+    local ids = self._pid2dids[db_id]
     if ids then
-        local count = self._pid2dcount[part_id]
+        local count = self._pid2dcount[db_id]
         local key = hash_code(hash_key) % count + 1
         return ids[key]
     end
 end
 
 -- 插入小区和哈希key对应的cachesvr节点id
-function CacheAgent:_insert_cachesvr_id(part_id, hash_key, quanta_id)
-    local ids = self._pid2dids[part_id]
+function CacheAgent:_insert_cachesvr_id(db_id, hash_key, quanta_id)
+    local ids = self._pid2dids[db_id]
     if not ids then
         ids = {}
-        self._pid2dids[part_id] = ids
+        self._pid2dids[db_id] = ids
     end
     ids[hash_key] = quanta_id
 end

@@ -161,7 +161,7 @@ function RpcClient:forward_socket(method, session_id, ...)
     if self.alive then
         if self.socket[method](session_id, ...) then
             if session_id > 0 then
-                return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
+                return thread_mgr:yield(session_id, method, NetwkTime.RPC_CALL_TIMEOUT)
             end
             return true, SUCCESS
         end
@@ -183,7 +183,7 @@ function RpcClient:call(rpc, ...)
     if self.alive then
         local session_id = thread_mgr:build_session_id()
         if self.socket.call_rpc(session_id, FlagMask.REQ, rpc, ...) then
-            return thread_mgr:yield(session_id, NetwkTime.RPC_CALL_TIMEOUT)
+            return thread_mgr:yield(session_id, rpc, NetwkTime.RPC_CALL_TIMEOUT)
         end
     end
     return false, "socket not connected"

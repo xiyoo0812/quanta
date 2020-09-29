@@ -47,7 +47,7 @@ end
 function ThreadMgr:response(session_id, ...)
     local context = self.session_id_coroutine[session_id]
     if not context or not context.co then
-        log_err("unknown session_id(%s) response !", session_id)
+        log_err("[ThreadMgr][response]unknown session_id(%s:%s) response !", session_id, context.title)
         self.session_id_coroutine[session_id] = nil
         return
     end
@@ -60,8 +60,8 @@ function ThreadMgr:resume(co, ...)
     return co_resume(co, ...)
 end
 
-function ThreadMgr:yield(session_id, ms_to, ...)
-    local context = {co = co_running(), to = get_time_ms() + ms_to}
+function ThreadMgr:yield(session_id, title, ms_to, ...)
+    local context = {co = co_running(), title = title, to = get_time_ms() + ms_to}
     self.session_id_coroutine[session_id] = context
     return co_yield(...)
 end
@@ -92,7 +92,7 @@ end
 
 function ThreadMgr:sleep(ms)
     local session_id = self:build_session_id()
-    self:yield(session_id, ms)
+    self:yield(session_id, "sleep", ms)
 end
 
 function ThreadMgr:build_session_id()
