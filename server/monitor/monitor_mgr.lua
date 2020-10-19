@@ -9,6 +9,7 @@ local jencode       = ljson.encode
 local sformat       = string.format
 local env_get       = environ.get
 local env_addr      = environ.addr
+local env_number    = environ.number
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
@@ -21,12 +22,18 @@ local PeriodTime    = enum("PeriodTime")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
+prop:accessor("app_id", 0)
+prop:accessor("chan_id", 0)
+prop:accessor("deploy", "local")
 prop:accessor("url_host", "")
 prop:accessor("rpc_server", nil)
 prop:accessor("http_server", nil)
 
 function MonitorMgr:__init()
     ljson.encode_sparse_array(true)
+    self.deploy = env_get("QUANTA_DEPLOY")
+    self.app_id = env_number("QUANTA_APP_ID")
+    self.chan_id = env_number("QUANTA_CHAN_ID")
     --创建rpc服务器
     local ip, port = env_addr("QUANTA_MONITOR_HOST")
     self.rpc_server = RpcServer()
@@ -59,6 +66,9 @@ function MonitorMgr:post_node_status(client, status)
     thread_mgr:fork(function()
         while true do
             local data = {
+                app_id  = self.app_id,
+                chan_id = self.chan_id,
+                deploy  = self.deploy,
                 service = client.service_id,
                 index   = client.index,
                 id      = client.id,
@@ -97,19 +107,21 @@ end
 
 -- node请求资源
 function MonitorMgr:rpc_monitor_get(client, api_name, querys)
-    log_debug("[MonitorMgr][rpc_monitor_get]: client:%s, api_name:%s, querys:%s", client.name, api_name, jencode(querys))
+    querys.app_id, querys.chan_id, querys.deploy  = self.app_id, self.chan_id, self.deploy
+    --log_debug("[MonitorMgr][rpc_monitor_get]: client:%s, api_name:%s, querys:%s", client.name, api_name, jencode(querys))
     return self:forward_request(api_name, "call_get", querys)
 end
 
 -- node上报数据
 function MonitorMgr:rpc_monitor_post(client, api_name, querys, data)
+    data.app_id, data.chan_id, data.deploy  = self.app_id, self.chan_id, self.deploy
     --log_debug("[MonitorMgr][rpc_monitor_post]: client:%s, api_name:%s, data:%s", client.name, api_name, jencode(data))
     return self:forward_request(api_name, "call_post", querys, jencode(data))
 end
 
 -- node请求服务
 function MonitorMgr:forward_request(api_name, method, ...)
-    local ok, code, res = http[method](http, sformat("%s/%s", self.url_host, api_name), ...)
+    local ok, code, res = http[method](http, sformat("%s/runtime/%s", self.url_host, api_name), ...)
     if not ok or code ~= 200 then
         return ok and code or 404
     end

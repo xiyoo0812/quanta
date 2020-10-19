@@ -48,7 +48,7 @@ end
 
 -- node请求服务
 function WebMgr:forward_request(api_name, method, ...)
-    local ok, code, res = http[method](http, sformat("%s/%s", self.url_host, api_name), ...)
+    local ok, code, res = http[method](http, sformat("%s/runtime/%s", self.url_host, api_name), ...)
     if not ok or code ~= 200 then
         return ok and code or 404
     end
