@@ -10,6 +10,8 @@ local jencode       = ljson.encode
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local sformat       = string.format
+local env_get       = environ.get
+local env_number    = environ.number
 local log_info      = logger.info
 local log_err       = logger.err
 local log_debug     = logger.debug
@@ -21,12 +23,18 @@ local event_mgr     = quanta.event_mgr
 
 local AdminMgr = class()
 local prop = property(AdminMgr)
+prop:accessor("app_id", 0)
+prop:accessor("chan_id", 0)
+prop:accessor("deploy", "local")
 prop:accessor("cmd_args", {})
 prop:accessor("cmd_infos", {})
 prop:accessor("cmd_services", {})
 
 function AdminMgr:__init()
     ljson.encode_sparse_array(true)
+    self.deploy = env_get("QUANTA_DEPLOY")
+    self.app_id = env_number("QUANTA_APP_ID")
+    self.chan_id = env_number("QUANTA_CHAN_ID")
     --监听事件
     event_mgr:add_listener(self, "rpc_report_gm_cmd")
     event_mgr:add_listener(self, "rpc_execute_gm_cmd")
@@ -50,7 +58,13 @@ function AdminMgr:report_cmd(cmd_list, service_id)
             cmd_args[cmd.name] = args_parser(cmd.args)
         end
     end
-    local code, res = web_mgr:forward_request("gm_report", "call_post", {}, jencode(cmd_list))
+    local web_cmd_argss = {
+        app_id   = self.app_id,
+        chan_id  = self.chan_id,
+        deploy   = self.deploy,
+        cmd_list = cmd_list,
+    }
+    local code, res = web_mgr:forward_request("gm_report", "call_post", {}, jencode(web_cmd_argss))
     if code ~= 200 then
         log_err("[AdminMgr][report_cmd] failed!")
         return KernCode.RPC_FAILED, res
