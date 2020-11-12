@@ -40,6 +40,17 @@ function ConfigMgr:select(name, query)
     end
 end
 
+--根据配置表生成枚举
+function ConfigMgr:build_enum(tname, ename, key, value)
+    local conf_tab = self.table_list[tname]
+    if conf_tab then
+        local enum_obj = enum(ename, 0)
+        for _, conf in conf_tab:iterator() do
+            enum_obj[conf[key]] = conf[value]
+        end
+    end
+end
+
 -- export
 quanta.config_mgr = ConfigMgr()
 return ConfigMgr
