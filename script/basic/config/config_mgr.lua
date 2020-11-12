@@ -13,7 +13,9 @@ end
 function ConfigMgr:init_enum_table(name, indexs, enums)
     local conf_tab = self:init_table(name, tunpack(indexs))
     if conf_tab then
-        local ename, enumkey, enumfield = tunpack(enums)
+        local ename = enums[1]
+        local enumfield = enums[3] or "id"
+        local enumkey = enums[2] or "enum_key"
         local enum_obj = enum(ename, 0)
         for _, conf in conf_tab:iterator() do
             enum_obj[conf[enumkey]] = conf[enumfield]
