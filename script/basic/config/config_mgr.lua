@@ -1,5 +1,4 @@
 --cfg_mgr.lua
-local tunpack   = table.unpack
 
 -- 配置管理器
 local ConfigTable = import("basic/config/config_table.lua")
@@ -10,15 +9,12 @@ function ConfigMgr:__init()
 end
 
 --加载配置表并生成枚举
-function ConfigMgr:init_enum_table(name, indexs, enums)
-    local conf_tab = self:init_table(name, tunpack(indexs))
+function ConfigMgr:init_enum_table(name, ename, main_key, ...)
+    local conf_tab = self:init_table(name, main_key, ...)
     if conf_tab then
-        local ename = enums[1]
-        local enumfield = enums[3] or "id"
-        local enumkey = enums[2] or "enum_key"
         local enum_obj = enum(ename, 0)
         for _, conf in conf_tab:iterator() do
-            enum_obj[conf[enumkey]] = conf[enumfield]
+            enum_obj[conf["enum_key"]] = conf[main_key]
         end
     end
     return conf_tab
