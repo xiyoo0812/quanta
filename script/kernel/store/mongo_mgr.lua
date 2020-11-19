@@ -51,12 +51,20 @@ end
 
 --查找mongo collection
 function MongoMgr:get_mongo_db(dbid, coll_name)
+    local mongo_db = self.mongo_dbs[dbid]
+    if mongo_db then
+        return mongo_db
+    end
     local real_dbid = (dbid % self.mongo_db_size) + 1
     return self.mongo_dbs[real_dbid]
 end
 
 --查找mongo collection
 function MongoMgr:get_rmsg_db(dbid, coll_name)
+    local rmsg_db = self.rmsg_dbs[dbid]
+    if rmsg_db then
+        return rmsg_db
+    end
     local real_dbid = (dbid % self.rmsg_db_size) + 1
     return self.rmsg_dbs[real_dbid]
 end
