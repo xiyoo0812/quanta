@@ -5,6 +5,7 @@ local tsort     = table.sort
 local new_guid  = guid.new
 local log_err   = logger.err
 local log_info  = logger.info
+local hash_code = utility.hash_code
 
 local mongo_agent   = quanta.mongo_agent
 local check_success = utility.check_success
@@ -19,7 +20,7 @@ end
 -- 查询未处理消息列表
 function RmsgMgr:list_message(to)
     local query = {self.db_table_name, {to = to, deal_time = 0}, {_id = 0}}
-    local ok, code, result = mongo_agent:find(to, query, 2)
+    local ok, code, result = mongo_agent:rmsg_find(to, query, hash_code(to))
     if ok and check_success(code) then
         tsort(result, function(a, b)
             return a.time < b.time
@@ -32,13 +33,13 @@ end
 function RmsgMgr:deal_message(to, uuid)
     log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
     local query = {self.db_table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid}}
-    return mongo_agent:update(to, query, 2)
+    return mongo_agent:rmsg_update(to, query, hash_code(to))
 end
 
 -- 删除消息
 function RmsgMgr:delete_message(to, uuid)
     log_info("[RmsgMgr][delete_message] delete message: %s", uuid)
-    return mongo_agent:delete(to, {self.db_table_name, {uuid = uuid}}, 2)
+    return mongo_agent:rmsg_delete(to, {self.db_table_name, {uuid = uuid}}, hash_code(to))
 end
 
 -- 发送消息
@@ -51,7 +52,7 @@ function RmsgMgr:send_message(from, to, typ, body, id)
         time = quanta.now,
         deal_time = 0,
     }
-    local ok = mongo_agent:insert(to, {self.db_table_name, doc}, 2)
+    local ok = mongo_agent:rmsg_insert(to, {self.db_table_name, doc}, hash_code(to))
     if not ok then
         log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
     else

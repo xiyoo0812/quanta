@@ -21,8 +21,8 @@ database:upsert({
 
 database:upsert({
     quanta_deploy = 'publish',
-    group = 1,
-    index = 2,
+    group = 2,
+    index = 1,
     driver = 'mongo',
     db = 'klbq_plat_rmsg_pub',
     host = '10.100.0.19',
@@ -41,8 +41,8 @@ database:upsert({
 
 database:upsert({
     quanta_deploy = 'devlop',
-    group = 1,
-    index = 2,
+    group = 2,
+    index = 1,
     driver = 'mongo',
     db = 'klbq_plat_rmsg_dev',
     host = '10.100.0.19',
@@ -61,8 +61,8 @@ database:upsert({
 
 database:upsert({
     quanta_deploy = 'local',
-    group = 1,
-    index = 2,
+    group = 2,
+    index = 1,
     driver = 'mongo',
     db = 'klbq_plat_rmsg_loc',
     host = '10.100.0.19',

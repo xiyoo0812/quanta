@@ -28,9 +28,8 @@ local CACHE_EXPIRE_TIMR = PeriodTime.MINUTE_10_S
 
 local CacheMgr = singleton()
 local prop = property(CacheMgr)
-prop:accessor("db_hash", nil)           -- 分区内的哈希特征值
-prop:accessor("db_count", nil)          -- 数据节点总数
-prop:accessor("db_id", nil)             -- 数据库id，默认数据库id与分区id一致
+prop:accessor("cache_hash", nil)        -- 分区内的哈希特征值
+prop:accessor("cache_id", nil)          -- 缓存id，默认数据库id与分区id一致
 prop:accessor("cache_enable", true)     -- 缓存开关
 prop:accessor("cache_confs", {})        -- cache_confs
 prop:accessor("cache_lists", {})        -- cache_lists
@@ -59,9 +58,9 @@ end
 
 function CacheMgr:setup()
     --加载参数
-    self.db_id = env_number("QUANTA_PART_ID")
-    self.db_hash, self.db_count = env_colon("QUANTA_CACHE_HASH")
-    log_info("[CacheMgr:setup] load cache config: db_id=%s,db_hash=%s,db_count=%s", self.db_id, self.db_hash, self.db_count )
+    self.cache_id = env_number("QUANTA_PART_ID")
+    self.cache_hash = env_colon("QUANTA_CACHE_HASH")
+    log_info("[CacheMgr:setup] load cache config: cache_id=%s,cache_hash=%s", self.cache_id, self.cache_hash)
     --加载配置
     for _, obj_conf in obj_table:iterator() do
         obj_conf.rows = {}
@@ -83,10 +82,9 @@ end
 --获取区服配置
 function CacheMgr:rpc_load_cache_hash(quanta_id, service_name)
     local rpc_res = {
-        quanta_id       = quanta.id,
-        db_hash         = self.db_hash,
-        db_count        = self.db_count,
-        db_id           = self.db_id,
+        quanta_id   = quanta.id,
+        cache_id    = self.cache_id,
+        cache_hash  = self.cache_hash,
     }
     return SUCCESS, rpc_res
 end
@@ -131,7 +129,7 @@ end
 
 --缓存重建
 function CacheMgr:load_cache_impl(quanta_id, cache_list, conf, primary_key)
-    local cache_obj = CacheObj(conf, primary_key, self.db_id)
+    local cache_obj = CacheObj(conf, primary_key, self.cache_id)
     cache_obj:set_lock_node_id(quanta_id)
     cache_list[primary_key] = cache_obj
     --开始加载
