@@ -1,4 +1,5 @@
 --sandbox.lua
+local llog  = require("lualog")
 
 local pcall     = pcall
 local pairs     = pairs
@@ -54,15 +55,15 @@ end
 local function try_load(node)
     local trunk = search_load(node)
     if not trunk then
-        print(sformat("load file: %s ... [failed]", node.filename))
+        llog.info(sformat("load file: %s ... [failed]", node.filename))
         return
     end
     local ok, res = pcall(trunk)
     if not ok then
-        print(sformat("exec file: %s ... [failed]\nerror : %s", node.filename, res))
+        llog.info(sformat("exec file: %s ... [failed]\nerror : %s", node.filename, res))
         return
     end
-    print(sformat("load file: %s ... [ok]", node.filename))
+    llog.info(sformat("load file: %s ... [ok]", node.filename))
     return res
 end
 

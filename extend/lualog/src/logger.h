@@ -109,6 +109,8 @@ public:
 	template<log_level> friend class log_ctx;
 
 	int line() const { return line_; }
+	bool is_grow() const { return grow_; }
+	void set_grow(bool grow) { grow_ = grow; }
 	log_level level() const { return level_; }
 	const std::string msg() const { return stream_.str(); }
 	const std::string source() const { return source_; }
@@ -126,6 +128,7 @@ public:
 	}
 private:
 	int					line_ = 0;
+	bool				grow_ = false;
 	log_time			log_time_;
 	std::string			source_;
 	std::stringstream	stream_;
@@ -148,10 +151,11 @@ public:
 	}
 	std::shared_ptr<log_message> allocate()
 	{
-		std::unique_lock<std::mutex> lock(mutex_);
 		if (messages_.empty())
 		{
-			condv_.wait(lock);
+			auto logmsg = std::make_shared<log_message>();
+			logmsg->set_grow(true);
+			return logmsg;
 		}
 		auto logmsg = messages_.front();
 		messages_.pop_front();
@@ -160,14 +164,13 @@ public:
 	}
 	void release(std::shared_ptr<log_message> logmsg)
 	{
-		std::unique_lock<std::mutex> lock(mutex_);
-		messages_.push_back(logmsg);
-		condv_.notify_one();
+		if (!logmsg->is_grow())
+		{
+			messages_.push_back(logmsg);
+		}
 	}
 
 private:
-	mutable std::mutex				mutex_;
-	std::condition_variable			condv_;
 	std::list<std::shared_ptr<log_message>>	messages_;
 }; // class log_message_pool
 
@@ -237,7 +240,6 @@ public:
 		auto colors = level_colors<log_level>()();
 		std::cout << colors[(int)lvl];
 #endif // WIN32
-		auto names = level_colors<log_level>()();
 		std::cout << msg;
 	}
 	virtual void flush() 
@@ -367,6 +369,38 @@ protected:
 typedef log_rollingfile<rolling_hourly> log_hourlyrollingfile;
 typedef log_rollingfile<rolling_daily> log_dailyrollingfile;
 
+class log_service;
+
+template<log_level level>
+class log_ctx
+{
+public:
+	log_ctx(std::shared_ptr<log_service> service, const std::string source = "", int line = 0)
+		: service_(service)
+	{
+		logmsg_ = service->message_pool()->allocate();
+		logmsg_->log_time_ = log_time::now();
+		logmsg_->level_ = level;
+		logmsg_->source_ = source;
+		logmsg_->line_ = line;
+	}
+	~log_ctx()
+	{
+		service_->submit(logmsg_);
+	}
+
+	template<class T>
+	log_ctx & operator<<(const T& value)
+	{
+		*logmsg_ << value;
+		return *this;
+	}
+
+private:
+	std::shared_ptr<log_message> logmsg_;
+	std::shared_ptr<log_service> service_;
+};
+
 class log_service
 {
 public:
@@ -375,6 +409,7 @@ public:
 		stop();
 	}
 	int get_pid() { return log_pid_; }
+	int set_pid() { log_pid_ = ::getpid(); return log_pid_; }
 	void daemon(bool status) { log_daemon_ = status; }
 	std::shared_ptr<log_filter> get_filter() { return log_filter_; }
 	std::shared_ptr<log_message_pool> message_pool() { return message_pool_; }
@@ -439,19 +474,14 @@ public:
 
 	void start(const std::string& log_path, const std::string& log_name, rolling_type roll_type = rolling_type::HOURLY, size_t max_line = 10000)
 	{
-		if (log_pid_ == 0)
+		if (stop_msg_ == nullptr)
 		{
-			log_pid_ = ::getpid();
 			auto share_this = default_instance();
 			log_filter_ = std::make_shared<log_filter>();
-			message_pool_ = std::make_shared<log_message_pool>(3000);
 			std_dest_ = std::make_shared<stdio_dest>(share_this);
 			add_dest(log_path, log_name, roll_type, max_line);
 			stop_msg_ = message_pool_->allocate();
 			std::thread(_worker(share_this)).swap(thread_);
-			std::stringstream stream;
-			stream << "echo logger init. pid:" << log_pid_;
-			system(stream.str().c_str());
 		}
 	}
 
@@ -487,6 +517,13 @@ public:
 	static std::shared_ptr<log_service> default_instance()
 	{
 		static auto _service = std::make_shared<log_service>();
+		if (_service->get_pid() == 0)
+		{
+			int pid = _service->set_pid();
+			std::stringstream stream;
+			stream << "echo logger init. pid:" << pid;
+			system(stream.str().c_str());
+		}
 		return _service;
 	}
 
@@ -549,8 +586,8 @@ private:
 	log_message_queue					logmsgque_;
 	std::shared_ptr<log_filter>			log_filter_;
 	std::shared_ptr<log_message>		stop_msg_ = nullptr;
-	std::shared_ptr<log_message_pool>	message_pool_ = nullptr;
 	std::shared_ptr<log_dest>			std_dest_ = nullptr;
+	std::shared_ptr<log_message_pool>	message_pool_ = std::make_shared<log_message_pool>(3000);
 	std::unordered_map<log_level, std::shared_ptr<log_dest>> dest_lvls_;
 	std::unordered_map<std::string, std::shared_ptr<log_dest>> dest_names_;
 	int									log_pid_ = 0;
@@ -599,32 +636,3 @@ inline std::string log_dest::build_postfix(std::shared_ptr<log_message> logmsg)
 	return date_ch;
 }
 
-template<log_level level>
-class log_ctx
-{
-public:
-	log_ctx(std::shared_ptr<log_service> service, const std::string source = "", int line = 0)
-		: service_(service)
-	{
-		logmsg_ = service->message_pool()->allocate();
-		logmsg_->log_time_ = log_time::now();
-		logmsg_->level_ = level;
-		logmsg_->source_ = source;
-		logmsg_->line_ = line;
-	}
-	~log_ctx()
-	{
-		service_->submit(logmsg_);
-	}
-
-	template<class T>
-	log_ctx & operator<<(const T& value)
-	{
-		*logmsg_ << value;
-		return *this;
-	}
-
-private:
-	std::shared_ptr<log_message> logmsg_;
-	std::shared_ptr<log_service> service_;
-};

@@ -222,7 +222,10 @@ void quanta_app::die(const std::string& err)
 
 void quanta_app::run(int argc, const char* argv[])
 {
-    load_config(argc, argv);
+    if (argc > 0)
+    {
+        load_config(argc, argv);
+    }
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
     lua_push_object(L, this);
