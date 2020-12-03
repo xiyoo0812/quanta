@@ -17,7 +17,6 @@ local CacheObj = class()
 local prop = property(CacheObj)
 prop:accessor("flush", false)           -- flush status
 prop:accessor("holding", true)          -- holding status
-prop:accessor("cleanup", false)         -- cleanup status
 prop:accessor("lock_node_id", 0)        -- lock node id
 prop:accessor("cache_key", "")          -- cache key
 prop:accessor("primary_value", nil)     -- primary value
@@ -91,9 +90,6 @@ function CacheObj:expired(tick)
         return false
     end
     if not self.flush then
-        return false
-    end
-    if not self.cleanup then
         return false
     end
     return self.active_tick < tick
