@@ -105,13 +105,13 @@ function CacheAgent:rebuild(db_id, primary_keys, cache_name)
 end
 
 -- flush
-function CacheAgent:flush(db_id, primary_key, cache_name)
+function CacheAgent:flush(db_id, primary_key, cache_name, cleanup)
     local cachesvr_id = self:find_cachesvr_id(primary_key)
     if not cachesvr_id then
         log_err("[CacheAgent][flush] cachesvr not online: pid=%s,key=%s", db_id, primary_key)
         return KernCode.RPC_FAILED
     end
-    local req_data = { cache_name or "player", primary_key }
+    local req_data = { cache_name or "player", primary_key, cleanup }
     local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_flush", quanta.id, req_data)
     if not ok or check_failed(ec) then
         log_err("[CacheAgent][flush] faild: ec=%s,pid=%s,key=%s", ec, db_id, primary_key)

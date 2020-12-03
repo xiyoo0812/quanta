@@ -184,6 +184,7 @@ function CacheMgr:rpc_cache_load(quanta_id, req_data)
             return CacheCode.CACHE_IS_HOLDING
         end
         cache_obj:set_flush(false)
+        cache_obj:set_cleanup(false)
         cache_obj:set_lock_node_id(quanta_id)
     end
     return SUCCESS, cache_obj:pack()
@@ -267,7 +268,7 @@ end
 
 --缓存落地
 function CacheMgr:rpc_cache_flush(quanta_id, req_data)
-    local cache_name, primary_key = tunpack(req_data)
+    local cache_name, primary_key, cleanup = tunpack(req_data)
     log_info("[CacheMgr][rpc_cache_flush] cache=%s,primary=%s", cache_name, primary_key)
     local cache_list = self.cache_lists[cache_name]
     if not cache_list then
@@ -285,6 +286,7 @@ function CacheMgr:rpc_cache_flush(quanta_id, req_data)
     end
     if cache_obj:save() then
         cache_obj:set_flush(true)
+        cache_obj:set_cleanup(cleanup)
         self.dirty_objs[cache_obj] = nil
         return SUCCESS
     end
