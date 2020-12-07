@@ -116,6 +116,7 @@ function CacheObj:update(tab_name, tab_data, flush)
     if not record then
         return CacheCode.CACHE_KEY_IS_NOT_EXIST
     end
+    self.flush = false
     self.active_tick = quanta.now
     self.update_count = self.update_count + 1
     local code =  record:update(tab_data, flush)
@@ -133,6 +134,7 @@ function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
     if not record then
         return CacheCode.CACHE_KEY_IS_NOT_EXIST
     end
+    self.flush = false
     self.active_tick = quanta.now
     self.update_count = self.update_count + 1
     local code = record:update_key(tab_key, tab_value, flush)
