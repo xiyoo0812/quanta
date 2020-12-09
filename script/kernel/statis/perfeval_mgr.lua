@@ -122,7 +122,6 @@ function PerfevalMgr:end_eval(eval_data)
         pref_eval.recent_count = pref_eval.recent_count + 1
         pref_eval.total_time = pref_eval.total_time + eval_time
         pref_eval.recent_total_time = pref_eval.recent_total_time + eval_time
-        print(">>>>>>>>>>>>>>", mmin, mmax)
         pref_eval.max_time = mmax(eval_time, pref_eval.max_time)
         pref_eval.min_time = mmin(eval_time, pref_eval.min_time)
         self.eval_co_map[eval_data.co][eval_data.eval_id] = nil
