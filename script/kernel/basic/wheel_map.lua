@@ -1,6 +1,6 @@
 -- wheel_map.lua
 
-local mmax      = math_ext.max
+local mmax      = math.max
 local hash_code = utility.hash_code
 
 local WheelMap = class()

@@ -59,9 +59,20 @@ function utility.hash_code(key)
     return val
 end
 
-function utility.edition(period, time)
+local utc_diff_time = nil
+function utility.utc_time(time)
+    local ntime = time or otime()
+    if not utc_diff_time then
+        local nowt = odate("*t", ntime)
+        local utct = odate("!*t", ntime)
+        utc_diff_time = (nowt.h - utct.h) * 3600
+    end
+    return ntime - utc_diff_time
+end
+
+function utility.edition(period, time, offset)
     local edition = 0
-    local t = odate("*t", time or otime())
+    local t = odate("*t", (time or otime()) - (offset or 0))
     if period == "hour" then                --2011080319(10)
         edition = t.year * 1000000 + t.month * 10000 + t.day * 100 + t.hour
     elseif period == "day" then             --20110803(8)
@@ -74,6 +85,11 @@ function utility.edition(period, time)
         edition = (t.day - 1) * 24 + t.hour
     end
     return edition
+end
+
+function utility.edition_utc(period, time, offset)
+    local utime = utility.utc_time(time)
+    return utility.edition(period, utime, offset)
 end
 
 function utility.addr(addr)

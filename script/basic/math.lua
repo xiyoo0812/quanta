@@ -17,17 +17,3 @@ function math_ext.region(n, min, max)
     end
     return n
 end
-
-function math_ext.max(n, max)
-    if n < max then
-        return max
-    end
-    return n
-end
-
-function math_ext.min(n, min)
-    if n > min then
-        return min
-    end
-    return n
-end
