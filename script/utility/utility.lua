@@ -65,7 +65,7 @@ function utility.utc_time(time)
     if not utc_diff_time then
         local nowt = odate("*t", ntime)
         local utct = odate("!*t", ntime)
-        utc_diff_time = (nowt.h - utct.h) * 3600
+        utc_diff_time = (nowt.hour - utct.hour) * 3600
     end
     return ntime - utc_diff_time
 end
