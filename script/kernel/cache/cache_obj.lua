@@ -96,9 +96,9 @@ function CacheObj:expired(tick)
 end
 
 function CacheObj:save()
+    self.active_tick = quanta.now
     if next(self.dirty_records) then
         self.update_count = 0
-        self.active_tick = quanta.now
         for record in pairs(self.dirty_records) do
             if check_success(record:save()) then
                 self.dirty_records[record] = nil
