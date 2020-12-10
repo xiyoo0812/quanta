@@ -46,12 +46,11 @@ end
 
 function ThreadMgr:response(session_id, ...)
     local context = self.session_id_coroutine[session_id]
-    if not context or not context.co then
-        log_err("[ThreadMgr][response]unknown session_id(%s:%s) response !", session_id, context.title)
+    if not context then
+        log_err("[ThreadMgr][response]unknown session_id(%s) response!", session_id)
         self.session_id_coroutine[session_id] = nil
         return
     end
-
     self.session_id_coroutine[session_id] = nil
     self:resume(context.co, ...)
 end
@@ -71,6 +70,9 @@ function ThreadMgr:update()
     local session_id_coroutine = tcopy(self.session_id_coroutine)
     for session_id, context in pairs(session_id_coroutine) do
         if context.to <= now then
+            if context.title then
+                log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
+            end
             self.session_id_coroutine[session_id] = nil
             self:resume(context.co, false, "timeout", session_id)
         end
@@ -92,7 +94,7 @@ end
 
 function ThreadMgr:sleep(ms)
     local session_id = self:build_session_id()
-    self:yield(session_id, "sleep", ms)
+    self:yield(session_id, nil, ms)
 end
 
 function ThreadMgr:build_session_id()
