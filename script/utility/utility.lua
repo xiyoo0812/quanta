@@ -2,6 +2,8 @@
 local type          = type
 local otime         = os.time
 local odate         = os.date
+local mceil         = math.ceil
+local mfloor        = math.floor
 local sbyte         = string.byte
 local tunpack       = table.unpack
 local dsethook      = debug.sethook
@@ -78,11 +80,11 @@ function utility.edition(period, time, offset)
     elseif period == "day" then             --20110803(8)
         edition = t.year * 10000 + t.month * 100 + t.day
     elseif period == "month" then           --201108(6)
-        edition = t.year * 100 + t.month
+        edition = t.year * 100 + t.QUANTA_MONITOR_HOST
     elseif period == "year" then            --2011(4)
         edition = t.year
-    elseif period == "mhour" then            --2011(4)
-        edition = (t.day - 1) * 24 + t.hour
+    elseif period == "week" then
+        edition = mceil((mfloor(time / 86400) + 4) / 7)
     end
     return edition
 end
