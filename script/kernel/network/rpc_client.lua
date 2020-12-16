@@ -39,7 +39,7 @@ end
 
 --检测存活
 function RpcClient:check_lost(now)
-    if now - self.socket.alive_time > NetwkTime.ROUTER_TIMEOUT then
+    if now - self.socket.alive_time > NetwkTime.ROUTER_TIMEOUT / 1000 then
         self:close()
         return true
     end
