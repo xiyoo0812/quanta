@@ -18,6 +18,7 @@ local prop = property(CacheObj)
 prop:accessor("flush", false)           -- flush status
 prop:accessor("holding", true)          -- holding status
 prop:accessor("lock_node_id", 0)        -- lock node id
+prop:accessor("expire_time", 600)       -- expire time
 prop:accessor("cache_key", "")          -- cache key
 prop:accessor("primary_value", nil)     -- primary value
 prop:accessor("cache_table", "")        -- cache table
@@ -37,6 +38,7 @@ function CacheObj:__init(cache_conf, primary_value, database_id)
     self.cache_merge    = cache_conf.cache_merge
     self.cache_key      = cache_conf.cache_key
     self.cache_table    = cache_conf.cache_table
+    self.expire_time    = cache_conf.expire_time
 end
 
 function CacheObj:load()
@@ -92,7 +94,7 @@ function CacheObj:expired(tick)
     if not self.flush then
         return false
     end
-    return self.active_tick < tick
+    return (self.active_tick + self.expire_time) > tick
 end
 
 function CacheObj:save()
@@ -114,6 +116,7 @@ end
 function CacheObj:update(tab_name, tab_data, flush)
     local record = self.records[tab_name]
     if not record then
+        log_err("[CacheObj][update] cannot find record! cache:%s, table:%s", self.cache_table, tab_name)
         return CacheCode.CACHE_KEY_IS_NOT_EXIST
     end
     self.flush = false
@@ -132,6 +135,7 @@ end
 function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
     local record = self.records[tab_name]
     if not record then
+        log_err("[CacheObj][update_key] cannot find record! cache:%s, table:%s", self.cache_table, tab_name)
         return CacheCode.CACHE_KEY_IS_NOT_EXIST
     end
     self.flush = false
