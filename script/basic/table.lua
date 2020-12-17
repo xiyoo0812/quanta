@@ -138,12 +138,3 @@ function table_ext.mapv2array(src)
     end
     return dst
 end
-
--- map中的kay抽出来编程array(丢失value信息)
-function table_ext.mapk2array(src)
-    local dst = {}
-    for key, _ in pairs(src or {}) do
-        tinsert(dst, key)
-    end
-    return dst
-end
