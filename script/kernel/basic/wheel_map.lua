@@ -36,21 +36,20 @@ end
 
 -- 正常遍历
 function WheelMap:iterator()
-    local key, wheel = nil, nil
+    local key = nil
     local host_maps = self.host_maps
-    local host_map = next(host_maps)
+    local wheel = next(host_maps)
+    local host_map = host_maps[wheel]
     local function iter()
-        :: lab_retry ::
+        :: label_continue ::
         key = next(host_map, key)
-        if not key then
-            wheel = next(host_maps, wheel)
-            if wheel then
-                host_map = host_maps[wheel]
-                goto lab_retry
-            end
-        end
         if key then
             return key, host_map[key]
+        end
+        wheel = next(host_maps, wheel)
+        if wheel then
+            host_map = host_maps[wheel]
+            goto label_continue
         end
     end
     return iter
