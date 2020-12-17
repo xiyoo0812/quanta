@@ -2,9 +2,9 @@
 import("basic/basic.lua")
 import("utility/signal.lua")
 import("utility/environ.lua")
-import("utility/service.lua")
 import("utility/constant.lua")
 import("utility/utility.lua")
+import("kernel/config/config_mgr.lua")
 import("kernel/statis/perfeval_mgr.lua")
 import("kernel/basic/thread_mgr.lua")
 import("kernel/basic/timer_mgr.lua")
@@ -50,6 +50,7 @@ function quanta.startup()
 end
 
 function quanta.init()
+    import("utility/service.lua")
     --启动quanta
     quanta.startup()
     --初始化环境变量

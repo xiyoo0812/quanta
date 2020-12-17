@@ -19,11 +19,9 @@ local timer_mgr     = quanta.timer_mgr
 local config_mgr    = quanta.config_mgr
 
 local CacheObj      = import("kernel/cache/cache_obj.lua")
+local WheelMap      = import("kernel/basic/wheel_map.lua")
 local obj_table     = config_mgr:init_table("cache_obj", "cache_table")
 local row_table     = config_mgr:init_table("cache_row", "cache_table")
-
-local UPDATE_PER_SEC    = 10
-local CACHE_CHECK_TIME  = PeriodTime.MINUTE_MS
 
 local CacheMgr = singleton()
 local prop = property(CacheMgr)
@@ -32,7 +30,7 @@ prop:accessor("cache_id", nil)          -- 缓存id，默认数据库id与分区
 prop:accessor("cache_enable", true)     -- 缓存开关
 prop:accessor("cache_confs", {})        -- cache_confs
 prop:accessor("cache_lists", {})        -- cache_lists
-prop:accessor("dirty_objs", {})         -- dirty objects
+prop:accessor("dirty_map", nil)         -- dirty objects
 prop:accessor("rebuild_objs", {})       -- rebuild objects
 
 function CacheMgr:__init()
@@ -48,10 +46,10 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "rpc_load_cache_hash")
     --定时器
     timer_mgr:loop(PeriodTime.SECOND_MS, function(ms)
-        self:on_timer_sec(ms)
+        self:on_timer_update(ms)
     end)
-    timer_mgr:loop(CACHE_CHECK_TIME, function(ms)
-        self:on_timer_cache(ms)
+    timer_mgr:loop(PeriodTime.SECOND_10_MS, function(ms)
+        self:on_timer_expire(ms)
     end)
 end
 
@@ -76,6 +74,8 @@ function CacheMgr:setup()
             log_err("[CacheMgr:setup] cache row config obj:%s not exist !", cache_name)
         end
     end
+    -- 创建WheelMap
+    self.dirty_map = WheelMap(10)
 end
 
 --获取区服配置
@@ -88,16 +88,12 @@ function CacheMgr:rpc_load_cache_hash(quanta_id, service_name)
     return SUCCESS, rpc_res
 end
 
-function CacheMgr:on_timer_sec()
+function CacheMgr:on_timer_update()
     --存储脏数据
-    local save_count = UPDATE_PER_SEC
-    for obj in pairs(self.dirty_objs) do
-        if not obj:save() then
-            self.dirty_objs[obj] = nil
-        end
-        save_count = save_count - 1
-        if save_count == 0 then
-            break
+    local now_tick = quanta.now
+    for uuid, obj in self.dirty_map:wheel_iterator() do
+        if obj:check_store(now_tick) then
+            self.dirty_map:set(uuid, nil)
         end
     end
     --处理重建
@@ -107,19 +103,13 @@ function CacheMgr:on_timer_sec()
     end
 end
 
-function CacheMgr:on_timer_cache()
-    --存储脏数据
-    for obj in pairs(self.dirty_objs) do
-        if not obj:save() then
-            self.dirty_objs[obj] = nil
-        end
-    end
+function CacheMgr:on_timer_expire()
     --清理超时的记录
     local now_tick = quanta.now
     for cache_name, obj_list in pairs(self.cache_lists) do
         for primary_key, obj in pairs(obj_list) do
             if obj:expired(now_tick) then
-                log_info("[CacheMgr][on_timer_cache] cache(%s)'s data(%s) expired!", cache_name, primary_key)
+                log_info("[CacheMgr][on_timer_expire] cache(%s)'s data(%s) expired!", cache_name, primary_key)
                 obj_list[primary_key] = nil
             end
         end
@@ -213,7 +203,7 @@ function CacheMgr:rpc_cache_update(quanta_id, req_data)
     end
     local code = cache_obj:update(table_name, table_data, flush)
     if cache_obj:is_dirty() then
-        self.dirty_objs[cache_obj] = true
+        self.dirty_map:set(cache_obj:get_uuid(), cache_obj)
     end
     return code
 end
@@ -241,7 +231,7 @@ function CacheMgr:rpc_cache_update_key(quanta_id, req_data)
     end
     local code = cache_obj:update_key(table_name, table_key, table_value, flush)
     if cache_obj:is_dirty() then
-        self.dirty_objs[cache_obj] = true
+        self.dirty_map:set(cache_obj:get_uuid(), cache_obj)
     end
     return code
 end
@@ -266,7 +256,7 @@ function CacheMgr:rpc_cache_delete(quanta_id, req_data)
     cache_obj:set_holding(true)
     if cache_obj:save() then
         cache_list[primary_key] = nil
-        self.dirty_objs[cache_obj] = nil
+        self.dirty_map:set(cache_obj:get_uuid(), nil)
         log_info("[CacheMgr][rpc_cache_delete] cache=%s,primary=%s", cache_name, primary_key)
         return SUCCESS
     end
@@ -298,7 +288,7 @@ function CacheMgr:rpc_cache_flush(quanta_id, req_data)
     end
     if cache_obj:save() then
         cache_obj:set_flush(true)
-        self.dirty_objs[cache_obj] = nil
+        self.dirty_map:set(cache_obj:get_uuid(), nil)
         log_info("[CacheMgr][rpc_cache_flush] cache=%s,primary=%s", cache_name, primary_key)
         return SUCCESS
     end

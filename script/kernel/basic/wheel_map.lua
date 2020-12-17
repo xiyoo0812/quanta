@@ -1,89 +1,54 @@
 -- wheel_map.lua
-
-local mmax      = math.max
 local hash_code = utility.hash_code
 
 local WheelMap = class()
 local prop = property(WheelMap)
-prop:reader("host_maps", {})     -- 真实的map
+prop:reader("host_maps", {})    -- 真实的map
 prop:reader("wheel_cnt", 1)     -- 轮子数量（最小为1）
-prop:reader("cur_wheel_no", 1)  -- 当前轮子号
+prop:reader("wheel_cur", 1)     -- 当前轮子号
 prop:reader("count", 0)         -- 数量
 
-
--- 根据key获取对应的轮子no
-local key_to_wheel_no = function(key, wheel_cnt)
-    local hkey = hash_code(key)
-
-    return hkey % wheel_cnt + 1
-end
-
--- 根据key获取对应的轮子
---local key_to_host_map = function(key,)
-
 function WheelMap:__init(wheel_cnt)
-    -- 默认为1个轮子
-    if not wheel_cnt then
-        wheel_cnt = 1
-    end
-
-    self.wheel_cnt = mmax(1, wheel_cnt)  -- 轮子个数
-    for n = 1, wheel_cnt do              -- 初始化轮子
+    self.wheel_cnt = wheel_cnt or 1
+    for n = 1, self.wheel_cnt do
         self.host_maps[n] = {}
     end
 end
 
 -- 设置指定key的值
 function WheelMap:set(key, value)
-    --self.host_map[key] = value
-    local wheel_no = key_to_wheel_no(key, self.wheel_cnt)
+    local wheel_no = hash_code(key, self.wheel_cnt)
     local host_map = self.host_maps[wheel_no]
-    if (not host_map or not host_map[key]) and value then
+    if not host_map[key] and value then
         self.count = self.count + 1
-    elseif host_map and host_map[key] and not value then
+    elseif host_map[key] and not value then
         self.count = self.count - 1
     end
-    if not host_map then
-        host_map = {[key] = value}
-        self.host_maps[self.wheel_no] = host_map
-    else
-        host_map[key] = value
-    end
+    host_map[key] = value
 end
 
 -- 获取指定key的值
 function WheelMap:get(key)
-    --return self.host_map[key]
-    local wheel_no = key_to_wheel_no(key, self.wheel_cnt)
+    local wheel_no = hash_code(key, self.wheel_cnt)
     local host_map = self.host_maps[wheel_no]
-    if not host_map then
-        return nil
-    else
-        return host_map[key]
-    end
+    return host_map[key]
 end
-
----- 获取原始map
---function WheelMap:get_raw_map()
---    return self.host_map
---end
 
 -- 正常遍历
 function WheelMap:iterator()
-    local cur_wheel_no = 1
-    local wheel_cnt    = self.wheel_cnt
-    local key          = nil
-    local host_maps    = self.host_maps
-    local host_map     = self.host_maps[cur_wheel_no]
+    local key, wheel = nil, nil
+    local host_maps = self.host_maps
+    local host_map = next(host_maps)
     local function iter()
         :: lab_retry ::
         key = next(host_map, key)
-        if not key and cur_wheel_no < wheel_cnt then
-            cur_wheel_no = cur_wheel_no + 1
-            host_map = host_maps[cur_wheel_no]
-            goto lab_retry
+        if not key then
+            wheel = next(host_maps, wheel)
+            if wheel then
+                host_map = host_maps[wheel]
+                goto lab_retry
+            end
         end
-
         if key then
             return key, host_map[key]
         end
@@ -93,26 +58,18 @@ end
 
 -- 带轮遍历
 function WheelMap:wheel_iterator()
-    local cur_wheel_no = self.cur_wheel_no
-    local key          = nil
-    local host_maps    = self.host_maps
-    local host_map     = host_maps[cur_wheel_no]
+    local key = nil
+    local wheel_cur = self.wheel_cur
+    local host_map = self.host_maps[wheel_cur]
+    self.wheel_cur = (wheel_cur < self.wheel_cnt) and wheel_cur + 1 or 1
     local function iter()
         key = next(host_map, key)
         if key then
             return key, host_map[key]
         end
     end
-
-    if self.cur_wheel_no >= self.wheel_cnt then
-        self.cur_wheel_no = 1
-    else
-        self.cur_wheel_no = self.cur_wheel_no + 1
-    end
-
     return iter
 end
 
 -- export
-
 return WheelMap

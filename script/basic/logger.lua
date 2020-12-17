@@ -21,10 +21,10 @@ local LOG_LEVEL_INFO    = 2     -- 用于跟踪程序运行进度
 local LOG_LEVEL_WARN    = 3     -- 程序运行时发生异常
 local LOG_LEVEL_DUMP    = 4     -- 数据异常dump
 local LOG_LEVEL_ERROR   = 5     -- 程序运行时发生可预料的错误,此时通过错误处理,可以让程序恢复正常运行
+local LOG_LEVEL_FATAL   = 6     -- 程序运行时发生致命的错误,需要人工干预
 
 local log_input         = false
 local log_buffer        = ""
---local event_mgr         = nil
 
 function logger.init(max_line)
     local log_name  = sformat("%s-%d", quanta.service, quanta.index)
@@ -35,7 +35,6 @@ function logger.init(max_line)
     if log_daemon then
         quanta.daemon(1, 1)
     end
-    --event_mgr = quanta.event_mgr
 end
 
 function logger.close()
@@ -46,34 +45,38 @@ function logger.filter(level)
     llog.filter(level)
 end
 
-function logger.debug(fmt, ...)
-    if not llog.is_filter(LOG_LEVEL_DEBUG) then
-        llog.debug(sformat(fmt, ...))
+local function logger_output(method, level, fmt, ...)
+    local filter = llog.is_filter(level)
+    if filter == nil then
+        return print(sformat(fmt, ...))
     end
+    if not filter then
+        method(sformat(fmt, ...))
+    end
+end
+
+function logger.debug(fmt, ...)
+    logger_output(llog.debug, LOG_LEVEL_DEBUG, fmt, ...)
 end
 
 function logger.info(fmt, ...)
-    if not llog.is_filter(LOG_LEVEL_INFO) then
-        llog.info(sformat(fmt, ...))
-    end
+    logger_output(llog.info, LOG_LEVEL_INFO, fmt, ...)
 end
 
 function logger.warn(fmt, ...)
-    if not llog.is_filter(LOG_LEVEL_WARN) then
-        llog.warn(sformat(fmt, ...))
-    end
+    logger_output(llog.warn, LOG_LEVEL_WARN, fmt, ...)
 end
 
 function logger.dump(fmt, ...)
-    if not llog.is_filter(LOG_LEVEL_DUMP) then
-        llog.dump(sformat(fmt, ...))
-    end
+    logger_output(llog.dump, LOG_LEVEL_DUMP, fmt, ...)
 end
 
 function logger.err(fmt, ...)
-    if not llog.is_filter(LOG_LEVEL_ERROR) then
-        llog.error(sformat(fmt, ...))
-    end
+    logger_output(llog.error, LOG_LEVEL_ERROR, fmt, ...)
+end
+
+function logger.fatal(fmt, ...)
+    logger_output(llog.fatal, LOG_LEVEL_FATAL, fmt, ...)
 end
 
 function logger.serialize(tab)

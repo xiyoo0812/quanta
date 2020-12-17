@@ -16,7 +16,6 @@ import("basic/class.lua")
 import("basic/interface.lua")
 import("basic/property.lua")
 import("basic/listener.lua")
-import("basic/config/config_mgr.lua")
 
 local log_err       = logger.err
 local dtraceback    = debug.traceback
@@ -30,6 +29,14 @@ function quanta.xpcall(func, format, ...)
     if not ok then
         log_err(format, err)
         event_mgr:notify_trigger("on_feishu_log", "代码异常", err)
+    end
+end
+
+function quanta.xpcall_quit(func, format, ...)
+    local ok, err = xpcall(func, dtraceback, ...)
+    if not ok then
+        log_err(format, err)
+        quanta.run = nil
     end
 end
 

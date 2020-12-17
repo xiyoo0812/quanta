@@ -120,8 +120,8 @@ end
 function RouterGroup:hash_router(hash_key)
     local count = #self.candidates
     if count > 0 then
-        local hash_code = uhash_code(hash_key)
-        return self.candidates[(hash_code % count) + 1]
+        local hash_code = uhash_code(hash_key, count)
+        return self.candidates[hash_code]
     end
 end
 

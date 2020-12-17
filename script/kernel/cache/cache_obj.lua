@@ -1,5 +1,6 @@
 -- cache_obj.lua
 -- cache的实体类
+local new_guid      = guid.new
 local log_err       = logger.err
 local check_failed  = utility.check_failed
 local check_success = utility.check_success
@@ -8,30 +9,33 @@ local KernCode      = enum("KernCode")
 local CacheCode     = enum("CacheCode")
 local SUCCESS       = KernCode.SUCCESS
 
-local CACHE_CNT_MAX = 100
-
 local mongo_mgr = quanta.mongo_mgr
 local CacheRow  = import("kernel/cache/cache_row.lua")
 
 local CacheObj = class()
 local prop = property(CacheObj)
+prop:accessor("uuid", 0)                -- uuid
 prop:accessor("flush", false)           -- flush status
 prop:accessor("holding", true)          -- holding status
 prop:accessor("lock_node_id", 0)        -- lock node id
 prop:accessor("expire_time", 600)       -- expire time
+prop:accessor("store_time", 300)        -- store time
+prop:accessor("store_count", 200)       -- store count
 prop:accessor("cache_key", "")          -- cache key
 prop:accessor("primary_value", nil)     -- primary value
 prop:accessor("cache_table", "")        -- cache table
 prop:accessor("cache_rows", {})         -- cache rows
-prop:accessor("cache_merge", false)     --cache merge mode
+prop:accessor("cache_merge", false)     -- cache merge mode
 prop:accessor("database_id", 0)         -- database id
 prop:accessor("update_count", 0)        -- update count
+prop:accessor("update_time", 0)         -- update time
 prop:accessor("main_table", "")         -- main table
 prop:accessor("active_tick", 0)         -- active tick
 prop:accessor("records", {})            -- records
 prop:accessor("dirty_records", {})      -- dirty records
 
 function CacheObj:__init(cache_conf, primary_value, database_id)
+    self.uuid           = new_guid()
     self.database_id    = database_id
     self.primary_value  = primary_value
     self.cache_rows     = cache_conf.rows
@@ -39,10 +43,13 @@ function CacheObj:__init(cache_conf, primary_value, database_id)
     self.cache_key      = cache_conf.cache_key
     self.cache_table    = cache_conf.cache_table
     self.expire_time    = cache_conf.expire_time
+    self.store_time     = cache_conf.store_time
+    self.store_count    = cache_conf.store_count
 end
 
 function CacheObj:load()
     self.active_tick = quanta.now
+    self.update_time = quanta.now
     if self.cache_merge then
         --合并加载模式
         local query = { [self.cache_key] = self.primary_value }
@@ -88,19 +95,20 @@ function CacheObj:is_dirty()
 end
 
 function CacheObj:expired(tick)
-    if next(self.dirty_records) then
-        return false
-    end
     if not self.flush then
         return false
     end
-    return (self.active_tick + self.expire_time) > tick
+    if next(self.dirty_records) then
+        return false
+    end
+    return (self.active_tick + self.expire_time) < tick
 end
 
 function CacheObj:save()
     self.active_tick = quanta.now
     if next(self.dirty_records) then
         self.update_count = 0
+        self.update_time = quanta.now
         for record in pairs(self.dirty_records) do
             if check_success(record:save()) then
                 self.dirty_records[record] = nil
@@ -123,13 +131,17 @@ function CacheObj:update(tab_name, tab_data, flush)
     self.active_tick = quanta.now
     self.update_count = self.update_count + 1
     local code =  record:update(tab_data, flush)
-    if self.update_count >= CACHE_CNT_MAX then
-        self:save()
-    end
     if record:is_dirty() then
         self.dirty_records[record] = true
     end
     return code
+end
+
+function CacheObj:check_store(now)
+    if self.store_count < self.update_count or self.update_time + self.store_time < now then
+        return self:save()
+    end
+    return false
 end
 
 function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
@@ -142,9 +154,6 @@ function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
     self.active_tick = quanta.now
     self.update_count = self.update_count + 1
     local code = record:update_key(tab_key, tab_value, flush)
-    if self.update_count >= CACHE_CNT_MAX then
-        self:save()
-    end
     if record:is_dirty() then
         self.dirty_records[record] = true
     end

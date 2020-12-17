@@ -37,7 +37,7 @@ function utility.check_endless_loop()
     end
 end
 
-function utility.hash_code(key)
+function utility.hash_code(key, mod)
     local val = 0
     if key then
         if type(key) == "number" then
@@ -56,7 +56,10 @@ function utility.hash_code(key)
         end
     end
     if val == 0 then
-        return 0xffff
+        return mod or 0xffff
+    end
+    if mod then
+        return val % mod + 1
     end
     return val
 end

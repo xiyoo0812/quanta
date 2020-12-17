@@ -29,6 +29,7 @@ enum class log_level
 	LOG_LEVEL_WARN,
 	LOG_LEVEL_DUMP,
 	LOG_LEVEL_ERROR,
+	LOG_LEVEL_FATAL,
 };
 
 enum class rolling_type
@@ -41,7 +42,7 @@ template <typename T>
 struct level_names {};
 
 template <> struct level_names<log_level> {
-	constexpr std::array<const char*, 6> operator()() const {
+	constexpr std::array<const char*, 7> operator()() const {
 		return {
 			"UNKNW",
 			"DEBUG",
@@ -49,6 +50,7 @@ template <> struct level_names<log_level> {
 			"WARN",
 			"DUMP",
 			"ERROR",
+			"FATAL",
 		};
 	}
 };
@@ -56,13 +58,14 @@ template <> struct level_names<log_level> {
 template <typename T>
 struct level_colors {};
 template <> struct level_colors<log_level> {
-	constexpr std::array<const char*, 6> operator()() const {
+	constexpr std::array<const char*, 7> operator()() const {
 		return {
 			"\x1b[32m",
 			"\x1b[37m",
 			"\x1b[32m",
 			"\x1b[33m",
 			"\x1b[32m",
+			"\x1b[31m",
 			"\x1b[31m",
 		};
 	}

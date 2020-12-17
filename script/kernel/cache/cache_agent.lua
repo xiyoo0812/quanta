@@ -153,7 +153,7 @@ end
 --根据小区和哈希key获取对应的cachesvr节点id
 --返回节点的quanta_id或者nil
 function CacheAgent:find_cachesvr_id(hash_key)
-    local key = hash_code(hash_key) % self.cache_count + 1
+    local key = hash_code(hash_key, self.cache_count)
     return self.cache_svrs[key]
 end
 
