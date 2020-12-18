@@ -15,14 +15,14 @@ KernCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
 KernCode.TOKEN_ERROR        = 9     --登录token错误
 
 --dx协议投flag掩码
-local FlagMask = enum("FlagMask", 0)
-FlagMask.REQ     = 0x01  -- 请求
-FlagMask.RES     = 0x02  -- 响应
-FlagMask.ENCRYPT = 0x04  -- 开启加密
-FlagMask.QZIP    = 0x08  -- 开启qzip压缩
+local FlagMask              = enum("FlagMask", 0)
+FlagMask.REQ                = 0x01  -- 请求
+FlagMask.RES                = 0x02  -- 响应
+FlagMask.ENCRYPT            = 0x04  -- 开启加密
+FlagMask.QZIP               = 0x08  -- 开启qzip压缩
 
 --网络时间常量定义
-local NetwkTime = enum("NetwkTime", 0)
+local NetwkTime             = enum("NetwkTime", 0)
 NetwkTime.CONNECT_TIMEOUT   = 3000      --连接等待时间
 NetwkTime.RPC_CALL_TIMEOUT  = 5000      --RPC调用超时时间
 NetwkTime.HTTP_CALL_TIMEOUT = 4500      --HTTP调用超时时间
@@ -59,25 +59,29 @@ PeriodTime.HOUR_M           = 60        --1小时（m）
 PeriodTime.RAW_OFFSET_S     = 28800     --8小时 (s)
 
 --数据加载状态
-local DBLoading = enum("DBLoading", 0)
-DBLoading.INIT = 0
-DBLoading.LOADING = 1
-DBLoading.SUCCESS = 2
+local DBLoading             = enum("DBLoading", 0)
+DBLoading.INIT              = 0
+DBLoading.LOADING           = 1
+DBLoading.SUCCESS           = 2
 
 -- GM命令类型
-local GMType = enum("GMType", 0)
-GMType.PLAYER = 0       -- 玩家相关
-GMType.ROOM   = 1       -- 房间系统相关
-GMType.GLOBAL = 2       -- 全局相关
-GMType.PART   = 3       -- 小区相关
+local GMType                = enum("GMType", 0)
+GMType.PLAYER               = 0       -- 玩家相关
+GMType.ROOM                 = 1       -- 房间系统相关
+GMType.GLOBAL               = 2       -- 全局相关
+GMType.PART                 = 3       -- 小区相关
+
+--全局数据库定义
+local GlobalDB              = enum("GlobalDB", 0)
+GlobalDB.GLOBAL             = 1       -- 全局库
+GlobalDB.RMSG               = 2       -- RMSG库
 
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
-CacheCode.CACHE_NOT_SUPPERT                 = 2051  -- 不支持的缓存类型
-CacheCode.CACHE_PKEY_IS_NOT_EXIST           = 2052  -- Pkey不存在
-CacheCode.CACHE_KEY_IS_NOT_EXIST            = 2053  -- key不存在
-CacheCode.CACHE_FLUSH_FAILED                = 2054  -- flush失败
-CacheCode.CACHE_KEY_LOCK_FAILD              = 2055  -- 用户锁失败
-CacheCode.CACHE_DELETE_SAVE_FAILD           = 2056  -- 缓存删除失败
-CacheCode.CACHE_IS_HOLDING                  = 2057  -- 缓存正在处理
-
+CacheCode.CACHE_NOT_SUPPERT         = 2051  -- 不支持的缓存类型
+CacheCode.CACHE_PKEY_IS_NOT_EXIST   = 2052  -- Pkey不存在
+CacheCode.CACHE_KEY_IS_NOT_EXIST    = 2053  -- key不存在
+CacheCode.CACHE_FLUSH_FAILED        = 2054  -- flush失败
+CacheCode.CACHE_KEY_LOCK_FAILD      = 2055  -- 用户锁失败
+CacheCode.CACHE_DELETE_SAVE_FAILD   = 2056  -- 缓存删除失败
+CacheCode.CACHE_IS_HOLDING          = 2057  -- 缓存正在处理
