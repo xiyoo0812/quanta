@@ -170,7 +170,7 @@ function CacheMgr:rpc_cache_load(quanta_id, req_data)
         cache_obj = cobj
     else
         if cache_obj:is_holding() then
-            log_err("[CacheMgr][rpc_cache_flush] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
+            log_err("[CacheMgr][rpc_cache_load] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
             return CacheCode.CACHE_IS_HOLDING
         end
         cache_obj:set_flush(false)
@@ -222,7 +222,7 @@ function CacheMgr:rpc_cache_update_key(quanta_id, req_data)
         return CacheCode.CACHE_PKEY_IS_NOT_EXIST
     end
     if quanta_id ~= cache_obj:get_lock_node_id() then
-        log_err("[CacheMgr][rpc_cache_flush] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
+        log_err("[CacheMgr][rpc_cache_update_key] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_KEY_LOCK_FAILD
     end
     if cache_obj:is_holding() then
