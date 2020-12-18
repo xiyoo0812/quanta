@@ -70,6 +70,11 @@ function MongoAgent:global_insert(hash_key, mongo_query, dbid)
     return router_mgr:call_dbsvr_hash(hash_key, "global_insert", dbid or GlobalDB.GLOBAL, tunpack(mongo_query))
 end
 
+--{coll_name, selector}
+function MongoAgent:global_count(hash_key, mongo_query, dbid)
+    return router_mgr:call_dbsvr_hash(hash_key, "global_count", dbid or GlobalDB.GLOBAL, tunpack(mongo_query))
+end
+
 ------------------------------------------------------------------
 quanta.mongo_agent = MongoAgent()
 

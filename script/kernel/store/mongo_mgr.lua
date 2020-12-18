@@ -42,6 +42,7 @@ function MongoMgr:setup()
         event_mgr:add_listener(self, "global_delete")
         event_mgr:add_listener(self, "global_update")
         event_mgr:add_listener(self, "global_find_one")
+        event_mgr:add_listener(self, "global_count")
     end
 end
 
@@ -115,7 +116,7 @@ function MongoMgr:global_find(dbid, coll_name, query, selector, limit, query_num
         local ok, res_oe = mongodb:find(coll_name, query, selector, limit, query_num)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "rmsg mongo db not exist"
+    return MONGO_FAILED, "global mongo db not exist"
 end
 
 function MongoMgr:global_find_one(dbid, coll_name, query, selector)
@@ -124,7 +125,7 @@ function MongoMgr:global_find_one(dbid, coll_name, query, selector)
         local ok, res_oe = mongodb:find_one(coll_name, query, selector)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "rmsg mongo db not exist"
+    return MONGO_FAILED, "global mongo db not exist"
 end
 
 function MongoMgr:global_insert(dbid, coll_name, obj)
@@ -133,7 +134,7 @@ function MongoMgr:global_insert(dbid, coll_name, obj)
         local ok, res_oe = mongodb:insert(coll_name, obj)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "rmsg mongo db not exist"
+    return MONGO_FAILED, "global mongo db not exist"
 end
 
 function MongoMgr:global_update(dbid, coll_name, obj, selector, upsert, multi)
@@ -142,7 +143,7 @@ function MongoMgr:global_update(dbid, coll_name, obj, selector, upsert, multi)
         local ok, res_oe = mongodb:update(coll_name, obj, selector, upsert, multi)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "rmsg mongo db not exist"
+    return MONGO_FAILED, "global mongo db not exist"
 end
 
 function MongoMgr:global_delete(dbid, coll_name, selector, onlyone)
@@ -151,7 +152,16 @@ function MongoMgr:global_delete(dbid, coll_name, selector, onlyone)
         local ok, res_oe = mongodb:delete(coll_name, selector, onlyone)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "rmsg mongo db not exist"
+    return MONGO_FAILED, "global mongo db not exist"
+end
+
+function MongoMgr:global_count(dbid, coll_name, selector, limit, skip)
+    local mongodb = self:get_global_db(dbid)
+    if mongodb then
+        local ok, res_oe = mongodb:count(coll_name, selector, limit, skip)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "global mongo db not exist"
 end
 
 quanta.mongo_mgr = MongoMgr()
