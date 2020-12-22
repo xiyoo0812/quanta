@@ -32,7 +32,7 @@ end
 function CacheRow:load(db_id)
     self.database_id = db_id
     local query = { [self.cache_key] = self.primary_value }
-    local code, res = mongo_mgr:mongo_find_one(db_id, self.cache_table, query, {_id = 0})
+    local code, res = mongo_mgr:game_find_one(db_id, self.cache_table, query, {_id = 0})
     if check_failed(code) then
         log_err("[CacheRow][load] failed: %s=> db: %s, table: %s", res, self.database_id, self.cache_table)
         return code
@@ -47,7 +47,7 @@ function CacheRow:save()
         local selector = { [self.cache_key] = self.primary_value }
         if self.merge_table then
             local update_obj = {["$set"] = { [self.cache_table] = self.data }}
-            local code, res = mongo_mgr:mongo_update(self.database_id, self.merge_table, update_obj, selector)
+            local code, res = mongo_mgr:game_update(self.database_id, self.merge_table, update_obj, selector)
             if check_failed(code) then
                 log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.database_id, self.cache_table)
                 return code
@@ -55,7 +55,7 @@ function CacheRow:save()
             self.dirty = false
             return code
         else
-            local code, res = mongo_mgr:mongo_update(self.database_id, self.cache_table, self.data, selector, true)
+            local code, res = mongo_mgr:game_update(self.database_id, self.cache_table, self.data, selector, true)
             if check_failed(code) then
                 log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.database_id, self.cache_table)
                 return code

@@ -53,7 +53,7 @@ function CacheObj:load()
     if self.cache_merge then
         --合并加载模式
         local query = { [self.cache_key] = self.primary_value }
-        local code, res = mongo_mgr:mongo_find_one(self.database_id, self.cache_table, query, {_id = 0})
+        local code, res = mongo_mgr:game_find_one(self.database_id, self.cache_table, query, {_id = 0})
         if check_failed(code) then
             log_err("[CacheObj][load] failed: cache_table=%s,res=%s", self.cache_table, res)
             return code
