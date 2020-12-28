@@ -25,99 +25,99 @@ function CacheAgent:__init()
 end
 
 -- 加载
-function CacheAgent:load(db_id, primary_key, cache_name)
+function CacheAgent:load(primary_key, cache_name)
     local cachesvr_id = self:find_cachesvr_id(primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][find] cachesvr not online: pid=%s,key=%s", db_id, primary_key)
+        log_err("[CacheAgent][find] cachesvr not online: primary_key=%s,cache_name=%s", primary_key, cache_name)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key }
-    local ok, ec, row_data = router_mgr:call_target(cachesvr_id, "rpc_cache_load", quanta.id, req_data, db_id)
-    if not ok or check_failed(ec) then
-        log_warn("[CacheAgent][find] ec=%s,pkey=%s,cache=%s", ec, primary_key, cache_name)
-        return ok and ec or KernCode.RPC_FAILED
+    local ok, code, row_data = router_mgr:call_target(cachesvr_id, "rpc_cache_load", quanta.id, req_data)
+    if not ok or check_failed(code) then
+        log_warn("[CacheAgent][find] code=%s,pkey=%s,cache=%s", code, primary_key, cache_name)
+        return ok and code or KernCode.RPC_FAILED
     end
-    return ec, row_data
+    return code, row_data
 end
 
 -- 修改
-function CacheAgent:update(db_id, primary_key, table_name, table_data, cache_name)
+function CacheAgent:update(primary_key, table_name, table_data, cache_name)
     local cachesvr_id = self:find_cachesvr_id(primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][update] cachesvr not online: pid=%s,table=%s,key=%s", db_id, table_name, primary_key)
+        log_err("[CacheAgent][update] cachesvr not online: cache_name=%s,table_name=%s,primary_key=%s", cache_name, table_name, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key, table_name, table_data }
-    local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_update", quanta.id, req_data)
-    if not ok or check_failed(ec) then
-        log_err("[CacheAgent][update] faild: ec=%s,pid=%s,table=%s,key=%s", ec, db_id, table_name, primary_key)
-        return ok and ec or KernCode.RPC_FAILED
+    local ok, code = router_mgr:call_target(cachesvr_id, "rpc_cache_update", quanta.id, req_data)
+    if not ok or check_failed(code) then
+        log_err("[CacheAgent][update] faild: code=%s cache_name=%s,table_name=%s,primary_key=%s", code, cache_name, table_name, primary_key)
+        return ok and code or KernCode.RPC_FAILED
     end
-    return ec
+    return code
 end
 
 -- 修改kv
-function CacheAgent:update_key(db_id, primary_key, table_name, table_key, table_value, cache_name)
+function CacheAgent:update_key(primary_key, table_name, table_key, table_value, cache_name)
     local cachesvr_id = self:find_cachesvr_id(primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][update_key] cachesvr not online: pid=%s,table=%s,key=%s", db_id, table_name, primary_key)
+        log_err("[CacheAgent][update_key] cachesvr not online: cache_name=%s,table_name=%s,primary_key=%s", cache_name, table_name, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key, table_name, table_key, table_value }
-    local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_update_key", quanta.id, req_data)
-    if not ok or check_failed(ec) then
-        log_err("[CacheAgent][update_key] faild: ec=%s,pid=%s,table=%s,key=%s", ec, db_id, table_name, primary_key)
-        return ok and ec or KernCode.RPC_FAILED
+    local ok, code = router_mgr:call_target(cachesvr_id, "rpc_cache_update_key", quanta.id, req_data)
+    if not ok or check_failed(code) then
+        log_err("[CacheAgent][update_key] faild: code=%s,cache_name=%s,table_name=%s,primary_key=%s", code, cache_name, table_name, primary_key)
+        return ok and code or KernCode.RPC_FAILED
     end
-    return ec
+    return code
 end
 
 -- 删除
-function CacheAgent:delete(db_id, primary_key, cache_name)
+function CacheAgent:delete(primary_key, cache_name)
     local cachesvr_id = self:find_cachesvr_id(primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][delete] cachesvr not online: pid=%s,key=%s", db_id, primary_key)
+        log_err("[CacheAgent][delete] cachesvr not online: cache_name=%s,primary_key=%s", cache_name, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key }
-    local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_delete", quanta.id, req_data)
-    if not ok or check_failed(ec) then
-        log_err("[CacheAgent][delete] faild: ec=%s,pid=%s,key=%s", ec, db_id, primary_key)
-        return ok and ec or KernCode.RPC_FAILED
+    local ok, code = router_mgr:call_target(cachesvr_id, "rpc_cache_delete", quanta.id, req_data)
+    if not ok or check_failed(code) then
+        log_err("[CacheAgent][delete] faild: code=%s,cache_name=%s,primary_key=%s", code, cache_name, primary_key)
+        return ok and code or KernCode.RPC_FAILED
     end
-    return ec
+    return code
 end
 
 -- 重建
-function CacheAgent:rebuild(db_id, primary_keys, cache_name)
+function CacheAgent:rebuild(primary_keys, cache_name)
     local cachesvr_id = self:find_cachesvr_id(primary_keys)
     if not cachesvr_id then
-        log_err("[CacheAgent][rebuild] cachesvr not online: pid=%s,key=%s", db_id, primary_keys)
+        log_err("[CacheAgent][rebuild] cachesvr not online: cache_name=%s,primary_keys=%s", cache_name, primary_keys)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_keys }
-    local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_rebuild", quanta.id, req_data)
-    if not ok or check_failed(ec) then
-        log_err("[CacheAgent][rebuild] faild: ec=%s,pid=%s,key=%s", ec, db_id, primary_keys)
-        return ok and ec or KernCode.RPC_FAILED
+    local ok, code = router_mgr:call_target(cachesvr_id, "rpc_cache_rebuild", quanta.id, req_data)
+    if not ok or check_failed(code) then
+        log_err("[CacheAgent][rebuild] faild: code=%s,cache_name=%s,primary_keys=%s", code, cache_name, primary_keys)
+        return ok and code or KernCode.RPC_FAILED
     end
-    return ec
+    return code
 end
 
 -- flush
-function CacheAgent:flush(db_id, primary_key, cache_name)
+function CacheAgent:flush(primary_key, cache_name)
     local cachesvr_id = self:find_cachesvr_id(primary_key)
     if not cachesvr_id then
-        log_err("[CacheAgent][flush] cachesvr not online: pid=%s,key=%s", db_id, primary_key)
+        log_err("[CacheAgent][flush] cachesvr not online: cache_name=%s,primary_key=%s", cache_name, primary_key)
         return KernCode.RPC_FAILED
     end
     local req_data = { cache_name or "player", primary_key }
-    local ok, ec = router_mgr:call_target(cachesvr_id, "rpc_cache_flush", quanta.id, req_data)
-    if not ok or check_failed(ec) then
-        log_err("[CacheAgent][flush] faild: ec=%s,pid=%s,key=%s", ec, db_id, primary_key)
-        return ok and ec or KernCode.RPC_FAILED
+    local ok, code = router_mgr:call_target(cachesvr_id, "rpc_cache_flush", quanta.id, req_data)
+    if not ok or check_failed(code) then
+        log_err("[CacheAgent][flush] faild: code=%s,cache_name=%s,primary_key=%s", code, cache_name, primary_key)
+        return ok and code or KernCode.RPC_FAILED
     end
-    return ec
+    return code
 end
 
 -- 服务器上线
