@@ -81,7 +81,6 @@ end
 --获取区服配置
 function CacheMgr:rpc_load_cache_hash(quanta_id, service_name)
     local rpc_res = {
-        quanta_id   = quanta.id,
         cache_id    = self.cache_id,
         cache_hash  = self.cache_hash,
     }
@@ -118,15 +117,15 @@ end
 
 --缓存重建
 function CacheMgr:load_cache_impl(quanta_id, cache_list, conf, primary_key)
-    local cache_obj = CacheObj(conf, primary_key, self.cache_id)
-    cache_obj:set_lock_node_id(quanta_id)
-    cache_list[primary_key] = cache_obj
     --开始加载
+    local cache_obj = CacheObj(conf, primary_key, self.cache_id)
     local code = cache_obj:load()
     if check_failed(code) then
         cache_list[primary_key] = nil
         return code
     end
+    cache_obj:set_lock_node_id(quanta_id)
+    cache_list[primary_key] = cache_obj
     self.rebuild_objs[primary_key] = nil
     return SUCCESS, cache_obj
 end
@@ -153,7 +152,7 @@ function CacheMgr:rpc_cache_rebuild(quanta_id, req_data)
 end
 
 --加载缓存
-function CacheMgr:rpc_cache_load(quanta_id, req_data)
+function CacheMgr:rpc_cache_load(quanta_id, load_dbid, req_data)
     local cache_name, primary_key = tunpack(req_data)
     local cache_list = self.cache_lists[cache_name]
     if not cache_list then
@@ -175,6 +174,11 @@ function CacheMgr:rpc_cache_load(quanta_id, req_data)
         end
         cache_obj:set_flush(false)
         cache_obj:set_lock_node_id(quanta_id)
+    end
+    if load_dbid ~= self.cache_id then
+        --支持只读机制，如果加载的dbid和本地的dbid不一致，允许加载，但是不允许修改
+        log_info("[CacheMgr][rpc_cache_load] ready only, load_dbid=%s,dbid=%s,cache=%s,primary=%s", load_dbid, self.cache_id, cache_name, primary_key)
+        cache_obj:set_lock_node_id(nil)
     end
     log_info("[CacheMgr][rpc_cache_load] cache=%s,primary=%s", cache_name, primary_key)
     return SUCCESS, cache_obj:pack()

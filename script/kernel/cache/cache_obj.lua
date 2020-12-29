@@ -17,6 +17,7 @@ local prop = property(CacheObj)
 prop:accessor("uuid", 0)                -- uuid
 prop:accessor("flush", false)           -- flush status
 prop:accessor("holding", true)          -- holding status
+prop:accessor("cache_merge", false)     -- cache merge mode
 prop:accessor("lock_node_id", 0)        -- lock node id
 prop:accessor("expire_time", 600)       -- expire time
 prop:accessor("store_time", 300)        -- store time
@@ -25,7 +26,6 @@ prop:accessor("cache_key", "")          -- cache key
 prop:accessor("primary_value", nil)     -- primary value
 prop:accessor("cache_table", "")        -- cache table
 prop:accessor("cache_rows", {})         -- cache rows
-prop:accessor("cache_merge", false)     -- cache merge mode
 prop:accessor("database_id", 0)         -- database id
 prop:accessor("update_count", 0)        -- update count
 prop:accessor("update_time", 0)         -- update time
