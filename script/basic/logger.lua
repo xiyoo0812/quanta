@@ -14,24 +14,32 @@ local tpack         = table.pack
 local tconcat       = table.concat
 local tarray        = table_ext.is_array
 
-logger = {}
-
-local LOG_LEVEL_DEBUG   = 1     -- 用于调试消息的输出
-local LOG_LEVEL_INFO    = 2     -- 用于跟踪程序运行进度
-local LOG_LEVEL_WARN    = 3     -- 程序运行时发生异常
-local LOG_LEVEL_DUMP    = 4     -- 数据异常dump
-local LOG_LEVEL_ERROR   = 5     -- 程序运行时发生可预料的错误,此时通过错误处理,可以让程序恢复正常运行
-local LOG_LEVEL_FATAL   = 6     -- 程序运行时发生致命的错误,需要人工干预
+local LOG_LEVEL = {
+    DEBUG   = 1,
+    INFO    = 2,
+    WARN    = 3,
+    DUMP    = 4,
+    ERROR   = 5,
+    FATAL   = 6,
+}
 
 local log_input         = false
 local log_buffer        = ""
 
+local function logger_output(method, fmt, ...)
+    local filter = method(sformat(fmt, ...))
+    if filter == nil then
+        return print(sformat(fmt, ...))
+    end
+end
+
+logger = {}
 function logger.init(max_line)
     local log_name  = sformat("%s-%d", quanta.service, quanta.index)
     local log_path = sformat("%s/%s/", environ.get("QUANTA_LOG_PATH"), quanta.service)
     local log_daemon = environ.status("QUANTA_DAEMON")
     llog.init(log_path, log_name, 0, max_line or 100000, log_daemon)
-    --llog.filter(environ.number("QUANTA_LOG_LVL"))
+    logger.filter(environ.number("QUANTA_LOG_LVL"))
     if log_daemon then
         quanta.daemon(1, 1)
     end
@@ -42,45 +50,37 @@ function logger.close()
 end
 
 function logger.filter(level)
-    llog.filter(level)
-end
-
-local function logger_output(method, level, fmt, ...)
-    local filter = llog.is_filter(level)
-    if filter == nil then
-        return print(sformat(fmt, ...))
-    end
-    if not filter then
-        method(sformat(fmt, ...))
+    for _, lvl in pairs(LOG_LEVEL) do
+        llog.filter(lvl, lvl >= level)
     end
 end
 
 function logger.debug(fmt, ...)
-    logger_output(llog.debug, LOG_LEVEL_DEBUG, fmt, ...)
+    logger_output(llog.debug, fmt, ...)
 end
 
 function logger.info(fmt, ...)
-    logger_output(llog.info, LOG_LEVEL_INFO, fmt, ...)
+    logger_output(llog.info, fmt, ...)
 end
 
 function logger.warn(fmt, ...)
-    logger_output(llog.warn, LOG_LEVEL_WARN, fmt, ...)
+    logger_output(llog.warn, fmt, ...)
 end
 
 function logger.dump(fmt, ...)
-    logger_output(llog.dump, LOG_LEVEL_DUMP, fmt, ...)
+    logger_output(llog.dump, fmt, ...)
 end
 
 function logger.err(fmt, ...)
-    logger_output(llog.error, LOG_LEVEL_ERROR, fmt, ...)
+    logger_output(llog.error, fmt, ...)
 end
 
 function logger.fatal(fmt, ...)
-    logger_output(llog.fatal, LOG_LEVEL_FATAL, fmt, ...)
+    logger_output(llog.fatal, fmt, ...)
 end
 
 function logger.serialize(tab)
-    if llog.is_filter(LOG_LEVEL_DEBUG) then
+    if llog.is_filter(LOG_LEVEL.DEBUG) then
         return tab
     end
     local mark = {}

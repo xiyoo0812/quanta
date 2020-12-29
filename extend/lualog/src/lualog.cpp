@@ -61,7 +61,8 @@ int is_filter(lua_State* L)
 		lua_pushboolean(L, log_filter->is_filter((log_level)lua_tointeger(L, 1)));
 		return 1;
 	}
-	return 0;
+	lua_pushboolean(L, true);
+	return 1;
 }
 
 int add_dest(lua_State* L)
@@ -127,8 +128,18 @@ int log(lua_State* L)
 		line = (int)lua_tointeger(L, 3);
 	}
 	auto service = log_service::default_instance();
-	log_ctx<level> ctx(service, source, line);
-	ctx << log_msg;
+	auto log_filter = log_service::default_instance()->get_filter();
+	if(log_filter)
+	{
+        bool filter = log_filter->is_filter(level);
+		if (!filter)
+		{
+			log_ctx<level> ctx(service, source, line);
+			ctx << log_msg;
+		}
+		lua_pushboolean(L, filter);
+		return 1;
+	}
 	return 0;
 }
 
