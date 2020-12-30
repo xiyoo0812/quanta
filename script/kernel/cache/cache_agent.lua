@@ -12,6 +12,11 @@ local KernCode      = enum("KernCode")
 local event_mgr     = quanta.event_mgr
 local router_mgr    = quanta.router_mgr
 
+--构建cache_key
+local function build_hash_key(hash_key, cache_id)
+    return cache_id * 1000 + hash_key
+end
+
 local CacheAgent = singleton()
 local prop = property(CacheAgent)
 prop:accessor("cache_count", 1)     -- cache的数量
@@ -134,7 +139,8 @@ function CacheAgent:on_service_ready(quanta_id, service_name)
     if not self.cache_svrs[cache_id] then
         self.cache_svrs[cache_id] = {}
     end
-    self.cache_svrs[cache_id][cache_hash] = quanta_id
+    local cache_key = build_hash_key(cache_hash, cache_id)
+    self.cache_svrs[cache_key] = quanta_id
     log_info("[CacheAgent][on_service_ready] add cachesvr node: cache_id=%s, hash_key=%s", cache_id, cache_hash)
     --通知缓存重建
     event_mgr:notify_listener("evt_cache_rebuild", cache_hash, self.cache_count)
@@ -143,24 +149,19 @@ end
 -- 服务器掉线
 function CacheAgent:on_service_close(quanta_id, service_name)
     log_info("[CacheAgent][on_service_close] id=%s, service_name=%s", quanta_id, service_name)
-    for cache_id, cache_svrs in pairs(self.cache_svrs) do
-        for hash_key, cache_quanta_id in pairs(cache_svrs) do
-            if cache_quanta_id == quanta_id then
-                self.cache_svrs[cache_id][hash_key] = nil
-                return
-            end
+    for hash_key, cache_quanta_id in pairs(self.cache_svrs) do
+        if cache_quanta_id == quanta_id then
+            self.cache_svrs[hash_key] = nil
+            break
         end
     end
 end
 
 --根据小区和哈希key获取对应的cachesvr节点id
---返回节点的quanta_id或者nil
 function CacheAgent:find_cachesvr_id(hash_key, cache_id)
-    local cache_svrs = self.cache_svrs[cache_id]
-    if cache_svrs then
-        local key = hash_code(hash_key, self.cache_count)
-        return cache_svrs[key]
-    end
+    local key = hash_code(hash_key, self.cache_count)
+    local cache_key = build_hash_key(key, cache_id)
+    return self.cache_svrs[cache_key]
 end
 
 -- export
