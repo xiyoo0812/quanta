@@ -143,7 +143,9 @@ function CacheAgent:on_service_ready(quanta_id, service_name)
     self.cache_svrs[cache_key] = quanta_id
     log_info("[CacheAgent][on_service_ready] add cachesvr node: cache_id=%s, hash_key=%s", cache_id, cache_hash)
     --通知缓存重建
-    event_mgr:notify_listener("evt_cache_rebuild", cache_hash, self.cache_count)
+    if cache_id == self.part_id then
+        event_mgr:notify_listener("evt_cache_rebuild", cache_hash, self.cache_count)
+    end
 end
 
 -- 服务器掉线
