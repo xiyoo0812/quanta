@@ -71,6 +71,12 @@ GMType.ROOM                 = 1       -- 房间系统相关
 GMType.GLOBAL               = 2       -- 全局相关
 GMType.PART                 = 3       -- 小区相关
 
+--数据库组定义
+local DBGroup               = enum("DBGroup", 0)
+DBGroup.GAME                = 1       -- 游戏库
+DBGroup.GLOBAL              = 2       -- 全局库
+DBGroup.HASH                = 3       -- hash库
+
 --全局数据库定义
 local GlobalDB              = enum("GlobalDB", 0)
 GlobalDB.GLOBAL             = 1       -- 全局库

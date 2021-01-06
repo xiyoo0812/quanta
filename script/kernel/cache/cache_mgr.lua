@@ -1,6 +1,5 @@
 -- cache_mgr.lua
 -- cache_mgr
-import("kernel/store/mongo_mgr.lua")
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local log_err       = logger.err
@@ -18,8 +17,6 @@ local event_mgr     = quanta.event_mgr
 local timer_mgr     = quanta.timer_mgr
 local config_mgr    = quanta.config_mgr
 
-local CacheObj      = import("kernel/cache/cache_obj.lua")
-local WheelMap      = import("kernel/basic/wheel_map.lua")
 local obj_table     = config_mgr:init_table("cache_obj", "cache_table")
 local row_table     = config_mgr:init_table("cache_row", "cache_table")
 
@@ -32,6 +29,7 @@ prop:accessor("cache_confs", {})        -- cache_confs
 prop:accessor("cache_lists", {})        -- cache_lists
 prop:accessor("dirty_map", nil)         -- dirty objects
 prop:accessor("rebuild_objs", {})       -- rebuild objects
+prop:accessor("database_mgrs", {})      -- database mgrs
 
 function CacheMgr:__init()
     --初始化cache
@@ -57,6 +55,7 @@ function CacheMgr:setup()
     --加载参数
     self.cache_id = env_number("QUANTA_PART_ID")
     self.cache_hash = env_colon("QUANTA_CACHE_HASH")
+    self.cache_driver = env_colon("QUANTA_DATABASE_DRIVER")
     log_info("[CacheMgr:setup] load cache config: cache_id=%s,cache_hash=%s", self.cache_id, self.cache_hash)
     --加载配置
     for _, obj_conf in obj_table:iterator() do
@@ -75,7 +74,22 @@ function CacheMgr:setup()
         end
     end
     -- 创建WheelMap
+    local WheelMap = import("kernel/basic/wheel_map.lua")
     self.dirty_map = WheelMap(10)
+end
+
+--返回数据库管理器
+function CacheMgr:get_databese_mgr(db_group)
+    local database_mgr = self.database_mgrs[db_group]
+    if database_mgr then
+        return database_mgr
+    end
+    if self.cache_driver == "mnogo" then
+        local MongoMgr = import("kernel/store/mongo_mgr.lua")
+        local mongo_mgr = MongoMgr(db_group)
+        self.database_mgrs[db_group] = mongo_mgr
+        return mongo_mgr
+    end
 end
 
 --获取区服配置
@@ -118,14 +132,15 @@ end
 --缓存重建
 function CacheMgr:load_cache_impl(quanta_id, cache_list, conf, primary_key)
     --开始加载
+    local CacheObj = import("kernel/cache/cache_obj.lua")
     local cache_obj = CacheObj(conf, primary_key, self.cache_id)
+    cache_obj:set_lock_node_id(quanta_id)
+    cache_list[primary_key] = cache_obj
     local code = cache_obj:load()
     if check_failed(code) then
         cache_list[primary_key] = nil
         return code
     end
-    cache_obj:set_lock_node_id(quanta_id)
-    cache_list[primary_key] = cache_obj
     self.rebuild_objs[primary_key] = nil
     return SUCCESS, cache_obj
 end
@@ -152,7 +167,7 @@ function CacheMgr:rpc_cache_rebuild(quanta_id, req_data)
 end
 
 --加载缓存
-function CacheMgr:rpc_cache_load(quanta_id, load_dbid, req_data)
+function CacheMgr:rpc_cache_load(quanta_id, load_index, req_data)
     local cache_name, primary_key = tunpack(req_data)
     local cache_list = self.cache_lists[cache_name]
     if not cache_list then
@@ -175,10 +190,11 @@ function CacheMgr:rpc_cache_load(quanta_id, load_dbid, req_data)
         cache_obj:set_flush(false)
         cache_obj:set_lock_node_id(quanta_id)
     end
-    if load_dbid ~= self.cache_id then
+    if load_index ~= self.cache_id then
         --支持只读机制，如果加载的dbid和本地的dbid不一致，允许加载，但是不允许修改
-        log_info("[CacheMgr][rpc_cache_load] ready only, load_dbid=%s,dbid=%s,cache=%s,primary=%s", load_dbid, self.cache_id, cache_name, primary_key)
+        log_info("[CacheMgr][rpc_cache_load] ready only, load_index=%s,dbid=%s,cache=%s,primary=%s", load_index, self.cache_id, cache_name, primary_key)
         cache_obj:set_lock_node_id(nil)
+        cache_obj:set_flush(true)
     end
     log_info("[CacheMgr][rpc_cache_load] cache=%s,primary=%s", cache_name, primary_key)
     return SUCCESS, cache_obj:pack()

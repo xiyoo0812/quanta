@@ -15,7 +15,7 @@ if not quanta.init_flag then
         --初始化quanta
         quanta.init()
         --初始化dbsvr
-        import("kernel/store/mongo_mgr.lua")
+        import("dbsvr/database_mgr.lua")
         log_info("dbsvr %d now startup!", quanta.id)
     end
     qxpcall_quit(startup, "quanta startup error: %s")
