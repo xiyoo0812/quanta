@@ -73,7 +73,7 @@ GMType.PART                 = 3       -- 小区相关
 
 --数据库组定义
 local DBGroup               = enum("DBGroup", 0)
-DBGroup.GAME                = 1       -- 游戏库
+DBGroup.AREA                = 1       -- 分区库
 DBGroup.GLOBAL              = 2       -- 全局库
 DBGroup.HASH                = 3       -- hash库
 

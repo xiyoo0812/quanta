@@ -23,7 +23,7 @@ local row_table     = config_mgr:init_table("cache_row", "cache_table")
 local CacheMgr = singleton()
 local prop = property(CacheMgr)
 prop:accessor("cache_hash", nil)        -- 分区内的哈希特征值
-prop:accessor("cache_id", nil)          -- 缓存id，默认数据库id与分区id一致
+prop:accessor("cache_area", nil)        -- 缓存分区，默认数据库id与分区id一致
 prop:accessor("cache_enable", true)     -- 缓存开关
 prop:accessor("cache_confs", {})        -- cache_confs
 prop:accessor("cache_lists", {})        -- cache_lists
@@ -53,10 +53,10 @@ end
 
 function CacheMgr:setup()
     --加载参数
-    self.cache_id = env_number("QUANTA_PART_ID")
+    self.cache_area = env_number("QUANTA_PART_ID")
     self.cache_hash = env_colon("QUANTA_CACHE_HASH")
     self.cache_driver = env_colon("QUANTA_DATABASE_DRIVER")
-    log_info("[CacheMgr:setup] load cache config: cache_id=%s,cache_hash=%s", self.cache_id, self.cache_hash)
+    log_info("[CacheMgr:setup] load cache config: cache_area=%s,cache_hash=%s", self.cache_area, self.cache_hash)
     --加载配置
     for _, obj_conf in obj_table:iterator() do
         obj_conf.rows = {}
@@ -95,7 +95,7 @@ end
 --获取区服配置
 function CacheMgr:rpc_load_cache_hash(quanta_id, service_name)
     local rpc_res = {
-        cache_id    = self.cache_id,
+        cache_area  = self.cache_area,
         cache_hash  = self.cache_hash,
     }
     return SUCCESS, rpc_res
@@ -133,7 +133,7 @@ end
 function CacheMgr:load_cache_impl(quanta_id, cache_list, conf, primary_key)
     --开始加载
     local CacheObj = import("kernel/cache/cache_obj.lua")
-    local cache_obj = CacheObj(conf, primary_key, self.cache_id)
+    local cache_obj = CacheObj(conf, primary_key, self.cache_area)
     cache_obj:set_lock_node_id(quanta_id)
     cache_list[primary_key] = cache_obj
     local code = cache_obj:load()
@@ -167,7 +167,7 @@ function CacheMgr:rpc_cache_rebuild(quanta_id, req_data)
 end
 
 --加载缓存
-function CacheMgr:rpc_cache_load(quanta_id, load_index, req_data)
+function CacheMgr:rpc_cache_load(quanta_id, load_area, req_data)
     local cache_name, primary_key = tunpack(req_data)
     local cache_list = self.cache_lists[cache_name]
     if not cache_list then
@@ -190,9 +190,9 @@ function CacheMgr:rpc_cache_load(quanta_id, load_index, req_data)
         cache_obj:set_flush(false)
         cache_obj:set_lock_node_id(quanta_id)
     end
-    if load_index ~= self.cache_id then
+    if load_area ~= self.cache_area then
         --支持只读机制，如果加载的dbid和本地的dbid不一致，允许加载，但是不允许修改
-        log_info("[CacheMgr][rpc_cache_load] ready only, load_index=%s,dbid=%s,cache=%s,primary=%s", load_index, self.cache_id, cache_name, primary_key)
+        log_info("[CacheMgr][rpc_cache_load] ready only,load_area=%s,cache_area=%s,cache=%s,primary=%s", load_area, self.cache_area, cache_name, primary_key)
         cache_obj:set_lock_node_id(nil)
         cache_obj:set_flush(true)
     end
