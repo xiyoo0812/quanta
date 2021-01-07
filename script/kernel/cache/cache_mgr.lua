@@ -4,7 +4,7 @@ local tunpack       = table.unpack
 local tinsert       = table.insert
 local log_err       = logger.err
 local log_info      = logger.info
-local env_colon     = environ.colon
+local env_get       = environ.get
 local env_number    = environ.number
 local check_failed  = utility.check_failed
 
@@ -54,8 +54,8 @@ end
 function CacheMgr:setup()
     --加载参数
     self.cache_area = env_number("QUANTA_PART_ID")
-    self.cache_hash = env_colon("QUANTA_CACHE_HASH")
-    self.cache_driver = env_colon("QUANTA_DATABASE_DRIVER")
+    self.cache_hash = env_number("QUANTA_CACHE_HASH")
+    self.cache_driver = env_get("QUANTA_DB_DRIVER")
     log_info("[CacheMgr:setup] load cache config: cache_area=%s,cache_hash=%s", self.cache_area, self.cache_hash)
     --加载配置
     for _, obj_conf in obj_table:iterator() do
@@ -84,7 +84,7 @@ function CacheMgr:get_databese_mgr(db_group)
     if database_mgr then
         return database_mgr
     end
-    if self.cache_driver == "mnogo" then
+    if self.cache_driver == "mongo" then
         local MongoMgr = import("kernel/store/mongo_mgr.lua")
         local mongo_mgr = MongoMgr(db_group)
         self.database_mgrs[db_group] = mongo_mgr
