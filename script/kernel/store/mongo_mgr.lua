@@ -44,7 +44,7 @@ function MongoMgr:find(index, coll_name, query, selector, limit, query_num)
         local ok, res_oe = mongodb:find(coll_name, query, selector, limit, query_num)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "game mongo db not exist"
+    return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:find_one(index, coll_name, query, selector)
@@ -53,7 +53,7 @@ function MongoMgr:find_one(index, coll_name, query, selector)
         local ok, res_oe = mongodb:find_one(coll_name, query, selector)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "game mongo db not exist"
+    return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:insert(index, coll_name, obj)
@@ -62,7 +62,7 @@ function MongoMgr:insert(index, coll_name, obj)
         local ok, res_oe = mongodb:insert(coll_name, obj)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "game mongo db not exist"
+    return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:update(index, coll_name, obj, selector, upsert, multi)
@@ -71,7 +71,7 @@ function MongoMgr:update(index, coll_name, obj, selector, upsert, multi)
         local ok, res_oe = mongodb:update(coll_name, obj, selector, upsert, multi)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "game mongo db not exist"
+    return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:delete(index, coll_name, selector, onlyone)
@@ -80,7 +80,7 @@ function MongoMgr:delete(index, coll_name, selector, onlyone)
         local ok, res_oe = mongodb:delete(coll_name, selector, onlyone)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "game mongo db not exist"
+    return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:count(index, coll_name, selector, limit, skip)
@@ -89,7 +89,7 @@ function MongoMgr:count(index, coll_name, selector, limit, skip)
         local ok, res_oe = mongodb:count(coll_name, selector, limit, skip)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, "game mongo db not exist"
+    return MONGO_FAILED, "mongo db not exist"
 end
 
 return MongoMgr

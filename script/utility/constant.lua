@@ -13,6 +13,7 @@ KernCode.RPC_FAILED         = 6     --RPC调用失败
 KernCode.OPERATOR_SELF      = 7     --不能对自己操作
 KernCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
 KernCode.TOKEN_ERROR        = 9     --登录token错误
+KernCode.DB_NOTINIT         = 10    --数据库没有初始化
 
 --dx协议投flag掩码
 local FlagMask              = enum("FlagMask", 0)
