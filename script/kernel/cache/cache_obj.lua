@@ -113,6 +113,13 @@ function CacheObj:expired(tick)
     return (self.active_tick + self.expire_time) < tick
 end
 
+function CacheObj:check_store(now)
+    if self.store_count <= self.update_count or self.update_time + self.store_time < now then
+        return self:save()
+    end
+    return false
+end
+
 function CacheObj:save()
     self.active_tick = quanta.now
     if next(self.dirty_records) then
@@ -141,15 +148,9 @@ function CacheObj:update(tab_name, tab_data, flush)
     local code =  record:update(tab_data, flush)
     if record:is_dirty() then
         self.dirty_records[record] = true
+        self:check_store(quanta.now)
     end
     return code
-end
-
-function CacheObj:check_store(now)
-    if self.store_count < self.update_count or self.update_time + self.store_time < now then
-        return self:save()
-    end
-    return false
 end
 
 function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
@@ -163,6 +164,7 @@ function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
     local code = record:update_key(tab_key, tab_value, flush)
     if record:is_dirty() then
         self.dirty_records[record] = true
+        self:check_store(quanta.now)
     end
     return code
 end
