@@ -9,7 +9,7 @@ local DBGROUP_AREA      = DBGroup.AREA
 
 local DBAgent = singleton()
 function DBAgent:__init()
-    self.area_id = env_number("QUANTA_PART_ID")
+    self.area_id = env_number("QUANTA_AREA_ID")
 end
 
 --发送数据库请求

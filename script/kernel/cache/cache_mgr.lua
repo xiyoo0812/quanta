@@ -54,7 +54,7 @@ end
 
 function CacheMgr:setup()
     --加载参数
-    self.cache_area = env_number("QUANTA_PART_ID")
+    self.cache_area = env_number("QUANTA_AREA_ID")
     self.cache_hash = env_number("QUANTA_CACHE_HASH")
     log_info("[CacheMgr:setup] load cache config: cache_area=%s,cache_hash=%s", self.cache_area, self.cache_hash)
     --加载配置

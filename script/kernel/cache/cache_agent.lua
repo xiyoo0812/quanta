@@ -22,7 +22,7 @@ local prop = property(CacheAgent)
 prop:accessor("cache_count", 1)     -- cache的数量
 prop:accessor("cache_svrs", {})     -- map<cid, quanta_id>
 function CacheAgent:__init()
-    self.area_id = env_number("QUANTA_PART_ID")
+    self.area_id = env_number("QUANTA_AREA_ID")
     self.cache_count = env_number("QUANTA_CACHE_COUNT")
 
     router_mgr:watch_service_ready(self, "cachesvr")
