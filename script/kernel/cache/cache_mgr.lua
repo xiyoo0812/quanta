@@ -273,14 +273,12 @@ function CacheMgr:rpc_cache_delete(quanta_id, req_data)
         log_err("[CacheMgr][rpc_cache_delete] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_IS_HOLDING
     end
-    cache_obj:set_holding(true)
     if cache_obj:save() then
         cache_list[primary_key] = nil
         self.dirty_map:set(cache_obj:get_uuid(), nil)
         log_info("[CacheMgr][rpc_cache_delete] cache=%s,primary=%s", cache_name, primary_key)
         return SUCCESS
     end
-    cache_obj:set_holding(false)
     log_err("[CacheMgr][rpc_cache_delete] save failed: cache=%s,primary=%s", cache_name, primary_key)
     return CacheCode.CACHE_DELETE_SAVE_FAILD
 end
