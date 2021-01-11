@@ -54,7 +54,7 @@ function RmsgMgr:send_message(from, to, typ, body, id)
         time = quanta.now,
         deal_time = 0,
     }
-    local ok = db_agent:global_insert(to, {self.db_table_name, doc}, DBGROUP_HASH, to)
+    local ok = db_agent:insert(to, {self.db_table_name, doc}, DBGROUP_HASH, to)
     if not ok then
         log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
     else
