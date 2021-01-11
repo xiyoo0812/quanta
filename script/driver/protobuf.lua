@@ -9,7 +9,7 @@ local string = string
 local rawget = rawget
 local rawset = rawset
 local setmetatable = setmetatable
-local log_err = logger.err
+local log_warn = logger.warn
 local tinsert = table.insert
 local tconcat = table.concat
 local is_array = table_ext.is_array
@@ -191,7 +191,7 @@ function _decode_type_meta:__index(key)
         self[key] = func
         return func
     end
-    log_err("protobuf visit field %s is not defined", key)
+    log_warn("protobuf visit field %s is not defined", key)
 end
 
 setmetatable(decode_type_cache , {
@@ -324,7 +324,7 @@ function _encode_type_meta:__index(key)
         self[key] = func
         return func
     end
-    log_err("protobuf encode field %s is unnecessary", key)
+    log_warn("protobuf encode field %s is unnecessary", key)
 end
 
 setmetatable(encode_type_cache , {

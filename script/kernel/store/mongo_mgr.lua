@@ -1,4 +1,5 @@
 --mongo_mgr.lua
+local tinsert       = table.insert
 local hash_code     = utility.hash_code
 
 local DBGroup       = enum("DBGroup")
@@ -38,19 +39,37 @@ function MongoMgr:get_db(index)
     return self.mongo_dbs[index]
 end
 
-function MongoMgr:find(index, coll_name, query, selector, limit, query_num)
+function MongoMgr:find(index, coll_name, selector, fields, limit)
     local mongodb = self:get_db(index)
     if mongodb then
-        local ok, res_oe = mongodb:find(coll_name, query, selector, limit, query_num)
+        local ok, res_oe = mongodb:find(coll_name, selector, fields, limit)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:find_one(index, coll_name, query, selector)
+function MongoMgr:collect(coll_name, selector, fields, limit)
+    local collect_res = {}
+    if limit then
+        for _, mongodb in pairs(self.mongo_dbs) do
+            local ok, res_oe = mongodb:find(coll_name, selector, fields, limit)
+            if ok then
+                for _, record in pairs(res_oe) do
+                    if #collect_res > limit then
+                        return SUCCESS, collect_res
+                    end
+                    tinsert(collect_res, record)
+                end
+            end
+        end
+    end
+    return SUCCESS, collect_res
+end
+
+function MongoMgr:find_one(index, coll_name, selector, fields)
     local mongodb = self:get_db(index)
     if mongodb then
-        local ok, res_oe = mongodb:find_one(coll_name, query, selector)
+        local ok, res_oe = mongodb:find_one(coll_name, selector, fields)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"

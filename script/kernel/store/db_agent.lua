@@ -19,9 +19,15 @@ function DBAgent:find_one(hash_key, db_query, db_group, db_area)
 end
 
 --发送数据库请求
---{coll_name, selector, fields, sorts, limit}
+--{coll_name, selector, fields, limit}
 function DBAgent:find(hash_key, db_query, db_group, db_area)
     return router_mgr:call_dbsvr_hash(hash_key, "find", db_group or DBGROUP_AREA, db_area or self.area_id, tunpack(db_query))
+end
+
+--发送数据库请求
+--{coll_name, selector, fields, limit}
+function DBAgent:collect(hash_key, db_query, db_group)
+    return router_mgr:call_dbsvr_hash(hash_key, "collect", db_group or DBGROUP_AREA, tunpack(db_query))
 end
 
 --{coll_name, selector, single}

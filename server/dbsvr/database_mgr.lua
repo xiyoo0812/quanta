@@ -20,6 +20,7 @@ function DatabaseMgr:__init()
     event_mgr:add_listener(self, "insert")
     event_mgr:add_listener(self, "delete")
     event_mgr:add_listener(self, "update")
+    event_mgr:add_listener(self, "collect")
     event_mgr:add_listener(self, "find_one")
     event_mgr:add_listener(self, "count")
 end
@@ -41,20 +42,29 @@ function DatabaseMgr:get_databese_mgr(db_group)
     return self.database_mgrs[db_group]
 end
 
-function DatabaseMgr:find(db_group, index, coll_name, query, selector, limit, query_num)
+function DatabaseMgr:find(db_group, index, coll_name, selector, fields, limit)
     log_debug("[DatabaseMgr][find]: db_group=%s,index=%s,coll_name=%s", db_group, index, coll_name)
     local database_mgr = self:get_databese_mgr(db_group)
     if database_mgr then
-        return database_mgr:find(index, coll_name, query, selector, limit, query_num)
+        return database_mgr:find(index, coll_name, selector, fields, limit)
     end
     return DB_NOTINIT, "db mgr not init"
 end
 
-function DatabaseMgr:find_one(db_group, index, coll_name, query, selector)
+function DatabaseMgr:collect(db_group, coll_name, selector, fields, limit)
+    log_debug("[DatabaseMgr][collect]: db_group=%s,coll_name=%s", db_group, coll_name)
+    local database_mgr = self:get_databese_mgr(db_group)
+    if database_mgr then
+        return database_mgr:collect(coll_name, selector, fields, limit)
+    end
+    return DB_NOTINIT, "db mgr not init"
+end
+
+function DatabaseMgr:find_one(db_group, index, coll_name, selector, fields)
     log_debug("[DatabaseMgr][find_one]: db_group=%s,index=%s,coll_name=%s", db_group, index, coll_name)
     local database_mgr = self:get_databese_mgr(db_group)
     if database_mgr then
-        return database_mgr:find_one(index, coll_name, query, selector)
+        return database_mgr:find_one(index, coll_name, selector, fields)
     end
     return DB_NOTINIT, "db mgr not init"
 end

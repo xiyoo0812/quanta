@@ -186,39 +186,46 @@ function MongoDB:count(collection, selector, limit, skip)
     return succ, mtointeger(doc.n)
 end
 
-function MongoDB:find_one(collection, query, selector)
+function MongoDB:find_one(collection, selector, fields)
     local full_name = self.name .. "." .. collection
-    local bson_query = query and bson_encode(query)
     local bson_selector = selector and bson_encode(selector)
-    local succ, doc = self:_query(full_name, bson_query, bson_selector)
+    local bson_fields = fields and bson_encode(fields)
+    local succ, doc = self:_query(full_name, bson_selector, bson_fields)
     if succ then
         return succ, bson_decode(doc)
     end
     return succ, doc
 end
 
-function MongoDB:find(collection, query, selector, limit, query_num)
-    local real_limit = limit or 0
-    local real_query_num = query_num or real_limit
+function MongoDB:build_results(documents, results, limit)
+    for i, _doc in ipairs(documents) do
+        if limit and #results >= limit then
+            break
+        end
+        tinsert(results, bson_decode(_doc))
+    end
+end
+
+function MongoDB:find(collection, selector, fields, limit, query_num)
+    local query_num_once = query_num or limit or 100
     local full_name = self.name .. "." .. collection
-    local bson_query = query and bson_encode(query)
     local bson_selector = selector and bson_encode(selector)
-    local succ, doc, cursor, documents = self:_query(full_name, bson_query, bson_selector, real_query_num)
+    local bson_fields = fields and bson_encode(fields)
+    local succ, doc, cursor, documents = self:_query(full_name, bson_selector, bson_fields, query_num_once)
     if not succ then
         return self:mongo_result(succ, doc)
     end
     local results = {}
-    for _, _doc in ipairs(documents) do
-        tinsert(results, bson_decode(_doc))
-    end
-    while cursor and #results < real_limit do
-        local _succ, _cursor_oe, _documents = self:_more(full_name, cursor, real_query_num)
+    self:build_results(documents, results, limit)
+    while cursor do
+        if limit and #results >= limit then
+            break
+        end
+        local _succ, _cursor_oe, _documents = self:_more(full_name, cursor, query_num_once)
         if not _succ then
             return _succ, _cursor_oe
         end
-        for _, _doc in ipairs(_documents) do
-            tinsert(results, bson_decode(_doc))
-        end
+        self:build_results(_documents, results, limit)
         cursor = _cursor_oe
     end
     return true, results
