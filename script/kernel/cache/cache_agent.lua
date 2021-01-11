@@ -12,18 +12,14 @@ local KernCode      = enum("KernCode")
 local event_mgr     = quanta.event_mgr
 local router_mgr    = quanta.router_mgr
 
---构建cache_key
-local function build_hash_key(cache_id, hash_key)
-    return cache_id * 1000 + hash_key
-end
-
 local CacheAgent = singleton()
 local prop = property(CacheAgent)
-prop:accessor("cache_count", 1)     -- cache的数量
+prop:accessor("area_num", 1)        -- area的数量
+prop:accessor("cache_num", 1)       -- cache的数量
 prop:accessor("cache_svrs", {})     -- map<cid, quanta_id>
 function CacheAgent:__init()
     self.area_id = env_number("QUANTA_AREA_ID")
-    self.cache_count = env_number("QUANTA_CACHE_COUNT")
+    self.cache_num = env_number("QUANTA_CACHE_COUNT")
 
     router_mgr:watch_service_ready(self, "cachesvr")
     router_mgr:watch_service_close(self, "cachesvr")
@@ -31,7 +27,7 @@ end
 
 -- 加载
 function CacheAgent:load(primary_key, cache_name, db_area)
-    local load_db_area = db_area or self.area_id
+    local load_db_area = self:find_db_area(db_area)
     local cachesvr_id = self:find_cachesvr_id(primary_key, load_db_area)
     if not cachesvr_id then
         log_err("[CacheAgent][find] cachesvr not online: primary_key=%s,cache_name=%s", primary_key, cache_name)
@@ -48,7 +44,8 @@ end
 
 -- 修改
 function CacheAgent:update(primary_key, table_name, table_data, cache_name, db_area)
-    local cachesvr_id = self:find_cachesvr_id(primary_key, db_area or self.area_id)
+    local area_id = self:find_db_area(db_area)
+    local cachesvr_id = self:find_cachesvr_id(primary_key, area_id)
     if not cachesvr_id then
         log_err("[CacheAgent][update] cachesvr not online: cache_name=%s,table_name=%s,primary_key=%s", cache_name, table_name, primary_key)
         return KernCode.RPC_FAILED
@@ -64,7 +61,8 @@ end
 
 -- 修改kv
 function CacheAgent:update_key(primary_key, table_name, table_key, table_value, cache_name, db_area)
-    local cachesvr_id = self:find_cachesvr_id(primary_key, db_area or self.area_id)
+    local area_id = self:find_db_area(db_area)
+    local cachesvr_id = self:find_cachesvr_id(primary_key, area_id)
     if not cachesvr_id then
         log_err("[CacheAgent][update_key] cachesvr not online: cache_name=%s,table_name=%s,primary_key=%s", cache_name, table_name, primary_key)
         return KernCode.RPC_FAILED
@@ -80,7 +78,8 @@ end
 
 -- 删除
 function CacheAgent:delete(primary_key, cache_name, db_area)
-    local cachesvr_id = self:find_cachesvr_id(primary_key, db_area or self.area_id)
+    local area_id = self:find_db_area(db_area)
+    local cachesvr_id = self:find_cachesvr_id(primary_key, area_id)
     if not cachesvr_id then
         log_err("[CacheAgent][delete] cachesvr not online: cache_name=%s,primary_key=%s", cache_name, primary_key)
         return KernCode.RPC_FAILED
@@ -96,7 +95,8 @@ end
 
 -- flush
 function CacheAgent:flush(primary_key, cache_name, db_area)
-    local cachesvr_id = self:find_cachesvr_id(primary_key, db_area or self.area_id)
+    local area_id = self:find_db_area(db_area)
+    local cachesvr_id = self:find_cachesvr_id(primary_key, area_id)
     if not cachesvr_id then
         log_err("[CacheAgent][flush] cachesvr not online: cache_name=%s,primary_key=%s", cache_name, primary_key)
         return KernCode.RPC_FAILED
@@ -139,12 +139,15 @@ function CacheAgent:on_service_ready(quanta_id, service_name)
     if not self.cache_svrs[cache_area] then
         self.cache_svrs[cache_area] = {}
     end
-    local cache_key = build_hash_key(cache_area, cache_hash)
+    if cache_area > self.area_num then
+        self.area_num = cache_area
+    end
+    local cache_key = self:build_hash_key(cache_hash, cache_area)
     self.cache_svrs[cache_key] = quanta_id
     log_info("[CacheAgent][on_service_ready] add cachesvr node: cache_area=%s, hash_key=%s", cache_area, cache_hash)
     --通知缓存重建
     if cache_area == self.area_id then
-        event_mgr:notify_listener("evt_cache_rebuild", cache_hash, self.cache_count)
+        event_mgr:notify_listener("evt_cache_rebuild", cache_hash, self.cache_num)
     end
 end
 
@@ -159,10 +162,26 @@ function CacheAgent:on_service_close(quanta_id, service_name)
     end
 end
 
+--find db_area
+function CacheAgent:find_db_area(db_area)
+    if not db_area then
+        return self.area_id
+    end
+    if type(db_area) == "number" then
+        return db_area
+    end
+    return hash_code(db_area, self.area_num)
+end
+
+--构建cache_key
+function CacheAgent:build_hash_key(cache_id, hash_key)
+    return cache_id * 1000 + hash_key
+end
+
 --根据小区和哈希key获取对应的cachesvr节点id
-function CacheAgent:find_cachesvr_id(hash_key, area_id)
-    local key = hash_code(hash_key, self.cache_count)
-    local cache_key = build_hash_key(area_id, key)
+function CacheAgent:find_cachesvr_id(primary_key, area_id)
+    local hash_key = hash_code(primary_key, self.cache_num)
+    local cache_key = self:build_hash_key(hash_key, area_id)
     return self.cache_svrs[cache_key]
 end
 
