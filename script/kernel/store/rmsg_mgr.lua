@@ -10,7 +10,7 @@ local db_agent      = quanta.db_agent
 local check_success = utility.check_success
 
 local DBGroup       = enum("DBGroup")
-local GlobalDB      = enum("GlobalDB")
+local DBGROUP_HASH  = DBGroup.HASH
 
 local RmsgMgr = class()
 
@@ -22,7 +22,7 @@ end
 -- 查询未处理消息列表
 function RmsgMgr:list_message(to)
     local query = {self.db_table_name, {to = to, deal_time = 0}, {_id = 0}}
-    local ok, code, result = db_agent:find(to, query, DBGroup.GLOBAL, GlobalDB.RMSG)
+    local ok, code, result = db_agent:find(to, query, DBGROUP_HASH, to)
     if ok and check_success(code) then
         tsort(result, function(a, b)
             return a.time < b.time
@@ -35,13 +35,13 @@ end
 function RmsgMgr:deal_message(to, uuid)
     log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
     local query = {self.db_table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid}}
-    return db_agent:update(to, query, DBGroup.GLOBAL, GlobalDB.RMSG)
+    return db_agent:update(to, query, DBGROUP_HASH, to)
 end
 
 -- 删除消息
 function RmsgMgr:delete_message(to, uuid)
     log_info("[RmsgMgr][delete_message] delete message: %s", uuid)
-    return db_agent:delete(to, {self.db_table_name, {uuid = uuid}}, DBGroup.GLOBAL, GlobalDB.RMSG)
+    return db_agent:delete(to, {self.db_table_name, {uuid = uuid}}, DBGROUP_HASH, to)
 end
 
 -- 发送消息
@@ -54,7 +54,7 @@ function RmsgMgr:send_message(from, to, typ, body, id)
         time = quanta.now,
         deal_time = 0,
     }
-    local ok = db_agent:global_insert(to, {self.db_table_name, doc}, DBGroup.GLOBAL, GlobalDB.RMSG)
+    local ok = db_agent:global_insert(to, {self.db_table_name, doc}, DBGROUP_HASH, to)
     if not ok then
         log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
     else
