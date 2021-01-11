@@ -31,6 +31,7 @@ prop:accessor("cache_rows", {})         -- cache rows
 prop:accessor("database_id", 0)         -- database id
 prop:accessor("update_count", 0)        -- update count
 prop:accessor("update_time", 0)         -- update time
+prop:accessor("flush_time", 0)          -- flush time
 prop:accessor("main_table", "")         -- main table
 prop:accessor("active_tick", 0)         -- active tick
 prop:accessor("records", {})            -- records
@@ -47,6 +48,7 @@ function CacheObj:__init(cache_conf, primary_value, database_id)
     self.expire_time    = cache_conf.expire_time
     self.store_time     = cache_conf.store_time
     self.store_count    = cache_conf.store_count
+    self.flush_time     = cache_conf.flush_time
 
     local databese_mgr = cache_mgr:get_databese_mgr(cache_conf.cache_group)
     if databese_mgr:is_hash_mode() then
@@ -104,13 +106,17 @@ function CacheObj:is_dirty()
 end
 
 function CacheObj:expired(tick)
-    if not self.flush then
-        return false
-    end
     if next(self.dirty_records) then
         return false
     end
-    return (self.active_tick + self.expire_time) < tick
+    local escape_time = tick - self.active_tick
+    if self.flush_time > 0 then
+        return escape_time > self.flush_time
+    end
+    if not self.flush then
+        return false
+    end
+    return escape_time > self.expire_time
 end
 
 function CacheObj:check_store(now)
