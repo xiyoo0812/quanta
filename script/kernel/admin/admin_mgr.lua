@@ -13,7 +13,6 @@ local sformat       = string.format
 local env_get       = environ.get
 local env_number    = environ.number
 local log_info      = logger.info
-local log_err       = logger.err
 local log_debug     = logger.debug
 
 local KernCode      = enum("KernCode")
@@ -66,7 +65,7 @@ function AdminMgr:report_cmd(cmd_list, service_id)
     }
     local code, res = web_mgr:forward_request("gm_report", "call_post", {}, jencode(web_cmd_argss))
     if code ~= 200 then
-        log_err("[AdminMgr][report_cmd] failed!")
+        --log_err("[AdminMgr][report_cmd] failed!")
         return KernCode.RPC_FAILED, res
     end
 
