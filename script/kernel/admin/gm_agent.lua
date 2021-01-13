@@ -42,19 +42,14 @@ function GMAgent:report_cmd()
     for _, cmd in pairs(self.cmd_list) do
         tinsert(cmd_list, cmd)
     end
-    thread_mgr:fork(function()
-        while router_mgr do
-            thread_mgr:sleep(PeriodTime.SECOND_MS)
-            if self.report_svr_id then
-                local ok, code = router_mgr:call_target(self.report_svr_id, "rpc_report_gm_cmd", cmd_list, quanta.service_id)
-                if ok and check_success(code) then
-                    log_info("[GMAgent][report_cmd] success!")
-                    break
-                end
-                log_err("[GMAgent][report_cmd] failed! ok:%s, code:%s", ok, code)
-            end
-            break
+    thread_mgr:success_call(PeriodTime.SECOND_MS, function()
+        local ok, code = router_mgr:call_target(self.report_svr_id, "rpc_report_gm_cmd", cmd_list, quanta.service_id)
+        if ok and check_success(code) then
+            log_info("[GMAgent][report_cmd] success!")
+            return true
         end
+        log_err("[GMAgent][report_cmd] failed! ok:%s, code:%s", ok, code)
+        return false
     end)
 end
 

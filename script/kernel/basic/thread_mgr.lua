@@ -105,6 +105,17 @@ function ThreadMgr:build_session_id()
     return self.session_id
 end
 
+function ThreadMgr:success_call(period, success_func)
+    self:fork(function()
+        while true do
+            if success_func() then
+                break
+            end
+            self:sleep(period)
+        end
+    end)
+end
+
 quanta.thread_mgr = ThreadMgr()
 
 return ThreadMgr

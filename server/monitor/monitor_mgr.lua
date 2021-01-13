@@ -63,23 +63,21 @@ end
 
 --上报节点状态
 function MonitorMgr:post_node_status(client, status)
-    thread_mgr:fork(function()
-        while true do
-            local data = {
-                app_id  = self.app_id,
-                chan_id = self.chan_id,
-                deploy  = self.deploy,
-                service = client.service_id,
-                index   = client.index,
-                id      = client.id,
-                status  = status,
-            }
-            thread_mgr:sleep(PeriodTime.SECOND_MS)
-            if self:forward_request("node_status", "call_post", nil, jencode(data)) == 0 then
-                log_info("[MonitorMgr][post_node_status] node : %s success!", client.name)
-                break
-            end
+    local data = {
+        app_id  = self.app_id,
+        chan_id = self.chan_id,
+        deploy  = self.deploy,
+        service = client.service_id,
+        index   = client.index,
+        id      = client.id,
+        status  = status,
+    }
+    thread_mgr:success_call(PeriodTime.SECOND_MS, function()
+        if self:forward_request("node_status", "call_post", nil, jencode(data)) == 0 then
+            log_info("[MonitorMgr][post_node_status] node : %s success!", client.name)
+            return true
         end
+        return false
     end)
 end
 
