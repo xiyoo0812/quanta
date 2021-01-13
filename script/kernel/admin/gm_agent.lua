@@ -2,7 +2,6 @@
 
 local tunpack       = table.unpack
 local tinsert       = table.insert
-local log_err       = logger.err
 local log_info      = logger.info
 local check_success = utility.check_success
 
@@ -48,7 +47,6 @@ function GMAgent:report_cmd()
             log_info("[GMAgent][report_cmd] success!")
             return true
         end
-        log_err("[GMAgent][report_cmd] failed! ok:%s, code:%s", ok, code)
         return false
     end)
 end
