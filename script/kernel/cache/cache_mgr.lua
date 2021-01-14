@@ -134,7 +134,6 @@ function CacheMgr:load_cache_impl(quanta_id, cache_list, conf, primary_key)
     --开始加载
     local CacheObj = import("kernel/cache/cache_obj.lua")
     local cache_obj = CacheObj(conf, primary_key, self.cache_area)
-    cache_obj:set_lock_node_id(quanta_id)
     cache_list[primary_key] = cache_obj
     local code = cache_obj:load()
     if check_failed(code) then
@@ -157,9 +156,11 @@ function CacheMgr:rpc_cache_rebuild(quanta_id, req_data)
     for _, primary_key in pairs(primary_keys) do
         local cache_obj = cache_list[primary_key]
         if not cache_obj then
-            local code = self:load_cache_impl(quanta_id, cache_list, conf, primary_key)
+            local code, new_obj = self:load_cache_impl(quanta_id, cache_list, conf, primary_key)
             if check_failed(code) then
                 self.rebuild_objs[primary_key] = {quanta_id, cache_list, conf}
+            else
+                new_obj:set_lock_node_id(quanta_id)
             end
         end
     end
@@ -187,14 +188,10 @@ function CacheMgr:rpc_cache_load(quanta_id, load_area, req_data)
             log_err("[CacheMgr][rpc_cache_load] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
             return CacheCode.CACHE_IS_HOLDING
         end
-        cache_obj:set_flush(false)
-        cache_obj:set_lock_node_id(quanta_id)
+        cache_obj:active()
     end
-    if load_area ~= self.cache_area then
-        --支持只读机制，如果加载的dbid和本地的dbid不一致，允许加载，但是不允许修改
-        log_info("[CacheMgr][rpc_cache_load] ready only,load_area=%s,cache_area=%s,cache=%s,primary=%s", load_area, self.cache_area, cache_name, primary_key)
-        cache_obj:set_lock_node_id(nil)
-        cache_obj:set_flush(true)
+    if load_area == self.cache_area then
+        cache_obj:set_lock_node_id(quanta_id)
     end
     log_info("[CacheMgr][rpc_cache_load] cache=%s,primary=%s", cache_name, primary_key)
     return SUCCESS, cache_obj:pack()
@@ -213,13 +210,13 @@ function CacheMgr:rpc_cache_update(quanta_id, req_data)
         log_err("[CacheMgr][rpc_cache_update] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_PKEY_IS_NOT_EXIST
     end
-    if quanta_id ~= cache_obj:get_lock_node_id() then
-        log_err("[CacheMgr][rpc_cache_update] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
-        return CacheCode.CACHE_KEY_LOCK_FAILD
-    end
     if cache_obj:is_holding() then
         log_err("[CacheMgr][rpc_cache_update] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_IS_HOLDING
+    end
+    if quanta_id ~= cache_obj:get_lock_node_id() then
+        log_err("[CacheMgr][rpc_cache_update] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
+        return CacheCode.CACHE_KEY_LOCK_FAILD
     end
     local code = cache_obj:update(table_name, table_data, flush)
     if cache_obj:is_dirty() then
@@ -241,13 +238,13 @@ function CacheMgr:rpc_cache_update_key(quanta_id, req_data)
         log_err("[CacheMgr][rpc_cache_update_key] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_PKEY_IS_NOT_EXIST
     end
-    if quanta_id ~= cache_obj:get_lock_node_id() then
-        log_err("[CacheMgr][rpc_cache_update_key] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
-        return CacheCode.CACHE_KEY_LOCK_FAILD
-    end
     if cache_obj:is_holding() then
         log_err("[CacheMgr][rpc_cache_delete] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_IS_HOLDING
+    end
+    if quanta_id ~= cache_obj:get_lock_node_id() then
+        log_err("[CacheMgr][rpc_cache_update_key] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
+        return CacheCode.CACHE_KEY_LOCK_FAILD
     end
     local code = cache_obj:update_key(table_name, table_key, table_value, flush)
     if cache_obj:is_dirty() then
@@ -296,13 +293,13 @@ function CacheMgr:rpc_cache_flush(quanta_id, req_data)
         log_err("[CacheMgr][rpc_cache_flush] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_PKEY_IS_NOT_EXIST
     end
-    if quanta_id ~= cache_obj:get_lock_node_id() then
-        log_err("[CacheMgr][rpc_cache_flush] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
-        return CacheCode.CACHE_KEY_LOCK_FAILD
-    end
     if cache_obj:is_holding() then
         log_err("[CacheMgr][rpc_cache_flush] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_IS_HOLDING
+    end
+    if quanta_id ~= cache_obj:get_lock_node_id() then
+        log_err("[CacheMgr][rpc_cache_flush] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
+        return CacheCode.CACHE_KEY_LOCK_FAILD
     end
     if cache_obj:save() then
         cache_obj:set_flush(true)

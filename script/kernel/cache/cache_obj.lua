@@ -32,7 +32,6 @@ prop:accessor("database_id", 0)         -- database id
 prop:accessor("update_count", 0)        -- update count
 prop:accessor("update_time", 0)         -- update time
 prop:accessor("flush_time", 0)          -- flush time
-prop:accessor("main_table", "")         -- main table
 prop:accessor("active_tick", 0)         -- active tick
 prop:accessor("records", {})            -- records
 prop:accessor("dirty_records", {})      -- dirty records
@@ -93,6 +92,11 @@ function CacheObj:load()
     end
 end
 
+function CacheObj:active()
+    self.flush = false
+    self.active_tick = quanta.now
+end
+
 function CacheObj:pack()
     local res = {}
     for tab_name, record in pairs(self.records) do
@@ -149,12 +153,12 @@ function CacheObj:update(tab_name, tab_data, flush)
         log_err("[CacheObj][update] cannot find record! cache:%s, table:%s", self.cache_table, tab_name)
         return CacheCode.CACHE_KEY_IS_NOT_EXIST
     end
+    self.flush = false
     self.active_tick = quanta.now
     self.update_count = self.update_count + 1
-    local code =  record:update(tab_data, flush)
+    local code = record:update(tab_data, flush)
     if record:is_dirty() then
         self.dirty_records[record] = true
-        self:check_store(quanta.now)
     end
     return code
 end
@@ -165,12 +169,12 @@ function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
         log_err("[CacheObj][update_key] cannot find record! cache:%s, table:%s", self.cache_table, tab_name)
         return CacheCode.CACHE_KEY_IS_NOT_EXIST
     end
+    self.flush = false
     self.active_tick = quanta.now
     self.update_count = self.update_count + 1
     local code = record:update_key(tab_key, tab_value, flush)
     if record:is_dirty() then
         self.dirty_records[record] = true
-        self:check_store(quanta.now)
     end
     return code
 end

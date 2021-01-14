@@ -43,14 +43,14 @@ function CacheAgent:load(primary_key, cache_name, db_area)
 end
 
 -- 修改
-function CacheAgent:update(primary_key, table_name, table_data, cache_name, db_area)
+function CacheAgent:update(primary_key, table_name, table_data, cache_name, flush, db_area)
     local area_id = self:find_db_area(db_area)
     local cachesvr_id = self:find_cachesvr_id(primary_key, area_id)
     if not cachesvr_id then
         log_err("[CacheAgent][update] cachesvr not online: cache_name=%s,table_name=%s,primary_key=%s", cache_name, table_name, primary_key)
         return KernCode.RPC_FAILED
     end
-    local req_data = { cache_name or "player", primary_key, table_name, table_data }
+    local req_data = { cache_name or "player", primary_key, table_name, table_data, flush }
     local ok, code = router_mgr:call_target(cachesvr_id, "rpc_cache_update", quanta.id, req_data)
     if not ok or check_failed(code) then
         log_err("[CacheAgent][update] faild: code=%s cache_name=%s,table_name=%s,primary_key=%s", code, cache_name, table_name, primary_key)
@@ -60,7 +60,7 @@ function CacheAgent:update(primary_key, table_name, table_data, cache_name, db_a
 end
 
 -- 修改kv
-function CacheAgent:update_key(primary_key, table_name, table_key, table_value, cache_name, db_area)
+function CacheAgent:update_key(primary_key, table_name, table_key, table_value, cache_name, flush, db_area)
     local area_id = self:find_db_area(db_area)
     local cachesvr_id = self:find_cachesvr_id(primary_key, area_id)
     if not cachesvr_id then
