@@ -559,23 +559,20 @@ private:
 					loop = false;
 					continue;
 				}
-				if (!log_filter_->is_filter(logmsg->level()))
+				if (!log_daemon_)
 				{
-					if (!log_daemon_)
+					std_dest_->write(logmsg);
+				}
+				auto iter = dest_lvls_.find(logmsg->level());
+				if (iter != dest_lvls_.end())
+				{
+					iter->second->write(logmsg);
+				}
+				else
+				{
+					for (auto dest : dest_names_)
 					{
-						std_dest_->write(logmsg);
-					}
-					auto iter = dest_lvls_.find(logmsg->level());
-					if (iter != dest_lvls_.end())
-					{
-						iter->second->write(logmsg);
-					}
-					else
-					{
-						for (auto dest : dest_names_)
-						{
-							dest.second->write(logmsg);
-						}
+						dest.second->write(logmsg);
 					}
 				}
 				message_pool_->release(logmsg);
