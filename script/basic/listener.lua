@@ -5,6 +5,7 @@ local xpcall    = xpcall
 local tpack     = table.pack
 local tunpack   = table.unpack
 local log_err   = logger.err
+local log_warn  = logger.warn
 
 local Listener = class()
 function Listener:__init()
@@ -29,7 +30,7 @@ end
 
 function Listener:add_listener(listener, event)
     if self._listeners[event] then
-        log_err("add_listener event(%s) repeat!", event)
+        log_warn("[Listener][add_listener] event(%s) repeat!", event)
         return
     end
     self._listeners[event] = listener
@@ -41,7 +42,7 @@ end
 
 function Listener:add_cmd_listener(listener, cmd, event, verifier)
     if self._commands[cmd] then
-        log_err("add_cmd_listener cmd(%s) repeat!", cmd)
+        log_warn("[Listener][add_cmd_listener] cmd(%s) repeat!", cmd)
         return
     end
     self._commands[cmd] = {listener, event}
@@ -60,7 +61,7 @@ function Listener:notify_trigger(event, ...)
         if trigger[event] then
             local ok, ret = xpcall(trigger[event], debug.traceback, trigger, ...)
             if not ok then
-                log_err("notifytrigger xpcall %s:%s failed, err : %s!", trigger, event, ret)
+                log_err("[Listener][notify_listener] xpcall %s:%s failed, err : %s!", trigger, event, ret)
             end
         end
     end
@@ -69,12 +70,12 @@ end
 function Listener:notify_listener(event, ...)
     local listener = self._listeners[event]
     if not listener or not listener[event] then
-        log_err("event %s handler is nil!", event)
+        log_warn("[Listener][notify_listener] event %s handler is nil!", event)
         return tpack(false, "event handler is nil")
     end
     local result = tpack(pcall(listener[event], listener, ...))
     if not result[1] then
-        log_err("notify_listener event(%s) failed, because: %s!", event, result[2])
+        log_err("[Listener][notify_listener] notify_listener event(%s) failed, because: %s!", event, result[2])
     end
     return result
 end
@@ -82,7 +83,7 @@ end
 function Listener:notify_command(cmd, ...)
     local listener_ctx = self._commands[cmd]
     if not listener_ctx then
-        log_err("command %s handler is nil!", cmd)
+        log_warn("[Listener][notify_command] command %s handler is nil!", cmd)
         return tpack(false, "command handler is nil")
     end
     --校验参数
@@ -102,12 +103,12 @@ function Listener:notify_command(cmd, ...)
     --执行事件
     local listener, event = tunpack(listener_ctx)
     if not listener[event] then
-        log_err("command %s handler is nil!", cmd)
+        log_err("[Listener][notify_command] command %s handler is nil!", cmd)
         return tpack(false, "command handler is nil")
     end
     local result = tpack(pcall(listener[event], listener, ...))
     if not result[1] then
-        log_err("notify_command event(%s) failed, because: %s!", event, result[2])
+        log_err("[Listener][notify_command] notify event(%s) failed, because: %s!", event, result[2])
     end
     return result
 end
