@@ -8,6 +8,7 @@ local otime     = os.time
 local mabs      = math.abs
 local tinsert   = table.insert
 local sformat   = string.format
+local dgetinfo  = debug.getinfo
 local file_time = quanta.get_file_time
 
 local load_files    = {}
@@ -95,7 +96,8 @@ end
 function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then
-        llog.warn(sformat("[sandbox][global] quanta get global %s not initial", name))
+        local info = dgetinfo(2, "S")
+        llog.warn(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
         return
     end
     return global_obj
