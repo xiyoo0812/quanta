@@ -7,7 +7,7 @@ local KernCode      = enum("KernCode")
 local SUCCESS       = KernCode.SUCCESS
 local MONGO_FAILED  = KernCode.MONGO_FAILED
 
-local config_mgr    = quanta.config_mgr
+local config_mgr    = quanta.get("config_mgr")
 
 local MongoMgr = class()
 local prop = property(MongoMgr)

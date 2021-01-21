@@ -22,11 +22,10 @@ local env_number    = environ.number
 local get_time_ms   = quanta.get_time_ms
 local collectgarbage= collectgarbage
 
-local timer_mgr     = quanta.timer_mgr
-local config_mgr    = quanta.config_mgr
-local socket_mgr    = quanta.socket_mgr
-local thread_mgr    = quanta.thread_mgr
-local perfeval_mgr  = quanta.perfeval_mgr
+local timer_mgr     = quanta.get("timer_mgr")
+local socket_mgr    = quanta.get("socket_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local perfeval_mgr  = quanta.get("perfeval_mgr")
 
 --quanta启动
 function quanta.startup()
@@ -46,6 +45,7 @@ function quanta.startup()
     quanta.name = service.make_nick(service_name, quanta.index)
     quanta.pid = quanta.get_pid()
     quanta.objects = {}
+    quanta.delays = {}
     quanta.dumps = {}
 end
 
@@ -65,8 +65,7 @@ function quanta.init()
     -- 网络模块初始化
     local lbus = require("luabus")
     local max_conn = env_number("QUANTA_MAX_CONN", 64)
-    socket_mgr = lbus.create_socket_mgr(max_conn)
-    quanta.socket_mgr = socket_mgr
+    quanta.socket_mgr = lbus.create_socket_mgr(max_conn)
 
     -- 初始化统计管理器
     perfeval_mgr:setup()
@@ -74,6 +73,7 @@ function quanta.init()
     import("kernel/proto/protobuf_mgr.lua")
 
     --加载router配置
+    local config_mgr = quanta.get("config_mgr")
     config_mgr:init_table("router", "index")
     --获取路由组配置
     local router_group = service.router_group(quanta.id)

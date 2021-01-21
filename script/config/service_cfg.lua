@@ -2,7 +2,7 @@
 --luacheck: ignore 631
 
 --获取配置表
-local config_mgr = quanta.config_mgr
+local config_mgr = quanta.get("config_mgr")
 local service = config_mgr:get_table("service")
 
 --导出版本号

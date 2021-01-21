@@ -12,9 +12,9 @@ local sid2name      = service.id2name
 local KernCode      = enum("KernCode")
 local RpcServer     = import("kernel/network/rpc_server.lua")
 
-local event_mgr     = quanta.event_mgr
-local socket_mgr    = quanta.socket_mgr
-local config_mgr    = quanta.config_mgr
+local event_mgr     = quanta.get("event_mgr")
+local socket_mgr    = quanta.get("socket_mgr")
+local config_mgr    = quanta.get("config_mgr")
 
 local RouterServer = singleton()
 local prop = property(RouterServer)

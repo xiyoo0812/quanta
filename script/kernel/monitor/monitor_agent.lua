@@ -15,9 +15,9 @@ local KernCode      = enum("KernCode")
 local NetwkTime     = enum("NetwkTime")
 local PeriodTime    = enum("PeriodTime")
 
-local event_mgr     = quanta.event_mgr
-local timer_mgr     = quanta.timer_mgr
-local thread_mgr    = quanta.thread_mgr
+local event_mgr     = quanta.get("event_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local MonitorAgent = singleton()
 local prop = property(MonitorAgent)

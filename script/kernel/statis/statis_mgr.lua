@@ -6,8 +6,8 @@ local log_info      = logger.info
 local sformat       = string.format
 local env_status    = environ.status
 
-local timer_mgr     = quanta.timer_mgr
-local linux_statis  = quanta.linux_statis
+local timer_mgr     = quanta.get("timer_mgr")
+local linux_statis  = quanta.get("linux_statis")
 
 local PeriodTime    = enum("PeriodTime")
 

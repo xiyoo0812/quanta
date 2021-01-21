@@ -3,11 +3,11 @@ local log_err           = logger.err
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 
-local socket_mgr        = quanta.socket_mgr
-local thread_mgr        = quanta.thread_mgr
-local protobuf_mgr      = quanta.protobuf_mgr
-local perfeval_mgr      = quanta.perfeval_mgr
-local statis_mgr        = quanta.statis_mgr
+local socket_mgr        = quanta.get("socket_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
+local protobuf_mgr      = quanta.get("protobuf_mgr")
+local perfeval_mgr      = quanta.get("perfeval_mgr")
+local statis_mgr        = quanta.get("statis_mgr")
 
 local FlagMask          = enum("FlagMask")
 local NetwkTime         = enum("NetwkTime")

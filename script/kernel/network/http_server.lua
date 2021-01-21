@@ -8,8 +8,8 @@ local log_info      = logger.info
 local json_encode   = ljson.encode
 local ssplit        = string_ext.split
 
-local http          = quanta.http
-local thread_mgr    = quanta.thread_mgr
+local http          = quanta.get("http")
+local thread_mgr    = quanta.get("thread_mgr")
 local server        = http:create_server()
 
 local HttpServer = class()

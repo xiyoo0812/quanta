@@ -2,8 +2,8 @@
 import("driver/http.lua")
 local log_err       = logger.err
 
-local http          = quanta.http
-local event_mgr     = quanta.event_mgr
+local http          = quanta.get("http")
+local event_mgr     = quanta.get("event_mgr")
 
 local ProxyMgr = singleton()
 

@@ -9,7 +9,7 @@ local KernCode      = enum("KernCode")
 local CacheCode     = enum("CacheCode")
 local SUCCESS       = KernCode.SUCCESS
 
-local cache_mgr     = quanta.cache_mgr
+local cache_mgr     = quanta.get("cache_mgr")
 local CacheRow      = import("kernel/cache/cache_row.lua")
 
 local CacheObj = class()

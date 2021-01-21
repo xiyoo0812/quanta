@@ -55,15 +55,15 @@ end
 local function try_load(node)
     local trunk = search_load(node)
     if not trunk then
-        llog.error(sformat("load file: %s ... [failed]", node.filename))
+        llog.error(sformat("[sandbox][try_load] load file: %s ... [failed]", node.filename))
         return
     end
     local ok, res = pcall(trunk)
     if not ok then
-        llog.error(sformat("exec file: %s ... [failed]\nerror : %s", node.filename, res))
+        llog.error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
         return
     end
-    llog.info(sformat("load file: %s ... [ok]", node.filename))
+    llog.info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
     return res
 end
 
@@ -82,7 +82,7 @@ function import(filename)
     return node.res
 end
 
-quanta.reload = function()
+function quanta.reload()
     local now = otime()
     for path, node in pairs(load_files) do
         local filetime = file_time(node.fullpath)
@@ -90,4 +90,13 @@ quanta.reload = function()
             try_load(node)
         end
     end
+end
+
+function quanta.get(name)
+    local global_obj = quanta[name]
+    if not quanta[name] then
+        llog.warn(sformat("[sandbox][global] quanta get global %s not initial", name))
+        return
+    end
+    return global_obj
 end

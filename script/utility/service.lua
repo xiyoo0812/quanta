@@ -9,7 +9,7 @@ local ssub          = string.sub
 local sfind         = string.find
 local sformat       = string.format
 
-local config_mgr    = quanta.config_mgr
+local config_mgr    = quanta.get("config_mgr")
 
 --服务组常量
 local SERVICES = {}

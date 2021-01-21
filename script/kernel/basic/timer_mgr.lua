@@ -4,7 +4,7 @@ local new_guid  = guid.new
 local tunpack   = table.unpack
 local tinsert   = table.insert
 
-local thread_mgr = quanta.thread_mgr
+local thread_mgr = quanta.get("thread_mgr")
 
 local TimerMgr = singleton()
 function TimerMgr:__init()

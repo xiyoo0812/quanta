@@ -10,7 +10,7 @@ local env_get       = environ.get
 local log_err       = logger.err
 local log_debug     = logger.debug
 
-local http          = quanta.http
+local http          = quanta.get("http")
 
 local WebMgr = singleton()
 local prop = property(WebMgr)

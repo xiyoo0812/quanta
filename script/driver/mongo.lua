@@ -19,8 +19,9 @@ local empty_bson    = bson_encode {}
 local NetwkTime     = enum("NetwkTime")
 local PeriodTime    = enum("PeriodTime")
 
-local timer_mgr     = quanta.timer_mgr
-local thread_mgr    = quanta.thread_mgr
+local poll          = quanta.get("poll")
+local timer_mgr     = quanta.get("timer_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local MongoDB = class()
 local prop = property(MongoDB)
@@ -54,7 +55,7 @@ end
 
 function MongoDB:upadte()
     if not self.sock then
-        local sock = Socket(quanta.poll, self)
+        local sock = Socket(poll, self)
         if sock:connect(self.ip, self.port) then
             log_info("[MongoDB][upadte] connect db(%s:%s) success!", self.ip, self.port)
             self.sock = sock

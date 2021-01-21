@@ -6,8 +6,8 @@ local tinsert       = table.insert
 local ssplit        = string_ext.split
 local serialize     = logger.serialize
 
-local event_mgr     = quanta.event_mgr
-local timer_mgr     = quanta.timer_mgr
+local event_mgr     = quanta.get("event_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
 
 local PeriodTime    = enum("PeriodTime")
 

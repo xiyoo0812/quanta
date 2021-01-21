@@ -7,9 +7,9 @@ local check_success = utility.check_success
 
 local PeriodTime    = enum("PeriodTime")
 
-local router_mgr    = quanta.router_mgr
-local thread_mgr    = quanta.thread_mgr
-local event_mgr     = quanta.event_mgr
+local router_mgr    = quanta.get("router_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local event_mgr     = quanta.get("event_mgr")
 
 local GMAgent = singleton()
 local prop = property(GMAgent)

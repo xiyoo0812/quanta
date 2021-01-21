@@ -7,11 +7,11 @@ local qxpcall       = quanta.xpcall
 local env_status    = environ.status
 local env_number    = environ.number
 
-local event_mgr     = quanta.event_mgr
-local thread_mgr    = quanta.thread_mgr
-local protobuf_mgr  = quanta.protobuf_mgr
-local perfeval_mgr  = quanta.perfeval_mgr
-local statis_mgr    = quanta.statis_mgr
+local event_mgr     = quanta.get("event_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local protobuf_mgr  = quanta.get("protobuf_mgr")
+local perfeval_mgr  = quanta.get("perfeval_mgr")
+local statis_mgr    = quanta.get("statis_mgr")
 
 local FlagMask      = enum("FlagMask")
 local NetwkTime     = enum("NetwkTime")
@@ -47,7 +47,7 @@ function NetServer:setup(ip, port, induce)
         os.exit(1)
     end
     local listen_proto_type = 1
-    local socket_mgr = quanta.socket_mgr
+    local socket_mgr = quanta.get("socket_mgr")
     local real_port = induce and (port + quanta.index - 1) or port
     self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
     if not self.listener then

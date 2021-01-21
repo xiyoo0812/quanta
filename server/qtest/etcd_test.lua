@@ -1,7 +1,7 @@
 -- etcd_test.lua
 local Etcd = import("driver/etcd.lua")
 
-local thread_mgr = quanta.thread_mgr
+local thread_mgr = quanta.get("thread_mgr")
 
 local EtcdTest = singleton()
 function EtcdTest:__init()

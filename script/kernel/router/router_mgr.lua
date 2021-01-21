@@ -11,8 +11,9 @@ local sname2sid     = service.name2sid
 local signal_quit   = signal.quit
 local log_info      = logger.info
 
-local event_mgr     = quanta.event_mgr
-local config_mgr    = quanta.config_mgr
+local event_mgr     = quanta.get("event_mgr")
+local config_mgr    = quanta.get("config_mgr")
+
 local router_db     = config_mgr:get_table("router")
 local service_db    = config_mgr:get_table("service")
 

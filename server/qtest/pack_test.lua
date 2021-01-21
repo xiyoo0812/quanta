@@ -4,7 +4,7 @@ local tconcat       = table.concat
 local log_info      = logger.info
 local sname2sid     = service.name2sid
 
-local router_mgr    = quanta.router_mgr
+local router_mgr    = quanta.get("router_mgr")
 
 local PackTest = singleton()
 function PackTest:__init()

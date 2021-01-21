@@ -11,11 +11,11 @@ local KernCode      = enum("KernCode")
 local NetwkTime     = enum("NetwkTime")
 local SUCCESS       = KernCode.SUCCESS
 
-local event_mgr     = quanta.event_mgr
-local thread_mgr    = quanta.thread_mgr
-local socket_mgr    = quanta.socket_mgr
-local statis_mgr    = quanta.statis_mgr
-local perfeval_mgr  = quanta.perfeval_mgr
+local event_mgr     = quanta.get("event_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local socket_mgr    = quanta.get("socket_mgr")
+local statis_mgr    = quanta.get("statis_mgr")
+local perfeval_mgr  = quanta.get("perfeval_mgr")
 
 local RpcServer = singleton()
 

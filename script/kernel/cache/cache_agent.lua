@@ -1,4 +1,4 @@
--- data_agent.lua
+-- cache_agent.lua
 
 local log_err       = logger.err
 local log_info      = logger.info
@@ -9,8 +9,8 @@ local env_number    = environ.number
 
 local KernCode      = enum("KernCode")
 
-local event_mgr     = quanta.event_mgr
-local router_mgr    = quanta.router_mgr
+local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
 local CacheAgent = singleton()
 local prop = property(CacheAgent)

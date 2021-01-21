@@ -34,7 +34,7 @@ function PerfevalMgr:setup()
 end
 
 function PerfevalMgr:set_perfeval(status)
-    local timer_mgr     = quanta.timer_mgr
+    local timer_mgr = quanta.get("timer_mgr")
     if self.timer_id then
         timer_mgr:unregister(self.timer_id)
     end

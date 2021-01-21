@@ -1,7 +1,7 @@
 -- route_test.lua
 local log_info      = logger.info
 
-local router_mgr    = quanta.router_mgr
+local router_mgr    = quanta.get("router_mgr")
 
 local RouterTest = singleton()
 function RouterTest:__init()

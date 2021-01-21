@@ -6,9 +6,9 @@ local otime         = os.time
 local json_encode   = ljson.encode
 local env_get       = environ.get
 
-local event_mgr     = quanta.event_mgr
-local router_mgr    = quanta.router_mgr
-local thread_mgr    = quanta.thread_mgr
+local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = quanta.get("router_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local PeriodTime    = enum("PeriodTime")
 

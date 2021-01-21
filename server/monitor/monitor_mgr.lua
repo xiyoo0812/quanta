@@ -14,9 +14,9 @@ local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
 
-local http          = quanta.http
-local event_mgr     = quanta.event_mgr
-local thread_mgr    = quanta.thread_mgr
+local http          = quanta.get("http")
+local event_mgr     = quanta.get("event_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local PeriodTime    = enum("PeriodTime")
 

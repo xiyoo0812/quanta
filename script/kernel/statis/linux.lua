@@ -104,11 +104,11 @@ while true do
     if now - tick > 1000 then
         tick = now
         quanta.sleep_ms(500)
-        local cpu_rate = quanta.linux_statis:calc_cpu_rate()
+        local cpu_rate = quanta.get("linux_statis"):calc_cpu_rate()
         print("now cpu use rate:", cpu_rate)
     end
 end
-local res, virt = quanta.linux_statis:calc_memory()
+local res, virt = quanta.get("linux_statis"):calc_memory()
 print("now mem use (res, virt):", res, virt)
 ]]
 

@@ -6,9 +6,9 @@ local log_info      = logger.info
 local serialize     = logger.serialize
 local check_failed  = utility.check_failed
 
-local mongo_mgr     = quanta.mongo_mgr
-local thread_mgr    = quanta.thread_mgr
-local db_agent      = quanta.db_agent
+local mongo_mgr     = quanta.get("mongo_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local db_agent      = quanta.get("db_agent")
 
 local player_id = 689620221291398145
 local row_data  = {bag_items={[2]=1},player_id=689620221291398145}

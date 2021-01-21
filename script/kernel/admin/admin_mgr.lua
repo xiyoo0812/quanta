@@ -17,8 +17,8 @@ local log_debug     = logger.debug
 
 local KernCode      = enum("KernCode")
 
-local web_mgr       = quanta.web_mgr
-local event_mgr     = quanta.event_mgr
+local web_mgr       = quanta.get("web_mgr")
+local event_mgr     = quanta.get("event_mgr")
 
 local AdminMgr = class()
 local prop = property(AdminMgr)

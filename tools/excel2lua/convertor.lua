@@ -97,7 +97,7 @@ local function export_records_to_lua(output, title, records)
     local lines = {}
     tinsert(lines, sformat("--%s.lua", table_name))
     tinsert(lines, "--luacheck: ignore 631\n")
-    tinsert(lines, "--获取配置表\nlocal config_mgr = quanta.config_mgr")
+    tinsert(lines, '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")')
     tinsert(lines, sformat('local %s = config_mgr:get_table("%s")\n', title, title))
     tinsert(lines, sformat("--导出版本号\n%s:set_version(%s)\n", title, version))
 

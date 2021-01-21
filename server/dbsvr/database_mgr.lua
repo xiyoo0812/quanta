@@ -3,7 +3,7 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local env_get       = environ.get
 
-local event_mgr     = quanta.event_mgr
+local event_mgr     = quanta.get("event_mgr")
 
 local DBGroup       = enum("DBGroup")
 local KernCode      = enum("KernCode")

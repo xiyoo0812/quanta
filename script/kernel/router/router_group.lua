@@ -10,8 +10,8 @@ local log_err           = logger.err
 local log_info          = logger.info
 local uhash_code        = utility.hash_code
 
-local timer_mgr         = quanta.timer_mgr
-local thread_mgr        = quanta.thread_mgr
+local timer_mgr         = quanta.get("timer_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 
 local NetwkTime         = enum("NetwkTime")
 

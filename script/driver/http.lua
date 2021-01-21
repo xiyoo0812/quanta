@@ -11,7 +11,7 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local serialize     = logger.serialize
 
-local thread_mgr    = quanta.thread_mgr
+local thread_mgr    = quanta.get("thread_mgr")
 
 local NetwkTime     = enum("NetwkTime")
 

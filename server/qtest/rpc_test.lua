@@ -1,9 +1,9 @@
 -- mongo_test.lua
 local log_debug     = logger.debug
 
-local event_mgr     = quanta.event_mgr
-local thread_mgr    = quanta.thread_mgr
-local router_mgr    = quanta.router_mgr
+local event_mgr     = quanta.get("event_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
 local RpcTest = singleton()
 

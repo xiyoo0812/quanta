@@ -14,9 +14,9 @@ local CacheCode     = enum("CacheCode")
 local PeriodTime    = enum("PeriodTime")
 local SUCCESS       = KernCode.SUCCESS
 
-local event_mgr     = quanta.event_mgr
-local timer_mgr     = quanta.timer_mgr
-local config_mgr    = quanta.config_mgr
+local event_mgr     = quanta.get("event_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
+local config_mgr    = quanta.get("config_mgr")
 
 local obj_table     = config_mgr:init_table("cache_obj", "cache_table")
 local row_table     = config_mgr:init_table("cache_row", "cache_table")

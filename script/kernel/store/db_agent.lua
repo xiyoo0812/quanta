@@ -2,7 +2,7 @@
 local tunpack           = table.unpack
 local env_number        = environ.number
 
-local router_mgr        = quanta.router_mgr
+local router_mgr        = quanta.get("router_mgr")
 
 local DBGroup           = enum("DBGroup")
 local DBGROUP_AREA      = DBGroup.AREA

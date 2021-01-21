@@ -3,11 +3,11 @@ import("driver/http.lua")
 local ljson = require("luacjson")
 ljson.encode_sparse_array(true)
 
-local http          = quanta.http
+local http          = quanta.get("http")
 local json_encode   = ljson.encode
 local serialize     = logger.serialize
 
-local thread_mgr    = quanta.thread_mgr
+local thread_mgr    = quanta.get("thread_mgr")
 
 local HttpTest = singleton()
 function HttpTest:__init()

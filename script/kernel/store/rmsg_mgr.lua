@@ -6,7 +6,7 @@ local new_guid      = guid.new
 local log_err       = logger.err
 local log_info      = logger.info
 
-local db_agent      = quanta.db_agent
+local db_agent      = quanta.get("db_agent")
 local check_success = utility.check_success
 
 local DBGroup       = enum("DBGroup")
