@@ -2,6 +2,7 @@
 local pairs     = pairs
 local tonumber  = tonumber
 local ogetenv   = os.getenv
+local log_info  = logger.info
 local tunpack   = table.unpack
 local sformat   = string.format
 local ssplit    = string_ext.split
@@ -27,11 +28,11 @@ function environ.init()
         QUANTA_ENV.QUANTA_STATIS = 1
         QUANTA_ENV.QUANTA_PERFEVAL = 1
     end
-    print("---------------------environ value dump-------------------")
+    log_info("---------------------environ value dump-------------------")
     for key, _ in pairs(QUANTA_ENV) do
-        print(sformat("%s ----> %s", key, environ.get(key)))
+        log_info(sformat("%s ----> %s", key, environ.get(key)))
     end
-    print("----------------------------------------------------------")
+    log_info("----------------------------------------------------------")
 end
 
 function environ.get(key, def)

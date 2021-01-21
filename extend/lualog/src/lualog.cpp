@@ -61,7 +61,7 @@ int is_filter(lua_State* L)
 		lua_pushboolean(L, log_filter->is_filter((log_level)lua_tointeger(L, 1)));
 		return 1;
 	}
-	lua_pushboolean(L, true);
+	lua_pushboolean(L, false);
 	return 1;
 }
 
@@ -138,9 +138,14 @@ int log(lua_State* L)
 			ctx << log_msg;
 		}
 		lua_pushboolean(L, filter);
-		return 1;
+	} 
+	else
+	{
+		log_ctx<level> ctx(service, source, line);
+		ctx << log_msg;
+		lua_pushboolean(L, true);
 	}
-	return 0;
+	return 1;
 }
 
 void lua_register_function(lua_State* L, const char name[], lua_CFunction func)

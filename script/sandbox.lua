@@ -94,7 +94,7 @@ end
 
 function quanta.get(name)
     local global_obj = quanta[name]
-    if not quanta[name] then
+    if not global_obj then
         llog.warn(sformat("[sandbox][global] quanta get global %s not initial", name))
         return
     end

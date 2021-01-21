@@ -9,10 +9,12 @@ local stdout        = io.stdout
 local ssub          = string.sub
 local schar         = string.char
 local sformat       = string.format
+local dgetinfo      = debug.getinfo
 local tinsert       = table.insert
 local tpack         = table.pack
 local tconcat       = table.concat
 local tarray        = table_ext.is_array
+local is_filter     = llog.is_filter
 
 local LOG_LEVEL = {
     DEBUG   = 1,
@@ -26,13 +28,6 @@ local LOG_LEVEL = {
 local log_input         = false
 local log_buffer        = ""
 
-local function logger_output(method, fmt, ...)
-    local filter = method(sformat(fmt, ...))
-    if filter == nil then
-        return print(sformat(fmt, ...))
-    end
-end
-
 logger = {}
 function logger.init(max_line)
     local log_name  = sformat("%s-%d", quanta.service, quanta.index)
@@ -45,9 +40,7 @@ function logger.init(max_line)
     end
 end
 
-function logger.close()
-    llog.close()
-end
+logger.close = llog.close
 
 function logger.filter(level)
     for _, lvl in pairs(LOG_LEVEL) do
@@ -55,32 +48,42 @@ function logger.filter(level)
     end
 end
 
+local function logger_output(method, fmt, ...)
+    local ok, fmt_log = pcall(sformat, fmt, ...)
+    if not ok then
+        local info = dgetinfo(2, "S")
+        llog.warn(sformat("[logger][output] format failed: %s, source(%s:%s)", fmt_log, info.short_src, info.linedefined))
+        return false
+    end
+    return method(fmt_log)
+end
+
 function logger.debug(fmt, ...)
-    logger_output(llog.debug, fmt, ...)
+    return logger_output(llog.debug, fmt, ...)
 end
 
 function logger.info(fmt, ...)
-    logger_output(llog.info, fmt, ...)
+    return logger_output(llog.info, fmt, ...)
 end
 
 function logger.warn(fmt, ...)
-    logger_output(llog.warn, fmt, ...)
+    return logger_output(llog.warn, fmt, ...)
 end
 
 function logger.dump(fmt, ...)
-    logger_output(llog.dump, fmt, ...)
+    return logger_output(llog.dump, fmt, ...)
 end
 
 function logger.err(fmt, ...)
-    logger_output(llog.error, fmt, ...)
+    return logger_output(llog.error, fmt, ...)
 end
 
 function logger.fatal(fmt, ...)
-    logger_output(llog.fatal, fmt, ...)
+    return logger_output(llog.fatal, fmt, ...)
 end
 
 function logger.serialize(tab)
-    if llog.is_filter(LOG_LEVEL.DEBUG) then
+    if is_filter(LOG_LEVEL.DEBUG) then
         return tab
     end
     local mark = {}

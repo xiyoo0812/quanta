@@ -22,10 +22,9 @@ local env_number    = environ.number
 local get_time_ms   = quanta.get_time_ms
 local collectgarbage= collectgarbage
 
+local socket_mgr    = nil
 local timer_mgr     = quanta.get("timer_mgr")
-local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-local perfeval_mgr  = quanta.get("perfeval_mgr")
 
 --quanta启动
 function quanta.startup()
@@ -65,10 +64,11 @@ function quanta.init()
     -- 网络模块初始化
     local lbus = require("luabus")
     local max_conn = env_number("QUANTA_MAX_CONN", 64)
-    quanta.socket_mgr = lbus.create_socket_mgr(max_conn)
+    socket_mgr = lbus.create_socket_mgr(max_conn)
+    quanta.socket_mgr = socket_mgr
 
     -- 初始化统计管理器
-    perfeval_mgr:setup()
+    quanta.perfeval_mgr:setup()
     import("kernel/statis/statis_mgr.lua")
     import("kernel/proto/protobuf_mgr.lua")
 
