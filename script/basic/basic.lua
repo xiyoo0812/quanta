@@ -40,6 +40,16 @@ function quanta.xpcall_quit(func, format, ...)
     end
 end
 
+function quanta.try_call(func, time, ...)
+    while time > 0 do
+        time = time - 1
+        if func(...) then
+            return true
+        end
+    end
+    return false
+end
+
 --quanta全局变量名字空间
 quanta_const    = quanta_const or {}
 
