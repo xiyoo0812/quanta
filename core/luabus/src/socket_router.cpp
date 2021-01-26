@@ -143,7 +143,7 @@ bool socket_router::do_forward_random(router_header* header, char* data, size_t 
     return false;
 }
 
-bool socket_router::do_forward_broadcast(router_header* header, int source, char* data, size_t data_len)
+bool socket_router::do_forward_broadcast(router_header* header, int source, char* data, size_t data_len, size_t& boardcast_num)
 {
     uint64_t group_idx = 0;
     size_t len = decode_u64(&group_idx, (BYTE*)data, data_len);
@@ -165,9 +165,10 @@ bool socket_router::do_forward_broadcast(router_header* header, int source, char
         if (target.token != 0 && target.token != source)
         {
             m_mgr->sendv(target.token, items, _countof(items));
+            boardcast_num++;
         }
     }
-    return true;
+    return boardcast_num > 0;
 }
 
 bool socket_router::do_forward_hash(router_header* header, char* data, size_t data_len)

@@ -16,7 +16,10 @@ local sformat       = string.format
 local log_err       = logger.err
 local log_warn      = logger.warn
 
-local interface_tpls = {}
+if not quanta.interfaces then
+    quanta.interfaces = {}
+end
+local interface_tpls = quanta.interfaces
 
 local function index(interface, field)
     return interface.__vtbl[field]

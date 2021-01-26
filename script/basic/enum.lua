@@ -26,7 +26,10 @@ local sformat       = string.format
 local serialize     = logger.serialize
 local log_warn      = logger.warn
 
-local enums         = {}
+if not quanta.enums then
+    quanta.enums = {}
+end
+local enums = quanta.enums
 
 local function enum_tostring(eo)
     return sformat("enum:%s(max:%s, list:%s)", eo.__name, eo.__vmax, serialize(eo.__vlist))

@@ -9,6 +9,7 @@ local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
 
+local FlagMask      = enum("FlagMask")
 local KernCode      = enum("KernCode")
 local RpcServer     = import("kernel/network/rpc_server.lua")
 
@@ -83,9 +84,12 @@ end
 --accept事件
 function RouterServer:on_socket_accept(server)
     --log_info("[RouterServer][on_socket_accept] new connection, token=%s", server.token)
-    server.on_router_error = function(session_id, rpc_flag, source)
-        log_info("[RouterServer][on_router_error] on_router_error, session_id=%s", session_id)
-        server.call(session_id, 1, quanta.id, "on_router_error", false, KernCode.RPC_FAILED, "router con't find target!")
+    server.on_forward_error = function(session_id)
+        log_err("[RouterServer][on_socket_accept] on_forward_error, session_id=%s", session_id)
+        server.call(session_id, FlagMask.RES, quanta.id, "on_forward_error", false, KernCode.RPC_UNREACHABLE, "router con't find target!")
+    end
+    server.on_forward_boardcast = function(session_id, boardcast_num)
+        server.call(session_id, FlagMask.RES, quanta.id, "on_forward_boardcast", true, KernCode.SUCCESS, boardcast_num)
     end
 end
 

@@ -87,6 +87,10 @@ function RpcClient:connect()
         local send_len = socket.forward_broadcast(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
+    socket.call_collect = function(session_id, service_id, rpc, ...)
+        local send_len = socket.forward_broadcast(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
+        return self:on_call_router(rpc, send_len)
+    end
     socket.on_error = function(err)
         qxpcall(self.on_socket_error, "on_socket_error: %s", self, socket, err)
     end

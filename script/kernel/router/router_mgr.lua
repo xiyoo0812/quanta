@@ -42,6 +42,9 @@ function RouterMgr:build_service_method(service)
         ["call_%s_all"] = function(obj, rpc, ...)
             return obj:forward_group("forward_broadcast", service_id, service_id, rpc, ...)
         end,
+        ["collect_%s"] = function(obj, rpc, ...)
+            return obj:forward_group("forward_collect", service_id, service_id, rpc, ...)
+        end,
     }
     for fmt_key, handler in pairs(method_list) do
         local method = sformat(fmt_key, service)

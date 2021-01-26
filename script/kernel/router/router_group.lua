@@ -9,6 +9,7 @@ local sid2name          = service.id2name
 local log_err           = logger.err
 local log_info          = logger.info
 local uhash_code        = utility.hash_code
+local check_success     = utility.check_success
 
 local timer_mgr         = quanta.get("timer_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -125,6 +126,7 @@ function RouterGroup:hash_router(hash_key)
     end
 end
 
+--通过router发送点对点消息
 function RouterGroup:forward_client(router, method, ...)
     if router then
         return router.client:forward_socket(method, ...)
@@ -132,6 +134,24 @@ function RouterGroup:forward_client(router, method, ...)
     return false, "router not connected"
 end
 
+--通过router发送广播，并收集所有的结果
+function RouterGroup:forward_collect(service_id, rpc, ...)
+    local collect_res = {}
+    local session_id = thread_mgr:build_session_id()
+    local ok, code, target_cnt = self:forward_client(self.master, "call_broadcast", session_id, service_id, rpc, ...)
+    if ok and check_success(code) then
+        while target_cnt > 0 do
+            target_cnt = target_cnt - 1
+            local ok_c, code_c, res = thread_mgr:yield(session_id, "forward_collect", NetwkTime.RPC_CALL_TIMEOUT)
+            if ok_c and check_success(code_c) then
+                tinsert(collect_res, res)
+            end
+        end
+    end
+    return ok, code, collect_res
+end
+
+--通过router传递广播
 function RouterGroup:forward_broadcast(service_id, rpc, ...)
     return self:forward_client(self.master, "call_broadcast", 0, service_id, rpc, ...)
 end

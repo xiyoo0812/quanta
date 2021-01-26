@@ -15,7 +15,10 @@ local getmetatable = getmetatable
 local setmetatable = setmetatable
 
 --类模板
-local class_tpls = {}
+if not quanta.classes then
+    quanta.classes = {}
+end
+local class_tpls = quanta.classes
 
 local function interface_init(class, object, ...)
     if class.__super then
