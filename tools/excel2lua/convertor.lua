@@ -40,14 +40,17 @@ else
     slash = "\\"
 end
 
-local function tointeger(v)
-    local iv = mtointeger(v)
-    return iv or v
+local function conv_integer(v)
+    return mtointeger(v) or v
+end
+
+local function conv_number(v)
+    return mtointeger(v) or tonumber(v) or v
 end
 
 local value_func = {
-    ["int"] = tointeger,
-    ["byte"] = tointeger,
+    ["int"] = conv_number,
+    ["byte"] = conv_integer,
     ["bool"] = function(value)
         return value == "1"
     end,
@@ -57,7 +60,7 @@ local value_func = {
             -- 替换'('&')' 为 '{' & '}'
             return sgsub(value, '[(.*)]', function (s)
                 return s == '(' and '{' or '}'
-              end)
+            end)
         else
             return '{' .. value .. '}'
         end
