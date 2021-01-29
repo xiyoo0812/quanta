@@ -5,8 +5,8 @@ local prop = property(QueueLRU)
 prop:accessor("size", 0)
 prop:accessor("max_size", 0)
 prop:reader("tuples", {})
-prop:reader("oldest", 0)
-prop:reader("newest", 0)
+prop:reader("oldest", nil)
+prop:reader("newest", nil)
 
 function QueueLRU:__init(max_size)
     self.max_size = max_size
