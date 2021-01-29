@@ -85,15 +85,15 @@ function quanta.init()
     if next(router_group) then
         import("kernel/router/router_mgr.lua")
         quanta.router_mgr:setup(router_group)
+        if env_get("QUANTA_FEISHU_URL") then
+            --飞书上报
+            import("driver/feishu.lua")
+        end
     end
     if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
         import("kernel/monitor/monitor_agent.lua")
         import("kernel/debug/netlog_mgr.lua")
-    end
-    if env_get("QUANTA_FEISHU_URL") then
-        --飞书上报
-        import("driver/feishu.lua")
     end
 end
 
