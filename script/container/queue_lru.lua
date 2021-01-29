@@ -4,7 +4,7 @@ local QueueLRU = class()
 local prop = property(QueueLRU)
 prop:accessor("size", 0)
 prop:accessor("max_size", 0)
-prop:reader("tuples", 0)
+prop:reader("tuples", {})
 prop:reader("oldest", 0)
 prop:reader("newest", 0)
 
