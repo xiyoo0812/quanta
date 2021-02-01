@@ -147,7 +147,7 @@ function CacheAgent:on_service_ready(quanta_id, service_name)
     log_info("[CacheAgent][on_service_ready] add cachesvr node: cache_area=%s, hash_key=%s", cache_area, cache_hash)
     --通知缓存重建
     if cache_area == self.area_id then
-        event_mgr:notify_listener("evt_cache_rebuild", cache_hash, self.cache_num)
+        event_mgr:notify_listener("rebuild_cache", cache_hash, self.cache_num)
     end
 end
 

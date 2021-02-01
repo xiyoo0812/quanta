@@ -62,11 +62,20 @@ function ConfigTable:upsert(row)
 end
 
 -- 获取一项，
--- query{ val1, val2, val3}，必须与初始化index对应。
+-- ...必须与初始化index对应。
 function ConfigTable:find_one(...)
     local row_index = tconcat({...}, "@@")
     if row_index then
         return self.rows[row_index]
+    end
+end
+
+-- 获取一项的指定key值，
+-- ...必须与初始化index对应。
+function ConfigTable:find_value(key, ...)
+    local row = self:find_one(...)
+    if row then
+        return row[key]
     end
 end
 
