@@ -89,9 +89,9 @@ function utility.edition(period, time, offset)
     end
     local t = odate("*t", time - (offset or 0))
     if period == "hour" then                --2011080319(10)
-        edition = t.year * 1000000 + t.month * 10000 + t.day * 100 + t.hour
+        edition = mfloor(time / PeriodTime.HOUR_S)
     elseif period == "day" then             --20110803(8)
-        edition = t.year * 10000 + t.month * 100 + t.day
+        edition = mfloor(time / DAY_S)
     elseif period == "month" then           --201108(6)
         edition = t.year * 100 + t.month
     elseif period == "year" then            --2011(4)
