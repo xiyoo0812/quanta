@@ -2,8 +2,6 @@
 local type          = type
 local otime         = os.time
 local odate         = os.date
-local mceil         = math.ceil
-local mfloor        = math.floor
 local log_err       = logger.err
 local sbyte         = string.byte
 local tunpack       = table.unpack
@@ -88,16 +86,17 @@ function utility.edition(period, time, offset)
         time = quanta.now
     end
     local t = odate("*t", time - (offset or 0))
-    if period == "hour" then                --2011080319(10)
-        edition = mfloor(time / PeriodTime.HOUR_S)
-    elseif period == "day" then             --20110803(8)
-        edition = mfloor(time / DAY_S)
-    elseif period == "month" then           --201108(6)
-        edition = t.year * 100 + t.month
-    elseif period == "year" then            --2011(4)
-        edition = t.year
+    if period == "hour" then
+        edition = time // PeriodTime.HOUR_S
+    elseif period == "day" then
+        edition = time // DAY_S
     elseif period == "week" then
-        edition = mceil((mfloor(time / DAY_S) + 4) / 7)
+        --19700101是星期四，周日为每周第一天
+        edition = ((time // DAY_S) + 4) // 7
+    elseif period == "month" then
+        edition = t.year * 100 + t.month
+    elseif period == "year" then
+        edition = t.year
     end
     return edition
 end
