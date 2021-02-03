@@ -12,7 +12,6 @@ local setmetatable = setmetatable
 local log_warn = logger.warn
 local tinsert = table.insert
 local tconcat = table.concat
-local is_array = table_ext.is_array
 
 local M = {}
 
@@ -245,37 +244,32 @@ function _writer:message(k, v , message_type)
 end
 
 function _writer:real_repeated(k,v)
-    local fpairs = is_array(v) and ipairs or pairs
-    for _,v1 in fpairs(v) do
+    for _,v1 in pairs(v) do
         c._wmessage_real(self,k,v1)
     end
 end
 
 function _writer:bool_repeated(k,v)
-    local fpairs = is_array(v) and ipairs or pairs
-    for _,v1 in fpairs(v) do
+    for _,v1 in pairs(v) do
         c._wmessage_int(self, k, v1 and 1 or 0)
     end
 end
 
 function _writer:string_repeated(k,v)
-    local fpairs = is_array(v) and ipairs or pairs
-    for _,v1 in fpairs(v) do
+    for _,v1 in pairs(v) do
         c._wmessage_string(self,k,v1)
     end
 end
 
 function _writer:message_repeated(k,v, message_type)
-    local fpairs = is_array(v) and ipairs or pairs
-    for _,v1 in fpairs(v) do
+    for _,v1 in pairs(v) do
         local submessage = c._wmessage_message(self, k)
         encode_message(submessage, message_type, v1)
     end
 end
 
 function _writer:int_repeated(k,v)
-    local fpairs = is_array(v) and ipairs or pairs
-    for _,v1 in fpairs(v) do
+    for _,v1 in pairs(v) do
         c._wmessage_int(self,k,v1)
     end
 end
