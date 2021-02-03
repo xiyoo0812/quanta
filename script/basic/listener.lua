@@ -6,6 +6,7 @@ local tpack     = table.pack
 local tunpack   = table.unpack
 local log_err   = logger.err
 local log_warn  = logger.warn
+local dtraceback= debug.traceback
 
 local Listener = class()
 function Listener:__init()
@@ -59,7 +60,7 @@ end
 function Listener:notify_trigger(event, ...)
     for trigger in pairs(self._triggers[event] or {}) do
         if trigger[event] then
-            local ok, ret = xpcall(trigger[event], debug.traceback, trigger, ...)
+            local ok, ret = xpcall(trigger[event], dtraceback, trigger, ...)
             if not ok then
                 log_err("[Listener][notify_listener] xpcall %s:%s failed, err : %s!", trigger, event, ret)
             end
@@ -75,7 +76,7 @@ function Listener:notify_listener(event, ...)
     end
     local result = tpack(pcall(listener[event], listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_listener] notify_listener event(%s) failed, because: %s!", event, result[2])
+        log_err("[Listener][notify_listener] notify_listener event(%s) failed, because: %s, traceback:%s!", event, result[2], dtraceback())
     end
     return result
 end
@@ -108,7 +109,7 @@ function Listener:notify_command(cmd, ...)
     end
     local result = tpack(pcall(listener[event], listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_command] notify event(%s) failed, because: %s!", event, result[2])
+        log_err("[Listener][notify_command] notify event(%s) failed, because: %s!, traceback:%s!", event, result[2], dtraceback())
     end
     return result
 end
