@@ -105,12 +105,14 @@ function ThreadMgr:build_session_id()
     return self.session_id
 end
 
-function ThreadMgr:success_call(period, success_func)
+function ThreadMgr:success_call(period, success_func, try_time)
     self:fork(function()
+        try_time = try_time or 10
         while true do
-            if success_func() then
+            if success_func() or try_time <= 0 then
                 break
             end
+            try_time = try_time - 1
             self:sleep(period)
         end
     end)

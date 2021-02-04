@@ -3,6 +3,7 @@ local type = type
 local pairs = pairs
 local mrandom = math.random
 local tinsert = table.insert
+local tremove = table.remove
 
 --------------------------------------------------------------------------------
 function table_ext.random(tab)
@@ -88,19 +89,17 @@ end
 
 --------------------------------------------------------------------------------
 function table_ext.delete(stab, val, num)
-    num = num or 1
-    local ntabs = {}
-    for _, value in pairs(stab or {}) do
-        if value ~= val then
-            tinsert(ntabs, value)
-        else
+    num = num or #stab
+    for i = #stab, 1, -1 do
+        if stab[i] == val then
+            tremove(stab, i)
             num = num - 1
             if num <= 0 then
                 break
             end
         end
     end
-    return ntabs
+    return stab
 end
 
 --------------------------------------------------------------------------------
