@@ -184,11 +184,11 @@ quanta.input = function(ch)
             end
         end
         if ch == 13 or #log_buffer > 255 then
+            llog.daemon(environ.status("QUANTA_DAEMON"))
             if #log_buffer > 0 then
                 exec_command(log_buffer)
             end
             stdout:write("\n")
-            llog.daemon(environ.status("QUANTA_DAEMON"))
             log_input = false
             log_buffer = ""
         end

@@ -14,7 +14,6 @@ local router_mgr    = quanta.get("router_mgr")
 
 local CacheAgent = singleton()
 local prop = property(CacheAgent)
-prop:accessor("area_num", 1)        -- area的数量
 prop:accessor("cache_num", 1)       -- cache的数量
 prop:accessor("cache_svrs", {})     -- map<cid, quanta_id>
 function CacheAgent:__init()
@@ -67,7 +66,7 @@ function CacheAgent:update_key(primary_key, table_name, table_key, table_value, 
         log_err("[CacheAgent][update_key] cachesvr not online: cache_name=%s,table_name=%s,primary_key=%s", cache_name, table_name, primary_key)
         return KernCode.RPC_FAILED
     end
-    local req_data = { cache_name or "player", primary_key, table_name, table_key, table_value }
+    local req_data = { cache_name or "player", primary_key, table_name, table_key, table_value, flush }
     local ok, code = router_mgr:call_target(cachesvr_id, "rpc_cache_update_key", quanta.id, req_data)
     if not ok or check_failed(code) then
         log_err("[CacheAgent][update_key] faild: code=%s,cache_name=%s,table_name=%s,primary_key=%s", code, cache_name, table_name, primary_key)
@@ -139,9 +138,6 @@ function CacheAgent:on_service_ready(quanta_id, service_name)
     if not self.cache_svrs[cache_area] then
         self.cache_svrs[cache_area] = {}
     end
-    if cache_area > self.area_num then
-        self.area_num = cache_area
-    end
     local cache_key = self:build_hash_key(cache_hash, cache_area)
     self.cache_svrs[cache_key] = quanta_id
     log_info("[CacheAgent][on_service_ready] add cachesvr node: cache_area=%s, hash_key=%s", cache_area, cache_hash)
@@ -170,7 +166,7 @@ function CacheAgent:find_db_area(db_area)
     if type(db_area) == "number" then
         return db_area
     end
-    return hash_code(db_area, self.area_num)
+    return hash_code(db_area, self.cache_num)
 end
 
 --构建cache_key
