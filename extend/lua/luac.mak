@@ -10,7 +10,7 @@ PROJECT_TYPE = exe
 STDC_EX= -std=gnu99
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS = -DLUA_COMPAT_5_2 -DLUA_USE_LINUX -w
+MYCFLAGS = -DLUA_USE_LINUX -w
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 MYLDFLAGS = 
@@ -22,9 +22,10 @@ MYLIBS = -llua
 #SRC_DIR=./src
 
 #目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
-MYOBJS = $(INT_DIR)/luac.o $(INT_DIR)/lopcodes.o $(INT_DIR)/ldump.o
+#MYOBJS =
 
 #需要排除的源文件
+EXCLUDE_FILE=$(SRC_DIR)/lua.c
 
 #伪目标
 .PHONY: clean all target pre_build post_build

@@ -10,7 +10,7 @@ PROJECT_TYPE = lib
 STDC_EX= -std=gnu99
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS = -DLUA_COMPAT_5_2 -DLUA_USE_LINUX -w
+MYCFLAGS = -DLUA_USE_LINUX -w
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 MYLDFLAGS = 
