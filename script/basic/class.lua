@@ -51,6 +51,15 @@ local function object_release(class, object, ...)
     end
 end
 
+local function object_defer(class, object, ...)
+    if type(class.__defer) == "function" then
+        class.__defer(object, ...)
+    end
+    if class.__super then
+        object_defer(class.__super, object, ...)
+    end
+end
+
 local function object_default(class, object)
     if class.__super then
         object_default(class.__super, object)
@@ -108,6 +117,10 @@ local function release(obj)
     object_release(obj.__class, obj)
 end
 
+local function defer(obj)
+    object_defer(obj.__class, obj)
+end
+
 local classMT = {
     __call = new,
     __index = index,
@@ -125,6 +138,7 @@ local function class_constructor(class, super, ...)
             __tostring = object_tostring,
         }
         vtbl.__gc = release
+        vtbl.__close = defer
         vtbl.__index = vtbl
         if super then
             setmetatable(vtbl, {__index = super})

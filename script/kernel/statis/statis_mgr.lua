@@ -133,7 +133,7 @@ function StatisMgr:on_timer(escape)
     end
     -- 10秒统计系统信息
     if (self.escape_ms // PeriodTime.SECOND_MS) % 10 == 0 then
-        self:_system_update()
+        self:system_update()
     end
 end
 
@@ -235,7 +235,7 @@ function StatisMgr:on_dx_conn_update(conn_type, conn_count)
 end
 
 -- 统计系统信息
-function StatisMgr:_system_update()
+function StatisMgr:system_update()
     if self.statis_cpu then
         --统计 cpu_rate
         local cpu_rate = self:_calc_cpu_rate()
