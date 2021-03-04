@@ -89,7 +89,7 @@ end
 
 --------------------------------------------------------------------------------
 function table_ext.delete(stab, val, num)
-    num = num or #stab
+    num = num or 1
     for i = #stab, 1, -1 do
         if stab[i] == val then
             tremove(stab, i)
