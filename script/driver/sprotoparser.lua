@@ -1,39 +1,13 @@
 --luacheck: ignore
 local lpeg = require "lpeg"
-local table = require "table"
 
-local packbytes
-local packvalue
+local function packbytes(str)
+    return string.pack("<s4",str)
+end
 
-if _VERSION == "Lua 5.3" then
-    function packbytes(str)
-        return string.pack("<s4",str)
-    end
-
-    function packvalue(id)
-        id = (id + 1) * 2
-        return string.pack("<I2",id)
-    end
-else
-    function packbytes(str)
-        local size = #str
-        local a = size % 256
-        size = math.floor(size / 256)
-        local b = size % 256
-        size = math.floor(size / 256)
-        local c = size % 256
-        size = math.floor(size / 256)
-        local d = size
-        return string.char(a)..string.char(b)..string.char(c)..string.char(d) .. str
-    end
-
-    function packvalue(id)
-        id = (id + 1) * 2
-        assert(id >=0 and id < 65536)
-        local a = id % 256
-        local b = math.floor(id / 256)
-        return string.char(a) .. string.char(b)
-    end
+local function packvalue(id)
+    id = (id + 1) * 2
+    return string.pack("<I2",id)
 end
 
 local P = lpeg.P

@@ -3,6 +3,7 @@ local type = type
 local load = load
 local pcall     = pcall
 local tostring  = tostring
+local tinsert   = table.insert
 local ssub      = string.sub
 local sfind     = string.find
 local supper    = string.upper
@@ -52,35 +53,27 @@ function string_ext.ends_with(str, ending)
     return str:sub(-#ending) == ending
 end
 
-function string_ext.split_to_chars(src)
-    local num = 0
-    local results = {}
-    if not src or type(src) ~= "string" or #src <= 0 then
-        return results
+function string_ext.chars(src)
+    local chars = {}
+    if not src then
+        return chars
     end
-    local i = 1
-    local src_bytes = #src
-	while true do
-        local curByte = sbyte(src, i)
+    local pos_bytes = 1
+    while pos_bytes < #src do
         local byteCount
+        local curByte = sbyte(src, pos_bytes)
         -- [0x00, 0x7f] [0x80, 0x7ff] [0x800, 0xd7ff] [0x10000, 0x10ffff]
-        if curByte > 239 then
-            byteCount = 4  -- 4字节字符
-        elseif curByte > 223 then
-            byteCount = 3  -- 汉字
-        elseif curByte > 128 then
-            byteCount = 2  -- 双字节字符
-        else
+        if curByte <= 128 then
             byteCount = 1  -- 单字节字符
+        elseif curByte <= 222 then
+            byteCount = 2  -- 双字节字符
+        elseif curByte <= 238 then
+            byteCount = 3  -- 汉字
+        else
+            byteCount = 4  -- 4字节字符
         end
-        local char = ssub(src, i, i + byteCount - 1)
-        num = num + 1
-        results[num] = char
-        i = i + byteCount
-        if i > src_bytes then
-            break
-        end
+        tinsert(chars, ssub(src, pos_bytes, pos_bytes + byteCount - 1))
+        pos_bytes = pos_bytes + byteCount
     end
-
-    return results
+    return chars
 end
