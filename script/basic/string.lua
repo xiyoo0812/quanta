@@ -59,15 +59,15 @@ function string_ext.chars(src)
         return chars
     end
     local pos_bytes = 1
-    while pos_bytes < #src do
+    while pos_bytes <= #src do
         local byteCount
         local curByte = sbyte(src, pos_bytes)
         -- [0x00, 0x7f] [0x80, 0x7ff] [0x800, 0xd7ff] [0x10000, 0x10ffff]
-        if curByte <= 128 then
+        if curByte < 128 then
             byteCount = 1  -- 单字节字符
-        elseif curByte <= 222 then
+        elseif curByte < 222 then
             byteCount = 2  -- 双字节字符
-        elseif curByte <= 238 then
+        elseif curByte < 238 then
             byteCount = 3  -- 汉字
         else
             byteCount = 4  -- 4字节字符
