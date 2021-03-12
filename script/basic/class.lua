@@ -20,13 +20,13 @@ if not quanta.classes then
 end
 local class_tpls = quanta.classes
 
-local function interface_init(class, object, ...)
+local function mixin_init(class, object, ...)
     if class.__super then
-        interface_init(class.__super, object, ...)
+        mixin_init(class.__super, object, ...)
     end
-    for _, interface in ipairs(class.__interfaces) do
-        if type(interface.__init) == "function" then
-            interface.__init(object, ...)
+    for _, mixin in ipairs(class.__mixins) do
+        if type(mixin.__init) == "function" then
+            mixin.__init(object, ...)
         end
     end
     return object
@@ -83,7 +83,7 @@ local function object_constructor(class, ...)
     obj.__addr = ssub(tostring(obj), 7)
     local object = setmetatable(obj, class.__vtbl)
     object_init(class, object, ...)
-    interface_init(class, object, ...)
+    mixin_init(class, object, ...)
     return object
 end
 
@@ -146,7 +146,7 @@ local function class_constructor(class, super, ...)
         class.__vtbl = vtbl
         class.__super = super
         class.__default = {}
-        class.__interfaces = {}
+        class.__mixins = {}
         class_tpl = setmetatable(class, classMT)
         implemented(class, { ... })
         class_tpls[moudle] = class_tpl

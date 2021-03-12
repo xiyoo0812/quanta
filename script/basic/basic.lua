@@ -13,7 +13,7 @@ import("basic/logger.lua")
 import("basic/guid.lua")
 import("basic/enum.lua")
 import("basic/class.lua")
-import("basic/interface.lua")
+import("basic/mixin.lua")
 import("basic/property.lua")
 import("basic/listener.lua")
 
