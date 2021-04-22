@@ -1,4 +1,9 @@
 --kernel.lua
+
+import("enum.lua")
+import("class.lua")
+import("mixin.lua")
+import("property.lua")
 import("basic/basic.lua")
 import("utility/signal.lua")
 import("utility/environ.lua")

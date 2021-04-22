@@ -4,3 +4,9 @@
 [submodule "extend/luaxlsx"]
 	path = extend/luaxlsx
 	url = https://github.com/xiyoo0812/luaxlsx.git
+[submodule "script/luaoop"]
+	path = script/luaoop
+	url = https://github.com/xiyoo0812/luaoop.git
+[submodule "script/luabt"]
+	path = script/luabt
+	url = https://github.com/xiyoo0812/luabt.git

@@ -11,10 +11,6 @@ import("basic/table.lua")
 import("basic/string.lua")
 import("basic/logger.lua")
 import("basic/guid.lua")
-import("basic/enum.lua")
-import("basic/class.lua")
-import("basic/mixin.lua")
-import("basic/property.lua")
 import("basic/listener.lua")
 
 local log_err       = logger.err
