@@ -1,3 +1,6 @@
 [submodule "extend/lualog"]
 	path = extend/lualog
 	url = https://github.com/xiyoo0812/lualog.git
+[submodule "extend/luaxlsx"]
+	path = extend/luaxlsx
+	url = https://github.com/xiyoo0812/luaxlsx.git
