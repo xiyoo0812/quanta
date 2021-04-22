@@ -1,0 +1,3 @@
+[submodule "extend/lualog"]
+	path = extend/lualog
+	url = https://github.com/xiyoo0812/lualog.git
