@@ -20,13 +20,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "quanta", "core\quanta\quant
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "all", "all", "{1D4D6BAB-BDCA-48C7-B032-575D40D1D349}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mongo", "extend\mongo\mongo.vcxproj", "{954AC35E-1774-47FF-ADF1-5F65E97FB615}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mongo", "extend\luaext\mongo.vcxproj", "{954AC35E-1774-47FF-ADF1-5F65E97FB615}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "extend", "extend", "{63562A69-5B42-42D7-A086-2BE59AAE7077}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "core", "core", "{F70FF6C0-FD69-49DD-A63B-54CD33AA35DB}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bson", "extend\bson\bson.vcxproj", "{D006D7B6-1807-4BD4-BF1A-9510B170DFE5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bson", "extend\luaext\bson.vcxproj", "{D006D7B6-1807-4BD4-BF1A-9510B170DFE5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luaxlsx", "extend\luaxlsx\luaxlsx.vcxproj", "{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}"
 EndProject
