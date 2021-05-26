@@ -10,3 +10,9 @@
 [submodule "script/luabt"]
 	path = script/luabt
 	url = https://github.com/xiyoo0812/luabt.git
+[submodule "extend/luaext"]
+	path = extend/luaext
+	url = https://github.com/xiyoo0812/luaext.git
+[submodule "extend/lua"]
+	path = extend/lua
+	url = https://github.com/xiyoo0812/lua.git
