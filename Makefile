@@ -6,13 +6,13 @@ empty:
 
 CUR_DIR = $(shell pwd)/
 
-.PHONY: clean lua luna luaext xlsx http lnet luabus quanta encrypt lualog
+.PHONY: clean lua luna luaext xlsx http luabus quanta encrypt lualog
 
 all: clean extend luabus quanta
 
 proj: extend luabus quanta
 
-extend: lua luaext luna lnet xlsx http webclient lualog encrypt
+extend: lua luaext luna xlsx http webclient lualog encrypt
 
 clean:
 	rm -rf temp;
@@ -27,6 +27,7 @@ luaext:
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lpeg.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lnet.mak;
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f luacjson.mak;
 
@@ -35,9 +36,6 @@ http:
 
 lualog:
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
-
-lnet:
-	cd extend/lnet; make -f lnet.mak;
 
 encrypt:
 	cd extend/encrypt; make -f encrypt.mak;

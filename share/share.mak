@@ -10,7 +10,7 @@ LIBS= -lm $(MYLIBS) $(SYSLIBS)
 #定义系统的编译选项
 SYSCFLAGS= -Wno-unknown-pragmas
 SYSLDFLAGS=
-SYSLIBS= -Wl,-E -ldl -lreadline
+SYSLIBS=-ldl
 
 #自定义的编译选项
 ifndef MYCFLAGS
@@ -31,6 +31,11 @@ endif
 
 MYLIBS += -lstdc++
 
+#项目目录
+ifndef SOLUTION_DIR
+SOLUTION_DIR=./
+endif
+
 #源代码目录
 ifndef SRC_DIR
 SRC_DIR = ./src
@@ -38,15 +43,19 @@ endif
 
 #临时文件目录
 ifndef INT_DIR
-INT_DIR = ../../temp/$(PROJECT_NAME)
+INT_DIR = $(SOLUTION_DIR)temp/$(PROJECT_NAME)
 endif
 
 #目标目录
 ifdef _LIB
-TARGET_DIR = ../../lib
+TARGET_DIR = $(SOLUTION_DIR)library
 else
-TARGET_DIR = ../../bin
+TARGET_DIR = $(SOLUTION_DIR)bin
 MYCFLAGS += -fPIC
+#macos系统so链接问题
+ifeq ($(UNAME_S), Darwin)
+MYLDFLAGS = -install_name $(TARGET)
+endif
 endif
 
 #目标名
@@ -54,8 +63,13 @@ ifndef TARGET_NAME
 TARGET_NAME = $(PROJECT_NAME)
 endif
 
-#添加目录
+#link添加.so目录
 MYLDFLAGS += -L$(TARGET_DIR)
+
+#link添加.a目录
+ifdef LIBRARY_DIR
+MYLDFLAGS += -L$(LIBRARY_DIR)
+endif
 
 #输出文件名前缀
 ifdef PROJECT_NO_PREFIX
@@ -98,11 +112,11 @@ $(TARGET_PATH) : $(MYOBJS)
 	ranlib $@
 else
 $(TARGET_PATH) : $(MYOBJS)
-	$(CX) -o $@ -shared $(MYOBJS) $(LDFLAGS) $(LIBS) 
+	$(CC) -o $@ -shared $(MYOBJS) $(LDFLAGS) $(LIBS) 
 endif
 else
 $(TARGET_PATH) : $(MYOBJS)
-	$(CX) -o $@  $(MYOBJS) $(LDFLAGS) $(LIBS) 
+	$(CC) -o $@  $(MYOBJS) $(LDFLAGS) $(LIBS) 
 endif
 
 # 编译所有源文件
