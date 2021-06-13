@@ -4,32 +4,37 @@ empty:
 	@echo "===='make all', which shoule be the default target is unavailable for UNKNOWN reaseon now."
 	@echo "====server is composed of dbx,session,gate,name and world. You can only compile the module you need."
 
+CUR_DIR = $(shell pwd)/
 
-.PHONY: clean lua luna luaext xlsx http bson lnet mongo luabus quanta encrypt lualog
+.PHONY: clean lua luna luaext xlsx http lnet luabus quanta encrypt lualog
 
 all: clean extend luabus quanta
 
 proj: extend luabus quanta
 
-extend: lua luaext luna lnet mongo xlsx http webclient lualog bson encrypt
+extend: lua luaext luna lnet xlsx http webclient lualog encrypt
 
 clean:
 	rm -rf temp;
 
 lua:
-	cd extend/lua; make -f lua.mak; make -f luac.mak; make -f luae.mak
+	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
+	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
+	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
 
 luaext:
-	cd extend/luaext; make -f lfs.mak; make -f lpeg.mak; make -f luacjson.mak; make -f pbc.mak;
-
-bson:
-	cd extend/bson; make -f bson.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lfs.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lpeg.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f luacjson.mak;
 
 http:
 	cd extend/luahttp; make -f luahttp.mak;
 
 lualog:
-	cd extend/lualog; make -f lualog.mak;
+	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
 
 lnet:
 	cd extend/lnet; make -f lnet.mak;
@@ -38,10 +43,7 @@ encrypt:
 	cd extend/encrypt; make -f encrypt.mak;
 
 xlsx:
-	cd extend/luaxlsx; make -f luaxlsx.mak;
-
-mongo:
-	cd extend/mongo; make -f mongo.mak;
+	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 
 luna:
 	cd core/luna; make -f luna.mak;

@@ -58,9 +58,9 @@ temp
 *.7z
 *.tar
 
-
-#fgui
-*.info
-
 #quanta
 *.err
+bin/lua
+bin/luac
+.gitignore
+.DS_Store
