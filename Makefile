@@ -29,6 +29,7 @@ luaext:
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lpeg.mak;
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lnet.mak;
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
+	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
 	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f luacjson.mak;
 
 http:
@@ -36,9 +37,6 @@ http:
 
 lualog:
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
-
-encrypt:
-	cd extend/encrypt; make -f encrypt.mak;
 
 xlsx:
 	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
