@@ -13,14 +13,15 @@
 # 编译
 - msvc : 打开项目目录下的sln工程文件，编译即可。
 - linux：在项目根目录，执行make all。
+- 编译lua需要readline，请提前安装。
+- http模块依赖curl，请提前安装。
 
 # 依赖
 - bson(云风版)
-- curl
 - lfs
 - lnet
 - lpeg
-- lua(5.3.4)
+- lua(5.4)
 - luacjson
 - loalog
 - luaxlsx
