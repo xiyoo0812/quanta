@@ -30,7 +30,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bson", "extend\luaext\bson.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luaxlsx", "extend\luaxlsx\luaxlsx.vcxproj", "{C1D0F16D-0B61-4B54-92B2-4A612BB0673B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "encrypt", "extend\encrypt\encrypt.vcxproj", "{75EBBA96-B1C0-48EC-A3C9-61481AB0D3D0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lcrypt", "extend\luaext\lcrypt.vcxproj", "{75EBBA96-B1C0-48EC-A3C9-61481AB0D3D0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "webclient", "extend\webclient\webclient.vcxproj", "{B57BBE3F-7D7A-4B1C-A3AD-DB69B535C5E4}"
 EndProject
@@ -40,13 +40,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luahttp", "extend\luahttp\l
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lualog", "extend\lualog\lualog.vcxproj", "{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lnet", "extend\lnet\lnet.vcxproj", "{623A966A-1F99-450C-8BE1-D17F3FE84620}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lnet", "extend\luaext\lnet.vcxproj", "{623A966A-1F99-450C-8BE1-D17F3FE84620}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lua", "extend\lua\lua.vcxproj", "{F56A5D0B-0CEE-4EE0-BE86-BDCB98143307}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lualib", "extend\lua\lualib.vcxproj", "{F56A5D0B-0CEE-4EE0-BE86-BDCB98143307}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luac", "extend\lua\luac.vcxproj", "{001BCFDF-426A-476B-B709-D7E40A374229}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luae", "extend\lua\luae.vcxproj", "{04A56D34-22A4-407E-8027-8EA5CFF8B751}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lua", "extend\lua\lua.vcxproj", "{04A56D34-22A4-407E-8027-8EA5CFF8B751}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lfs", "extend\luaext\lfs.vcxproj", "{3D32C183-3733-44C4-BE9F-EFD213D07900}"
 EndProject
