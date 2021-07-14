@@ -57,7 +57,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>./src;../lua/src;../openssl/include;../../core/luna/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./src;../luaext/lua/lua;../prebuild/include;../../core/luna/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>RELEASEDEBUG;WIN32;NDEBUG;_WINDOWS;NOMINMAX;CPPHTTPLIB_OPENSSL_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -68,7 +68,7 @@
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(ProjectName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>../../library/$(Platform);../openssl/lib/$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../library/$(Platform);../prebuild/lib/$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <ImportLibrary>
@@ -79,13 +79,13 @@
     </Link>
     <PostBuildEvent>
       <Command>copy /y $(TargetPath) ..\..\bin\
-copy /y ..\openssl\bin\$(Platform)\* ..\..\bin\</Command>
+copy /y ..\prebuild\bin\$(Platform)\* ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>./src;../lua/src;../openssl/include;../../core/luna/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>./src;../luaext/lua/lua;../prebuild/include;../../core/luna/src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>RELEASEDEBUG;WIN32;NDEBUG;_WINDOWS;NOMINMAX;CPPHTTPLIB_OPENSSL_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -95,7 +95,7 @@ copy /y ..\openssl\bin\$(Platform)\* ..\..\bin\</Command>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(ProjectName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>../../library/$(Platform);../openssl/lib/$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../library/$(Platform);../prebuild/lib/$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <ImportLibrary>
@@ -105,7 +105,7 @@ copy /y ..\openssl\bin\$(Platform)\* ..\..\bin\</Command>
     </Link>
     <PostBuildEvent>
       <Command>copy /y $(TargetPath) ..\..\bin\
-copy /y ..\openssl\bin\$(Platform)\* ..\..\bin\</Command>
+copy /y ..\prebuild\bin\$(Platform)\* ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

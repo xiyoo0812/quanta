@@ -1,4 +1,4 @@
-local encrypt           = require("encrypt")
+local lcrypt            = require("lcrypt")
 local log_err           = logger.err
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
@@ -94,13 +94,13 @@ function NetClient:encode(cmd_id, data, flag)
     if encode_data then
         -- 加密处理
         if out_encrypt then
-            encode_data = encrypt.encrypt(encode_data)
+            encode_data = lcrypt.b64_encode(encode_data)
             flag = flag | FlagMask.ENCRYPT
         end
         -- 压缩处理
         if out_press then
-            encode_data = encrypt.quick_zip(encode_data)
-            flag = flag | FlagMask.QZIP
+            encode_data = lcrypt.lz4_encode(encode_data)
+            flag = flag | FlagMask.ZIP
         end
     end
     return encode_data, flag
@@ -115,12 +115,12 @@ function NetClient:decode(cmd_id, data, flag)
     end
     if decode_data then
         --解压处理
-        if flag & FlagMask.QZIP == FlagMask.QZIP then
-            decode_data = encrypt.quick_unzip(decode_data)
+        if flag & FlagMask.ZIP == FlagMask.ZIP then
+            decode_data = lcrypt.lz4_decode(decode_data)
         end
         --解密处理
         if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
-            decode_data = encrypt.decrypt(decode_data)
+            decode_data = lcrypt.b64_decode(decode_data)
         end
     end
     return decode_data, cmd_name

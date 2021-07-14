@@ -13,10 +13,10 @@ PROJECT_NO_PREFIX=1
 STDC_EX= -std=c++11
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS =-DCPPHTTPLIB_OPENSSL_SUPPORT -I../lua/src -I../../core/luna/src -I../openssl/include -w
+MYCFLAGS =-DCPPHTTPLIB_OPENSSL_SUPPORT -I../luaext/lua/lua -I../../core/luna/src -I../prebuild/include -w
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
-MYLDFLAGS =-L../openssl/lib/linux 
+MYLDFLAGS =-L../prebuild/lib/linux 
 
 #share.mak包含了一些公用的库,这里加上其他所需的库
 MYLIBS =-Wl,--whole-archive -lssl -lcrypto -Wl,--no-whole-archive
@@ -25,7 +25,7 @@ MYLIBS =-Wl,--whole-archive -lssl -lcrypto -Wl,--no-whole-archive
 #SRC_DIR=./src
 
 #目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
-#MYOBJS=
+#ALLOBJS=
 
 #需要排除的源文件
 #EXCLUDE_FILE=
@@ -35,7 +35,7 @@ MYLIBS =-Wl,--whole-archive -lssl -lcrypto -Wl,--no-whole-archive
 all : pre_build target post_build
 
 #通用规则
-include ../../share/share.mak
+include ../luaext/share.mak
 
 #预编译
 pre_build:

@@ -13,7 +13,7 @@ PROJECT_NO_PREFIX=1
 #STDC_EX= -std=gnu99
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS = -I../lua/src -I../curl
+MYCFLAGS = -I../luaext/lua/lua -I../prebuild/include
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 MYLDFLAGS = 
@@ -25,7 +25,7 @@ MYLIBS =
 #SRC_DIR= ./src
 
 #目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
-#MYOBJS=
+#ALLOBJS=
 
 #需要排除的源文件
 #EXCLUDE_FILE=
@@ -35,7 +35,7 @@ MYLIBS =
 all : pre_build target post_build
 
 #通用规则
-include ../../share/share.mak
+include ../luaext/share.mak
 
 #预编译
 pre_build:

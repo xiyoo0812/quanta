@@ -5,7 +5,13 @@
 #include <stdint.h>
 #include <string.h>
 #include <algorithm>
-#include "lua.hpp"
+extern "C"
+{
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
+
 #include "lz4.h"
 #include "lua_archiver.h"
 #include "var_int.h"

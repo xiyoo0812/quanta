@@ -21,7 +21,7 @@ local FlagMask              = enum("FlagMask", 0)
 FlagMask.REQ                = 0x01  -- 请求
 FlagMask.RES                = 0x02  -- 响应
 FlagMask.ENCRYPT            = 0x04  -- 开启加密
-FlagMask.QZIP               = 0x08  -- 开启qzip压缩
+FlagMask.ZIP                = 0x08  -- 开启zip压缩
 
 --网络时间常量定义
 local NetwkTime             = enum("NetwkTime", 0)

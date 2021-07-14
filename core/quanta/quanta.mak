@@ -10,7 +10,7 @@ PROJECT_TYPE = exe
 STDC_EX= -std=c++11
 
 # share.mak包含了一些编译选项，在这里可以添加新的选项和include目录
-MYCFLAGS = -fpermissive -I../../extend/lua/src -I../luna/src -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-parameter
+MYCFLAGS = -fpermissive -I../../extend/luaext/lua/lua -I../luna/src -Wno-unused-parameter -Wno-unused-variable -Wno-unused-but-set-parameter
 
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 #MYLDFLAGS =
@@ -22,7 +22,7 @@ MYLIBS = -llua -lluna -lpthread -lcurl
 #SRC_DIR=
 
 #目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
-#MYOBJS=
+#ALLOBJS=
 
 #需要排除的源文件
 #EXCLUDE_FILE=
@@ -32,7 +32,7 @@ MYLIBS = -llua -lluna -lpthread -lcurl
 all : pre_build target post_build
 
 #通用规则
-include ../../share/share.mak
+include ../../luaext/share.mak
 
 #预编译
 pre_build:

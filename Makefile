@@ -6,13 +6,11 @@ empty:
 
 CUR_DIR = $(shell pwd)/
 
-.PHONY: clean lua luna luaext xlsx http luabus quanta encrypt lualog
+.PHONY: clean lua luna ext http webclient luabus quanta
 
-all: clean extend luabus quanta
+all: clean lua luna ext http webclient luabus quanta
 
-proj: extend luabus quanta
-
-extend: lua luaext luna xlsx http webclient lualog encrypt
+proj: lua luna ext http webclient luabus quanta
 
 clean:
 	rm -rf temp;
@@ -22,24 +20,21 @@ lua:
 	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
 
-luaext:
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lfs.mak;
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lpeg.mak;
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lnet.mak;
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
-	cd extend/luaext; make SOLUTION_DIR=$(CUR_DIR) -f luacjson.mak;
+ext:
+	cd extend/lfs; make SOLUTION_DIR=$(CUR_DIR) -f lfs.mak;
+	cd extend/pbc; make SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
+	cd extend/bson; make SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
+	cd extend/lpeg; make SOLUTION_DIR=$(CUR_DIR) -f lpeg.mak;
+	cd extend/lnet; make SOLUTION_DIR=$(CUR_DIR) -f lnet.mak;
+	cd extend/mongo; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
+	cd extend/lcrypt; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
+	cd extend/luacjson; make SOLUTION_DIR=$(CUR_DIR) -f luacjson.mak;
+	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
+	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
+	cd extend/lshare; make SOLUTION_DIR=$(CUR_DIR) -f lshare.mak;
 
 http:
 	cd extend/luahttp; make -f luahttp.mak;
-
-lualog:
-	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
-
-xlsx:
-	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 
 luna:
 	cd core/luna; make -f luna.mak;

@@ -15,7 +15,12 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#include <lua.hpp>
+extern "C"
+{
+#include "lua.h"
+#include "lualib.h"
+#include "lauxlib.h"
+}
 
 template <typename T> void lua_push_object(lua_State* L, T obj);
 template <typename T> T lua_to_object(lua_State* L, int idx);

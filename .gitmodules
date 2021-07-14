@@ -1,9 +1,3 @@
-[submodule "extend/lualog"]
-	path = extend/lualog
-	url = https://github.com/xiyoo0812/lualog.git
-[submodule "extend/luaxlsx"]
-	path = extend/luaxlsx
-	url = https://github.com/xiyoo0812/luaxlsx.git
 [submodule "script/luaoop"]
 	path = script/luaoop
 	url = https://github.com/xiyoo0812/luaoop.git
@@ -13,6 +7,3 @@
 [submodule "extend/luaext"]
 	path = extend/luaext
 	url = https://github.com/xiyoo0812/luaext.git
-[submodule "extend/lua"]
-	path = extend/lua
-	url = https://github.com/xiyoo0812/lua.git

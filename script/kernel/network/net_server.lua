@@ -1,5 +1,5 @@
 --net_server.lua
-local encrypt       = require("encrypt")
+local lcrypt        = require("lcrypt")
 
 local log_err       = logger.err
 local log_info      = logger.info
@@ -139,13 +139,13 @@ function NetServer:encode(cmd_id, data, flag)
     if encode_data then
         -- 加密处理
         if out_encrypt then
-            encode_data = encrypt.encrypt(encode_data)
+            encode_data = lcrypt.b64_encode(encode_data)
             flag = flag | FlagMask.ENCRYPT
         end
         -- 压缩处理
         if out_press then
-            encode_data = encrypt.quick_zip(encode_data)
-            flag = flag | FlagMask.QZIP
+            encode_data = lcrypt.lz4_encode(encode_data)
+            flag = flag | FlagMask.ZIP
         end
     end
     return encode_data, flag
@@ -160,12 +160,12 @@ function NetServer:decode(cmd_id, data, flag)
     end
     if de_data then
         --解压处理
-        if flag & FlagMask.QZIP == FlagMask.QZIP then
-            de_data = encrypt.quick_unzip(de_data)
+        if flag & FlagMask.ZIP == FlagMask.ZIP then
+            de_data = lcrypt.lz4_decode(de_data)
         end
         --解密处理
         if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
-            de_data = encrypt.decrypt(de_data)
+            de_data = lcrypt.b64_decode(de_data)
         end
     end
     return de_data, cmd_name
