@@ -48,6 +48,25 @@ local function conv_number(v)
     return mtointeger(v) or tonumber(v) or v
 end
 
+--28800 => 3600 * 8
+--86400 => 3600 * 24
+--25569 => 1970.1.1 0:0:0
+--根据fmtCode和fmtId解析自定义格式
+local function cell_value_fmt_parse(cell)
+    if cell.type == "date" then
+        if cell.fmtId == 14 then
+            return 86400 * (cell.value - 25569) - 28800
+        end
+    elseif cell.type == "custom" then
+        if sfind(cell.fmtCode, "yy") then
+            return 86400 * (cell.value - 25569) - 28800            
+        end
+        if sfind(cell.fmtCode, "mm:ss") then
+            return 86400 * cell.value
+        end
+    end
+end
+
 local value_func = {
     ["int"] = conv_number,
     ["byte"] = conv_integer,
@@ -67,7 +86,6 @@ local value_func = {
     end,
 }
 
-
 --获取cell value
 local function get_sheet_value(sheet, row, col, field_type)
     local cell = sheet:cell(row, col)
@@ -78,10 +96,9 @@ local function get_sheet_value(sheet, row, col, field_type)
                 return func(cell.value)
             end
         end
-
-        local year, month, day, hour, min, sec = smatch(cell.value, "(%d+)-(%d+)-(%d+) (%d+):(%d+):(%d+)")
-        if year and month and day and hour and min and sec then
-            return otime({day = day,month = month,year = year, hour = hour, min = min, sec = sec})
+        local fmt_value = cell_value_fmt_parse(cell)
+        if fmt_value then
+            return fmt_value
         end
         return cell.value
     end
