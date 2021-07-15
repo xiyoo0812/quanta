@@ -59,7 +59,7 @@ local function cell_value_fmt_parse(cell)
         end
     elseif cell.type == "custom" then
         if sfind(cell.fmtCode, "yy") then
-            return 86400 * (cell.value - 25569) - 28800            
+            return 86400 * (cell.value - 25569) - 28800
         end
         if sfind(cell.fmtCode, "mm:ss") then
             return 86400 * cell.value
@@ -87,20 +87,21 @@ local value_func = {
 }
 
 --获取cell value
-local function get_sheet_value(sheet, row, col, field_type)
+local function get_sheet_value(sheet, row, col, field_type, header)
     local cell = sheet:cell(row, col)
     if cell and cell.type ~= "blank" then
+        local value = cell.value
+        local fvalue = cell_value_fmt_parse(cell)
+        if fvalue then
+            value = fvalue
+        end
         if field_type then
             local func = value_func[field_type]
             if func then
-                return func(cell.value)
+                return func(value)
             end
         end
-        local fmt_value = cell_value_fmt_parse(cell)
-        if fmt_value then
-            return fmt_value
-        end
-        return cell.value
+        return value
     end
 end
 
@@ -174,7 +175,7 @@ local function export_sheet_to_table(sheet, output, title, dim)
             -- 过滤掉没有配置的行
             local ftype = field_type[col]
             if ftype then
-                local value = get_sheet_value(sheet, row, col, ftype)
+                local value = get_sheet_value(sheet, row, col, ftype, header[col])
                 if value ~= nil then
                     tinsert(record, {header[col], value, ftype})
                 end
