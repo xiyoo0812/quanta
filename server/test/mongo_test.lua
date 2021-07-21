@@ -11,7 +11,6 @@ local thread_mgr    = quanta.get("thread_mgr")
 local db_agent      = quanta.get("db_agent")
 
 local player_id = 689620221291398145
-returb
 local row_data  = {bag_items={[2]=1},player_id=689620221291398145}
 
 local MongoTest = singleton()

@@ -46,13 +46,15 @@ local function search_load(node)
     local filename = node.filename
     for _, path_root in pairs(search_path) do
         local fullpath = path_root .. filename
-        if iopen(fullpath) then
+        local file = iopen(fullpath)
+        if file then
+            file:close()
             node.fullpath = fullpath
             node.time = file_time(fullpath)
             return loadfile(fullpath)
         end
     end
-    return nil, err
+    return nil, "file not exist!"
 end
 
 local function try_load(node)
@@ -61,7 +63,7 @@ local function try_load(node)
         log_err(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
-    log_info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
+    llog.debug(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
     return trunk_func()
 end
 
