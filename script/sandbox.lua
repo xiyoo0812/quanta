@@ -63,7 +63,7 @@ local function try_load(node)
         log_err(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
-    llog.debug(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
+    log_info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
     return trunk_func()
 end
 
@@ -96,7 +96,7 @@ function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then
         local info = dgetinfo(2, "S")
-        llog.warn(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
+        log_err(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
         return
     end
     return global_obj
