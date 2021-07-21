@@ -1,4 +1,4 @@
---qtest.lua
+--test.lua
 import("kernel.lua")
 
 local log_info      = logger.info
@@ -17,19 +17,19 @@ if not quanta.init_flag then
         quanta.init()
         --初始化test
         --[[
-        import("qtest/oop_test.lua")
-        import("qtest/etcd_test.lua")
-        import("qtest/json_test.lua")
-        import("qtest/pack_test.lua")
-        import("qtest/mongo_test.lua")
-        import("qtest/router_test.lua")
-        import("qtest/protobuf_test.lua")
-        import("qtest/http_test.lua")
-        import("qtest/rpc_test.lua")
-        import("qtest/log_test.lua")
+        import("test/oop_test.lua")
+        import("test/etcd_test.lua")
+        import("test/json_test.lua")
+        import("test/pack_test.lua")
+        import("test/mongo_test.lua")
+        import("test/router_test.lua")
+        import("test/protobuf_test.lua")
+        import("test/http_test.lua")
+        import("test/rpc_test.lua")
+        import("test/log_test.lua")
         ]]
-        import("qtest/mongo_test.lua")
-        log_info("qtest %d now startup!", quanta.id)
+        import("test/mongo_test.lua")
+        log_info("test %d now startup!", quanta.id)
     end
     qxpcall_quit(startup, "quanta startup error: %s")
     quanta.init_flag = true

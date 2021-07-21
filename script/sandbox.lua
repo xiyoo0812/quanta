@@ -4,8 +4,11 @@ local llog  = require("lualog")
 local pcall     = pcall
 local pairs     = pairs
 local loadfile  = loadfile
+local iopen     = io.open
 local otime     = os.time
 local mabs      = math.abs
+local log_info  = llog.info
+local log_err   = llog.error
 local tinsert   = table.insert
 local sformat   = string.format
 local dgetinfo  = debug.getinfo
@@ -40,32 +43,26 @@ local function search_load(node)
         node.time = file_time(load_path)
         return loadfile(load_path)
     end
-    local trunk
     local filename = node.filename
     for _, path_root in pairs(search_path) do
         local fullpath = path_root .. filename
-        trunk = loadfile(fullpath)
-        if trunk then
+        if iopen(fullpath) then
             node.fullpath = fullpath
             node.time = file_time(fullpath)
-            return trunk
+            return loadfile(fullpath)
         end
     end
+    return nil, err
 end
 
 local function try_load(node)
-    local trunk = search_load(node)
-    if not trunk then
-        llog.error(sformat("[sandbox][try_load] load file: %s ... [failed]", node.filename))
+    local trunk_func, err = search_load(node)
+    if not trunk_func then
+        log_err(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
-    local ok, res = pcall(trunk)
-    if not ok then
-        llog.error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
-        return
-    end
-    llog.info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
-    return res
+    log_info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
+    return trunk_func()
 end
 
 function import(filename)
