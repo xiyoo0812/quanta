@@ -16,6 +16,21 @@
 - 编译lua需要readline，请提前安装。
 - http模块依赖curl，请提前安装。
 
+# 执行测试代码
+测试代码位于server/test，入口文件为server/test.lua
+```
+cd bin
+./quanta ./test.conf
+```
+
+# 基础服务
+- router: quanta框架采用星形结构，router提供路由服务。
+- test: 测试组件，提供基本给你测试的服务
+- dbsvr: 提供基础的数据库访问服务。
+- proxy: 提供基础的http访问服务。
+- cachesvr: 提供基础的数据缓存服务。
+- monitor: 提供基于httpserver服务，以及服务启停、监控的服务。
+
 # 依赖
 - bson(云风版)
 - lfs
