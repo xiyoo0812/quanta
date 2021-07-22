@@ -104,8 +104,8 @@ void quanta_app::daemon()
 
     setsid();
     umask(0);
-    
-    int null = open("/dev/null", O_RDWR); 
+
+    int null = open("/dev/null", O_RDWR);
     if (null != -1)
     {
         dup2(null, STDIN_FILENO);
@@ -157,7 +157,7 @@ void quanta_app::check_input(lua_State* L)
 #endif
 }
 
-int set_env(lua_State *L)
+int set_env(lua_State* L)
 {
     bool replace = false;
     const char* env_name = lua_tostring(L, 1);
@@ -229,8 +229,6 @@ void quanta_app::run(int argc, const char* argv[])
     lua_State* L = luaL_newstate();
     luaL_openlibs(L);
     lua_push_object(L, this);
-    lua_push_object(L, this);
-    lua_setglobal(L, "quanta");
     lua_newtable(L);
     for (int i = 1; i < argc; i++)
     {
@@ -238,12 +236,13 @@ void quanta_app::run(int argc, const char* argv[])
         lua_pushstring(L, argv[i]);
         lua_settable(L, -3);
     }
-	lua_setfield(L, -2, "args");
-	lua_pushstring(L, get_platform());
-	lua_setfield(L, -2, "platform");
+    lua_setfield(L, -2, "args");
+    lua_pushstring(L, get_platform());
+    lua_setfield(L, -2, "platform");
+    lua_setglobal(L, "quanta");
 
     std::string err;
-    if (!lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_SANDBOX"))) 
+    if (!lua_call_global_function(L, &err, "require", std::tie(), getenv("QUANTA_SANDBOX")))
     {
         die(err);
     }
