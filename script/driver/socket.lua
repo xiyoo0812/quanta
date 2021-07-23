@@ -30,11 +30,11 @@ end
 function Socket:close(close_by_peer)
     if self.fd then
         self.poll:control(self, POLL_DEL)
+        if close_by_peer then
+            self.host:on_socket_close(self, self.fd)
+        end
         lnet.close(self.fd)
         self.fd = nil
-        if close_by_peer then
-            self.host:on_socket_close(self)
-        end
     end
 end
 
@@ -80,9 +80,9 @@ function Socket:accept(fd)
         log_err("[Socket][accept] accept tcp failed: %s", err)
         return
     end
-    self.fd, self.ip, self.port = fd, ip, port
+    self.fd, self.ip, self.port = newfd, ip, port
     self.poll:control(self, POLL_ADD, true, false)
-    self.host:on_socket_accept(self)
+    self.host:on_socket_accept(self, newfd)
 end
 
 function Socket:recv()
@@ -101,7 +101,7 @@ function Socket:recv()
         end
         self.recvbuf = self.recvbuf .. data_oe
     end
-    self.host:on_socket_recv(self)
+    self.host:on_socket_recv(self, self.fd)
     return true
 end
 

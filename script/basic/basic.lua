@@ -32,6 +32,7 @@ function quanta.xpcall_quit(func, format, ...)
     local ok, err = xpcall(func, dtraceback, ...)
     if not ok then
         log_err(format, err)
+        logger.close ()
         quanta.run = nil
     end
 end

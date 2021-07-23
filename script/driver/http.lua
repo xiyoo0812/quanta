@@ -1,5 +1,4 @@
 --http.lua
-local lhttp         = require("luahttp")
 local webclient     = require "webclient"
 
 local pairs         = pairs
@@ -7,9 +6,6 @@ local tunpack       = table.unpack
 local tinsert       = table.insert
 local tconcat       = table.concat
 local sformat       = string.format
-local log_err       = logger.err
-local log_debug     = logger.debug
-local serialize     = logger.serialize
 
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -114,21 +110,6 @@ end
 --post接口
 function Http:call_post(url, querys, post_data, headers, timeout)
     return self:request(url, querys, post_data, headers or {["Content-Type"]="application/json"}, timeout)
-end
-
-function Http:create_server(log_method, err_method)
-    local server = lhttp.server()
-    server.on_logger = log_method or function(path, header, body, status, res)
-        log_debug("[httpsvr][logger]: %s, %s, %s, %s, %s", path, serialize(header), body, status, res)
-    end
-    server.on_error = err_method or function(path, header, body, status, res)
-        log_err("[httpsvr][error]: %s, %s, %s, %s, %s", path, serialize(header), body, status, res)
-    end
-    server.error("on_error")
-    server.logger("on_logger")
-    --添加到自动更新列表
-    quanta.join(server)
-    return server
 end
 
 quanta.http = Http()
