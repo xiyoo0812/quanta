@@ -1,10 +1,11 @@
 --rmsg_mgr.lua
 import("kernel/store/db_agent.lua")
+local lcrypt = require("lcrypt")
 
 local tsort         = table.sort
-local new_guid      = guid.new
 local log_err       = logger.err
 local log_info      = logger.info
+local new_guid      = lcrypt.guid_new
 
 local db_agent      = quanta.get("db_agent")
 local check_success = utility.check_success

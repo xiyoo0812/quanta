@@ -1,8 +1,10 @@
 --timer_mgr.lua
+local lcrypt = require("lcrypt")
+
 local pairs     = pairs
-local new_guid  = guid.new
 local tunpack   = table.unpack
 local tinsert   = table.insert
+local new_guid  = lcrypt.guid_new
 
 local thread_mgr = quanta.get("thread_mgr")
 

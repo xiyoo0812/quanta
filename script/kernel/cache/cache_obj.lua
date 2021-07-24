@@ -1,7 +1,8 @@
 -- cache_obj.lua
 -- cache的实体类
-local new_guid      = guid.new
+local lcrypt = require("lcrypt")
 local log_err       = logger.err
+local new_guid      = lcrypt.guid_new
 local check_failed  = utility.check_failed
 local check_success = utility.check_success
 

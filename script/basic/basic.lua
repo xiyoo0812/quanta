@@ -10,7 +10,6 @@ import("basic/math.lua")
 import("basic/table.lua")
 import("basic/string.lua")
 import("basic/logger.lua")
-import("basic/guid.lua")
 import("basic/listener.lua")
 
 local log_err       = logger.err

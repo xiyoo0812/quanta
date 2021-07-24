@@ -1,10 +1,11 @@
 --json_test.lua
 local ljson = require("luacjson")
+local lcrypt = require("lcrypt")
 ljson.encode_sparse_array(true)
 
-local new_guid      = guid.new
 local json_encode   = ljson.encode
 local json_decode   = ljson.decode
+local new_guid      = lcrypt.guid_new
 
 local test  = {
     tid = 3.1415926,
