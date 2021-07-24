@@ -164,6 +164,7 @@ function quanta.update()
                 obj:dump(true)
             end
             log_info("service quit for signal !")
+            timer_mgr:stop()
             logger.close()
             quanta.run = nil
         end

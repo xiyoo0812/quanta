@@ -1,6 +1,6 @@
 -- http_test.lua
 import("driver/http.lua")
-local ljson = require("luacjson")
+local ljson = require("lcjson")
 ljson.encode_sparse_array(true)
 
 local http          = quanta.get("http")

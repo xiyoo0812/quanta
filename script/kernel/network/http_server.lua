@@ -1,7 +1,7 @@
 --http_server.lua
 import("driver/poll.lua")
+local ljson         = require("lcjson")
 local lhttp         = require("luahttp")
-local ljson         = require("luacjson")
 local Socket        = import("driver/socket.lua")
 
 local type          = type

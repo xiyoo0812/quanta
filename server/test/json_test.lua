@@ -1,5 +1,5 @@
 --json_test.lua
-local ljson = require("luacjson")
+local ljson = require("lcjson")
 local lcrypt = require("lcrypt")
 ljson.encode_sparse_array(true)
 

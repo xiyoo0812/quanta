@@ -1,6 +1,6 @@
 --etcd.lua
 import("driver/http:lua")
-local ljson = require("luacjson")
+local ljson = require("lcjson")
 ljson.encode_sparse_array(true)
 
 local sformat       = string.format

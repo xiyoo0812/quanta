@@ -1,5 +1,5 @@
 --feishu.lua
-local ljson = require("luacjson")
+local ljson = require("lcjson")
 ljson.encode_sparse_array(true)
 
 local otime         = os.time

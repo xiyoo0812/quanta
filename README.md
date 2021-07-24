@@ -37,7 +37,7 @@ cd bin
 - lnet
 - lpeg
 - lua(5.4)
-- luacjson
+- lcjson
 - loalog
 - luaxlsx
 - mongo(云风版)

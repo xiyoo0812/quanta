@@ -1,6 +1,6 @@
 --web_mgr.lua
 import("driver/http.lua")
-local ljson         = require("luacjson")
+local ljson         = require("lcjson")
 local HttpServer    = import("kernel/network/http_server.lua")
 
 local jdecode       = ljson.decode

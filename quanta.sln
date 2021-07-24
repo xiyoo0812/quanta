@@ -52,7 +52,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lnet", "extend\luaext\lnet\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lpeg", "extend\luaext\lpeg\lpeg.vcxproj", "{568D6F01-6547-475B-B0C9-4D29DC9A6EA1}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luacjson", "extend\luaext\luacjson\luacjson.vcxproj", "{47B1F51B-70AA-4C21-993D-66BA5B831C67}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lcjson", "extend\luaext\lcjson\lcjson.vcxproj", "{47B1F51B-70AA-4C21-993D-66BA5B831C67}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lualog", "extend\luaext\lualog\lualog.vcxproj", "{C2DD1C67-5A7A-48F9-A860-FE4B92F6D1BD}"
 EndProject
@@ -63,6 +63,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pbc", "extend\luaext\pbc\pbc.vcxproj", "{072B788A-F4A1-4FB5-83F0-633A4FE5DB5E}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "luahttp", "extend\luaext\luahttp\luahttp.vcxproj", "{F582EF81-3D4F-4276-B63A-87863FAA483C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ltimer", "extend\luaext\ltimer\ltimer.vcxproj", "{6E4BA694-DA12-40AF-9597-E54E12BED096}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -142,6 +144,10 @@ Global
 		{F582EF81-3D4F-4276-B63A-87863FAA483C}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
 		{F582EF81-3D4F-4276-B63A-87863FAA483C}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
 		{F582EF81-3D4F-4276-B63A-87863FAA483C}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{6E4BA694-DA12-40AF-9597-E54E12BED096}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{6E4BA694-DA12-40AF-9597-E54E12BED096}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{6E4BA694-DA12-40AF-9597-E54E12BED096}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{6E4BA694-DA12-40AF-9597-E54E12BED096}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -169,6 +175,7 @@ Global
 		{954AC35E-1774-47FF-ADF1-5F65E97FB615} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 		{072B788A-F4A1-4FB5-83F0-633A4FE5DB5E} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 		{F582EF81-3D4F-4276-B63A-87863FAA483C} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
+		{6E4BA694-DA12-40AF-9597-E54E12BED096} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63D02246-6BAD-4132-9325-6DDF29305452}

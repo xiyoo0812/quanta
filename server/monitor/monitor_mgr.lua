@@ -1,6 +1,6 @@
 --monitor_mgr.lua
 import("driver/http.lua")
-local ljson     = require("luacjson")
+local ljson     = require("lcjson")
 local RpcServer = import("kernel/network/rpc_server.lua")
 local HttpServer= import("kernel/network/http_server.lua")
 
