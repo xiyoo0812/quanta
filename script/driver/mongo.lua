@@ -1,14 +1,25 @@
 
 --mongo.lua
 import("driver/poll.lua")
-local bson          = require "bson"
-local driver        = require "mongo"
+local bson          = require("bson")
+local driver        = require("mongo")
+local lcrypt        = require("lcrypt")
 local Socket        = import("driver/socket.lua")
 
 local ipairs        = ipairs
+local ssub          = string.sub
+local sgsub         = string.gsub
+local sformat       = string.format
+local sgmatch       = string.gmatch 
 local tinsert       = table.insert
 local tunpack       = table.unpack
 local mtointeger    = math.tointeger
+local randomkey     = lcrypt.randomkey
+local b64encode     = lcrypt.b64_encode
+local b64decode     = lcrypt.b64_decode
+local hmac_sha1     = lcrypt.hmac_sha1
+local sha1          = lcrypt.sha1
+
 
 local log_info      = logger.info
 local bson_encode   = bson.encode
@@ -61,6 +72,83 @@ function MongoDB:upadte()
             self.sock = sock
         end
     end
+end
+
+local function salt_password(password, salt, iter)
+	salt = salt .. "\0\0\0\1"
+	local output = hmac_sha1(password, salt)
+	local inter = output
+	for i=2,iter do
+		inter = hmac_sha1(password, inter)
+		output = crypt.xor_str(output, inter)
+	end
+	return output
+end
+
+function MongoDB:auth(username, password)
+	local nonce = b64encode(randomkey())
+	local user = sgsub(sgsub(username, '=', '=3D'), ',' , '=2C')
+	local first_bare = "n="  .. user .. ",r="  .. nonce
+	local sasl_start_payload = b64encode("n,," .. first_bare)
+	local r
+
+	r = self:runCommand("saslStart",1,"autoAuthorize",1,"mechanism","SCRAM-SHA-1","payload",sasl_start_payload)
+	if r.ok ~= 1 then
+		return false
+	end
+
+	local conversationId = r['conversationId']
+	local server_first = r['payload']
+	local parsed_s = b64decode(server_first)
+	local parsed_t = {}
+	for k, v in sgmatch(parsed_s, "(%w+)=([^,]*)") do
+		parsed_t[k] = v
+	end
+	local iterations = tonumber(parsed_t['i'])
+	local salt = parsed_t['s']
+	local rnonce = parsed_t['r']
+
+	if not ssub(rnonce, 1, 12) == nonce then
+		skynet.error("Server returned an invalid nonce.")
+		return false
+	end
+	local without_proof = "c=biws,r=" .. rnonce
+	local pbkdf2_key = md5.sumhexa(sformat("%s:mongo:%s",username,password))
+	local salted_pass = salt_password(pbkdf2_key, b64decode(salt), iterations)
+	local client_key = hmac_sha1(salted_pass, "Client Key")
+	local stored_key = sha1(client_key)
+	local auth_msg = first_bare .. ',' .. parsed_s .. ',' .. without_proof
+	local client_sig = hmac_sha1(stored_key, auth_msg)
+	local client_key_xor_sig = crypt.xor_str(client_key, client_sig)
+	local client_proof = "p=" .. b64encode(client_key_xor_sig)
+	local client_final = b64encode(without_proof .. ',' .. client_proof)
+	local server_key = hmac_sha1(salted_pass, "Server Key")
+	local server_sig = b64encode(hmac_sha1(server_key, auth_msg))
+
+	r = self:runCommand("saslContinue",1,"conversationId",conversationId,"payload",client_final)
+	if r.ok ~= 1 then
+		return false
+	end
+	parsed_s = b64decode(r['payload'])
+	parsed_t = {}
+	for k, v in sgmatch(parsed_s, "(%w+)=([^,]*)") do
+		parsed_t[k] = v
+	end
+	if parsed_t['v'] ~= server_sig then
+		skynet.error("Server returned an invalid signature.")
+		return false
+	end
+	if not r.done then
+		r = self:runCommand("saslContinue",1,"conversationId",conversationId,"payload","")
+		if r.ok ~= 1 then
+			return false
+		end
+		if not r.done then
+			skynet.error("SASL conversation failed to complete.")
+			return false
+		end
+	end
+	return true
 end
 
 function MongoDB:on_socket_close()
