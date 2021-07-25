@@ -139,34 +139,34 @@ function quanta.update()
     local count = socket_mgr.wait(10)
     local now_ms = get_time_ms()
     local escape_ms = now_ms - quanta.now_ms
+    --系统更新
+    quanta.now = otime()
+    quanta.now_ms = now_ms
+    thread_mgr:update()
+    timer_mgr:update(escape_ms)
+    --业务更新
     if escape_ms >= 100 then
         if escape_ms >= 400 then
             log_warn("warning escape_ms(%d) too long count(%d)!", escape_ms, count)
         end
-        quanta.now = otime()
-        quanta.now_ms = now_ms
-        --系统更新
-        timer_mgr:update(escape_ms)
-        thread_mgr:update()
-        --业务更新
         local frame = (now_ms - quanta.start_ms) // 100
         for _, obj in pairs(quanta.objects) do
             obj:update(frame)
         end
         quanta.frame = frame
-        --垃圾回收
         if frame % 10 == 0 then
+            --垃圾回收
             lua_collectgarbage()
-        end
-        --检查信号
-        if sig_check() then
-            for _, obj in pairs(quanta.dumps) do
-                obj:dump(true)
+            --检查信号
+            if sig_check() then
+                for _, obj in pairs(quanta.dumps) do
+                    obj:dump(true)
+                end
+                log_info("service quit for signal !")
+                timer_mgr:close()
+                logger.close()
+                quanta.run = nil
             end
-            log_info("service quit for signal !")
-            timer_mgr:stop()
-            logger.close()
-            quanta.run = nil
         end
     end
 end

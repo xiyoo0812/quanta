@@ -1,7 +1,9 @@
 --timer_mgr.lua
 local ltimer    = require("ltimer")
 local lcrypt    = require("lcrypt")
-local driver    = ltimer.cteate()
+local driver    = ltimer.create()
+local lt_insert = ltimer.insert
+local lt_update = ltimer.update
 
 local pairs     = pairs
 local tpack     = table.pack
@@ -10,11 +12,16 @@ local tinsert   = table.insert
 local new_guid  = lcrypt.guid_new
 local current_ms= quanta.get_time_ms
 
+--定时器精度，10ms
+local TIMER_ACCURYACY = 10
+
 local thread_mgr = quanta.get("thread_mgr")
 
 local TimerMgr = singleton()
+local prop = property(TimerMgr)
+prop:reader("timers", {})
+prop:reader("escape_ms", 0)
 function TimerMgr:__init()
-    self.timers = {}
 end
 
 function TimerMgr:trigger(handle, now_ms)
@@ -30,17 +37,19 @@ function TimerMgr:trigger(handle, now_ms)
     --更新定时器数据
     handle.last = now_ms
     if handle.times == 0 then
-        self.timers[timer_id] = nil
+        self.timers[handle.timer_id] = nil
         return
     end
     --继续注册
-    ltimer.insert(driver, timer_id, handle.period)
+    lt_insert(driver, handle.timer_id, handle.period)
 end
 
 function TimerMgr:update(escape_ms)
     local timers = {}
     local now_ms = current_ms()
-    local nsize = ltimer.update(driver, escape_ms, timers)
+    escape_ms = escape_ms + self.escape_ms
+    self.escape_ms = escape_ms % TIMER_ACCURYACY
+    lt_update(driver, escape_ms // TIMER_ACCURYACY, timers)
     for _, timer_id in ipairs(timers) do
         local handle = self.timers[timer_id]
         if handle then
@@ -58,15 +67,21 @@ function TimerMgr:loop(period, cb, ...)
 end
 
 function TimerMgr:register(interval, period, times, cb, ...)
+    --生成id并注册
     local timer_id = new_guid(period, interval)
+    lt_insert(driver, timer_id, interval // TIMER_ACCURYACY)
+    --包装回调参数
+    local params = tpack(...)
+    tinsert(params, 0)
+    --保存信息
     self.timers[timer_id] = {
         cb = cb,
         times = times,
-        period = period,
+        params = params,
+        timer_id = timer_id,
         last = current_ms(),
-        params = tpack(..., 0)
+        period = period // TIMER_ACCURYACY
     }
-    ltimer.insert(driver, timer_id, interval)
     return timer_id
 end
 
@@ -74,9 +89,9 @@ function TimerMgr:unregister(timer_id)
     self.timers[timer_id] = nil
 end
 
-function TimerMgr:stop()
+function TimerMgr:close()
     self.timers = {}
-    ltimer.release(driver)
+    ltimer.close(driver)
 end
 
 quanta.timer_mgr = TimerMgr()
