@@ -68,7 +68,10 @@ end
 
 function TimerMgr:register(interval, period, times, cb, ...)
     --生成id并注册
+    local now_ms = current_ms()
     local timer_id = new_guid(period, interval)
+    --矫正时间误差
+    interval = interval + (now_ms - quanta.now_ms)
     lt_insert(driver, timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
@@ -76,10 +79,10 @@ function TimerMgr:register(interval, period, times, cb, ...)
     --保存信息
     self.timers[timer_id] = {
         cb = cb,
+        last = now_ms,
         times = times,
         params = params,
         timer_id = timer_id,
-        last = current_ms(),
         period = period // TIMER_ACCURYACY
     }
     return timer_id
