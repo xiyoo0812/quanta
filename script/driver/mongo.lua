@@ -7,6 +7,8 @@ local lcrypt        = require("lcrypt")
 local Socket        = import("driver/socket.lua")
 
 local ipairs        = ipairs
+local log_err       = logger.err
+local log_info      = logger.info
 local ssub          = string.sub
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -14,18 +16,17 @@ local sgmatch       = string.gmatch
 local tinsert       = table.insert
 local tunpack       = table.unpack
 local mtointeger    = math.tointeger
+local bson_encode   = bson.encode
+local bson_decode   = bson.decode
 local randomkey     = lcrypt.randomkey
 local b64encode     = lcrypt.b64_encode
 local b64decode     = lcrypt.b64_decode
 local hmac_sha1     = lcrypt.hmac_sha1
 local sha1          = lcrypt.sha1
-
-
-local log_info      = logger.info
-local bson_encode   = bson.encode
-local bson_decode   = bson.decode
+local lxor_byte     = lcrypt.xor_byte
 local bson_encode_order = bson.encode_order
-local empty_bson    = bson_encode {}
+
+local empty_bson    = bson_encode({})
 
 local NetwkTime     = enum("NetwkTime")
 local PeriodTime    = enum("PeriodTime")
@@ -119,7 +120,7 @@ function MongoDB:auth(username, password)
 	local stored_key = sha1(client_key)
 	local auth_msg = first_bare .. ',' .. parsed_s .. ',' .. without_proof
 	local client_sig = hmac_sha1(stored_key, auth_msg)
-	local client_key_xor_sig = crypt.xor_str(client_key, client_sig)
+	local client_key_xor_sig = lxor_byte(client_key, client_sig)
 	local client_proof = "p=" .. b64encode(client_key_xor_sig)
 	local client_final = b64encode(without_proof .. ',' .. client_proof)
 	local server_key = hmac_sha1(salted_pass, "Server Key")
