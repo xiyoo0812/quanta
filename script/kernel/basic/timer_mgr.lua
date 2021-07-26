@@ -1,9 +1,6 @@
 --timer_mgr.lua
 local ltimer    = require("ltimer")
 local lcrypt    = require("lcrypt")
-local driver    = ltimer.create()
-local lt_insert = ltimer.insert
-local lt_update = ltimer.update
 
 local pairs     = pairs
 local tpack     = table.pack
@@ -20,8 +17,11 @@ local thread_mgr = quanta.get("thread_mgr")
 local TimerMgr = singleton()
 local prop = property(TimerMgr)
 prop:reader("timers", {})
+prop:reader("last_ms", 0)
 prop:reader("escape_ms", 0)
 function TimerMgr:__init()
+    self.last_ms = current_ms()
+    self.driver = ltimer.create()
 end
 
 function TimerMgr:trigger(handle, now_ms)
@@ -41,21 +41,22 @@ function TimerMgr:trigger(handle, now_ms)
         return
     end
     --继续注册
-    lt_insert(driver, handle.timer_id, handle.period)
+    self.driver:insert(handle.timer_id, handle.period)
 end
 
-function TimerMgr:update(escape_ms)
+function TimerMgr:update()
     local timers = {}
     local now_ms = current_ms()
-    escape_ms = escape_ms + self.escape_ms
+    local escape_ms = now_ms - self.last_ms + self.escape_ms
     self.escape_ms = escape_ms % TIMER_ACCURYACY
-    lt_update(driver, escape_ms // TIMER_ACCURYACY, timers)
+    self.driver:update(escape_ms // TIMER_ACCURYACY, timers)
     for _, timer_id in ipairs(timers) do
         local handle = self.timers[timer_id]
         if handle then
             self:trigger(handle, now_ms)
         end
     end
+    self.last_ms = now_ms
 end
 
 function TimerMgr:once(period, cb, ...)
@@ -71,8 +72,8 @@ function TimerMgr:register(interval, period, times, cb, ...)
     local now_ms = current_ms()
     local timer_id = new_guid(period, interval)
     --矫正时间误差
-    interval = interval + (now_ms - quanta.now_ms)
-    lt_insert(driver, timer_id, interval // TIMER_ACCURYACY)
+    interval = interval + (now_ms - self.last_ms)
+    self.driver:insert(timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
     tinsert(params, 0)
@@ -94,7 +95,7 @@ end
 
 function TimerMgr:close()
     self.timers = {}
-    ltimer.close(driver)
+    self.driver:close()
 end
 
 quanta.timer_mgr = TimerMgr()

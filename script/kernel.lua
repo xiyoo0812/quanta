@@ -137,18 +137,18 @@ end
 --日常更新
 function quanta.update()
     local count = socket_mgr.wait(10)
+    --系统更新
+    timer_mgr:update()
+    thread_mgr:update()
+    --业务更新
     local now_ms = get_time_ms()
     local escape_ms = now_ms - quanta.now_ms
-    --系统更新
-    quanta.now = otime()
-    quanta.now_ms = now_ms
-    thread_mgr:update()
-    timer_mgr:update(escape_ms)
-    --业务更新
     if escape_ms >= 100 then
         if escape_ms >= 400 then
             log_warn("warning escape_ms(%d) too long count(%d)!", escape_ms, count)
         end
+        quanta.now = otime()
+        quanta.now_ms = now_ms
         local frame = (now_ms - quanta.start_ms) // 100
         for _, obj in pairs(quanta.objects) do
             obj:update(frame)
