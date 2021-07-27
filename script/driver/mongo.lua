@@ -12,7 +12,7 @@ local log_info      = logger.info
 local ssub          = string.sub
 local sgsub         = string.gsub
 local sformat       = string.format
-local sgmatch       = string.gmatch 
+local sgmatch       = string.gmatch
 local umd5sum       = utility.md5sum
 local tinsert       = table.insert
 local tunpack       = table.unpack
@@ -89,74 +89,71 @@ function MongoDB:upadte()
 end
 
 local function salt_password(password, salt, iter)
-	salt = salt .. "\0\0\0\1"
-	local output = lhmac_sha1(password, salt)
-	local inter = output
-	for i=2,iter do
-		inter = lhmac_sha1(password, inter)
-		output = lxor_byte(output, inter)
-	end
-	return output
+    salt = salt .. "\0\0\0\1"
+    local output = lhmac_sha1(password, salt)
+    local inter = output
+    for i=2,iter do
+        inter = lhmac_sha1(password, inter)
+        output = lxor_byte(output, inter)
+    end
+    return output
 end
 
 function MongoDB:auth(username, password)
-	local nonce = lb64encode(lrandomkey())
-	local user = sgsub(sgsub(username, '=', '=3D'), ',' , '=2C')
-	local first_bare = "n="  .. user .. ",r="  .. nonce
-	local sasl_start_payload = lb64encode("n,," .. first_bare)
-	local sok, sdoc = self:adminCommand("saslStart", 1, "autoAuthorize", 1, "mechanism", "SCRAM-SHA-1", "payload", sasl_start_payload)
-	if not sok then
-		return sok, sdoc
-	end
+    local nonce = lb64encode(lrandomkey())
+    local user = sgsub(sgsub(username, '=', '=3D'), ',', '=2C')
+    local first_bare = "n="  .. user .. ",r="  .. nonce
+    local sasl_start_payload = lb64encode("n,," .. first_bare)
+    local sok, sdoc = self:adminCommand("saslStart", 1, "autoAuthorize", 1, "mechanism", "SCRAM-SHA-1", "payload", sasl_start_payload)
+    if not sok then
+        return sok, sdoc
+    end
 
-	local conversationId = sdoc['conversationId']
-	local str_payload_start = lb64decode(sdoc['payload'])
-	local payload_start = {}
-	for k, v in sgmatch(str_payload_start, "(%w+)=([^,]*)") do
-		payload_start[k] = v
-	end
-	local salt = payload_start['s']
-	local rnonce = payload_start['r']
-	local iterations = tonumber(payload_start['i'])
-	if not ssub(rnonce, 1, 12) == nonce then
-		return false, "Server returned an invalid nonce."
-	end
-	local without_proof = "c=biws,r=" .. rnonce
-	local pbkdf2_key = umd5sum(sformat("%s:mongo:%s", username, password))
-	local salted_pass = salt_password(pbkdf2_key, lb64decode(salt), iterations)
-	local client_key = lhmac_sha1(salted_pass, "Client Key")
-	local stored_key = lsha1(client_key)
-	local auth_msg = first_bare .. ',' .. str_payload_start .. ',' .. without_proof
-	local client_sig = lhmac_sha1(stored_key, auth_msg)
-	local client_key_xor_sig = lxor_byte(client_key, client_sig)
-	local client_proof = "p=" .. lb64encode(client_key_xor_sig)
-	local client_final = lb64encode(without_proof .. ',' .. client_proof)
-    
-	local cok, cdoc = self:adminCommand("saslContinue", 1, "conversationId", conversationId, "payload", client_final)
-	if not cok then
-		return cok, cdoc
-	end
-	local payload_continue = {}
-	local str_payload_continue = lb64decode(cdoc['payload'])
-	for k, v in sgmatch(str_payload_continue, "(%w+)=([^,]*)") do
-		payload_continue[k] = v
-	end
-	local server_key = lhmac_sha1(salted_pass, "Server Key")
-	local server_sig = lb64encode(lhmac_sha1(server_key, auth_msg))
-	if payload_continue['v'] ~= server_sig then
-		log_err("Server returned an invalid signature.")
-		return false
-	end
-	if not cdoc.done then
-		local ccok, ccdoc = self:adminCommand("saslContinue", 1, "conversationId", conversationId, "payload", "")
-		if not ccok then
-			return false, "SASL conversation failed to complete."
-		end
-		if not ccdoc.done then
-			return false, "SASL conversation failed to complete."
-		end
-	end
-	return true
+    local conversationId = sdoc['conversationId']
+    local str_payload_start = lb64decode(sdoc['payload'])
+    local payload_start = {}
+    for k, v in sgmatch(str_payload_start, "(%w+)=([^,]*)") do
+        payload_start[k] = v
+    end
+    local salt = payload_start['s']
+    local rnonce = payload_start['r']
+    local iterations = tonumber(payload_start['i'])
+    if not ssub(rnonce, 1, 12) == nonce then
+        return false, "Server returned an invalid nonce."
+    end
+    local without_proof = "c=biws,r=" .. rnonce
+    local pbkdf2_key = umd5sum(sformat("%s:mongo:%s", username, password))
+    local salted_pass = salt_password(pbkdf2_key, lb64decode(salt), iterations)
+    local client_key = lhmac_sha1(salted_pass, "Client Key")
+    local stored_key = lsha1(client_key)
+    local auth_msg = first_bare .. ',' .. str_payload_start .. ',' .. without_proof
+    local client_sig = lhmac_sha1(stored_key, auth_msg)
+    local client_key_xor_sig = lxor_byte(client_key, client_sig)
+    local client_proof = "p=" .. lb64encode(client_key_xor_sig)
+    local client_final = lb64encode(without_proof .. ',' .. client_proof)
+
+    local cok, cdoc = self:adminCommand("saslContinue", 1, "conversationId", conversationId, "payload", client_final)
+    if not cok then
+        return cok, cdoc
+    end
+    local payload_continue = {}
+    local str_payload_continue = lb64decode(cdoc['payload'])
+    for k, v in sgmatch(str_payload_continue, "(%w+)=([^,]*)") do
+        payload_continue[k] = v
+    end
+    local server_key = lhmac_sha1(salted_pass, "Server Key")
+    local server_sig = lb64encode(lhmac_sha1(server_key, auth_msg))
+    if payload_continue['v'] ~= server_sig then
+        log_err("Server returned an invalid signature.")
+        return false
+    end
+    if not cdoc.done then
+        local ccok, ccdoc = self:adminCommand("saslContinue", 1, "conversationId", conversationId, "payload", "")
+        if not ccok or not ccdoc.done then
+            return false, "SASL conversation failed to complete."
+        end
+    end
+    return true
 end
 
 function MongoDB:on_socket_close()
