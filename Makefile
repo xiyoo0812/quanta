@@ -35,13 +35,13 @@ ext:
 	cd extend/luaext/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 
 luna:
-	cd core/luna; make -f luna.mak;
+	cd core/luna; make SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
 
 luabus:
-	cd core/luabus; make -f luabus.mak;
+	cd core/luabus; make SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
 
 quanta:
-	cd core/quanta; make -f quanta.mak;
+	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 
 webclient:
-	cd extend/webclient; make -f webclient.mak;
+	cd extend/webclient; make SOLUTION_DIR=$(CUR_DIR) -f webclient.mak;

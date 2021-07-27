@@ -58,8 +58,8 @@ temp
 *.7z
 *.tar
 
-#quanta
 *.err
+bin/quanta
 bin/lua
 bin/luac
 .gitignore
