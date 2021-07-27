@@ -1,13 +1,17 @@
 --utility.lua
+local lcrypt = require("lcrypt")
 local type          = type
 local otime         = os.time
 local odate         = os.date
 local log_err       = logger.err
 local sbyte         = string.byte
+local sgsub         = string.gsub
+local sformat       = string.format
 local tunpack       = table.unpack
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 local ssplit        = string_ext.split
+local lmd5          = lcrypt.md5
 
 local KernCode      = enum("KernCode")
 local PeriodTime    = enum("PeriodTime")
@@ -110,4 +114,11 @@ end
 --解析ip地址
 function utility.addr(addr)
     return tunpack(ssplit(addr, ":"))
+end
+
+--md5sum
+function utility.md5sum(src)
+    return sgsub(lmd5(src), ".", function (c) 
+        return sformat("%02x", sbyte(c))
+    end)
 end

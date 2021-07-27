@@ -1,29 +1,32 @@
 --log_test.lua
-local llog = require("lualog")
-local lcrypt = require("lcrypt")
+local lcrypt    = require("lcrypt")
 
-local sformat = string.format
+local log_info      = logger.info
+local sformat       = string.format
+local lrandomkey    = lcrypt.randomkey
+local lb64encode    = lcrypt.b64_encode
+local lb64decode    = lcrypt.b64_decode
 
+
+--guid
+----------------------------------------------------------------
 local guid = lcrypt.guid_new(5, 512)
 local sguid = lcrypt.guid_tostring(guid)
+log_info("newguid-> guid: %s, n2s: %s", guid, sguid)
 local nguid = lcrypt.guid_number(sguid)
 local s2guid = lcrypt.guid_tostring(nguid)
-
+log_info("convert-> guid: %s, n2s: %s", nguid, s2guid)
 local nsguid = lcrypt.guid_string(5, 512)
-local group = lcrypt.guid_group(guid)
+log_info("newguid: %s", nsguid)
+local group = lcrypt.guid_group(nsguid)
 local index = lcrypt.guid_index(guid)
 local time = lcrypt.guid_time(guid)
-local group2, index2, time2 = lcrypt.guid_source(nguid)
+log_info("ssource-> group: %s, index: %s, time:%s", group, index, time)
+local group2, index2, time2 = lcrypt.guid_source(guid)
+log_info("nsource-> group: %s, index: %s, time:%s", group2, index2, time2)
 
-llog.debug(sformat("guid: %s", guid))
-llog.debug(sformat("sguid: %s", sguid))
-llog.debug(sformat("nguid: %s", nguid))
-llog.debug(sformat("s2guid: %s", s2guid))
-llog.debug(sformat("ssguid: %s", nsguid))
-llog.debug(sformat("group: %s", group))
-llog.debug(sformat("index: %s", index))
-llog.debug(sformat("time: %s", time))
-llog.debug(sformat("group2: %s", group2))
-llog.debug(sformat("index2: %s", index2))
-llog.debug(sformat("time2: %s", time2))
-
+--base64
+local ran = lrandomkey();
+local nonce = lb64encode(ran)
+local dnonce = lb64decode(nonce)
+log_info("b64encode-> ran: %s, nonce: %s, dnonce:%s", ran, nonce, dnonce)

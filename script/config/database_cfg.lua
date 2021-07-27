@@ -14,9 +14,11 @@ database:upsert({
     group = 1,
     index = 1,
     driver = 'mongo',
-    db = 'klbq_plat_pub',
-    host = '10.100.0.19',
+    db = 'quanta_pub',
+    host = '127.0.0.1',
     port = 27017,
+    user = 'root',
+    passwd = '123456',
 })
 
 database:upsert({
@@ -24,9 +26,11 @@ database:upsert({
     group = 2,
     index = 1,
     driver = 'mongo',
-    db = 'klbq_plat_rmsg_pub',
-    host = '10.100.0.19',
+    db = 'quanta_rmsg_pub',
+    host = '127.0.0.1',
     port = 27017,
+    user = 'root',
+    passwd = '123456',
 })
 
 database:upsert({
@@ -34,9 +38,11 @@ database:upsert({
     group = 1,
     index = 1,
     driver = 'mongo',
-    db = 'klbq_plat_dev',
-    host = '10.100.0.19',
+    db = 'quanta_dev',
+    host = '127.0.0.1',
     port = 27017,
+    user = 'root',
+    passwd = '123456',
 })
 
 database:upsert({
@@ -44,9 +50,11 @@ database:upsert({
     group = 2,
     index = 1,
     driver = 'mongo',
-    db = 'klbq_plat_rmsg_dev',
-    host = '10.100.0.19',
+    db = 'quanta_rmsg_dev',
+    host = '127.0.0.1',
     port = 27017,
+    user = 'root',
+    passwd = '123456',
 })
 
 database:upsert({
@@ -54,9 +62,11 @@ database:upsert({
     group = 1,
     index = 1,
     driver = 'mongo',
-    db = 'klbq_plat_loc',
-    host = '10.100.0.19',
+    db = 'quanta_loc',
+    host = '127.0.0.1',
     port = 27017,
+    user = 'root',
+    passwd = '123456',
 })
 
 database:upsert({
@@ -64,7 +74,9 @@ database:upsert({
     group = 2,
     index = 1,
     driver = 'mongo',
-    db = 'klbq_plat_rmsg_loc',
-    host = '10.100.0.19',
+    db = 'quanta_rmsg_loc',
+    host = '127.0.0.1',
     port = 27017,
+    user = 'root',
+    passwd = '123456',
 })

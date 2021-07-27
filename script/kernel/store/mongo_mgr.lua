@@ -25,7 +25,7 @@ function MongoMgr:setup(group)
     local database = config_mgr:init_table("database", "group", "index")
     for _, conf in database:iterator() do
         if group == conf.group and conf.driver == "mongo" then
-            self.mongo_dbs[conf.index] = MongoDB(conf.db, conf.host, conf.port)
+            self.mongo_dbs[conf.index] = MongoDB(conf.db, conf.host, conf.port, conf.user, conf.passwd)
         end
     end
 end
