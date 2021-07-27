@@ -13,18 +13,19 @@ local ssub          = string.sub
 local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch 
+local umd5sum       = utility.md5sum
 local tinsert       = table.insert
 local tunpack       = table.unpack
 local mtointeger    = math.tointeger
 local bson_encode   = bson.encode
 local bson_decode   = bson.decode
-local randomkey     = lcrypt.randomkey
-local b64encode     = lcrypt.b64_encode
-local b64decode     = lcrypt.b64_decode
-local hmac_sha1     = lcrypt.hmac_sha1
-local sha1          = lcrypt.sha1
+local lrandomkey    = lcrypt.randomkey
+local lb64encode    = lcrypt.b64_encode
+local lb64decode    = lcrypt.b64_decode
+local lhmac_sha1    = lcrypt.hmac_sha1
+local lsha1         = lcrypt.sha1
 local lxor_byte     = lcrypt.xor_byte
-local bson_encode_order = bson.encode_order
+local bson_encode_o = bson.encode_order
 
 local empty_bson    = bson_encode({})
 
@@ -42,11 +43,15 @@ prop:accessor("sock", nil)          --网络连接对象
 prop:accessor("name", "")           --dbname
 prop:accessor("db_cmd", "")         --默认cmd
 prop:accessor("port", 27017)        --mongo端口
+prop:accessor("user", "")           --user
+prop:accessor("passwd", "")         --passwd
 
-function MongoDB:__init(db_name, ip, port)
+function MongoDB:__init(db_name, ip, port, user, passwd)
     self.ip = ip
     self.port = port
+    self.user = user
     self.name = db_name
+    self.passwd = passwd
     self.db_cmd = db_name .. "." .. "$cmd"
     --update
     timer_mgr:loop(PeriodTime.SECOND_MS, function()
@@ -69,84 +74,86 @@ function MongoDB:upadte()
     if not self.sock then
         local sock = Socket(poll, self)
         if sock:connect(self.ip, self.port) then
-            log_info("[MongoDB][upadte] connect db(%s:%s) success!", self.ip, self.port)
             self.sock = sock
+            if #self.user > 0 and #self.passwd > 0 then
+                local ok, err = self:auth(self.user, self.passwd)
+                if not ok then
+                    log_err("[MongoDB][upadte] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
+                    self.sock = nil
+                    return
+                end
+            end
+            log_info("[MongoDB][upadte] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
         end
     end
 end
 
 local function salt_password(password, salt, iter)
 	salt = salt .. "\0\0\0\1"
-	local output = hmac_sha1(password, salt)
+	local output = lhmac_sha1(password, salt)
 	local inter = output
 	for i=2,iter do
-		inter = hmac_sha1(password, inter)
-		output = crypt.xor_str(output, inter)
+		inter = lhmac_sha1(password, inter)
+		output = lxor_byte(output, inter)
 	end
 	return output
 end
 
 function MongoDB:auth(username, password)
-	local nonce = b64encode(randomkey())
+	local nonce = lb64encode(lrandomkey())
 	local user = sgsub(sgsub(username, '=', '=3D'), ',' , '=2C')
 	local first_bare = "n="  .. user .. ",r="  .. nonce
-	local sasl_start_payload = b64encode("n,," .. first_bare)
-	local r
-
-	r = self:runCommand("saslStart",1,"autoAuthorize",1,"mechanism","SCRAM-SHA-1","payload",sasl_start_payload)
-	if r.ok ~= 1 then
-		return false
+	local sasl_start_payload = lb64encode("n,," .. first_bare)
+	local sok, sdoc = self:adminCommand("saslStart", 1, "autoAuthorize", 1, "mechanism", "SCRAM-SHA-1", "payload", sasl_start_payload)
+	if not sok then
+		return sok, sdoc
 	end
 
-	local conversationId = r['conversationId']
-	local server_first = r['payload']
-	local parsed_s = b64decode(server_first)
-	local parsed_t = {}
-	for k, v in sgmatch(parsed_s, "(%w+)=([^,]*)") do
-		parsed_t[k] = v
+	local conversationId = sdoc['conversationId']
+	local str_payload_start = lb64decode(sdoc['payload'])
+	local payload_start = {}
+	for k, v in sgmatch(str_payload_start, "(%w+)=([^,]*)") do
+		payload_start[k] = v
 	end
-	local iterations = tonumber(parsed_t['i'])
-	local salt = parsed_t['s']
-	local rnonce = parsed_t['r']
-
+	local salt = payload_start['s']
+	local rnonce = payload_start['r']
+	local iterations = tonumber(payload_start['i'])
 	if not ssub(rnonce, 1, 12) == nonce then
-		skynet.error("Server returned an invalid nonce.")
-		return false
+		return false, "Server returned an invalid nonce."
 	end
 	local without_proof = "c=biws,r=" .. rnonce
-	local pbkdf2_key = md5.sumhexa(sformat("%s:mongo:%s",username,password))
-	local salted_pass = salt_password(pbkdf2_key, b64decode(salt), iterations)
-	local client_key = hmac_sha1(salted_pass, "Client Key")
-	local stored_key = sha1(client_key)
-	local auth_msg = first_bare .. ',' .. parsed_s .. ',' .. without_proof
-	local client_sig = hmac_sha1(stored_key, auth_msg)
+	local pbkdf2_key = umd5sum(sformat("%s:mongo:%s", username, password))
+	local salted_pass = salt_password(pbkdf2_key, lb64decode(salt), iterations)
+	local client_key = lhmac_sha1(salted_pass, "Client Key")
+	local stored_key = lsha1(client_key)
+	local auth_msg = first_bare .. ',' .. str_payload_start .. ',' .. without_proof
+	local client_sig = lhmac_sha1(stored_key, auth_msg)
 	local client_key_xor_sig = lxor_byte(client_key, client_sig)
-	local client_proof = "p=" .. b64encode(client_key_xor_sig)
-	local client_final = b64encode(without_proof .. ',' .. client_proof)
-	local server_key = hmac_sha1(salted_pass, "Server Key")
-	local server_sig = b64encode(hmac_sha1(server_key, auth_msg))
-
-	r = self:runCommand("saslContinue",1,"conversationId",conversationId,"payload",client_final)
-	if r.ok ~= 1 then
+	local client_proof = "p=" .. lb64encode(client_key_xor_sig)
+	local client_final = lb64encode(without_proof .. ',' .. client_proof)
+    
+	local cok, cdoc = self:adminCommand("saslContinue", 1, "conversationId", conversationId, "payload", client_final)
+	if not cok then
+		return cok, cdoc
+	end
+	local payload_continue = {}
+	local str_payload_continue = lb64decode(cdoc['payload'])
+	for k, v in sgmatch(str_payload_continue, "(%w+)=([^,]*)") do
+		payload_continue[k] = v
+	end
+	local server_key = lhmac_sha1(salted_pass, "Server Key")
+	local server_sig = lb64encode(lhmac_sha1(server_key, auth_msg))
+	if payload_continue['v'] ~= server_sig then
+		log_err("Server returned an invalid signature.")
 		return false
 	end
-	parsed_s = b64decode(r['payload'])
-	parsed_t = {}
-	for k, v in sgmatch(parsed_s, "(%w+)=([^,]*)") do
-		parsed_t[k] = v
-	end
-	if parsed_t['v'] ~= server_sig then
-		skynet.error("Server returned an invalid signature.")
-		return false
-	end
-	if not r.done then
-		r = self:runCommand("saslContinue",1,"conversationId",conversationId,"payload","")
-		if r.ok ~= 1 then
-			return false
+	if not cdoc.done then
+		local ccok, ccdoc = self:adminCommand("saslContinue", 1, "conversationId", conversationId, "payload", "")
+		if not ccok then
+			return false, "SASL conversation failed to complete."
 		end
-		if not r.done then
-			skynet.error("SASL conversation failed to complete.")
-			return false
+		if not ccdoc.done then
+			return false, "SASL conversation failed to complete."
 		end
 	end
 	return true
@@ -224,12 +231,18 @@ function MongoDB:_more(full_name, cursor, query_num)
     return true, new_cursor, documents
 end
 
+function MongoDB:adminCommand(cmd, cmd_v, ...)
+    local bson_cmd = bson_encode_o(cmd, cmd_v, ...)
+    local succ, doc = self:_query("admin.$cmd", bson_cmd)
+    return self:mongo_result(succ, doc)
+end
+
 function MongoDB:runCommand(cmd, cmd_v, ...)
     local bson_cmd
     if not cmd_v then
-        bson_cmd = bson_encode_order(cmd, 1)
+        bson_cmd = bson_encode_o(cmd, 1)
     else
-        bson_cmd = bson_encode_order(cmd, cmd_v, ...)
+        bson_cmd = bson_encode_o(cmd, cmd_v, ...)
     end
     local succ, doc = self:_query(self.db_cmd, bson_cmd)
     return self:mongo_result(succ, doc)

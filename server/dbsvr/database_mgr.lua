@@ -27,9 +27,9 @@ end
 
 function DatabaseMgr:setup()
     --初始化dbmgr
-    local cache_driver = env_get("QUANTA_DB_DRIVER")
+    local db_driver = env_get("QUANTA_DB_DRIVER")
     for group = DBGroup.AREA, DBGroup.HASH do
-        if cache_driver == "mongo" then
+        if db_driver == "mongo" then
             log_info("[DatabaseMgr][setup]: general mongo_mgr group=%s", group)
             local MongoMgr = import("kernel/store/mongo_mgr.lua")
             self.database_mgrs[group] = MongoMgr(group)
