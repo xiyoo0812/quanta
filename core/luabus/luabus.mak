@@ -35,7 +35,7 @@ MYLIBS =
 all : pre_build target post_build
 
 #通用规则
-include ../../luaext/share.mak
+include ../../extend/luaext/share.mak
 
 #预编译
 pre_build:
