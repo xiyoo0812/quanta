@@ -29,7 +29,7 @@ if not quanta.init_flag then
         import("test/crypt_test.lua")
         import("test/timer_test.lua")
         ]]
-        import("test/mongo_test.lua")
+        import("test/http_test.lua")
         log_info("test %d now startup!", quanta.id)
     end
     qxpcall_quit(startup, "quanta startup error: %s")

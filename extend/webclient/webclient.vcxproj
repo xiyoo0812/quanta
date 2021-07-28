@@ -81,12 +81,13 @@
       </ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
       <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>lua.lib;libcurl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua.lib;libcurl.a;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>
       </ForceFileOutput>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
+      <Command>copy /y $(TargetPath) $(SolutionDir)bin
+copy /y ..\prebuild\bin\$(Platform)\* ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDebug|x64'">
@@ -110,12 +111,13 @@
       <ImportLibrary>
       </ImportLibrary>
       <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>lua.lib;libcurl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua.lib;libcurl.a;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>
       </ForceFileOutput>
     </Link>
     <PostBuildEvent>
-      <Command>copy /y $(TargetPath) ..\..\bin\</Command>
+      <Command>copy /y $(TargetPath) $(SolutionDir)bin
+copy /y ..\prebuild\bin\$(Platform)\* ..\..\bin\</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

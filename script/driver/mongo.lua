@@ -82,6 +82,7 @@ function MongoDB:upadte()
                     self.sock = nil
                     return
                 end
+                log_info("[MongoDB][upadte] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
             end
             log_info("[MongoDB][upadte] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
         end

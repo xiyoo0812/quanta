@@ -41,20 +41,19 @@ cd bin
 - loalog
 - luaxlsx
 - mongo(云风版)
-- openssl
 - pbc
-- sproto
 - webclient
 - luna
 - luabus
 - luabt
+- lhttp
+- lcrypt
 
 # 支持功能
 - excel(xlsx/xlsm)配置导出
 - mongo数据库支持
 - mysql数据库支持
 - protobuf协议支持
-- sproto协议支持
 - json协议支持
 - http服务器支持
 - http客户端访问
