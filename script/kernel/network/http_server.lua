@@ -5,11 +5,11 @@ local ljson         = require("lcjson")
 local Socket        = import("driver/socket.lua")
 
 local type          = type
-local tunpack       = table.unpack
+local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
-local log_error     = logger.error
 local json_encode   = ljson.encode
+local tunpack       = table.unpack
 local ssplit        = string_ext.split
 
 local poll          = quanta.get("poll")
@@ -71,9 +71,9 @@ function HttpServer:on_socket_recv(socket, fd)
         self.requests[fd] = request
     end
     local buf = socket:get_recvbuf()
-    if not request:append(buf) then
-        log_error("[HttpServer][on_socket_recv] http request append failed, close client(fd:%s)!", fd)
-        socket:close()
+    if #buf == 0 or not request:append(buf) then
+        log_err("[HttpServer][on_socket_recv] http request append failed, close client(fd:%s)!", fd)
+        self:response(socket, request, "this http request parse error!")
         return
     end
     socket:pop(#buf)
@@ -81,8 +81,8 @@ function HttpServer:on_socket_recv(socket, fd)
     local state = request:state()
     local HTTP_REQUEST_ERROR = 2
     if state == HTTP_REQUEST_ERROR then
-        log_error("[HttpServer][on_socket_recv] http request process failed, close client(fd:%s)!", fd)
-        socket:close()
+        log_err("[HttpServer][on_socket_recv] http request process failed, close client(fd:%s)!", fd)
+        self:response(socket, request, "this http request parse error!")
         return
     end
     local target = request:target()
@@ -117,6 +117,7 @@ function HttpServer:response(socket, request, hrsp)
     self.requests[socket:get_fd()] = nil
     local buf = request:response(200, ttype, hrsp or "")
     socket:send(buf)
+    socket:close()
 end
 
 return HttpServer
