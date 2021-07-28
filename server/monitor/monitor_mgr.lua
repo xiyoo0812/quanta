@@ -190,6 +190,7 @@ end
 --http get 回调
 function MonitorMgr:on_monitor_get(path, headers)
     log_debug("[MonitorMgr][on_monitor_get]: %s, %s", path, headers)
+    return {code = 1, msg = "path not exist!"}
 end
 
 quanta.monitor_mgr = MonitorMgr()

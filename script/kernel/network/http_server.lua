@@ -67,7 +67,7 @@ function HttpServer:on_socket_recv(socket, fd)
     local request = self.requests[fd]
     if not request then
         request = lhttp.create_request()
-        log_debug("[HttpServer][on_socket_accept] create_request(fd:%s-%s)!", fd, request)
+        log_debug("[HttpServer][on_socket_accept] create_request(fd:%s)!", fd)
         self.requests[fd] = request
     end
     local buf = socket:get_recvbuf()
@@ -115,7 +115,7 @@ function HttpServer:response(socket, request, hrsp)
         ttype = "application/json"
     end
     self.requests[socket:get_fd()] = nil
-    local buf = request:response(200, ttype, hrsp)
+    local buf = request:response(200, ttype, hrsp or "")
     socket:send(buf)
 end
 
