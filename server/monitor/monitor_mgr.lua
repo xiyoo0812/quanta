@@ -1,5 +1,5 @@
 --monitor_mgr.lua
-import("driver/http.lua")
+import("kernel/network/http_client.lua")
 local ljson     = require("lcjson")
 local RpcServer = import("kernel/network/rpc_server.lua")
 local HttpServer= import("kernel/network/http_server.lua")
@@ -14,20 +14,20 @@ local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
 
-local http          = quanta.get("http")
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+local http_client   = quanta.get("http_client")
 
 local PeriodTime    = enum("PeriodTime")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
-prop:accessor("app_id", 0)
-prop:accessor("chan_id", 0)
-prop:accessor("deploy", "local")
-prop:accessor("url_host", "")
-prop:accessor("rpc_server", nil)
-prop:accessor("http_server", nil)
+prop:reader("app_id", 0)
+prop:reader("chan_id", 0)
+prop:reader("deploy", "local")
+prop:reader("url_host", "")
+prop:reader("rpc_server", nil)
+prop:reader("http_server", nil)
 
 function MonitorMgr:__init()
     ljson.encode_sparse_array(true)
@@ -119,7 +119,7 @@ end
 
 -- node请求服务
 function MonitorMgr:forward_request(api_name, method, ...)
-    local ok, code, res = http[method](http, sformat("%s/runtime/%s", self.url_host, api_name), ...)
+    local ok, code, res = http_client[method](http_client, sformat("%s/runtime/%s", self.url_host, api_name), ...)
     if not ok or code ~= 200 then
         return ok and code or 404
     end

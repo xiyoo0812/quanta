@@ -1,4 +1,4 @@
---http.lua
+--httpClient.lua
 local webclient     = require "webclient"
 
 local pairs         = pairs
@@ -35,20 +35,19 @@ local function header_format(headers)
     return new_headers
 end
 
-local Http = singleton()
-local prop = property(Http)
-prop:accessor("client", nil)
-prop:accessor("server", nil)
-prop:accessor("contexts", {})
+local HttpClient = singleton()
+local prop = property(HttpClient)
+prop:reader("client", nil)
+prop:reader("contexts", {})
 
-function Http:__init()
+function HttpClient:__init()
     --创建client对象
     self.client = webclient.create()
     --加入帧更新
     quanta.join(self)
 end
 
-function Http:update()
+function HttpClient:update()
     local client = self.client
     local finish_key, result = client:query()
     while finish_key do
@@ -78,7 +77,7 @@ function Http:update()
     end
 end
 
-function Http:request(url, get, post, headers, timeout)
+function HttpClient:request(url, get, post, headers, timeout)
     local client = self.client
     local real_url = url_format(client, url, get)
     if post and type(post) == "table" then
@@ -103,15 +102,15 @@ function Http:request(url, get, post, headers, timeout)
 end
 
 --get接口
-function Http:call_get(url, querys, headers, timeout)
+function HttpClient:call_get(url, querys, headers, timeout)
     return self:request(url, querys, nil, headers, timeout)
 end
 
 --post接口
-function Http:call_post(url, querys, post_data, headers, timeout)
+function HttpClient:call_post(url, querys, post_data, headers, timeout)
     return self:request(url, querys, post_data, headers or {["Content-Type"]="application/json"}, timeout)
 end
 
-quanta.http = Http()
+quanta.http_client = HttpClient()
 
-return Http
+return HttpClient

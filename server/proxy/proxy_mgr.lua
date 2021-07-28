@@ -1,9 +1,9 @@
 --proxy_mgr.lua
-import("driver/http.lua")
+import("kernel/network/http_client.lua")
 local log_err       = logger.err
 
-local http          = quanta.get("http")
 local event_mgr     = quanta.get("event_mgr")
+local http_client   = quanta.get("http_client")
 
 local ProxyMgr = singleton()
 
@@ -14,7 +14,7 @@ function ProxyMgr:__init()
 end
 
 function ProxyMgr:rpc_http_get(url, query, headers)
-    local ok, status, res = http:call_get(url, query, headers)
+    local ok, status, res = http_client:call_get(url, query, headers)
     if not ok then
         log_err("ProxyMgr:rpc_http_get ok=%s, status=%s", ok, status)
         return 404
@@ -23,7 +23,7 @@ function ProxyMgr:rpc_http_get(url, query, headers)
 end
 
 function ProxyMgr:rpc_http_post(url, query, post_data, headers)
-    local ok, status, res = http:call_post(url, query, post_data, headers)
+    local ok, status, res = http_client:call_post(url, query, post_data, headers)
     if not ok then
         log_err("ProxyMgr:rpc_http_post ok=%s, status=%s", ok, status)
         return 404

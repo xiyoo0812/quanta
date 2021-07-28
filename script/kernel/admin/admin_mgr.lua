@@ -1,5 +1,4 @@
 --gm_mgr.lua
-import("driver/http.lua")
 import("kernel/admin/web_mgr.lua")
 local ljson         = require("lcjson")
 local cmd_parser    = import("utility/cmdline.lua")

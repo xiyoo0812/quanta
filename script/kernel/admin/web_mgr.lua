@@ -1,5 +1,5 @@
 --web_mgr.lua
-import("driver/http.lua")
+import("kernel/network/http_client.lua")
 local ljson         = require("lcjson")
 local HttpServer    = import("kernel/network/http_server.lua")
 
@@ -10,14 +10,14 @@ local env_get       = environ.get
 local log_err       = logger.err
 local log_debug     = logger.debug
 
-local http          = quanta.get("http")
+local http_client   = quanta.get("http_client")
 
 local WebMgr = singleton()
 local prop = property(WebMgr)
-prop:accessor("url_host", "")
-prop:accessor("get_handlers", {})
-prop:accessor("post_handlers", {})
-prop:accessor("http_server", nil)
+prop:reader("url_host", "")
+prop:reader("get_handlers", {})
+prop:reader("post_handlers", {})
+prop:reader("http_server", nil)
 
 function WebMgr:__init()
     ljson.encode_sparse_array(true)
@@ -48,7 +48,7 @@ end
 
 -- node请求服务
 function WebMgr:forward_request(api_name, method, ...)
-    local ok, code, res = http[method](http, sformat("%s/runtime/%s", self.url_host, api_name), ...)
+    local ok, code, res = http_client[method](http_client, sformat("%s/runtime/%s", self.url_host, api_name), ...)
     if not ok or code ~= 200 then
         return ok and code or 404
     end
