@@ -30,13 +30,16 @@ end
 --初始化
 function RouterGroup:setup()
     --加入更新
-    quanta.join(self)
+    quanta.attach_frame(self)
     --心跳定时器
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
         for _, node in pairs(self.routers) do
             node.client:heartbeat()
         end
     end)
+end
+
+function RouterGroup:release()
 end
 
 --添加router

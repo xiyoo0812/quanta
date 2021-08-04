@@ -1,5 +1,5 @@
 --socket.lua
-local lnet          = require "lnet"
+local lnet          = require("lnet")
 
 local log_err       = logger.err
 

@@ -53,7 +53,7 @@ function StatisMgr:setup()
     end
     self.statis_status  = env_status("QUANTA_STATIS")
     -- 加入dump
-    quanta.join_dump(self)
+    quanta.attach_dump(self)
 
     --定时器
     timer_mgr:loop(PeriodTime.SECOND_MS, function(escape)
@@ -123,13 +123,13 @@ function StatisMgr:on_timer(escape)
         self.escape_minute = self.escape_minute + 1
         self.escape_ms = self.escape_ms - PeriodTime.MINUTE_MS
         self:_minute_update()
-    --    self:dump(false)
+    --    self:dump(true)
     end
     -- 小时
     if self.escape_minute >= PeriodTime.HOUR_M then
         self.escape_minute = 0
         self:_hour_update()
-        self:dump(true)
+        self:dump()
     end
     -- 10秒统计系统信息
     if (self.escape_ms // PeriodTime.SECOND_MS) % 10 == 0 then
@@ -341,7 +341,7 @@ function StatisMgr:_hour_update()
 end
 
 -- dump统计
-function StatisMgr:dump(whole)
+function StatisMgr:dump(simple)
     if not self.statis_status then
         return
     end
@@ -357,12 +357,12 @@ function StatisMgr:dump(whole)
                     node.count_hm, node.count_h, node.count_hh, node.count_hh)
             end
             if par_name then
-                output = sformat("%s.%s %s", par_name, output, whole and node.count_t or "")
+                output = sformat("%s.%s %s", par_name, output, simple and "" or node.count_t)
             end
             --输出统计信息
             log_info(output)
             --递归dump子节点
-            if whole then
+            if not simple then
                 dump_list(node.childs, key)
             end
         end

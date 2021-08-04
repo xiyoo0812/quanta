@@ -1,5 +1,5 @@
 --poll.lua
-local lnet          = require "lnet"
+local lnet          = require("lnet")
 
 local env_number    = environ.number
 
@@ -13,10 +13,10 @@ function Poll:__init()
     --创建poll对象
     self.poll = lnet.create_poll(max_conn)
     --加入帧更新
-    quanta.join(self)
+    quanta.attach_frame(self)
 end
 
-function Poll:__release()
+function Poll:release()
     lnet.destroy_poll(self.poll)
 end
 

@@ -111,17 +111,25 @@ function quanta.init_gm(gm_service)
 end
 
 --添加对象到主更新循环
-function quanta.join(obj)
-    if obj.update then
-        tinsert(quanta.objects, obj)
+function quanta.attach_frame(obj)
+    if not obj.update then
+        log_warn("[quanta][attach_frame] obj(%s) isn't update method!", obj)
+        return
     end
+    if not obj.release then
+        log_warn("[quanta][attach_frame] obj(%s) isn't release method!", obj)
+        return
+    end
+    tinsert(quanta.objects, obj)
 end
 
 --添加对象到程序结束时的dump列表
-function quanta.join_dump(obj)
-    if obj.dump then
-        tinsert(quanta.dumps, obj)
+function quanta.attach_dump(obj)
+    if not obj.dump then
+        log_warn("[quanta][attach_dump] obj(%s) isn't dump method!", obj)
+        return
     end
+    tinsert(quanta.dumps, obj)
 end
 
 --垃圾回收
@@ -145,7 +153,7 @@ function quanta.update()
     local escape_ms = now_ms - quanta.now_ms
     if escape_ms >= 100 then
         if escape_ms >= 400 then
-            log_warn("warning escape_ms(%d) too long count(%d)!", escape_ms, count)
+            log_warn("[quanta][update] warning escape_ms(%d) too long count(%d)!", escape_ms, count)
         end
         quanta.now = otime()
         quanta.now_ms = now_ms
@@ -159,8 +167,11 @@ function quanta.update()
             lua_collectgarbage()
             --检查信号
             if sig_check() then
+                for _, obj in pairs(quanta.objects) do
+                    obj:release()
+                end
                 for _, obj in pairs(quanta.dumps) do
-                    obj:dump(true)
+                    obj:dump()
                 end
                 log_info("service quit for signal !")
                 timer_mgr:close()

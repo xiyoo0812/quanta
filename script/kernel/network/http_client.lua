@@ -1,114 +1,180 @@
 --httpClient.lua
-local webclient     = require "webclient"
+local lcurl     = require("lcurl")
+local ljson     = require("lcjson")
 
-local pairs         = pairs
-local tunpack       = table.unpack
-local tinsert       = table.insert
-local tconcat       = table.concat
-local sformat       = string.format
+local pairs     = pairs
+local log_err   = logger.err
+local tunpack   = table.unpack
+local tinsert   = table.insert
+local tconcat   = table.concat
+local sformat   = string.format
+local lquery    = lcurl.query
+local luencode  = lcurl.url_encode
+local lcrequest = lcurl.create_request
+local jencode   = ljson.encode
 
-local thread_mgr    = quanta.get("thread_mgr")
-
-local NetwkTime     = enum("NetwkTime")
-
-local function args_format(client, args)
-    local fargs = {}
-    for key, value in pairs(args or {}) do
-        tinsert(fargs, sformat("%s=%s", client:url_encoding(key), client:url_encoding(value)))
-    end
-    return tconcat(fargs, "&")
-end
-
-local function url_format(client, path, querys)
-    local args = args_format(client, querys)
-    if #args > 0 then
-        path = sformat("%s?%s", path, args)
-    end
-    return path
-end
-
-local function header_format(headers)
-    local new_headers = {}
-    for key, value in pairs(headers or {}) do
-        tinsert(new_headers, sformat("%s:%s", key, value))
-    end
-    return new_headers
-end
+local NetwkTime = enum("NetwkTime")
+local thread_mgr= quanta.get("thread_mgr")
 
 local HttpClient = singleton()
 local prop = property(HttpClient)
-prop:reader("client", nil)
 prop:reader("contexts", {})
 
 function HttpClient:__init()
-    --创建client对象
-    self.client = webclient.create()
+    ljson.encode_sparse_array(true)
     --加入帧更新
-    quanta.join(self)
+    quanta.attach_frame(self)
+end
+
+function HttpClient:release()
+    lcurl.destory()
 end
 
 function HttpClient:update()
-    local client = self.client
-    local finish_key, result = client:query()
-    while finish_key do
+    local curl_handle, result = lquery()
+    while curl_handle do
         --查询请求结果
-        local context = self.contexts[finish_key];
+        local context = self.contexts[curl_handle];
         local request = context.request
         local session_id = context.session_id
-        local content, err = client:get_respond(request)
-        local info = client:get_info(request)
+        local content, err = request:get_respond()
+        local info = request:get_info()
         if result == 0 then
-            thread_mgr:response(session_id, true, info.response_code, content)
+            thread_mgr:response(session_id, true, info.code, content)
         else
-            thread_mgr:response(session_id, false, info.response_code, err)
+            thread_mgr:response(session_id, false, info.code, err)
         end
-        client:remove_request(request)
-        self.contexts[finish_key] = nil
-        finish_key, result = client:query()
+        self.contexts[curl_handle] = nil
+        request:close()
+        curl_handle, result = lquery()
     end
-
     --清除超时请求
     local now_ms = quanta.now_ms
-    for key, context in pairs(self.contexts) do
+    for curl_handle, context in pairs(self.contexts) do
         if now_ms - context.time > NetwkTime.HTTP_CALL_TIMEOUT then
-            client:remove_request(context.request)
-            self.contexts[key] = nil
+            context.request:close()
+            self.contexts[curl_handle] = nil
         end
     end
 end
 
-function HttpClient:request(url, get, post, headers, timeout)
-    local client = self.client
-    local real_url = url_format(client, url, get)
-    if post and type(post) == "table" then
-        post = args_format(client, post)
+function HttpClient:format_url(url, query)
+    if next(query) then
+        local fquery = {}
+        for key, value in pairs(query) do
+            tinsert(fquery, sformat("%s=%s", luencode(key), luencode(value)))
+        end
+        return sformat("%s?%s", url, tconcat(fquery, "&"))
     end
-    local to = timeout or NetwkTime.HTTP_CALL_TIMEOUT
-    local request, key = client:request(real_url, post, to)
+    return url
+end
+
+--格式化headers
+function HttpClient:format_headers(request, headers)
+    if next(headers) then
+        local fmt_headers = {}
+        for key, value in pairs(headers) do
+            tinsert(fmt_headers, sformat("%s:%s", key, value))
+        end
+        request:set_headers(tunpack(fmt_headers))
+    end
+end
+
+--构建请求
+function HttpClient:build_request(url, session_id, headers, timeout)
+    local request, curl_handle = lcrequest(url)
     if not request then
-        return false, "request failed"
+        log_err("[HttpClient][build_request] failed : %s", curl_handle)
+        return
     end
-    local fheaders = header_format(headers)
-    if #fheaders > 0 then
-        client:set_httpheader(request, tunpack(fheaders))
-    end
-    local session_id = thread_mgr:build_session_id()
-    self.contexts[key] = {
+    self.contexts[curl_handle] = {
         request = request,
         session_id = session_id,
         time = quanta.now_ms,
     }
-    return thread_mgr:yield(session_id, url, to)
+    self:format_headers(request, headers or {})
+    return request
 end
 
 --get接口
 function HttpClient:call_get(url, querys, headers, timeout)
-    return self:request(url, querys, nil, headers, timeout)
+    local fmt_url = self:format_url(url, querys)
+    local session_id = thread_mgr:build_session_id()
+    local request = self:build_request(fmt_url, session_id, headers)
+    if not request then
+        log_err("[HttpClient][call_get] create request failed!")
+        return false
+    end
+    local ok, err = request:call_get()
+    if not ok then
+        log_err("[HttpClient][call_get] curl call get failed: %s!", err)
+        return false
+    end
+    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
 end
 
 --post接口
-function HttpClient:call_post(url, querys, post_data, headers, timeout)
-    return self:request(url, querys, post_data, headers or {["Content-Type"]="application/json"}, timeout)
+function HttpClient:call_post(url, post_datas, headers, timeout)
+    if not headers then
+        headers = {["Content-Type"] = "text/plain" }
+    end
+    print(type(post_datas))
+    if type(post_datas) == "table" then
+        post_datas = jencode(post_datas)
+        headers["Content-Type"] = "application/json"
+    end
+    local session_id = thread_mgr:build_session_id()
+    local request = self:build_request(url, session_id, headers)
+    if not request then
+        log_err("[HttpClient][call_post] create request failed!")
+        return false
+    end
+    local ok, err = request:call_post(post_datas)
+    if not ok then
+        log_err("[HttpClient][call_post] curl call post failed: %s!", err)
+        return false
+    end
+    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
+end
+
+--put接口
+function HttpClient:call_put(url, put_datas, headers, timeout)
+    if not headers then
+        headers = {["Content-Type"] = "text/plain" }
+    end
+    if type(put_datas) == "table" then
+        put_datas = jencode(put_datas)
+        headers["Content-Type"] = "application/json"
+    end
+    local session_id = thread_mgr:build_session_id()
+    local request = self:build_request(url, session_id, headers)
+    if not request then
+        log_err("[HttpClient][call_put] create request failed!")
+        return false
+    end
+    local ok, err = request:call_put(put_datas)
+    if not ok then
+        log_err("[HttpClient][call_put] curl call put failed: %s!", err)
+        return false
+    end
+    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
+end
+
+--del接口
+function HttpClient:call_del(url, querys, headers, timeout)
+    local fmt_url = self:format_url(url, querys)
+    local session_id = thread_mgr:build_session_id()
+    local request = self:build_request(fmt_url, session_id, headers)
+    if not request then
+        log_err("[HttpClient][call_del] create request failed!")
+        return false
+    end
+    local ok, err = request:call_del()
+    if not ok then
+        log_err("[HttpClient][call_del] curl call del failed: %s!", err)
+        return false
+    end
+    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
 end
 
 quanta.http_client = HttpClient()

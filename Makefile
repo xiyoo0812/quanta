@@ -28,6 +28,7 @@ ext:
 	cd extend/luaext/lnet; make SOLUTION_DIR=$(CUR_DIR) -f lnet.mak;
 	cd extend/luaext/mongo; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
 	cd extend/luaext/lhttp; make SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
+	cd extend/luaext/lcurl; make SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
 	cd extend/luaext/lcrypt; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
 	cd extend/luaext/lcjson; make SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
 	cd extend/luaext/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;

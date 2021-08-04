@@ -1,4 +1,4 @@
-local c = require "pbc"
+local c = require("pbc")
 
 local io = io
 local type = type

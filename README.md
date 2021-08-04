@@ -38,16 +38,16 @@ cd bin
 - lpeg
 - lua(5.4)
 - lcjson
-- loalog
-- luaxlsx
-- mongo(云风版)
+- mongo
 - pbc
-- webclient
 - luna
 - luabus
 - luabt
 - lhttp
+- lcurl
+- lualog
 - lcrypt
+- luaxlsx
 
 # 支持功能
 - excel(xlsx/xlsm)配置导出

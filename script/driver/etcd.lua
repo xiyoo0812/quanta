@@ -36,9 +36,9 @@ function Etcd:_set(path, value, opts)
     local url = sformat("%s%s", self.etcd_url, CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path)
     local ok, status, res
     if opts.inOrder then
-        ok, status, res = http:call_post(url, nil, json_encode(body), header)
+        ok, status, res = http:call_post(url, json_encode(body), header)
     else
-        ok, status, res = http:call_put(url, nil, json_encode(body), header)
+        ok, status, res = http:call_put(url, json_encode(body), header)
     end
     if ok and (status == 200 or status == 201) then
         return true, res
@@ -64,14 +64,8 @@ end
 
 function Etcd:_del(path, opts)
     opts = opts or {}
-    local query = {
-        dir = opts.dir,
-        recursive = opts.recursive,
-        prevIndex = opts.prevIndex,
-        prevValue = opts.prevValue and json_encode(opts.prevValue) or nil
-    }
     local url = sformat("%s%s", self.etcd_url, CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path)
-    local ok, status, res = http:call_del(url, "", query)
+    local ok, status, res = http:call_del(url)
     if ok and status == 200 then
         return true, res
     end
@@ -202,7 +196,7 @@ function Etcd:setTTL(key, ttl)
             value = old.node.value
         }
         local url = sformat("%s%s", self.etcd_url, key)
-        local ok, status, res = http:call_put(url, nil, json_encode(body), header)
+        local ok, status, res = http:call_put(url, json_encode(body), header)
         if ok and status == 200 then
             return true, res
         end
