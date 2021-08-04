@@ -27,10 +27,14 @@ function PerfevalMgr:__init()
 end
 
 function PerfevalMgr:setup()
-    -- 加入dump
-    quanta.attach_dump(self)
+    -- 退出通知
+    quanta.attach_quit(self)
     -- 初始化开关
     self:set_perfeval(env_status("QUANTA_PERFEVAL"))
+end
+
+function PerfevalMgr:on_quit()
+    self:dump()
 end
 
 function PerfevalMgr:set_perfeval(status)

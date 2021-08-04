@@ -24,13 +24,15 @@ function HttpClient:__init()
     ljson.encode_sparse_array(true)
     --加入帧更新
     quanta.attach_frame(self)
+    --退出通知
+    quanta.attach_quit(self)
 end
 
-function HttpClient:release()
+function HttpClient:on_quit()
     lcurl.destory()
 end
 
-function HttpClient:update()
+function HttpClient:on_frame()
     local curl_handle, result = lquery()
     while curl_handle do
         --查询请求结果

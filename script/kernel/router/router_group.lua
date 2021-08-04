@@ -87,7 +87,7 @@ function RouterGroup:switch_master()
 end
 
 --更新
-function RouterGroup:update()
+function RouterGroup:on_frame()
     local now_tick = quanta.now
     for _, node in pairs(self.routers) do
         local client = node.client
@@ -98,7 +98,7 @@ function RouterGroup:update()
             end
         else
             if client:check_lost(now_tick) then
-                log_info("[RouterGroup][update_router] router lost: %s:%s", client.ip, client.port)
+                log_info("[RouterGroup][on_frame] router lost: %s:%s", client.ip, client.port)
                 if node == self.master then
                     self:switch_master()
                 end

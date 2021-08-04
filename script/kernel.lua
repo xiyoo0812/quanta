@@ -48,9 +48,11 @@ function quanta.startup()
     quanta.id = service.make_id(service_name, quanta.index)
     quanta.name = service.make_nick(service_name, quanta.index)
     quanta.pid = quanta.get_pid()
-    quanta.objects = {}
-    quanta.delays = {}
-    quanta.dumps = {}
+    quanta.second_objs = {}
+    quanta.minute_objs = {}
+    quanta.frame_objs = {}
+    quanta.hour_objs = {}
+    quanta.quit_objs = {}
 end
 
 function quanta.init()
@@ -110,28 +112,6 @@ function quanta.init_gm(gm_service)
     end
 end
 
---添加对象到主更新循环
-function quanta.attach_frame(obj)
-    if not obj.update then
-        log_warn("[quanta][attach_frame] obj(%s) isn't update method!", obj)
-        return
-    end
-    if not obj.release then
-        log_warn("[quanta][attach_frame] obj(%s) isn't release method!", obj)
-        return
-    end
-    tinsert(quanta.objects, obj)
-end
-
---添加对象到程序结束时的dump列表
-function quanta.attach_dump(obj)
-    if not obj.dump then
-        log_warn("[quanta][attach_dump] obj(%s) isn't dump method!", obj)
-        return
-    end
-    tinsert(quanta.dumps, obj)
-end
-
 --垃圾回收
 local last_tick = otime()
 local function lua_collectgarbage()
@@ -158,8 +138,8 @@ function quanta.update()
         quanta.now = otime()
         quanta.now_ms = now_ms
         local frame = (now_ms - quanta.start_ms) // 100
-        for _, obj in pairs(quanta.objects) do
-            obj:update(frame)
+        for _, obj in pairs(quanta.frame_objs) do
+            obj:on_frame(frame)
         end
         quanta.frame = frame
         if frame % 10 == 0 then
@@ -167,11 +147,8 @@ function quanta.update()
             lua_collectgarbage()
             --检查信号
             if sig_check() then
-                for _, obj in pairs(quanta.objects) do
-                    obj:release()
-                end
-                for _, obj in pairs(quanta.dumps) do
-                    obj:dump()
+                for _, obj in pairs(quanta.quit_objs) do
+                    obj:on_quit()
                 end
                 log_info("service quit for signal !")
                 timer_mgr:close()
@@ -180,4 +157,69 @@ function quanta.update()
             end
         end
     end
+end
+
+--添加对象到小时更新循环
+function quanta.attach_hour(obj)
+    if not obj.on_hour then
+        log_warn("[quanta][attach_hour] obj(%s) isn't on_hour method!", obj)
+        return
+    end
+    quanta.hour_objs[obj] = true
+end
+
+function quanta.detach_hour(obj)
+    quanta.hour_objs[obj] = nil
+end
+
+--添加对象到分更新循环
+function quanta.attach_minute(obj)
+    if not obj.on_minute then
+        log_warn("[quanta][attach_minute] obj(%s) isn't on_minute method!", obj)
+        return
+    end
+    quanta.minute_objs[obj] = true
+end
+
+function quanta.detach_minute(obj)
+    quanta.minute_objs[obj] = nil
+end
+
+--添加对象到秒更新循环
+function quanta.attach_second(obj)
+    if not obj.on_second then
+        log_warn("[quanta][attach_second] obj(%s) isn't on_second method!", obj)
+        return
+    end
+    quanta.second_objs[obj] = true
+end
+
+function quanta.detach_second(obj)
+    quanta.second_objs[obj] = nil
+end
+
+--添加对象到帧更新循环
+function quanta.attach_frame(obj)
+    if not obj.on_frame then
+        log_warn("[quanta][attach_frame] obj(%s) isn't on_frame method!", obj)
+        return
+    end
+    quanta.frame_objs[obj] = true
+end
+
+function quanta.detach_frame(obj)
+    quanta.frame_objs[obj] = nil
+end
+
+--添加对象到程序退出通知列表
+function quanta.attach_quit(obj)
+    if not obj.on_quit then
+        log_warn("[quanta][attach_quit] obj(%s) isn't on_quit method!", obj)
+        return
+    end
+    quanta.quit_objs[obj] = true
+end
+
+function quanta.detach_quit(obj)
+    quanta.quit_objs[obj] = nil
 end

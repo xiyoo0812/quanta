@@ -1,6 +1,9 @@
 --poll.lua
 local lnet          = require("lnet")
 
+local lpoll         = lnet.do_poll
+local levent        = lnet.get_event
+local lcontrol      = lnet.control_poll
 local env_number    = environ.number
 
 local Poll = singleton()
@@ -14,9 +17,11 @@ function Poll:__init()
     self.poll = lnet.create_poll(max_conn)
     --加入帧更新
     quanta.attach_frame(self)
+    --退出通知
+    quanta.attach_quit(self)
 end
 
-function Poll:release()
+function Poll:on_quit()
     lnet.destroy_poll(self.poll)
 end
 
@@ -27,14 +32,14 @@ end
 function Poll:control(socket, mode, bread, bwrite)
     local fd = socket.fd
     self.sockets[fd] = (mode > 0) and socket or nil
-    lnet.control_poll(self.poll, fd, mode, bread, bwrite)
+    lcontrol(self.poll, fd, mode, bread, bwrite)
 end
 
-function Poll:update()
-    local nid = lnet.do_poll(self.poll, 0)
+function Poll:on_frame()
+    local nid = lpoll(self.poll, 0)
     if nid > 0 then
         for id = 1, nid do
-            local fd, bread, bwrite = lnet.get_event(self.poll, id)
+            local fd, bread, bwrite = levent(self.poll, id)
             local socket = self.sockets[fd]
             if socket then
                 socket:handle_event(bread, bwrite)
