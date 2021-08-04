@@ -6,11 +6,11 @@ empty:
 
 CUR_DIR = $(shell pwd)/
 
-.PHONY: clean lua luna ext http webclient luabus quanta
+.PHONY: clean lua luna ext luabus quanta
 
-all: clean lua luna ext http webclient luabus quanta
+all: clean lua luna ext luabus quanta
 
-proj: lua luna ext http webclient luabus quanta
+proj: lua luna ext luabus quanta
 
 clean:
 	rm -rf temp;
@@ -43,6 +43,3 @@ luabus:
 
 quanta:
 	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
-
-webclient:
-	cd extend/webclient; make SOLUTION_DIR=$(CUR_DIR) -f webclient.mak;
