@@ -5,7 +5,6 @@ local pcall     = pcall
 local pairs     = pairs
 local loadfile  = loadfile
 local iopen     = io.open
-local otime     = os.time
 local mabs      = math.abs
 local log_info  = llog.info
 local log_err   = llog.error
@@ -83,7 +82,7 @@ function import(filename)
 end
 
 function quanta.reload()
-    local now = otime()
+    local now = quanta.now
     for path, node in pairs(load_files) do
         local filetime = file_time(node.fullpath)
         if filetime ~= node.time and filetime ~= 0 and mabs(now - filetime) > 1 then

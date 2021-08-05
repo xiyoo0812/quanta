@@ -20,10 +20,7 @@ public:
     time_t get_file_time(const char* filename);
     int get_full_path(lua_State* L);
     void check_input(lua_State* L);
-    int64_t get_time_ms();
-    int64_t get_time_ns();
     int32_t get_pid();
-    void sleep_ms(int ms);
     void daemon();
     void register_signal(int n);
     void default_signal(int n);

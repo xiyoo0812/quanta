@@ -1,19 +1,22 @@
 --perfeval_mgr.lua
+local ltimer = require("ltimer")
+
 local pairs         = pairs
 local mhuge         = math.huge
 local mmax          = math.max
 local mmin          = math.min
 local tpack         = table.pack
 local tunpack       = table.unpack
+local ltime         = ltimer.time
 local log_info      = logger.info
 local env_status    = environ.status
 local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
 local raw_running   = coroutine.running
-local get_time_ms   = quanta.get_time_ms
 
 --性能统计打印时间
 local PeriodTime    = enum("PeriodTime")
+local update_mgr    = quanta.get("update_mgr")
 
 local PerfevalMgr = singleton()
 function PerfevalMgr:__init()
@@ -28,7 +31,7 @@ end
 
 function PerfevalMgr:setup()
     -- 退出通知
-    quanta.attach_quit(self)
+    update_mgr:attach_quit(self)
     -- 初始化开关
     self:set_perfeval(env_status("QUANTA_PERFEVAL"))
 end
@@ -52,7 +55,7 @@ end
 
 function PerfevalMgr:yield()
     if self.perfeval then
-        local now_ms = get_time_ms()
+        local now_ms = ltime()
         local yield_co = raw_running()
         local eval_cos = self.eval_co_map[yield_co]
         for _, eval_data in pairs(eval_cos or {}) do
@@ -63,7 +66,7 @@ end
 
 function PerfevalMgr:resume(co)
     if self.perfeval then
-        local now_ms = get_time_ms()
+        local now_ms = ltime()
         local resume_co = co or raw_running()
         local eval_cos = self.eval_co_map[resume_co]
         for _, eval_data in pairs(eval_cos or {}) do
@@ -93,7 +96,7 @@ function PerfevalMgr:begin_eval(eval_name)
             yield_time = 0,
             eval_id = eval_id,
             eval_name = eval_name,
-            begin_time = get_time_ms(),
+            begin_time = ltime(),
         }
         local eval_cos = self.eval_co_map[co]
         if eval_cos then
@@ -107,7 +110,7 @@ end
 
 function PerfevalMgr:end_eval(eval_data)
     if self.perfeval and eval_data then
-        local now_ms = get_time_ms()
+        local now_ms = ltime()
         local eval_name = eval_data.eval_name
         local pref_eval = self.perfeval_map[eval_name]
         if not pref_eval then

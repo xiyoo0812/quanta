@@ -1,20 +1,21 @@
 --httpClient.lua
-local lcurl     = require("lcurl")
-local ljson     = require("lcjson")
+local lcurl = require("lcurl")
+local ljson = require("lcjson")
 
-local pairs     = pairs
-local log_err   = logger.err
-local tunpack   = table.unpack
-local tinsert   = table.insert
-local tconcat   = table.concat
-local sformat   = string.format
-local lquery    = lcurl.query
-local luencode  = lcurl.url_encode
-local lcrequest = lcurl.create_request
-local jencode   = ljson.encode
+local pairs         = pairs
+local log_err       = logger.err
+local tunpack       = table.unpack
+local tinsert       = table.insert
+local tconcat       = table.concat
+local sformat       = string.format
+local lquery        = lcurl.query
+local luencode      = lcurl.url_encode
+local lcrequest     = lcurl.create_request
+local jencode       = ljson.encode
 
-local NetwkTime = enum("NetwkTime")
-local thread_mgr= quanta.get("thread_mgr")
+local NetwkTime     = enum("NetwkTime")
+local thread_mgr    = quanta.get("thread_mgr")
+local update_mgr    = quanta.get("update_mgr")
 
 local HttpClient = singleton()
 local prop = property(HttpClient)
@@ -23,9 +24,9 @@ prop:reader("contexts", {})
 function HttpClient:__init()
     ljson.encode_sparse_array(true)
     --加入帧更新
-    quanta.attach_frame(self)
+    update_mgr:attach_frame(self)
     --退出通知
-    quanta.attach_quit(self)
+    update_mgr:attach_quit(self)
 end
 
 function HttpClient:on_quit()

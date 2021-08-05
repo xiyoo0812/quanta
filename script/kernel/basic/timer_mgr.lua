@@ -3,11 +3,13 @@ local ltimer    = require("ltimer")
 local lcrypt    = require("lcrypt")
 
 local pairs     = pairs
+local ltime     = ltimer.time
+local linsert   = ltimer.insert
+local lupdate   = ltimer.update
 local tpack     = table.pack
 local tunpack   = table.unpack
 local tinsert   = table.insert
 local new_guid  = lcrypt.guid_new
-local current_ms= quanta.get_time_ms
 
 --定时器精度，10ms
 local TIMER_ACCURYACY = 10
@@ -20,8 +22,7 @@ prop:reader("timers", {})
 prop:reader("last_ms", 0)
 prop:reader("escape_ms", 0)
 function TimerMgr:__init()
-    self.last_ms = current_ms()
-    self.driver = ltimer.create()
+    self.last_ms = ltime()
 end
 
 function TimerMgr:trigger(handle, now_ms)
@@ -41,15 +42,14 @@ function TimerMgr:trigger(handle, now_ms)
         return
     end
     --继续注册
-    self.driver:insert(handle.timer_id, handle.period)
+    linsert(handle.timer_id, handle.period)
 end
 
-function TimerMgr:update()
+function TimerMgr:update(now_ms)
     local timers = {}
-    local now_ms = current_ms()
     local escape_ms = now_ms - self.last_ms + self.escape_ms
     self.escape_ms = escape_ms % TIMER_ACCURYACY
-    self.driver:update(escape_ms // TIMER_ACCURYACY, timers)
+    lupdate(escape_ms // TIMER_ACCURYACY, timers)
     for _, timer_id in ipairs(timers) do
         local handle = self.timers[timer_id]
         if handle then
@@ -69,11 +69,11 @@ end
 
 function TimerMgr:register(interval, period, times, cb, ...)
     --生成id并注册
-    local now_ms = current_ms()
+    local now_ms = ltime()
     local timer_id = new_guid(period, interval)
     --矫正时间误差
     interval = interval + (now_ms - self.last_ms)
-    self.driver:insert(timer_id, interval // TIMER_ACCURYACY)
+    linsert(timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
     tinsert(params, 0)
@@ -95,7 +95,7 @@ end
 
 function TimerMgr:close()
     self.timers = {}
-    self.driver:close()
+    ltimer.destory()
 end
 
 quanta.timer_mgr = TimerMgr()

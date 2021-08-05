@@ -98,12 +98,13 @@ quanta.linux_statis = LinuxStatis()
 
 --[[
 --测试代码
-local tick = quanta.get_time_ms()
+local ltimer = require("ltimer")
+local _, tick = ltimer.now()
 while true do
-    local now = quanta.get_time_ms()
+    local _now = ltimer.now()
     if now - tick > 1000 then
         tick = now
-        quanta.sleep_ms(500)
+        ltimer.sleep(500)
         local cpu_rate = quanta.get("linux_statis"):calc_cpu_rate()
         print("now cpu use rate:", cpu_rate)
     end

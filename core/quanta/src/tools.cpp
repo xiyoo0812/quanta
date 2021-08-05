@@ -68,21 +68,21 @@ void get_error_string(std::string& err, int no)
 
 void path_to_nodes(std::list<std::string>& nodes, const char* path)
 {
-       const char* token = path;
-       const char* pos = path;
-       while (true)
-       {
-              if (*pos == '\\' || *pos == '/' || *pos == '\0')
-              {
-                     if (pos > token)
-                     {
-                           nodes.push_back(std::string(token, pos));
-                     }
-                     token = pos + 1;
-              }
-              if (*pos++ == '\0')
-                     break;
-       }
+    const char* token = path;
+    const char* pos = path;
+    while (true)
+    {
+        if (*pos == '\\' || *pos == '/' || *pos == '\0')
+        {
+            if (pos > token)
+            {
+                nodes.push_back(std::string(token, pos));
+            }
+            token = pos + 1;
+        }
+        if (*pos++ == '\0')
+            break;
+    }
 }
 
 static bool is_abspath_path(const char* path)
@@ -151,9 +151,9 @@ bool get_full_path(std::string& fullpath, const char* path)
 }
 
 #ifndef _WIN32
-char *strupr(char *str)
+char* strupr(char* str)
 {
-    char *ptr = str;
+    char* ptr = str;
     while (*ptr != '\0') {
         if (islower(*ptr))
             *ptr = toupper(*ptr);
