@@ -2,11 +2,9 @@
 local lcrypt    = require("lcrypt")
 
 local log_info      = logger.info
-local sformat       = string.format
 local lrandomkey    = lcrypt.randomkey
 local lb64encode    = lcrypt.b64_encode
 local lb64decode    = lcrypt.b64_decode
-
 
 --guid
 ----------------------------------------------------------------

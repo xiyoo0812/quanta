@@ -53,10 +53,10 @@ function HttpClient:on_frame()
     end
     --清除超时请求
     local now_ms = quanta.now_ms
-    for curl_handle, context in pairs(self.contexts) do
+    for handle, context in pairs(self.contexts) do
         if now_ms - context.time > NetwkTime.HTTP_CALL_TIMEOUT then
             context.request:close()
-            self.contexts[curl_handle] = nil
+            self.contexts[handle] = nil
         end
     end
 end

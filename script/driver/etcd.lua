@@ -63,7 +63,7 @@ function Etcd:_get(path, opts)
 end
 
 function Etcd:_del(path, opts)
-    opts = opts or {}
+    --opts = opts or {}
     local url = sformat("%s%s", self.etcd_url, CLIENT_ENDPOINTS[path] or CLIENT_KEYS .. path)
     local ok, status, res = http:call_del(url)
     if ok and status == 200 then

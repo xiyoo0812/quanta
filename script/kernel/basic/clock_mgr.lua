@@ -18,7 +18,7 @@ function ClockMgr:check(clock_id, now_ms)
             local clock_ms = now_ms - clock.last_ms
             local count = (now_ms - clock.start_ms) // period
             --循环次数满，删除闹钟
-            if clock.cycle > 0 and count >= clock.cycle then 
+            if clock.cycle > 0 and count >= clock.cycle then
                 self.clocks[clock_id] = nil
             end
             --未超过一个周期补偿，超过则忽略

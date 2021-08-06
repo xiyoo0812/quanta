@@ -14,7 +14,6 @@ import("kernel/config/config_mgr.lua")
 import("kernel/basic/update_mgr.lua")
 import("kernel/statis/perfeval_mgr.lua")
 
-local pairs         = pairs
 local ltime         = ltimer.time
 local log_err       = logger.err
 local env_get       = environ.get

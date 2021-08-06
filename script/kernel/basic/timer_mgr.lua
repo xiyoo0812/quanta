@@ -2,7 +2,7 @@
 local ltimer    = require("ltimer")
 local lcrypt    = require("lcrypt")
 
-local pairs     = pairs
+local ipairs    = ipairs
 local ltime     = ltimer.time
 local linsert   = ltimer.insert
 local lupdate   = ltimer.update

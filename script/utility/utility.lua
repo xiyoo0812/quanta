@@ -118,7 +118,7 @@ end
 
 --md5sum
 function utility.md5sum(src)
-    return sgsub(lmd5(src), ".", function (c) 
+    return sgsub(lmd5(src), ".", function(c)
         return sformat("%02x", sbyte(c))
     end)
 end

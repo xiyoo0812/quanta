@@ -1,7 +1,6 @@
 --sandbox.lua
 local llog  = require("lualog")
 
-local pcall     = pcall
 local pairs     = pairs
 local loadfile  = loadfile
 local iopen     = io.open

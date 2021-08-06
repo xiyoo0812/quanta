@@ -1,6 +1,6 @@
 --mysql.lua
 import("driver/poll.lua")
-local lcrypt        = requir("lcrypt")
+local lcrypt        = require("lcrypt")
 local Socket        = import("driver/socket.lua")
 
 local error         = error

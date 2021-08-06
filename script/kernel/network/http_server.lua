@@ -32,8 +32,8 @@ end
 
 function HttpServer:setup(http_addr, post_handler, get_handler)
     self.ip, self.port = tunpack(ssplit(http_addr, ":"))
-    local sock = Socket(poll, self)
-    if not sock:listen(self.ip, self.port) then
+    local socket = Socket(poll, self)
+    if not socket:listen(self.ip, self.port) then
         log_info("[HttpServer][setup] now listen %s failed", http_addr)
         os.exit(1)
         return
