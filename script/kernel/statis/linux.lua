@@ -99,9 +99,9 @@ quanta.linux_statis = LinuxStatis()
 --[[
 --测试代码
 local ltimer = require("ltimer")
-local _, tick = ltimer.now()
+local _, tick = ltimer.time()
 while true do
-    local _now = ltimer.now()
+    local _, now = ltimer.time()
     if now - tick > 1000 then
         tick = now
         ltimer.sleep(500)

@@ -30,6 +30,10 @@ function HttpClient:__init()
 end
 
 function HttpClient:on_quit()
+    for _, context in pairs(self.contexts) do
+        context.request:close()
+    end
+    self.contexts = {}
     lcurl.destory()
 end
 
@@ -38,17 +42,19 @@ function HttpClient:on_frame()
     while curl_handle do
         --查询请求结果
         local context = self.contexts[curl_handle];
-        local request = context.request
-        local session_id = context.session_id
-        local content, err = request:get_respond()
-        local info = request:get_info()
-        if result == 0 then
-            thread_mgr:response(session_id, true, info.code, content)
-        else
-            thread_mgr:response(session_id, false, info.code, err)
+        if context then
+            local request = context.request
+            local session_id = context.session_id
+            local content, err = request:get_respond()
+            local info = request:get_info()
+            if result == 0 then
+                thread_mgr:response(session_id, true, info.code, content)
+            else
+                thread_mgr:response(session_id, false, info.code, err)
+            end
+            self.contexts[curl_handle] = nil
+            request:close()
         end
-        self.contexts[curl_handle] = nil
-        request:close()
         curl_handle, result = lquery()
     end
     --清除超时请求
@@ -84,33 +90,31 @@ function HttpClient:format_headers(request, headers)
 end
 
 --构建请求
-function HttpClient:build_request(url, session_id, headers, timeout)
+function HttpClient:build_request(url, session_id, headers, method, ...)
     local request, curl_handle = lcrequest(url)
     if not request then
         log_err("[HttpClient][build_request] failed : %s", curl_handle)
         return
+    end
+    self:format_headers(request, headers or {})
+    local ok, err = request[method](request, ...)
+    if not ok then
+        log_err("[HttpClient][build_request] curl %s failed: %s!", method, err)
+        return false
     end
     self.contexts[curl_handle] = {
         request = request,
         session_id = session_id,
         time = quanta.now_ms,
     }
-    self:format_headers(request, headers or {})
-    return request
+    return true
 end
 
 --get接口
 function HttpClient:call_get(url, querys, headers, timeout)
     local fmt_url = self:format_url(url, querys)
     local session_id = thread_mgr:build_session_id()
-    local request = self:build_request(fmt_url, session_id, headers)
-    if not request then
-        log_err("[HttpClient][call_get] create request failed!")
-        return false
-    end
-    local ok, err = request:call_get()
-    if not ok then
-        log_err("[HttpClient][call_get] curl call get failed: %s!", err)
+    if not self:build_request(fmt_url, session_id, headers, "call_get") then
         return false
     end
     return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
@@ -126,14 +130,7 @@ function HttpClient:call_post(url, post_datas, headers, timeout)
         headers["Content-Type"] = "application/json"
     end
     local session_id = thread_mgr:build_session_id()
-    local request = self:build_request(url, session_id, headers)
-    if not request then
-        log_err("[HttpClient][call_post] create request failed!")
-        return false
-    end
-    local ok, err = request:call_post(post_datas)
-    if not ok then
-        log_err("[HttpClient][call_post] curl call post failed: %s!", err)
+    if not self:build_request(url, session_id, headers, "call_post", post_datas) then
         return false
     end
     return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
@@ -149,14 +146,7 @@ function HttpClient:call_put(url, put_datas, headers, timeout)
         headers["Content-Type"] = "application/json"
     end
     local session_id = thread_mgr:build_session_id()
-    local request = self:build_request(url, session_id, headers)
-    if not request then
-        log_err("[HttpClient][call_put] create request failed!")
-        return false
-    end
-    local ok, err = request:call_put(put_datas)
-    if not ok then
-        log_err("[HttpClient][call_put] curl call put failed: %s!", err)
+    if not self:build_request(url, session_id, headers, "call_put", put_datas) then
         return false
     end
     return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
@@ -166,14 +156,7 @@ end
 function HttpClient:call_del(url, querys, headers, timeout)
     local fmt_url = self:format_url(url, querys)
     local session_id = thread_mgr:build_session_id()
-    local request = self:build_request(fmt_url, session_id, headers)
-    if not request then
-        log_err("[HttpClient][call_del] create request failed!")
-        return false
-    end
-    local ok, err = request:call_del()
-    if not ok then
-        log_err("[HttpClient][call_del] curl call del failed: %s!", err)
+    if not self:build_request(fmt_url, session_id, headers, "call_del") then
         return false
     end
     return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)

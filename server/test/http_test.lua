@@ -42,9 +42,9 @@ elseif quanta.index == 2 then
             ok, status, res = http_client:call_get("http://127.0.0.1:8888/node_status2", data)
             log_info("node_status2 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
             ok, status, res = http_client:call_put("http://127.0.0.1:8888/node_status3", data)
-            log_info("node_status2 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
+            log_info("node_status3 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
             ok, status, res = http_client:call_del("http://127.0.0.1:8888/node_status4", data)
-            log_info("node_status2 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
+            log_info("node_status4 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
         end)
     end
 end

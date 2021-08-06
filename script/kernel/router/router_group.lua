@@ -40,9 +40,6 @@ function RouterGroup:setup()
     end)
 end
 
-function RouterGroup:release()
-end
-
 --添加router
 function RouterGroup:add_router(router_conf)
     local router_id = smake_id("router", router_conf.index)
