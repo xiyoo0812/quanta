@@ -14,9 +14,9 @@ local collectgarbage= collectgarbage
 
 local PeriodTime    = enum("PeriodTime")
 
-local timer_mgr     = UpdateMgr:get("timer_mgr")
-local clock_mgr     = UpdateMgr:get("clock_mgr")
-local thread_mgr    = UpdateMgr:get("thread_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
+local clock_mgr     = quanta.get("clock_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
@@ -38,12 +38,12 @@ end
 
 function UpdateMgr:setup()
     local now_ms = ltime()
-    self.gc_id = clock_mgr:watch(PeriodTime.SECOND_2_MS, now_ms)
-    self.hour_id = clock_mgr:watch(PeriodTime.HOUR_MS, now_ms)
-    self.frame_id = clock_mgr:watch(PeriodTime.FRAME_MS, now_ms)
-    self.second_id = clock_mgr:watch(PeriodTime.SECOND_MS, now_ms)
-    self.minute_id = clock_mgr:watch(PeriodTime.MINUTE_MS, now_ms)
-    self.reload_id = clock_mgr:watch(PeriodTime.SECOND_2_MS, now_ms)
+    self.gc_id = clock_mgr:alarm(PeriodTime.SECOND_2_MS, now_ms)
+    self.hour_id = clock_mgr:alarm(PeriodTime.HOUR_MS, now_ms)
+    self.frame_id = clock_mgr:alarm(PeriodTime.FRAME_MS, now_ms)
+    self.second_id = clock_mgr:alarm(PeriodTime.SECOND_MS, now_ms)
+    self.minute_id = clock_mgr:alarm(PeriodTime.MINUTE_MS, now_ms)
+    self.reload_id = clock_mgr:alarm(PeriodTime.SECOND_2_MS, now_ms)
 end
 
 function UpdateMgr:update(now_ms, count)
@@ -52,52 +52,53 @@ function UpdateMgr:update(now_ms, count)
     thread_mgr:update(now_ms)
     --业务更新
     thread_mgr:fork(function()
-        local frame_ms, frame = clock_mgr:trigger(self.frame_id, now_ms)
-        if not frame_ms then
+        local clock_ms, frame = clock_mgr:check(self.frame_id, now_ms)
+        if not clock_ms then
             return
         end
-        if frame_ms >= 400 then
-            log_warn("[quanta][update] warning frame_ms(%d) too long count(%d)!", frame_ms, count)
+        if clock_ms > PeriodTime.HALF_MS then
+            log_warn("[quanta][update] warning clock_ms(%d) too long count(%d)!", clock_ms, count)
         end
         --帧更新
-        for obj in pairs(quanta.frame_objs) do
+        quanta.frame = frame
+        for obj in pairs(self.frame_objs) do
             obj:on_frame(frame)
         end
-        quanta.frame = frame
         --秒更新
-        if not clock_mgr:trigger(self.second_id, now_ms) then
+        if not clock_mgr:check(self.second_id, now_ms) then
             return
         end
-        for obj in pairs(quanta.second_objs) do
+        for obj in pairs(self.second_objs) do
             obj:on_second()
         end
         --gc更新
-        if clock_mgr:trigger(self.gc_id, now_ms) then
+        if clock_mgr:check(self.gc_id, now_ms) then
             collectgarbage("step")
         end
         --热更新
-        if clock_mgr:trigger(self.reload_id, now_ms) then
+        if clock_mgr:check(self.reload_id, now_ms) then
             quanta.reload()
-        end
-        --分更新
-        if not clock_mgr:trigger(self.minute_id, now_ms) then
-            return
-        end
-        for obj in pairs(quanta.minute_objs) do
-            obj:on_minute()
-        end
-        --时更新
-        if clock_mgr:trigger(self.hour_id, now_ms) then
-            --gc
-            collectgarbage("collect")
-            for obj in pairs(quanta.hour_objs) do
-                obj:on_hour()
-            end
         end
         --检查信号
         if sig_check() then
             self:quit()
         end
+        --分更新
+        if not clock_mgr:check(self.minute_id, now_ms) then
+            return
+        end
+        for obj in pairs(self.minute_objs) do
+            obj:on_minute()
+        end
+        --时更新
+        if not clock_mgr:check(self.hour_id, now_ms) then
+            return
+        end
+        for obj in pairs(self.hour_objs) do
+            obj:on_hour()
+        end
+        --gc
+        collectgarbage("collect")
     end)
 end
 
@@ -106,7 +107,8 @@ function UpdateMgr:quit()
         obj:on_quit()
     end
     log_info("[UpdateMgr][quit]service quit for signal !")
-    timer_mgr:close()
+    timer_mgr:quit()
+    clock_mgr:quit()
     logger.close()
     quanta.run = nil
 end

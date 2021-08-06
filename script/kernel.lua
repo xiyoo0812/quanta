@@ -11,8 +11,8 @@ import("utility/environ.lua")
 import("utility/constant.lua")
 import("utility/utility.lua")
 import("kernel/config/config_mgr.lua")
-import("kernel/statis/perfeval_mgr.lua")
 import("kernel/basic/update_mgr.lua")
+import("kernel/statis/perfeval_mgr.lua")
 
 local pairs         = pairs
 local ltime         = ltimer.time
@@ -99,7 +99,7 @@ end
 
 --日常更新
 function quanta.update()
-    local count = socket_mgr.wait(10)
+    local count = socket_mgr.wait(5)
     local now_ms, now_s = ltime()
     quanta.now = now_s
     quanta.now_ms = now_ms

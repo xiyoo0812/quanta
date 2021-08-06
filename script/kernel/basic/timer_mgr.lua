@@ -11,8 +11,8 @@ local tunpack   = table.unpack
 local tinsert   = table.insert
 local new_guid  = lcrypt.guid_new
 
---定时器精度，10ms
-local TIMER_ACCURYACY = 10
+--定时器精度，20ms
+local TIMER_ACCURYACY = 20
 
 local thread_mgr = quanta.get("thread_mgr")
 
@@ -93,7 +93,7 @@ function TimerMgr:unregister(timer_id)
     self.timers[timer_id] = nil
 end
 
-function TimerMgr:close()
+function TimerMgr:quit()
     self.timers = {}
     ltimer.destory()
 end

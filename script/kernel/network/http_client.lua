@@ -121,7 +121,6 @@ function HttpClient:call_post(url, post_datas, headers, timeout)
     if not headers then
         headers = {["Content-Type"] = "text/plain" }
     end
-    print(type(post_datas))
     if type(post_datas) == "table" then
         post_datas = jencode(post_datas)
         headers["Content-Type"] = "application/json"
