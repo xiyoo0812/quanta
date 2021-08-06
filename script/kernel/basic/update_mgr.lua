@@ -20,7 +20,6 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
-prop:reader("update_map", {})
 prop:reader("gc_id", 0)
 prop:reader("hour_id", 0)
 prop:reader("frame_id", 0)

@@ -111,10 +111,10 @@ function MonitorMgr:rpc_monitor_get(client, api_name, querys)
 end
 
 -- node上报数据
-function MonitorMgr:rpc_monitor_post(client, api_name, querys, data)
+function MonitorMgr:rpc_monitor_post(client, api_name, data)
     data.app_id, data.chan_id, data.deploy  = self.app_id, self.chan_id, self.deploy
     --log_debug("[MonitorMgr][rpc_monitor_post]: client:%s, api_name:%s, data:%s", client.name, api_name, jencode(data))
-    return self:forward_request(api_name, "call_post", querys, jencode(data))
+    return self:forward_request(api_name, "call_post", data)
 end
 
 -- node请求服务

@@ -12,11 +12,12 @@ local tcopy         = table_ext.copy
 local qxpcall       = quanta.xpcall
 
 local ThreadMgr = singleton()
+local prop = property(ThreadMgr)
+prop:reader("session_id", 1)
+prop:reader("coroutine_pool", {})
+prop:reader("session_id_coroutine", {})
 
 function ThreadMgr:__init()
-    self.session_id = 1
-    self.coroutine_pool = {}
-    self.session_id_coroutine = {}
 end
 
 function ThreadMgr:size()

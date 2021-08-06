@@ -43,7 +43,7 @@ function Feishu:on_feishu_log(title, log_context)
     log_info.count = log_info.count + 1
     thread_mgr:fork(function()
         local post_data = json_encode({title = title, text = log_context})
-        router_mgr:call_proxy_hash(quanta.id, "rpc_http_post", self.url, {}, post_data)
+        router_mgr:call_proxy_hash(quanta.id, "rpc_http_post", self.url, post_data)
     end)
 end
 

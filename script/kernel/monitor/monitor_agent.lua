@@ -21,8 +21,8 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local MonitorAgent = singleton()
 local prop = property(MonitorAgent)
-prop:accessor("client", nil)
-prop:accessor("next_connect_time", 0)
+prop:reader("client", nil)
+prop:reader("next_connect_time", 0)
 function MonitorAgent:__init()
     --创建连接
     local ip, port = env_addr("QUANTA_MONITOR_ADDR")
@@ -77,7 +77,7 @@ function MonitorAgent:service_request(api_name, data)
         index = quanta.index,
         service  = quanta.service_id,
     }
-    local ok, code, res = self.client:call("rpc_monitor_post", api_name, {}, req)
+    local ok, code, res = self.client:call("rpc_monitor_post", api_name, req)
     if ok and check_success(code) then
         return tunpack(res)
     end
