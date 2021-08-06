@@ -31,10 +31,7 @@ EXPORT_CLASS_BEGIN(quanta_app)
 EXPORT_LUA_FUNCTION(get_version)
 EXPORT_LUA_FUNCTION(get_file_time)
 EXPORT_LUA_FUNCTION(get_full_path)
-EXPORT_LUA_FUNCTION(get_time_ms)
-EXPORT_LUA_FUNCTION(get_time_ns)
 EXPORT_LUA_FUNCTION(get_pid)
-EXPORT_LUA_FUNCTION(sleep_ms)
 EXPORT_LUA_FUNCTION(daemon)
 EXPORT_LUA_FUNCTION(register_signal)
 EXPORT_LUA_FUNCTION(default_signal)
@@ -67,16 +64,6 @@ int quanta_app::get_full_path(lua_State* L)
     return 1;
 }
 
-int64_t quanta_app::get_time_ms()
-{
-    return ::get_time_ms();
-}
-
-int64_t quanta_app::get_time_ns()
-{
-    return ::get_time_ns();
-}
-
 int32_t quanta_app::get_pid()
 {
 #ifdef _MSC_VER
@@ -84,11 +71,6 @@ int32_t quanta_app::get_pid()
 #else
     return ::getpid();
 #endif
-}
-
-void quanta_app::sleep_ms(int ms)
-{
-    ::sleep_ms(ms);
 }
 
 #ifdef _MSC_VER
@@ -252,18 +234,10 @@ void quanta_app::run(int argc, const char* argv[])
     }
 
     int top = lua_gettop(L);
-    int64_t last_check = ::get_time_ms();
     while (lua_get_object_function(L, this, "run"))
     {
         check_input(L);
         lua_call_function(L, &err, 0, 0);
-
-        int64_t now = ::get_time_ms();
-        if (now > last_check + m_reload_time)
-        {
-            lua_call_object_function(L, nullptr, this, "reload");
-            last_check = now;
-        }
         lua_settop(L, top);
     }
     lua_close(L);

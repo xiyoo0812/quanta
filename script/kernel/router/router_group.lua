@@ -13,6 +13,7 @@ local check_success     = utility.check_success
 
 local timer_mgr         = quanta.get("timer_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
+local update_mgr        = quanta.get("update_mgr")
 
 local NetwkTime         = enum("NetwkTime")
 
@@ -30,7 +31,7 @@ end
 --初始化
 function RouterGroup:setup()
     --加入更新
-    quanta.attach_frame(self)
+    update_mgr:attach_frame(self)
     --心跳定时器
     timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
         for _, node in pairs(self.routers) do

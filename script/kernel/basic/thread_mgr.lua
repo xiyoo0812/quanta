@@ -9,7 +9,6 @@ local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running     -- 获取当前运行协程
 local tcopy         = table_ext.copy
-local get_time_ms   = quanta.get_time_ms
 local qxpcall       = quanta.xpcall
 
 local ThreadMgr = singleton()
@@ -60,16 +59,15 @@ function ThreadMgr:resume(co, ...)
 end
 
 function ThreadMgr:yield(session_id, title, ms_to, ...)
-    local context = {co = co_running(), title = title, to = get_time_ms() + ms_to}
+    local context = {co = co_running(), title = title, to = quanta.now_ms + ms_to}
     self.session_id_coroutine[session_id] = context
     return co_yield(...)
 end
 
-function ThreadMgr:update()
-    local now = get_time_ms()
+function ThreadMgr:update(now_ms)
     local session_id_coroutine = tcopy(self.session_id_coroutine)
     for session_id, context in pairs(session_id_coroutine) do
-        if context.to <= now then
+        if context.to <= now_ms then
             if context.title then
                 log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
             end

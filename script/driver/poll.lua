@@ -6,19 +6,21 @@ local levent        = lnet.get_event
 local lcontrol      = lnet.control_poll
 local env_number    = environ.number
 
+local update_mgr    = quanta.get("update_mgr")
+
 local Poll = singleton()
 local prop = property(Poll)
-prop:accessor("poll", nil)
-prop:accessor("sockets", {})
+prop:reader("poll", nil)
+prop:reader("sockets", {})
 
 function Poll:__init()
     local max_conn = env_number("QUANTA_MAX_CONN", 1024)
     --创建poll对象
     self.poll = lnet.create_poll(max_conn)
     --加入帧更新
-    quanta.attach_frame(self)
+    update_mgr:attach_frame(self)
     --退出通知
-    quanta.attach_quit(self)
+    update_mgr:attach_quit(self)
 end
 
 function Poll:on_quit()

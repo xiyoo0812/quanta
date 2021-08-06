@@ -8,6 +8,7 @@ local env_status    = environ.status
 
 local timer_mgr     = quanta.get("timer_mgr")
 local linux_statis  = quanta.get("linux_statis")
+local update_mgr    = quanta.get("update_mgr")
 
 local PeriodTime    = enum("PeriodTime")
 
@@ -53,7 +54,7 @@ function StatisMgr:setup()
     end
     self.statis_status  = env_status("QUANTA_STATIS")
     -- 退出通知
-    quanta.attach_quit(self)
+    update_mgr:attach_quit(self)
     -- 定时器
     timer_mgr:loop(PeriodTime.SECOND_MS, function(escape)
         self:on_timer(escape)
