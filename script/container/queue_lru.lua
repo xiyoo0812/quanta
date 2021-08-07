@@ -2,14 +2,21 @@
 
 local QueueLRU = class()
 local prop = property(QueueLRU)
-prop:accessor("size", 0)
-prop:accessor("max_size", 0)
+prop:reader("size", 0)
 prop:reader("tuples", {})
 prop:reader("oldest", nil)
 prop:reader("newest", nil)
+prop:accessor("max_size", 0)
 
 function QueueLRU:__init(max_size)
     self.max_size = max_size
+end
+
+function QueueLRU:clear()
+    self.size = 0
+    self.tuples = {}
+    self.oldest = nil
+    self.newest = nil
 end
 
 -- remove a tuple from linked list
@@ -87,26 +94,26 @@ end
 function QueueLRU:iter()
     local index = nil
     local tuples = self.tuples
-    local function iter()
+    local function _iter()
         index = next(tuples, index)
         if index then
             local tuple = tuples[index]
             return tuple.key, tuple.value
         end
     end
-    return iter
+    return _iter
 end
 
 --有序迭代器
 function QueueLRU:iterator()
     local tuple = nil
-    local function iter()
+    local function _iter()
         tuple = tuple and tuple.next or self.newest
         if tuple then
             return tuple.key, tuple.value
         end
     end
-    return iter
+    return _iter
 end
 
 return QueueLRU

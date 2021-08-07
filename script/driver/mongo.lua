@@ -46,16 +46,16 @@ prop:accessor("port", 27017)        --mongo端口
 prop:accessor("user", "")           --user
 prop:accessor("passwd", "")         --passwd
 
-function MongoDB:__init(db_name, ip, port, user, passwd)
-    self.ip = ip
-    self.port = port
-    self.user = user
-    self.name = db_name
-    self.passwd = passwd
-    self.db_cmd = db_name .. "." .. "$cmd"
+function MongoDB:__init(conf)
+    self.ip = conf.host
+    self.port = conf.port
+    self.user = conf.user
+    self.passwd = conf.passwd
+    self.name = conf.db
+    self.db_cmd = conf.db .. "." .. "$cmd"
     --update
     timer_mgr:loop(PeriodTime.SECOND_MS, function()
-        self:upadte()
+        self:update()
     end)
 end
 
@@ -70,7 +70,7 @@ function MongoDB:close()
     end
 end
 
-function MongoDB:upadte()
+function MongoDB:update()
     if not self.sock then
         local sock = Socket(poll, self)
         if sock:connect(self.ip, self.port) then
@@ -78,13 +78,15 @@ function MongoDB:upadte()
             if #self.user > 0 and #self.passwd > 0 then
                 local ok, err = self:auth(self.user, self.passwd)
                 if not ok then
-                    log_err("[MongoDB][upadte] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
+                    log_err("[MongoDB][update] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
                     self.sock = nil
                     return
                 end
-                log_info("[MongoDB][upadte] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
+                log_info("[MongoDB][update] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
             end
-            log_info("[MongoDB][upadte] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
+            log_info("[MongoDB][update] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
+        else
+            log_err("[MysqlDB][update] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
         end
     end
 end
@@ -209,7 +211,7 @@ function MongoDB:_query(full_name, query, selector, query_num, skip, flag)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
-    return thread_mgr:yield(session_id, "mongo_query", NetwkTime.MONGO_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, "mongo_query", NetwkTime.DB_CALL_TIMEOUT)
 end
 
 
@@ -222,7 +224,7 @@ function MongoDB:_more(full_name, cursor, query_num)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
-    local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, "mongo_more", NetwkTime.MONGO_CALL_TIMEOUT)
+    local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, "mongo_more", NetwkTime.DB_CALL_TIMEOUT)
     if not succ then
         return self:mongo_result(succ, doc)
     end

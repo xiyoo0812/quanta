@@ -95,6 +95,9 @@ function Socket:recv()
             break
         end
         if ret < 0 then
+            if #self.recvbuf > 0 then
+                self.host:on_socket_recv(self, self.fd)
+            end
             log_err("[Socket][recv] recv failed: %s", data_oe)
             self:close(true)
             return false

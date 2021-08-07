@@ -69,6 +69,19 @@ database:upsert({
     passwd = '123456',
 })
 
+
+database:upsert({
+    quanta_deploy = 'local',
+    group = 1,
+    index = 2,
+    driver = 'mysql',
+    db = 'quanta_loc',
+    host = '9.134.163.87',
+    port = 3306,
+    user = 'root',
+    passwd = '123456',
+})
+
 database:upsert({
     quanta_deploy = 'local',
     group = 2,
