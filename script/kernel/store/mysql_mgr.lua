@@ -1,5 +1,7 @@
 --mysql_mgr.lua
 local tinsert       = table.insert
+local tconcat       = table.concat
+local sformat       = string.format
 local hash_code     = utility.hash_code
 
 local DBGroup       = enum("DBGroup")
@@ -39,10 +41,62 @@ function MysqlMgr:get_db(index)
     return self.mysql_dbs[index]
 end
 
+local function format_insert(args)
+    local keys = {}
+    local values = {}
+    for key, value in pairs(args) do
+        tinsert(keys, key)
+        tinsert(values, value)
+    end
+    return sformat("(%s) values (%s)", tconcat(keys, ","), tconcat(values, ","))
+end
+
+local function format_selector(selector)
+    local fmt_selector = {}
+    for key, value in pairs(selector) do
+        tinsert(fmt_selector, sformat("%s=%s", key, value))
+    end
+    return tconcat(fmt_selector, "and")
+end
+
+local function format_fields(fields)
+    if not fields or #fields == 0 then
+        return "*"
+    end
+    local fmt_fields = {}
+    for k in pairs(fields) do
+        tinsert(fmt_fields, k)
+    end
+    return tconcat(fmt_fields, ",")
+end
+
+local function format_table_fields(fields)
+    local table_fields = {}
+    for field_name, field_type in pairs(fields) do
+        tinsert(table_fields, sformat("%s %s", field_name, field_type))
+    end
+    return tconcat(table_fields, ",")
+end
+
+function MysqlMgr:create_table(index, coll_name, fields)
+    local mysqldb = self:get_db(index)
+    if mysqldb then
+        local fmt = "create table %s (_id int auto_increment, %s, primary key (_id))"
+        local sql = sformat(fmt, coll_name, format_table_fields(fields))
+        local ok, res_oe = mysqldb:query(sql)
+        return ok and SUCCESS or MYSQL_FAILED, res_oe
+    end
+    return MYSQL_FAILED, "mysql db not exist"
+end
+
 function MysqlMgr:find(index, coll_name, selector, fields, limit)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local ok, res_oe = mysqldb:find(coll_name, selector, fields, limit)
+        local sql = sformat("select %s from %s while %s", format_fields(fields), coll_name, format_selector(selector))
+        if limit then
+            sql = sformat("%s limit %d", sql, limit)
+        end
+        local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"
@@ -69,7 +123,8 @@ end
 function MysqlMgr:find_one(index, coll_name, selector, fields)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local ok, res_oe = mysqldb:find_one(coll_name, selector, fields)
+        local sql = sformat("select %s from %s while %s limit 1", format_fields(fields), coll_name, format_args(selector))
+        local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"
@@ -78,7 +133,8 @@ end
 function MysqlMgr:insert(index, coll_name, obj)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local ok, res_oe = mysqldb:insert(coll_name, obj)
+        local sql = sformat("insert into %s %s", coll_name, format_insert(obj))
+        local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"
@@ -87,7 +143,8 @@ end
 function MysqlMgr:update(index, coll_name, obj, selector, upsert, multi)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local ok, res_oe = mysqldb:update(coll_name, obj, selector, upsert, multi)
+        local sql = sformat("update %s set %s where %s", coll_name, format_selector(obj), format_selector(selector))
+        local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"

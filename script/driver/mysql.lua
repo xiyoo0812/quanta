@@ -26,10 +26,7 @@ local poll          = quanta.get("poll")
 local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
--- the following charset map is generated from the following mysql query:
---   SELECT CHARACTER_SET_NAME, ID
---   FROM information_schema.collations
---   WHERE IS_DEFAULT = 'Yes' ORDER BY id;
+--charset编码
 local CHARSET_MAP = {
     _default  = 0,
     big5      = 1,
@@ -162,6 +159,32 @@ local function _get_double(data, i)
     return sunpack("<d", data, i)
 end
 
+local function _from_length_coded_bin(data, pos)
+    local first = sbyte(data, pos)
+    if not first then
+        return nil, pos
+    end
+    if first >= 0 and first <= 250 then
+        return first, pos + 1
+    end
+    if first == 251 then
+        return nil, pos + 1
+    end
+    if first == 252 then
+        pos = pos + 1
+        return _get_byte2(data, pos)
+    end
+    if first == 253 then
+        pos = pos + 1
+        return _get_byte3(data, pos)
+    end
+    if first == 254 then
+        pos = pos + 1
+        return _get_byte8(data, pos)
+    end
+    return false, pos + 1
+end
+
 local function _get_datetime(data, pos)
     local len, year, month, day, hour, minute, second
     local value
@@ -171,10 +194,22 @@ local function _get_datetime(data, pos)
         value = sformat("%04d-%02d-%02d %02d:%02d:%02d", year, month, day, hour, minute, second)
     else
         value = "2017-09-09 20:08:09"
-        --unsupported format
         pos = pos + len
     end
     return value, pos
+end
+
+local function _from_cstring(data, pos)
+    return sunpack("z", data, pos)
+end
+
+local function _from_length_coded_str(data, pos)
+    local len
+    len, pos = _from_length_coded_bin(data, pos)
+    if len == nil then
+        return nil, pos
+    end
+    return ssub(data, pos, pos + len - 1), pos + len
 end
 
 local function _set_byte2(n)
@@ -205,50 +240,6 @@ local function _set_double(n)
     return spack("<d", n)
 end
 
-local function _from_cstring(data, pos)
-    return sunpack("z", data, pos)
-end
-
-local function _compute_token(password, scramble)
-    if password == "" then
-        return ""
-    end
-    local stage1 = lsha1(password)
-    local stage2 = lsha1(stage1)
-    local stage3 = lsha1(scramble .. stage2)
-    local i = 0
-    return sgsub(stage3, ".", function(x)
-        i = i + 1
-        return schar(sbyte(x) ~ sbyte(stage1, i))
-    end)
-end
-
-local function _from_length_coded_bin(data, pos)
-    local first = sbyte(data, pos)
-    if not first then
-        return nil, pos
-    end
-    if first >= 0 and first <= 250 then
-        return first, pos + 1
-    end
-    if first == 251 then
-        return nil, pos + 1
-    end
-    if first == 252 then
-        pos = pos + 1
-        return _get_byte2(data, pos)
-    end
-    if first == 253 then
-        pos = pos + 1
-        return _get_byte3(data, pos)
-    end
-    if first == 254 then
-        pos = pos + 1
-        return _get_byte8(data, pos)
-    end
-    return false, pos + 1
-end
-
 local function _set_length_coded_bin(n)
     if n < 251 then
         return schar(n)
@@ -260,15 +251,6 @@ local function _set_length_coded_bin(n)
         return spack("<BI3", 0xfd, n)
     end
     return spack("<BI8", 0xfe, n)
-end
-
-local function _from_length_coded_str(data, pos)
-    local len
-    len, pos = _from_length_coded_bin(data, pos)
-    if len == nil then
-        return nil, pos
-    end
-    return ssub(data, pos, pos + len - 1), pos + len
 end
 
 --字段类型参考
@@ -294,79 +276,89 @@ local _binary_parser = {
     [0xfe] = _from_length_coded_str
 }
 
+--ok报文
 local function _parse_ok_packet(packet)
-    local pos
-    local res = {}
-    res.affected_rows, pos = _from_length_coded_bin(packet, 2)
-    res.insert_id, pos = _from_length_coded_bin(packet, pos)
-    res.server_status, pos = _get_byte2(packet, pos)
-    res.warning_count, pos = _get_byte2(packet, pos)
-    local message = ssub(packet, pos)
-    if message and message ~= "" then
-        res.message = message
-    end
-    return res
+    --1 byte 0x00报文标志(不处理)
+    --1-9 byte 受影响行数
+    local affrows, pos = _from_length_coded_bin(packet, 2)
+    --1-9 byte 索引ID值
+    local index, pos = _from_length_coded_bin(packet, pos)
+    --2 byte 服务器状态
+    local status, pos = _get_byte2(packet, pos)
+    --2 byte 警告数量编号
+    local warncnt, pos = _get_byte2(packet, pos)
+    --n byte 服务器消息
+    local msg = ssub(packet, pos)
+    return { affected_rows = affrows, insert_id = index, server_status = status, warning_count = warncnt, message = msg }
 end
 
+--eof报文
 local function _parse_eof_packet(packet)
-    local offpos = 2
-    local warning_count, pos = _get_byte2(packet, offpos)
+    --1 byte 0xfe报文标志(不处理)
+    --2 byte 警告数量编号
+    local warning_count, pos = _get_byte2(packet, 2)
+    --2 byte 状态标志位
     local status_flags = _get_byte2(packet, pos)
     return warning_count, status_flags
 end
 
+--error报文
 local function _parse_err_packet(packet)
+    --1 byte 0xff报文标志(不处理)
+    --2 byte 错误编号
     local errno, pos = _get_byte2(packet, 2)
-    local marker = ssub(packet, pos, pos)
-    local sqlstate
-    if marker == '#' then
-        -- with sqlstate
-        pos = pos + 1
-        sqlstate = ssub(packet, pos, pos + 5 - 1)
-        pos = pos + 5
-    end
-    local message = ssub(packet, pos)
+    --1 byte 服务器状态标识，恒为#(不处理)
+    --5 byte 服务器状态
+    sqlstate = ssub(packet, pos + 1, pos + 6 - 1)
+    local message = ssub(packet, pos + 6)
     return errno, message, sqlstate
 end
 
+--result_set报文
 local function _parse_result_set_header_packet(packet)
+    --1-9 byte Field结构计数
     local field_count, pos = _from_length_coded_bin(packet, 1)
-    return field_count, _from_length_coded_bin(packet, pos)
+    --1-9 byte 额外信息
+    local extra, pos = _from_length_coded_bin(packet, pos)
+    return field_count, extra
 end
 
+--field 报文结构
 local function _parse_field_packet(data)
-    local col = {}
-    local catalog, db, table, orig_table, orig_name, charsetnr, length
-    local pos
-    catalog, pos = _from_length_coded_str(data, 1)
-    db, pos = _from_length_coded_str(data, pos)
-    table, pos = _from_length_coded_str(data, pos)
-    orig_table, pos = _from_length_coded_str(data, pos)
-    col.name, pos = _from_length_coded_str(data, pos)
-    orig_name, pos = _from_length_coded_str(data, pos)
-    pos = pos + 1 -- ignore the filler
-    charsetnr, pos = _get_byte2(data, pos)
-    length, pos = _get_byte4(data, pos)
-    col.type = sbyte(data, pos)
+    --n byte 目录名称
+    local _, pos = _from_length_coded_str(data, 1)
+    --n byte 数据库名称
+    local _, pos = _from_length_coded_str(data, pos)
+    --n byte 数据表名称
+    local _, pos = _from_length_coded_str(data, pos)
+    --n byte 数据表原始名称
+    local _, pos = _from_length_coded_str(data, pos)
+    --n byte 列（字段）名称
+    local name, pos = _from_length_coded_str(data, pos)
+    --n byte 列（字段）原始名称
+    local _, pos = _from_length_coded_str(data, pos)
+    --1 byte 填充值(不处理)
+    --2 byte 字符编码(不处理)
+    --4 byte 列（字段）长度(不处理)
+    pos = pos + 7
+    --1 byte 列（字段）类型
+    local type = sbyte(data, pos)
     pos = pos + 1
-    local flags, pos = _get_byte2(data, pos)
-    if flags & 0x20 == 0 then
-        -- https://mariadb.com/kb/en/resultset/
-        col.is_signed = true
-    end
-    return col
+    --2 byte 列（字段）标志
+    local flags = _get_byte2(data, pos)
+    -- https://mariadb.com/kb/en/resultset/
+    local is_signed = (flags & 0x20 == 0) and true or false
+    return { type = type, is_signed = is_signed, name = name }
 end
 
+--row_data报文
 local function _parse_row_data_packet(data, cols, compact)
-    local value, col, conv
-    local pos = 1
-    local ncols = #cols
     local row = {}
-    for i = 1, ncols do
+    local pos, value = 1, nil
+    for i, col in ipairs(cols) do
         value, pos = _from_length_coded_str(data, pos)
-        col = cols[i]
         if value ~= nil then
-            conv = converters[col.type]
+            local conv = converters[col.type]
             if conv then
                 value = conv(value)
             end
@@ -404,6 +396,20 @@ local store_types = {
         return _set_byte2(0x06), ""
     end
 }
+
+local function _compute_token(password, scramble)
+    if password == "" then
+        return ""
+    end
+    local stage1 = lsha1(password)
+    local stage2 = lsha1(stage1)
+    local stage3 = lsha1(scramble .. stage2)
+    local i = 0
+    return sgsub(stage3, ".", function(x)
+        i = i + 1
+        return schar(sbyte(x) ~ sbyte(stage1, i))
+    end)
+end
 
 local function _compose_stmt_execute(self, stmt, cursor_type, args)
     local arg_num = #args
@@ -450,37 +456,24 @@ local function _compose_stmt_execute(self, stmt, cursor_type, args)
     return _compose_packet(self, cmd_packet)
 end
 
-local function _query_resp(self)
-    return function(sock)
-        local res, err, errno, sqlstate = self:read_result(sock)
-        if not res then
-            local badresult = {}
-            badresult.badresult = true
-            badresult.err = err
-            badresult.errno = errno
-            badresult.sqlstate = sqlstate
-            return true, badresult
-        end
-        if err ~= "again" then
-            return true, res
-        end
-        local multiresultset = {res}
-        multiresultset.multiresultset = true
-        local i = 2
-        while err == "again" do
-            res, err, errno, sqlstate = self:read_result(sock)
-            if not res then
-                multiresultset.badresult = true
-                multiresultset.err = err
-                multiresultset.errno = errno
-                multiresultset.sqlstate = sqlstate
-                return true, multiresultset
-            end
-            multiresultset[i] = res
-            i = i + 1
-        end
-        return true, multiresultset
+local function _query_resp(self, packet)
+    local res, err, errno, sqlstate = self:read_result(packet)
+    if not res then
+        return false, sformat("%s[no:%s,sqlstate:%s]", err, errno, sqlstate)
     end
+    if err ~= "again" then
+        return true, res
+    end
+    local multiresultset = { res }
+    while err == "again" do
+        local mres, merr, merrno, msqlstate = self:read_result(packet)
+        if not mres then
+            return false, sformat("%s[no:%s,sqlstate:%s]", merr, merrno, msqlstate)
+        end
+        tinsert(multiresultset, mres)
+    end
+    multiresultset.multiresultset = true
+    return true, multiresultset
 end
 
 local MysqlDB = class()
@@ -491,6 +484,7 @@ prop:reader("name", "")     --dbname
 prop:reader("port", 27017)  --mysql端口
 prop:reader("user", "")     --user
 prop:reader("passwd", "")   --passwd
+prop:reader("packet_no", 0) --passwd
 prop:reader("sessions", nil)                --sessions
 prop:reader("server_ver", nil)              --server_ver
 prop:reader("server_lang", nil)             --server_lang
@@ -590,14 +584,14 @@ function MysqlDB:auth()
         return false, "bad handshake initialization packet: bad server version"
     end
     self.server_ver = server_ver
-    --4 byte thread_id (未处理) 
+    --4 byte thread_id (未处理)
     pos = pos + 4
     --8 byte 挑战随机数1
     local scramble1 = ssub(packet, pos, pos + 8 - 1)
     if not scramble1 then
         return false, "1st part of scramble not found"
     end
-    --1 byte 填充值 (未处理) 
+    --1 byte 填充值 (未处理)
     pos = pos + 8 + 1
     --2 byte server_capabilities
     local server_capabilities, pos = _get_byte2(packet, pos)
@@ -608,8 +602,8 @@ function MysqlDB:auth()
     --2 byte server_capabilities high
     local more_capabilities, pos = _get_byte2(packet, pos)
     self.server_capabilities = server_capabilities | more_capabilities << 16
-    --1 byte 挑战长度 (未使用) (未处理) 
-    --10 byte 填充值 (未处理) 
+    --1 byte 挑战长度 (未使用) (未处理)
+    --10 byte 填充值 (未处理)
     pos = pos + 1 + 10
     --12 byte 挑战随机数2
     local scramble2 = ssub(packet, pos, pos + 12 - 1)
@@ -677,13 +671,13 @@ function MysqlDB:request(packet, mysql_response, quote)
     if not self.sock:send(packet) then
         return { badresult = true, errno = 30902, err = "send request failed" }
     end
-    self.packet_no = -1
     local session_id = thread_mgr:build_session_id()
     self.sessions:push({ session_id, mysql_response })
     return thread_mgr:yield(session_id, quote, NetwkTime.DB_CALL_TIMEOUT)
 end
 
 function MysqlDB:query(query)
+    self.packet_no = -1
     local querypacket = self:_compose_packet(COM_QUERY .. query)
     return self:request(querypacket, _query_resp, "mysql_query")
 end
@@ -717,12 +711,13 @@ local function _prepare_resp(self, packet, sql)
             field = self:_recv_field_packet(sock)
         end
     end
-    return true, { params = params, fields = fields, prepare_id = prepare_id, 
+    return true, { params = params, fields = fields, prepare_id = prepare_id,
         field_count = field_count, param_count = param_count, warning_count = warning_count }
 end
 
 -- 注册预处理语句
 function MysqlDB:prepare(sql)
+    self.packet_no = -1
     local querypacket = self:_compose_packet(COM_STMT_PREPARE .. sql)
     return self:request(querypacket, _prepare_resp, "mysql_prepare")
 end
@@ -808,6 +803,7 @@ end
 失败返回字段 errno, badresult, sqlstate, err
 ]]
 function MysqlDB:execute(stmt, ...)
+    self.packet_no = -1
     local querypacket, er = _compose_stmt_execute(self, stmt, CURSOR_TYPE_NO_CURSOR, {...})
     if not querypacket then
         return { badresult = true, errno = 30902, err = er }
@@ -817,6 +813,7 @@ end
 
 --重置预处理句柄
 function MysqlDB:stmt_reset(stmt)
+    self.packet_no = -1
     local cmd_packet = spack("c1<I4", COM_STMT_RESET, stmt.prepare_id)
     local querypacket = self:_compose_packet(cmd_packet)
     return self:request(querypacket, _query_resp, "mysql_stmt_reset")
@@ -824,12 +821,14 @@ end
 
 --关闭预处理句柄
 function MysqlDB:stmt_close(stmt)
+    self.packet_no = -1
     local cmd_packet = spack("c1<I4", COM_STMT_CLOSE, stmt.prepare_id)
     local querypacket = self:_compose_packet(cmd_packet)
     return self:request(querypacket, _query_resp, "mysql_stmt_close")
 end
 
 function MysqlDB:ping(self)
+    self.packet_no = -1
     local querypacket, er = self:_compose_packet(COM_PING)
     if not querypacket then
         return { badresult = true, errno = 30902, err = er }
@@ -857,7 +856,7 @@ function MysqlDB:read_result(packet)
         return nil, "packet type " .. typ .. " not supported"
     end
     -- typ == 'DATA'
-    local field_count, extra = _parse_result_set_header_packet(packet)
+    local field_count = _parse_result_set_header_packet(packet)
     local cols = {}
     for i = 1, field_count do
         local col, err, errno, sqlstate = _recv_field_packet(self, sock)
