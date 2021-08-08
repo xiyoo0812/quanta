@@ -17,6 +17,7 @@ local log_info      = logger.info
 local sformat       = string.format
 local sunpack       = string.unpack
 local tunpack       = table.unpack
+local tinsert       = table.insert
 local tointeger     = math.tointeger
 
 local NetwkTime     = enum("NetwkTime")
@@ -282,13 +283,13 @@ local function _parse_ok_packet(packet)
     --1-9 byte 受影响行数
     local affrows, pos = _from_length_coded_bin(packet, 2)
     --1-9 byte 索引ID值
-    local index, pos = _from_length_coded_bin(packet, pos)
+    local index, pos1 = _from_length_coded_bin(packet, pos)
     --2 byte 服务器状态
-    local status, pos = _get_byte2(packet, pos)
+    local status, pos2 = _get_byte2(packet, pos1)
     --2 byte 警告数量编号
-    local warncnt, pos = _get_byte2(packet, pos)
+    local warncnt, pos3 = _get_byte2(packet, pos)
     --n byte 服务器消息
-    local msg = ssub(packet, pos)
+    local msg = ssub(packet, pos3)
     return { affected_rows = affrows, insert_id = index, server_status = status, warning_count = warncnt, message = msg }
 end
 
@@ -309,7 +310,7 @@ local function _parse_err_packet(packet)
     local errno, pos = _get_byte2(packet, 2)
     --1 byte 服务器状态标识，恒为#(不处理)
     --5 byte 服务器状态
-    sqlstate = ssub(packet, pos + 1, pos + 6 - 1)
+    local sqlstate = ssub(packet, pos + 1, pos + 6 - 1)
     local message = ssub(packet, pos + 6)
     return errno, message, sqlstate
 end
@@ -319,7 +320,7 @@ local function _parse_result_set_header_packet(packet)
     --1-9 byte Field结构计数
     local field_count, pos = _from_length_coded_bin(packet, 1)
     --1-9 byte 额外信息
-    local extra, pos = _from_length_coded_bin(packet, pos)
+    local extra, pos2 = _from_length_coded_bin(packet, pos)
     return field_count, extra
 end
 
@@ -328,24 +329,24 @@ local function _parse_field_packet(data)
     --n byte 目录名称
     local _, pos = _from_length_coded_str(data, 1)
     --n byte 数据库名称
-    local _, pos = _from_length_coded_str(data, pos)
+    local _, pos1 = _from_length_coded_str(data, pos)
     --n byte 数据表名称
-    local _, pos = _from_length_coded_str(data, pos)
+    local _, pos2 = _from_length_coded_str(data, pos1)
     --n byte 数据表原始名称
-    local _, pos = _from_length_coded_str(data, pos)
+    local _, pos3 = _from_length_coded_str(data, pos2)
     --n byte 列（字段）名称
-    local name, pos = _from_length_coded_str(data, pos)
+    local name, pos4 = _from_length_coded_str(data, pos3)
     --n byte 列（字段）原始名称
-    local _, pos = _from_length_coded_str(data, pos)
+    local _, pos5 = _from_length_coded_str(data, pos4)
     --1 byte 填充值(不处理)
     --2 byte 字符编码(不处理)
     --4 byte 列（字段）长度(不处理)
-    pos = pos + 7
+    pos5 = pos5 + 7
     --1 byte 列（字段）类型
-    local type = sbyte(data, pos)
-    pos = pos + 1
+    local type = sbyte(data, pos5)
+    pos5 = pos5 + 1
     --2 byte 列（字段）标志
-    local flags = _get_byte2(data, pos)
+    local flags = _get_byte2(data, pos5)
     -- https://mariadb.com/kb/en/resultset/
     local is_signed = (flags & 0x20 == 0) and true or false
     return { type = type, is_signed = is_signed, name = name }
@@ -354,8 +355,9 @@ end
 --row_data报文
 local function _parse_row_data_packet(data, cols, compact)
     local row = {}
-    local pos, value = 1, nil
+    local pos = 1
     for i, col in ipairs(cols) do
+        local value
         value, pos = _from_length_coded_str(data, pos)
         if value ~= nil then
             local conv = converters[col.type]
@@ -453,7 +455,7 @@ local function _compose_stmt_execute(self, stmt, cursor_type, args)
         cmd_packet = cmd_packet .. null_map .. schar(0x01) .. types_buf .. values_buf
     end
 
-    return _compose_packet(self, cmd_packet)
+    return self:_compose_packet(cmd_packet)
 end
 
 local function _query_resp(self, packet)
@@ -708,7 +710,7 @@ local function _prepare_resp(self, packet, sql)
         local field = self:_recv_field_packet(packet)
         while field do
             tinsert(fields, field)
-            field = self:_recv_field_packet(sock)
+            field = self:_recv_field_packet(packet)
         end
     end
     return true, { params = params, fields = fields, prepare_id = prepare_id,
@@ -827,7 +829,7 @@ function MysqlDB:stmt_close(stmt)
     return self:request(querypacket, _query_resp, "mysql_stmt_close")
 end
 
-function MysqlDB:ping(self)
+function MysqlDB:ping()
     self.packet_no = -1
     local querypacket, er = self:_compose_packet(COM_PING)
     if not querypacket then
@@ -859,7 +861,7 @@ function MysqlDB:read_result(packet)
     local field_count = _parse_result_set_header_packet(packet)
     local cols = {}
     for i = 1, field_count do
-        local col, err, errno, sqlstate = _recv_field_packet(self, sock)
+        local col, err, errno, sqlstate = self:_recv_field_packet(packet)
         if not col then
             return nil, err, errno, sqlstate
         end
