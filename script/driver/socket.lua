@@ -78,7 +78,7 @@ function Socket:connect(ip, port)
     self.poll:control(self, POLL_ADD, false, true)
     local ok, err = thread_mgr:yield(self.block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
     if not ok then
-        log_err("[Socket][connect] connect failed: %s", cerr)
+        log_err("[Socket][connect] connect failed: %s", err)
         self:close()
         return
     end

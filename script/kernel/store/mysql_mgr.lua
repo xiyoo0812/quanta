@@ -51,12 +51,12 @@ local function format_insert(args)
     return sformat("(%s) values (%s)", tconcat(keys, ","), tconcat(values, ","))
 end
 
-local function format_selector(selector)
+local function format_selector(selector, sep)
     local fmt_selector = {}
     for key, value in pairs(selector) do
         tinsert(fmt_selector, sformat("%s=%s", key, value))
     end
-    return tconcat(fmt_selector, "and")
+    return tconcat(fmt_selector, sep or " and ")
 end
 
 local function format_fields(fields)
@@ -123,7 +123,7 @@ end
 function MysqlMgr:find_one(index, coll_name, selector, fields)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("select %s from %s while %s limit 1", format_fields(fields), coll_name, format_args(selector))
+        local sql = sformat("select %s from %s while %s limit 1", format_fields(fields), coll_name, format_selector(selector))
         local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
@@ -143,7 +143,8 @@ end
 function MysqlMgr:update(index, coll_name, obj, selector, upsert, multi)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("update %s set %s where %s", coll_name, format_selector(obj), format_selector(selector))
+        local sql = sformat("update %s set %s where %s", coll_name, format_selector(obj, ","), format_selector(selector))
+        print("update", sql)
         local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
@@ -153,7 +154,11 @@ end
 function MysqlMgr:delete(index, coll_name, selector, onlyone)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local ok, res_oe = mysqldb:delete(coll_name, selector, onlyone)
+        local sql = sformat("delete from %s where %s", coll_name, format_selector(selector))
+        if onlyone then
+            sql = sformat("%s limit 1", sql)
+        end
+        local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"
@@ -162,7 +167,8 @@ end
 function MysqlMgr:count(index, coll_name, selector, limit, skip)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local ok, res_oe = mysqldb:count(coll_name, selector, limit, skip)
+        local sql = sformat("select count(*) from %s where %s", coll_name, format_selector(selector))
+        local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"
