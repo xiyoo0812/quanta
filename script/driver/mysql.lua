@@ -1,5 +1,4 @@
 --mysql.lua
-import("driver/poll.lua")
 local lcrypt        = require("lcrypt")
 local Socket        = import("driver/socket.lua")
 local QueueFIFO     = import("container/queue_fifo.lua")
@@ -504,9 +503,9 @@ function MysqlDB:__init(conf)
     self.user = conf.user
     self.passwd = conf.passwd
     self.sessions = QueueFIFO()
-    --update
+    --check
     timer_mgr:loop(PeriodTime.SECOND_MS * 2, function()
-        self:update()
+        self:check()
     end)
 end
 
@@ -522,7 +521,7 @@ function MysqlDB:close()
     end
 end
 
-function MysqlDB:update()
+function MysqlDB:check()
     if not self.sock then
         local sock = Socket(poll, self)
         if sock:connect(self.ip, self.port) then

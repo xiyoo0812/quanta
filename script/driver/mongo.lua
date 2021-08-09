@@ -1,6 +1,5 @@
 
 --mongo.lua
-import("driver/poll.lua")
 local bson          = require("bson")
 local driver        = require("mongo")
 local lcrypt        = require("lcrypt")
@@ -53,9 +52,9 @@ function MongoDB:__init(conf)
     self.passwd = conf.passwd
     self.name = conf.db
     self.db_cmd = conf.db .. "." .. "$cmd"
-    --update
+    --check
     timer_mgr:loop(PeriodTime.SECOND_MS, function()
-        self:update()
+        self:check()
     end)
 end
 
@@ -70,7 +69,7 @@ function MongoDB:close()
     end
 end
 
-function MongoDB:update()
+function MongoDB:check()
     if not self.sock then
         local sock = Socket(poll, self)
         if sock:connect(self.ip, self.port) then
@@ -78,15 +77,15 @@ function MongoDB:update()
             if #self.user > 0 and #self.passwd > 0 then
                 local ok, err = self:auth(self.user, self.passwd)
                 if not ok then
-                    log_err("[MongoDB][update] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
+                    log_err("[MongoDB][check] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
                     self.sock = nil
                     return
                 end
-                log_info("[MongoDB][update] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
+                log_info("[MongoDB][check] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
             end
-            log_info("[MongoDB][update] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
+            log_info("[MongoDB][check] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
         else
-            log_err("[MysqlDB][update] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
+            log_err("[MysqlDB][check] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
         end
     end
 end

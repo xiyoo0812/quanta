@@ -3,6 +3,9 @@ local lnet          = require("lnet")
 
 local log_err       = logger.err
 
+local thread_mgr    = quanta.get("thread_mgr")
+local NetwkTime     = enum("NetwkTime")
+
 local POLL_DEL      = 0
 local POLL_ADD      = 1
 local POLL_MOD      = 2
@@ -13,6 +16,7 @@ prop:accessor("fd", nil)
 prop:accessor("ip", nil)
 prop:accessor("poll", nil)
 prop:accessor("host", nil)
+prop:accessor("block_id", nil)
 prop:accessor("listener", false)
 prop:accessor("port", 0)
 prop:accessor("sndbuf", "")
@@ -69,8 +73,18 @@ function Socket:connect(ip, port)
         log_err("[Socket][connect] connect failed: %s", cerr)
         return
     end
-    self.fd, self.ip, self.port = fd, ip, port
-    self.poll:control(self, POLL_ADD, true, false)
+    self.fd = fd
+    self.block_id = thread_mgr:build_session_id()
+    self.poll:control(self, POLL_ADD, false, true)
+    local ok, err = thread_mgr:yield(self.block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
+    if not ok then
+        log_err("[Socket][connect] connect failed: %s", cerr)
+        self:close()
+        return
+    end
+    self.block_id = nil
+    self.ip, self.port = ip, port
+    self.poll:control(self, POLL_MOD, true, false)
     return fd
 end
 
@@ -130,6 +144,9 @@ function Socket:send(data)
     if data then
         self.sndbuf = self.sndbuf .. data
     end
+    if #self.sndbuf == 0 then
+        return true
+    end
     while true do
         local sndlen, err = lnet.send(self.fd, self.sndbuf)
         if sndlen == 0 then
@@ -166,6 +183,10 @@ function Socket:handle_event(bread, bwrite)
         end
     end
     if bwrite then
+        if self.block_id then
+            thread_mgr:response(self.block_id, true)
+            return
+        end
         self:send()
     end
 end
