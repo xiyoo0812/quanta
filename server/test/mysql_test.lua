@@ -11,11 +11,11 @@ local mysql_mgr = MysqlMgr(DBGroup.AREA)
 
 
 timer_mgr:once(3000, function()
-    local f1code, f1res = mysql_mgr:find_one(2, "test_mysql", {pid = "123456"}, {_id = 0})
-    log_info("db find code: %s, res = %s", fcode, serialize(res))
     local icode, ierr = mysql_mgr:count(2, "test_mysql", {pid = "123456"})
     log_info("db count code: %s, err = %s", icode, serialize(ierr))
     --[[
+    local f1code, f1res = mysql_mgr:find_one(2, "test_mysql", {pid = "123456"}, {_id = 0})
+    log_info("db find code: %s, res = %s", fcode, serialize(res))
     local code, res = mysql_mgr:create_table(2, "test_mysql", {pid = "VARCHAR(20)", value = "int"})
     log_info("crate_table code: %s, err = %s", code, serialize(res))
     icode, ierr = mysql_mgr:insert(2, "test_mysql", {pid = "123456", value = 20})

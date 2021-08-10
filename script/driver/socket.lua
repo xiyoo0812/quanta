@@ -99,6 +99,14 @@ function Socket:accept(fd)
     self.host:on_socket_accept(self, newfd)
 end
 
+function Socket:on_recv(fd)
+    if #self.recvbuf > 0 then
+        thread_mgr:fork(function()
+            self.host:on_socket_recv(self, self.fd)
+        end)
+    end
+end
+
 function Socket:recv()
     if not self.fd then
         return false
@@ -109,16 +117,14 @@ function Socket:recv()
             break
         end
         if ret < 0 then
-            if #self.recvbuf > 0 then
-                self.host:on_socket_recv(self, self.fd)
-            end
+            self:on_recv()
             log_err("[Socket][recv] recv failed: %s", data_oe)
             self:close(true)
             return false
         end
         self.recvbuf = self.recvbuf .. data_oe
     end
-    self.host:on_socket_recv(self, self.fd)
+    self:on_recv()
     return true
 end
 
@@ -172,22 +178,22 @@ function Socket:send(data)
 end
 
 function Socket:handle_event(bread, bwrite)
+    if bwrite then
+        if self.block_id then
+            thread_mgr:response(self.block_id, true)
+            return
+        end
+        if not self:send() then
+            return
+        end
+    end
     if bread then
         if self.listener then
             local socket = Socket(self.poll, self.host)
             socket:accept(self.fd)
             return
         end
-        if not self:recv() then
-            return
-        end
-    end
-    if bwrite then
-        if self.block_id then
-            thread_mgr:response(self.block_id, true)
-            return
-        end
-        self:send()
+        self:recv()
     end
 end
 

@@ -92,7 +92,7 @@ end
 function MysqlMgr:find(index, coll_name, selector, fields, limit)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("select %s from %s while %s", format_fields(fields), coll_name, format_selector(selector))
+        local sql = sformat("select %s from %s where %s", format_fields(fields), coll_name, format_selector(selector))
         if limit then
             sql = sformat("%s limit %d", sql, limit)
         end
@@ -123,7 +123,7 @@ end
 function MysqlMgr:find_one(index, coll_name, selector, fields)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("select %s from %s while %s limit 1", format_fields(fields), coll_name, format_selector(selector))
+        local sql = sformat("select %s from %s where %s limit 1", format_fields(fields), coll_name, format_selector(selector))
         local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
