@@ -97,10 +97,6 @@ local converters = {
     [0xf6] = tonumber,  -- newdecimal
 }
 
-local function _get_byte1(data, i)
-    return sbyte(data, i), i + 1
-end
-
 local function _get_int1(data, i, is_signed)
     if not is_signed then
         return sunpack("<I1", data, i)
@@ -119,10 +115,6 @@ local function _get_int2(data, i, is_signed)
     return sunpack("<i2", data, i)
 end
 
-local function _get_byte3(data, i)
-    return sunpack("<I3", data, i)
-end
-
 local function _get_int3(data, i, is_signed)
     if not is_signed then
         return sunpack("<I3", data, i)
@@ -130,19 +122,11 @@ local function _get_int3(data, i, is_signed)
     return sunpack("<i3", data, i)
 end
 
-local function _get_byte4(data, i)
-    return sunpack("<I4", data, i)
-end
-
 local function _get_int4(data, i, is_signed)
     if not is_signed then
         return sunpack("<I4", data, i)
     end
     return sunpack("<i4", data, i)
-end
-
-local function _get_byte8(data, i)
-    return sunpack("<I8", data, i)
 end
 
 local function _get_int8(data, i, is_signed)
@@ -177,11 +161,11 @@ local function _from_length_coded_bin(data, pos)
     end
     if first == 253 then
         pos = pos + 1
-        return _get_byte3(data, pos)
+        return sunpack("<I3", data, pos)
     end
     if first == 254 then
         pos = pos + 1
-        return _get_byte8(data, pos)
+        return sunpack("<I8", data, pos)
     end
     return false, pos + 1
 end
@@ -217,24 +201,8 @@ local function _set_byte2(n)
     return spack("<I2", n)
 end
 
-local function _set_byte3(n)
-    return spack("<I3", n)
-end
-
-local function _set_byte4(n)
-    return spack("<I4", n)
-end
-
-local function _set_byte8(n)
-    return spack("<I8", n)
-end
-
 local function _set_int8(n)
     return spack("<i8", n)
-end
-
-local function _set_float(n)
-    return spack("<f", n)
 end
 
 local function _set_double(n)
@@ -289,8 +257,12 @@ local function _parse_ok_packet(packet)
     --2 byte 警告数量编号
     local warncnt, pos_warn = _get_byte2(packet, pos_state)
     --n byte 服务器消息
-    local msg = ssub(packet, pos_warn)
-    return { affected_rows = affrows, insert_id = index, server_status = status, warning_count = warncnt, message = msg }
+    local msg = ssub(packet, pos_warn + 1)
+    local res = { affected_rows = affrows, insert_id = index, server_status = status, warning_count = warncnt, message = msg }
+    if status & SERVER_MORE_RESULTS_EXISTS ~= 0 then
+        return res, "again"
+    end
+    return res
 end
 
 --eof报文
@@ -312,7 +284,7 @@ local function _parse_err_packet(packet)
     --5 byte 服务器状态
     local sqlstate = ssub(packet, pos + 1, pos + 6 - 1)
     local message = ssub(packet, pos + 6)
-    return errno, message, sqlstate
+    return sformat("errno:%d, msg:%s,sqlstate:%s", errno, message, sqlstate)
 end
 
 --field 报文结构
@@ -362,36 +334,31 @@ local function _parse_row_data_packet(packet, fields)
     return row
 end
 
-local function _recv_field_resp(self, packet, typ, err)
-    if not typ then
-        return false, err
-    end
+local function _parse_not_data_packet(packet, typ)
     if typ == "ERR" then
-        local errno, msg, sqlstate = _parse_err_packet(packet)
-        return false, msg, errno, sqlstate
+        return nil, _parse_err_packet(packet)
     end
-    if typ ~= "DATA" then
-        return false, "bad field packet type: " .. typ
+    if typ == "OK" then
+        return _parse_ok_packet(packet)
     end
-    -- typ == 'DATA'
-    local field = _parse_field_packet(packet)
-    return true, field
+    return nil, "packet type " .. typ .. " not supported"
 end
 
-local function _recv_eof_resp(self, packet, typ, err)
-    if not typ then
-        return false, err
+local function _recv_field_resp(self, packet, typ)
+    if typ == "DATA" then
+        return true, _parse_field_packet(packet)
     end
+    return _parse_not_data_packet(packet, typ)
+end
+
+local function _recv_eof_resp(self, packet, typ)
     if typ ~= "EOF" then
         return false, sformat("unexpected packet type %s while eof packet is expected", typ)
     end
     return true
 end
 
-local function _recv_rows_resp(self, packet, typ, err, param)
-    if not typ then
-        return false, err
-    end
+local function _recv_rows_resp(self, packet, typ, param)
     if typ == "EOF" then
         local _, status_flags = _parse_eof_packet(packet)
         if status_flags & SERVER_MORE_RESULTS_EXISTS ~= 0 then
@@ -415,9 +382,9 @@ local function _parse_result_set_packet(self, packet, ignores)
     for i = 1, field_count do
         local session_id = thread_mgr:build_session_id()
         self.sessions:push({ session_id, _recv_field_resp })
-        local ok, field, errno, sqlstate = thread_mgr:yield(session_id, "recv field packet", DB_TIMEOUT)
+        local ok, field = thread_mgr:yield(session_id, "recv field packet", DB_TIMEOUT)
         if not ok then
-            return nil, field, errno, sqlstate
+            return nil, field
         end
         field.ignore = ignores and ignores[field.name]
         fields[i] = field
@@ -533,14 +500,14 @@ local function _compose_stmt_execute(self, stmt, cursor_type, args)
     return self:_compose_packet(cmd_packet)
 end
 
-local function _recv_multi_resp(self, packet, type, err, ignores)
-    return self:read_result_set(packet, type, err, ignores)
+local function _recv_multi_resp(self, packet, type, ignores)
+    return self:read_query_result(packet, type, ignores)
 end
 
-local function _query_resp(self, packet, type, perr, ignores)
-    local res, err, errno, sqlstate = self:read_result_set(packet, type, perr, ignores)
+local function _query_resp(self, packet, type, ignores)
+    local res, err = self:read_query_result(packet, type, ignores)
     if not res then
-        return false, sformat("%s[no:%s,sqlstate:%s]", err, errno, sqlstate)
+        return false, err
     end
     if err ~= "again" then
         return true, res
@@ -549,14 +516,57 @@ local function _query_resp(self, packet, type, perr, ignores)
     while err == "again" do
         local session_id = thread_mgr:build_session_id()
         self.sessions:push({ session_id, _recv_multi_resp, ignores })
-        res, err, errno, sqlstate = thread_mgr:yield(session_id, "recv multi resultset packet", DB_TIMEOUT)
+        res, err = thread_mgr:yield(session_id, "recv multi resultset packet", DB_TIMEOUT)
         if not res then
-            return false, sformat("%s[no:%s,sqlstate:%s]", err, errno, sqlstate)
+            return false, err
         end
         tinsert(multiresultset, res)
     end
     multiresultset.multiresultset = true
     return true, multiresultset
+end
+
+local function _recv_auth_resp(self, packet, typ)
+    if typ == "ERR" then
+        return false, _parse_err_packet(packet)
+    end
+    if typ == "EOF" then
+        return false, "old pre-4.1 authentication protocol not supported"
+    end
+    return true, packet
+end
+
+local function _prepare_resp(self, packet, typ)
+    if typ == "ERR" then
+        return false, _parse_err_packet(packet)
+    end
+    --第一节只能是OK
+    if typ ~= "OK" then
+        return false, sformat("first typ must be OK, now %s[no:300201]", typ)
+    end
+    local params, fields = {}, {}
+    local prepare_id, field_count, param_count, warning_count = sunpack("<I4I2I2xI2", packet, 2)
+    for i = 1, param_count do
+        local session_id = thread_mgr:build_session_id()
+        self.sessions:push({ session_id, _recv_field_resp })
+        local ok, field = thread_mgr:yield(session_id, "recv field packet", DB_TIMEOUT)
+        if not ok then
+            return false, field
+        end
+        params[i] = field
+    end
+    for i = 1, field_count do
+        local session_id = thread_mgr:build_session_id()
+        self.sessions:push({ session_id, _recv_field_resp })
+        local ok, field = thread_mgr:yield(session_id, "recv field packet", DB_TIMEOUT)
+        if not ok then
+            return false, field
+        end
+        fields[i] = field
+    end
+    return true, { params = params, fields = fields, prepare_id = prepare_id,
+        field_count = field_count, param_count = param_count, warning_count = warning_count
+    }
 end
 
 local function _parae_packet_type(buff)
@@ -636,20 +646,6 @@ function MysqlDB:check()
     end
 end
 
-local function _recv_auth_resp(self, packet, typ, err)
-    if not typ then
-        return false, "failed to receive the result packet" .. err
-    end
-    if typ == "ERR" then
-        local errno, msg, sqlstate = _parse_err_packet(packet)
-        return false, sformat("errno:%d, msg:%s,sqlstate:%s", errno, msg, sqlstate)
-    end
-    if typ == "EOF" then
-        return false, "old pre-4.1 authentication protocol not supported"
-    end
-    return true, packet
-end
-
 function MysqlDB:auth()
     local session_id = thread_mgr:build_session_id()
     self.sessions:push({ session_id, _recv_auth_resp })
@@ -727,7 +723,7 @@ function MysqlDB:on_socket_recv(sock)
             break
         end
         --3 byte消息长度
-        local length, pos = _get_byte3(hdata, 1)
+        local length, pos = sunpack("<I3", hdata, 1)
         --1 byte 消息序列号
         self.packet_no = sbyte(hdata, pos)
         --n byte 消息内容
@@ -743,9 +739,13 @@ function MysqlDB:on_socket_recv(sock)
         local sessin_info = self.sessions:pop()
         if sessin_info then
             thread_mgr:fork(function()
-                local typ, err = _parae_packet_type(bdata)
                 local session_id, mysql_response, resp_param = tunpack(sessin_info)
-                thread_mgr:response(session_id, mysql_response(self, bdata, typ, err, resp_param))
+                local typ, err = _parae_packet_type(bdata)
+                if not typ then
+                    thread_mgr:response(session_id, false, err)
+                    return
+                end
+                thread_mgr:response(session_id, mysql_response(self, bdata, typ, resp_param))
             end)
         end
     end
@@ -753,7 +753,7 @@ end
 
 function MysqlDB:request(packet, mysql_response, quote, ignores)
     if not self.sock:send(packet) then
-        return { badresult = true, errno = 30902, err = "send request failed" }
+        return false, "send request failed"
     end
     local session_id = thread_mgr:build_session_id()
     self.sessions:push({ session_id, mysql_response, ignores })
@@ -765,38 +765,6 @@ function MysqlDB:query(query, ignores)
     log_info("[MysqlDB][query] sql: %s", query)
     local querypacket = self:_compose_packet(COM_QUERY .. query)
     return self:request(querypacket, _query_resp, "mysql_query", ignores)
-end
-
-local function _prepare_resp(self, packet, typ, err)
-    if not typ then
-        return false, {badresult = true, errno = 300101, err = err}
-    end
-    if typ == "ERR" then
-        local errno, msg, sqlstate = _parse_err_packet(packet)
-        return true, {badresult = true, errno = errno, err = msg, sqlstate = sqlstate}
-    end
-    --第一节只能是OK
-    if typ ~= "OK" then
-        return false, {badresult = true, errno = 300201, err = "first typ must be OK,now" .. typ }
-    end
-    local params, fields = {}, {}
-    local prepare_id, field_count, param_count, warning_count = sunpack("<I4I2I2xI2", packet, 2)
-    if param_count > 0 then
-        local param = self:_recv_field_packet(packet)
-        while param do
-            tinsert(params, param)
-            param = self:_recv_field_packet(packet)
-        end
-    end
-    if field_count > 0 then
-        local field = self:_recv_field_packet(packet)
-        while field do
-            tinsert(fields, field)
-            field = self:_recv_field_packet(packet)
-        end
-    end
-    return true, { params = params, fields = fields, prepare_id = prepare_id,
-        field_count = field_count, param_count = param_count, warning_count = warning_count }
 end
 
 -- 注册预处理语句
@@ -851,15 +819,10 @@ local function _parse_row_data_binary(data, cols, compact)
     return row
 end
 
-local function _execute_resp(self, sock)
-    local res, err, errno, sqlstate = self:read_execute_result(sock)
+local function _execute_resp(self, packet, typ)
+    local res, err = self:read_execute_result(packet, typ)
     if not res then
-        local badresult = {}
-        badresult.badresult = true
-        badresult.err = err
-        badresult.errno = errno
-        badresult.sqlstate = sqlstate
-        return true, badresult
+        return false, err
     end
     if err ~= "again" then
         return true, res
@@ -868,7 +831,7 @@ local function _execute_resp(self, sock)
     mulitresultset.mulitresultset = true
     local i = 2
     while err == "again" do
-        res, err, errno, sqlstate = self:read_execute_result(sock)
+        res, err, errno, sqlstate = self:read_execute_result(packet, typ)
         if not res then
             mulitresultset.badresult = true
             mulitresultset.err = err
@@ -888,9 +851,9 @@ end
 ]]
 function MysqlDB:execute(stmt, ...)
     self.packet_no = -1
-    local querypacket, er = _compose_stmt_execute(self, stmt, CURSOR_TYPE_NO_CURSOR, {...})
+    local querypacket, err = _compose_stmt_execute(self, stmt, CURSOR_TYPE_NO_CURSOR, {...})
     if not querypacket then
-        return { badresult = true, errno = 30902, err = er }
+        return false, sformat("%s[no:30902]", err)
     end
     return self:request(querypacket, _execute_resp, "mysql_execute")
 end
@@ -913,96 +876,63 @@ end
 
 function MysqlDB:ping()
     self.packet_no = -1
-    local querypacket, er = self:_compose_packet(COM_PING)
-    if not querypacket then
-        return { badresult = true, errno = 30902, err = er }
-    end
+    local querypacket = self:_compose_packet(COM_PING)
     return self:request(querypacket, _query_resp, "mysql_ping")
 end
 
-function MysqlDB:read_result_set(packet, typ, err, ignores)
-    if not typ then
-        return nil, err
-    end
-    if typ == "ERR" then
-        local errno, msg, sqlstate = _parse_err_packet(packet)
-        return nil, msg, errno, sqlstate
-    end
-    if typ == "OK" then
-        local res = _parse_ok_packet(packet)
-        if res and res.server_status & SERVER_MORE_RESULTS_EXISTS ~= 0 then
-            return res, "again"
+function MysqlDB:read_query_result(packet, typ, ignores)
+    if typ == "DATA" then
+        local rows, rerr = _parse_result_set_packet(self, packet, ignores)
+        if not rows then
+            return nil, rerr
         end
-        return res
+        return rows, rerr
     end
-    if typ ~= "DATA" then
-        return nil, "packet type " .. typ .. " not supported"
-    end
-    -- typ == 'DATA'
-    local rows, rerr, errno, sqlstate = _parse_result_set_packet(self, packet, ignores)
-    if not rows then
-        return nil, rerr, errno, sqlstate
-    end
-    return rows, rerr
+    return _parse_not_data_packet(packet, typ)
 end
 
-function MysqlDB:read_execute_result(packet, typ, err)
-    if not typ then
-        return nil, err
-    end
-    if typ == "ERR" then
-        local errno, msg, sqlstate = _parse_err_packet(packet)
-        return nil, msg, errno, sqlstate
-    end
-    if typ == "OK" then
-        local res = _parse_ok_packet(packet)
-        if res and res.server_status & SERVER_MORE_RESULTS_EXISTS ~= 0 then
-            return res, "again"
-        end
-        return res
-    end
-    if typ ~= "DATA" then
-        return nil, "packet type " .. typ .. " not supported"
-    end
-    -- typ == 'DATA'
-    local _, extra = _parse_result_set_packet(self, packet)
-    local cols = {}
-    local col
-    while true do
-        local typ, err = _parae_packet_type(packet)
-        if typ == "EOF" then
-            local warning_count, status_flags = _parse_eof_packet(packet)
-            break
-        end
-        col = _parse_field_packet(packet)
-        if not col then
-            break
-        end
-        tinsert(cols, col)
-    end
-    --没有记录集返回
-    if #cols < 1 then
-        return {}
-    end
-    local compact = self.compact
-    local rows = {}
-    local row
-    while true do
-        local typ, err = _parae_packet_type(packet)
-        if typ == "EOF" then
-            local _, status_flags = _parse_eof_packet(packet)
-            if status_flags & SERVER_MORE_RESULTS_EXISTS ~= 0 then
-                return rows, "again"
+function MysqlDB:read_execute_result(packet, typ)
+    if typ == "DATA" then
+        local _, extra = _parse_result_set_packet(self, packet)
+        local cols = {}
+        local col
+        while true do
+            local typ, err = _parae_packet_type(packet)
+            if typ == "EOF" then
+                local warning_count, status_flags = _parse_eof_packet(packet)
+                break
             end
-            break
+            col = _parse_field_packet(packet)
+            if not col then
+                break
+            end
+            tinsert(cols, col)
         end
-        row = _parse_row_data_binary(packet, cols, compact)
-        if not col then
-            break
+        --没有记录集返回
+        if #cols < 1 then
+            return {}
         end
-        tinsert(rows, row)
+        local compact = self.compact
+        local rows = {}
+        local row
+        while true do
+            local typ, err = _parae_packet_type(packet)
+            if typ == "EOF" then
+                local _, status_flags = _parse_eof_packet(packet)
+                if status_flags & SERVER_MORE_RESULTS_EXISTS ~= 0 then
+                    return rows, "again"
+                end
+                break
+            end
+            row = _parse_row_data_binary(packet, cols, compact)
+            if not col then
+                break
+            end
+            tinsert(rows, row)
+        end
+        return rows
     end
-    return rows
+    return _parse_not_data_packet(packet, typ)
 end
 
 function MysqlDB:_compose_packet(req)
