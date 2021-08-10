@@ -101,9 +101,7 @@ end
 
 function Socket:on_recv(fd)
     if #self.recvbuf > 0 then
-        thread_mgr:fork(function()
-            self.host:on_socket_recv(self, self.fd)
-        end)
+        self.host:on_socket_recv(self, self.fd)
     end
 end
 

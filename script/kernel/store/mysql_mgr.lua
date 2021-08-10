@@ -51,23 +51,57 @@ local function format_insert(args)
     return sformat("(%s) values (%s)", tconcat(keys, ","), tconcat(values, ","))
 end
 
-local function format_selector(selector, sep)
+local function format_update(selector, sep)
     local fmt_selector = {}
     for key, value in pairs(selector) do
         tinsert(fmt_selector, sformat("%s=%s", key, value))
     end
-    return tconcat(fmt_selector, sep or " and ")
+    return tconcat(fmt_selector, ",")
+end
+
+local function format_selector(selector, sep)
+    local fmt_selector = {}
+    for key, value in pairs(selector) do
+        if key == "$and" then
+            tinsert(fmt_selector, format_selector(value))
+        elseif key == "$or" then
+            tinsert(fmt_selector, format_selector(value, " or "))
+        elseif type(value) == "table" then
+            local lkey = next(value)
+            if lkey then
+                if lkey == "$lt" then
+                    tinsert(fmt_selector, sformat("%s<%s", key, value[lkey]))
+                elseif lkey == "$lte" then
+                    tinsert(fmt_selector, sformat("%s<=%s", key, value[lkey]))
+                elseif lkey == "$gt" then
+                    tinsert(fmt_selector, sformat("%s>%s", key, value[lkey]))
+                elseif lkey == "$gte" then
+                    tinsert(fmt_selector, sformat("%s>=%s", key, value[lkey]))
+                elseif lkey == "$ne" then
+                    tinsert(fmt_selector, sformat("%s!=%s", key, value[lkey]))
+                end
+            end
+        else
+            tinsert(fmt_selector, sformat("%s=%s", key, value))
+        end
+    end
+    return sformat("(%s)", tconcat(fmt_selector, sep or " and "))
 end
 
 local function format_fields(fields)
-    if not fields or #fields == 0 then
-        return "*"
-    end
+    local ignores = {}
     local fmt_fields = {}
-    for k in pairs(fields) do
-        tinsert(fmt_fields, k)
+    for k, v in pairs(fields or {}) do
+        if v == 1 then
+            tinsert(fmt_fields, k)
+        else
+            ignores[k] = true
+        end
     end
-    return tconcat(fmt_fields, ",")
+    if #fmt_fields == 0 then
+        return "*", ignores
+    end
+    return tconcat(fmt_fields, ","), ignores
 end
 
 local function format_table_fields(fields)
@@ -92,11 +126,12 @@ end
 function MysqlMgr:find(index, coll_name, selector, fields, limit)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("select %s from %s where %s", format_fields(fields), coll_name, format_selector(selector))
+        local fiels_str, ignores = format_fields(fields)
+        local sql = sformat("select %s from %s where %s", fiels_str, coll_name, format_selector(selector))
         if limit then
             sql = sformat("%s limit %d", sql, limit)
         end
-        local ok, res_oe = mysqldb:query(sql)
+        local ok, res_oe = mysqldb:query(sql, ignores)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"
@@ -105,8 +140,13 @@ end
 function MysqlMgr:collect(coll_name, selector, fields, limit)
     local collect_res = {}
     if limit then
+        local fiels_str, ignores = format_fields(fields)
+        local sql = sformat("select %s from %s where %s", fiels_str, coll_name, format_selector(selector))
+        if limit then
+            sql = sformat("%s limit %d", sql, limit)
+        end
         for _, mysqldb in pairs(self.mysql_dbs) do
-            local ok, res_oe = mysqldb:find(coll_name, selector, fields, limit)
+            local ok, res_oe = mysqldb:query(sql, ignores)
             if ok then
                 for _, record in pairs(res_oe) do
                     if #collect_res > limit then
@@ -123,9 +163,13 @@ end
 function MysqlMgr:find_one(index, coll_name, selector, fields)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("select %s from %s where %s limit 1", format_fields(fields), coll_name, format_selector(selector))
-        local ok, res_oe = mysqldb:query(sql)
-        return ok and SUCCESS or MYSQL_FAILED, res_oe
+        local fiels_str, ignores = format_fields(fields)
+        local sql = sformat("select %s from %s where %s limit 1", fiels_str, coll_name, format_selector(selector))
+        local ok, res_oe = mysqldb:query(sql, ignores)
+        if not ok then
+            return MYSQL_FAILED, res_oe
+        end
+        return SUCCESS, res_oe[1]
     end
     return MYSQL_FAILED, "mysql db not exist"
 end
@@ -143,8 +187,7 @@ end
 function MysqlMgr:update(index, coll_name, obj, selector, upsert, multi)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("update %s set %s where %s", coll_name, format_selector(obj, ","), format_selector(selector))
-        print("update", sql)
+        local sql = sformat("update %s set %s where %s", coll_name, format_update(obj), format_selector(selector))
         local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
@@ -167,11 +210,18 @@ end
 function MysqlMgr:count(index, coll_name, selector, limit, skip)
     local mysqldb = self:get_db(index)
     if mysqldb then
-        local sql = sformat("select count(*) from %s where %s", coll_name, format_selector(selector))
+        local sql = sformat("select count(*) as count from %s where %s", coll_name, format_selector(selector))
         local ok, res_oe = mysqldb:query(sql)
-        return ok and SUCCESS or MYSQL_FAILED, res_oe
+        if not ok then
+            return MYSQL_FAILED, res_oe
+        end
+        return SUCCESS, res_oe[1].count
     end
     return MYSQL_FAILED, "mysql db not exist"
 end
+
+--local tt = {key3 = 3, ["$or"]={key1=11, key2={["$lt"]=22}}}
+--local test = sformat("select count(*) as count from %s where %s", coll_name, format_selector(tt))
+--print("test", test)
 
 return MysqlMgr
