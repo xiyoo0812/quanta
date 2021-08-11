@@ -10,7 +10,7 @@ stds.quanta = {
     }
 }
 std = "max+quanta"
-max_cyclomatic_complexity = 12
+max_cyclomatic_complexity = 13
 max_code_line_length = 160
 max_comment_line_length = 160
 exclude_files = {

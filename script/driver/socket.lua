@@ -3,6 +3,9 @@ local lnet          = require("lnet")
 
 local log_err       = logger.err
 
+local thread_mgr    = quanta.get("thread_mgr")
+local NetwkTime     = enum("NetwkTime")
+
 local POLL_DEL      = 0
 local POLL_ADD      = 1
 local POLL_MOD      = 2
@@ -13,6 +16,7 @@ prop:accessor("fd", nil)
 prop:accessor("ip", nil)
 prop:accessor("poll", nil)
 prop:accessor("host", nil)
+prop:accessor("block_id", nil)
 prop:accessor("listener", false)
 prop:accessor("port", 0)
 prop:accessor("sndbuf", "")
@@ -69,8 +73,18 @@ function Socket:connect(ip, port)
         log_err("[Socket][connect] connect failed: %s", cerr)
         return
     end
-    self.fd, self.ip, self.port = fd, ip, port
-    self.poll:control(self, POLL_ADD, true, false)
+    self.fd = fd
+    self.block_id = thread_mgr:build_session_id()
+    self.poll:control(self, POLL_ADD, false, true)
+    local ok, err = thread_mgr:yield(self.block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
+    if not ok then
+        log_err("[Socket][connect] connect failed: %s", err)
+        self:close()
+        return
+    end
+    self.block_id = nil
+    self.ip, self.port = ip, port
+    self.poll:control(self, POLL_MOD, true, false)
     return fd
 end
 
@@ -85,6 +99,12 @@ function Socket:accept(fd)
     self.host:on_socket_accept(self, newfd)
 end
 
+function Socket:on_recv(fd)
+    if #self.recvbuf > 0 then
+        self.host:on_socket_recv(self, self.fd)
+    end
+end
+
 function Socket:recv()
     if not self.fd then
         return false
@@ -95,13 +115,14 @@ function Socket:recv()
             break
         end
         if ret < 0 then
+            self:on_recv()
             log_err("[Socket][recv] recv failed: %s", data_oe)
             self:close(true)
             return false
         end
         self.recvbuf = self.recvbuf .. data_oe
     end
-    self.host:on_socket_recv(self, self.fd)
+    self:on_recv()
     return true
 end
 
@@ -126,6 +147,9 @@ function Socket:send(data)
     end
     if data then
         self.sndbuf = self.sndbuf .. data
+    end
+    if #self.sndbuf == 0 then
+        return true
     end
     while true do
         local sndlen, err = lnet.send(self.fd, self.sndbuf)
@@ -152,18 +176,22 @@ function Socket:send(data)
 end
 
 function Socket:handle_event(bread, bwrite)
+    if bwrite then
+        if self.block_id then
+            thread_mgr:response(self.block_id, true)
+            return
+        end
+        if not self:send() then
+            return
+        end
+    end
     if bread then
         if self.listener then
             local socket = Socket(self.poll, self.host)
             socket:accept(self.fd)
             return
         end
-        if not self:recv() then
-            return
-        end
-    end
-    if bwrite then
-        self:send()
+        self:recv()
     end
 end
 

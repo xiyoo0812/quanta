@@ -4,6 +4,7 @@ local log_err       = logger.err
 local tremove       = table.remove
 local tunpack       = table.unpack
 local tinsert       = table.insert
+local sformat       = string.format
 local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
@@ -73,7 +74,7 @@ function ThreadMgr:update(now_ms)
                 log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
             end
             self.session_id_coroutine[session_id] = nil
-            self:resume(context.co, false, "timeout", session_id)
+            self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
         end
     end
 end

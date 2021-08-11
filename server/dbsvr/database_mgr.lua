@@ -33,6 +33,10 @@ function DatabaseMgr:setup()
             log_info("[DatabaseMgr][setup]: general mongo_mgr group=%s", group)
             local MongoMgr = import("kernel/store/mongo_mgr.lua")
             self.database_mgrs[group] = MongoMgr(group)
+        elseif db_driver == "mysql" then
+            log_info("[DatabaseMgr][setup]: general mysql_mgr group=%s", group)
+            local MysqlMgr = import("kernel/store/mysql_mgr.lua")
+            self.database_mgrs[group] = MysqlMgr(group)
         end
     end
 end

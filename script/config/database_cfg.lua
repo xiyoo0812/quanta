@@ -63,8 +63,21 @@ database:upsert({
     index = 1,
     driver = 'mongo',
     db = 'quanta_loc',
-    host = '127.0.0.1',
+    host = '9.134.163.87',
     port = 27017,
+    user = 'root',
+    passwd = '123456',
+})
+
+
+database:upsert({
+    quanta_deploy = 'local',
+    group = 1,
+    index = 2,
+    driver = 'mysql',
+    db = 'quanta_loc',
+    host = '9.134.163.87',
+    port = 3306,
     user = 'root',
     passwd = '123456',
 })
