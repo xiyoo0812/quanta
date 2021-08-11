@@ -12,7 +12,6 @@ local json_encode   = ljson.encode
 local tunpack       = table.unpack
 local ssplit        = string_ext.split
 
-local poll          = quanta.get("poll")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local HttpServer = class()
@@ -31,7 +30,7 @@ end
 
 function HttpServer:setup(http_addr, post_handler, get_handler)
     self.ip, self.port = tunpack(ssplit(http_addr, ":"))
-    local socket = Socket(poll, self)
+    local socket = Socket(self)
     if not socket:listen(self.ip, self.port) then
         log_info("[HttpServer][setup] now listen %s failed", http_addr)
         os.exit(1)

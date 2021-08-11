@@ -30,19 +30,18 @@ local empty_bson    = bson_encode({})
 
 local NetwkTime     = enum("NetwkTime")
 
-local poll          = quanta.get("poll")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local MongoDB = class()
 local prop = property(MongoDB)
-prop:accessor("ip", nil)            --mongo地址
-prop:accessor("sock", nil)          --网络连接对象
-prop:accessor("name", "")           --dbname
-prop:accessor("db_cmd", "")         --默认cmd
-prop:accessor("port", 27017)        --mongo端口
-prop:accessor("user", "")           --user
-prop:accessor("passwd", "")         --passwd
+prop:reader("ip", nil)          --mongo地址
+prop:reader("sock", nil)        --网络连接对象
+prop:reader("name", "")         --dbname
+prop:reader("db_cmd", "")       --默认cmd
+prop:reader("port", 27017)      --mongo端口
+prop:reader("user", "")         --user
+prop:reader("passwd", "")       --passwd
 
 function MongoDB:__init(conf)
     self.ip = conf.host
@@ -68,7 +67,7 @@ end
 
 function MongoDB:on_second()
     if not self.sock then
-        local sock = Socket(poll, self)
+        local sock = Socket(self)
         if sock:connect(self.ip, self.port) then
             self.sock = sock
             if #self.user > 0 and #self.passwd > 0 then
@@ -173,6 +172,7 @@ function MongoDB:on_socket_recv(sock)
         sock:pop(4 + length)
         local documents = {}
         local succ, session_id, doc, cursor_id = driver.reply(bdata, documents)
+        print(debug.traceback())
         thread_mgr:response(session_id, succ, doc, cursor_id, documents)
     end
 end

@@ -7,14 +7,15 @@ KernCode.SUCCESS            = 0     --成功
 KernCode.LOGIC_FAILED       = 1     --业务执行失败
 KernCode.MYSQL_FAILED       = 2     --MYSQL执行失败
 KernCode.MONGO_FAILED       = 3     --MONGO执行失败
-KernCode.NETWORK_ERROR      = 4     --网络错误
-KernCode.PARAM_ERROR        = 5     --业务参数错误
-KernCode.RPC_FAILED         = 6     --RPC调用失败
-KernCode.OPERATOR_SELF      = 7     --不能对自己操作
-KernCode.PLAYER_NOT_EXIST   = 8     --不能对自己操作
-KernCode.TOKEN_ERROR        = 9     --登录token错误
-KernCode.DB_NOTINIT         = 10    --数据库没有初始化
-KernCode.RPC_UNREACHABLE    = 11    --RPC目标不可达
+KernCode.REDIS_FAILED       = 4     --REDIS执行失败
+KernCode.NETWORK_ERROR      = 5     --网络错误
+KernCode.PARAM_ERROR        = 6     --业务参数错误
+KernCode.RPC_FAILED         = 7     --RPC调用失败
+KernCode.OPERATOR_SELF      = 8     --不能对自己操作
+KernCode.PLAYER_NOT_EXIST   = 9     --不能对自己操作
+KernCode.TOKEN_ERROR        = 10     --登录token错误
+KernCode.DB_NOTINIT         = 11    --数据库没有初始化
+KernCode.RPC_UNREACHABLE    = 12    --RPC目标不可达
 
 --dx协议投flag掩码
 local FlagMask              = enum("FlagMask", 0)
