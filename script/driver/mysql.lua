@@ -20,12 +20,11 @@ local tinsert       = table.insert
 local tointeger     = math.tointeger
 
 local NetwkTime     = enum("NetwkTime")
-local PeriodTime    = enum("PeriodTime")
 local DB_TIMEOUT    = NetwkTime.DB_CALL_TIMEOUT
 
 local poll          = quanta.get("poll")
-local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+local update_mgr    = quanta.get("update_mgr")
 
 --charset编码
 local CHARSET_MAP = {
@@ -97,51 +96,32 @@ local converters = {
     [0xf6] = tonumber,  -- newdecimal
 }
 
-local function _get_int1(data, i, is_signed)
-    if not is_signed then
-        return sunpack("<I1", data, i)
-    end
-    return sunpack("<i1", data, i)
+local function _get_int1(data, pos, signed)
+    return sunpack(signed and "<i1" or "<I1", data, pos)
 end
 
-local function _get_byte2(data, i)
-    return sunpack("<I2", data, i)
+local function _get_int2(data, pos, signed)
+    return sunpack(signed and "<i2" or "<I2", data, pos)
 end
 
-local function _get_int2(data, i, is_signed)
-    if not is_signed then
-        return sunpack("<I2", data, i)
-    end
-    return sunpack("<i2", data, i)
+local function _get_int3(data, pos, signed)
+    return sunpack(signed and "<i3" or "<I3", data, pos)
 end
 
-local function _get_int3(data, i, is_signed)
-    if not is_signed then
-        return sunpack("<I3", data, i)
-    end
-    return sunpack("<i3", data, i)
+local function _get_int4(data, pos, signed)
+    return sunpack(signed and "<i4" or "<I4", data, pos)
 end
 
-local function _get_int4(data, i, is_signed)
-    if not is_signed then
-        return sunpack("<I4", data, i)
-    end
-    return sunpack("<i4", data, i)
+local function _get_int8(data, pos, signed)
+    return sunpack(signed and "<i8" or "<I8", data, pos)
 end
 
-local function _get_int8(data, i, is_signed)
-    if not is_signed then
-        return sunpack("<I8", data, i)
-    end
-    return sunpack("<i8", data, i)
+local function _get_float(data, pos)
+    return sunpack("<f", data, pos)
 end
 
-local function _get_float(data, i)
-    return sunpack("<f", data, i)
-end
-
-local function _get_double(data, i)
-    return sunpack("<d", data, i)
+local function _get_double(data, pos)
+    return sunpack("<d", data, pos)
 end
 
 local function _from_length_coded_bin(data, pos)
@@ -156,18 +136,28 @@ local function _from_length_coded_bin(data, pos)
         return nil, pos + 1
     end
     if first == 252 then
-        pos = pos + 1
-        return _get_byte2(data, pos)
+        return sunpack("<I2", data, pos + 1)
     end
     if first == 253 then
-        pos = pos + 1
-        return sunpack("<I3", data, pos)
+        return sunpack("<I3", data, pos + 1)
     end
     if first == 254 then
-        pos = pos + 1
-        return sunpack("<I8", data, pos)
+        return sunpack("<I8", data, pos + 1)
     end
     return false, pos + 1
+end
+
+local function _set_length_coded_bin(n)
+    if n < 251 then
+        return schar(n)
+    end
+    if n < (1 << 16) then
+        return spack("<BI2", 0xfc, n)
+    end
+    if n < (1 << 24) then
+        return spack("<BI3", 0xfd, n)
+    end
+    return spack("<BI8", 0xfe, n)
 end
 
 local function _get_datetime(data, pos)
@@ -189,37 +179,11 @@ local function _from_cstring(data, pos)
 end
 
 local function _from_length_coded_str(data, pos)
-    local len
-    len, pos = _from_length_coded_bin(data, pos)
+    local len, npos = _from_length_coded_bin(data, pos)
     if len == nil then
-        return nil, pos
+        return nil, npos
     end
-    return ssub(data, pos, pos + len - 1), pos + len
-end
-
-local function _set_byte2(n)
-    return spack("<I2", n)
-end
-
-local function _set_int8(n)
-    return spack("<i8", n)
-end
-
-local function _set_double(n)
-    return spack("<d", n)
-end
-
-local function _set_length_coded_bin(n)
-    if n < 251 then
-        return schar(n)
-    end
-    if n < (1 << 16) then
-        return spack("<BI2", 0xfc, n)
-    end
-    if n < (1 << 24) then
-        return spack("<BI3", 0xfd, n)
-    end
-    return spack("<BI8", 0xfe, n)
+    return ssub(data, npos, npos + len - 1), npos + len
 end
 
 --字段类型参考
@@ -245,6 +209,85 @@ local _binary_parser = {
     [0xfe] = _from_length_coded_str
 }
 
+--参数字段类型转换
+local store_types = {
+    ["number"] = function(v)
+        if not tointeger(v) then
+            return spack("<I2", 0x05), spack("<d", v)
+        else
+            return spack("<I2", 0x08), spack("<i8", v)
+        end
+    end,
+    ["string"] = function(v)
+        return spack("<I2", 0x0f), _set_length_coded_bin(#v) .. v
+    end,
+    --bool转换为0,1
+    ["boolean"] = function(v)
+        if v then
+            return spack("<I2", 0x01), schar(1)
+        else
+            return spack("<I2", 0x01), schar(0)
+        end
+    end,
+    ["nil"] = function(v)
+        return spack("<I2", 0x06), ""
+    end
+}
+
+local function async_call(self, quote, ...)
+    local session_id = thread_mgr:build_session_id()
+    self.sessions:push({ session_id, ... })
+    return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+end
+
+local function _compute_token(password, scramble)
+    if password == "" then
+        return ""
+    end
+    local stage1 = lsha1(password)
+    local stage2 = lsha1(stage1)
+    local stage3 = lsha1(scramble .. stage2)
+    local i = 0
+    return sgsub(stage3, ".", function(x)
+        i = i + 1
+        return schar(sbyte(x) ~ sbyte(stage1, i))
+    end)
+end
+
+local function _compose_stmt_execute(self, stmt, cursor_type, args)
+    local arg_num = #args
+    if arg_num ~= stmt.param_count then
+        return false, sformat("require stmt.param_count %d get arg_num %d[no:30902]", stmt.param_count, arg_num)
+    end
+    local cmd_packet = spack("<c1I4BI4", COM_STMT_EXECUTE, stmt.prepare_id, cursor_type, 0x01)
+    if arg_num > 0 then
+        local types_buf, values_buf = "", ""
+        local field_index, null_count = 1, (arg_num + 7) // 8
+        for i = 1, null_count do
+            local byte = 0
+            for j = 0, 7 do
+                if field_index < arg_num then
+                    local bit = args[field_index] and 0 or 1
+                    byte = byte | (bit << j)
+                end
+                field_index = field_index + 1
+            end
+            cmd_packet = cmd_packet .. schar(byte)
+        end
+        for i, v in ipairs(args) do
+            local f = store_types[type(v)]
+            if not f then
+                return false, sformat("invalid parameter %s, type:%s", v, type(v))
+            end
+            local ts, vs = f(v)
+            types_buf = types_buf .. ts
+            values_buf = values_buf .. vs
+        end
+        cmd_packet = cmd_packet .. schar(0x01) .. types_buf .. values_buf
+    end
+    return self:_compose_packet(cmd_packet)
+end
+
 --ok报文
 local function _parse_ok_packet(packet)
     --1 byte 0x00报文标志(不处理)
@@ -253,9 +296,9 @@ local function _parse_ok_packet(packet)
     --1-9 byte 索引ID值
     local index, pos_idx = _from_length_coded_bin(packet, pos_aff)
     --2 byte 服务器状态
-    local status, pos_state = _get_byte2(packet, pos_idx)
+    local status, pos_state = sunpack("<I2", packet, pos_idx)
     --2 byte 警告数量编号
-    local warncnt, pos_warn = _get_byte2(packet, pos_state)
+    local warncnt, pos_warn = sunpack("<I2", packet, pos_state)
     --n byte 服务器消息
     local msg = ssub(packet, pos_warn + 1)
     local res = { affected_rows = affrows, insert_id = index, server_status = status, warning_count = warncnt, message = msg }
@@ -269,9 +312,9 @@ end
 local function _parse_eof_packet(packet)
     --1 byte 0xfe报文标志(不处理)
     --2 byte 警告数量编号
-    local warning_count, pos = _get_byte2(packet, 2)
+    local warning_count, pos = sunpack("<I2", packet, 2)
     --2 byte 状态标志位
-    local status_flags = _get_byte2(packet, pos)
+    local status_flags = sunpack("<I2", packet, pos)
     return warning_count, status_flags
 end
 
@@ -279,7 +322,7 @@ end
 local function _parse_err_packet(packet)
     --1 byte 0xff报文标志(不处理)
     --2 byte 错误编号
-    local errno, pos = _get_byte2(packet, 2)
+    local errno, pos = sunpack("<I2", packet, 2)
     --1 byte 服务器状态标识，恒为#(不处理)
     --5 byte 服务器状态
     local sqlstate = ssub(packet, pos + 1, pos + 6 - 1)
@@ -288,31 +331,31 @@ local function _parse_err_packet(packet)
 end
 
 --field 报文结构
-local function _parse_field_packet(data)
+local function _parse_field_packet(packet)
     --n byte 目录名称
-    local _, pos_catlog = _from_length_coded_str(data, 1)
+    local _, pos_catlog = _from_length_coded_str(packet, 1)
     --n byte 数据库名称
-    local _, pos_db = _from_length_coded_str(data, pos_catlog)
+    local _, pos_db = _from_length_coded_str(packet, pos_catlog)
     --n byte 数据表名称
-    local _, pos_table = _from_length_coded_str(data, pos_db)
+    local _, pos_table = _from_length_coded_str(packet, pos_db)
     --n byte 数据表原始名称
-    local _, pos_ori_table = _from_length_coded_str(data, pos_table)
+    local _, pos_ori_table = _from_length_coded_str(packet, pos_table)
     --n byte 列（字段）名称
-    local name, pos_col = _from_length_coded_str(data, pos_ori_table)
+    local name, pos_col = _from_length_coded_str(packet, pos_ori_table)
     --n byte 列（字段）原始名称
-    local _, pos_ori_col = _from_length_coded_str(data, pos_col)
+    local _, pos_ori_col = _from_length_coded_str(packet, pos_col)
     --1 byte 填充值(不处理)
     --2 byte 字符编码(不处理)
     --4 byte 列（字段）长度(不处理)
     local pos_col_type = pos_ori_col + 7
     --1 byte 列（字段）类型
-    local type = sbyte(data, pos_col_type)
+    local type = sbyte(packet, pos_col_type)
     local pos_col_flags = pos_col_type + 1
     --2 byte 列（字段）标志
-    local flags = _get_byte2(data, pos_col_flags)
+    local flags = sunpack("<I2", packet, pos_col_flags)
     -- https://mariadb.com/kb/en/resultset/
-    local is_signed = (flags & 0x20 == 0) and true or false
-    return { type = type, is_signed = is_signed, name = name }
+    local signed = (flags & 0x20 == 0) and true or false
+    return { type = type, signed = signed, name = name }
 end
 
 --row_data报文
@@ -334,6 +377,33 @@ local function _parse_row_data_packet(packet, fields)
     return row
 end
 
+--row_data报文（二进制）
+local function _parse_row_data_binary(packet, fields)
+    -- 空位图, 前两个bit系统保留 (列数量 + 7 + 2) / 8
+    local pos = 2 + (#fields + 9) // 8
+    local field_idx, null_fields, row = 1, {}, {}
+    --空字段表
+    for i = 2, pos - 1 do
+        for j = 0, 7 do
+            if field_idx > 2 then
+                null_fields[field_idx - 2] = (sbyte(packet, i) & (1 << j) ~= 0)
+            end
+            field_idx = field_idx + 1
+        end
+    end
+    for i, field in ipairs(fields) do
+        if not null_fields[i] then
+            local value
+            local parser = _binary_parser[field.typ]
+            value, pos = parser(packet, pos, field.signed)
+            if not field.ignore then
+                row[field.name] = value
+            end
+        end
+    end
+    return row
+end
+
 local function _parse_not_data_packet(packet, typ)
     if typ == "ERR" then
         return nil, _parse_err_packet(packet)
@@ -344,21 +414,33 @@ local function _parse_not_data_packet(packet, typ)
     return nil, "packet type " .. typ .. " not supported"
 end
 
+local function _parae_packet_type(buff)
+    if not buff or #buff == 0 then
+        return nil, "empty packet"
+    end
+    local typ = "DATA"
+    local field_count = sbyte(buff, 1)
+    if field_count == 0x00 then
+        typ = "OK"
+    elseif field_count == 0xff then
+        typ = "ERR"
+    elseif field_count == 0xfe then
+        typ = "EOF"
+    end
+    return typ
+end
+
 local function _recv_field_resp(self, packet, typ)
+    if typ == "EOF" then
+        return true
+    end
     if typ == "DATA" then
         return true, _parse_field_packet(packet)
     end
     return _parse_not_data_packet(packet, typ)
 end
 
-local function _recv_eof_resp(self, packet, typ)
-    if typ ~= "EOF" then
-        return false, sformat("unexpected packet type %s while eof packet is expected", typ)
-    end
-    return true
-end
-
-local function _recv_rows_resp(self, packet, typ, param)
+local function _recv_rows_resp(self, packet, typ, fields, binary)
     if typ == "EOF" then
         local _, status_flags = _parse_eof_packet(packet)
         if status_flags & SERVER_MORE_RESULTS_EXISTS ~= 0 then
@@ -366,42 +448,39 @@ local function _recv_rows_resp(self, packet, typ, param)
         end
         return true
     end
-    local row = _parse_row_data_packet(packet, param)
-    return true, row
+    if typ == "DATA" then
+        if binary then
+            return true, _parse_row_data_binary(packet, fields)
+        end
+        return true, _parse_row_data_packet(packet, fields)
+    end
+    return _parse_not_data_packet(packet, typ)
 end
 
 --result_set报文
-local function _parse_result_set_packet(self, packet, ignores)
+local function _parse_result_set_packet(self, packet, ignores, binary)
     --Result Set Header
-    --1-9 byte Field结构计数
-    local field_count, pos_field = _from_length_coded_bin(packet, 1)
+    --1-9 byte Field结构计数field_count
+    local _, pos_field = _from_length_coded_bin(packet, 1)
     --1-9 byte 额外信息
     local _ = _from_length_coded_bin(packet, pos_field)
     -- Field结构
     local fields = {}
-    for i = 1, field_count do
-        local session_id = thread_mgr:build_session_id()
-        self.sessions:push({ session_id, _recv_field_resp })
-        local ok, field = thread_mgr:yield(session_id, "recv field packet", DB_TIMEOUT)
+    while true do
+        local ok, field = async_call(self, "recv field packet", _recv_field_resp)
         if not ok then
             return nil, field
         end
+        if not field then
+            break
+        end
         field.ignore = ignores and ignores[field.name]
-        fields[i] = field
-    end
-    -- EOF
-    local session_id = thread_mgr:build_session_id()
-    self.sessions:push({ session_id, _recv_eof_resp })
-    local ok, err = thread_mgr:yield(session_id, "recv eof packet", DB_TIMEOUT)
-    if not ok then
-        return nil, err
+        tinsert(fields, field)
     end
     -- Row Data
     local rows = {}
     while true do
-        local row_session_id = thread_mgr:build_session_id()
-        self.sessions:push({ row_session_id, _recv_rows_resp, fields })
-        local rok, row = thread_mgr:yield(row_session_id, "recv row packet", DB_TIMEOUT)
+        local rok, row = async_call(self, "recv row packet", _recv_rows_resp, fields, binary)
         if not rok then
             return nil, row
         end
@@ -416,96 +495,19 @@ local function _parse_result_set_packet(self, packet, ignores)
     return rows
 end
 
---参数字段类型转换
-local store_types = {
-    ["number"] = function(v)
-        if not tointeger(v) then
-            return _set_byte2(0x05), _set_double(v)
-        else
-            return _set_byte2(0x08), _set_int8(v)
+local function _recv_result_set_resp(self, packet, typ, ignores, binary)
+    if typ == "DATA" then
+        local rows, rerr = _parse_result_set_packet(self, packet, ignores, binary)
+        if not rows then
+            return nil, rerr
         end
-    end,
-    ["string"] = function(v)
-        return _set_byte2(0x0f), _set_length_coded_bin(#v) .. v
-    end,
-    --bool转换为0,1
-    ["boolean"] = function(v)
-        if v then
-            return _set_byte2(0x01), schar(1)
-        else
-            return _set_byte2(0x01), schar(0)
-        end
-    end,
-    ["nil"] = function(v)
-        return _set_byte2(0x06), ""
+        return rows, rerr
     end
-}
-
-local function _compute_token(password, scramble)
-    if password == "" then
-        return ""
-    end
-    local stage1 = lsha1(password)
-    local stage2 = lsha1(stage1)
-    local stage3 = lsha1(scramble .. stage2)
-    local i = 0
-    return sgsub(stage3, ".", function(x)
-        i = i + 1
-        return schar(sbyte(x) ~ sbyte(stage1, i))
-    end)
+    return _parse_not_data_packet(packet, typ)
 end
 
-local function _compose_stmt_execute(self, stmt, cursor_type, args)
-    local arg_num = #args
-    if arg_num ~= stmt.param_count then
-        error("require stmt.param_count " .. stmt.param_count .. " get arg_num " .. arg_num)
-    end
-    self.packet_no = -1
-    local cmd_packet = spack("<c1I4BI4", COM_STMT_EXECUTE, stmt.prepare_id, cursor_type, 0x01)
-    if arg_num > 0 then
-        local f, ts, vs
-        local types_buf = ""
-        local values_buf = ""
-        --生成NULL位图
-        local null_count = (arg_num + 7) // 8
-        local null_map = ""
-        local field_index = 1
-        for i = 1, null_count do
-            local byte = 0
-            for j = 0, 7 do
-                if field_index < arg_num then
-                    if args[field_index] == nil then
-                        byte = byte | (1 << j)
-                    else
-                        byte = byte | (0 << j)
-                    end
-                end
-                field_index = field_index + 1
-            end
-            null_map = null_map .. schar(byte)
-        end
-        for i = 1, arg_num do
-            local v = args[i]
-            f = store_types[type(v)]
-            if not f then
-                error("invalid parameter type", type(v))
-            end
-            ts, vs = f(v)
-            types_buf = types_buf .. ts
-            values_buf = values_buf .. vs
-        end
-        cmd_packet = cmd_packet .. null_map .. schar(0x01) .. types_buf .. values_buf
-    end
-
-    return self:_compose_packet(cmd_packet)
-end
-
-local function _recv_multi_resp(self, packet, type, ignores)
-    return self:read_query_result(packet, type, ignores)
-end
-
-local function _query_resp(self, packet, type, ignores)
-    local res, err = self:read_query_result(packet, type, ignores)
+local function _recv_query_resp(self, packet, typ, ignores, binary)
+    local res, err = _recv_result_set_resp(self, packet, typ, ignores, binary)
     if not res then
         return false, err
     end
@@ -514,9 +516,7 @@ local function _query_resp(self, packet, type, ignores)
     end
     local multiresultset = { res }
     while err == "again" do
-        local session_id = thread_mgr:build_session_id()
-        self.sessions:push({ session_id, _recv_multi_resp, ignores })
-        res, err = thread_mgr:yield(session_id, "recv multi resultset packet", DB_TIMEOUT)
+        res, err = async_call(self, "recv resultset packet", _recv_result_set_resp, ignores, binary)
         if not res then
             return false, err
         end
@@ -536,7 +536,7 @@ local function _recv_auth_resp(self, packet, typ)
     return true, packet
 end
 
-local function _prepare_resp(self, packet, typ)
+local function _recv_prepare_resp(self, packet, typ)
     if typ == "ERR" then
         return false, _parse_err_packet(packet)
     end
@@ -544,45 +544,35 @@ local function _prepare_resp(self, packet, typ)
     if typ ~= "OK" then
         return false, sformat("first typ must be OK, now %s[no:300201]", typ)
     end
-    local params, fields = {}, {}
     local prepare_id, field_count, param_count, warning_count = sunpack("<I4I2I2xI2", packet, 2)
-    for i = 1, param_count do
-        local session_id = thread_mgr:build_session_id()
-        self.sessions:push({ session_id, _recv_field_resp })
-        local ok, field = thread_mgr:yield(session_id, "recv field packet", DB_TIMEOUT)
-        if not ok then
-            return false, field
+    local params, fields = {}, {}
+    if param_count > 0 then
+        while true do
+            local ok, field = async_call(self, "recv field packet", _recv_field_resp)
+            if not ok then
+                return false, field
+            end
+            if not field then
+                break
+            end
+            tinsert(params, field)
         end
-        params[i] = field
     end
-    for i = 1, field_count do
-        local session_id = thread_mgr:build_session_id()
-        self.sessions:push({ session_id, _recv_field_resp })
-        local ok, field = thread_mgr:yield(session_id, "recv field packet", DB_TIMEOUT)
-        if not ok then
-            return false, field
+    if field_count > 0 then
+        while true do
+            local ok, field = async_call(self, "recv field packet", _recv_field_resp)
+            if not ok then
+                return false, field
+            end
+            if not field then
+                break
+            end
+            tinsert(fields, field)
         end
-        fields[i] = field
     end
     return true, { params = params, fields = fields, prepare_id = prepare_id,
         field_count = field_count, param_count = param_count, warning_count = warning_count
     }
-end
-
-local function _parae_packet_type(buff)
-    if not buff or #buff == 0 then
-        return nil, "empty packet"
-    end
-    local typ = "DATA"
-    local field_count = sbyte(buff, 1)
-    if field_count == 0x00 then
-        typ = "OK"
-    elseif field_count == 0xff then
-        typ = "ERR"
-    elseif field_count == 0xfe then
-        typ = "EOF"
-    end
-    return typ
 end
 
 local MysqlDB = class()
@@ -595,11 +585,6 @@ prop:reader("user", "")     --user
 prop:reader("passwd", "")   --passwd
 prop:reader("packet_no", 0) --passwd
 prop:reader("sessions", nil)                --sessions
-prop:reader("server_ver", nil)              --server_ver
-prop:reader("server_lang", nil)             --server_lang
-prop:reader("server_status", nil)           --server_status
-prop:reader("server_capabilities", nil)     --server_capabilities
-
 prop:accessor("charset", "_default")        --charset
 prop:accessor("max_packet_size", 1024*1024) --max_packet_size,1mb
 
@@ -610,10 +595,9 @@ function MysqlDB:__init(conf)
     self.user = conf.user
     self.passwd = conf.passwd
     self.sessions = QueueFIFO()
-    --check
-    timer_mgr:loop(PeriodTime.SECOND_MS * 2, function()
-        self:check()
-    end)
+    --update
+    update_mgr:attach_hour(self)
+    update_mgr:attach_second(self)
 end
 
 function MysqlDB:__release()
@@ -628,66 +612,61 @@ function MysqlDB:close()
     end
 end
 
-function MysqlDB:check()
+function MysqlDB:on_hour()
+    self:ping()
+end
+
+function MysqlDB:on_second()
     if not self.sock then
         local sock = Socket(poll, self)
         if sock:connect(self.ip, self.port) then
             self.sock = sock
-            local ok, err = self:auth()
+            local ok, err, ver = self:auth()
             if not ok then
-                log_err("[MysqlDB][update] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
+                log_err("[MysqlDB][on_second] auth db(%s:%d:%s) failed! because: %s", self.ip, self.port, self.name, err)
                 self.sock = nil
                 return
             end
-            log_info("[MysqlDB][update] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
+            log_info("[MysqlDB][on_second] connect db(%s:%d-%s[%s]) success!", self.ip, self.port, self.name, ver)
         else
-            log_err("[MysqlDB][update] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
+            log_err("[MysqlDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
         end
     end
 end
 
 function MysqlDB:auth()
-    local session_id = thread_mgr:build_session_id()
-    self.sessions:push({ session_id, _recv_auth_resp })
-    local ok, packet = thread_mgr:yield(session_id, "mysql_auth_wait", DB_TIMEOUT)
+    local ok, packet = async_call(self, "recv auth packet", _recv_auth_resp)
     if not ok then
         return false, packet
     end
     --1 byte 协议版本号 (服务器认证报文开始)
     self.protocol_ver = sbyte(packet)
     --n byte 服务器版本号
-    local server_ver, pos = _from_cstring(packet, 2)
-    if not server_ver then
+    local version, pos = _from_cstring(packet, 2)
+    if not version then
         return false, "bad handshake initialization packet: bad server version"
     end
-    self.server_ver = server_ver
-    --4 byte thread_id (未处理)
+    --4 byte thread_id (skip)
     pos = pos + 4
     --8 byte 挑战随机数1
     local scramble1 = ssub(packet, pos, pos + 8 - 1)
     if not scramble1 then
         return false, "1st part of scramble not found"
     end
-    --1 byte 填充值 (未处理)
-    pos = pos + 8 + 1
-    --2 byte server_capabilities
-    local server_capabilities, pos_capa = _get_byte2(packet, pos)
-    --1 byte server_lang
-    self.server_lang = sbyte(packet, pos_capa)
-    --2 byte server_status
-    self.server_status, pos = _get_byte2(packet, pos_capa + 1)
-    --2 byte server_capabilities high
-    local more_capabilities, pos_capa_h = _get_byte2(packet, pos)
-    self.server_capabilities = server_capabilities | more_capabilities << 16
-    --1 byte 挑战长度 (未使用) (未处理)
-    --10 byte 填充值 (未处理)
-    pos = pos_capa_h + 1 + 10
+    --1 byte 填充值 (skip)
+    --2 byte server_capabilities (skip)
+    --1 byte server_lang (skip)
+    --2 byte server_status (skip)
+    --2 byte server_capabilities high (skip)
+    --1 byte 挑战长度 (未使用) (skip)
+    --10 byte 填充值 (skip)
+    pos = pos + 8 + 1 + 2 + 1 + 2 + 2 + 1 + 10
     --12 byte 挑战随机数2
     local scramble2 = ssub(packet, pos, pos + 12 - 1)
     if not scramble2 then
         return false, "2nd part of scramble not found"
     end
-    --1 byte 挑战数结束 (未处理) (服务器认证报文结束)
+    --1 byte 挑战数结束(服务器认证报文结束)(skip)
     --客户端认证报文
     --2 byte 客户端权能标志
     --2 byte 客户端权能标志扩展
@@ -706,7 +685,8 @@ function MysqlDB:auth()
     --n byte 数据库名（可选）
     local req = spack("<I4I4c1c23zs1z", client_flags, packet_size, charset, fuller, user, token, self.name)
     local authpacket = self:_compose_packet(req)
-    return self:request(authpacket, _recv_auth_resp, "mysql_auth")
+    local aok, err = self:request(authpacket, _recv_auth_resp, "mysql_auth")
+    return aok, err, version
 end
 
 function MysqlDB:on_socket_close()
@@ -736,113 +716,40 @@ function MysqlDB:on_socket_recv(sock)
         end
         sock:pop(4 + length)
         --收到一个完整包
-        local sessin_info = self.sessions:pop()
-        if sessin_info then
+        local resp_data = self.sessions:pop()
+        if resp_data then
             thread_mgr:fork(function()
-                local session_id, mysql_response, resp_param = tunpack(sessin_info)
+                local session_id, mysql_response = resp_data[1], resp_data[2]
                 local typ, err = _parae_packet_type(bdata)
                 if not typ then
                     thread_mgr:response(session_id, false, err)
                     return
                 end
-                thread_mgr:response(session_id, mysql_response(self, bdata, typ, resp_param))
+                thread_mgr:response(session_id, mysql_response(self, bdata, typ, tunpack(resp_data, 3)))
             end)
         end
     end
 end
 
-function MysqlDB:request(packet, mysql_response, quote, ignores)
+function MysqlDB:request(packet, mysql_response, quote, param)
     if not self.sock:send(packet) then
         return false, "send request failed"
     end
-    local session_id = thread_mgr:build_session_id()
-    self.sessions:push({ session_id, mysql_response, ignores })
-    return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+    return async_call(self, quote, mysql_response, param)
 end
 
 function MysqlDB:query(query, ignores)
     self.packet_no = -1
     log_info("[MysqlDB][query] sql: %s", query)
     local querypacket = self:_compose_packet(COM_QUERY .. query)
-    return self:request(querypacket, _query_resp, "mysql_query", ignores)
+    return self:request(querypacket, _recv_query_resp, "mysql_query", ignores)
 end
 
 -- 注册预处理语句
 function MysqlDB:prepare(sql)
     self.packet_no = -1
     local querypacket = self:_compose_packet(COM_STMT_PREPARE .. sql)
-    return self:request(querypacket, _prepare_resp, "mysql_prepare")
-end
-
-local function _parse_row_data_binary(data, cols, compact)
-    local ncols = #cols
-    -- 空位图,前两个bit系统保留 (列数量 + 7 + 2) / 8
-    local null_count = (ncols + 9) // 8
-    local pos = 2 + null_count
-    local value
-    --空字段表
-    local null_fields = {}
-    local field_index = 1
-    local byte
-    for i = 2, pos - 1 do
-        byte = sbyte(data, i)
-        for j = 0, 7 do
-            if field_index > 2 then
-                if byte & (1 << j) == 0 then
-                    null_fields[field_index - 2] = false
-                else
-                    null_fields[field_index - 2] = true
-                end
-            end
-            field_index = field_index + 1
-        end
-    end
-    local row = {}
-    local parser
-    for i = 1, ncols do
-        local col = cols[i]
-        local typ = col.type
-        local name = col.name
-        if not null_fields[i] then
-            parser = _binary_parser[typ]
-            if not parser then
-                error("_parse_row_data_binary()error,unsupported field type " .. typ)
-            end
-            value, pos = parser(data, pos, col.is_signed)
-            if compact then
-                row[i] = value
-            else
-                row[name] = value
-            end
-        end
-    end
-    return row
-end
-
-local function _execute_resp(self, packet, typ)
-    local res, err = self:read_execute_result(packet, typ)
-    if not res then
-        return false, err
-    end
-    if err ~= "again" then
-        return true, res
-    end
-    local mulitresultset = {res}
-    mulitresultset.mulitresultset = true
-    local i = 2
-    while err == "again" do
-        res, err, errno, sqlstate = self:read_execute_result(packet, typ)
-        if not res then
-            mulitresultset.badresult = true
-            mulitresultset.err = err
-            mulitresultset.errno = errno
-            mulitresultset.sqlstate = sqlstate
-            return true, mulitresultset
-        end
-        mulitresultset[i] = res
-        i = i + 1
-    end
-    return true, mulitresultset
+    return self:request(querypacket, _recv_prepare_resp, "mysql_prepare")
 end
 
 --[[
@@ -855,84 +762,33 @@ function MysqlDB:execute(stmt, ...)
     if not querypacket then
         return false, sformat("%s[no:30902]", err)
     end
-    return self:request(querypacket, _execute_resp, "mysql_execute")
+    return self:request(querypacket, _recv_query_resp, "mysql_execute")
 end
 
 --重置预处理句柄
-function MysqlDB:stmt_reset(stmt)
+function MysqlDB:stmt_reset(prepare_id)
     self.packet_no = -1
-    local cmd_packet = spack("c1<I4", COM_STMT_RESET, stmt.prepare_id)
+    local cmd_packet = spack("c1<I4", COM_STMT_RESET, prepare_id)
     local querypacket = self:_compose_packet(cmd_packet)
-    return self:request(querypacket, _query_resp, "mysql_stmt_reset")
+    return self:request(querypacket, _recv_query_resp, "mysql_stmt_reset")
 end
 
 --关闭预处理句柄
-function MysqlDB:stmt_close(stmt)
+function MysqlDB:stmt_close(prepare_id)
     self.packet_no = -1
-    local cmd_packet = spack("c1<I4", COM_STMT_CLOSE, stmt.prepare_id)
+    local cmd_packet = spack("c1<I4", COM_STMT_CLOSE, prepare_id)
     local querypacket = self:_compose_packet(cmd_packet)
-    return self:request(querypacket, _query_resp, "mysql_stmt_close")
+    return self:request(querypacket, _recv_query_resp, "mysql_stmt_close")
 end
 
 function MysqlDB:ping()
     self.packet_no = -1
     local querypacket = self:_compose_packet(COM_PING)
-    return self:request(querypacket, _query_resp, "mysql_ping")
-end
-
-function MysqlDB:read_query_result(packet, typ, ignores)
-    if typ == "DATA" then
-        local rows, rerr = _parse_result_set_packet(self, packet, ignores)
-        if not rows then
-            return nil, rerr
-        end
-        return rows, rerr
+    local ok, err = self:request(querypacket, _recv_query_resp, "mysql_ping")
+    if not ok then
+        log_err("[MysqlDB][ping] mysql ping db(%s:%d-%s) failed: %s!", self.ip, self.port, self.name, err)
     end
-    return _parse_not_data_packet(packet, typ)
-end
-
-function MysqlDB:read_execute_result(packet, typ)
-    if typ == "DATA" then
-        local _, extra = _parse_result_set_packet(self, packet)
-        local cols = {}
-        local col
-        while true do
-            local typ, err = _parae_packet_type(packet)
-            if typ == "EOF" then
-                local warning_count, status_flags = _parse_eof_packet(packet)
-                break
-            end
-            col = _parse_field_packet(packet)
-            if not col then
-                break
-            end
-            tinsert(cols, col)
-        end
-        --没有记录集返回
-        if #cols < 1 then
-            return {}
-        end
-        local compact = self.compact
-        local rows = {}
-        local row
-        while true do
-            local typ, err = _parae_packet_type(packet)
-            if typ == "EOF" then
-                local _, status_flags = _parse_eof_packet(packet)
-                if status_flags & SERVER_MORE_RESULTS_EXISTS ~= 0 then
-                    return rows, "again"
-                end
-                break
-            end
-            row = _parse_row_data_binary(packet, cols, compact)
-            if not col then
-                break
-            end
-            tinsert(rows, row)
-        end
-        return rows
-    end
-    return _parse_not_data_packet(packet, typ)
+    return ok
 end
 
 function MysqlDB:_compose_packet(req)

@@ -29,10 +29,9 @@ local bson_encode_o = bson.encode_order
 local empty_bson    = bson_encode({})
 
 local NetwkTime     = enum("NetwkTime")
-local PeriodTime    = enum("PeriodTime")
 
 local poll          = quanta.get("poll")
-local timer_mgr     = quanta.get("timer_mgr")
+local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local MongoDB = class()
@@ -52,10 +51,8 @@ function MongoDB:__init(conf)
     self.passwd = conf.passwd
     self.name = conf.db
     self.db_cmd = conf.db .. "." .. "$cmd"
-    --check
-    timer_mgr:loop(PeriodTime.SECOND_MS, function()
-        self:check()
-    end)
+    --attach_second
+    update_mgr:attach_second(self)
 end
 
 function MongoDB:__release()
@@ -69,7 +66,7 @@ function MongoDB:close()
     end
 end
 
-function MongoDB:check()
+function MongoDB:on_second()
     if not self.sock then
         local sock = Socket(poll, self)
         if sock:connect(self.ip, self.port) then
@@ -77,15 +74,15 @@ function MongoDB:check()
             if #self.user > 0 and #self.passwd > 0 then
                 local ok, err = self:auth(self.user, self.passwd)
                 if not ok then
-                    log_err("[MongoDB][check] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
+                    log_err("[MongoDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
                     self.sock = nil
                     return
                 end
-                log_info("[MongoDB][check] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
+                log_info("[MongoDB][on_second] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
             end
-            log_info("[MongoDB][check] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
+            log_info("[MongoDB][on_second] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
         else
-            log_err("[MysqlDB][check] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
+            log_err("[MysqlDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
         end
     end
 end
