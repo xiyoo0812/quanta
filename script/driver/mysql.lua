@@ -639,8 +639,7 @@ function MysqlDB:auth()
     if not ok then
         return false, packet
     end
-    --1 byte 协议版本号 (服务器认证报文开始)
-    self.protocol_ver = sbyte(packet)
+    --1 byte 协议版本号 (服务器认证报文开始)(skip)
     --n byte 服务器版本号
     local version, pos = _from_cstring(packet, 2)
     if not version then
@@ -752,10 +751,7 @@ function MysqlDB:prepare(sql)
     return self:request(querypacket, _recv_prepare_resp, "mysql_prepare")
 end
 
---[[
-执行预处理语句
-失败返回字段 errno, badresult, sqlstate, err
-]]
+--执行预处理语句
 function MysqlDB:execute(stmt, ...)
     self.packet_no = -1
     local querypacket, err = _compose_stmt_execute(self, stmt, CURSOR_TYPE_NO_CURSOR, {...})
