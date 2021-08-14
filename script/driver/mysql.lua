@@ -22,7 +22,6 @@ local tointeger     = math.tointeger
 local NetwkTime     = enum("NetwkTime")
 local DB_TIMEOUT    = NetwkTime.DB_CALL_TIMEOUT
 
-local poll          = quanta.get("poll")
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
@@ -234,7 +233,7 @@ local store_types = {
     end
 }
 
-local function async_call(self, quote, ...)
+local function _async_call(self, quote, ...)
     local session_id = thread_mgr:build_session_id()
     self.sessions:push({ session_id, ... })
     return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
@@ -467,7 +466,7 @@ local function _parse_result_set_packet(self, packet, ignores, binary)
     -- Field结构
     local fields = {}
     while true do
-        local ok, field = async_call(self, "recv field packet", _recv_field_resp)
+        local ok, field = _async_call(self, "recv field packet", _recv_field_resp)
         if not ok then
             return nil, field
         end
@@ -480,7 +479,7 @@ local function _parse_result_set_packet(self, packet, ignores, binary)
     -- Row Data
     local rows = {}
     while true do
-        local rok, row = async_call(self, "recv row packet", _recv_rows_resp, fields, binary)
+        local rok, row = _async_call(self, "recv row packet", _recv_rows_resp, fields, binary)
         if not rok then
             return nil, row
         end
@@ -516,7 +515,7 @@ local function _recv_query_resp(self, packet, typ, ignores, binary)
     end
     local multiresultset = { res }
     while err == "again" do
-        res, err = async_call(self, "recv resultset packet", _recv_result_set_resp, ignores, binary)
+        res, err = _async_call(self, "recv resultset packet", _recv_result_set_resp, ignores, binary)
         if not res then
             return false, err
         end
@@ -548,7 +547,7 @@ local function _recv_prepare_resp(self, packet, typ)
     local params, fields = {}, {}
     if param_count > 0 then
         while true do
-            local ok, field = async_call(self, "recv field packet", _recv_field_resp)
+            local ok, field = _async_call(self, "recv field packet", _recv_field_resp)
             if not ok then
                 return false, field
             end
@@ -560,7 +559,7 @@ local function _recv_prepare_resp(self, packet, typ)
     end
     if field_count > 0 then
         while true do
-            local ok, field = async_call(self, "recv field packet", _recv_field_resp)
+            local ok, field = _async_call(self, "recv field packet", _recv_field_resp)
             if not ok then
                 return false, field
             end
@@ -580,9 +579,9 @@ local prop = property(MysqlDB)
 prop:reader("ip", nil)      --mysql地址
 prop:reader("sock", nil)    --网络连接对象
 prop:reader("name", "")     --dbname
-prop:reader("port", 27017)  --mysql端口
-prop:reader("user", "")     --user
-prop:reader("passwd", "")   --passwd
+prop:reader("port", 3306)   --mysql端口
+prop:reader("user", nil)     --user
+prop:reader("passwd", nil)   --passwd
 prop:reader("packet_no", 0) --passwd
 prop:reader("sessions", nil)                --sessions
 prop:accessor("charset", "_default")        --charset
@@ -618,7 +617,7 @@ end
 
 function MysqlDB:on_second()
     if not self.sock then
-        local sock = Socket(poll, self)
+        local sock = Socket(self)
         if sock:connect(self.ip, self.port) then
             self.sock = sock
             local ok, err, ver = self:auth()
@@ -635,7 +634,10 @@ function MysqlDB:on_second()
 end
 
 function MysqlDB:auth()
-    local ok, packet = async_call(self, "recv auth packet", _recv_auth_resp)
+    if not self.passwd or not self.user or not self.name then
+        return false, "user or password or dbname not config!"
+    end
+    local ok, packet = _async_call(self, "recv auth packet", _recv_auth_resp)
     if not ok then
         return false, packet
     end
@@ -734,7 +736,7 @@ function MysqlDB:request(packet, mysql_response, quote, param)
     if not self.sock:send(packet) then
         return false, "send request failed"
     end
-    return async_call(self, quote, mysql_response, param)
+    return _async_call(self, quote, mysql_response, param)
 end
 
 function MysqlDB:query(query, ignores)

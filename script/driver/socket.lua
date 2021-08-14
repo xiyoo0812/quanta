@@ -2,19 +2,23 @@
 local lnet          = require("lnet")
 
 local log_err       = logger.err
-
-local thread_mgr    = quanta.get("thread_mgr")
-local NetwkTime     = enum("NetwkTime")
+local ssub          = string.sub
+local sfind         = string.find
+local lrecv         = lnet.recv
+local lsend         = lnet.send
 
 local POLL_DEL      = 0
 local POLL_ADD      = 1
 local POLL_MOD      = 2
+local NetwkTime     = enum("NetwkTime")
+
+local poll          = quanta.get("poll")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local Socket = class()
 local prop = property(Socket)
 prop:accessor("fd", nil)
 prop:accessor("ip", nil)
-prop:accessor("poll", nil)
 prop:accessor("host", nil)
 prop:accessor("block_id", nil)
 prop:accessor("listener", false)
@@ -22,8 +26,7 @@ prop:accessor("port", 0)
 prop:accessor("sndbuf", "")
 prop:accessor("recvbuf", "")
 
-function Socket:__init(poll, host)
-    self.poll = poll
+function Socket:__init(host)
     self.host = host
 end
 
@@ -33,7 +36,7 @@ end
 
 function Socket:close(close_by_peer)
     if self.fd then
-        self.poll:control(self, POLL_DEL)
+        poll:control(self, POLL_DEL)
         if close_by_peer then
             self.host:on_socket_close(self, self.fd)
         end
@@ -58,7 +61,7 @@ function Socket:listen(ip, port)
     end
     self.listener = true
     self.fd, self.ip, self.port = fd, ip, port
-    self.poll:control(self, POLL_ADD, true, false)
+    poll:control(self, POLL_ADD, true, false)
     return fd
 end
 
@@ -75,7 +78,7 @@ function Socket:connect(ip, port)
     end
     self.fd = fd
     self.block_id = thread_mgr:build_session_id()
-    self.poll:control(self, POLL_ADD, false, true)
+    poll:control(self, POLL_ADD, false, true)
     local ok, err = thread_mgr:yield(self.block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
     if not ok then
         log_err("[Socket][connect] connect failed: %s", err)
@@ -84,7 +87,7 @@ function Socket:connect(ip, port)
     end
     self.block_id = nil
     self.ip, self.port = ip, port
-    self.poll:control(self, POLL_MOD, true, false)
+    poll:control(self, POLL_MOD, true, false)
     return fd
 end
 
@@ -95,7 +98,7 @@ function Socket:accept(fd)
         return
     end
     self.fd, self.ip, self.port = newfd, ip, port
-    self.poll:control(self, POLL_ADD, true, false)
+    poll:control(self, POLL_ADD, true, false)
     self.host:on_socket_accept(self, newfd)
 end
 
@@ -110,7 +113,7 @@ function Socket:recv()
         return false
     end
     while true do
-        local ret, data_oe = lnet.recv(self.fd, 8000)
+        local ret, data_oe = lrecv(self.fd, 8000)
         if ret == 0 then
             break
         end
@@ -129,13 +132,21 @@ end
 function Socket:peek(len, offset)
     offset = offset or 0
     if offset + len <= #self.recvbuf then
-        return self.recvbuf:sub(offset + 1, offset + len)
+        return ssub(self.recvbuf, offset + 1, offset + len)
+    end
+end
+
+function Socket:peek_line(line_flag, offset)
+    offset = offset or 0
+    local i, j = sfind(self.recvbuf, line_flag, offset + 1)
+    if i then
+        return ssub(self.recvbuf, 1, i), j
     end
 end
 
 function Socket:pop(len)
     if #self.recvbuf > len then
-        self.recvbuf = self.recvbuf:sub(len + 1)
+        self.recvbuf = ssub(self.recvbuf, len + 1)
     elseif #self.recvbuf == len then
         self.recvbuf = ""
     end
@@ -152,9 +163,9 @@ function Socket:send(data)
         return true
     end
     while true do
-        local sndlen, err = lnet.send(self.fd, self.sndbuf)
+        local sndlen, err = lsend(self.fd, self.sndbuf)
         if sndlen == 0 then
-            self.poll:control(self, POLL_MOD, true, true)
+            poll:control(self, POLL_MOD, true, true)
             break
         end
         if sndlen < 0 then
@@ -164,11 +175,11 @@ function Socket:send(data)
         end
         if sndlen > 0 then
             if sndlen == #self.sndbuf then
-                self.poll:control(self, POLL_MOD, true, false)
+                poll:control(self, POLL_MOD, true, false)
                 self.sndbuf = ""
                 break
             else
-                self.sndbuf = self.sndbuf:sub(sndlen + 1)
+                self.sndbuf = ssub(self.sndbuf, sndlen + 1)
             end
         end
     end
@@ -187,7 +198,7 @@ function Socket:handle_event(bread, bwrite)
     end
     if bread then
         if self.listener then
-            local socket = Socket(self.poll, self.host)
+            local socket = Socket(poll, self.host)
             socket:accept(self.fd)
             return
         end
