@@ -40,8 +40,8 @@ prop:reader("sock", nil)        --网络连接对象
 prop:reader("name", "")         --dbname
 prop:reader("db_cmd", "")       --默认cmd
 prop:reader("port", 27017)      --mongo端口
-prop:reader("user", "")         --user
-prop:reader("passwd", "")       --passwd
+prop:reader("user", nil)        --user
+prop:reader("passwd", nil)      --passwd
 
 function MongoDB:__init(conf)
     self.ip = conf.host
@@ -70,7 +70,7 @@ function MongoDB:on_second()
         local sock = Socket(self)
         if sock:connect(self.ip, self.port) then
             self.sock = sock
-            if #self.user > 0 and #self.passwd > 0 then
+            if self.user and self.passwd then
                 local ok, err = self:auth(self.user, self.passwd)
                 if not ok then
                     log_err("[MongoDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)

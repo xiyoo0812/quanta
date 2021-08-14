@@ -580,8 +580,8 @@ prop:reader("ip", nil)      --mysql地址
 prop:reader("sock", nil)    --网络连接对象
 prop:reader("name", "")     --dbname
 prop:reader("port", 3306)   --mysql端口
-prop:reader("user", "")     --user
-prop:reader("passwd", "")   --passwd
+prop:reader("user", nil)     --user
+prop:reader("passwd", nil)   --passwd
 prop:reader("packet_no", 0) --passwd
 prop:reader("sessions", nil)                --sessions
 prop:accessor("charset", "_default")        --charset
@@ -634,12 +634,14 @@ function MysqlDB:on_second()
 end
 
 function MysqlDB:auth()
+    if not self.passwd or not self.user or not self.name then
+        return false, "user or password or dbname not config!"
+    end
     local ok, packet = _async_call(self, "recv auth packet", _recv_auth_resp)
     if not ok then
         return false, packet
     end
-    --1 byte 协议版本号 (服务器认证报文开始)
-    self.protocol_ver = sbyte(packet)
+    --1 byte 协议版本号 (服务器认证报文开始)(skip)
     --n byte 服务器版本号
     local version, pos = _from_cstring(packet, 2)
     if not version then
@@ -751,10 +753,7 @@ function MysqlDB:prepare(sql)
     return self:request(querypacket, _recv_prepare_resp, "mysql_prepare")
 end
 
---[[
-执行预处理语句
-失败返回字段 errno, badresult, sqlstate, err
-]]
+--执行预处理语句
 function MysqlDB:execute(stmt, ...)
     self.packet_no = -1
     local querypacket, err = _compose_stmt_execute(self, stmt, CURSOR_TYPE_NO_CURSOR, {...})
