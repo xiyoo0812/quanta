@@ -172,7 +172,6 @@ function MongoDB:on_socket_recv(sock)
         sock:pop(4 + length)
         local documents = {}
         local succ, session_id, doc, cursor_id = driver.reply(bdata, documents)
-        print(debug.traceback())
         thread_mgr:response(session_id, succ, doc, cursor_id, documents)
     end
 end
