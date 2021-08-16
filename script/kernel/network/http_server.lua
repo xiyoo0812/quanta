@@ -18,7 +18,7 @@ local HttpServer = class()
 local prop = property(HttpServer)
 prop:reader("sock", nil)    --网络连接对象
 prop:reader("ip", nil)      --http server地址
-prop:reader("port", 27017)  --http server端口
+prop:reader("port", 8080)   --http server端口
 prop:reader("clients", {})  --clients
 prop:reader("requests", {}) --requests
 prop:reader("get_handler", nil)  --get_handler

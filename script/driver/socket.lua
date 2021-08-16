@@ -2,10 +2,11 @@
 local lnet          = require("lnet")
 
 local log_err       = logger.err
-local ssub          = string.sub
-local sfind         = string.find
 local lrecv         = lnet.recv
 local lsend         = lnet.send
+local ssub          = string.sub
+local sfind         = string.find
+local qxpcall       = quanta.xpcall
 
 local POLL_DEL      = 0
 local POLL_ADD      = 1
@@ -104,7 +105,7 @@ end
 
 function Socket:on_recv(fd)
     if #self.recvbuf > 0 then
-        self.host:on_socket_recv(self, self.fd)
+        qxpcall(self.host.on_socket_recv, "on_socket_recv: %s", self.host, self, self.fd)
     end
 end
 
@@ -198,7 +199,7 @@ function Socket:handle_event(bread, bwrite)
     end
     if bread then
         if self.listener then
-            local socket = Socket(poll, self.host)
+            local socket = Socket(self.host)
             socket:accept(self.fd)
             return
         end
