@@ -144,9 +144,10 @@ local RedisDB = class()
 local prop = property(RedisDB)
 prop:reader("ip", nil)          --redis地址
 prop:reader("sock", nil)        --网络连接对象
+prop:reader("watch_sock", nil)  --网络连接对象
 prop:reader("index", "")        --db index
 prop:reader("port", 6379)       --redis端口
-prop:reader("passwd", "")       --passwd
+prop:reader("passwd", nil)      --passwd
 prop:reader("sessions", nil)    --sessions
 
 function RedisDB:__init(conf)
@@ -157,6 +158,8 @@ function RedisDB:__init(conf)
     self.sessions = QueueFIFO()
     --attach_second
     update_mgr:attach_second(self)
+    --setup
+    self:setup()
 end
 
 function RedisDB:__release()
@@ -171,16 +174,16 @@ function RedisDB:close()
     end
 end
 
-function RedisDB:on_second()
-    if not self.sock then
+function RedisDB:check_link(socket)
+    if not socket then
         local sock = Socket(self)
         if sock:connect(self.ip, self.port) then
-            self.sock = sock
-            if #self.passwd > 0 then
+            socket = sock
+            if self.passwd then
                 local ok, err = self:auth(self.passwd)
                 if not ok then
                     log_err("[RedisDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
-                    self.sock = nil
+                    socket = nil
                     return
                 end
                 log_info("[RedisDB][on_second] auth db(%s:%s) success!", self.ip, self.port)
@@ -190,6 +193,13 @@ function RedisDB:on_second()
             log_err("[MysqlDB][on_second] connect db(%s:%s) failed!", self.ip, self.port)
         end
     end
+end
+
+function RedisDB:on_second()
+    print(self.sock)
+    self:check_link(self.sock)
+    print(self.sock)
+    self:check_link(self.watch_sock)
 end
 
 function RedisDB:on_socket_close()
@@ -218,17 +228,12 @@ function RedisDB:on_socket_recv(sock)
     end
 end
 
-function RedisDB:auth(password)
-    return self:command("AUTH", password)
-end
-
 function RedisDB:command(cmd, ...)
     local packet = _compose_message(cmd, tpack(...))
     return _async_call(self, "redis command")
 end
 
-
-local commands = {
+local redis_commands = {
     del         = { cmd = "DEL"     },
     set         = { cmd = "SET"     },
     type        = { cmd = "TYPE"    },
@@ -362,5 +367,18 @@ local commands = {
     config          = { cmd = "CONFIG",         convertor = _tomap      },  -- >= 2.0
     keys            = { cmd = "KEYS",           convertor = _tokeys     },
 }
+
+function RedisDB:setup()
+    for cmd, param in pairs(redis_commands) do
+        RedisDB[cmd] = function(...)
+            local ok, res = self:command(param.cmd, ...)
+            local convertor = param.convertor
+            if ok and convertor then
+                return true, convertor(res)
+            end
+            return false, res
+        end
+    end
+end
 
 return RedisDB

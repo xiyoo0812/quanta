@@ -1,30 +1,34 @@
 
 --mongo.lua
 local bson          = require("bson")
-local driver        = require("mongo")
+local lmongo        = require("mongo")
 local lcrypt        = require("lcrypt")
 local Socket        = import("driver/socket.lua")
 
 local ipairs        = ipairs
 local log_err       = logger.err
 local log_info      = logger.info
+local tinsert       = table.insert
+local tunpack       = table.unpack
 local ssub          = string.sub
 local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch
 local umd5sum       = utility.md5sum
-local tinsert       = table.insert
-local tunpack       = table.unpack
-local mtointeger    = math.tointeger
-local bson_encode   = bson.encode
-local bson_decode   = bson.decode
+local lsha1         = lcrypt.sha1
 local lrandomkey    = lcrypt.randomkey
 local lb64encode    = lcrypt.b64_encode
 local lb64decode    = lcrypt.b64_decode
 local lhmac_sha1    = lcrypt.hmac_sha1
-local lsha1         = lcrypt.sha1
 local lxor_byte     = lcrypt.xor_byte
+local mmore         = lmongo.more
+local mreply        = lmongo.reply
+local mquery        = lmongo.query
+local mlength       = lmongo.length
+local bson_encode   = bson.encode
+local bson_decode   = bson.decode
 local bson_encode_o = bson.encode_order
+local mtointeger    = math.tointeger
 
 local empty_bson    = bson_encode({})
 
@@ -164,14 +168,14 @@ function MongoDB:on_socket_recv(sock)
         if not hdata then
             break
         end
-        local length = driver.length(hdata)
+        local length = mlength(hdata)
         local bdata = sock:peek(length, 4)
         if not bdata then
             break
         end
         sock:pop(4 + length)
         local documents = {}
-        local succ, session_id, doc, cursor_id = driver.reply(bdata, documents)
+        local succ, session_id, doc, cursor_id = mreply(bdata, documents)
         thread_mgr:response(session_id, succ, doc, cursor_id, documents)
     end
 end
@@ -202,7 +206,7 @@ function MongoDB:_query(full_name, query, selector, query_num, skip, flag)
     local bson_query = query or empty_bson
     local bson_selector = selector or empty_bson
     local session_id = thread_mgr:build_session_id()
-    local pack = driver.query(session_id, flag or 0, full_name, skip or 0, query_num or 1, bson_query, bson_selector)
+    local pack = mquery(session_id, flag or 0, full_name, skip or 0, query_num or 1, bson_query, bson_selector)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
@@ -215,7 +219,7 @@ function MongoDB:_more(full_name, cursor, query_num)
         return false, "db not connected"
     end
     local session_id = thread_mgr:build_session_id()
-    local pack = driver.more(session_id, full_name, query_num or 0, cursor)
+    local pack = mmore(session_id, full_name, query_num or 0, cursor)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
