@@ -16,11 +16,11 @@ local SUCCESS       = KernCode.SUCCESS
 
 local RpcClient = class()
 local prop = property(RpcClient)
-prop:accessor("ip", nil)
-prop:accessor("port", nil)
-prop:accessor("alive", false)
-prop:accessor("socket", nil)
-prop:accessor("holder", nil)    --持有者
+prop:reader("ip", nil)
+prop:reader("port", nil)
+prop:reader("alive", false)
+prop:reader("socket", nil)
+prop:reader("holder", nil)    --持有者
 function RpcClient:__init(holder, ip, port)
     self.holder = holder
     self.port = port
