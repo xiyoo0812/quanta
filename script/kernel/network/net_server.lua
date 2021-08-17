@@ -26,14 +26,14 @@ local fc_bytes      = env_number("QUANTA_FLOW_CTRL_BYTES") / 1000
 -- Dx协议会话对象管理器
 local NetServer = class()
 local prop = property(NetServer)
-prop:accessor("sessions", {})               --会话列表
-prop:accessor("session_type", "default")    --会话类型
-prop:accessor("session_count", 0)           --会话数量
-prop:accessor("listener", nil)              --监听器
-prop:accessor("decoder", nil)               --解码函数
-prop:accessor("encoder", nil)               --编码函数
-prop:accessor("port", 0)                    --监听端口
-prop:accessor("ip", "")                     --监听ip
+prop:reader("ip", "")                   --监听ip
+prop:reader("port", 0)                  --监听端口
+prop:reader("sessions", {})             --会话列表
+prop:reader("session_type", "default")  --会话类型
+prop:reader("session_count", 0)         --会话数量
+prop:reader("listener", nil)            --监听器
+prop:accessor("decoder", nil)           --解码函数
+prop:accessor("encoder", nil)           --编码函数
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -60,8 +60,6 @@ function NetServer:setup(ip, port, induce)
     self.listener.on_accept = function(session)
         qxpcall(self.on_session_accept, "on_dx_accept: %s", self, session)
     end
-
-
 end
 
 -- 连接回调
@@ -108,6 +106,22 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     end
     log_err("[NetServer][write] call_dx failed! code:%s", send_len)
     return false
+end
+
+-- 广播数据
+function NetServer:boardcast(cmd_id, data)
+    local body, pflag = self:encode(cmd_id, data, flag)
+    if not body then
+        log_err("[NetServer][boardcast] encode failed! cmd_id:%s", cmd_id)
+        return false
+    end
+    for _, session in pairs(self.sessions) do
+        local send_len = session.call_dx(cmd_id, pflag, 0, body)
+        if send_len > 0 then
+            statis_mgr:statis_notify("on_dx_send", cmd_id, send_len)
+        end
+    end
+    return true
 end
 
 -- 发送数据

@@ -20,10 +20,10 @@ local perfeval_mgr  = quanta.get("perfeval_mgr")
 local RpcServer = singleton()
 
 local prop = property(RpcServer)
-prop:accessor("clients", {})
-prop:accessor("listener", nil)
-prop:accessor("port", 0)                    --监听端口
-prop:accessor("ip", "")                     --监听ip
+prop:reader("ip", "")                     --监听ip
+prop:reader("port", 0)                    --监听端口
+prop:reader("clients", {})
+prop:reader("listener", nil)
 function RpcServer:__init()
 end
 

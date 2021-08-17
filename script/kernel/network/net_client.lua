@@ -17,14 +17,14 @@ local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
 
 local NetClient = class()
 local prop = property(NetClient)
-prop:accessor("ip", nil)
-prop:accessor("port", nil)
-prop:accessor("alive", false)
-prop:accessor("socket", nil)           --连接成功对象
-prop:accessor("holder", nil)           --持有者
-prop:accessor("decoder", nil)          --解码函数
-prop:accessor("encoder", nil)          --编码函数
-prop:accessor("wait_list", {})         --等待协议列表
+prop:reader("ip", nil)
+prop:reader("port", nil)
+prop:reader("alive", false)
+prop:reader("socket", nil)          --连接成功对象
+prop:reader("holder", nil)          --持有者
+prop:reader("wait_list", {})        --等待协议列表
+prop:accessor("decoder", nil)       --解码函数
+prop:accessor("encoder", nil)       --编码函数
 
 function NetClient:__init(holder, ip, port)
     self.holder = holder
