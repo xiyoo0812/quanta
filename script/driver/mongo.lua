@@ -71,22 +71,22 @@ end
 
 function MongoDB:on_second()
     if not self.sock then
-        local sock = Socket(self)
-        if sock:connect(self.ip, self.port) then
-            self.sock = sock
-            if self.user and self.passwd then
-                local ok, err = self:auth(self.user, self.passwd)
-                if not ok then
-                    log_err("[MongoDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
-                    self.sock = nil
-                    return
-                end
-                log_info("[MongoDB][on_second] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
-            end
-            log_info("[MongoDB][on_second] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
-        else
+        self.sock = Socket(self)
+        if not sock:connect(self.ip, self.port) then
             log_err("[MysqlDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
+            self.sock = nil
+            return
         end
+        if self.user and self.passwd then
+            local ok, err = self:auth(self.user, self.passwd)
+            if not ok then
+                log_err("[MongoDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
+                self.sock = nil
+                return
+            end
+            log_info("[MongoDB][on_second] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
+        end
+        log_info("[MongoDB][on_second] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
     end
 end
 
