@@ -16,6 +16,6 @@ jobs:
       with:
         submodules: recursive
     - name: devel
-      run: apt-get install -y curl-devel
+      run: sudo apt-get install -y curl-devel
     - name: make
       run: make all
