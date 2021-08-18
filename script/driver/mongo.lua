@@ -84,7 +84,6 @@ function MongoDB:on_second()
                 self.sock = nil
                 return
             end
-            log_info("[MongoDB][on_second] auth db(%s:%s:%s) success!", self.ip, self.port, self.name)
         end
         log_info("[MongoDB][on_second] connect db(%s:%s:%s) success!", self.ip, self.port, self.name)
     end

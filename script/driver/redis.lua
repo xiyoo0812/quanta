@@ -374,7 +374,6 @@ function RedisDB:login(socket, title)
             log_err("[RedisDB][login] auth %s db(%s:%s) failed! because: %s", title, self.ip, self.port, res)
             return false
         end
-        log_info("[RedisDB][login] auth %s db(%s:%s) success!", title, self.ip, self.port)
     end
     if self.index then
         local ok, res = self:select(self.index)
@@ -382,8 +381,8 @@ function RedisDB:login(socket, title)
             log_err("[RedisDB][login] select %s db(%s:%s-%s) failed! because: %s", title, self.ip, self.port, self.index, res)
             return false
         end
-        log_info("[RedisDB][login] select %s db(%s:%s-%s) success!", title, self.ip, self.port, self.index)
     end
+    log_info("[RedisDB][login] login %s db(%s:%s-%s) success!", title, self.ip, self.port, self.index)
     return true
 end
 
