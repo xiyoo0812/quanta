@@ -61,7 +61,7 @@ function quanta.init()
     -- 初始化统计管理器
     quanta.perfeval_mgr:setup()
     import("kernel/statis/statis_mgr.lua")
-    import("kernel/proto/protobuf_mgr.lua")
+    import("kernel/basic/protobuf_mgr.lua")
 
     --加载router配置
     local config_mgr = quanta.get("config_mgr")
@@ -84,7 +84,7 @@ function quanta.init()
     if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
         import("kernel/monitor/monitor_agent.lua")
-        import("kernel/debug/netlog_mgr.lua")
+        import("kernel/monitor/netlog_mgr.lua")
     end
 end
 

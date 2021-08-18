@@ -141,7 +141,7 @@ function Socket:peek_line(line_flag, offset)
     offset = offset or 0
     local i, j = sfind(self.recvbuf, line_flag, offset + 1)
     if i then
-        return ssub(self.recvbuf, 1, i), j
+        return ssub(self.recvbuf, 1, i - 1), j
     end
 end
 

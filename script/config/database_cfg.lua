@@ -69,7 +69,6 @@ database:upsert({
     passwd = '123456',
 })
 
-
 database:upsert({
     quanta_deploy = 'local',
     group = 1,
@@ -78,6 +77,18 @@ database:upsert({
     db = 'quanta_loc',
     host = '9.134.163.87',
     port = 3306,
+    user = 'root',
+    passwd = '123456',
+})
+
+database:upsert({
+    quanta_deploy = 'local',
+    group = 1,
+    index = 3,
+    driver = 'redis',
+    db = 1,
+    host = '9.134.163.87',
+    port = 6380,
     user = 'root',
     passwd = '123456',
 })

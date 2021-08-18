@@ -617,19 +617,19 @@ end
 
 function MysqlDB:on_second()
     if not self.sock then
-        local sock = Socket(self)
-        if sock:connect(self.ip, self.port) then
-            self.sock = sock
-            local ok, err, ver = self:auth()
-            if not ok then
-                log_err("[MysqlDB][on_second] auth db(%s:%d:%s) failed! because: %s", self.ip, self.port, self.name, err)
-                self.sock = nil
-                return
-            end
-            log_info("[MysqlDB][on_second] connect db(%s:%d-%s[%s]) success!", self.ip, self.port, self.name, ver)
-        else
+        self.sock = Socket(self)
+        if not sock:connect(self.ip, self.port) then
             log_err("[MysqlDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
+            self.sock = nil
+            return
         end
+        local ok, err, ver = self:auth()
+        if not ok then
+            log_err("[MysqlDB][on_second] auth db(%s:%d:%s) failed! because: %s", self.ip, self.port, self.name, err)
+            self.sock = nil
+            return
+        end
+        log_info("[MysqlDB][on_second] connect db(%s:%d-%s[%s]) success!", self.ip, self.port, self.name, ver)
     end
 end
 
