@@ -472,8 +472,8 @@ function RedisDB:execute(cmd, ...)
 end
 
 function RedisDB:ping()
-    self.commit(self.sock, { cmd = "PING" })
-    self.commit(self.ssock, { cmd = "PING" })
+    self:commit(self.sock, { cmd = "PING" })
+    self:commit(self.ssock, { cmd = "PING" })
 end
 
 function RedisDB:auth(socket)
