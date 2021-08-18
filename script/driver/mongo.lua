@@ -72,7 +72,7 @@ end
 function MongoDB:on_second()
     if not self.sock then
         self.sock = Socket(self)
-        if not sock:connect(self.ip, self.port) then
+        if not self.sock:connect(self.ip, self.port) then
             log_err("[MysqlDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
             self.sock = nil
             return

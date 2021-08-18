@@ -1,7 +1,4 @@
 --redis_mgr.lua
-local tinsert       = table.insert
-local tconcat       = table.concat
-local sformat       = string.format
 local hash_code     = utility.hash_code
 
 local DBGroup       = enum("DBGroup")
@@ -42,15 +39,6 @@ function RedisMgr:get_db(index)
 end
 
 function RedisMgr:execute(index, cmd, ...)
-    local redisdb = self:get_db(index)
-    if redisdb then
-        local ok, res_oe = redisdb:execute(cmd, ...)
-        return ok and SUCCESS or REDIS_FAILED, res_oe
-    end
-    return REDIS_FAILED, "redis db not exist"
-end
-
-function RedisMgr:watch(conf, cmd, ...)
     local redisdb = self:get_db(index)
     if redisdb then
         local ok, res_oe = redisdb:execute(cmd, ...)

@@ -2,24 +2,17 @@
 local Socket        = import("driver/socket.lua")
 local QueueFIFO     = import("container/queue_fifo.lua")
 
-local ipairs        = ipairs
 local tonumber      = tonumber
 local log_err       = logger.err
 local log_info      = logger.info
 local ssub          = string.sub
-local sbyte         = string.byte
 local sgsub         = string.gsub
 local supper        = string.upper
 local sformat       = string.format
-local sgmatch       = string.gmatch
 local tinsert       = table.insert
-local tunpack       = table.unpack
 local tpack         = table.pack
 
 local NetwkTime     = enum("NetwkTime")
-local KernCode      = enum("KernCode")
-local SUCCESS       = KernCode.SUCCESS
-local REDIS_FAILED  = KernCode.REDIS_FAILED
 local DB_TIMEOUT    = NetwkTime.DB_CALL_TIMEOUT
 
 local LineTitle     = "\r\n"
@@ -27,6 +20,144 @@ local LineTitle     = "\r\n"
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+
+local function _async_call(sessions, quote)
+    local session_id = thread_mgr:build_session_id()
+    sessions:push(session_id)
+    return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+end
+
+local _redis_resp_parser = {
+    ["+"] = function(sessions, body)
+        --simple string
+        return true, body
+    end,
+    ["-"] = function(sessions, body)
+        -- error reply
+        return false, body
+    end,
+    [":"] = function(sessions, body)
+        -- integer reply
+        return true, tonumber(body)
+    end,
+    ["$"] = function(sessions, body)
+        -- bulk string
+        if tonumber(body) < 0 then
+            return true, nil
+        end
+        return _async_call(sessions, "redis parse bulk string")
+    end,
+    ["*"] = function(sessions, body)
+        -- array
+        local length = tonumber(body)
+        if length < 0 then
+            return true, nil
+        end
+        local array = {}
+        local noerr = true
+        for i = 1, length do
+            local ok, value = _async_call(sessions, "redis parse array")
+            if not ok then
+                noerr = false
+            end
+            array[i] = value
+        end
+        return noerr, array
+    end
+}
+
+local _redis_subscribe_replys = {
+    message = function(self, channel, data)
+        log_info("[RedisDB][_redis_subscribe_replys] subscribe message channel(%s) data: %s", channel, data)
+        event_mgr:notify_trigger("on_redis_subscribe", channel, data)
+    end,
+    pmessage = function(self, channel, data, date2)
+        log_info("[RedisDB][_redis_subscribe_replys] psubscribe pmessage channel(%s) data: %s, data2: %s", channel, data, date2)
+        event_mgr:notify_trigger("on_redis_psubscribe", channel, data, date2)
+    end,
+    subscribe = function(self, channel, status)
+        log_info("[RedisDB][_redis_subscribe_replys] subscribe redis channel(%s) status: %s", channel, status)
+        self.subscribes[channel] = true
+    end,
+    psubscribe = function(self, channel, status)
+        log_info("[RedisDB][_redis_subscribe_replys] psubscribe redis channel(%s) status: %s", channel, status)
+        self.psubscribes[channel] = true
+    end,
+    unsubscribe = function(self, channel, status)
+        log_info("[RedisDB][_redis_subscribe_replys] unsubscribe redis channel(%s) status: %s", channel, status)
+        self.subscribes[channel] = nil
+    end,
+    punsubscribe = function(self, channel, status)
+        log_info("[RedisDB][_redis_subscribe_replys] punsubscribe redis channel(%s) status: %s", channel, status)
+        self.psubscribes[channel] = nil
+    end
+}
+
+local function _compose_bulk_string(value)
+    if not value then
+        return "\r\n$-1"
+    end
+    if type(value) ~= "string" then
+        value = tostring(value)
+    end
+    return sformat("\r\n$%d\r\n%s", #value, value)
+end
+
+local function _compose_array(cmd, array)
+    local count = 0
+    if array then
+        count = (array.n or #array)
+    end
+    local buff = sformat("*%d%s", count + 1, _compose_bulk_string(cmd))
+    if count > 0 then
+        for i = 1, count do
+            buff = sformat("%s%s", buff, _compose_bulk_string(array[i]))
+        end
+    end
+    return sformat("%s\r\n", buff)
+end
+
+local function _compose_message(cmd, msg)
+    if not msg then
+        return _compose_array(cmd)
+    end
+    if type(msg) == "table" then
+        return _compose_array(cmd, msg)
+    end
+    return _compose_array(cmd, { msg })
+end
+
+local function _tokeys(value)
+    if type(value) == 'string' then
+        -- backwards compatibility path for Redis < 2.0
+        local keys = {}
+        sgsub(value, '[^%s]+', function(key)
+            tinsert(keys, key)
+        end)
+        return keys
+    end
+    return value
+end
+
+local function _tomap(value)
+    if (type(value) == 'table') then
+        local new_value = { }
+        for i = 1, #value, 2 do
+            new_value[value[i]] = value[i + 1]
+        end
+        return new_value
+    end
+    return value
+end
+
+local function _toboolean(value)
+    if value == '1' or value == 'true' or value == 'TRUE' then
+        return true
+    elseif value == '0' or value == 'false' or value == 'FALSE' then
+        return false
+    end
+    return nil
+end
 
 local subscribe_commands = {
     subscribe       = { cmd = "SUBSCRIBE"   },  -- >= 2.0
@@ -164,148 +295,6 @@ local redis_commands = {
     keys            = { cmd = "KEYS",           convertor = _tokeys     },
 }
 
-local function _async_call(sessions, quote)
-    local session_id = thread_mgr:build_session_id()
-    sessions:push(session_id)
-    return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
-end
-
-local _redis_resp_parser = {
-    ["+"] = function(sessions, body)
-        --simple string
-        return true, body
-    end,
-    ["-"] = function(sessions, body)
-        -- error reply
-        return false, body
-    end,
-    [":"] = function(sessions, body)
-        -- integer reply
-        return true, tonumber(body)
-    end,
-    ["$"] = function(sessions, body)
-        -- bulk string
-        if tonumber(body) < 0 then
-            return true, nil
-        end
-        return _async_call(sessions, "redis parse bulk string")
-    end,
-    ["*"] = function(sessions, body)
-        -- array
-        local length = tonumber(body)
-        if length < 0 then
-            return true, nil
-        end
-        local array = {}
-        local noerr = true
-        for i = 1, length do
-            local ok, value = _async_call(sessions, "redis parse array")
-            if not ok then
-                noerr = false
-            end
-            array[i] = value
-        end
-        return noerr, array
-    end
-}
-
-local _redis_subscribe_replys = {
-    message = function(self, channel, data)
-        log_info("[RedisDB][_redis_subscribe_replys] subscribe message channel(%s) data: %s", channel, data)
-        event_mgr:notify_trigger("on_redis_subscribe", channel, data)
-    end,
-    pmessage = function(self, channel, data, date2)
-        log_info("[RedisDB][_redis_subscribe_replys] psubscribe pmessage channel(%s) data: %s, data2: %s", channel, data, date2)
-        event_mgr:notify_trigger("on_redis_psubscribe", channel, data, date2)
-    end,
-    subscribe = function(self, channel, status)
-        log_info("[RedisDB][_redis_subscribe_replys] subscribe redis channel(%s) status: %s", channel, status)
-        self.subscribes[channel] = true
-    end,
-    psubscribe = function(self, channel, status)
-        log_info("[RedisDB][_redis_subscribe_replys] psubscribe redis channel(%s) status: %s", channel, status)
-        self.psubscribes[channel] = true
-    end,
-    unsubscribe = function(self, channel, status)
-        log_info("[RedisDB][_redis_subscribe_replys] unsubscribe redis channel(%s) status: %s", channel, status)
-        self.subscribes[channel] = nil
-    end,
-    punsubscribe = function(self, channel, status)
-        log_info("[RedisDB][_redis_subscribe_replys] punsubscribe redis channel(%s) status: %s", channel, status)
-        self.psubscribes[channel] = nil
-    end
-}
-
-local function _compose_bulk_string(value)
-    if not value then
-        return "\r\n$-1"
-    end
-    if type(value) ~= "string" then
-        value = tostring(value)
-    end
-    return sformat("\r\n$%d\r\n%s", #value, value)
-end
-
-local function _compose_array(cmd, array)
-    local count = 0
-    if array then
-        count = (array.n or #array)
-    end
-    local buff = sformat("*%d%s", count + 1, _compose_bulk_string(cmd))
-    if count > 0 then
-        for i = 1, count do
-            buff = sformat("%s%s", buff, _compose_bulk_string(array[i]))
-        end
-    end
-    return sformat("%s\r\n", buff)
-end
-
-local function _compose_message(cmd, msg)
-    if not msg then
-        return _compose_array(cmd)
-    end
-    if type(msg) == "table" then
-        return _compose_array(cmd, msg)
-    end
-    return _compose_array(cmd, { msg })
-end
-
-local function _ispeng(value)
-    return value == "PONG"
-end
-
-local function _tokeys(value)
-    if type(value) == 'string' then
-        -- backwards compatibility path for Redis < 2.0
-        local keys = {}
-        sgsub(value, '[^%s]+', function(key)
-            tinsert(keys, key)
-        end)
-        return keys
-    end
-    return value
-end
-
-local function _tomap(value)
-    if (type(value) == 'table') then
-        local new_value = { }
-        for i = 1, #value, 2 do 
-            new_value[value[i]] = value[i + 1] 
-        end
-        return new_value
-    end
-    return value
-end
-    
-local function _toboolean(value)
-    if value == '1' or value == 'true' or value == 'TRUE' then
-        return true
-    elseif value == '0' or value == 'false' or value == 'FALSE' then
-        return false
-    end
-    return nil
-end
-
 local RedisDB = class()
 local prop = property(RedisDB)
 prop:reader("ip", nil)          --redis地址
@@ -339,13 +328,13 @@ end
 
 function RedisDB:setup()
     for cmd, param in pairs(redis_commands) do
-        RedisDB[cmd] = function(self, ...)
-            return self:commit(self.sock, param, ...)
+        RedisDB[cmd] = function(this, ...)
+            return this:commit(this.sock, param, ...)
         end
     end
     for cmd, param in pairs(subscribe_commands) do
-        RedisDB[cmd] = function(self, ...)
-            return self:commit(self.ssock, param, ...)
+        RedisDB[cmd] = function(this, ...)
+            return this:commit(this.ssock, param, ...)
         end
     end
 end
