@@ -1,4 +1,4 @@
--- netllog_mgr.lua
+-- netlog_mgr.lua
 local next          = next
 local otime         = os.time
 local log_debug     = logger.debug

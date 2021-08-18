@@ -14,6 +14,7 @@ local sformat       = string.format
 local sgmatch       = string.gmatch
 local tinsert       = table.insert
 local tunpack       = table.unpack
+local tpack         = table.pack
 
 local NetwkTime     = enum("NetwkTime")
 local KernCode      = enum("KernCode")
@@ -25,213 +26,6 @@ local LineTitle     = "\r\n"
 
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-
-local function _async_call(self, quote)
-    self.sessions:push(thread_mgr:build_session_id())
-    return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
-end
-
-local _redis_resp_parser = {
-    ["+"] = function(self, body)
-        --simple string
-        return true, body
-    end,
-    ["-"] = function(self, body)
-        -- error reply
-        return false, body
-    end,
-    [":"] = function(self, body)
-        -- integer reply
-        return false, tonumber(body)
-    end,
-    ["$"] = function(self, body)
-        -- bulk string
-        if tonumber(body) < 0 then
-            return true, nil
-        end
-        return _async_call(self, "redis parse bulk string")
-    end,
-    ["*"] = function(self, body)
-        -- array
-        local length = tonumber(body)
-        if length < 0 then
-            return true, nil
-        end
-        local array = {}
-        local noerr = true
-        for i = 1, length do
-            local ok, value _async_call(self, "redis parse array")
-            if not ok then
-                noerr = false
-            end
-            array[i] = value
-        end
-        return noerr, array
-    end
-}
-
-local function _compose_bulk_string(value))
-    if not value then
-        return "\r\n$-1"
-    end
-    if type(value) ~= "string" then
-        value = tostring(value)
-    end
-    return sformat("\r\n$%d\r\n%s", #value, supper(value))
-end
-
-local function _compose_array(cmd, array)
-    local count = 0
-    if array then
-        count = (array.n or #array)
-    end
-    local buff = sformat("*%d", count + 1, _compose_bulk_string(cmd))
-    if count > 0 then
-        for i = 1, count do
-            buff = sformat("%s%s", buff, _compose_bulk_string(array[i]))
-        end
-    end
-    return sformat("%s\r\n", buff)
-end
-
-local function _compose_message(cmd, msg)
-    if not msg then
-        return _compose_array(cmd)
-    end
-    if type(msg) == "table" then
-        return _compose_array(cmd, msg)
-    end
-    return _compose_array(cmd, { msg })
-end
-
-local function _ispeng(value)
-    return value == "PONG"
-end
-
-local function _tokeys(value)
-    if type(value) == 'string' then
-        -- backwards compatibility path for Redis < 2.0
-        local keys = {}
-        sgsub(value, '[^%s]+', function(key)
-            tinsert(keys, key)
-        end)
-        return keys
-    end
-    return value
-end
-
-local function _tomap(value)
-    if (type(value) == 'table') then
-        local new_value = { }
-        for i = 1, #value, 2 do 
-            new_value[value[i]] = value[i + 1] 
-        end
-        return new_value
-    end
-    return value
-end
-    
-local function _toboolean(value)
-    if value == '1' or value == 'true' or value == 'TRUE' then
-        return true
-    elseif value == '0' or value == 'false' or value == 'FALSE' then
-        return false
-    end
-    return nil
-end
-
-local RedisDB = class()
-local prop = property(RedisDB)
-prop:reader("ip", nil)          --redis地址
-prop:reader("sock", nil)        --网络连接对象
-prop:reader("watch_sock", nil)  --网络连接对象
-prop:reader("index", "")        --db index
-prop:reader("port", 6379)       --redis端口
-prop:reader("passwd", nil)      --passwd
-prop:reader("sessions", nil)    --sessions
-
-function RedisDB:__init(conf)
-    self.ip = conf.host
-    self.port = conf.port
-    self.passwd = conf.passwd
-    self.index = conf.db
-    self.sessions = QueueFIFO()
-    --attach_second
-    update_mgr:attach_second(self)
-    --setup
-    self:setup()
-end
-
-function RedisDB:__release()
-    self:close()
-end
-
-function RedisDB:close()
-    if self.sock then
-        self.sessions:clear()
-        self.sock:close()
-        self.sock = nil
-    end
-end
-
-function RedisDB:check_link(socket)
-    if not socket then
-        local sock = Socket(self)
-        if sock:connect(self.ip, self.port) then
-            socket = sock
-            if self.passwd then
-                local ok, err = self:auth(self.passwd)
-                if not ok then
-                    log_err("[RedisDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
-                    socket = nil
-                    return
-                end
-                log_info("[RedisDB][on_second] auth db(%s:%s) success!", self.ip, self.port)
-            end
-            log_info("[RedisDB][on_second] connect db(%s:%s) success!", self.ip, self.port)
-        else
-            log_err("[MysqlDB][on_second] connect db(%s:%s) failed!", self.ip, self.port)
-        end
-    end
-end
-
-function RedisDB:on_second()
-    print(self.sock)
-    self:check_link(self.sock)
-    print(self.sock)
-    self:check_link(self.watch_sock)
-end
-
-function RedisDB:on_socket_close()
-    self.sessions:clear()
-    self.sock = nil
-end
-
-function RedisDB:on_socket_recv(sock)
-    while true do
-        local line, length = sock:peek_line(LineSign)
-        if not line then
-            break
-        end
-        sock:pop(length)
-        local session_id = self.sessions:pop()
-        if session_id then
-            thread_mgr:fork(function()
-                local prefix, body = sbyte(line), ssub(line, 2)
-                local prefix_func = _redis_resp_parser[prefix]
-                if prefix_func then
-                    thread_mgr:response(session_id, prefix_func(self, body))
-                end
-                thread_mgr:response(session_id, true, line)
-            end)
-        end
-    end
-end
-
-function RedisDB:command(cmd, ...)
-    local packet = _compose_message(cmd, tpack(...))
-    return _async_call(self, "redis command")
-end
 
 local redis_commands = {
     del         = { cmd = "DEL"     },
@@ -368,17 +162,235 @@ local redis_commands = {
     keys            = { cmd = "KEYS",           convertor = _tokeys     },
 }
 
-function RedisDB:setup()
-    for cmd, param in pairs(redis_commands) do
-        RedisDB[cmd] = function(...)
-            local ok, res = self:command(param.cmd, ...)
-            local convertor = param.convertor
-            if ok and convertor then
-                return true, convertor(res)
+local function _async_call(self, quote)
+    local session_id = thread_mgr:build_session_id()
+    self.sessions:push(session_id)
+    return thread_mgr:yield(session_id, quote, DB_TIMEOUT * 2)
+end
+
+local _redis_resp_parser = {
+    ["+"] = function(self, body)
+        --simple string
+        return true, body
+    end,
+    ["-"] = function(self, body)
+        -- error reply
+        return false, body
+    end,
+    [":"] = function(self, body)
+        -- integer reply
+        return true, tonumber(body)
+    end,
+    ["$"] = function(self, body)
+        -- bulk string
+        if tonumber(body) < 0 then
+            return true, nil
+        end
+        return _async_call(self, "redis parse bulk string")
+    end,
+    ["*"] = function(self, body)
+        -- array
+        local length = tonumber(body)
+        if length < 0 then
+            return true, nil
+        end
+        local array = {}
+        local noerr = true
+        for i = 1, length do
+            local ok, value _async_call(self, "redis parse array")
+            if not ok then
+                noerr = false
             end
-            return false, res
+            array[i] = value
+        end
+        return noerr, array
+    end
+}
+
+local function _compose_bulk_string(value)
+    if not value then
+        return "\r\n$-1"
+    end
+    if type(value) ~= "string" then
+        value = tostring(value)
+    end
+    return sformat("\r\n$%d\r\n%s", #value, value)
+end
+
+local function _compose_array(cmd, array)
+    local count = 0
+    if array then
+        count = (array.n or #array)
+    end
+    local buff = sformat("*%d%s", count + 1, _compose_bulk_string(cmd))
+    if count > 0 then
+        for i = 1, count do
+            buff = sformat("%s%s", buff, _compose_bulk_string(array[i]))
         end
     end
+    return sformat("%s\r\n", buff)
+end
+
+local function _compose_message(cmd, msg)
+    if not msg then
+        return _compose_array(cmd)
+    end
+    if type(msg) == "table" then
+        return _compose_array(cmd, msg)
+    end
+    return _compose_array(cmd, { msg })
+end
+
+local function _ispeng(value)
+    return value == "PONG"
+end
+
+local function _tokeys(value)
+    if type(value) == 'string' then
+        -- backwards compatibility path for Redis < 2.0
+        local keys = {}
+        sgsub(value, '[^%s]+', function(key)
+            tinsert(keys, key)
+        end)
+        return keys
+    end
+    return value
+end
+
+local function _tomap(value)
+    if (type(value) == 'table') then
+        local new_value = { }
+        for i = 1, #value, 2 do 
+            new_value[value[i]] = value[i + 1] 
+        end
+        return new_value
+    end
+    return value
+end
+    
+local function _toboolean(value)
+    if value == '1' or value == 'true' or value == 'TRUE' then
+        return true
+    elseif value == '0' or value == 'false' or value == 'FALSE' then
+        return false
+    end
+    return nil
+end
+
+local RedisDB = class()
+local prop = property(RedisDB)
+prop:reader("ip", nil)          --redis地址
+prop:reader("sock", nil)        --网络连接对象
+prop:reader("index", "")        --db index
+prop:reader("port", 6379)       --redis端口
+prop:reader("passwd", nil)      --passwd
+prop:reader("sessions", nil)    --sessions
+
+function RedisDB:__init(conf)
+    self.ip = conf.host
+    self.port = conf.port
+    self.passwd = conf.passwd
+    self.index = conf.db
+    self.sessions = QueueFIFO()
+    --attach_second
+    update_mgr:attach_second(self)
+    --setup
+    self:setup()
+end
+
+function RedisDB:__release()
+    self:close()
+end
+
+function RedisDB:setup()
+    for cmd, param in pairs(redis_commands) do
+        RedisDB[cmd] = function(self, ...)
+            local ok, res = self:commit(param.cmd, ...)
+            local convertor = param.convertor
+            if ok and convertor then
+                return ok, convertor(res)
+            end
+            return ok, res
+        end
+    end
+end
+
+function RedisDB:close()
+    if self.sock then
+        self.sessions:clear()
+        self.sock:close()
+        self.sock = nil
+    end
+end
+
+function RedisDB:on_second()
+    if not self.sock then
+        local socket = Socket(self)
+        if socket:connect(self.ip, self.port) then
+            self.sock = socket
+            if self.passwd then
+                local ok, res = self:auth(self.passwd)
+                if not ok or res ~= "OK" then
+                    log_err("[RedisDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, res)
+                    self.sock = nil
+                end
+                log_info("[RedisDB][on_second] auth db(%s:%s) success!", self.ip, self.port)
+            end
+            if self.index then
+                local ok, res = self:select(self.index)
+                if not ok or res ~= "OK" then
+                    log_err("[RedisDB][on_second] select db(%s:%s-%s) failed! because: %s", self.ip, self.port, self.index, res)
+                    self.sock = nil
+                end
+                log_info("[RedisDB][on_second] select db(%s:%s-%s) success!", self.ip, self.port, self.index)
+            end
+            log_info("[RedisDB][on_second] connect db(%s:%s) success!", self.ip, self.port)
+        else
+            log_err("[MysqlDB][on_second] connect db(%s:%s) failed!", self.ip, self.port)
+        end
+    end
+end
+
+function RedisDB:on_socket_close()
+    self.sessions:clear()
+    self.sock = nil
+end
+
+function RedisDB:on_socket_recv(sock)
+    while true do
+        local line, length = sock:peek_line(LineTitle)
+        if not line then
+            break
+        end
+        sock:pop(length)
+        local session_id = self.sessions:pop()
+        if session_id then
+            thread_mgr:fork(function()
+                local prefix, body = ssub(line, 1, 1), ssub(line, 2)
+                local prefix_func = _redis_resp_parser[prefix]
+                if prefix_func then
+                    thread_mgr:response(session_id, prefix_func(self, body))
+                    return
+                end
+                thread_mgr:response(session_id, true, line)
+            end)
+        end
+    end
+end
+
+function RedisDB:commit(cmd, ...)
+    local packet = _compose_message(supper(cmd), tpack(...))
+    if not self.sock:send(packet) then
+        return false, "send request failed"
+    end
+    return _async_call(self, "redis commit")
+end
+
+function RedisDB:execute(cmd, ...)
+    if redis_commands[cmd] then
+        return self[cmd](self, ...)
+    end
+    return self:commit(cmd, ...)
 end
 
 return RedisDB
