@@ -15,5 +15,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
+    - name: devel
+      run: apt-get install -y curl-devel
     - name: make
       run: make all
