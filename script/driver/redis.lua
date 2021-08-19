@@ -151,12 +151,13 @@ local function _tomap(value)
 end
 
 local function _toboolean(value)
+    value = tostring(value)
     if value == '1' or value == 'true' or value == 'TRUE' then
         return true
     elseif value == '0' or value == 'false' or value == 'FALSE' then
         return false
     end
-    return nil
+    return value
 end
 
 local subscribe_commands = {
@@ -264,7 +265,6 @@ local redis_commands = {
     brpoplpush  = { cmd = "BRPOPLPUSH"  },  -- >= 2.2
     bgrewriteaof= { cmd = "BGREWRITEAOF"},
     zscan       = { cmd = "ZSCAN"       },  -- >= 2.8
-    zrange      = { cmd = "ZRANGE",     },
     zrevrange   = { cmd = "ZREVRANGE"   },
     zrangebyscore   = { cmd = "ZRANGEBYSCORE"       },
     zrevrangebyscore= { cmd = "ZREVRANGEBYSCORE"    },  -- >= 2.2
@@ -290,6 +290,7 @@ local redis_commands = {
     hsetnx          = { cmd = "HSETNX",         convertor = _toboolean  },  -- >= 2.0
     hexists         = { cmd = "HEXISTS",        convertor = _toboolean  },  -- >= 2.0
     msetnx          = { cmd = "MSETNX",         convertor = _toboolean  },
+    zrange          = { cmd = "ZRANGE",         convertor = _tomap      },
     hgetall         = { cmd = "HGETALL",        convertor = _tomap      },  -- >= 2.0
     config          = { cmd = "CONFIG",         convertor = _tomap      },  -- >= 2.0
     keys            = { cmd = "KEYS",           convertor = _tokeys     },
