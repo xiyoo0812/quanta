@@ -18,8 +18,8 @@ if quanta.index == 1 then
         log_info("on_post: %s, %s, %s", path, body, serialize(headers))
         return data
     end
-    local on_get = function(path, headers)
-        log_info("on_get: %s, %s", path, serialize(headers))
+    local on_get = function(path, query, headers)
+        log_info("on_get: %s, %s, %s", path, serialize(query), serialize(headers))
         return data
     end
     local HttpServer = import("kernel/network/http_server.lua")
