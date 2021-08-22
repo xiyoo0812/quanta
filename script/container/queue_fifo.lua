@@ -24,8 +24,8 @@ function QueueFIFO:empty()
     return self.tail + 1 == self.head
 end
 
-function QueueFIFO:peek(size)
-    local index = self.head - 1 + size
+function QueueFIFO:peek(pos)
+    local index = self.head - 1 + pos
     if index > self.tail then
         return false
     end
@@ -40,64 +40,11 @@ end
 function QueueFIFO:pop()
     local head, tail = self.head, self.tail
     if head > tail then
-        self:clear()
         return
     end
     local value = self.datas[head]
     self.datas[head] = nil
     self.head = head + 1
-    return value
-end
-
-function QueueFIFO:insert(pos, value)
-    local head, tail = self.head, self.tail
-    if pos <= 0 or head + pos > tail + 2 then
-        log_err("[QueueFIFO][insert]bad index to insert")
-        return false
-    end
-    local realp = head + pos - 1
-    if realp <= (head + tail) / 2 then
-        for i = head, realp do
-            self.data[i- 1] = self.data[i]
-        end
-        self.data[realp- 1] = value
-        self.head = head - 1
-    else
-        for i = tail, realp, -1 do
-            self.data[i+ 1] = self.data[i]
-        end
-        self.data[realp] = value
-        self.tail = tail + 1
-    end
-    return true
-end
-
-function QueueFIFO:remove(pos)
-    local head, tail = self.head, self.tail
-    if pos <= 0 then
-        log_err("[QueueFIFO][insert]bad index to remove")
-        return
-    end
-    if head + pos - 1 > tail then
-        return
-    end
-    local realp = head + pos - 1
-    local value = self.data[realp]
-    if self:size() == 1 then
-        self:clear()
-        return value
-    end
-    if realp <= (head + tail) / 2 then
-        for i = realp, head, -1 do
-            self.data[i] = self.data[i - 1]
-        end
-        self.head = head + 1
-    else
-        for i = realp, tail do
-            self.data[i] = self.data[i + 1]
-        end
-        self.tail = tail - 1
-    end
     return value
 end
 
