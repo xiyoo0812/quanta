@@ -57,30 +57,6 @@ function HttpServer:on_socket_close(socket, fd)
     end
 end
 
-function HttpServer:process_query(headers, query_str)
-    if #query_str > 0 then
-        local fmt_querys = ssplit(query_str, "&")
-        for _, fmtq in pairs(fmt_querys) do
-            local query = ssplit(fmtq, "=")
-            if #query == 2 then
-                headers[query[1]] = query[2]
-            end
-        end
-    end
-end
-
-function HttpServer:process_params(request)
-    local method = request:method()
-    local headers = request:headers()
-    local target = request:target()
-    local url_info = ssplit(target, "?")
-    if #url_info == 2 then
-        self:process_query(headers, url_info[2])
-        return method, url_info[1], headers
-    end
-    return method, target, headers
-end
-
 function HttpServer:on_socket_accept(socket, fd)
     log_debug("[HttpServer][on_socket_accept] client(fd:%s) connected!", fd)
     self.clients[fd] = socket
@@ -108,10 +84,13 @@ function HttpServer:on_socket_recv(socket, fd)
         self:response(socket, request, "this http request parse error!")
         return
     end
-    local method, url, headers = self:process_params(request)
+    local url = request:url()
+    local method = request:method()
+    local headers = request:headers()
     if self.get_handler and method == "GET" then
         thread_mgr:fork(function()
-            local http_res = self.get_handler(url, headers)
+            local querys = request:querys()
+            local http_res = self.get_handler(url, querys, headers)
             self:response(socket, request, http_res)
         end)
         return
@@ -129,7 +108,8 @@ function HttpServer:on_socket_recv(socket, fd)
         log_info("on_put: %s, %s, %s", url, body, serialize(headers))
     end
     if method == "DELETE" then
-        log_info("on_del: %s, %s", url, serialize(headers))
+        local querys = request:querys()
+        log_info("on_del: %s, %s, %s", url, serialize(querys), serialize(headers))
     end
     log_info("[HttpServer][on_socket_recv] http request no process, close client(fd:%s)!", fd)
     self:response(socket, request, "this http request has not match!")

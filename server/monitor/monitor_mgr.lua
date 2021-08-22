@@ -50,8 +50,8 @@ function MonitorMgr:__init()
     local function monitor_post(path, body, headers)
         return self:on_monitor_post(path, body, headers)
     end
-    local function monitor_get(path, headers)
-        return self:on_monitor_get(path, headers)
+    local function monitor_get(path, querys, headers)
+        return self:on_monitor_get(path, querys, headers)
     end
     self.http_server:setup(env_get("QUANTA_MONITOR_HTTP"), monitor_post, monitor_get)
 
@@ -188,8 +188,8 @@ function MonitorMgr:on_monitor_post(path, body, headers)
 end
 
 --http get 回调
-function MonitorMgr:on_monitor_get(path, headers)
-    log_debug("[MonitorMgr][on_monitor_get]: %s, %s", path, headers)
+function MonitorMgr:on_monitor_get(path, querys, headers)
+    log_debug("[MonitorMgr][on_monitor_get]: %s, %s, %s", path, querys, headers)
     return {code = 1, msg = "path not exist!"}
 end
 

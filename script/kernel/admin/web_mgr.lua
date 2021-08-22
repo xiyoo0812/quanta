@@ -26,8 +26,8 @@ function WebMgr:__init()
     local function web_post(path, body, headers)
         return self:on_web_post(path, body, headers)
     end
-    local function web_get(path, headers)
-        return self:on_web_get(path, headers)
+    local function web_get(path, querys, headers)
+        return self:on_web_get(path, querys, headers)
     end
     self.http_server:setup(env_get("QUANTA_WEBHTTP_ADDR"), web_post, web_get)
     --初始化网页后台地址
@@ -77,15 +77,15 @@ function WebMgr:on_web_post(path, body, headers)
 end
 
 --http get 回调
-function WebMgr:on_web_get(path, headers)
-    log_debug("[WebMgr][on_web_get]: %s, %s", path, headers)
+function WebMgr:on_web_get(path, querys, headers)
+    log_debug("[WebMgr][on_web_get]: %s, %s", path, querys, headers)
     local handler_info = self.get_handlers[path]
     if not handler_info then
         log_err("[WebMgr:on_web_get] path %s not exist", path)
         return {code = 1, msg = "path not exist!"}
     end
     local target, handler = tunpack(handler_info)
-    local ok, res = pcall(target[handler], target, headers)
+    local ok, res = pcall(target[handler], target, querys, headers)
     if not ok then
         log_err("[WebMgr:on_web_get] exec path %s err: %s", path, res)
         return {code = 1, msg = res}
