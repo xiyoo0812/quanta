@@ -75,7 +75,7 @@ function UpdateMgr:update(now_ms, count)
         end
         --gc更新
         if clock_mgr:check(self.gc_id, now_ms) then
-            collectgarbage("step")
+            collectgarbage("step", 1)
         end
         --热更新
         if clock_mgr:check(self.reload_id, now_ms) then

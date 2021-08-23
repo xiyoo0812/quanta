@@ -63,7 +63,6 @@ log_info("md5: %s", md5)
 
 --hmac_sha
 local key = "1235456"
-local value = "123456779"
 local hmac_sha1 = lhex_encode(lhmac_sha1(key, value))
 log_info("hmac_sha1: %s", hmac_sha1)
 local hmac_sha224 = lhex_encode(lhmac_sha224(key, value))

@@ -1,5 +1,4 @@
 --queue_fifo.lua
-local log_err = logger.err
 
 local QueueFIFO = class()
 local prop = property(QueueFIFO)
