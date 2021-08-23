@@ -14,6 +14,12 @@ local lsha256       = lcrypt.sha256
 local lsha384       = lcrypt.sha384
 local lsha512       = lcrypt.sha512
 
+local lhmac_sha1    = lcrypt.hmac_sha1
+local lhmac_sha224  = lcrypt.hmac_sha224
+local lhmac_sha256  = lcrypt.hmac_sha256
+local lhmac_sha384  = lcrypt.hmac_sha384
+local lhmac_sha512  = lcrypt.hmac_sha512
+
 --guid
 ----------------------------------------------------------------
 local guid = lcrypt.guid_new(5, 512)
@@ -54,3 +60,17 @@ log_info("sha512: %s", sha512)
 local md5 = lhex_encode(lmd5(value))
 log_info("md5: %s", md5)
 
+
+--hmac_sha
+local key = "1235456"
+local value = "123456779"
+local hmac_sha1 = lhex_encode(lhmac_sha1(key, value))
+log_info("hmac_sha1: %s", hmac_sha1)
+local hmac_sha224 = lhex_encode(lhmac_sha224(key, value))
+log_info("hmac_sha224: %s", hmac_sha224)
+local hmac_sha256 = lhex_encode(lhmac_sha256(key, value))
+log_info("hmac_sha256: %s", hmac_sha256)
+local hmac_sha384 = lhex_encode(lhmac_sha384(key, value))
+log_info("hmac_sha384: %s", hmac_sha384)
+local hmac_sha512 = lhex_encode(lhmac_sha512(key, value))
+log_info("hmac_sha512: %s", hmac_sha512)
