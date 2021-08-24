@@ -17,6 +17,7 @@ if not quanta.init_flag then
         quanta.init()
         --初始化test
         --[[
+        import("test/buffer_test.lua")
         import("test/etcd_test.lua")
         import("test/json_test.lua")
         import("test/pack_test.lua")
@@ -31,7 +32,7 @@ if not quanta.init_flag then
         import("test/mysql_test.lua")
         import("test/redis_test.lua")
         ]]
-        import("test/crypt_test.lua")
+        import("test/buffer_test.lua")
         log_info("test %d now startup!", quanta.id)
     end
     qxpcall_quit(startup, "quanta startup error: %s")

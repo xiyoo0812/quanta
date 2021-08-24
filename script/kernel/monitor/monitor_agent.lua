@@ -7,7 +7,6 @@ local env_addr      = environ.addr
 local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
-local serialize     = logger.serialize
 local check_success = utility.check_success
 local check_failed  = utility.check_failed
 
@@ -107,7 +106,7 @@ function MonitorAgent:on_remote_message(data, message)
     end
     local ok, code, res = tunpack(event_mgr:notify_listener(message, data))
     if not ok or check_failed(code) then
-        log_err("[MonitorAgent][on_remote_message] web_rpc faild: ok=%s, ec=%s", serialize(ok), code)
+        log_err("[MonitorAgent][on_remote_message] web_rpc faild: ok=%s, ec=%s", ok, code)
         return { code = ok and code or KernCode.RPC_FAILED, msg = ok and "" or code}
     end
     return { code = 0 , data = res}

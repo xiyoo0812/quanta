@@ -7,7 +7,6 @@ local type          = type
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
-local serialize     = logger.serialize
 local json_encode   = ljson.encode
 local tunpack       = table.unpack
 local ssplit        = string_ext.split
@@ -105,11 +104,11 @@ function HttpServer:on_socket_recv(socket, fd)
     end
     if method == "PUT" then
         local body = request:body()
-        log_info("on_put: %s, %s, %s", url, body, serialize(headers))
+        log_debug("on_put: %s, %s, %s", url, body, headers)
     end
     if method == "DELETE" then
         local querys = request:querys()
-        log_info("on_del: %s, %s, %s", url, serialize(querys), serialize(headers))
+        log_debug("on_del: %s, %s, %s", url, querys, headers)
     end
     log_info("[HttpServer][on_socket_recv] http request no process, close client(fd:%s)!", fd)
     self:response(socket, request, "this http request has not match!")

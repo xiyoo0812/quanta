@@ -4,7 +4,6 @@ local otime         = os.time
 local log_debug     = logger.debug
 local tinsert       = table.insert
 local ssplit        = string_ext.split
-local serialize     = logger.serialize
 
 local event_mgr     = quanta.get("event_mgr")
 local timer_mgr     = quanta.get("timer_mgr")
@@ -54,7 +53,7 @@ function NetlogMgr:on_log_output(log_context)
 end
 
 function NetlogMgr:rpc_query_log(data)
-    log_debug("[NetlogMgr][rpc_query_log]->data:%s", serialize(data))
+    log_debug("[NetlogMgr][rpc_query_log]->data:%s", data)
     local session_id, context = data.session_id, data.context
     if not session_id then
         return { code = 1, msg= "param errror!" }
@@ -98,7 +97,7 @@ function NetlogMgr:rpc_pull_log(data)
 end
 
 function NetlogMgr:rpc_close_log(data)
-    log_debug("[NetlogMgr][rpc_close_log]->data", serialize(data))
+    log_debug("[NetlogMgr][rpc_close_log]->data", data)
     local session_id = data.session_id
     if not session_id then
         return { name = "rpc_close_log", code = 1, msg = "session id empty!" }

@@ -1,4 +1,4 @@
---log_test.lua
+--crypt_test.lua
 local lcrypt    = require("lcrypt")
 
 local log_info      = logger.info

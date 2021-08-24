@@ -64,6 +64,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lcurl", "extend\luaext\lcur
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ltimer", "extend\luaext\ltimer\ltimer.vcxproj", "{6E4BA694-DA12-40AF-9597-E54E12BED096}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lbuffer", "extend\luaext\lbuffer\lbuffer.vcxproj", "{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		ReleaseDebug|x64 = ReleaseDebug|x64
@@ -146,6 +148,10 @@ Global
 		{6E4BA694-DA12-40AF-9597-E54E12BED096}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
 		{6E4BA694-DA12-40AF-9597-E54E12BED096}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
 		{6E4BA694-DA12-40AF-9597-E54E12BED096}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -173,6 +179,7 @@ Global
 		{F582EF81-3D4F-4276-B63A-87863FAA483C} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 		{B57BBE3F-7D7A-4B1C-A3AD-DB69B535C5E4} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 		{6E4BA694-DA12-40AF-9597-E54E12BED096} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
+		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63D02246-6BAD-4132-9325-6DDF29305452}

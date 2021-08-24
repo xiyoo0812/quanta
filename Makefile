@@ -33,6 +33,7 @@ ext:
 	cd extend/luaext/lcjson; make SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
 	cd extend/luaext/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/luaext/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
+	cd extend/luaext/lbuffer; make SOLUTION_DIR=$(CUR_DIR) -f lbuffer.mak;
 	cd extend/luaext/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 
 luna:

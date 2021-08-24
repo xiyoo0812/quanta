@@ -1,29 +1,28 @@
 --logger.lua
 --logger功能支持
-local llog  = require("lualog")
+local llog          = require("lualog")
+local lbuffer       = require("lbuffer")
 
 local pcall         = pcall
-local pairs         = pairs
-local tostring      = tostring
+local ipairs        = ipairs
 local stdout        = io.stdout
 local ssub          = string.sub
 local schar         = string.char
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
-local tinsert       = table.insert
 local tpack         = table.pack
+local tunpack       = table.unpack
 local tconcat       = table.concat
-local tarray        = table_ext.is_array
 local is_filter     = llog.is_filter
+local lserialize    = lbuffer.serialize
 
-local LOG_LEVEL = {
-    DEBUG   = 1,
-    INFO    = 2,
-    WARN    = 3,
-    DUMP    = 4,
-    ERROR   = 5,
-    FATAL   = 6,
-}
+local LOG_LEVEL_DEBUG   = 1
+local LOG_LEVEL_INFO    = 2
+local LOG_LEVEL_WARN    = 3
+local LOG_LEVEL_DUMP    = 4
+local LOG_LEVEL_ERROR   = 5
+local LOG_LEVEL_FATAL   = 6
+--local LOG_LEVEL_OFF     = 100
 
 local log_input         = false
 local log_buffer        = ""
@@ -43,7 +42,8 @@ end
 logger.close = llog.close
 
 function logger.filter(level)
-    for _, lvl in pairs(LOG_LEVEL) do
+    for lvl = LOG_LEVEL_DEBUG, LOG_LEVEL_FATAL do
+        --filter(level, on/off)
         llog.filter(lvl, lvl >= level)
     end
 end
@@ -58,104 +58,56 @@ local function logger_output(method, fmt, ...)
     return method(fmt_log)
 end
 
+local function args_serialize(...)
+    local args = tpack(...)
+    for i, arg in ipairs(args) do
+        if (type(arg) == "table") then
+            args[i] = lserialize(arg)
+        end
+    end
+    return args
+end
+
 function logger.debug(fmt, ...)
-    return logger_output(llog.debug, fmt, ...)
+    if is_filter(LOG_LEVEL_DEBUG) then
+        return
+    end
+    return logger_output(llog.debug, fmt, tunpack(args_serialize(...)))
 end
 
 function logger.info(fmt, ...)
+    if is_filter(LOG_LEVEL_INFO) then
+        return
+    end
     return logger_output(llog.info, fmt, ...)
 end
 
 function logger.warn(fmt, ...)
-    return logger_output(llog.warn, fmt, ...)
+    if is_filter(LOG_LEVEL_WARN) then
+        return
+    end
+    return logger_output(llog.warn, fmt, tunpack(args_serialize(...)))
 end
 
 function logger.dump(fmt, ...)
+    if is_filter(LOG_LEVEL_DUMP) then
+        return
+    end
     return logger_output(llog.dump, fmt, ...)
 end
 
 function logger.err(fmt, ...)
-    return logger_output(llog.error, fmt, ...)
+    if is_filter(LOG_LEVEL_ERROR) then
+        return
+    end
+    return logger_output(llog.error, fmt, tunpack(args_serialize(...)))
 end
 
 function logger.fatal(fmt, ...)
-    return logger_output(llog.fatal, fmt, ...)
-end
-
-function logger.serialize(tab)
-    if is_filter(LOG_LEVEL.DEBUG) then
-        return tab
+    if is_filter(LOG_LEVEL_FATAL) then
+        return
     end
-    local mark = {}
-    local assign = {}
-    local function table2str(t, parent)
-        local ret = {}
-        mark[t] = parent
-        local function array2str()
-            for i, v in pairs(t) do
-                local k = tostring(i)
-                local dotkey = parent .. "[" .. k .. "]"
-                local tpe = type(v)
-                if tpe == "table" then
-                    if mark[v] then
-                        tinsert(assign, dotkey .. "=" .. mark[v])
-                    else
-                        tinsert(ret, table2str(v, dotkey))
-                    end
-                elseif tpe == "string" then
-                    tinsert(ret, sformat("%q", v))
-                elseif tpe == "number" then
-                    if v == math.huge then
-                        tinsert(ret, "math.huge")
-                    elseif v == -math.huge then
-                        tinsert(ret, "-math.huge")
-                    else
-                        tinsert(ret, tostring(v))
-                    end
-                else
-                    tinsert(ret, tostring(v))
-                end
-            end
-        end
-        local function map2str()
-            for f, v in pairs(t) do
-                local k = type(f) == "number" and "[" .. f .. "]" or f
-                local dotkey = parent .. (type(f) == "number" and k or "." .. k)
-                local tpe = type(v)
-                if tpe == "table" then
-                    if mark[v] then
-                        tinsert(assign, dotkey .. "=" .. mark[v])
-                    else
-                        tinsert(ret, sformat("%s=%s", k, table2str(v, dotkey)))
-                    end
-                elseif tpe == "string" then
-                    tinsert(ret, sformat("%s=%q", k, v))
-                elseif tpe == "number" then
-                    if v == math.huge then
-                        tinsert(ret, sformat("%s=%s", k, "math.huge"))
-                    elseif v == -math.huge then
-                        tinsert(ret, sformat("%s=%s", k, "-math.huge"))
-                    else
-                        tinsert(ret, sformat("%s=%s", k, tostring(v)))
-                    end
-                else
-                    tinsert(ret, sformat("%s=%s", k, tostring(v)))
-                end
-            end
-        end
-
-        if tarray(t) then
-            array2str()
-        else
-            map2str()
-        end
-        return "{" .. tconcat(ret,",") .. "}"
-    end
-    if type(tab) == "table" then
-        return sformat("%s%s",  table2str(tab,"_"), tconcat(assign," "))
-    else
-        return tostring(tab)
-    end
+    return logger_output(llog.fatal, fmt, tunpack(args_serialize(...)))
 end
 
 local function exec_command(cmd)

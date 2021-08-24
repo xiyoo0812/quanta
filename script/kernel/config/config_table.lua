@@ -6,7 +6,6 @@ local sformat       = string.format
 local tinsert       = table.insert
 local tconcat       = table.concat
 local log_err       = logger.err
-local serialize     = logger.serialize
 
 local TABLE_MAX_INDEX = 3
 
@@ -48,7 +47,7 @@ function ConfigTable:upsert(row)
         tinsert(row_indexs, row[index])
     end
     if #row_indexs ~= #self.indexs then
-        log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", serialize(row), serialize(self.indexs))
+        log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", row, self.indexs)
         return
     end
     local row_index = tconcat(row_indexs, "@@")
