@@ -21,6 +21,7 @@ local t = {
     e = true,
     g = m,
 }
+log_debug("test k=%s, v=%s", k, v)
 
 local ss = lserialize(t)
 log_debug("serialize-> aaa: %s", ss)
@@ -30,10 +31,8 @@ for k, v in pairs(tt) do
 end
 
 --encode
-local a = 1
-local b = 2
-local c = 4
-local es = lencode(a, b, c, 5)
-log_debug("encode-> aa: %s, %d", lhex_encode(es), #es)
-local da, db, dc, dd = ldecode(es)
-log_debug("decode-> %s, %s, %s, %s", da, db, dc, dd)
+local a = {a = 1, c = {a = 2}}
+local es = lencode(a)
+log_debug("encode-> aa: %d, %s", #es, lhex_encode(es))
+local da = ldecode(es)
+log_debug("decode-> %s", da)

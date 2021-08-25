@@ -13,6 +13,13 @@ local dgetinfo      = debug.getinfo
 local tpack         = table.pack
 local tunpack       = table.unpack
 local tconcat       = table.concat
+local linfo         = llog.info
+local lwarn         = llog.warn
+local ldump         = llog.dump
+local ldebug        = llog.debug
+local lerror        = llog.error
+local lfatal        = llog.fatal
+local lfilter       = llog.filter
 local is_filter     = llog.is_filter
 local lserialize    = lbuffer.serialize
 
@@ -43,71 +50,46 @@ logger.close = llog.close
 
 function logger.filter(level)
     for lvl = LOG_LEVEL_DEBUG, LOG_LEVEL_FATAL do
-        --filter(level, on/off)
-        llog.filter(lvl, lvl >= level)
+        --llog.filter(level, on/off)
+        lfilter(lvl, lvl >= level)
     end
 end
 
-local function logger_output(method, fmt, ...)
-    local ok, fmt_log = pcall(sformat, fmt, ...)
-    if not ok then
-        local info = dgetinfo(2, "S")
-        llog.warn(sformat("[logger][output] format failed: %s, source(%s:%s)", fmt_log, info.short_src, info.linedefined))
-        return false
-    end
-    return method(fmt_log)
-end
-
-local function args_serialize(...)
-    local args = tpack(...)
-    for i, arg in ipairs(args) do
-        if (type(arg) == "table") then
-            args[i] = lserialize(arg)
+local function logger_output(method, fmt, extend, ...)
+    if extend then
+        local args = tpack(...)
+        for i, arg in ipairs(args) do
+            if (type(arg) == "table") then
+                args[i] = lserialize(arg)
+            end
         end
+        return method(sformat(fmt, tunpack(args, 1, args.n)))
     end
-    return args
+    return method(sformat(fmt, ...))
 end
 
-function logger.debug(fmt, ...)
-    if is_filter(LOG_LEVEL_DEBUG) then
-        return
+local LOG_LEVEL_METHOD = {
+    [LOG_LEVEL_INFO]    = { "info",  linfo,  false },
+    [LOG_LEVEL_WARN]    = { "warn",  lwarn,  true },
+    [LOG_LEVEL_DUMP]    = { "dump",  ldump,  true },
+    [LOG_LEVEL_DEBUG]   = { "debug", ldebug, true },
+    [LOG_LEVEL_ERROR]   = { "err",   lerror, true },
+    [LOG_LEVEL_FATAL]   = { "fatal", lfatal, true }
+}
+for lvl, conf in pairs(LOG_LEVEL_METHOD) do
+    local name, method, extend = tunpack(conf)
+    logger[name] = function(fmt, ...)
+        if is_filter(lvl) then
+            return false
+        end
+        local ok, res = pcall(logger_output, method, fmt, extend, ...)
+        if not ok then
+            local info = dgetinfo(2, "S")
+            lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", name, res, info.short_src, info.linedefined))
+            return false
+        end
+        return res
     end
-    return logger_output(llog.debug, fmt, tunpack(args_serialize(...)))
-end
-
-function logger.info(fmt, ...)
-    if is_filter(LOG_LEVEL_INFO) then
-        return
-    end
-    return logger_output(llog.info, fmt, ...)
-end
-
-function logger.warn(fmt, ...)
-    if is_filter(LOG_LEVEL_WARN) then
-        return
-    end
-    return logger_output(llog.warn, fmt, tunpack(args_serialize(...)))
-end
-
-function logger.dump(fmt, ...)
-    if is_filter(LOG_LEVEL_DUMP) then
-        return
-    end
-    return logger_output(llog.dump, fmt, ...)
-end
-
-function logger.err(fmt, ...)
-    if is_filter(LOG_LEVEL_ERROR) then
-        return
-    end
-    return logger_output(llog.error, fmt, tunpack(args_serialize(...)))
-end
-
-function logger.fatal(fmt, ...)
-    if is_filter(LOG_LEVEL_FATAL) then
-        return
-    end
-    return logger_output(llog.fatal, fmt, tunpack(args_serialize(...)))
 end
 
 local function exec_command(cmd)
