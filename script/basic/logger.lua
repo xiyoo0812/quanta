@@ -55,12 +55,12 @@ function logger.filter(level)
     end
 end
 
-local function logger_output(method, fmt, extend, ...)
+local function logger_output(method, fmt, extend, swline, ...)
     if extend then
         local args = tpack(...)
         for i, arg in ipairs(args) do
             if (type(arg) == "table") then
-                args[i] = lserialize(arg)
+                args[i] = lserialize(arg, swline and 1 or 0)
             end
         end
         return method(sformat(fmt, tunpack(args, 1, args.n)))
@@ -69,20 +69,20 @@ local function logger_output(method, fmt, extend, ...)
 end
 
 local LOG_LEVEL_METHOD = {
-    [LOG_LEVEL_INFO]    = { "info",  linfo,  false },
-    [LOG_LEVEL_WARN]    = { "warn",  lwarn,  true },
-    [LOG_LEVEL_DUMP]    = { "dump",  ldump,  true },
-    [LOG_LEVEL_DEBUG]   = { "debug", ldebug, true },
-    [LOG_LEVEL_ERROR]   = { "err",   lerror, true },
-    [LOG_LEVEL_FATAL]   = { "fatal", lfatal, true }
+    [LOG_LEVEL_INFO]    = { "info",  linfo,  false, false  },
+    [LOG_LEVEL_WARN]    = { "warn",  lwarn,  true,  false  },
+    [LOG_LEVEL_DUMP]    = { "dump",  ldump,  true,  true },
+    [LOG_LEVEL_DEBUG]   = { "debug", ldebug, true,  false },
+    [LOG_LEVEL_ERROR]   = { "err",   lerror, true,  false  },
+    [LOG_LEVEL_FATAL]   = { "fatal", lfatal, true,  false  }
 }
 for lvl, conf in pairs(LOG_LEVEL_METHOD) do
-    local name, method, extend = tunpack(conf)
+    local name, method, extend, swline = tunpack(conf)
     logger[name] = function(fmt, ...)
         if is_filter(lvl) then
             return false
         end
-        local ok, res = pcall(logger_output, method, fmt, extend, ...)
+        local ok, res = pcall(logger_output, method, fmt, extend, swline, ...)
         if not ok then
             local info = dgetinfo(2, "S")
             lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", name, res, info.short_src, info.linedefined))

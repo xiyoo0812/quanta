@@ -3,6 +3,7 @@ local lbuffer       = require("lbuffer")
 local lcrypt        = require("lcrypt")
 
 local log_debug     = logger.debug
+local log_dump      = logger.dump
 local lhex_encode   = lcrypt.hex_encode
 local lencode       = lbuffer.encode
 local ldecode       = lbuffer.decode
@@ -36,3 +37,6 @@ local es = lencode(a)
 log_debug("encode-> aa: %d, %s", #es, lhex_encode(es))
 local da = ldecode(es)
 log_debug("decode-> %s", da)
+
+--dump
+log_dump("dump-> a: %s", t)
