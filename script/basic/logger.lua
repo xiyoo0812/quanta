@@ -42,7 +42,7 @@ function logger.init(max_line)
     llog.init(log_path, log_name, 0, max_line or 100000, log_daemon)
     logger.filter(environ.number("QUANTA_LOG_LVL"))
     if log_daemon then
-        quanta.daemon(1, 1)
+        quanta.daemon()
     end
 end
 
