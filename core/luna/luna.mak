@@ -19,7 +19,7 @@ MYLDFLAGS =
 MYLIBS =
 
 #mimalloc dir
-MIMALLOCDIR = ../../extend
+MIMALLOC_DIR = ../../extend
 
 #源文件路径
 #SRC_DIR=

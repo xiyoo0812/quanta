@@ -19,7 +19,7 @@ MYCFLAGS = -fpermissive -I../../extend/luaext/lua/lua -I../luna/src -Wno-unused-
 MYLIBS = -llua -lluna -lpthread -lcurl
 
 #mimalloc dir
-MIMALLOCDIR = ../../extend
+MIMALLOC_DIR = ../../extend
 
 #源文件路径
 #SRC_DIR=
