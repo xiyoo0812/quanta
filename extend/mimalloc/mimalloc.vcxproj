@@ -13,8 +13,6 @@
   <ItemGroup>
     <ClInclude Include="mimalloc\include\mimalloc-atomic.h" />
     <ClInclude Include="mimalloc\include\mimalloc-internal.h" />
-    <ClInclude Include="mimalloc\include\mimalloc-new-delete.h" />
-    <ClInclude Include="mimalloc\include\mimalloc-override.h" />
     <ClInclude Include="mimalloc\include\mimalloc-types.h" />
     <ClInclude Include="mimalloc\include\mimalloc.h" />
     <ClInclude Include="mimalloc\src\bitmap.h" />

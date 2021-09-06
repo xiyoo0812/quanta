@@ -18,12 +18,6 @@
     <ClInclude Include="mimalloc\include\mimalloc-internal.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="mimalloc\include\mimalloc-new-delete.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="mimalloc\include\mimalloc-override.h">
-      <Filter>inc</Filter>
-    </ClInclude>
     <ClInclude Include="mimalloc\include\mimalloc-types.h">
       <Filter>inc</Filter>
     </ClInclude>

@@ -66,6 +66,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ltimer", "extend\luaext\lti
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lbuffer", "extend\luaext\lbuffer\lbuffer.vcxproj", "{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "share", "share", "{9E751922-A092-4CEE-A245-58975B355E33}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mimalloc", "extend\mimalloc\mimalloc.vcxproj", "{91015BA1-5926-4D20-BD3F-DAB9C0BB4CB0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		ReleaseDebug|x64 = ReleaseDebug|x64
@@ -152,6 +156,10 @@ Global
 		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
 		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
 		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
+		{91015BA1-5926-4D20-BD3F-DAB9C0BB4CB0}.ReleaseDebug|x64.ActiveCfg = ReleaseDebug|x64
+		{91015BA1-5926-4D20-BD3F-DAB9C0BB4CB0}.ReleaseDebug|x64.Build.0 = ReleaseDebug|x64
+		{91015BA1-5926-4D20-BD3F-DAB9C0BB4CB0}.ReleaseDebug|x86.ActiveCfg = ReleaseDebug|Win32
+		{91015BA1-5926-4D20-BD3F-DAB9C0BB4CB0}.ReleaseDebug|x86.Build.0 = ReleaseDebug|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -180,6 +188,8 @@ Global
 		{B57BBE3F-7D7A-4B1C-A3AD-DB69B535C5E4} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 		{6E4BA694-DA12-40AF-9597-E54E12BED096} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
 		{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C} = {76CCF6B8-BEC6-4AC9-A287-7BF2440030AC}
+		{9E751922-A092-4CEE-A245-58975B355E33} = {1D4D6BAB-BDCA-48C7-B032-575D40D1D349}
+		{91015BA1-5926-4D20-BD3F-DAB9C0BB4CB0} = {9E751922-A092-4CEE-A245-58975B355E33}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {63D02246-6BAD-4132-9325-6DDF29305452}

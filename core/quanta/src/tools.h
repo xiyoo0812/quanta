@@ -11,7 +11,9 @@
 using int64_t = long long;
 using uint64_t = unsigned long long;
 #define getcwd _getcwd
+#ifndef strdup
 #define strdup _strdup
+#endif
 #define tzset _tzset
 #endif
 
