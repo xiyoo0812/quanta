@@ -18,6 +18,9 @@ MYCFLAGS = -I../../extend/luaext/lua/lua -I../luna/src -Wno-unused-parameter -Wn
 #share.mak包含了一些链接选项，在这里可以添加新的选项和lib目录
 MYLDFLAGS = 
 
+#mimalloc dir
+MIMALLOCDIR = ../../extend
+
 #share.mak包含了一些公用的库,这里加上其他所需的库
 MYLIBS =
 

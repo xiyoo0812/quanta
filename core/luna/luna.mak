@@ -18,6 +18,9 @@ MYLDFLAGS =
 #share.mak包含了一些公用的库,这里加上其他所需的库
 MYLIBS =
 
+#mimalloc dir
+MIMALLOCDIR = ../../extend
+
 #源文件路径
 #SRC_DIR=
 
