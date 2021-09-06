@@ -6,19 +6,23 @@ empty:
 
 CUR_DIR = $(shell pwd)/
 
-.PHONY: clean lua luna ext luabus quanta
+.PHONY: clean share lua ext quanta
 
-all: clean lua luna ext luabus quanta
+all: clean share lua ext quanta
 
-proj: lua luna ext luabus quanta
+proj: share lua ext quanta
 
 clean:
 	rm -rf temp;
+
+share:
+	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
 
 lua:
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
+	cd core/luna; make SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
 
 ext:
 	cd extend/luaext/lfs; make SOLUTION_DIR=$(CUR_DIR) -f lfs.mak;
@@ -36,11 +40,6 @@ ext:
 	cd extend/luaext/lbuffer; make SOLUTION_DIR=$(CUR_DIR) -f lbuffer.mak;
 	cd extend/luaext/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 
-luna:
-	cd core/luna; make SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
-
-luabus:
-	cd core/luabus; make SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
-
 quanta:
+	cd core/luabus; make SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
 	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;

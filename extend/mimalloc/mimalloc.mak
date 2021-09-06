@@ -28,14 +28,14 @@ SRC_DIR = mimalloc/src
 #ALL_OBJS=
 
 #需要排除的源文件
-#EXCLUDE_FILE=
+EXCLUDE_FILE=$(SRC_DIR)/page-queue.c $(SRC_DIR)/static.c $(SRC_DIR)/alloc-override.c $(SRC_DIR)/alloc-override-osx.c
 
 #伪目标
 .PHONY: clean all target pre_build post_build
 all : pre_build target post_build
 
 #通用规则
-include ../share.mak
+include ../luaext/share.mak
 
 #预编译
 pre_build:
