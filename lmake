@@ -1,0 +1,7 @@
+--lmake
+
+--工程名
+SOLUTION = "quanta"
+
+--lmake目录
+LMAKE_DIR = "../lmake"

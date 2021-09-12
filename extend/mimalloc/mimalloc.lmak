@@ -1,0 +1,71 @@
+--工程名字
+PROJECT_NAME = "mimalloc"
+
+--目标名字
+TARGET_NAME = "mimalloc"
+
+--工程类型：static/dynamic/exe
+PROJECT_TYPE = "dynamic"
+
+--标准库版本
+---std=gnu99/-std=c++11/-std=c++14
+STDC = "-std=gnu99"
+
+--需要的FLAGS
+FLAGS = {
+	"Wno-sign-compare"
+}
+
+--需要的include目录
+INCLUDES = {
+	"mimalloc/include"
+}
+
+--目标文件前缀
+--LIB_PREFIX = 1
+
+--LINUX需要定义的选项
+LINUX_DEFINES = {
+	"MI_SHARED_LIB", "MI_SHARED_LIB_EXPORT", "MI_MALLOC_OVERRIDE"
+}
+
+--DARWIN需要定义的选项
+DARWIN_DEFINES = {
+	"MI_SHARED_LIB", "MI_SHARED_LIB_EXPORT", "MI_MALLOC_OVERRIDE"
+}
+
+--WIN32需要定义的选项
+WIN32_DEFINES = {
+	"MI_SHARED_LIB", "MI_SHARED_LIB_EXPORT", "MI_MALLOC_OVERRIDE"
+}
+
+--需要附件link库目录
+LIBRARY_DIR = {
+}
+
+--源文件路径
+SRC_DIR = "mimalloc/src"
+
+--子目录路径
+SUB_DIR = {
+}
+
+--需要排除的源文件,目录基于$(SRC_DIR)
+EXCLUDE_FILE={
+	"page-queue.c", "static.c", "alloc-override.c", "alloc-override-osx.c"
+}
+
+--是否启用mimalloc库
+--MIMALLOC_DIR = "../../"
+
+--需要连接的库文件
+LIBS = {
+}
+
+--目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
+OBJS = {
+}
+
+--依赖项目
+DEPS = {
+}

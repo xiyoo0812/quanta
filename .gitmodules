@@ -10,3 +10,6 @@
 [submodule "extend/mimalloc/mimalloc"]
 	path = extend/mimalloc/mimalloc
 	url = https://github.com/microsoft/mimalloc.git
+[submodule "extend/lmake"]
+	path = extend/lmake
+	url = https://github.com/xiyoo0812/lmake.git
