@@ -7,13 +7,12 @@ TARGET_NAME = "luna"
 --工程类型：static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
+--加载基础配置
+require("share.lmak")
+
 --标准库版本
 ---std=gnu99/-std=c++11/-std=c++14
 STDC = "-std=c++11"
-
---需要的FLAGS
-FLAGS = {
-}
 
 --需要的include目录
 INCLUDES = {
@@ -23,43 +22,9 @@ INCLUDES = {
 --目标文件前缀
 LIB_PREFIX = 1
 
---LINUX需要定义的选项
-LINUX_DEFINES = {
-}
-
---DARWIN需要定义的选项
-DARWIN_DEFINES = {
-}
-
---WIN32需要定义的选项
-WIN32_DEFINES = {
-}
-
---需要附件link库目录
-LIBRARY_DIR = {
-}
-
---源文件路径
---SRC_DIR = "./src"
-
---子目录路径
-SUB_DIR = {
-}
-
---需要排除的源文件,目录基于$(SRC_DIR)
-EXCLUDE_FILE={
-}
-
---是否启用mimalloc库
---MIMALLOC_DIR = "../../extend"
-
 --需要连接的库文件
 LIBS = {
 	"lua"
-}
-
---目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
-OBJS = {
 }
 
 --依赖项目

@@ -4,4 +4,4 @@
 SOLUTION = "quanta"
 
 --lmake目录
-LMAKE_DIR = "../lmake"
+LMAKE_DIR = "entend/lmake"
