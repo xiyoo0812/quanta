@@ -7,9 +7,6 @@ TARGET_NAME = "quanta"
 --工程类型：static/dynamic/exe
 PROJECT_TYPE = "exe"
 
---加载基础配置
-require("share.lmak")
-
 --标准库版本
 ---std=gnu99/-std=c++11/-std=c++14
 STDC = "-std=c++11"
@@ -41,3 +38,6 @@ DEPS = {
 	"lualib",
 	"luabus"
 }
+
+--分组定义
+GROUP = "core"

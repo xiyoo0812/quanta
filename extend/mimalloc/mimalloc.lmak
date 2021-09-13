@@ -7,9 +7,6 @@ TARGET_NAME = "mimalloc"
 --工程类型：static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
---加载基础配置
-require("share.lmak")
-
 --需要的FLAGS
 FLAGS = {
 	"Wno-sign-compare"

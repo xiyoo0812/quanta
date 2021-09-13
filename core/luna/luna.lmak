@@ -7,9 +7,6 @@ TARGET_NAME = "luna"
 --工程类型：static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
---加载基础配置
-require("share.lmak")
-
 --标准库版本
 ---std=gnu99/-std=c++11/-std=c++14
 STDC = "-std=c++11"
@@ -31,3 +28,6 @@ LIBS = {
 DEPS = {
 	"lualib"
 }
+
+--分组定义
+GROUP = "core"
