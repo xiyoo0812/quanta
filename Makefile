@@ -20,10 +20,6 @@ lua:
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 
 
-share:
-	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
-
-
 core:
 	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 	cd core/luna; make SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
@@ -45,6 +41,10 @@ luaext:
 	cd extend/luaext/lcrypt; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
 	cd extend/luaext/lcjson; make SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
 	cd extend/luaext/lcurl; make SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
+
+
+share:
+	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
 
 
 
