@@ -39,6 +39,10 @@ SRC_DIR = mimalloc/src
 
 #需要排除的源文件,目录基于$(SRC_DIR)
 EXCLUDE =
+EXCLUDE += $(SRC_DIR)/page-queue.c
+EXCLUDE += $(SRC_DIR)/static.c
+EXCLUDE += $(SRC_DIR)/alloc-override.c
+EXCLUDE += $(SRC_DIR)/alloc-override-osx.c
 
 #需要连接的库文件
 LIBS =

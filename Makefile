@@ -20,14 +20,14 @@ core:
 	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 
 
+share:
+	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
+
+
 lua:
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
-
-
-share:
-	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
 
 
 luaext:
