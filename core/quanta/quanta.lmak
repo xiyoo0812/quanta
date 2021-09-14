@@ -41,6 +41,7 @@ DARWIN_LIBS = {
 
 --依赖项目
 DEPS = {
+	"luna",
 	"luabus"
 }
 

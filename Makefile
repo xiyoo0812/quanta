@@ -14,16 +14,14 @@ server: share lua luaext core
 clean:
 	rm -rf temp;
 
-lua:
-	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
-	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
-	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
-
-
 core:
-	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 	cd core/luna; make SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
 	cd core/luabus; make SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
+	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
+
+
+share:
+	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
 
 
 luaext:
@@ -43,8 +41,10 @@ luaext:
 	cd extend/luaext/lcurl; make SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
 
 
-share:
-	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
+lua:
+	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
+	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
+	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 
 
 
