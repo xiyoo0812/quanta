@@ -1,39 +1,84 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="src\lua_socket_mgr.cpp" />
-    <ClCompile Include="src\lua_socket_node.cpp" />
-    <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\socket_helper.cpp" />
-    <ClCompile Include="src\socket_listener.cpp" />
-    <ClCompile Include="src\socket_mgr.cpp" />
-    <ClCompile Include="src\socket_mgr_impl.cpp" />
-    <ClCompile Include="src\socket_router.cpp" />
-    <ClCompile Include="src\socket_stream.cpp" />
-    <ClCompile Include="src\stdafx.cpp" />
-    <ClCompile Include="src\tools.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\io_buffer.h" />
-    <ClInclude Include="src\lua_socket_mgr.h" />
-    <ClInclude Include="src\lua_socket_node.h" />
-    <ClInclude Include="src\socket_helper.h" />
-    <ClInclude Include="src\socket_listener.h" />
-    <ClInclude Include="src\socket_mgr.h" />
-    <ClInclude Include="src\socket_mgr_impl.h" />
-    <ClInclude Include="src\socket_router.h" />
-    <ClInclude Include="src\socket_stream.h" />
-    <ClInclude Include="src\tools.h" />
-    <ClInclude Include="src\dx_plugin.h">
-      <Filter>dx_plugin</Filter>
+    <ClInclude Include="src/dx_plugin.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/io_buffer.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/lua_socket_mgr.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/lua_socket_node.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/socket_helper.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/socket_listener.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/socket_mgr.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/socket_mgr_impl.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/socket_router.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/socket_stream.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src/tools.h">
+      <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="src\stdafx.h" />
+    <ClCompile Include="src/lua_socket_mgr.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/lua_socket_node.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/socket_helper.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/socket_listener.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/socket_mgr.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/socket_mgr_impl.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/socket_router.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/socket_stream.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/stdafx.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src/tools.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="dx_plugin">
-      <UniqueIdentifier>{7508778d-52de-485d-90cd-7372bc38beae}</UniqueIdentifier>
+    <CustomBuild Include="src/stdafx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier >{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc">
+      <UniqueIdentifier >{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

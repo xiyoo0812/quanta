@@ -4,12 +4,8 @@ PROJECT_NAME = "luabus"
 --目标名字
 TARGET_NAME = "luabus"
 
---工程类型：static/dynamic/exe
+----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
-
---标准库版本
----std=gnu99/-std=c++11/-std=c++14
-STDC = "-std=c++11"
 
 --需要的FLAGS
 FLAGS = {
@@ -23,6 +19,9 @@ INCLUDES = {
 	"../luna/src",
 	"../../extend/luaext/lua/lua"
 }
+
+--是否启用mimalloc库
+MIMALLOC_DIR = "../../extend/mimalloc/mimalloc/include"
 
 --需要连接的库文件
 LIBS = {

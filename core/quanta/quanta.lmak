@@ -4,12 +4,8 @@ PROJECT_NAME = "quanta"
 --目标名字
 TARGET_NAME = "quanta"
 
---工程类型：static/dynamic/exe
+----工程类型: static/dynamic/exe
 PROJECT_TYPE = "exe"
-
---标准库版本
----std=gnu99/-std=c++11/-std=c++14
-STDC = "-std=c++11"
 
 --需要的FLAGS
 FLAGS = {
@@ -18,6 +14,8 @@ FLAGS = {
 	"Wno-unused-parameter",
 	"Wno-unused-but-set-parameter"
 }
+
+MIMALLOC_DIR = "../../extend/mimalloc/mimalloc/include"
 
 --需要的include目录
 INCLUDES = {
@@ -29,6 +27,15 @@ INCLUDES = {
 LIBS = {
 	"lua",
 	"luna",
+}
+
+--LINUX需要连接的库文件
+LINUX_LIBS = {
+	"pthread"
+}
+
+--DARWIN需要连接的库文件
+DARWIN_LIBS = {
 	"pthread"
 }
 

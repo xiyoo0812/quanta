@@ -1,72 +1,72 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="inc">
-      <UniqueIdentifier>{6b6b5869-65fd-49eb-9092-f25f42189416}</UniqueIdentifier>
-    </Filter>
+    <ClInclude Include="mimalloc/src/bitmap.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="mimalloc/src/alloc-aligned.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/alloc-override-osx.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/alloc-override.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/alloc-posix.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/alloc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/arena.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/bitmap.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/heap.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/init.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/options.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/os.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/page-queue.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/page.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/random.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/region.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/segment.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/static.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mimalloc/src/stats.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
     <Filter Include="src">
-      <UniqueIdentifier>{702cb3b6-7e5f-4efc-9430-114bc475350c}</UniqueIdentifier>
+      <UniqueIdentifier >{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="mimalloc\include\mimalloc.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="mimalloc\include\mimalloc-atomic.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="mimalloc\include\mimalloc-internal.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="mimalloc\include\mimalloc-types.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="mimalloc\src\bitmap.h">
-      <Filter>src</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="mimalloc\src\alloc.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\alloc-aligned.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\alloc-posix.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\arena.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\bitmap.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\heap.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\init.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\options.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\os.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\page.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\random.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\region.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\segment.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\stats.c">
-      <Filter>src</Filter>
-    </ClCompile>
+    <Filter Include="inc">
+      <UniqueIdentifier >{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>
