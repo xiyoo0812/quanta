@@ -82,7 +82,8 @@ LDFLAGS += -install_name $(PROJECT_PREFIX)$(TARGET_NAME).so
 endif
 
 #link添加.so目录
-LDFLAGS += -L$(TARGET_DIR)
+LDFLAGS += -L$(SOLUTION_DIR)bin
+LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 OBJS =
