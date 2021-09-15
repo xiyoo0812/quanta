@@ -41,8 +41,8 @@ WINDOWS_LIBS = {
 	"mimalloc-redirect.lib"
 }
 
---需要附加link库目录
-LIBRARY_DIR = {
+--WINDOWS需要附加link库目录
+WINDOWS_LIBRARY_DIR = {
 	"mimalloc/bin"
 }
 

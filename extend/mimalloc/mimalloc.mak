@@ -36,8 +36,6 @@ MYCFLAGS += -DMI_MALLOC_OVERRIDE
 #LDFLAGS
 LDFLAGS =
 
-#需要附加link库目录
-LDFLAGS += -Lmimalloc/bin
 
 #源文件路径
 SRC_DIR = mimalloc/src
