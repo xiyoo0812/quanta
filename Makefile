@@ -25,11 +25,12 @@ lua:
 	cd extend/luaext/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 
 luaext:
-	cd extend/luaext/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 	cd extend/luaext/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
-	cd extend/luaext/mongo; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
-	cd extend/luaext/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
+	cd extend/luaext/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/luaext/lpeg; make SOLUTION_DIR=$(CUR_DIR) -f lpeg.mak;
+	cd extend/luaext/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
+	cd extend/luaext/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
+	cd extend/luaext/mongo; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
 	cd extend/luaext/pbc; make SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
 	cd extend/luaext/lnet; make SOLUTION_DIR=$(CUR_DIR) -f lnet.mak;
 	cd extend/luaext/lfs; make SOLUTION_DIR=$(CUR_DIR) -f lfs.mak;
