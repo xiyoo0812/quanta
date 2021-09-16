@@ -258,7 +258,7 @@ local function export_config()
         print("output dir not config!")
         output = output
     else
-        input = lappend(output, env_output)
+        output = lappend(output, env_output)
         lmkdir(output)
     end
     local env_version = ogetenv("QUANTA_VERSION")

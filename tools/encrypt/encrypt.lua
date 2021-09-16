@@ -26,7 +26,7 @@ local function encrypt(lua_dir, encrypt_dir)
         if lextension(fname) ~= ".lua" then
             goto continue
         end
-        local luac = lappend(lcurdir(), "luac")
+        local luac = lappend(lcurdir(), "../bin/luac")
         local outfile = lappend(encrypt_dir, fname)
         local luacmd = sformat("%s -o %s %s", luac, outfile, fullname)
         oexec(luacmd)
@@ -34,23 +34,22 @@ local function encrypt(lua_dir, encrypt_dir)
     end
 end
 
-if quanta.platform == "linux" then
-    local input = lcurdir()
-    local output = lcurdir()
-    local env_input = ogetenv("QUANTA_INPUT")
-    if not env_input or #env_input == 0 then
-        print("input dir not config!")
-    else
-        input = lappend(input, env_input)
-    end
-    local env_output = ogetenv("QUANTA_OUTPUT")
-    if not env_output or #env_output == 0 then
-        print("output dir not config!")
-    else
-        input = lappend(output, env_output)
-        lmkdir(output)
-    end
-    encrypt(input, output)
+local input = lcurdir()
+local output = lcurdir()
+local env_input = ogetenv("QUANTA_INPUT")
+if not env_input or #env_input == 0 then
+    print("input dir not config!")
+else
+    input = lappend(input, env_input)
 end
+local env_output = ogetenv("QUANTA_OUTPUT")
+if not env_output or #env_output == 0 then
+    print("output dir not config!")
+else
+    output = lappend(output, env_output)
+    lmkdir(output)
+end
+
+encrypt(input, output)
 
 os.exit()

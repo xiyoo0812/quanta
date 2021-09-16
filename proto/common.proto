@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+package ncmd_cs;
+
+// NID_HEARTBEAT_REQ
+message  heartbeat_req
+{
+    required uint32 serial          = 1;        // 心跳序列号
+    optional uint32 time            = 2;        // 客户端时间
+}
+
+// NID_HEARTBEAT_RES
+message  heartbeat_res
+{
+    required uint32 serial          = 1;        // 心跳序列号
+    optional uint32 time            = 2;        // 服务器时间
+}

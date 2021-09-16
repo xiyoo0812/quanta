@@ -10,57 +10,50 @@ service:set_version(10000)
 
 --导出配置内容
 service:upsert({
+    router_group = {},
     id = 1,
+    index = 0,
     name = 'router',
-    index = 0,
-    router_group = {},
 })
 
 service:upsert({
+    router_group = {},
     id = 2,
+    index = 0,
     name = 'monitor',
-    index = 0,
-    router_group = {},
 })
 
 service:upsert({
+    router_group = {},
     id = 3,
-    name = 'robot',
     index = 0,
-    router_group = {},
+    name = 'robot',
 })
 
 service:upsert({
+    router_group = {1},
     id = 4,
-    name = 'test',
     index = 1,
-    router_group = {1},
-})
-
-service:upsert({
-    id = 4,
     name = 'test',
-    index = 2,
-    router_group = {1},
 })
 
 service:upsert({
+    router_group = {1},
     id = 5,
+    index = 1,
     name = 'dbsvr',
-    index = 1,
-    router_group = {1},
 })
 
 service:upsert({
+    router_group = {1},
     id = 6,
-    name = 'proxy',
     index = 1,
-    router_group = {1},
+    name = 'proxy',
 })
 
 service:upsert({
-    id = 7,
-    name = 'cachesvr',
-    index = 1,
     router_group = {1},
+    id = 7,
+    index = 1,
+    name = 'cachesvr',
 })

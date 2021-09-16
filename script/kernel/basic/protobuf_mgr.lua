@@ -6,11 +6,12 @@ local pairs         = pairs
 local ipairs        = ipairs
 local pcall         = pcall
 local ldir          = lstdfs.dir
+local lappend       = lstdfs.append
+local lfilename     = lstdfs.filename
 local lextension    = lstdfs.extension
 local sfind         = string.find
 local sgsub         = string.gsub
 local supper        = string.upper
-local sformat       = string.format
 local ssplit        = string_ext.split
 local sends_with    = string_ext.ends_with
 local tunpack       = table.unpack
@@ -33,7 +34,7 @@ end
 
 --加载pb文件
 function ProtobufMgr:register_file(proto_dir, proto_file, pb_files)
-    local full_name = sformat("%s%s", proto_dir, proto_file)
+    local full_name = lappend(proto_dir, proto_file)
     if pb_files[full_name] then
         return
     end
@@ -56,12 +57,14 @@ end
 --加载pb文件
 function ProtobufMgr:load_protos()
     local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH", ""), ";")
+    table.insert(proto_paths, "./proto/")
     for _, proto_path in pairs(proto_paths) do
         local pb_files = {}
         local dir_files = ldir(proto_path)
         for _, file in pairs(dir_files) do
             if lextension(file.name) == ".pb" then
-                self:register_file(proto_path, file.name, pb_files)
+                local filename = lfilename(file.name)
+                self:register_file(proto_path, filename, pb_files)
             end
         end
         --注册事件索引

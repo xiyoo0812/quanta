@@ -16,9 +16,9 @@ database:upsert({
     driver = 'mongo',
     db = 'quanta_pub',
     host = '127.0.0.1',
-    port = 27017,
     user = 'root',
     passwd = '123456',
+    port = 27017,
 })
 
 database:upsert({
@@ -28,33 +28,33 @@ database:upsert({
     driver = 'mongo',
     db = 'quanta_rmsg_pub',
     host = '127.0.0.1',
-    port = 27017,
     user = 'root',
     passwd = '123456',
+    port = 27017,
 })
 
 database:upsert({
-    quanta_deploy = 'devlop',
+    quanta_deploy = 'develop',
     group = 1,
     index = 1,
     driver = 'mongo',
     db = 'quanta_dev',
     host = '127.0.0.1',
-    port = 27017,
     user = 'root',
     passwd = '123456',
+    port = 27017,
 })
 
 database:upsert({
-    quanta_deploy = 'devlop',
+    quanta_deploy = 'develop',
     group = 2,
     index = 1,
     driver = 'mongo',
     db = 'quanta_rmsg_dev',
     host = '127.0.0.1',
-    port = 27017,
     user = 'root',
     passwd = '123456',
+    port = 27017,
 })
 
 database:upsert({
@@ -64,9 +64,9 @@ database:upsert({
     driver = 'mongo',
     db = 'quanta_loc',
     host = '9.134.163.87',
-    port = 27017,
     user = 'root',
     passwd = '123456',
+    port = 27017,
 })
 
 database:upsert({
@@ -76,21 +76,21 @@ database:upsert({
     driver = 'mysql',
     db = 'quanta_loc',
     host = '9.134.163.87',
-    port = 3306,
     user = 'root',
     passwd = '123456',
+    port = 3306,
 })
 
 database:upsert({
     quanta_deploy = 'local',
     group = 1,
-    index = 3,
+    index = 2,
     driver = 'redis',
-    db = 1,
+    db = 'quanta_loc',
     host = '9.134.163.87',
-    port = 6380,
     user = 'root',
     passwd = '123456',
+    port = 6380,
 })
 
 database:upsert({
@@ -100,7 +100,7 @@ database:upsert({
     driver = 'mongo',
     db = 'quanta_rmsg_loc',
     host = '127.0.0.1',
-    port = 27017,
     user = 'root',
     passwd = '123456',
+    port = 27017,
 })
