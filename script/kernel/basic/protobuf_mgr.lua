@@ -57,7 +57,6 @@ end
 --加载pb文件
 function ProtobufMgr:load_protos()
     local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH", ""), ";")
-    table.insert(proto_paths, "./proto/")
     for _, proto_path in pairs(proto_paths) do
         local pb_files = {}
         local dir_files = ldir(proto_path)
