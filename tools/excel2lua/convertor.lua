@@ -1,29 +1,27 @@
 --convertor.lua
-local lfs    = require('lfs')
-local lexcel = require('luaxlsx')
+local lstdfs    = require('lstdfs')
+local lexcel    = require('luaxlsx')
 
 local type          = type
 local pairs         = pairs
 local tostring      = tostring
 local iopen         = io.open
 local ogetenv       = os.getenv
-local otime         = os.time
-local ldir          = lfs.dir
-local lmkdir        = lfs.mkdir
-local lcurdir       = lfs.currentdir
-local lattributes   = lfs.attributes
-local ssub          = string.sub
+local ldir          = lstdfs.dir
+local lmkdir        = lstdfs.mkdir
+local lappend       = lstdfs.append
+local lconcat       = lstdfs.concat
+local lfilename     = lstdfs.filename
+local lcurdir       = lstdfs.current_path
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
-local smatch        = string.match
 local tconcat       = table.concat
 local tinsert       = table.insert
 local tunpack       = table.unpack
 local mtointeger    = math.tointeger
 local slower        = string.lower
 
-local slash         = "/"
 local version       = 10000
 
 --设置utf8
@@ -37,7 +35,6 @@ else
     if not locale then
         print("switch utf8 mode failed!")
     end
-    slash = "\\"
 end
 
 local function conv_integer(v)
@@ -108,8 +105,7 @@ end
 --导出到lua
 local function export_records_to_lua(output, title, records)
     local table_name = sformat("%s_cfg", title)
-    local filename = sformat("%s%s%s.lua", output, slash, table_name)
-
+    local filename = lappend(output, lconcat(table_name, ".lua"))
     local export_file = iopen(filename, "w")
     if not export_file then
         print(sformat("open output file %s failed!", filename))
@@ -210,22 +206,20 @@ end
 
 --入口函数
 local function export_excel(input, output)
-    for file in ldir(input) do
-        if file == "." or file == ".." then
-            goto continue
-        end
-        local full_name = input .. slash .. file
-        local attr = lattributes(full_name)
-        if attr.mode == "directory" then
-            local soutput = output .. slash .. file
+    local files = ldir(input)
+    for _, file in pairs(files) do
+        local fullname = file.name
+        if file.type == "directory" then
+            local fname = lfilename(fullname)
+            local soutput = lappend(output, fname)
             lmkdir(soutput)
-            export_excel(full_name, soutput)
+            export_excel(fullname, soutput)
             goto continue
         end
-        if is_excel_file(file) then
-            local workbook = lexcel.open(full_name)
+        if is_excel_file(fullname) then
+            local workbook = lexcel.open(fullname)
             if not workbook then
-                print(sformat("open excel %s failed!", file))
+                print(sformat("open excel %s failed!", fullname))
                 goto continue
             end
             --只导出sheet1
@@ -257,19 +251,19 @@ local function export_config()
         print("input dir not config!")
         input = input
     else
-        input = input .. slash .. env_input
+        input = lappend(input, env_input)
     end
     local env_output = ogetenv("QUANTA_OUTPUT")
     if not env_output or #env_output == 0 then
         print("output dir not config!")
         output = output
     else
-        output = output .. slash .. env_output
+        input = lappend(output, env_output)
         lmkdir(output)
     end
-    local env_output = ogetenv("QUANTA_OUTPUT")
+    local env_version = ogetenv("QUANTA_VERSION")
     if env_version then
-        version = tointeger(env_version)
+        version = conv_integer(env_version)
     end
     return input, output
 end

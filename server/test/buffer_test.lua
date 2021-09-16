@@ -22,7 +22,6 @@ local t = {
     e = true,
     g = m,
 }
-log_debug("test k=%s, v=%s", k, v)
 
 local ss = lserialize(t)
 log_debug("serialize-> aaa: %s", ss)

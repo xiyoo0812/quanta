@@ -20,11 +20,16 @@ exclude_files = {
     "script/luabt/LICENSE",
     "script/luaoop/LICENSE",
     "script/luabt/luaoop/LICENSE",
+    "extend/lmake/share.lua"
 }
 include_files = {
     "script/*",
     "server/*",
     "bin/proto/*.lua",
+    "tools/encrypt/*",
+    "tools/excel2lua/*",
+    "extend/lmake/*.lua",
+    "extend/lmake/ltemplate/*.lua",
 }
 ignore = {"212", "213", "512"}
 

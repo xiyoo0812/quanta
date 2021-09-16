@@ -1,16 +1,18 @@
 --protobuf_mgr.lua
-local lfs       = require('lfs')
-local protobuf  = require("driver.protobuf")
+local lstdfs        = require('lstdfs')
+local protobuf      = require("driver.protobuf")
 
 local pairs         = pairs
 local ipairs        = ipairs
 local pcall         = pcall
-local ldir          = lfs.dir
+local ldir          = lstdfs.dir
+local lextension    = lstdfs.extension
 local sfind         = string.find
 local sgsub         = string.gsub
+local supper        = string.upper
 local sformat       = string.format
-local sends_with    = string_ext.ends_with
 local ssplit        = string_ext.split
+local sends_with    = string_ext.ends_with
 local tunpack       = table.unpack
 local log_err       = logger.err
 local env_get       = environ.get
@@ -18,7 +20,6 @@ local setmetatable  = setmetatable
 local pb_decode     = protobuf.decode
 local pb_encode     = protobuf.encode
 local pb_enum_id    = protobuf.enum_id
-local supper        = string.upper
 
 local ProtobufMgr = singleton()
 local prop = property(ProtobufMgr)
@@ -57,10 +58,10 @@ function ProtobufMgr:load_protos()
     local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH", ""), ";")
     for _, proto_path in pairs(proto_paths) do
         local pb_files = {}
-        for file_name in ldir(proto_path) do
-            local pos = sfind(file_name, ".pb")
-            if pos then
-                self:register_file(proto_path, file_name, pb_files)
+        local dir_files = ldir(proto_path)
+        for _, file in pairs(dir_files) do
+            if lextension(file.name) == ".pb" then
+                self:register_file(proto_path, file.name, pb_files)
             end
         end
         --注册事件索引
