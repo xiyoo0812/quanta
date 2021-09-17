@@ -4,8 +4,6 @@ local lcrypt    = require("lcrypt")
 
 local ipairs    = ipairs
 local ltime     = ltimer.time
-local linsert   = ltimer.insert
-local lupdate   = ltimer.update
 local tpack     = table.pack
 local tunpack   = table.unpack
 local tinsert   = table.insert
@@ -42,21 +40,22 @@ function TimerMgr:trigger(handle, now_ms)
         return
     end
     --继续注册
-    linsert(handle.timer_id, handle.period)
+    ltimer:insert(handle.timer_id, handle.period)
 end
 
 function TimerMgr:update(now_ms)
-    local timers = {}
     local escape_ms = now_ms - self.last_ms + self.escape_ms
     self.escape_ms = escape_ms % TIMER_ACCURYACY
-    lupdate(escape_ms // TIMER_ACCURYACY, timers)
-    for _, timer_id in ipairs(timers) do
-        local handle = self.timers[timer_id]
-        if handle then
-            self:trigger(handle, now_ms)
+    self.last_ms = now_ms
+    if (escape_ms // TIMER_ACCURYACY) >= 1 then
+        local timers = ltimer:update(escape_ms // TIMER_ACCURYACY)
+        for _, timer_id in ipairs(timers) do
+            local handle = self.timers[timer_id]
+            if handle then
+                self:trigger(handle, now_ms)
+            end
         end
     end
-    self.last_ms = now_ms
 end
 
 function TimerMgr:once(period, cb, ...)
@@ -73,7 +72,7 @@ function TimerMgr:register(interval, period, times, cb, ...)
     local timer_id = new_guid(period, interval)
     --矫正时间误差
     interval = interval + (now_ms - self.last_ms)
-    linsert(timer_id, interval // TIMER_ACCURYACY)
+    ltimer:insert(timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
     tinsert(params, 0)
@@ -95,7 +94,8 @@ end
 
 function TimerMgr:quit()
     self.timers = {}
-    ltimer.destory()
+    ltimer:destory()
+    ltimer = nil
 end
 
 quanta.timer_mgr = TimerMgr()

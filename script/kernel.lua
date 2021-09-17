@@ -18,6 +18,7 @@ local ltime         = ltimer.time
 local log_err       = logger.err
 local env_get       = environ.get
 local env_number    = environ.number
+local qxpcall       = quanta.xpcall
 
 local socket_mgr    = nil
 local update_mgr    = quanta.get("update_mgr")
@@ -97,11 +98,16 @@ function quanta.init_gm(gm_service)
 end
 
 --日常更新
-function quanta.update()
-    local count = socket_mgr.wait(5)
+local function update()
+    local count = socket_mgr.wait(10)
     local now_ms, now_s = ltime()
     quanta.now = now_s
     quanta.now_ms = now_ms
     --系统更新
     update_mgr:update(now_ms, count)
+end
+
+--底层驱动
+quanta.run = function()
+    qxpcall(update, "quanta.run error: %s")
 end

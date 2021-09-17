@@ -48,6 +48,7 @@ function PerfevalMgr:set_perfeval(status)
     self.perfeval = status
     if status then
         self.timer_id = timer_mgr:loop(PeriodTime.MINUTE_10_MS, function()
+            print(PeriodTime.MINUTE_10_MS)
            self:dump()
         end)
     end

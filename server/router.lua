@@ -2,13 +2,7 @@
 import("kernel.lua")
 
 local log_info      = logger.info
-local qxpcall       = quanta.xpcall
-local quanta_update = quanta.update
 local qxpcall_quit  = quanta.xpcall_quit
-
-quanta.run = function()
-    qxpcall(quanta_update, "quanta_update error: %s")
-end
 
 if not quanta.init_flag then
     local function startup()
