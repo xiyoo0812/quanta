@@ -47,7 +47,7 @@ function TimerMgr:update(now_ms)
     local escape_ms = now_ms - self.last_ms + self.escape_ms
     self.escape_ms = escape_ms % TIMER_ACCURYACY
     self.last_ms = now_ms
-    if (escape_ms // TIMER_ACCURYACY) >= 1 then
+    if escape_ms >= TIMER_ACCURYACY then
         local timers = ltimer:update(escape_ms // TIMER_ACCURYACY)
         for _, timer_id in ipairs(timers) do
             local handle = self.timers[timer_id]
