@@ -16,9 +16,29 @@
 - 编译lua需要readline，请提前安装。
 - http模块依赖curl，请提前安装。
 
+# 工程
+- 本项目使用[lmake](https://github.com/xiyoo0812/lmake.git)管理
+- 根目录配置lmake
+```lua
+--lmake
+--工程名
+SOLUTION = "quanta"
+--lmake目录
+LMAKE_DIR = "extend/lmake"
+--mimalloc
+USE_MIMALLOC = false
+```
+- 子项目配置*.lmake
+- 执行以下指令自动生成项目文件(makefile/vcxproj)
+```shell
+# lmake_dir: lmake项目路径
+# solution_dir: 工程根目录
+./lua lmake_dir/lmake.lua solution_dir
+```
+
 # 执行测试代码
 测试代码位于server/test，入口文件为server/test.lua
-```
+```shell
 cd bin
 ./quanta ./test.conf
 ```
@@ -32,26 +52,25 @@ cd bin
 - monitor: 提供基于httpserver服务，以及服务启停、监控的服务。
 
 # 依赖
-- bson(云风版)
-- lfs
+- lua
+- pbc
+- bson
 - lnet
 - lpeg
-- lua(5.4)
-- lcjson
-- mongo
-- pbc
 - luna
-- luabus
+- mongo
 - luabt
 - lhttp
 - lcurl
-- lualog
+- luabus
 - lcrypt
+- lcjson
+- lstdfs
+- lualog
 - lbuffer
 - luaxlsx
 
 # 支持功能
-- excel(xlsx/xlsm)配置导出
 - mongo数据库支持
 - mysql数据库支持
 - redis数据库支持
@@ -59,6 +78,7 @@ cd bin
 - json协议支持
 - http服务器支持
 - http客户端访问
+- excel(xlsx/xlsm)配置导出
 - tcp服务器/客户端支持
 - rpc调用机制支持
 - 协议加密和压缩功能支持
