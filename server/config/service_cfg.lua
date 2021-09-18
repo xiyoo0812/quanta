@@ -39,6 +39,13 @@ service:upsert({
 
 service:upsert({
     router_group = {1},
+    id = 4,
+    index = 2,
+    name = 'test',
+})
+
+service:upsert({
+    router_group = {1},
     id = 5,
     index = 1,
     name = 'dbsvr',

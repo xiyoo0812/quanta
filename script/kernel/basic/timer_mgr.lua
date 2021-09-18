@@ -16,11 +16,13 @@ local thread_mgr = quanta.get("thread_mgr")
 
 local TimerMgr = singleton()
 local prop = property(TimerMgr)
+prop:reader("driver", nil)
 prop:reader("timers", {})
 prop:reader("last_ms", 0)
 prop:reader("escape_ms", 0)
 function TimerMgr:__init()
     self.last_ms = ltime()
+    self.driver = ltimer.create()
 end
 
 function TimerMgr:trigger(handle, now_ms)
@@ -40,7 +42,7 @@ function TimerMgr:trigger(handle, now_ms)
         return
     end
     --继续注册
-    ltimer:insert(handle.timer_id, handle.period)
+    self.driver:insert(handle.timer_id, handle.period)
 end
 
 function TimerMgr:update(now_ms)
@@ -48,7 +50,7 @@ function TimerMgr:update(now_ms)
     self.escape_ms = escape_ms % TIMER_ACCURYACY
     self.last_ms = now_ms
     if escape_ms >= TIMER_ACCURYACY then
-        local timers = ltimer:update(escape_ms // TIMER_ACCURYACY)
+        local timers = self.driver:update(escape_ms // TIMER_ACCURYACY)
         for _, timer_id in ipairs(timers) do
             local handle = self.timers[timer_id]
             if handle then
@@ -72,7 +74,7 @@ function TimerMgr:register(interval, period, times, cb, ...)
     local timer_id = new_guid(period, interval)
     --矫正时间误差
     interval = interval + (now_ms - self.last_ms)
-    ltimer:insert(timer_id, interval // TIMER_ACCURYACY)
+    self.driver:insert(timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
     tinsert(params, 0)
@@ -94,8 +96,7 @@ end
 
 function TimerMgr:quit()
     self.timers = {}
-    ltimer:destory()
-    ltimer = nil
+    self.driver = nil
 end
 
 quanta.timer_mgr = TimerMgr()

@@ -30,9 +30,6 @@ function HttpClient:__init()
 end
 
 function HttpClient:on_quit()
-    for _, context in pairs(self.contexts) do
-        context.request:close()
-    end
     self.contexts = {}
     lcurl.destory()
 end
@@ -53,7 +50,6 @@ function HttpClient:on_frame()
                 thread_mgr:response(session_id, false, info.code, err)
             end
             self.contexts[curl_handle] = nil
-            request:close()
         end
         curl_handle, result = lquery()
     end
@@ -61,7 +57,6 @@ function HttpClient:on_frame()
     local now_ms = quanta.now_ms
     for handle, context in pairs(self.contexts) do
         if now_ms - context.time > NetwkTime.HTTP_CALL_TIMEOUT then
-            context.request:close()
             self.contexts[handle] = nil
         end
     end

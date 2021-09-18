@@ -18,6 +18,7 @@ local ltime         = ltimer.time
 local log_err       = logger.err
 local env_get       = environ.get
 local env_number    = environ.number
+local signal_quit   = signal.quit
 local qxpcall       = quanta.xpcall
 
 local socket_mgr    = nil
@@ -71,7 +72,8 @@ function quanta.init()
     local router_group = service.router_group(quanta.id)
     if not router_group then
         log_err("[quanta][init] %s router group is nil, check the service_cfg.lua!", quanta.name)
-        os.exit()
+        signal_quit()
+        return
     end
     --初始化路由管理器
     if next(router_group) then
