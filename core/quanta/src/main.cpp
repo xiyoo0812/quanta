@@ -5,7 +5,6 @@
 
 #include <stdio.h>
 #include <locale>
-#include "tools.h"
 #include "quanta.h"
 
 int main(int argc, const char* argv[])
@@ -15,10 +14,10 @@ int main(int argc, const char* argv[])
 
     if (argc < 2)
     {
-        const char* fmt = R"--(quanta %d.%d.%d https://github.com/trumanzhao/quanta
+        const char* fmt = R"--(quanta https://github.com/trumanzhao/quanta
 usage: quanta program_entry.lua ...
 )--";
-        printf(fmt, MAJOR_VERSION_NUMBER, MINOR_VERSION_NUMBER, REVISION_NUMBER);
+        printf(fmt);
         return 0;
     }
 

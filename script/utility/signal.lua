@@ -1,5 +1,7 @@
 --signal.lua
 local log_info      = logger.info
+local get_signal    = quanta.get_signal
+local set_signal    = quanta.set_signal
 
 --信号定义
 local sys_signal = {
@@ -49,16 +51,16 @@ signal.init = function()
 end
 
 signal.check = function()
-    local quanta_signal = quanta.signal
-    if quanta_signal & (1 << sys_signal.SIGINT) ~= 0 then
+    local signalv = get_signal()
+    if signalv & (1 << sys_signal.SIGINT) ~= 0 then
         log_info("[signal][check] ->SIGINT")
         return true
     end
-    if quanta_signal & (1 << sys_signal.SIGQUIT) ~= 0 then
+    if signalv & (1 << sys_signal.SIGQUIT) ~= 0 then
         log_info("[signal][check] ->SIGQUIT")
         return true
     end
-    if quanta_signal & (1 << sys_signal.SIGTERM) ~= 0 then
+    if signalv & (1 << sys_signal.SIGTERM) ~= 0 then
         log_info("[signal][check] ->SIGTERM")
         return true
     end
@@ -66,5 +68,5 @@ signal.check = function()
 end
 
 signal.quit = function()
-    quanta.signal = (1 << sys_signal.SIGQUIT)
+    set_signal(sys_signal.SIGQUIT)
 end

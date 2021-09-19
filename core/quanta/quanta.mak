@@ -29,7 +29,6 @@ STDC = -std=gnu99
 STDCPP = -std=c++14
 
 #需要的include目录
-MYCFLAGS += -I../luna/src
 MYCFLAGS += -I../../extend/luaext/lua/lua
 
 #需要定义的选项
@@ -53,7 +52,6 @@ MYCFLAGS += -I../../extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.
 LIBS += -lm -ldl -lstdc++
 #自定义库
 LIBS += -llua
-LIBS += -lluna
 ifeq ($(UNAME_S), Linux)
 LIBS += -lpthread
 endif

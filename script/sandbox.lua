@@ -1,5 +1,6 @@
 --sandbox.lua
-local llog  = require("lualog")
+local llog      = require("lualog")
+local lstdfs    = require("lstdfs")
 
 local pairs     = pairs
 local loadfile  = loadfile
@@ -10,7 +11,7 @@ local log_err   = llog.error
 local tinsert   = table.insert
 local sformat   = string.format
 local dgetinfo  = debug.getinfo
-local file_time = quanta.get_file_time
+local file_time = lstdfs.last_write_time
 
 local load_files    = {}
 local search_path   = {}

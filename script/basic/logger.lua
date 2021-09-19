@@ -5,14 +5,10 @@ local lbuffer       = require("lbuffer")
 
 local pcall         = pcall
 local ipairs        = ipairs
-local stdout        = io.stdout
-local ssub          = string.sub
-local schar         = string.char
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local tpack         = table.pack
 local tunpack       = table.unpack
-local tconcat       = table.concat
 local linfo         = llog.info
 local lwarn         = llog.warn
 local ldump         = llog.dump
@@ -30,9 +26,6 @@ local LOG_LEVEL_DUMP    = 4
 local LOG_LEVEL_ERROR   = 5
 local LOG_LEVEL_FATAL   = 6
 --local LOG_LEVEL_OFF     = 100
-
-local log_input         = false
-local log_buffer        = ""
 
 logger = {}
 function logger.init(max_line)
@@ -89,48 +82,5 @@ for lvl, conf in pairs(LOG_LEVEL_METHOD) do
             return false
         end
         return res
-    end
-end
-
-local function exec_command(cmd)
-    stdout:write("\ncommand: " .. cmd .. "\n")
-    local res = tpack(pcall(load(cmd)))
-    if res[1] then
-        stdout:write("result: " .. tconcat(res, ",", 2, #res))
-    else
-        stdout:write("error: " .. tconcat(res, ",", 2, #res))
-    end
-end
-
-quanta.input = function(ch)
-    if log_input then
-        local sch = schar(ch)
-        if ch ~= 13 and ch ~= 8 then
-            stdout:write(sch)
-            log_buffer = log_buffer .. sch
-        end
-        if ch == 8 then
-            if #log_buffer > 0 then
-                stdout:write(sch)
-                stdout:write(schar(32))
-                stdout:write(sch)
-                log_buffer = ssub(log_buffer, 1, #log_buffer - 1)
-            end
-        end
-        if ch == 13 or #log_buffer > 255 then
-            llog.daemon(environ.status("QUANTA_DAEMON"))
-            if #log_buffer > 0 then
-                exec_command(log_buffer)
-            end
-            stdout:write("\n")
-            log_input = false
-            log_buffer = ""
-        end
-    else
-        if ch == 13 then
-            log_input = true
-            llog.daemon(true)
-            stdout:write("input> ")
-        end
     end
 end

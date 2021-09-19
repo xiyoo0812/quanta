@@ -19,14 +19,12 @@ MIMALLOC_DIR = "../../extend/mimalloc/mimalloc/include"
 
 --需要的include目录
 INCLUDES = {
-	"../luna/src",
 	"../../extend/luaext/lua/lua"
 }
 
 --需要连接的库文件
 LIBS = {
 	"lua",
-	"luna",
 }
 
 --LINUX需要连接的库文件
@@ -41,7 +39,6 @@ DARWIN_LIBS = {
 
 --依赖项目
 DEPS = {
-	"luna",
 	"luabus"
 }
 

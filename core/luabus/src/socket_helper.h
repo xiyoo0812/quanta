@@ -18,11 +18,18 @@ struct socket_header
 
 #if defined(__linux) || defined(__APPLE__)
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <sys/stat.h>
 using socket_t = int;
+using BYTE = unsigned char;
 const socket_t INVALID_SOCKET = -1;
 const int SOCKET_ERROR = -1;
 inline int get_socket_error() { return errno; }
 inline void close_socket_handle(socket_t fd) { close(fd); }
+template <typename T, int N>
+constexpr int _countof(T(&_array)[N]) { return N; }
 #endif
 
 #ifdef _MSC_VER

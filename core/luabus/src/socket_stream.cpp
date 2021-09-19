@@ -8,6 +8,7 @@
 #include <assert.h>
 #include "var_int.h"
 #include "socket_mgr_impl.h"
+#include "socket_helper.h"
 #include "socket_stream.h"
 
 #ifdef _MSC_VER
