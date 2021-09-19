@@ -1,9 +1,4 @@
-﻿/*
-** repository: https://github.com/trumanzhao/luna
-** trumanzhao, 2017-05-13, trumanzhao@foxmail.com
-*/
-
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <locale>
 #include "quanta.h"
 
@@ -14,10 +9,10 @@ int main(int argc, const char* argv[])
 
     if (argc < 2)
     {
-        const char* fmt = R"--(quanta https://github.com/trumanzhao/quanta
+        const char* notice = R"--(quanta https://github.com/xiyoo0812/quanta
 usage: quanta program_entry.lua ...
 )--";
-        printf(fmt);
+        printf(notice);
         return 0;
     }
 

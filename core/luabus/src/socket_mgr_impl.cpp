@@ -4,7 +4,6 @@
 */
 
 #include "stdafx.h"
-#include "tools.h"
 #include "socket_helper.h"
 #include "io_buffer.h"
 #include "socket_mgr_impl.h"
@@ -96,22 +95,22 @@ bool socket_mgr_impl::get_socket_funcs()
     GUID func_guid = WSAID_ACCEPTEX;
 
     fd = socket(AF_INET, SOCK_STREAM, 0);
-    FAILED_JUMP(fd != INVALID_SOCKET);
+    if(fd == INVALID_SOCKET) goto Exit0;
 
     bytes = 0;
     func_guid = WSAID_ACCEPTEX;
     ret = WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &func_guid, sizeof(func_guid), &m_accept_func, sizeof(m_accept_func), &bytes, nullptr, nullptr);
-    FAILED_JUMP(ret != SOCKET_ERROR);
+    if (ret == SOCKET_ERROR) goto Exit0;
 
     bytes = 0;
     func_guid = WSAID_CONNECTEX;
     ret = WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &func_guid, sizeof(func_guid), &m_connect_func, sizeof(m_connect_func), &bytes, nullptr, nullptr);
-    FAILED_JUMP(ret != SOCKET_ERROR);
+    if (ret == SOCKET_ERROR) goto Exit0;
 
     bytes = 0;
     func_guid = WSAID_GETACCEPTEXSOCKADDRS;
     ret = WSAIoctl(fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &func_guid, sizeof(func_guid), &m_addrs_func, sizeof(m_addrs_func), &bytes, nullptr, nullptr);
-    FAILED_JUMP(ret != SOCKET_ERROR);
+    if (ret == SOCKET_ERROR) goto Exit0;
 
     result = true;
 Exit0:
@@ -201,22 +200,22 @@ int socket_mgr_impl::listen(std::string& err, const char ip[], int port, eproto_
 #endif
 
     ret = make_ip_addr(&addr, &addr_len, ip, port);
-    FAILED_JUMP(ret);
+    if(!ret) goto Exit0;
 
     fd = socket(addr.ss_family, SOCK_STREAM, IPPROTO_IP);
-    FAILED_JUMP(fd != INVALID_SOCKET);
+    if(fd == INVALID_SOCKET) goto Exit0;
 
     set_no_block(fd);
 
     ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char*)&one, sizeof(one));
-    FAILED_JUMP(ret != SOCKET_ERROR);
+    if(ret == SOCKET_ERROR) goto Exit0;
 
     // macOSX require addr_len to be the real len (ipv4/ipv6)
     ret = ::bind(fd, (sockaddr*)&addr, (int)addr_len);
-    FAILED_JUMP(ret != SOCKET_ERROR);
+    if(ret == SOCKET_ERROR) goto Exit0;
 
     ret = ::listen(fd, 200);
-    FAILED_JUMP(ret != SOCKET_ERROR);
+    if(ret == SOCKET_ERROR) goto Exit0;
 
     if (watch_listen(fd, listener) && listener->setup(fd))
     {
