@@ -4,7 +4,6 @@
 */
 #include "stdafx.h"
 #include "lua_socket_mgr.h"
-#include "dx_plugin.h"
 
 int create_socket_mgr(lua_State* L)
 {

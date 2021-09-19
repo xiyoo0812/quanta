@@ -6,11 +6,9 @@
 #include "stdafx.h"
 #include <algorithm>
 #include <assert.h>
-#include "tools.h"
 #include "var_int.h"
 #include "socket_mgr_impl.h"
 #include "socket_stream.h"
-#include "dx_plugin.h"
 
 #ifdef _MSC_VER
 socket_stream::socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type) :
@@ -61,7 +59,8 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[])
     m_ovl_ref++;
 #endif
 
-    safe_cpy(m_ip, ip);
+    strncpy(m_ip, ip, INET6_ADDRSTRLEN);
+
     m_socket = fd;
     m_connected = true;
     m_last_recv_time = get_time_ms();
@@ -592,11 +591,11 @@ void socket_stream::dispatch_package()
         else if (eproto_type::proto_dx == m_proto_type)  // DxClient模式需要解析DxHead
         {
             // 接收未满一个包头
-            if (data_len < sizeof(dx_pkt_header))
+            if (data_len < sizeof(socket_header))
                 break;
 
-            header_len = sizeof(dx_pkt_header);
-            uint64_t recv_len = ((dx_pkt_header_ptr)data)->len;
+            header_len = sizeof(socket_header);
+            uint64_t recv_len = ((socket_header*)data)->len;
             if (recv_len < header_len)
                 break;
 

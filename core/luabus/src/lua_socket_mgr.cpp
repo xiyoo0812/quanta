@@ -3,7 +3,6 @@
 ** trumanzhao, 2017-07-09, trumanzhao@foxmail.com
 */
 #include "stdafx.h"
-#include "tools.h"
 #include "var_int.h"
 #include "lua_socket_mgr.h"
 #include "lua_socket_node.h"

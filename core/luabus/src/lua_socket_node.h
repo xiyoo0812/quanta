@@ -9,7 +9,6 @@
 #include <vector>
 #include "socket_mgr.h"
 #include "luna.h"
-#include "tools.h"
 #include "lua_archiver.h"
 #include "socket_router.h"
 

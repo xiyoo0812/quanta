@@ -7,7 +7,6 @@
 #include <memory>
 #include <array>
 #include <vector>
-#include "tools.h"
 #include "socket_mgr.h"
 
 enum class msg_id : char

@@ -5,7 +5,7 @@
 #include "stdafx.h"
 #include "var_int.h"
 #include "lua_socket_node.h"
-#include "dx_plugin.h"
+#include "socket_helper.h"
 #include <iostream>
 
 EXPORT_CLASS_BEGIN(lua_socket_node)
@@ -82,14 +82,14 @@ int lua_socket_node::call_dx(lua_State* L)
         return 1;
     }
 
-    dx_pkt_header header;
+    socket_header header;
     header.cmd_id = lua_tointeger(L, 1);
     header.flag = lua_tointeger(L, 2);
     header.session_id = lua_tointeger(L, 3);
 
     size_t data_len = 0;
     const char* data_ptr = lua_tolstring(L, 4, &data_len);
-    header.len = data_len + sizeof(dx_pkt_header);
+    header.len = data_len + sizeof(socket_header);
 
     if (header.len >= USHRT_MAX)
     {
@@ -98,7 +98,7 @@ int lua_socket_node::call_dx(lua_State* L)
     }
 
     // ִ��ʵ�ʷ��ͺ���
-    sendv_item items[] = { { &header, sizeof(dx_pkt_header) }, {data_ptr, data_len} };
+    sendv_item items[] = { { &header, sizeof(socket_header) }, {data_ptr, data_len} };
     m_mgr->sendv(m_token, items, _countof(items));
     
     lua_pushinteger(L, header.len);
@@ -408,8 +408,8 @@ void lua_socket_node::on_call(router_header* header, char* data, size_t data_len
 void lua_socket_node::on_call_dx(char* data, size_t data_len)
 {
     std::string body;
-    auto head = (dx_pkt_header_ptr)data;
-    body.append(data + sizeof(dx_pkt_header), data_len - sizeof(dx_pkt_header));
+    auto head = (socket_header*)data;
+    body.append(data + sizeof(socket_header), data_len - sizeof(socket_header));
 
     lua_guard g(m_lvm);
     lua_call_object_function(m_lvm, nullptr, this, "on_call_dx", std::tie(), data_len, head->cmd_id, head->flag, head->session_id, body);

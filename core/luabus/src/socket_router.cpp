@@ -7,7 +7,6 @@
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
-#include "tools.h"
 #include "var_int.h"
 #include "socket_router.h"
 

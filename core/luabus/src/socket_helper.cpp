@@ -4,8 +4,10 @@
 */
 
 #include "stdafx.h"
-#include "tools.h"
 #include "socket_helper.h"
+#include <chrono>
+
+using namespace std::chrono;
 
 void set_no_delay(socket_t fd, int enable)
 {
@@ -134,4 +136,31 @@ bool check_can_write(socket_t fd, int timeout)
     FD_SET(fd, &wset);
 
     return select((int)fd + 1, nullptr, &wset, nullptr, timeout >= 0 ? &tv : nullptr) == 1;
+}
+
+char* get_error_string(char buffer[], int len, int no)
+{
+    buffer[0] = '\0';
+
+#ifdef _WIN32
+    FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, no, 0, buffer, len, nullptr);
+#endif
+
+#if defined(__linux) || defined(__APPLE__)
+    strerror_r(no, buffer, len);
+#endif
+
+    return buffer;
+}
+
+void get_error_string(std::string& err, int no)
+{
+    char txt[MAX_ERROR_TXT];
+    get_error_string(txt, sizeof(txt), no);
+    err = txt;
+}
+
+uint64_t get_time_ms() {
+    system_clock::duration dur = system_clock::now().time_since_epoch();
+    return duration_cast<milliseconds>(dur).count();
 }

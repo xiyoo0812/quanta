@@ -7,7 +7,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\dx_plugin.h" />
     <ClInclude Include="src\io_buffer.h" />
     <ClInclude Include="src\lua_socket_mgr.h" />
     <ClInclude Include="src\lua_socket_node.h" />
@@ -17,7 +16,6 @@
     <ClInclude Include="src\socket_mgr_impl.h" />
     <ClInclude Include="src\socket_router.h" />
     <ClInclude Include="src\socket_stream.h" />
-    <ClInclude Include="src\tools.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lua_socket_mgr.cpp" />
@@ -32,7 +30,6 @@
     <ClCompile Include="src\stdafx.cpp" >
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="src\tools.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="src\stdafx.h" />

@@ -4,7 +4,6 @@
 */
 
 #include "stdafx.h"
-#include "tools.h"
 #include "var_int.h"
 #include "socket_mgr_impl.h"
 #include "socket_listener.h"
