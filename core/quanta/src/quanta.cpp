@@ -1,5 +1,4 @@
 ﻿#include <stdlib.h>
-#include <stdio.h>
 #include <locale>
 #include <signal.h>
 #include "quanta.h"
@@ -8,6 +7,19 @@
 #include <conio.h>
 #include <windows.h>
 #define setenv(k,v,o) _putenv_s(k, v);
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+char* strupr(char* str) {
+    char* ptr = str;
+    while (*ptr != '\0') {
+        if (islower(*ptr))
+            *ptr = toupper(*ptr);
+        ptr++;
+    }
+    return str;
+}
 #endif
 
 #define QUANTA_APP_META  "_QUANTA_APP_META"
