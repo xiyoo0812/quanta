@@ -1,6 +1,5 @@
 --test.lua
 import("kernel.lua")
-
 local log_info      = logger.info
 local qxpcall_quit  = quanta.xpcall_quit
 
@@ -27,9 +26,10 @@ if not quanta.init_flag then
         import("test/redis_test.lua")
         import("test/stdfs_test.lua")
         ]]
-        import("test/http_test.lua")
+        import("test/timer_test.lua")
         log_info("test %d now startup!", quanta.id)
     end
+
     qxpcall_quit(startup, "quanta startup error: %s")
     quanta.init_flag = true
 end
