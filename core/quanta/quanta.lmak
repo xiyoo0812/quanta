@@ -7,6 +7,9 @@ TARGET_NAME = "quanta"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "exe"
 
+--c++11/c++14/c++17/c++20
+STDCPP = "c++17"
+
 --需要的FLAGS
 FLAGS = {
 	"fpermissive",
@@ -15,26 +18,15 @@ FLAGS = {
 	"Wno-unused-but-set-parameter"
 }
 
-MIMALLOC_DIR = "../../extend/mimalloc/mimalloc/include"
-
 --需要的include目录
 INCLUDES = {
-	"../../extend/luaext/lua/lua"
+	"../../extend/lua/lua",
+	"../../extend/sol2/include"
 }
 
 --需要连接的库文件
 LIBS = {
 	"lua",
-}
-
---LINUX需要连接的库文件
-LINUX_LIBS = {
-	"pthread"
-}
-
---DARWIN需要连接的库文件
-DARWIN_LIBS = {
-	"pthread"
 }
 
 --依赖项目

@@ -9,11 +9,8 @@ PROJECT_TYPE = "static"
 
 --需要的include目录
 INCLUDES = {
-	"../../extend/luaext/lua/lua"
+	"../../extend/lua/lua"
 }
-
---是否启用mimalloc库
-MIMALLOC_DIR = "../../extend/mimalloc/mimalloc/include"
 
 --目标文件前缀
 LIB_PREFIX = 1

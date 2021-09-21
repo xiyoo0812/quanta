@@ -38,7 +38,6 @@ function quanta.startup()
     quanta.service_id = service_id
     quanta.id = service.make_id(service_name, quanta.index)
     quanta.name = service.make_nick(service_name, quanta.index)
-    quanta.pid = quanta.get_pid()
 end
 
 function quanta.init()

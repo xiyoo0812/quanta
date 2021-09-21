@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="src\alloc.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\array.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\bootstrap.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\context.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\descriptor.pbc.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\map.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pattern.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pbc.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\proto.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\stringpool.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\varint.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\alloc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\array.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\bootstrap.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\context.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\decode.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\map.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pattern.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pbc-lua.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\proto.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\register.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rmessage.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\stringpool.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\varint.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\wmessage.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="inc">
+      <UniqueIdentifier >{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier >{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

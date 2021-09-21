@@ -22,10 +22,10 @@ STDC = -std=gnu99
 
 #c++标准库版本
 #c++11/c++14/c++17/c++20
-STDCPP = -std=c++14
+STDCPP = -std=c++17
 
 #需要的include目录
-MYCFLAGS += -I../../extend/luaext/lua/lua
+MYCFLAGS += -I../../extend/lua/lua
 
 #需要定义的选项
 
@@ -43,7 +43,7 @@ EXCLUDE =
 LIBS =
 #是否启用mimalloc库
 LIBS += -lmimalloc -lpthread
-MYCFLAGS += -I../../extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
+MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
 #系统库
 LIBS += -lm -ldl -lstdc++
 #自定义库

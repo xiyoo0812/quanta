@@ -3,6 +3,14 @@
 #include <signal.h>
 #include "quanta.h"
 
+extern "C" {
+    #include "lua.h"
+    #include "lualib.h"
+    #include "lauxlib.h"
+}
+
+#include "sol/sol.hpp"
+
 #if WIN32
 #include <conio.h>
 #include <windows.h>
@@ -11,18 +19,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
-char* strupr(char* str) {
-    char* ptr = str;
-    while (*ptr != '\0') {
-        if (islower(*ptr))
-            *ptr = toupper(*ptr);
-        ptr++;
-    }
-    return str;
-}
 #endif
-
-#define QUANTA_APP_META  "_QUANTA_APP_META"
 
 quanta_app* g_app = nullptr;
 static void on_signal(int signo) {
@@ -41,20 +38,18 @@ static const char* get_platform() {
 #endif
 }
 
-static int get_pid(lua_State* L) {
+static int get_pid() {
 #ifdef _MSC_VER
-    lua_pushinteger(L, ::GetCurrentProcessId());
+    return ::GetCurrentProcessId();
 #else
-    lua_pushinteger(L, ::getpid());
+    return ::getpid();
 #endif
-    return 1;
 }
-static int daemon(lua_State* L) {
+static int ldaemon(lua_State* L) {
 #if defined(__linux) || defined(__APPLE__)
     pid_t pid = fork();
     if (pid != 0)
         exit(0);
-
     setsid();
     umask(0);
     int null = open("/dev/null", O_RDWR);
@@ -68,64 +63,7 @@ static int daemon(lua_State* L) {
     return 0;
 }
 
-static int register_signal(lua_State* L) {
-    int signalv = lua_tointeger(L, 1);
-    signal(signalv, on_signal);
-    return 0;
-}
-
-static int default_signal(lua_State* L) {
-    int signalv = lua_tointeger(L, 1);
-    signal(signalv, SIG_DFL);
-    return 0;
-}
-
-static int ignore_signal(lua_State* L) {
-    int signalv = lua_tointeger(L, 1);
-    signal(signalv, SIG_IGN);
-    return 0;
-}
-
-static int get_signal(lua_State* L) {
-    lua_pushinteger(L, g_app ? g_app->get_signal() : 0);
-    return 1;
-}
-
-static int set_signal(lua_State* L) {
-    if (g_app) {
-        int signalv = lua_tointeger(L, 1);
-        g_app->set_signal(signalv);
-    }
-    return 1;
-}
-
-static bool load_quanta_func(lua_State* L, const char* func) {
-    lua_getglobal(L, "quanta");
-    lua_getfield(L, -1, func);
-    return lua_isfunction(L, -1);
-}
-
-static void check_input(lua_State* L) {
-#ifdef WIN32
-    if (kbhit()) {
-        char cur = getch();
-        if (cur == '\xE0' || cur == '\x0') {
-            if (kbhit()) {
-                getch();
-                return;
-            }
-        }
-        int top = lua_gettop(L);
-        if (load_quanta_func(L, "console")) {
-            lua_pushinteger(L, cur);
-            lua_pcall(L, 1, 0, -2);
-        }
-        lua_settop(L, top);
-    }
-#endif
-}
-
-static int set_env(lua_State* L) {
+static int lset_env(lua_State* L) {
     bool replace = false;
     const char* env_name = lua_tostring(L, 1);
     const char* env_value = lua_tostring(L, 2);
@@ -138,98 +76,81 @@ static int set_env(lua_State* L) {
     return 0;
 }
 
-static const luaL_Reg lquanta[] = {
-    { "daemon" , daemon },
-    { "set_env", set_env },
-    { "get_pid", get_pid },
-    { "set_signal", set_signal },
-    { "get_signal", get_signal },
-    { "ignore_signal", ignore_signal },
-    { "default_signal", default_signal },
-    { "register_signal", register_signal },
-    { NULL, NULL }
-};
-
-uint64_t quanta_app::get_signal() {
-    return m_signal;
+static void check_input(sol::state& lua) {
+#ifdef WIN32
+    if (_kbhit()) {
+        char cur = _getch();
+        if (cur == '\xE0' || cur == '\x0') {
+            if (_kbhit()) {
+                _getch();
+                return;
+            }
+        }
+        std::string code = "quanta.console(" + cur;
+        lua.safe_script(code + ")");
+    }
+#endif
 }
 
-void quanta_app::set_signal(int n) {
-    uint64_t mask = 1;
-    mask <<= n;
+static void load_config(int argc, const char* argv[]) {
+    sol::state lua;
+    lua.open_libraries();
+    lua.set("platform", get_platform());
+    lua.set_function("set_env", lset_env);
+    if (argc > 1) {
+        setenv("QUANTA_INDEX", "1", 1);
+        //加载配置
+        lua.script_file(argv[1]);
+        //将启动参数转换成环境变量
+        for (int i = 2; i < argc; ++i) {
+            std::string argvi = argv[i];
+            auto pos = argvi.find("=");
+            if (pos != std::string::npos) {
+                auto eval = argvi.substr(pos + 1);
+                auto ekey = "QUANTA_" + argvi.substr(2, pos - 2);
+                std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
+                setenv(ekey.c_str(), eval.c_str(), 1);
+            }
+        }
+    }
+}
+
+void quanta_app::set_signal(uint32_t n) {
+    uint32_t mask = 1 << n;
     m_signal |= mask;
 }
 
-void quanta_app::load_config(int argc, const char* argv[]) {
-    const char* conf_file = argv[1];
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-
-    lua_pushstring(L, get_platform());
-    lua_setglobal(L, "platform");
-    lua_pushcfunction(L, set_env);
-    lua_setglobal(L, "set_env");
-
-    //加载配置表
-    luaL_dofile(L, conf_file);
-    //设置默认INDEX
-    setenv("QUANTA_INDEX", "1", 1);
-    //将启动参数转换成环境变量
-    for (int i = 2; i < argc; ++i) {
-        const char* begin = argv[i];
-        const char* pos = strchr(argv[i], '=');
-        if (*(begin++) == '-' && *(begin++) == '-' && pos != NULL && begin != pos) {
-            char env_n[256] = { 0 };
-            strcpy(env_n, "QUANTA_");
-            strncpy(env_n + strlen(env_n), begin, pos - begin);
-            lua_pushlstring(L, ++pos, (argv[i] + strlen(argv[i]) - pos));
-            char* env_name = strupr(env_n);
-            const char* env_value = lua_tostring(L, -1);
-            setenv(env_name, env_value, 1);
-            lua_pop(L, 1);
-        }
-    }
-    lua_close(L);
-}
-
 void quanta_app::run(int argc, const char* argv[]) {
-    if (argc > 0) {
-        load_config(argc, argv);
-    }
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-    lua_newtable(L);
-    luaL_newmetatable(L, QUANTA_APP_META);
-    luaL_setfuncs(L, lquanta, 0);
-    lua_pushvalue(L, -1);
-    lua_setfield(L, -2, "__index");
-    lua_setmetatable(L, -2);
-    lua_newtable(L);
-    for (int i = 1; i < argc; i++) {
-        lua_pushinteger(L, i - 1);
-        lua_pushstring(L, argv[i]);
-        lua_settable(L, -3);
-    }
-    lua_setfield(L, -2, "args");
-    lua_pushstring(L, get_platform());
-    lua_setfield(L, -2, "platform");
-    lua_setglobal(L, "quanta");
+    sol::state lua;
+    load_config(argc, argv);
+    lua.open_libraries();
+    sol::table quanta = lua.create_named_table("quanta");
+    quanta.set("pid", get_pid());
+    quanta.set("platform", get_platform());
+    quanta.set_function("daemon", ldaemon);
+    quanta.set_function("get_signal", [&]() { return m_signal; });
+    quanta.set_function("set_signal", [&](int n) { set_signal(n); });
+    quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
+    quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
+    quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
 
-    lua_getglobal(L, "require");
-    lua_pushvalue(L, -1);
-    lua_pushstring(L, getenv("QUANTA_SANDBOX"));
-    if (lua_pcall(L, 1, 0, -2) != LUA_OK) {
+    auto sandbox = lua.script(std::string("require '") + getenv("QUANTA_SANDBOX") + "'");
+    if (!sandbox.valid()) {
+        sol::error err = sandbox;
+        printf("load sandbox error: %s\n", err.what());
         exit(1);
     }
-    lua_pushstring(L, getenv("QUANTA_ENTRY"));
-    if (lua_pcall(L, 1, 0, -2) != LUA_OK) {
+    auto entry = lua.script(std::string("require '") + getenv("QUANTA_ENTRY") + "'");
+    if (!entry.valid()) {
+        sol::error err = entry;
+        printf("load sandbox error: %s\n", err.what());
         exit(1);
     }
-    int top = lua_gettop(L);
-    while (load_quanta_func(L, "run")) {
-        check_input(L);
-        lua_pcall(L, 0, 0, -1);
-        lua_settop(L, top);
+
+    sol::function quanta_run = quanta["run"];
+    while (quanta_run.valid()) {
+        quanta_run();
+        check_input(lua);
+        quanta_run = quanta["run"];
     }
-    lua_close(L);
 }
