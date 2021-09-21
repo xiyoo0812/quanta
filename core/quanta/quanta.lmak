@@ -7,9 +7,6 @@ TARGET_NAME = "quanta"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "exe"
 
---c++11/c++14/c++17/c++20
-STDCPP = "c++17"
-
 --需要的FLAGS
 FLAGS = {
 	"fpermissive",
@@ -18,9 +15,15 @@ FLAGS = {
 	"Wno-unused-but-set-parameter"
 }
 
+--需要定义的选项
+DEFINES = {
+	"FMT_HEADER_ONLY"
+}
+
 --需要的include目录
 INCLUDES = {
 	"../../extend/lua/lua",
+	"../../extend/fmt/include",
 	"../../extend/sol2/include"
 }
 

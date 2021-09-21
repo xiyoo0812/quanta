@@ -37,3 +37,6 @@
 [submodule "extend/lua/lua"]
 	path = extend/lua/lua
 	url = https://github.com/xiyoo0812/lua.git
+[submodule "extend/fmt"]
+	path = extend/fmt
+	url = https://github.com/fmtlib/fmt.git

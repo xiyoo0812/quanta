@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include "sol/sol.hpp"
+#include <fmt/core.h>
 
 #if WIN32
 #include <conio.h>
@@ -86,8 +87,7 @@ static void check_input(sol::state& lua) {
                 return;
             }
         }
-        std::string code = "quanta.console(" + cur;
-        lua.safe_script(code + ")");
+        lua.do_string(fmt::format("quanta.console({:d})", cur));
     }
 #endif
 }
@@ -107,7 +107,7 @@ static void load_config(int argc, const char* argv[]) {
             auto pos = argvi.find("=");
             if (pos != std::string::npos) {
                 auto eval = argvi.substr(pos + 1);
-                auto ekey = "QUANTA_" + argvi.substr(2, pos - 2);
+                auto ekey = fmt::format("QUANTA_{})", argvi.substr(2, pos - 2));
                 std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
                 setenv(ekey.c_str(), eval.c_str(), 1);
             }
@@ -134,13 +134,13 @@ void quanta_app::run(int argc, const char* argv[]) {
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
 
-    auto sandbox = lua.script(std::string("require '") + getenv("QUANTA_SANDBOX") + "'");
+    auto sandbox = lua.script(fmt::format("require '{}'", getenv("QUANTA_SANDBOX")));
     if (!sandbox.valid()) {
         sol::error err = sandbox;
         printf("load sandbox error: %s\n", err.what());
         exit(1);
     }
-    auto entry = lua.script(std::string("require '") + getenv("QUANTA_ENTRY") + "'");
+    auto entry = lua.script(fmt::format("require '{}'", getenv("QUANTA_ENTRY")));
     if (!entry.valid()) {
         sol::error err = entry;
         printf("load sandbox error: %s\n", err.what());
