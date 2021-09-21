@@ -36,10 +36,10 @@ static int get_pid() {
 #ifdef _MSC_VER
     return ::GetCurrentProcessId();
 #else
-    reurn ::getpid();
+    return ::getpid();
 #endif
 }
-static int daemon(lua_State* L) {
+static int daemon() {
 #if defined(__linux) || defined(__APPLE__)
     pid_t pid = fork();
     if (pid != 0)
