@@ -17,7 +17,8 @@ FLAGS = {
 --需要的include目录
 INCLUDES = {
 	"../luna/src",
-	"../../extend/lua/lua"
+	"../../extend/lua/lua",
+	"../../extend/ltimer/ltimer"
 }
 
 --需要连接的库文件

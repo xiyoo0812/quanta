@@ -64,7 +64,7 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[])
 
     m_socket = fd;
     m_connected = true;
-    m_last_recv_time = get_time_ms();
+    m_last_recv_time = ltimer::now_ms();
     return true;
 }
 
@@ -72,7 +72,7 @@ void socket_stream::connect(const char node_name[], const char service_name[], i
 {
     m_node_name = node_name;
     m_service_name = service_name;
-    m_connecting_time = get_time_ms() + timeout;
+    m_connecting_time = ltimer::now_ms() + timeout;
 }
 
 void socket_stream::close()
@@ -575,7 +575,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
 
 void socket_stream::dispatch_package()
 {
-    int64_t now = get_time_ms();
+    int64_t now = ltimer::now_ms();
     while (!m_closed)
     {
         uint64_t package_size = 0;
@@ -631,7 +631,7 @@ void socket_stream::dispatch_package()
         // 接收缓冲读游标调整
         m_recv_buffer->pop_data(header_len + (size_t)package_size);
 
-        m_last_recv_time = get_time_ms();
+        m_last_recv_time = ltimer::now_ms();
 
         // 防止单个连接处理太久，不能大于20ms
         if (m_last_recv_time - now > 20) break;
@@ -675,7 +675,7 @@ void socket_stream::on_connect(bool ok, const char reason[])
             m_closed = true;
         }
         m_connected = ok;
-        m_last_recv_time = get_time_ms();
+        m_last_recv_time = ltimer::now_ms();
         m_connect_cb(ok, reason);
     }
 }

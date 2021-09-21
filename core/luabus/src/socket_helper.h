@@ -4,6 +4,7 @@
 */
 
 #pragma once
+#include "ltimer.h"
 
 #define NET_PACKET_MAX_LEN (64*1024-1)
 
@@ -56,4 +57,3 @@ void set_close_on_exec(socket_t fd);
 char* get_error_string(char buffer[], int len, int no);
 void get_error_string(std::string& err, int no);
 
-uint64_t get_time_ms();

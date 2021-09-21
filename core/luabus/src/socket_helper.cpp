@@ -160,7 +160,7 @@ void get_error_string(std::string& err, int no)
     err = txt;
 }
 
-uint64_t get_time_ms() {
+uint64_t now_ms() {
     system_clock::duration dur = system_clock::now().time_since_epoch();
     return duration_cast<milliseconds>(dur).count();
 }

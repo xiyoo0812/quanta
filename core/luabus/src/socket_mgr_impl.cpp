@@ -125,7 +125,7 @@ Exit0:
 
 int socket_mgr_impl::wait(int timeout)
 {
-    int64_t now = get_time_ms();
+    int64_t now = ltimer::now_ms();
     auto it = m_objects.begin(), end = m_objects.end();
     while (it != end)
     {
@@ -138,7 +138,7 @@ int socket_mgr_impl::wait(int timeout)
         }
         ++it;
     }
-    int escape = get_time_ms() - now;
+    int escape = ltimer::now_ms() - now;
     timeout = escape >= timeout ? 0 : timeout - escape;
 #ifdef _MSC_VER
     ULONG event_count = 0;

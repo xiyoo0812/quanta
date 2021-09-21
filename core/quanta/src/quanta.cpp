@@ -87,7 +87,7 @@ static void check_input(sol::state& lua) {
                 return;
             }
         }
-        lua.do_string(fmt::format("quanta.console({:d})", cur));
+        lua.script(fmt::format("quanta.console({:d})", cur));
     }
 #endif
 }
