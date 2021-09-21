@@ -3,6 +3,12 @@
 #include <signal.h>
 #include "quanta.h"
 
+extern "C" {
+    #include "lua.h"
+    #include "lualib.h"
+    #include "lauxlib.h"
+}
+
 #include "sol/sol.hpp"
 
 #if WIN32
@@ -39,7 +45,7 @@ static int get_pid() {
     return ::getpid();
 #endif
 }
-static int daemon() {
+static int ldaemon(lua_State* L) {
 #if defined(__linux) || defined(__APPLE__)
     pid_t pid = fork();
     if (pid != 0)
@@ -54,6 +60,19 @@ static int daemon() {
         close(null);
     }
 #endif
+    return 0;
+}
+
+static int lset_env(lua_State* L) {
+    bool replace = false;
+    const char* env_name = lua_tostring(L, 1);
+    const char* env_value = lua_tostring(L, 2);
+    if (lua_gettop(L) == 3) {
+        replace = lua_toboolean(L, 3);
+    }
+    if (replace || !getenv(env_name)) {
+        setenv(env_name, env_value, 1);
+    }
     return 0;
 }
 
@@ -73,29 +92,11 @@ static void check_input(sol::state& lua) {
 #endif
 }
 
-static int set_env(lua_State* L) {
-    bool replace = false;
-    const char* env_name = lua_tostring(L, 1);
-    const char* env_value = lua_tostring(L, 2);
-    if (lua_gettop(L) == 3) {
-        replace = lua_toboolean(L, 3);
-    }
-    if (replace || !getenv(env_name)) {
-        setenv(env_name, env_value, 1);
-    }
-    return 0;
-}
-
-void quanta_app::set_signal(uint32_t n) {
-    uint32_t mask = 1 << n;
-    m_signal |= mask;
-}
-
-void quanta_app::load_config(int argc, const char* argv[]) {
+static void load_config(int argc, const char* argv[]) {
     sol::state lua;
     lua.open_libraries();
     lua.set("platform", get_platform());
-    lua.set_function("set_env", set_env);
+    lua.set_function("set_env", lset_env);
     if (argc > 1) {
         setenv("QUANTA_INDEX", "1", 1);
         //加载配置
@@ -114,6 +115,11 @@ void quanta_app::load_config(int argc, const char* argv[]) {
     }
 }
 
+void quanta_app::set_signal(uint32_t n) {
+    uint32_t mask = 1 << n;
+    m_signal |= mask;
+}
+
 void quanta_app::run(int argc, const char* argv[]) {
     sol::state lua;
     load_config(argc, argv);
@@ -121,7 +127,7 @@ void quanta_app::run(int argc, const char* argv[]) {
     sol::table quanta = lua.create_named_table("quanta");
     quanta.set("pid", get_pid());
     quanta.set("platform", get_platform());
-    quanta.set_function("daemon", daemon);
+    quanta.set_function("daemon", ldaemon);
     quanta.set_function("get_signal", [&]() { return m_signal; });
     quanta.set_function("set_signal", [&](int n) { set_signal(n); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });

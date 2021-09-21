@@ -23,7 +23,7 @@ STDC = -std=gnu99
 
 #c++标准库版本
 #c++11/c++14/c++17/c++20
-STDCPP = -std=c++14
+STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../lua/lua
