@@ -49,11 +49,7 @@ function HttpServer:on_socket_close(socket, fd)
     end
     log_debug("[HttpServer][on_socket_close] client(fd:%s) close!", fd)
     self.clients[fd] = nil
-    local request = self.requests[fd]
-    if request then
-        request:close()
-        self.requests[fd] = nil
-    end
+    self.requests[fd] = nil
 end
 
 function HttpServer:on_socket_accept(socket, fd)
