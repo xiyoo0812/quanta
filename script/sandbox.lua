@@ -82,10 +82,9 @@ function import(filename)
 end
 
 function quanta.reload()
-    local now = quanta.now
     for path, node in pairs(load_files) do
         local filetime = file_time(node.fullpath)
-        if filetime ~= node.time and filetime ~= 0 and mabs(now - filetime) > 1 then
+        if mabs(node.time - filetime) > 1 then
             try_load(node)
         end
     end
