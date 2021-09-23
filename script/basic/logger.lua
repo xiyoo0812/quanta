@@ -9,9 +9,12 @@ local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local tpack         = table.pack
 local tunpack       = table.unpack
+local lwarn         = llog.warn
 local lfilter       = llog.filter
 local is_filter     = llog.is_filter
 local lserialize    = lbuffer.serialize
+
+local LOG_LEVEL     = _G.LOG_LEVEL
 
 logger = {}
 function logger.init(max_line)

@@ -12,7 +12,7 @@ local new_guid  = lcrypt.guid_new
 --定时器精度，20ms
 local TIMER_ACCURYACY = 20
 
-local driver        = lua_timer.new()
+local driver        = _G.lua_timer.new()
 local thread_mgr    = quanta.get("thread_mgr")
 
 local TimerMgr = singleton()
