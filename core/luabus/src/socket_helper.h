@@ -22,6 +22,7 @@ struct socket_header
 #include <unistd.h>
 #include <fcntl.h>
 #include <netdb.h>
+#include <cstring>
 #include <sys/stat.h>
 using socket_t = int;
 using BYTE = unsigned char;

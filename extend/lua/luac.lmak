@@ -18,6 +18,16 @@ DEFINES = {
 	"MAKE_LUAC"
 }
 
+--LINUX需要定义的选项
+LINUX_DEFINES = {
+	"LUA_USE_LINUX"
+}
+
+--DARWIN需要定义的选项
+DARWIN_DEFINES = {
+	"LUA_USE_MACOSX"
+}
+
 --源文件路径
 SRC_DIR = "lua"
 

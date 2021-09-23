@@ -29,6 +29,12 @@ MYCFLAGS += -I./lua
 
 #需要定义的选项
 MYCFLAGS += -DMAKE_LUA
+ifeq ($(UNAME_S), Linux)
+MYCFLAGS += -DLUA_USE_LINUX
+endif
+ifeq ($(UNAME_S), Darwin)
+MYCFLAGS += -DLUA_USE_MACOSX
+endif
 
 #LDFLAGS
 LDFLAGS =
@@ -43,10 +49,10 @@ EXCLUDE =
 #需要连接的库文件
 LIBS =
 #是否启用mimalloc库
-LIBS += -lmimalloc -lpthread
+LIBS += -lmimalloc
 MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
 #系统库
-LIBS += -lm -ldl -lstdc++
+LIBS += -lm -ldl -lstdc++ -lpthread
 #自定义库
 
 #定义基础的编译选项

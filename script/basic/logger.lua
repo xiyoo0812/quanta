@@ -14,7 +14,7 @@ local lfilter       = llog.filter
 local is_filter     = llog.is_filter
 local lserialize    = lbuffer.serialize
 
-local LOG_LEVEL     = _G.LOG_LEVEL
+local LOG_LEVEL     = llog.LOG_LEVEL
 
 logger = {}
 function logger.init(max_line)

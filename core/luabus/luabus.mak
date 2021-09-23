@@ -47,10 +47,10 @@ EXCLUDE =
 #需要连接的库文件
 LIBS =
 #是否启用mimalloc库
-LIBS += -lmimalloc -lpthread
+LIBS += -lmimalloc
 MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
 #系统库
-LIBS += -lm -ldl -lstdc++
+LIBS += -lm -ldl -lstdc++ -lpthread
 #自定义库
 LIBS += -llua
 LIBS += -lluna
