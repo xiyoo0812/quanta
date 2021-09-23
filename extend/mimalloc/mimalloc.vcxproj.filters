@@ -1,63 +1,63 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="mimalloc/src\bitmap.h">
+    <ClInclude Include="mimalloc\src\bitmap.h">
       <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mimalloc/src\alloc-aligned.c">
+    <ClCompile Include="mimalloc\src\alloc-aligned.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\alloc-override-osx.c">
+    <ClCompile Include="mimalloc\src\alloc-override-osx.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\alloc-override.c">
+    <ClCompile Include="mimalloc\src\alloc-override.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\alloc-posix.c">
+    <ClCompile Include="mimalloc\src\alloc-posix.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\alloc.c">
+    <ClCompile Include="mimalloc\src\alloc.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\arena.c">
+    <ClCompile Include="mimalloc\src\arena.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\bitmap.c">
+    <ClCompile Include="mimalloc\src\bitmap.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\heap.c">
+    <ClCompile Include="mimalloc\src\heap.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\init.c">
+    <ClCompile Include="mimalloc\src\init.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\options.c">
+    <ClCompile Include="mimalloc\src\options.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\os.c">
+    <ClCompile Include="mimalloc\src\os.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\page-queue.c">
+    <ClCompile Include="mimalloc\src\page-queue.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\page.c">
+    <ClCompile Include="mimalloc\src\page.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\random.c">
+    <ClCompile Include="mimalloc\src\random.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\region.c">
+    <ClCompile Include="mimalloc\src\region.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\segment.c">
+    <ClCompile Include="mimalloc\src\segment.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\static.c">
+    <ClCompile Include="mimalloc\src\static.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="mimalloc/src\stats.c">
+    <ClCompile Include="mimalloc\src\stats.c">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
