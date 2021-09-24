@@ -9,7 +9,8 @@ local tinsert       = table.insert
 local smatch        = string.match
 local sgmatch       = string.gmatch
 local sformat       = string.format
-local mtointeger    = math.tointeger
+local conv_number   = math_ext.conv_number
+local conv_integer  = math_ext.conv_integer
 
 --空白模式定义
 local blank = "[%s]+"
@@ -21,14 +22,6 @@ local patterns = {
     float = "([%-]?%d+[%.]?%d+)",
     string = "[\"\']?([^%s]-)[\"\']?",
 }
-
-local function conv_integer(v)
-    return mtointeger(v) or v
-end
-
-local function conv_number(v)
-    return mtointeger(v) or tonumber(v) or v
-end
 
 local function conv_table(v)
     local code_func = load("return " .. v)

@@ -1,11 +1,14 @@
 --math.lua
+local mfloor        = math.floor
+local mrandom       = math.random
+local mtointeger    = math.tointeger
 
 function math_ext.round(n)
-    return math.floor(0.5 + n)
+    return mfloor(0.5 + n)
 end
 
 function math_ext.rand(n1, n2)
-    return math.random(n1 * 1000000, n2 * 1000000)/1000000
+    return mrandom(n1 * 1000000, n2 * 1000000)/1000000
 end
 
 --区间检查
@@ -16,4 +19,12 @@ function math_ext.region(n, min, max)
         return max
     end
     return n
+end
+
+function math_ext.conv_integer(v)
+    return mtointeger(v) or v
+end
+
+function math_ext.conv_number(v)
+    return mtointeger(v) or tonumber(v) or v
 end

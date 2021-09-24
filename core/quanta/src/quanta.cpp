@@ -5,7 +5,6 @@
 
 extern "C" {
     #include "lua.h"
-    #include "lualib.h"
     #include "lauxlib.h"
 }
 
@@ -101,14 +100,14 @@ void quanta_app::load(int argc, const char* argv[]) {
     lua.open_libraries();
     lua.set("platform", get_platform());
     //定义函数
-    auto lambda_setenv = [&](std::string k, std::string v) { 
+    auto lsetenv = [&](std::string k, std::string v) { 
         m_environs[k] = v;
         setenv(k.c_str(), v.c_str(), 1);
     };
-    lua.set_function("set_env", lambda_setenv);
+    lua.set_function("set_env", lsetenv);
     //设置默认参数
-    lambda_setenv("QUANTA_SERVICE", "quanta");
-    lambda_setenv("QUANTA_INDEX", "1");
+    lsetenv("QUANTA_SERVICE", "quanta");
+    lsetenv("QUANTA_INDEX", "1");
     //加载LUA配置
     lua.safe_script_file(argv[1], [&](lua_State*, sol::protected_function_result result) {
         sol_exception_handler("load config err: ", result);
@@ -122,20 +121,24 @@ void quanta_app::load(int argc, const char* argv[]) {
             auto evalue = argvi.substr(pos + 1);
             auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
             std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
-            lambda_setenv(ekey, evalue);
+            lsetenv(ekey, evalue);
         }
     }
 }
 
 void quanta_app::init_logger() {
+    auto lgetenv = [](std::string key, std::string def) { 
+        auto value = getenv(key.c_str());
+        return value ? value : def;
+    };
     auto index = getenv("QUANTA_INDEX");
     auto service = getenv("QUANTA_SERVICE");
     auto logname = fmt::format("{}-{}", service, index);
-    auto maxline = std::stoi(getenv("QUANTA_LOG_LINE"));
-    auto logpath = fmt::format("{}/{}/", getenv("QUANTA_LOG_PATH"), service);
-    auto rolltype = (logger::rolling_type)std::stoi(getenv("QUANTA_LOG_ROLL"));
+    auto maxline = std::stoi(lgetenv("QUANTA_LOG_LINE", "100000"));
+    auto logpath = fmt::format("{}/{}/", lgetenv("QUANTA_LOG_PATH", "./logs/"), service);
+    auto rolltype = (logger::rolling_type)std::stoi(lgetenv("QUANTA_LOG_ROLL", "0"));
     m_logger->add_dest(logpath, logname, rolltype, maxline);
-    if (std::stoi(getenv("QUANTA_LOG_LVL"))) {
+    if (std::stoi(lgetenv("QUANTA_DEAMON", "0"))) {
         quanta_daemon();
     }
 }

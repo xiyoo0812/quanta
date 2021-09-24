@@ -1,9 +1,10 @@
 --table.lua
-local type = type
-local pairs = pairs
-local mrandom = math.random
-local tinsert = table.insert
-local tremove = table.remove
+local type      = type
+local pairs     = pairs
+local tsort     = table.sort
+local mrandom   = math.random
+local tinsert   = table.insert
+local tremove   = table.remove
 
 --------------------------------------------------------------------------------
 function table_ext.random(tab)
@@ -112,28 +113,38 @@ function table_ext.join(src, dst)
 end
 
 -- map转为{key,value}类型的array
-function table_ext.map2array(src)
+--------------------------------------------------------------------------------
+function table_ext.kv2array(src)
     local dst = {}
     for key, value in pairs(src or {}) do
-        tinsert(dst, {key = key, value = value})
+        tinsert(dst, { key, value })
     end
     return dst
 end
 
--- {key,value}array转为map
-function table_ext.array2map(src)
+-- {key,value}array转为hash
+--------------------------------------------------------------------------------
+function table_ext.tohash(src)
     local dst = {}
     for _, pair in pairs(src or {}) do
-        dst[pair.key] = pair.value
+        dst[pair[1]] = pair[2]
     end
     return dst
 end
 
 -- map中的value抽出来变成array (会丢失key信息)
-function table_ext.mapv2array(src)
+--------------------------------------------------------------------------------
+function table_ext.v2array(src)
     local dst = {}
     for _, value in pairs(src or {}) do
         tinsert(dst, value)
     end
+    return dst
+end
+
+--------------------------------------------------------------------------------
+function table_ext.kvsort(src)
+    local dst = table_ext.kv2array(src)
+    tsort(dst, function(a, b) return a[1] < b[1] end)
     return dst
 end
