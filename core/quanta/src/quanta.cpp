@@ -107,7 +107,7 @@ static void load_config(int argc, const char* argv[]) {
             auto pos = argvi.find("=");
             if (pos != std::string::npos) {
                 auto eval = argvi.substr(pos + 1);
-                auto ekey = fmt::format("QUANTA_{})", argvi.substr(2, pos - 2));
+                auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
                 std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
                 setenv(ekey.c_str(), eval.c_str(), 1);
             }

@@ -2,9 +2,8 @@
 import("utility/cmdline.lua")
 local lbuffer       = require("lbuffer")
 
-local log_info      = logger.info
+local log_debug     = logger.debug
 local sformat       = string.format
-local lserialize    = lbuffer.serialize
 
 local cmdline       = quanta.get("cmdline")
 
@@ -30,10 +29,7 @@ for _, command in pairs(commands) do
         for i, value in ipairs(result.args) do
             local atype = type(value)
             local name = result.info[i]
-            if atype == "table" then
-                value = lserialize(value)
-            end
-            log_info(sformat("parse command %s args->(%s, %s[%s])", command.name, name, value, atype))
+            log_debug("parse command %s args->(%s, %s[%s])", command.name, name, value, atype)
         end
     end
     local result2 = cmdline:parser_data(command.data)
@@ -41,10 +37,7 @@ for _, command in pairs(commands) do
         for i, value in ipairs(result2.args) do
             local atype = type(value)
             local name = result2.info[i]
-            if atype == "table" then
-                value = lserialize(value)
-            end
-            log_info(sformat("parse data %s args->(%s, %s[%s])", command.name, name, value, atype))
+            log_debug("parse data %s args->(%s, %s[%s])", command.name, name, value, atype)
         end
     end
 end
