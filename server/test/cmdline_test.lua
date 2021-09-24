@@ -1,9 +1,7 @@
 --cmdline_test.lua
 import("utility/cmdline.lua")
-local lbuffer       = require("lbuffer")
 
 local log_debug     = logger.debug
-local sformat       = string.format
 
 local cmdline       = quanta.get("cmdline")
 
@@ -17,8 +15,14 @@ local commands = {
     {
         name = "buy",
         args = "buy 1234567 \"0x8a65dc1da45\" 3.12 {a=1,b=2,c=3,d=4}",
-        options = "player_id|integer guid|string price|number info|table",
+        options = "player_id|integer guid|string price|float info|table",
         data = { name = "buy", player_id = 1234567, guid = "0x8a65dc1da45", price = 3.12, info = {a=1,b=2,c=3,d=4} },
+    },
+    {
+        name = "add_item",
+        args = "add_item 123246545654 10101 1",
+        options = "player_id|integer item_id|integer count|integer",
+        data = { name = "add_item", player_id = 123246545654, item_id = "10101", count = 1},
     },
 }
 

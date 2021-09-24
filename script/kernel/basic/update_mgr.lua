@@ -112,7 +112,6 @@ function UpdateMgr:quit()
     poll:quit()
     timer_mgr:quit()
     clock_mgr:quit()
-    logger.close()
     quanta.run = nil
 end
 

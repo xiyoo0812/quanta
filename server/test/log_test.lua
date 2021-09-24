@@ -1,12 +1,14 @@
 --log_test.lua
-local llog = require("lualog")
+require("lualog")
 
---llog.init("./newlog/", "qtest", 500000)
+local logger = quanta.logger
 
-llog.debug("aaaaaaaaaa")
-llog.info("bbbb")
-llog.warn("cccccc")
-llog.dump("dddddddddd")
-llog.error("eeeeeeeeeeee")
+print(logger, type(logger))
+
+logger:debug("aaaaaaaaaa")
+logger:info("bbbb")
+logger:warn("cccccc")
+logger:dump("dddddddddd")
+logger:error("eeeeeeeeeeee")
 
 --os.exit()

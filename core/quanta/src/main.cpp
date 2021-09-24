@@ -17,7 +17,7 @@ usage: quanta program_entry.lua ...
     }
 
     g_app = new quanta_app();
-    g_app->run(argc, argv);
+    g_app->setup(argc, argv);
     delete g_app;
     return 0;
 }

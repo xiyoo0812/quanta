@@ -1,17 +1,17 @@
 --sandbox.lua
-local llog      = require("lualog")
+require("lualog")
 local lstdfs    = require("lstdfs")
 
 local pairs     = pairs
 local loadfile  = loadfile
 local iopen     = io.open
 local mabs      = math.abs
-local log_info  = llog.info
-local log_err   = llog.error
 local tinsert   = table.insert
 local sformat   = string.format
 local dgetinfo  = debug.getinfo
 local file_time = lstdfs.last_write_time
+
+local logger    = quanta.logger
 
 local load_files    = {}
 local search_path   = {}
@@ -59,10 +59,10 @@ end
 local function try_load(node)
     local trunk_func, err = search_load(node)
     if not trunk_func then
-        log_err(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
+        logger:error(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
-    log_info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
+    logger:info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
     return trunk_func()
 end
 
@@ -94,7 +94,7 @@ function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then
         local info = dgetinfo(2, "S")
-        log_err(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
+        logger:error(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
         return
     end
     return global_obj

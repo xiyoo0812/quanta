@@ -24,7 +24,8 @@ DEFINES = {
 INCLUDES = {
 	"../../extend/lua/lua",
 	"../../extend/fmt/include",
-	"../../extend/sol2/include"
+	"../../extend/sol2/include",
+	"../../extend/lualog/lualog"
 }
 
 --需要连接的库文件

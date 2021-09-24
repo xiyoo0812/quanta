@@ -32,6 +32,7 @@ STDCPP = -std=c++17
 MYCFLAGS += -I../../extend/lua/lua
 MYCFLAGS += -I../../extend/fmt/include
 MYCFLAGS += -I../../extend/sol2/include
+MYCFLAGS += -I../../extend/lualog/lualog
 
 #需要定义的选项
 MYCFLAGS += -DFMT_HEADER_ONLY

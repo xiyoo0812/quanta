@@ -3,6 +3,7 @@ local load          = load
 local ipairs        = ipairs
 local tonumber      = tonumber
 local log_err       = logger.err
+local log_warn      = logger.warn
 local tpack         = table.pack
 local tinsert       = table.insert
 local smatch        = string.match
@@ -13,11 +14,11 @@ local mtointeger    = math.tointeger
 --空白模式定义
 local blank = "[%s]+"
 --参数类型模式定义
---参数支持类型：table/number/integer/string
+--参数支持类型：table/float/integer/string
 local patterns = {
     table = "({.+})",
     integer = "([%-]?%d+)",
-    number = "([%-]?%d+[%.]?%d+)",
+    float = "([%-]?%d+[%.]?%d+)",
     string = "[\"\']?([^%s]-)[\"\']?",
 }
 
@@ -83,7 +84,7 @@ end
 --command = "player_id|integer aa|table bb|string dd|number"
 function Cmdline:register_command(name, command, cmd_type)
     if self.command_defines[name] then
-        log_err("[Cmdline][register_command] command (%s) repeat registered!", name)
+        log_warn("[Cmdline][register_command] command (%s) repeat registered!", name)
         return
     end
     local cmd_define = {type = cmd_type, args = {}}

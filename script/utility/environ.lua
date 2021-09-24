@@ -4,13 +4,12 @@ local tonumber  = tonumber
 local ogetenv   = os.getenv
 local log_info  = logger.info
 local tunpack   = table.unpack
-local sformat   = string.format
 local ssplit    = string_ext.split
 
---内存临时环境变量表
-local QUANTA_ENV = {}
-
 environ = {}
+
+--环境变量表
+local QUANTA_ENV = quanta.environs
 
 function environ.init()
     local env_file = ogetenv("QUANTA_ENV")
@@ -30,7 +29,7 @@ function environ.init()
     end
     log_info("---------------------environ value dump-------------------")
     for key, _ in pairs(QUANTA_ENV) do
-        log_info(sformat("%s ----> %s", key, environ.get(key)))
+        log_info("%s ----> %s", key, environ.get(key))
     end
     log_info("----------------------------------------------------------")
 end

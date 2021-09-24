@@ -31,7 +31,6 @@ function quanta.startup()
     quanta.index = env_number("QUANTA_INDEX", 1)
     quanta.deploy = env_get("QUANTA_DEPLOY", "develop")
     local service_name = env_get("QUANTA_SERVICE")
-    assert(service_name, "service not exist, quanta startup failed!")
     local service_id = service.init(service_name)
     assert(service_id, "service_id not exist, quanta startup failed!")
     quanta.service = service_name

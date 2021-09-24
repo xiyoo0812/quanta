@@ -1,5 +1,5 @@
-﻿#include <stdlib.h>
-#include <locale>
+﻿#include <locale>
+#include <stdlib.h>
 #include <signal.h>
 #include "quanta.h"
 
@@ -9,7 +9,6 @@ extern "C" {
     #include "lauxlib.h"
 }
 
-#include "sol/sol.hpp"
 #include <fmt/core.h>
 
 #if WIN32
@@ -39,14 +38,7 @@ static const char* get_platform() {
 #endif
 }
 
-static int get_pid() {
-#ifdef _MSC_VER
-    return ::GetCurrentProcessId();
-#else
-    return ::getpid();
-#endif
-}
-static int ldaemon(lua_State* L) {
+static int quanta_daemon() {
 #if defined(__linux) || defined(__APPLE__)
     pid_t pid = fork();
     if (pid != 0)
@@ -61,19 +53,6 @@ static int ldaemon(lua_State* L) {
         close(null);
     }
 #endif
-    return 0;
-}
-
-static int lset_env(lua_State* L) {
-    bool replace = false;
-    const char* env_name = lua_tostring(L, 1);
-    const char* env_value = lua_tostring(L, 2);
-    if (lua_gettop(L) == 3) {
-        replace = lua_toboolean(L, 3);
-    }
-    if (replace || !getenv(env_name)) {
-        setenv(env_name, env_value, 1);
-    }
     return 0;
 }
 
@@ -92,65 +71,103 @@ static void check_input(sol::state& lua) {
 #endif
 }
 
-static void load_config(int argc, const char* argv[]) {
-    sol::state lua;
-    lua.open_libraries();
-    lua.set("platform", get_platform());
-    lua.set_function("set_env", lset_env);
-    if (argc > 1) {
-        setenv("QUANTA_INDEX", "1", 1);
-        //加载配置
-        lua.script_file(argv[1]);
-        //将启动参数转换成环境变量
-        for (int i = 2; i < argc; ++i) {
-            std::string argvi = argv[i];
-            auto pos = argvi.find("=");
-            if (pos != std::string::npos) {
-                auto eval = argvi.substr(pos + 1);
-                auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
-                std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
-                setenv(ekey.c_str(), eval.c_str(), 1);
-            }
-        }
-    }
-}
-
 void quanta_app::set_signal(uint32_t n) {
     uint32_t mask = 1 << n;
     m_signal |= mask;
 }
 
-void quanta_app::run(int argc, const char* argv[]) {
+void quanta_app::setup(int argc, const char* argv[]) {
+    //初始化日志
+    m_logger = std::make_shared<log_service>();
+    m_logger->start();
+    //加载配置
+    load(argc, argv);
+    //运行
+    run();
+}
+
+void quanta_app::sol_exception_handler(std::string msg, sol::protected_function_result& result) {
+    sol::error err = result;
+    LOG_FATAL(m_logger) << msg << err.what();
+    m_logger->stop();
+#if WIN32
+    _getch();
+#endif
+    exit(1);
+}
+
+void quanta_app::load(int argc, const char* argv[]) {
     sol::state lua;
-    load_config(argc, argv);
+    lua.open_libraries();
+    lua.set("platform", get_platform());
+    //定义函数
+    auto lambda_setenv = [&](std::string k, std::string v) { 
+        m_environs[k] = v;
+        setenv(k.c_str(), v.c_str(), 1);
+    };
+    lua.set_function("set_env", lambda_setenv);
+    //设置默认参数
+    lambda_setenv("QUANTA_SERVICE", "quanta");
+    lambda_setenv("QUANTA_INDEX", "1");
+    //加载LUA配置
+    lua.safe_script_file(argv[1], [&](lua_State*, sol::protected_function_result result) {
+        sol_exception_handler("load config err: ", result);
+        return result;
+    });
+    //将启动参数转换成环境变量
+    for (int i = 2; i < argc; ++i) {
+        std::string argvi = argv[i];
+        auto pos = argvi.find("=");
+        if (pos != std::string::npos) {
+            auto evalue = argvi.substr(pos + 1);
+            auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
+            std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
+            lambda_setenv(ekey, evalue);
+        }
+    }
+}
+
+void quanta_app::init_logger() {
+    auto index = getenv("QUANTA_INDEX");
+    auto service = getenv("QUANTA_SERVICE");
+    auto logname = fmt::format("{}-{}", service, index);
+    auto maxline = std::stoi(getenv("QUANTA_LOG_LINE"));
+    auto logpath = fmt::format("{}/{}/", getenv("QUANTA_LOG_PATH"), service);
+    auto rolltype = (logger::rolling_type)std::stoi(getenv("QUANTA_LOG_ROLL"));
+    m_logger->add_dest(logpath, logname, rolltype, maxline);
+    if (std::stoi(getenv("QUANTA_LOG_LVL"))) {
+        quanta_daemon();
+    }
+}
+
+void quanta_app::run() {
+    init_logger();
+    sol::state lua;
     lua.open_libraries();
     sol::table quanta = lua.create_named_table("quanta");
-    quanta.set("pid", get_pid());
+    quanta.set("pid", ::getpid());
+    quanta.set("logger", m_logger);
     quanta.set("platform", get_platform());
-    quanta.set_function("daemon", ldaemon);
+    quanta.set("environs", sol::as_table(quanta_app::m_environs));
     quanta.set_function("get_signal", [&]() { return m_signal; });
     quanta.set_function("set_signal", [&](int n) { set_signal(n); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
 
-    auto sandbox = lua.script(fmt::format("require '{}'", getenv("QUANTA_SANDBOX")));
-    if (!sandbox.valid()) {
-        sol::error err = sandbox;
-        printf("load sandbox error: %s\n", err.what());
-        exit(1);
-    }
-    auto entry = lua.script(fmt::format("require '{}'", getenv("QUANTA_ENTRY")));
-    if (!entry.valid()) {
-        sol::error err = entry;
-        printf("load sandbox error: %s\n", err.what());
-        exit(1);
-    }
-
+    lua.safe_script(fmt::format("require '{}'", getenv("QUANTA_SANDBOX")), [&](lua_State*, sol::protected_function_result result) {
+        sol_exception_handler("load sandbox err: ", result);
+        return result;
+    });
+    lua.safe_script(fmt::format("require '{}'", getenv("QUANTA_ENTRY")), [&](lua_State*, sol::protected_function_result result) {
+        sol_exception_handler("load entry err: ", result);
+        return result;
+    });
     sol::function quanta_run = quanta["run"];
     while (quanta_run.valid()) {
         quanta_run();
         check_input(lua);
         quanta_run = quanta["run"];
     }
+    m_logger->stop();
 }
