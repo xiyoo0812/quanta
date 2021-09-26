@@ -58,6 +58,7 @@ local function convert_args(args, cmd_define)
         tinsert(fmtargs.info, def_arg.name)
         tinsert(fmtargs.args, convert_arg(def_arg.type, arg))
     end
+    tinsert(fmtargs.args, 1, args[1])
     fmtargs.type = cmd_define.type
     fmtargs.name = args[1]
     return fmtargs
@@ -109,6 +110,7 @@ function Cmdline:parser_data(cmd_data)
         tinsert(fmtargs.info, def_arg.name)
         tinsert(fmtargs.args, convert_arg(def_arg.type, arg))
     end
+    tinsert(fmtargs.args, 1, cmd_name)
     fmtargs.type = cmd_define.type
     fmtargs.name = cmd_name
     return fmtargs
