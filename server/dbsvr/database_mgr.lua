@@ -109,6 +109,24 @@ function DatabaseMgr:count(db_group, index, coll_name, selector, limit, skip)
     return DB_NOTINIT, "db mgr not init"
 end
 
+function DatabaseMgr:build_indexes(db_group, coll_name, indexes)
+    log_debug("[DatabaseMgr][build_indexes]: db_group=%s,coll_name=%s,indexes=%s", db_group, coll_name,indexes)
+    local database_mgr = self:get_databese_mgr(db_group)
+    if database_mgr then
+        return database_mgr:build_indexes(coll_name, indexes)
+    end
+    return DB_NOTINIT, "db mgr not init"
+end
+
+function DatabaseMgr:drop_index(db_group, coll_name, index_name)
+    log_debug("[DatabaseMgr][drop_index]: db_group=%s,coll_name=%s,index_name=%s", db_group, coll_name,index_name)
+    local database_mgr = self:get_databese_mgr(db_group)
+    if database_mgr then
+        return database_mgr:drop_index(coll_name, index_name)
+    end
+    return DB_NOTINIT, "db mgr not init"
+end
+
 quanta.database_mgr = DatabaseMgr()
 
 return DatabaseMgr

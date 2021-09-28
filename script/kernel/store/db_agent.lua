@@ -50,6 +50,17 @@ function DBAgent:count(hash_key, db_query, db_group, db_area)
     return router_mgr:call_dbsvr_hash(hash_key, "count", db_group or DBGROUP_AREA, db_area or self.area_id, tunpack(db_query))
 end
 
+--{coll_name, indexes}
+function DBAgent:build_indexes(hash_key, db_query, db_group)
+    return router_mgr:call_dbsvr_hash(hash_key, "build_indexes", db_group or DBGROUP_AREA, tunpack(db_query))
+end
+
+--{coll_name, index_name}
+function DBAgent:drop_index(hash_key, db_query, db_group)
+    return router_mgr:call_dbsvr_hash(hash_key, "drop_index", db_group or DBGROUP_AREA, tunpack(db_query))
+end
+
+
 ------------------------------------------------------------------
 quanta.db_agent = DBAgent()
 

@@ -74,7 +74,7 @@ function MongoDB:on_second()
     if not self.sock then
         self.sock = Socket(self)
         if not self.sock:connect(self.ip, self.port) then
-            log_err("[MysqlDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
+            log_err("[MongoDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
             self.sock = nil
             return
         end
@@ -255,6 +255,10 @@ end
 -- indexes={{key={open_id=1,platform_id=1},name="open_id-platform_id",unique=true}, }
 function MongoDB:build_indexes(collection, indexes)
     return self:runCommand("createIndexes", collection, "indexes", indexes)
+end
+
+function MongoDB:drop_index(collection, index_name)
+    return self:runCommand("dropIndexes", collection, "index", index_name)
 end
 
 function MongoDB:insert(collection, doc)
