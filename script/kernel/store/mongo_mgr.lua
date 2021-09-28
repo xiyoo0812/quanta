@@ -114,8 +114,8 @@ end
 function MongoMgr:build_indexes(coll_name, indexes)
     for _, mongodb in pairs(self.mongo_dbs) do
         local ok, res_oe =  mongodb:build_indexes(coll_name, indexes)
-        if res_oe ~= SUCCESS then
-            return MONGO_FAILED, "mongo db build indexes faild"
+        if not ok or res_oe ~= SUCCESS then
+            return MONGO_FAILED, ok and res_oe or "mongo db build indexes faild"
         end
     end
     return SUCCESS
@@ -124,8 +124,8 @@ end
 function MongoMgr:drop_index(coll_name, index_name)
     for _, mongodb in pairs(self.mongo_dbs) do
         local ok, res_oe =  mongodb:drop_index(coll_name, index_name)
-        if res_oe ~= SUCCESS then
-            return MONGO_FAILED, "mongo db drop index faild"
+        if not ok or res_oe ~= SUCCESS then
+            return MONGO_FAILED, ok and res_oe or "mongo db build indexes faild"
         end
     end
     return SUCCESS

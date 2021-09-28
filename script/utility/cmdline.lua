@@ -1,7 +1,6 @@
 --cmdline.lua
 local load          = load
 local ipairs        = ipairs
-local tonumber      = tonumber
 local log_err       = logger.err
 local log_warn      = logger.warn
 local tpack         = table.pack

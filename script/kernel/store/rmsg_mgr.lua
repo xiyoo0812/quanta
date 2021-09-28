@@ -3,7 +3,6 @@ import("kernel/store/db_agent.lua")
 local lcrypt = require("lcrypt")
 local bson          = require("bson")
 
-local otime         = os.time
 local bdate         = bson.date
 local tsort         = table.sort
 local log_err       = logger.err
@@ -33,7 +32,7 @@ end
 function RmsgMgr:build_ttl(name)
     log_info("[RmsgMgr][build_ttl] rmsg table:%s", name)
     local query = { name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } }}
-    local ok, code, result = db_agent:build_indexes(1, query, DBGROUP_HASH)
+    local ok, code = db_agent:build_indexes(1, query, DBGROUP_HASH)
     if ok and check_success(code) then
         log_info("[RmsgMgr][build_ttl] rmsg table %s build due index success")
     end
