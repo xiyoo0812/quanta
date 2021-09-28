@@ -111,4 +111,23 @@ function MongoMgr:count(index, coll_name, selector, limit, skip)
     return MONGO_FAILED, "mongo db not exist"
 end
 
+function MongoMgr:build_indexes(index, coll_name, indexes)
+    local mongodb = self:get_db(index)
+    if mongodb then
+        local ok, res_oe = mongodb:build_indexes(coll_name, indexes)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "mongo db not exist"
+end
+
+function MongoMgr:drop_index(index, coll_name, index_name)
+    local mongodb = self:get_db(index)
+    if mongodb then
+        local ok, res_oe = mongodb:drop_index(coll_name, index_name)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "mongo db not exist"
+end
+
+
 return MongoMgr

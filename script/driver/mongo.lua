@@ -257,6 +257,10 @@ function MongoDB:build_indexes(collection, indexes)
     return self:runCommand("createIndexes", collection, "indexes", indexes)
 end
 
+function MongoDB:drop_index(collection, index_name)
+    return self:runCommand("dropIndexes", collection, "index", index_name)
+end
+
 function MongoDB:insert(collection, doc)
     return self:runCommand("insert", collection, "documents", {bson_encode(doc)})
 end

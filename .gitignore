@@ -64,3 +64,4 @@ bin/lua
 bin/luac
 .gitignore
 .DS_Store
+/.idea/
