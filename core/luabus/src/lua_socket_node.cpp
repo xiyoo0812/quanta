@@ -89,15 +89,14 @@ int lua_socket_node::call_dx(lua_State* L)
 
     size_t data_len = 0;
     const char* data_ptr = lua_tolstring(L, 4, &data_len);
-    header.len = data_len + sizeof(socket_header);
-
-    if (header.len >= USHRT_MAX)
+    if (data_len + sizeof(socket_header) >= USHRT_MAX)
     {
         lua_pushinteger(L, -2);
         return 1;
     }
+    header.len = data_len + sizeof(socket_header);
 
-    // ִ��ʵ�ʷ��ͺ���
+    // ????????????
     sendv_item items[] = { { &header, sizeof(socket_header) }, {data_ptr, data_len} };
     m_mgr->sendv(m_token, items, _countof(items));
     
