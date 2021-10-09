@@ -39,20 +39,20 @@ function MongoMgr:get_db(index)
     return self.mongo_dbs[index]
 end
 
-function MongoMgr:find(index, coll_name, selector, fields, limit, sortor)
+function MongoMgr:find(index, coll_name, selector, fields, sortor, limit)
     local mongodb = self:get_db(index)
     if mongodb then
-        local ok, res_oe = mongodb:find(coll_name, selector, fields, limit, sortor)
+        local ok, res_oe = mongodb:find(coll_name, selector, fields, sortor, limit)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:collect(coll_name, selector, fields, limit, sortor)
+function MongoMgr:collect(coll_name, selector, fields, sortor, limit)
     local collect_res = {}
     if limit then
         for _, mongodb in pairs(self.mongo_dbs) do
-            local ok, res_oe = mongodb:find(coll_name, selector, fields, limit, sortor)
+            local ok, res_oe = mongodb:find(coll_name, selector, fields, sortor, limit)
             if ok then
                 for _, record in pairs(res_oe) do
                     if #collect_res > limit then

@@ -29,7 +29,7 @@ timer_mgr:once(2000, function()
     log_debug("db listIndexes code: %s, err = %s", icode, ierr)
     icode, ierr = mongo_mgr:drop_indexes(1, "test_mongo_2", "test_uid")
     log_debug("db drop_indexes code: %s, err = %s", icode, ierr)
-    fcode, res = mongo_mgr:find(1, "test_mongo_1", {}, {_id = 0}, nil, {pid = 1})
+    fcode, res = mongo_mgr:find(1, "test_mongo_1", {}, {_id = 0}, {pid = 1})
     for _, v in pairs(res) do
         log_debug("db find sort code: %s, v = %s", fcode, v)
     end

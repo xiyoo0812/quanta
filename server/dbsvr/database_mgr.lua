@@ -48,20 +48,20 @@ function DatabaseMgr:get_databese_mgr(db_group)
     return self.database_mgrs[db_group]
 end
 
-function DatabaseMgr:find(db_group, index, coll_name, selector, fields, limit)
+function DatabaseMgr:find(db_group, index, coll_name, selector, fields, sortor, limit)
     log_debug("[DatabaseMgr][find]: db_group=%s,index=%s,coll_name=%s", db_group, index, coll_name)
     local database_mgr = self:get_databese_mgr(db_group)
     if database_mgr then
-        return database_mgr:find(index, coll_name, selector, fields, limit)
+        return database_mgr:find(index, coll_name, selector, fields, sortor, limit)
     end
     return DB_NOTINIT, "db mgr not init"
 end
 
-function DatabaseMgr:collect(db_group, coll_name, selector, fields, limit)
+function DatabaseMgr:collect(db_group, coll_name, selector, fields, sortor, limit)
     log_debug("[DatabaseMgr][collect]: db_group=%s,coll_name=%s", db_group, coll_name)
     local database_mgr = self:get_databese_mgr(db_group)
     if database_mgr then
-        return database_mgr:collect(coll_name, selector, fields, limit)
+        return database_mgr:collect(coll_name, selector, fields, sortor, limit)
     end
     return DB_NOTINIT, "db mgr not init"
 end

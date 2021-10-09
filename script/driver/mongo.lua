@@ -323,7 +323,7 @@ function MongoDB:build_results(documents, results, limit)
     end
 end
 
-function MongoDB:find(collection, selector, fields, limit, sortor)
+function MongoDB:find(collection, selector, fields, sortor, limit)
     local query_num_once = limit or ONCE_QUERY
     local full_name = self.name .. "." .. collection
     local bson_fields = fields and bson_encode(fields)

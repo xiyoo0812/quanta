@@ -31,7 +31,7 @@ end
 
 function RmsgMgr:build_ttl(name)
     log_info("[RmsgMgr][build_ttl] rmsg table:%s", name)
-    local query = { name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } }}
+    local query = { name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
     local ok, code = db_agent:create_indexes(1, query, DBGROUP_HASH, 0)
     if ok and check_success(code) then
         log_info("[RmsgMgr][build_ttl] rmsg table %s build due index success")
@@ -40,12 +40,9 @@ end
 
 -- 查询未处理消息列表
 function RmsgMgr:list_message(to)
-    local query = {self.table_name, {to = to, deal_time = 0}, {_id = 0}}
+    local query = { self.table_name, {to = to, deal_time = 0}, {_id = 0}, {time = 1} }
     local ok, code, result = db_agent:find(to, query, DBGROUP_HASH, to)
     if ok and check_success(code) then
-        tsort(result, function(a, b)
-            return a.time < b.time
-        end)
         return result
     end
 end
@@ -53,7 +50,7 @@ end
 -- 设置信息为已处理
 function RmsgMgr:deal_message(to, uuid)
     log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
-    local query = {self.table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid}}
+    local query = { self.table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid} }
     return db_agent:update(to, query, DBGROUP_HASH, to)
 end
 
