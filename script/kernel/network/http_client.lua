@@ -116,9 +116,12 @@ function HttpClient:call_get(url, querys, headers, timeout)
 end
 
 --post接口
-function HttpClient:call_post(url, post_datas, headers, timeout)
+function HttpClient:call_post(url, post_datas, headers, querys, timeout)
     if not headers then
         headers = {["Content-Type"] = "text/plain" }
+    end
+    if querys then
+        url = self:format_url(url, querys)
     end
     if type(post_datas) == "table" then
         post_datas = jencode(post_datas)
@@ -132,9 +135,12 @@ function HttpClient:call_post(url, post_datas, headers, timeout)
 end
 
 --put接口
-function HttpClient:call_put(url, put_datas, headers, timeout)
+function HttpClient:call_put(url, put_datas, headers, querys, timeout)
     if not headers then
         headers = {["Content-Type"] = "text/plain" }
+    end
+    if querys then
+        url = self:format_url(url, querys)
     end
     if type(put_datas) == "table" then
         put_datas = jencode(put_datas)

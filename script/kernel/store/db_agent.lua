@@ -19,13 +19,13 @@ function DBAgent:find_one(hash_key, db_query, db_group, db_area)
 end
 
 --发送数据库请求
---{coll_name, selector, fields, limit}
+--{coll_name, selector, fields, limit, sortor}
 function DBAgent:find(hash_key, db_query, db_group, db_area)
     return router_mgr:call_dbsvr_hash(hash_key, "find", db_group or DBGROUP_AREA, db_area or self.area_id, tunpack(db_query))
 end
 
 --发送数据库请求
---{coll_name, selector, fields, limit}
+--{coll_name, selector, fields, limit, sortor}
 function DBAgent:collect(hash_key, db_query, db_group)
     return router_mgr:call_dbsvr_hash(hash_key, "collect", db_group or DBGROUP_AREA, tunpack(db_query))
 end
@@ -51,13 +51,13 @@ function DBAgent:count(hash_key, db_query, db_group, db_area)
 end
 
 --{coll_name, indexes}
-function DBAgent:build_indexes(hash_key, db_query, db_group)
-    return router_mgr:call_dbsvr_hash(hash_key, "build_indexes", db_group or DBGROUP_AREA, tunpack(db_query))
+function DBAgent:create_indexes(hash_key, db_query, db_group, db_area)
+    return router_mgr:call_dbsvr_hash(hash_key, "create_indexes", db_group or DBGROUP_AREA, db_area or 0, tunpack(db_query))
 end
 
 --{coll_name, index_name}
-function DBAgent:drop_index(hash_key, db_query, db_group)
-    return router_mgr:call_dbsvr_hash(hash_key, "drop_index", db_group or DBGROUP_AREA, tunpack(db_query))
+function DBAgent:drop_indexes(hash_key, db_query, db_group, db_area)
+    return router_mgr:call_dbsvr_hash(hash_key, "drop_indexes", db_group or DBGROUP_AREA, db_area or 0, tunpack(db_query))
 end
 
 

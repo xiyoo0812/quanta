@@ -39,20 +39,20 @@ function MongoMgr:get_db(index)
     return self.mongo_dbs[index]
 end
 
-function MongoMgr:find(index, coll_name, selector, fields, limit)
+function MongoMgr:find(index, coll_name, selector, fields, limit, sortor)
     local mongodb = self:get_db(index)
     if mongodb then
-        local ok, res_oe = mongodb:find(coll_name, selector, fields, limit)
+        local ok, res_oe = mongodb:find(coll_name, selector, fields, limit, sortor)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:collect(coll_name, selector, fields, limit)
+function MongoMgr:collect(coll_name, selector, fields, limit, sortor)
     local collect_res = {}
     if limit then
         for _, mongodb in pairs(self.mongo_dbs) do
-            local ok, res_oe = mongodb:find(coll_name, selector, fields, limit)
+            local ok, res_oe = mongodb:find(coll_name, selector, fields, limit, sortor)
             if ok then
                 for _, record in pairs(res_oe) do
                     if #collect_res > limit then
@@ -111,25 +111,49 @@ function MongoMgr:count(index, coll_name, selector, limit, skip)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:build_indexes(coll_name, indexes)
-    for _, mongodb in pairs(self.mongo_dbs) do
-        local ok, res_oe =  mongodb:build_indexes(coll_name, indexes)
-        if not ok or res_oe ~= SUCCESS then
-            return MONGO_FAILED, ok and res_oe or "mongo db build indexes faild"
+function MongoMgr:create_indexes(index, coll_name, indexes)
+    if index == 0 then
+        for _, mongodb in pairs(self.mongo_dbs) do
+            local ok, res_oe =  mongodb:create_indexes(coll_name, indexes)
+            if not ok then
+                return MONGO_FAILED, res_oe
+            end
         end
+        return SUCCESS
     end
-    return SUCCESS
+    local mongodb = self:get_db(index)
+    if mongodb then
+        local ok, res_oe =  mongodb:create_indexes(coll_name, indexes)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:drop_index(coll_name, index_name)
-    for _, mongodb in pairs(self.mongo_dbs) do
-        local ok, res_oe =  mongodb:drop_index(coll_name, index_name)
-        if not ok or res_oe ~= SUCCESS then
-            return MONGO_FAILED, ok and res_oe or "mongo db build indexes faild"
+function MongoMgr:drop_indexes(index, coll_name, index_name)
+    if index == 0 then
+        for _, mongodb in pairs(self.mongo_dbs) do
+            local ok, res_oe =  mongodb:drop_indexes(coll_name, index_name)
+            if not ok then
+                return MONGO_FAILED, res_oe
+            end
         end
+        return SUCCESS
     end
-    return SUCCESS
+    local mongodb = self:get_db(index)
+    if mongodb then
+        local ok, res_oe =  mongodb:drop_indexes(coll_name, index_name)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "mongo db not exist"
 end
 
+function MongoMgr:command(index, cmd, ...)
+    local mongodb = self:get_db(index)
+    if mongodb then
+        local ok, res_oe = mongodb:runCommand(cmd, ...)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "mongo db not exist"
+end
 
 return MongoMgr

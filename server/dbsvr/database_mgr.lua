@@ -23,6 +23,8 @@ function DatabaseMgr:__init()
     event_mgr:add_listener(self, "collect")
     event_mgr:add_listener(self, "find_one")
     event_mgr:add_listener(self, "count")
+    event_mgr:add_listener(self, "create_indexes")
+    event_mgr:add_listener(self, "drop_indexes")
 end
 
 function DatabaseMgr:setup()
@@ -109,20 +111,20 @@ function DatabaseMgr:count(db_group, index, coll_name, selector, limit, skip)
     return DB_NOTINIT, "db mgr not init"
 end
 
-function DatabaseMgr:build_indexes(db_group, coll_name, indexes)
-    log_debug("[DatabaseMgr][build_indexes]: db_group=%s,coll_name=%s,indexes=%s", db_group, coll_name,indexes)
+function DatabaseMgr:create_indexes(db_group, index, coll_name, indexes)
+    log_debug("[DatabaseMgr][create_indexes]: db_group=%s,coll_name=%s,indexes=%s", db_group, coll_name, indexes)
     local database_mgr = self:get_databese_mgr(db_group)
     if database_mgr then
-        return database_mgr:build_indexes(coll_name, indexes)
+        return database_mgr:create_indexes(index, coll_name, indexes)
     end
     return DB_NOTINIT, "db mgr not init"
 end
 
-function DatabaseMgr:drop_index(db_group, coll_name, index_name)
-    log_debug("[DatabaseMgr][drop_index]: db_group=%s,coll_name=%s,index_name=%s", db_group, coll_name,index_name)
+function DatabaseMgr:drop_indexes(db_group, coll_name, index_name)
+    log_debug("[DatabaseMgr][drop_indexes]: db_group=%s,coll_name=%s,index_name=%s", db_group, coll_name, index_name)
     local database_mgr = self:get_databese_mgr(db_group)
     if database_mgr then
-        return database_mgr:drop_index(coll_name, index_name)
+        return database_mgr:drop_indexes(index, coll_name, index_name)
     end
     return DB_NOTINIT, "db mgr not init"
 end

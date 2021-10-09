@@ -32,7 +32,7 @@ end
 function RmsgMgr:build_ttl(name)
     log_info("[RmsgMgr][build_ttl] rmsg table:%s", name)
     local query = { name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } }}
-    local ok, code = db_agent:build_indexes(1, query, DBGROUP_HASH)
+    local ok, code = db_agent:create_indexes(1, query, DBGROUP_HASH, 0)
     if ok and check_success(code) then
         log_info("[RmsgMgr][build_ttl] rmsg table %s build due index success")
     end

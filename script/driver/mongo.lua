@@ -33,6 +33,8 @@ local mtointeger    = math.tointeger
 
 local empty_bson    = bson_encode({})
 
+local ONCE_QUERY    = 100
+
 local NetwkTime     = enum("NetwkTime")
 
 local update_mgr    = quanta.get("update_mgr")
@@ -236,6 +238,7 @@ function MongoDB:adminCommand(cmd, cmd_v, ...)
     return self:mongo_result(succ, doc)
 end
 
+--https://docs.mongodb.com/manual/reference/command/
 function MongoDB:runCommand(cmd, cmd_v, ...)
     local bson_cmd
     if not cmd_v then
@@ -253,12 +256,20 @@ end
 
 -- 参数说明
 -- indexes={{key={open_id=1,platform_id=1},name="open_id-platform_id",unique=true}, }
-function MongoDB:build_indexes(collection, indexes)
-    return self:runCommand("createIndexes", collection, "indexes", indexes)
+function MongoDB:create_indexes(collection, indexes)
+    local succ, doc = self:runCommand("createIndexes", collection, "indexes", indexes)
+    if not succ then
+        return succ, doc
+    end
+    return succ
 end
 
-function MongoDB:drop_index(collection, index_name)
-    return self:runCommand("dropIndexes", collection, "index", index_name)
+function MongoDB:drop_indexes(collection, index_name)
+    local succ, doc = self:runCommand("dropIndexes", collection, "index", index_name)
+    if not succ then
+        return succ, doc
+    end
+    return succ
 end
 
 function MongoDB:insert(collection, doc)
@@ -312,11 +323,14 @@ function MongoDB:build_results(documents, results, limit)
     end
 end
 
-function MongoDB:find(collection, selector, fields, limit, query_num)
-    local query_num_once = query_num or limit or 100
+function MongoDB:find(collection, selector, fields, limit, sortor)
+    local query_num_once = limit or ONCE_QUERY
     local full_name = self.name .. "." .. collection
-    local bson_selector = selector and bson_encode(selector)
     local bson_fields = fields and bson_encode(fields)
+    if sortor and next(sortor) then
+        selector = { ["$query"] = selector, ["$orderby"] = sortor }
+    end
+    local bson_selector = selector and bson_encode(selector)
     local succ, doc, cursor, documents = self:_query(full_name, bson_selector, bson_fields, query_num_once)
     if not succ then
         return self:mongo_result(succ, doc)

@@ -23,7 +23,7 @@ end
 
 function ConfigTable:setup(name, ...)
     local size = select("#", ...)
-    if size > 0 and size < TABLE_MAX_INDEX then
+    if size > 0 and size <= TABLE_MAX_INDEX then
         self.name = name
         self.indexs = {...}
         import(sformat("config/%s_cfg.lua", name))
