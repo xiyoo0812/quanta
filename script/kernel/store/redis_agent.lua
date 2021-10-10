@@ -15,7 +15,7 @@ end
 --发送数据库请求
 --db_query: {cmd, ...}
 function RedisAgent:execute(hash_key, db_query, db_group, db_area)
-    return router_mgr:call_dbsvr_hash(hash_key, "redis_execute", db_group or DBGROUP_AREA, db_area or self.area_id, tunpack(db_query))
+    return router_mgr:call_redis_hash(hash_key, "redis_execute", db_group or DBGROUP_AREA, db_area or self.area_id, tunpack(db_query))
 end
 
 ------------------------------------------------------------------

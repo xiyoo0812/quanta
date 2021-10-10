@@ -13,7 +13,7 @@ end
 
 --发送数据库请求
 function MysqlAgent:execute(hash_key, sql, db_group, db_area)
-    return router_mgr:call_dbsvr_hash(hash_key, "mysql_execute", db_group or DBGROUP_AREA, db_area or self.area_id, sql)
+    return router_mgr:call_mysql_hash(hash_key, "mysql_execute", db_group or DBGROUP_AREA, db_area or self.area_id, sql)
 end
 
 ------------------------------------------------------------------
