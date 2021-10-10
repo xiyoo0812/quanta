@@ -147,7 +147,7 @@ function MongoMgr:drop_indexes(index, coll_name, index_name)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:command(index, cmd, ...)
+function MongoMgr:execute(index, cmd, ...)
     local mongodb = self:get_db(index)
     if mongodb then
         local ok, res_oe = mongodb:runCommand(cmd, ...)

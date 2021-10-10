@@ -1,15 +1,14 @@
 --rmsg_mgr.lua
-import("kernel/store/db_agent.lua")
+import("kernel/store/mongo_agent.lua")
 local lcrypt = require("lcrypt")
 local bson          = require("bson")
 
 local bdate         = bson.date
-local tsort         = table.sort
 local log_err       = logger.err
 local log_info      = logger.info
 local new_guid      = lcrypt.guid_new
 
-local db_agent      = quanta.get("db_agent")
+local mongo_agent   = quanta.get("mongo_agent")
 local check_success = utility.check_success
 
 local DBGroup       = enum("DBGroup")
@@ -32,7 +31,7 @@ end
 function RmsgMgr:build_ttl(name)
     log_info("[RmsgMgr][build_ttl] rmsg table:%s", name)
     local query = { name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
-    local ok, code = db_agent:create_indexes(1, query, DBGROUP_HASH, 0)
+    local ok, code = mongo_agent:create_indexes(1, query, DBGROUP_HASH, 0)
     if ok and check_success(code) then
         log_info("[RmsgMgr][build_ttl] rmsg table %s build due index success")
     end
@@ -41,7 +40,7 @@ end
 -- 查询未处理消息列表
 function RmsgMgr:list_message(to)
     local query = { self.table_name, {to = to, deal_time = 0}, {_id = 0}, {time = 1} }
-    local ok, code, result = db_agent:find(to, query, DBGROUP_HASH, to)
+    local ok, code, result = mongo_agent:find(to, query, DBGROUP_HASH, to)
     if ok and check_success(code) then
         return result
     end
@@ -51,13 +50,13 @@ end
 function RmsgMgr:deal_message(to, uuid)
     log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
     local query = { self.table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid} }
-    return db_agent:update(to, query, DBGROUP_HASH, to)
+    return mongo_agent:update(to, query, DBGROUP_HASH, to)
 end
 
 -- 删除消息
 function RmsgMgr:delete_message(to, uuid)
     log_info("[RmsgMgr][delete_message] delete message: %s", uuid)
-    return db_agent:delete(to, {self.table_name, {uuid = uuid}}, DBGROUP_HASH, to)
+    return mongo_agent:delete(to, {self.table_name, {uuid = uuid}}, DBGROUP_HASH, to)
 end
 
 -- 发送消息
@@ -74,7 +73,7 @@ function RmsgMgr:send_message(from, to, typ, body, id)
     if self.ttl then
         doc.ttl = bdate(quanta.now + self.ttl)
     end
-    local ok = db_agent:insert(to, {self.table_name, doc}, DBGROUP_HASH, to)
+    local ok = mongo_agent:insert(to, {self.table_name, doc}, DBGROUP_HASH, to)
     if not ok then
         log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
     else

@@ -39,28 +39,35 @@ service:upsert({
 
 service:upsert({
     router_group = {1},
-    id = 4,
-    index = 2,
-    name = 'test',
-})
-
-service:upsert({
-    router_group = {1},
     id = 5,
-    index = 1,
-    name = 'dbsvr',
-})
-
-service:upsert({
-    router_group = {1},
-    id = 6,
     index = 1,
     name = 'proxy',
 })
 
 service:upsert({
     router_group = {1},
-    id = 7,
+    id = 6,
     index = 1,
     name = 'cachesvr',
+})
+
+service:upsert({
+    router_group = {1},
+    id = 7,
+    index = 1,
+    name = 'mongo',
+})
+
+service:upsert({
+    router_group = {1},
+    id = 8,
+    index = 1,
+    name = 'mysql',
+})
+
+service:upsert({
+    router_group = {1},
+    id = 9,
+    index = 1,
+    name = 'redis',
 })
