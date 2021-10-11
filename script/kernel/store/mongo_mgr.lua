@@ -22,7 +22,7 @@ end
 --初始化
 function MongoMgr:setup(group)
     local MongoDB = import("driver/mongo.lua")
-    local database = config_mgr:get_table("database")
+    local database = config_mgr:init_table("database", "group", "index", "driver")
     for _, conf in database:iterator() do
         if group == conf.group and conf.driver == "mongo" then
             self.mongo_dbs[conf.index] = MongoDB(conf)

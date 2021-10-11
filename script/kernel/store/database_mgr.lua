@@ -4,8 +4,6 @@ local log_debug     = logger.debug
 local env_get       = environ.get
 
 local event_mgr     = quanta.get("event_mgr")
-local config_mgr    = quanta.get("config_mgr")
-
 local DBGroup       = enum("DBGroup")
 local KernCode      = enum("KernCode")
 local DB_NOTINIT    = KernCode.DB_NOTINIT
@@ -15,7 +13,6 @@ local prop = property(DatabaseMgr)
 prop:accessor("database_mgrs", {})      -- database mgrs
 
 function DatabaseMgr:__init()
-    config_mgr:init_table("database", "group", "index", "driver")
     self:setup()
 end
 
