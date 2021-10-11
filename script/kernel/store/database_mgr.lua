@@ -21,7 +21,7 @@ function DatabaseMgr:setup()
     local db_driver = env_get("QUANTA_DB_DRIVER")
     for group = DBGroup.AREA, DBGroup.HASH do
         if db_driver == "mongo" then
-            log_info("[DatabaseMgr][mongo_setup]: general mongo_mgr group=%s", group)
+            log_info("[DatabaseMgr][setup]: general mongo_mgr group=%s", group)
             local MongoMgr = import("kernel/store/mongo_mgr.lua")
             self.database_mgrs[group] = MongoMgr(group)
             -- 注册事件
@@ -36,15 +36,15 @@ function DatabaseMgr:setup()
             event_mgr:add_listener(self, "mongo_drop_indexes")
             event_mgr:add_listener(self, "mongo_create_indexes")
         elseif db_driver == "mysql" then
-            log_info("[DatabaseMgr][mongo_setup]: general mysql_mgr group=%s", group)
+            log_info("[DatabaseMgr][setup]: general mysql_mgr group=%s", group)
             local MysqlMgr = import("kernel/store/mysql_mgr.lua")
             self.database_mgrs[group] = MysqlMgr(group)
             -- 注册事件
             event_mgr:add_listener(self, "mysql_execute")
         elseif db_driver == "redis" then
-            log_info("[DatabaseMgr][mongo_setup]: general redis_mgr group=%s", group)
-            local MysqlMgr = import("kernel/store/redis_mgr.lua")
-            self.database_mgrs[group] = MysqlMgr(group)
+            log_info("[DatabaseMgr][setup]: general redis_mgr group=%s", group)
+            local RedisMgr = import("kernel/store/redis_mgr.lua")
+            self.database_mgrs[group] = RedisMgr(group)
             -- 注册事件
             event_mgr:add_listener(self, "redis_execute")
         end
