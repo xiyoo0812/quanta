@@ -4,6 +4,7 @@ local log_debug     = logger.debug
 local env_get       = environ.get
 
 local event_mgr     = quanta.get("event_mgr")
+local config_mgr    = quanta.get("config_mgr")
 
 local DBGroup       = enum("DBGroup")
 local KernCode      = enum("KernCode")
@@ -13,24 +14,12 @@ local DatabaseMgr = singleton()
 local prop = property(DatabaseMgr)
 prop:accessor("database_mgrs", {})      -- database mgrs
 
-function DatabaseMgr:mongo___init()
+function DatabaseMgr:__init()
+    config_mgr:init_table("database", "group", "index", "driver")
     self:setup()
-    -- 注册事件
-    event_mgr:add_listener(self, "mongo_find")
-    event_mgr:add_listener(self, "mongo_count")
-    event_mgr:add_listener(self, "mongo_insert")
-    event_mgr:add_listener(self, "mongo_delete")
-    event_mgr:add_listener(self, "mongo_update")
-    event_mgr:add_listener(self, "mongo_collect")
-    event_mgr:add_listener(self, "mongo_execute")
-    event_mgr:add_listener(self, "mongo_find_one")
-    event_mgr:add_listener(self, "mongo_drop_indexes")
-    event_mgr:add_listener(self, "mongo_create_indexes")
-    event_mgr:add_listener(self, "mysql_execute")
-    event_mgr:add_listener(self, "redis_execute")
 end
 
-function DatabaseMgr:mongo_setup()
+function DatabaseMgr:setup()
     --初始化dbmgr
     local db_driver = env_get("QUANTA_DB_DRIVER")
     for group = DBGroup.AREA, DBGroup.HASH do
@@ -38,14 +27,29 @@ function DatabaseMgr:mongo_setup()
             log_info("[DatabaseMgr][mongo_setup]: general mongo_mgr group=%s", group)
             local MongoMgr = import("kernel/store/mongo_mgr.lua")
             self.database_mgrs[group] = MongoMgr(group)
+            -- 注册事件
+            event_mgr:add_listener(self, "mongo_find")
+            event_mgr:add_listener(self, "mongo_count")
+            event_mgr:add_listener(self, "mongo_insert")
+            event_mgr:add_listener(self, "mongo_delete")
+            event_mgr:add_listener(self, "mongo_update")
+            event_mgr:add_listener(self, "mongo_collect")
+            event_mgr:add_listener(self, "mongo_execute")
+            event_mgr:add_listener(self, "mongo_find_one")
+            event_mgr:add_listener(self, "mongo_drop_indexes")
+            event_mgr:add_listener(self, "mongo_create_indexes")
         elseif db_driver == "mysql" then
             log_info("[DatabaseMgr][mongo_setup]: general mysql_mgr group=%s", group)
             local MysqlMgr = import("kernel/store/mysql_mgr.lua")
             self.database_mgrs[group] = MysqlMgr(group)
+            -- 注册事件
+            event_mgr:add_listener(self, "mysql_execute")
         elseif db_driver == "redis" then
             log_info("[DatabaseMgr][mongo_setup]: general redis_mgr group=%s", group)
             local MysqlMgr = import("kernel/store/redis_mgr.lua")
             self.database_mgrs[group] = MysqlMgr(group)
+            -- 注册事件
+            event_mgr:add_listener(self, "redis_execute")
         end
     end
 end

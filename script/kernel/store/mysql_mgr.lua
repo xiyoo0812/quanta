@@ -21,7 +21,7 @@ end
 --初始化
 function MysqlMgr:setup(group)
     local MysqlDB = import("driver/mysql.lua")
-    local database = config_mgr:init_table("database", "group", "index")
+    local database = config_mgr:get_table("database")
     for _, conf in database:iterator() do
         if group == conf.group and conf.driver == "mysql" then
             self.mysql_dbs[conf.index] = MysqlDB(conf)
