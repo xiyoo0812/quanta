@@ -138,7 +138,7 @@ void quanta_app::init_logger() {
     auto logpath = fmt::format("{}/{}/", lgetenv("QUANTA_LOG_PATH", "./logs/"), service);
     auto rolltype = (logger::rolling_type)std::stoi(lgetenv("QUANTA_LOG_ROLL", "0"));
     m_logger->add_dest(logpath, logname, rolltype, maxline);
-    if (std::stoi(lgetenv("QUANTA_DEAMON", "0"))) {
+    if (std::stoi(lgetenv("QUANTA_DAEMON", "0"))) {
         quanta_daemon();
     }
 }
