@@ -29,17 +29,16 @@ prop:accessor("primary_value", nil)     -- primary value
 prop:accessor("databese_mgr", nil)      -- databese mgr
 prop:accessor("cache_table", "")        -- cache table
 prop:accessor("cache_rows", {})         -- cache rows
-prop:accessor("database_id", 0)         -- database id
 prop:accessor("update_count", 0)        -- update count
 prop:accessor("update_time", 0)         -- update time
 prop:accessor("flush_time", 0)          -- flush time
 prop:accessor("active_tick", 0)         -- active tick
+prop:accessor("db_name", "default")     -- db name
 prop:accessor("records", {})            -- records
 prop:accessor("dirty_records", {})      -- dirty records
 
-function CacheObj:__init(cache_conf, primary_value, database_id)
+function CacheObj:__init(cache_conf, primary_value, db_name)
     self.uuid           = new_guid()
-    self.database_id    = database_id
     self.primary_value  = primary_value
     self.cache_rows     = cache_conf.rows
     self.cache_total    = cache_conf.cache_total
@@ -49,13 +48,10 @@ function CacheObj:__init(cache_conf, primary_value, database_id)
     self.store_time     = cache_conf.store_time
     self.store_count    = cache_conf.store_count
     self.flush_time     = cache_conf.flush_time
-
-    local databese_mgr = cache_mgr:get_databese_mgr(cache_conf.cache_group)
-    if databese_mgr:is_hash_mode() then
-        --hash模式，数据库id使用主键进行hash
-        self.database_id = primary_value
+    if db_name then
+        self.db_name    = db_name
     end
-    self.databese_mgr = databese_mgr
+    self.databese_mgr = cache_mgr:get_databese_mgr(cache_conf.cache_group)
 end
 
 function CacheObj:load()
@@ -64,7 +60,7 @@ function CacheObj:load()
     if self.cache_total then
         --合并加载模式
         local query = { [self.cache_key] = self.primary_value }
-        local code, res = self.databese_mgr:find_one(self.database_id, self.cache_table, query, {_id = 0})
+        local code, res = self.databese_mgr:find_one(self.db_name, self.cache_table, query, {_id = 0})
         if check_failed(code) then
             log_err("[CacheObj][load] failed: cache_table=%s,res=%s", self.cache_table, res)
             return code
@@ -82,7 +78,7 @@ function CacheObj:load()
             local tab_name = row_conf.cache_table
             local record = CacheRow(self.databese_mgr, row_conf, self.primary_value)
             self.records[tab_name] = record
-            local code = record:load(self.database_id)
+            local code = record:load(self.db_name)
             if check_failed(code) then
                 log_err("[CacheObj][load] load row failed: tab_name=%s", tab_name)
                 return code

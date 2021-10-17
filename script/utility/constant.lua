@@ -75,12 +75,6 @@ GMType.ROOM                 = 1       -- 房间系统相关
 GMType.GLOBAL               = 2       -- 全局相关
 GMType.AREA                 = 3       -- 小区相关
 
---数据库组定义
-local DBGroup               = enum("DBGroup", 0)
-DBGroup.AREA                = 1       -- 分区库
-DBGroup.GLOBAL              = 2       -- 全局库
-DBGroup.HASH                = 3       -- hash库
-
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
 CacheCode.CACHE_NOT_SUPPERT         = 2051  -- 不支持的缓存类型

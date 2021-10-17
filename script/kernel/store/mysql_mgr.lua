@@ -1,45 +1,48 @@
 --mysql_mgr.lua
-local hash_code     = utility.hash_code
 
-local DBGroup       = enum("DBGroup")
 local KernCode      = enum("KernCode")
 local SUCCESS       = KernCode.SUCCESS
 local MYSQL_FAILED  = KernCode.MYSQL_FAILED
 
+local event_mgr     = quanta.get("event_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
 local MysqlMgr = class()
 local prop = property(MysqlMgr)
-prop:accessor("hash_mode", false)   -- hash_mode
 prop:accessor("mysql_dbs", {})      -- mysql_dbs
+prop:accessor("default_db", nil)    -- default_db
 
-function MysqlMgr:__init(group)
-    self:setup(group)
-    self.hash_mode = (group == DBGroup.HASH)
+function MysqlMgr:__init()
+    self:setup()
+    -- 注册事件
+    event_mgr:add_listener(self, "mysql_execute", "execute")
 end
 
 --初始化
-function MysqlMgr:setup(group)
+function MysqlMgr:setup()
     local MysqlDB = import("driver/mysql.lua")
-    local database = config_mgr:init_table("database", "group", "index", "driver")
+    local database = config_mgr:init_table("database", "db")
     for _, conf in database:iterator() do
-        if group == conf.group and conf.driver == "mysql" then
-            self.mysql_dbs[conf.index] = MysqlDB(conf)
+        if conf.driver == "mysql" then
+            local mysql_db = MysqlDB(conf)
+            self.mysql_dbs[conf.db] = mysql_db
+            if conf.default then
+                self.default_db = mysql_db
+            end
         end
     end
 end
 
 --查找mysql db
-function MysqlMgr:get_db(index)
-    if self.hash_mode then
-        local hash_index = hash_code(index, #self.mysql_dbs)
-        return self.mysql_dbs[hash_index]
+function MysqlMgr:get_db(db_name)
+    if db_name and db_name ~= "default" then
+        return self.mysql_dbs[db_name]
     end
-    return self.mysql_dbs[index]
+    return self.default_db
 end
 
-function MysqlMgr:execute(index, sql)
-    local mysqldb = self:get_db(index)
+function MysqlMgr:execute(db_name, sql)
+    local mysqldb = self:get_db(db_name)
     if mysqldb then
         local ok, res_oe = mysqldb:query(sql)
         return ok and SUCCESS or MYSQL_FAILED, res_oe

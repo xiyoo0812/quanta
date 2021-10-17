@@ -13,7 +13,7 @@ prop:accessor("cache_table", nil)       -- cache table
 prop:accessor("cache_key", "")          -- cache key
 prop:accessor("primary_value", nil)     -- primary value
 prop:accessor("total_table", nil)       -- total table
-prop:accessor("database_id", 0)         -- database id
+prop:accessor("db_name", "default")     -- database name
 prop:accessor("databese_mgr", nil)      -- databese mgr
 prop:accessor("dirty", false)           -- dirty
 prop:accessor("data", {})               -- data
@@ -29,12 +29,14 @@ function CacheRow:__init(databese_mgr, row_conf, primary_value, total_table, dat
 end
 
 --从数据库加载
-function CacheRow:load(db_id)
-    self.database_id = db_id
+function CacheRow:load(db_name)
+    if db_name then
+        self.db_name = db_name
+    end
     local query = { [self.cache_key] = self.primary_value }
-    local code, res = self.databese_mgr:find_one(db_id, self.cache_table, query, {_id = 0})
+    local code, res = self.databese_mgr:find_one(self.db_name, self.cache_table, query, {_id = 0})
     if check_failed(code) then
-        log_err("[CacheRow][load] failed: %s=> db: %s, table: %s", res, self.database_id, self.cache_table)
+        log_err("[CacheRow][load] failed: %s=> db: %s, table: %s", res, self.db_name, self.cache_table)
         return code
     end
     self.data = res
@@ -47,17 +49,17 @@ function CacheRow:save()
         local selector = { [self.cache_key] = self.primary_value }
         if self.total_table then
             local update_obj = {["$set"] = { [self.cache_table] = self.data }}
-            local code, res = self.databese_mgr:update(self.database_id, self.total_table, update_obj, selector)
+            local code, res = self.databese_mgr:update(self.db_name, self.total_table, update_obj, selector)
             if check_failed(code) then
-                log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.database_id, self.cache_table)
+                log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.db_name, self.cache_table)
                 return code
             end
             self.dirty = false
             return code
         else
-            local code, res = self.databese_mgr:update(self.database_id, self.cache_table, self.data, selector, true)
+            local code, res = self.databese_mgr:update(self.db_name, self.cache_table, self.data, selector, true)
             if check_failed(code) then
-                log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.database_id, self.cache_table)
+                log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.db_name, self.cache_table)
                 return code
             end
             self.dirty = false
@@ -74,7 +76,7 @@ function CacheRow:update(data, flush)
     if flush then
         local code = self:save()
         if check_failed(code) then
-            log_err("[CacheRow][update] flush failed: db: %s, table: %s", self.database_id, self.cache_table)
+            log_err("[CacheRow][update] flush failed: db: %s, table: %s", self.db_name, self.cache_table)
             return CacheCode.CACHE_FLUSH_FAILED
         end
     end
@@ -88,7 +90,7 @@ function CacheRow:update_key(key, value, flush)
     if flush then
         local code = self:save()
         if check_failed(code) then
-            log_err("[CacheRow][update_key] flush failed: db: %s, table: %s", self.database_id, self.cache_table)
+            log_err("[CacheRow][update_key] flush failed: db: %s, table: %s", self.db_name, self.cache_table)
             return CacheCode.CACHE_FLUSH_FAILED
         end
     end
