@@ -91,7 +91,7 @@ database:upsert({
     driver = 'mongo',
     db = 'quanta_rmsg',
     default = false,
-    host = '127.0.0.1',
+    host = '9.134.163.87',
     user = 'root',
     passwd = '123456',
     port = 27017,
