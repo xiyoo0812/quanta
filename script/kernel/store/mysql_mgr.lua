@@ -35,10 +35,10 @@ end
 
 --查找mysql db
 function MysqlMgr:get_db(db_name)
-    if db_name and db_name ~= "default" then
-        return self.mysql_dbs[db_name]
+    if not db_name or db_name == "default" then
+        return self.default_db
     end
-    return self.default_db
+    return self.mysql_dbs[db_name]
 end
 
 function MysqlMgr:execute(db_name, sql)

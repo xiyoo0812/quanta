@@ -35,10 +35,10 @@ end
 
 --查找redis db
 function RedisMgr:get_db(db_name)
-    if db_name and db_name ~= "default" then
-        return self.redis_dbs[db_name]
+    if not db_name or db_name == "default" then
+        return self.default_db
     end
-    return self.default_db
+    return self.redis_dbs[db_name]
 end
 
 function RedisMgr:execute(db_name, cmd, ...)

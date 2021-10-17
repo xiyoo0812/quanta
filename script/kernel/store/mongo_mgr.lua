@@ -43,10 +43,10 @@ end
 
 --查找mongo db
 function MongoMgr:get_db(db_name)
-    if db_name and db_name ~= "default" then
-        return self.mongo_dbs[db_name]
+    if not db_name or db_name == "default" then
+        return self.default_db
     end
-    return self.default_db
+    return self.mongo_dbs[db_name]
 end
 
 function MongoMgr:find(db_name, coll_name, selector, fields, sortor, limit)
