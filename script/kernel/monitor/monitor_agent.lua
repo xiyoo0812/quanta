@@ -33,7 +33,6 @@ function MonitorAgent:__init()
     --注册事件
     event_mgr:add_listener(self, "on_quanta_quit")
     event_mgr:add_listener(self, "on_remote_message")
-    event_mgr:add_listener(self, "on_remote_command")
 end
 
 function MonitorAgent:on_timer()

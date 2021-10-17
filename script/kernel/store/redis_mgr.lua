@@ -21,7 +21,7 @@ end
 --初始化
 function RedisMgr:setup()
     local RedisDB = import("driver/redis.lua")
-    local database = config_mgr:init_table("database", "db")
+    local database = config_mgr:init_table("database", "db", "driver")
     for _, conf in database:iterator() do
         if conf.driver == "redis" then
             local redis_db = RedisDB(conf)
