@@ -27,7 +27,7 @@ if not quanta.init_flag then
         import("test/stdfs_test.lua")
         import("test/cmdline_test.lua")
         ]]
-        import("test/stdfs_test.lua")
+        import("test/mongo_test.lua")
         log_info("test %d now startup!", quanta.id)
     end
 

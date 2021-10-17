@@ -8,7 +8,6 @@ local env_get       = environ.get
 local env_number    = environ.number
 local check_failed  = utility.check_failed
 
-local DBGroup       = enum("DBGroup")
 local KernCode      = enum("KernCode")
 local CacheCode     = enum("CacheCode")
 local PeriodTime    = enum("PeriodTime")
@@ -30,7 +29,7 @@ prop:accessor("cache_confs", {})        -- cache_confs
 prop:accessor("cache_lists", {})        -- cache_lists
 prop:accessor("dirty_map", nil)         -- dirty objects
 prop:accessor("rebuild_objs", {})       -- rebuild objects
-prop:accessor("database_mgrs", {})      -- database mgrs
+prop:accessor("database_mgr", nil)      -- database_mgr
 
 function CacheMgr:__init()
     --初始化cache
@@ -75,21 +74,14 @@ function CacheMgr:setup()
     end
     --初始化dbmgr
     local cache_driver = env_get("QUANTA_DB_DRIVER")
-    for group = DBGroup.AREA, DBGroup.HASH do
-        if cache_driver == "mongo" then
-            log_info("[CacheMgr][setup]: general mongo_mgr group=%s", group)
-            local MongoMgr = import("kernel/store/mongo_mgr.lua")
-            self.database_mgrs[group] = MongoMgr(group)
-        end
+    if cache_driver == "mongo" then
+        log_info("[CacheMgr][setup]: general mongo_mgr")
+        local MongoMgr = import("kernel/store/mongo_mgr.lua")
+        self.database_mgr = MongoMgr()
     end
     -- 创建WheelMap
     local WheelMap = import("kernel/basic/wheel_map.lua")
     self.dirty_map = WheelMap(10)
-end
-
---返回数据库管理器
-function CacheMgr:get_databese_mgr(db_group)
-    return self.database_mgrs[db_group]
 end
 
 --获取区服配置
@@ -133,7 +125,7 @@ end
 function CacheMgr:load_cache_impl(quanta_id, cache_list, conf, primary_key)
     --开始加载
     local CacheObj = import("kernel/cache/cache_obj.lua")
-    local cache_obj = CacheObj(conf, primary_key, self.cache_area)
+    local cache_obj = CacheObj(conf, primary_key)
     cache_list[primary_key] = cache_obj
     local code = cache_obj:load()
     if check_failed(code) then
