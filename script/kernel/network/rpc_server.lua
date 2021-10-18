@@ -5,6 +5,7 @@ local tunpack       = table.unpack
 local log_err       = logger.err
 local log_info      = logger.info
 local qxpcall       = quanta.xpcall
+local signalquit    = signal.quit
 
 local FlagMask      = enum("FlagMask")
 local KernCode      = enum("KernCode")
@@ -31,13 +32,13 @@ end
 function RpcServer:setup(ip, port, induce)
     if not ip or not port then
         log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)
-        os.exit(1)
+        signalquit()
     end
     local real_port = induce and (port + quanta.index - 1) or port
     self.listener = socket_mgr.listen(ip, real_port)
     if not self.listener then
         log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)
-        os.exit(1)
+        signalquit()
     end
     self.ip, self.port = ip, real_port
     log_info("[RpcServer][setup] now listen %s:%s success!", ip, real_port)
