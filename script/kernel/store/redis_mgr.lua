@@ -7,7 +7,7 @@ local REDIS_FAILED  = KernCode.REDIS_FAILED
 local event_mgr     = quanta.get("event_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
-local RedisMgr = class()
+local RedisMgr = singleton()
 local prop = property(RedisMgr)
 prop:accessor("redis_dbs", {})      -- redis_dbs
 prop:accessor("default_db", nil)    -- default_db
@@ -49,5 +49,7 @@ function RedisMgr:execute(db_name, cmd, ...)
     end
     return REDIS_FAILED, "redis db not exist"
 end
+
+quanta.redis_mgr = RedisMgr()
 
 return RedisMgr

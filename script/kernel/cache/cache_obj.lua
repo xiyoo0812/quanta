@@ -10,7 +10,8 @@ local KernCode      = enum("KernCode")
 local CacheCode     = enum("CacheCode")
 local SUCCESS       = KernCode.SUCCESS
 
-local cache_mgr     = quanta.get("cache_mgr")
+local mongo_mgr     = quanta.get("mongo_mgr")
+
 local CacheRow      = import("kernel/cache/cache_row.lua")
 
 local CacheObj = class()
@@ -48,7 +49,6 @@ function CacheObj:__init(cache_conf, primary_value)
     self.store_time     = cache_conf.store_time
     self.store_count    = cache_conf.store_count
     self.flush_time     = cache_conf.flush_time
-    self.databese_mgr   = cache_mgr:get_databese_mgr()
 end
 
 function CacheObj:load()
@@ -57,14 +57,14 @@ function CacheObj:load()
     if self.cache_total then
         --合并加载模式
         local query = { [self.cache_key] = self.primary_value }
-        local code, res = self.databese_mgr:find_one(self.db_name, self.cache_table, query, {_id = 0})
+        local code, res = mongo_mgr:find_one(self.db_name, self.cache_table, query, {_id = 0})
         if check_failed(code) then
             log_err("[CacheObj][load] failed: cache_table=%s,res=%s", self.cache_table, res)
             return code
         end
         for _, row_conf in pairs(self.cache_rows) do
             local tab_name = row_conf.cache_table
-            local record = CacheRow(self.databese_mgr, row_conf, self.primary_value, self.cache_table, res[tab_name])
+            local record = CacheRow(row_conf, self.primary_value, self.cache_table, res[tab_name])
             self.records[tab_name] = record
         end
         self.holding = false
@@ -73,7 +73,7 @@ function CacheObj:load()
         --分散加载模式
         for _, row_conf in pairs(self.cache_rows) do
             local tab_name = row_conf.cache_table
-            local record = CacheRow(self.databese_mgr, row_conf, self.primary_value)
+            local record = CacheRow(row_conf, self.primary_value)
             self.records[tab_name] = record
             local code = record:load(self.db_name)
             if check_failed(code) then

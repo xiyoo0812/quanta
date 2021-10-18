@@ -7,6 +7,8 @@ local KernCode      = enum("KernCode")
 local CacheCode     = enum("CacheCode")
 local SUCCESS       = KernCode.SUCCESS
 
+local mongo_mgr     = quanta.get("mongo_mgr")
+
 local CacheRow = class()
 local prop = property(CacheRow)
 prop:accessor("cache_table", nil)       -- cache table
@@ -14,14 +16,12 @@ prop:accessor("cache_key", "")          -- cache key
 prop:accessor("primary_value", nil)     -- primary value
 prop:accessor("total_table", nil)       -- total table
 prop:accessor("db_name", "default")     -- database name
-prop:accessor("databese_mgr", nil)      -- databese mgr
 prop:accessor("dirty", false)           -- dirty
 prop:accessor("data", {})               -- data
 
 --构造函数
-function CacheRow:__init(databese_mgr, row_conf, primary_value, total_table, data)
+function CacheRow:__init(row_conf, primary_value, total_table, data)
     self.total_table    = total_table
-    self.databese_mgr   = databese_mgr
     self.primary_value  = primary_value
     self.cache_table    = row_conf.cache_table
     self.cache_key      = row_conf.cache_key
@@ -30,11 +30,9 @@ end
 
 --从数据库加载
 function CacheRow:load(db_name)
-    if db_name then
-        self.db_name = db_name
-    end
+    self.db_name = db_name
     local query = { [self.cache_key] = self.primary_value }
-    local code, res = self.databese_mgr:find_one(self.db_name, self.cache_table, query, {_id = 0})
+    local code, res = mongo_mgr:find_one(self.db_name, self.cache_table, query, {_id = 0})
     if check_failed(code) then
         log_err("[CacheRow][load] failed: %s=> db: %s, table: %s", res, self.db_name, self.cache_table)
         return code
@@ -49,7 +47,7 @@ function CacheRow:save()
         local selector = { [self.cache_key] = self.primary_value }
         if self.total_table then
             local update_obj = {["$set"] = { [self.cache_table] = self.data }}
-            local code, res = self.databese_mgr:update(self.db_name, self.total_table, update_obj, selector)
+            local code, res = mongo_mgr:update(self.db_name, self.total_table, update_obj, selector)
             if check_failed(code) then
                 log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.db_name, self.cache_table)
                 return code
@@ -57,7 +55,7 @@ function CacheRow:save()
             self.dirty = false
             return code
         else
-            local code, res = self.databese_mgr:update(self.db_name, self.cache_table, self.data, selector, true)
+            local code, res = mongo_mgr:update(self.db_name, self.cache_table, self.data, selector, true)
             if check_failed(code) then
                 log_err("[CacheRow][save] failed: %s=> db: %s, table: %s", res, self.db_name, self.cache_table)
                 return code
