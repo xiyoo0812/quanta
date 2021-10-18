@@ -33,14 +33,15 @@ prop:accessor("update_count", 0)        -- update count
 prop:accessor("update_time", 0)         -- update time
 prop:accessor("flush_time", 0)          -- flush time
 prop:accessor("active_tick", 0)         -- active tick
-prop:accessor("db_name", "default")     -- db name
+prop:accessor("db_name", "")            -- db name
 prop:accessor("records", {})            -- records
 prop:accessor("dirty_records", {})      -- dirty records
 
-function CacheObj:__init(cache_conf, primary_value, db_name)
+function CacheObj:__init(cache_conf, primary_value)
     self.uuid           = new_guid()
     self.primary_value  = primary_value
     self.cache_rows     = cache_conf.rows
+    self.db_name        = cache_conf.cache_db
     self.cache_total    = cache_conf.cache_total
     self.cache_table    = cache_conf.cache_table
     self.cache_key      = cache_conf.cache_key
@@ -48,9 +49,6 @@ function CacheObj:__init(cache_conf, primary_value, db_name)
     self.store_time     = cache_conf.store_time
     self.store_count    = cache_conf.store_count
     self.flush_time     = cache_conf.flush_time
-    if db_name then
-        self.db_name    = db_name
-    end
     self.databese_mgr = cache_mgr:get_databese_mgr(cache_conf.cache_group)
 end
 
