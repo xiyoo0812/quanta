@@ -18,7 +18,6 @@ local prop = property(CacheObj)
 prop:accessor("uuid", 0)                -- uuid
 prop:accessor("flush", false)           -- flush status
 prop:accessor("holding", true)          -- holding status
-prop:accessor("cache_group", false)     -- cache db group
 prop:accessor("cache_total", false)     -- cache total
 prop:accessor("lock_node_id", 0)        -- lock node id
 prop:accessor("expire_time", 600)       -- expire time
@@ -49,7 +48,7 @@ function CacheObj:__init(cache_conf, primary_value)
     self.store_time     = cache_conf.store_time
     self.store_count    = cache_conf.store_count
     self.flush_time     = cache_conf.flush_time
-    self.databese_mgr = cache_mgr:get_databese_mgr(cache_conf.cache_group)
+    self.databese_mgr   = cache_mgr:get_databese_mgr()
 end
 
 function CacheObj:load()
