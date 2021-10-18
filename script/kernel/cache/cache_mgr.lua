@@ -125,7 +125,7 @@ end
 function CacheMgr:load_cache_impl(quanta_id, cache_list, conf, primary_key)
     --开始加载
     local CacheObj = import("kernel/cache/cache_obj.lua")
-    local cache_obj = CacheObj(conf, primary_key)
+    local cache_obj = CacheObj(conf, primary_key, conf.cache_db)
     cache_list[primary_key] = cache_obj
     local code = cache_obj:load()
     if check_failed(code) then
