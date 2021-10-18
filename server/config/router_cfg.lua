@@ -33,6 +33,6 @@ router:upsert({
 router:upsert({
     quanta_deploy = 'local',
     group = 1,
-    index = 2,
+    index = 1,
     addr = '127.0.0.1:9001',
 })

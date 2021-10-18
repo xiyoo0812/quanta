@@ -4,7 +4,6 @@ local tunpack       = table.unpack
 local tinsert       = table.insert
 local log_err       = logger.err
 local log_info      = logger.info
-local env_get       = environ.get
 local env_number    = environ.number
 local check_failed  = utility.check_failed
 
@@ -22,14 +21,13 @@ local row_table     = config_mgr:init_table("cache_row", "cache_table")
 
 local CacheMgr = singleton()
 local prop = property(CacheMgr)
-prop:accessor("cache_hash", nil)        -- 分区内的哈希特征值
-prop:accessor("cache_area", nil)        -- 缓存分区，默认数据库id与分区id一致
-prop:accessor("cache_enable", true)     -- 缓存开关
-prop:accessor("cache_confs", {})        -- cache_confs
-prop:accessor("cache_lists", {})        -- cache_lists
-prop:accessor("dirty_map", nil)         -- dirty objects
-prop:accessor("rebuild_objs", {})       -- rebuild objects
-prop:accessor("database_mgr", nil)      -- database_mgr
+prop:reader("cache_hash", nil)        -- 分区内的哈希特征值
+prop:reader("cache_area", nil)        -- 缓存分区，默认数据库id与分区id一致
+prop:reader("cache_enable", true)     -- 缓存开关
+prop:reader("cache_confs", {})        -- cache_confs
+prop:reader("cache_lists", {})        -- cache_lists
+prop:reader("dirty_map", nil)         -- dirty objects
+prop:reader("rebuild_objs", {})       -- rebuild objects
 
 function CacheMgr:__init()
     --初始化cache
@@ -71,13 +69,6 @@ function CacheMgr:setup()
         else
             log_err("[CacheMgr:setup] cache row config obj:%s not exist !", cache_name)
         end
-    end
-    --初始化dbmgr
-    local cache_driver = env_get("QUANTA_DB_DRIVER")
-    if cache_driver == "mongo" then
-        log_info("[CacheMgr][setup]: general mongo_mgr")
-        local MongoMgr = import("kernel/store/mongo_mgr.lua")
-        self.database_mgr = MongoMgr()
     end
     -- 创建WheelMap
     local WheelMap = import("kernel/basic/wheel_map.lua")

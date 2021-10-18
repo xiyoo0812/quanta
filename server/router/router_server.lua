@@ -4,6 +4,7 @@ local mhuge         = math.huge
 local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
+local signalquit    = signal.quit
 local util_addr     = utility.addr
 local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
@@ -31,7 +32,7 @@ function RouterServer:setup()
     local router_conf = router_db:find_one(quanta.index)
     if not router_conf then
         log_err("[RouterServer][setup] router_conf is nil index:%s", quanta.index)
-        os.exit(1)
+        signalquit()
     end
     local ip, port = util_addr(router_conf.addr)
     self.rpc_server = RpcServer()

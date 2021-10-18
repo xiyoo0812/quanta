@@ -9,6 +9,7 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local json_encode   = ljson.encode
 local tunpack       = table.unpack
+local signalquit    = signal.quit
 local ssplit        = string_ext.split
 
 local thread_mgr    = quanta.get("thread_mgr")
@@ -32,7 +33,7 @@ function HttpServer:setup(http_addr, post_handler, get_handler)
     local socket = Socket(self)
     if not socket:listen(self.ip, self.port) then
         log_info("[HttpServer][setup] now listen %s failed", http_addr)
-        os.exit(1)
+        signalquit(1)
         return
     end
     log_info("[HttpServer][setup] listen(%s:%s) success!", self.ip, self.port)

@@ -7,7 +7,7 @@ local MONGO_FAILED  = KernCode.MONGO_FAILED
 local event_mgr     = quanta.get("event_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
-local MongoMgr = class()
+local MongoMgr = singleton()
 local prop = property(MongoMgr)
 prop:accessor("mongo_dbs", {})      -- mongo_dbs
 prop:accessor("default_db", nil)    -- default_db
@@ -129,5 +129,7 @@ function MongoMgr:execute(db_name, cmd, ...)
     end
     return MONGO_FAILED, "mongo db not exist"
 end
+
+quanta.mongo_mgr = MongoMgr()
 
 return MongoMgr

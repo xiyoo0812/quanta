@@ -7,7 +7,7 @@ local MYSQL_FAILED  = KernCode.MYSQL_FAILED
 local event_mgr     = quanta.get("event_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
-local MysqlMgr = class()
+local MysqlMgr = singleton()
 local prop = property(MysqlMgr)
 prop:accessor("mysql_dbs", {})      -- mysql_dbs
 prop:accessor("default_db", nil)    -- default_db
@@ -49,5 +49,7 @@ function MysqlMgr:execute(db_name, sql)
     end
     return MYSQL_FAILED, "mysql db not exist"
 end
+
+quanta.mysql_mgr = MysqlMgr()
 
 return MysqlMgr
