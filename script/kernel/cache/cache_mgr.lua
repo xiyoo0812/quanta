@@ -1,5 +1,6 @@
 -- cache_mgr.lua
--- cache_mgr
+import("kernel/store/mongo_mgr.lua")
+
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local log_err       = logger.err

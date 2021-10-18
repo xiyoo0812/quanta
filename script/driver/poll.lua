@@ -19,6 +19,7 @@ end
 
 function Poll:quit()
     lnet.destroy_poll(self.poll)
+    self.poll = nil
 end
 
 function Poll:thread(worker, id, ctxstring)
@@ -28,7 +29,9 @@ end
 function Poll:control(socket, mode, bread, bwrite)
     local fd = socket.fd
     self.sockets[fd] = (mode > 0) and socket or nil
-    lcontrol(self.poll, fd, mode, bread, bwrite)
+    if self.poll then
+        lcontrol(self.poll, fd, mode, bread, bwrite)
+    end
 end
 
 function Poll:update()

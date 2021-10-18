@@ -78,7 +78,7 @@ database:upsert({
 database:upsert({
     quanta_deploy = 'local',
     driver = 'redis',
-    db = 'quanta',
+    db = '0',
     default = true,
     host = '9.134.163.87',
     user = 'root',

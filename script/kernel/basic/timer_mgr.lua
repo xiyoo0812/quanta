@@ -45,15 +45,17 @@ function TimerMgr:trigger(handle, now_ms)
 end
 
 function TimerMgr:update(now_ms)
-    local escape_ms = now_ms - self.last_ms + self.escape_ms
-    self.escape_ms = escape_ms % TIMER_ACCURYACY
-    self.last_ms = now_ms
-    if escape_ms >= TIMER_ACCURYACY then
-        local timers = driver:update(escape_ms // TIMER_ACCURYACY)
-        for _, timer_id in ipairs(timers) do
-            local handle = self.timers[timer_id]
-            if handle then
-                self:trigger(handle, now_ms)
+    if driver then
+        local escape_ms = now_ms - self.last_ms + self.escape_ms
+        self.escape_ms = escape_ms % TIMER_ACCURYACY
+        self.last_ms = now_ms
+        if escape_ms >= TIMER_ACCURYACY then
+            local timers = driver:update(escape_ms // TIMER_ACCURYACY)
+            for _, timer_id in ipairs(timers) do
+                local handle = self.timers[timer_id]
+                if handle then
+                    self:trigger(handle, now_ms)
+                end
             end
         end
     end
