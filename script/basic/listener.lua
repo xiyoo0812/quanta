@@ -3,7 +3,9 @@ local pcall     = pcall
 local xpcall    = xpcall
 local ipairs    = ipairs
 local tpack     = table.pack
+local tinsert   = table.insert
 local tunpack   = table.unpack
+local tremove   = table.remove
 local log_err   = logger.err
 local log_warn  = logger.warn
 local dtraceback= debug.traceback
@@ -27,12 +29,17 @@ function Listener:add_trigger(trigger, event, handler)
         log_warn("[Listener][add_trigger] event(%s) handler is nil!", event)
         return
     end
-    self._triggers[event][trigger] = handler_func
+    tinsert(self._triggers[event], { trigger, handler_func })
 end
 
 function Listener:remove_trigger(trigger, event)
-    if self._triggers[event] then
-        self._triggers[event][trigger] = nil
+    local trigger_array = self._triggers[event]
+    if trigger_array then
+        for i, context in pairs(trigger_array or {}) do
+            if context[1] == trigger then
+                tremove(trigger_array, i)
+            end
+        end
     end
 end
 
@@ -74,7 +81,8 @@ function Listener:remove_cmd_listener(cmd)
 end
 
 function Listener:notify_trigger(event, ...)
-    for trigger, handler in ipairs(self._triggers[event] or {}) do
+    for _, trigger_ctx in pairs(self._triggers[event] or {}) do
+        local trigger, handler = tunpack(trigger_ctx)
         local ok, ret = xpcall(handler, dtraceback, trigger, ...)
         if not ok then
             log_err("[Listener][notify_listener] xpcall %s:%s failed, err : %s!", trigger, event, ret)
