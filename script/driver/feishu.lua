@@ -1,6 +1,5 @@
 --feishu.lua
 local ljson = require("lcjson")
-ljson.encode_sparse_array(true)
 
 local otime         = os.time
 local json_encode   = ljson.encode

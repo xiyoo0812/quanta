@@ -20,7 +20,6 @@ prop:reader("post_handlers", {})
 prop:reader("http_server", nil)
 
 function WebMgr:__init()
-    ljson.encode_sparse_array(true)
     --创建HTTP服务器
     self.http_server = HttpServer()
     local function web_post(path, body, headers)

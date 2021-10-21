@@ -25,7 +25,6 @@ prop:accessor("deploy", "local")
 prop:accessor("cmd_services", {})
 
 function AdminMgr:__init()
-    ljson.encode_sparse_array(true)
     self.deploy = env_get("QUANTA_DEPLOY")
     self.app_id = env_number("QUANTA_APP_ID")
     self.chan_id = env_number("QUANTA_CHAN_ID")

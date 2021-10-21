@@ -30,7 +30,6 @@ prop:reader("rpc_server", nil)
 prop:reader("http_server", nil)
 
 function MonitorMgr:__init()
-    ljson.encode_sparse_array(true)
     self.deploy = env_get("QUANTA_DEPLOY")
     self.app_id = env_number("QUANTA_APP_ID")
     self.chan_id = env_number("QUANTA_CHAN_ID")

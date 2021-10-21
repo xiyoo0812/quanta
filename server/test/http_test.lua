@@ -2,7 +2,6 @@
 import("kernel/network/http_client.lua")
 local ljson = require("lcjson")
 local ltimer = require("ltimer")
-ljson.encode_sparse_array(true)
 
 local ltime         = ltimer.time
 local log_debug     = logger.debug

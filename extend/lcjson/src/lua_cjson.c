@@ -68,7 +68,7 @@
 #define isinf(x) (!isnan(x) && isnan((x) - (x)))
 #endif
 
-#define DEFAULT_SPARSE_CONVERT 0
+#define DEFAULT_SPARSE_CONVERT 1
 #define DEFAULT_SPARSE_RATIO 2
 #define DEFAULT_SPARSE_SAFE 10
 #define DEFAULT_ENCODE_MAX_DEPTH 1000

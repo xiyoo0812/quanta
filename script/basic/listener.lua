@@ -81,7 +81,7 @@ function Listener:remove_cmd_listener(cmd)
 end
 
 function Listener:notify_trigger(event, ...)
-    for _, trigger_ctx in pairs(self._triggers[event] or {}) do
+    for _, trigger_ctx in ipairs(self._triggers[event] or {}) do
         local trigger, handler = tunpack(trigger_ctx)
         local ok, ret = xpcall(handler, dtraceback, trigger, ...)
         if not ok then

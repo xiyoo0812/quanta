@@ -22,7 +22,6 @@ local prop = property(HttpClient)
 prop:reader("contexts", {})
 
 function HttpClient:__init()
-    ljson.encode_sparse_array(true)
     --加入帧更新
     update_mgr:attach_frame(self)
     --退出通知

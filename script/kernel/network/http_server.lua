@@ -25,7 +25,6 @@ prop:reader("get_handler", nil)  --get_handler
 prop:reader("post_handler", nil) --post_handler
 
 function HttpServer:__init()
-    ljson.encode_sparse_array(true)
 end
 
 function HttpServer:setup(http_addr, post_handler, get_handler)
