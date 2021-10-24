@@ -74,7 +74,7 @@ int lua_socket_mgr::listen(lua_State* L)
 
 int lua_socket_mgr::connect(lua_State* L)
 {
-    // ��ȡ��������
+    // 获取参数个数
     int lua_param_count = lua_gettop(L);
 
     const char* ip = lua_tostring(L, 1);
@@ -82,7 +82,7 @@ int lua_socket_mgr::connect(lua_State* L)
     int timeout = (int)lua_tonumber(L, 3);
     eproto_type proto_type = eproto_type::proto_luabus;
     
-    // ������ṩЭ�����ͣ���Ҫ����Э������
+    // 如果有提供协议类型，需要设置协议类型
     if(lua_param_count >= 4)
     {
         proto_type = (eproto_type)(int)lua_tonumber(L, 4);
@@ -136,7 +136,8 @@ int lua_socket_mgr::map_token(lua_State* L)
 {
     uint32_t service_id = (uint32_t)lua_tointeger(L, 1);
     uint32_t token = (uint32_t)lua_tointeger(L, 2);
-    uint16_t hash = (uint16_t)lua_tointeger(L, 2);
+    uint16_t hash = (uint16_t)lua_tointeger(L, 3);
     m_router->map_token(service_id, token, hash);
     return 0;
 }
+
