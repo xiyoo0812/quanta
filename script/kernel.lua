@@ -63,20 +63,19 @@ function quanta.init()
     import("kernel/statis/statis_mgr.lua")
     import("kernel/basic/protobuf_mgr.lua")
 
-    --加载router配置
-    local config_mgr = quanta.get("config_mgr")
-    config_mgr:init_table("router", "index")
-    --获取路由组配置
-    local router_group = service.router_group(quanta.id)
-    if not router_group then
-        log_err("[quanta][init] %s router group is nil, check the service_cfg.lua!", quanta.name)
-        signal_quit()
-        return
-    end
     --初始化路由管理器
-    if next(router_group) then
-        import("kernel/router/router_mgr.lua")
-        quanta.router_mgr:setup(router_group)
+    local service_id = quanta.service_id
+    if service.router(service_id) then
+        --index检查
+        local index = quanta.index
+        local count = service.count(service_id)
+        if count < index then
+            log_err("[quanta][init] %s index(%d) > count(%d), check the service_cfg.lua!", quanta.name, index, count)
+            signal_quit()
+            return
+        end
+        --加载router配置
+        import("kernel/basic/router_mgr.lua")
         if env_get("QUANTA_FEISHU_URL") then
             --飞书上报
             import("driver/feishu.lua")

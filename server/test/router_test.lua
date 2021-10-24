@@ -1,25 +1,16 @@
 -- route_test.lua
-local log_info      = logger.info
+local log_debug     = logger.debug
 
 local router_mgr    = quanta.get("router_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
 
 local RouterTest = singleton()
 function RouterTest:__init()
 end
 
-function RouterTest:start()
-    while true do
-        -- 构造一个超过4096的字符串
-        local msg = ""
-        for n = 0, 5000 do
-            msg = msg .. "6"
-        end
-        local ok, res = router_mgr:call_target(917505, "rpc_log_feishu", msg)
-        log_info("RouterTest:start: ok=%s,res=%s", ok, res)
-    end
-end
-
--- export
-quanta.route_test = RouterTest()
+timer_mgr:once(4000, function()
+    local ok, code, res = router_mgr:call_mongo_hash(1, "mongo_find", "default", "test_mongo_1", {}, {_id = 0})
+    log_debug("db find ok:%s, code: %s, res = %s", ok, code, res)
+end)
 
 return RouterTest

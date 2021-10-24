@@ -74,7 +74,7 @@ int lua_socket_mgr::listen(lua_State* L)
 
 int lua_socket_mgr::connect(lua_State* L)
 {
-    // »ñÈ¡²ÎÊý¸öÊý
+    // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     int lua_param_count = lua_gettop(L);
 
     const char* ip = lua_tostring(L, 1);
@@ -82,7 +82,7 @@ int lua_socket_mgr::connect(lua_State* L)
     int timeout = (int)lua_tonumber(L, 3);
     eproto_type proto_type = eproto_type::proto_luabus;
     
-    // Èç¹ûÓÐÌá¹©Ð­ÒéÀàÐÍ£¬ÐèÒªÉèÖÃÐ­ÒéÀàÐÍ
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½á¹©Ð­ï¿½ï¿½ï¿½ï¿½ï¿½Í£ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Ð­ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     if(lua_param_count >= 4)
     {
         proto_type = (eproto_type)(int)lua_tonumber(L, 4);
@@ -135,15 +135,8 @@ void lua_socket_mgr::set_master(uint32_t group_idx, uint32_t token)
 int lua_socket_mgr::map_token(lua_State* L)
 {
     uint32_t service_id = (uint32_t)lua_tointeger(L, 1);
-    if (lua_isnil(L, 2))
-    {
-        m_router->erase(service_id);
-    }
-    else
-    {
-        uint32_t token = (uint32_t)lua_tointeger(L, 2);
-        m_router->map_token(service_id, token);
-    }
+    uint32_t token = (uint32_t)lua_tointeger(L, 2);
+    uint16_t hash = (uint16_t)lua_tointeger(L, 2);
+    m_router->map_token(service_id, token, hash);
     return 0;
 }
-

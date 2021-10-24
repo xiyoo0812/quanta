@@ -5,7 +5,8 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
 local signalquit    = signal.quit
-local util_addr     = utility.addr
+local env_get       = environ.get
+local sidhash       = service.hash
 local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
@@ -28,15 +29,27 @@ function RouterServer:__init()
 end
 
 function RouterServer:setup()
-    local router_db = config_mgr:get_table("router")
-    local router_conf = router_db:find_one(quanta.index)
+    local host = env_get("QUANTA_HOST_IP")
+    local router_db = config_mgr:init_table("router", "host")
+    local router_conf = router_db:find_one(host)
     if not router_conf then
-        log_err("[RouterServer][setup] router_conf is nil index:%s", quanta.index)
+        log_err("[RouterServer][setup] router_conf is nil host:%s", host)
         signalquit()
+        return
     end
-    local ip, port = util_addr(router_conf.addr)
+    --检查index，router的index按host计算
+    local index = quanta.index
+    if router_conf.count < index then
+        log_err("[RouterServer][setup] %s index(%d) > count(%d), check the router_cfg.lua!", host, index, router_conf.count)
+        signalquit()
+        return
+    end
+    --重定义routerid
+    quanta.id = service.router_id(router_conf.host_id, index)
+    quanta.name = service.id2name(quanta.id)
+    --启动server
     self.rpc_server = RpcServer()
-    self.rpc_server:setup(ip, port)
+    self.rpc_server:setup(host, router_conf.port, true)
     --监听事件
     event_mgr:add_listener(self, "on_socket_close")
     event_mgr:add_listener(self, "on_socket_accept")
@@ -58,8 +71,7 @@ function RouterServer:on_socket_close(server, server_token, err)
     if not server_id or not service_id then
         return
     end
-    --要实现固定哈希的话,可以把这里的nil改为0
-    socket_mgr.map_token(server_id, nil)
+    socket_mgr.map_token(server_id, 0)
     local is_master = (server_id == self.service_masters[service_id])
     if is_master then
         self.service_masters[service_id] = nil
@@ -102,6 +114,7 @@ function RouterServer:rpc_service_register(server, id)
         local service_id = sid2sid(id)
         local server_name = sid2nick(id)
         local servive_name = sid2name(id)
+        local service_hash = sidhash(service_id)
         local server_token = server.token
         -- 检查是否顶号
         for exist_token, exist_server in self.rpc_server:iterator() do
@@ -115,7 +128,7 @@ function RouterServer:rpc_service_register(server, id)
         server.name = server_name
         server.service_id = service_id
         server.servive_name = servive_name
-        socket_mgr.map_token(id, server_token)
+        socket_mgr.map_token(id, server_token, service_hash)
         log_info("[RouterServer][rpc_service_register] service: %s", server_name)
         --switch master
         local group_master = self.service_masters[service_id] or mhuge
