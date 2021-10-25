@@ -31,7 +31,6 @@ luaext:
 	cd extend/lcrypt; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
 	cd extend/lcurl; make SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
 	cd extend/lhttp; make SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
-	cd extend/lnet; make SOLUTION_DIR=$(CUR_DIR) -f lnet.mak;
 	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;

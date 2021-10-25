@@ -6,6 +6,7 @@ local log_info      = logger.info
 local qxpcall       = quanta.xpcall
 
 local NetwkTime     = enum("NetwkTime")
+local PeriodTime    = enum("PeriodTime")
 
 local timer_mgr     = quanta.get("timer_mgr")
 local socket_mgr    = quanta.get("socket_mgr")
@@ -31,10 +32,10 @@ end
 
 function Socket:close()
     if self.session then
-        timer_mgr:once(500, function(session)
+        timer_mgr:once(PeriodTime.FRAME_MS, function()
             session.close()
-        end, self.session)
-        self.session = nil
+            self.session = nil
+        end)
     end
 end
 
