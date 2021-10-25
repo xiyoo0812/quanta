@@ -13,7 +13,6 @@
 enum class msg_id : char
 {
     remote_call,
-    remote_call_dx,
     forward_target,
     forward_master,
     forward_random,

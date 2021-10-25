@@ -15,11 +15,11 @@ struct socket_listener : public socket_object
     socket_listener(socket_mgr_impl* mgr, 
         LPFN_ACCEPTEX accept_func, 
         LPFN_GETACCEPTEXSOCKADDRS addrs_func,
-        eproto_type proto_type = eproto_type::proto_luabus);
+        eproto_type proto_type = eproto_type::proto_rpc);
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-    socket_listener(socket_mgr_impl* mgr, eproto_type proto_type = eproto_type::proto_luabus);
+    socket_listener(socket_mgr_impl* mgr, eproto_type proto_type = eproto_type::proto_rpc);
 #endif
 
     ~socket_listener();

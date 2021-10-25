@@ -17,7 +17,7 @@ function StatisMgr:__init()
     -- 统计开关
     self.statis_status  = false
     -- 统计辅助开关
-    self.statis_dx      = false --统计dx请求
+    self.statis_cmd      = false --统计cmd请求
     self.statis_rpc     = true  --统计rpc请求
     self.statis_flow    = true  --统计流量
     self.statis_conn    = false --统计连接
@@ -28,10 +28,10 @@ function StatisMgr:__init()
     self.escape_ms      = 0
     self.escape_minute  = 0
     -- 统计数据
-    -- dx_send          dx send 统计
-    -- dx_recv          dx recv 统计
-    -- dx_send_flow     dx send flow统计
-    -- dx_recv_flow     dx recv flow统计
+    -- cmd_send         cmd send 统计
+    -- cmd_recv         cmd recv 统计
+    -- cmd_send_flow    cmd send flow统计
+    -- cmd_recv_flow    cmd recv flow统计
     -- rpc_send         rpc send 统计
     -- rpc_recv         rpc recv 统计
     -- rpc_send_flow    rpc send flow统计
@@ -141,43 +141,43 @@ function StatisMgr:on_timer(escape)
     end
 end
 
--- 统计dx协议发送(KB)
-function StatisMgr:on_dx_send(cmd_id, send_len)
-    if self.statis_dx then
-        local dx_send = self:get_statis_node("dx_send")
-        dx_send.count_s = dx_send.count_s + 1
+-- 统计cmd协议发送(KB)
+function StatisMgr:on_cmd_send(cmd_id, send_len)
+    if self.statis_cmd then
+        local cmd_send = self:get_statis_node("cmd_send")
+        cmd_send.count_s = cmd_send.count_s + 1
         if self.statis_child then
-            local dx_cmd_send = self:get_child_node(dx_send, cmd_id)
-            dx_cmd_send.count_s = dx_cmd_send.count_s + 1
+            local cmd_cmd_send = self:get_child_node(cmd_send, cmd_id)
+            cmd_cmd_send.count_s = cmd_cmd_send.count_s + 1
         end
         if self.statis_flow then
             local send_kb = send_len / 1000
-            local dx_send_flow = self:get_statis_node("dx_send_flow")
-            dx_send_flow.count_s = dx_send_flow.count_s + send_kb
+            local cmd_send_flow = self:get_statis_node("cmd_send_flow")
+            cmd_send_flow.count_s = cmd_send_flow.count_s + send_kb
             if self.statis_child then
-                local dx_send_cmd_flow = self:get_child_node(dx_send_flow, cmd_id)
-                dx_send_cmd_flow.count_s = dx_send_cmd_flow.count_s + send_kb
+                local cmd_send_cmd_flow = self:get_child_node(cmd_send_flow, cmd_id)
+                cmd_send_cmd_flow.count_s = cmd_send_cmd_flow.count_s + send_kb
             end
         end
     end
 end
 
--- 统计dx协议接收(KB)
-function StatisMgr:on_dx_recv(cmd_id, recv_len)
-    if self.statis_dx then
-        local dx_recv = self:get_statis_node("dx_recv")
-        dx_recv.count_s = dx_recv.count_s + 1
+-- 统计cmd协议接收(KB)
+function StatisMgr:on_cmd_recv(cmd_id, recv_len)
+    if self.statis_cmd then
+        local cmd_recv = self:get_statis_node("cmd_recv")
+        cmd_recv.count_s = cmd_recv.count_s + 1
         if self.statis_child then
-            local dx_cmd_recv = self:get_child_node(dx_recv, cmd_id)
-            dx_cmd_recv.count_s = dx_cmd_recv.count_s + 1
+            local cmd_cmd_recv = self:get_child_node(cmd_recv, cmd_id)
+            cmd_cmd_recv.count_s = cmd_cmd_recv.count_s + 1
         end
         if self.statis_flow then
             local recv_kb = recv_len / 1000
-            local dx_recv_flow = self:get_statis_node("dx_recv_flow")
-            dx_recv_flow.count_s = dx_recv_flow.count_s + recv_kb
+            local cmd_recv_flow = self:get_statis_node("cmd_recv_flow")
+            cmd_recv_flow.count_s = cmd_recv_flow.count_s + recv_kb
             if self.statis_child then
-                local dx_recv_cmd_flow = self:get_child_node(dx_recv_flow, cmd_id)
-                dx_recv_cmd_flow.count_s = dx_recv_cmd_flow.count_s + recv_kb
+                local cmd_recv_cmd_flow = self:get_child_node(cmd_recv_flow, cmd_id)
+                cmd_recv_cmd_flow.count_s = cmd_recv_cmd_flow.count_s + recv_kb
             end
         end
     end
@@ -225,8 +225,8 @@ function StatisMgr:on_rpc_recv(rpc, recv_len)
     end
 end
 
--- 统计dx连接
-function StatisMgr:on_dx_conn_update(conn_type, conn_count)
+-- 统计cmd连接
+function StatisMgr:on_cmd_conn_update(conn_type, conn_count)
     if self.statis_conn then
         local conn_info = self:get_statis_node("conn_info")
         local conn = self:get_child_node(conn_info, conn_type)

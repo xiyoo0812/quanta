@@ -15,7 +15,7 @@ function CacheAgent:load(primary_key, cache_name)
     local req_data = { cache_name or "player", primary_key }
     local ok, code, row_data = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_load", quanta.id, req_data)
     if not ok or check_failed(code) then
-        log_warn("[CacheAgent][load] code=%s,pkey=%s,cache=%s", code, primary_key, cache_name)
+        log_err("[CacheAgent][load] code=%s,pkey=%s,cache=%s", code, primary_key, cache_name)
         return ok and code or KernCode.RPC_FAILED
     end
     return code, row_data

@@ -15,11 +15,12 @@
 struct lua_socket_node final
 {
     lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, 
-    	std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router, bool blisten = false, eproto_type proto_type = eproto_type::proto_luabus);
+    	std::shared_ptr<lua_archiver>& ar, std::shared_ptr<socket_router> router, bool blisten = false, eproto_type proto_type = eproto_type::proto_rpc);
     ~lua_socket_node();
 
     int call(lua_State* L);
-    int call_dx(lua_State* L);
+    int call_cmd(lua_State* L);
+    int call_text(lua_State* L);
     int forward_target(lua_State* L);
 
     template <msg_id forward_method>
@@ -35,7 +36,8 @@ struct lua_socket_node final
 
 private:
 	void on_recv(char* data, size_t data_len);
-    void on_call_dx(char* data, size_t data_len);
+    void on_call_cmd(char* data, size_t data_len);
+    void on_call_text(char* data, size_t data_len);
     void on_call(router_header* header, char* data, size_t data_len);
     void on_forward_boardcast(router_header* header, size_t target_size);
     void on_forward_error(router_header* header);
