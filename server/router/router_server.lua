@@ -10,6 +10,7 @@ local sidhash       = service.hash
 local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
+local sid2index     = service.id2index
 
 local FlagMask      = enum("FlagMask")
 local KernCode      = enum("KernCode")
@@ -37,15 +38,8 @@ function RouterServer:setup()
         signalquit()
         return
     end
-    --检查index，router的index按host计算
-    local index = quanta.index
-    if router_conf.count < index then
-        log_err("[RouterServer][setup] %s index(%d) > count(%d), check the router_cfg.lua!", host, index, router_conf.count)
-        signalquit()
-        return
-    end
     --重定义routerid
-    quanta.id = service.router_id(router_conf.host_id, index)
+    quanta.id = service.router_id(router_conf.host_id, quanta.index)
     quanta.name = service.id2name(quanta.id)
     --启动server
     self.rpc_server = RpcServer()
@@ -114,8 +108,14 @@ function RouterServer:rpc_service_register(server, id)
         local service_id = sid2sid(id)
         local server_name = sid2nick(id)
         local servive_name = sid2name(id)
+        local servive_index = sid2index(id)
         local service_hash = sidhash(service_id)
         local server_token = server.token
+        --固定hash不能超过hash值
+        if service_hash > 0 and servive_index > service_hash then
+            server:send(exist_server, "rpc_service_kickout", quanta.id, server.ip)
+            return
+        end
         -- 检查是否顶号
         for exist_token, exist_server in self.rpc_server:iterator() do
             if exist_server.id == id then

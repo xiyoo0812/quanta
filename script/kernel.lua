@@ -66,14 +66,6 @@ function quanta.init()
     --初始化路由管理器
     local service_id = quanta.service_id
     if service.router(service_id) then
-        --index检查
-        local index = quanta.index
-        local count = service.count(service_id)
-        if count < index then
-            log_err("[quanta][init] %s index(%d) > count(%d), check the service_cfg.lua!", quanta.name, index, count)
-            signal_quit()
-            return
-        end
         --加载router配置
         import("kernel/basic/router_mgr.lua")
         if env_get("QUANTA_FEISHU_URL") then

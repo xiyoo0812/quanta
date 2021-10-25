@@ -223,12 +223,7 @@ end
 function RouterMgr:load_router()
     local router_db = config_mgr:init_table("router", "host")
     for _, router_conf in router_db:iterator() do
-        --检查参数
-        local count = router_conf.using
-        if count > router_conf.count then
-            count = router_conf.count
-        end
-        for index = 1, count do
+        for index = 1, router_conf.count do
             self:add_router(router_conf, index)
         end
     end

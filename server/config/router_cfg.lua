@@ -14,7 +14,6 @@ router:upsert({
     host_id = 1,
     host = '9.134.163.87',
     count = 2,
-    using = 1,
     port = 9001,
 })
 
@@ -23,7 +22,6 @@ router:upsert({
     host_id = 1,
     host = '9.134.163.87',
     count = 2,
-    using = 1,
     port = 9001,
 })
 
@@ -32,6 +30,5 @@ router:upsert({
     host_id = 1,
     host = '127.0.0.1',
     count = 2,
-    using = 1,
     port = 9001,
 })

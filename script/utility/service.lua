@@ -41,6 +41,11 @@ function service.id2sid(quanta_id)
     return (quanta_id >> 16) & 0xff
 end
 
+--节点id获取服务index
+function service.id2index(quanta_id)
+    return quanta_id & 0x3ff
+end
+
 --节点id转服务名
 function service.id2name(quanta_id)
     return service_db:find_value("name", quanta_id >> 16)
@@ -51,30 +56,9 @@ function service.sid2name(service_id)
     return service_db:find_value("name", service_id)
 end
 
---服务最大数量
-function service.count(service_id)
-    return service_db:find_value("count", service_id)
-end
-
---服务是否启动路由
-function service.router(service_id)
-    return service_db:find_value("router", service_id)
-end
-
---服务hash
-function service.hash(service_id)
-    local conf = service_db:find_one(service_id)
-    return conf.count >= conf.hash and conf.hash or conf.count
-end
-
 --服务名转服务id
 function service.name2sid(name)
     return SERVICES[name]
-end
-
---节点id获取服务index
-function service.id2index(quanta_id)
-    return quanta_id & 0x3ff
 end
 
 --节点id转服务昵称
@@ -96,9 +80,18 @@ function service.nick2id(nick)
     return service.make_id(SERVICES[sname], tonumber(index))
 end
 
+--服务是否启动路由
+function service.router(service_id)
+    return service_db:find_value("router", service_id)
+end
+
+--服务固定hash
+function service.hash(service_id)
+    return service_db:find_value("hash", service_id)
+end
+
 --生成router_id
 function service.router_id(host_id, index)
     local router_index = host_id << 8 | index
     return service.make_id("router", router_index)
 end
-
