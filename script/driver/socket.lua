@@ -1,31 +1,26 @@
 --socket.lua
-local lnet          = require("lnet")
-
-local log_err       = logger.err
-local lrecv         = lnet.recv
-local lsend         = lnet.send
 local ssub          = string.sub
 local sfind         = string.find
+local log_err       = logger.err
+local log_info      = logger.info
 local qxpcall       = quanta.xpcall
 
-local POLL_DEL      = 0
-local POLL_ADD      = 1
-local POLL_MOD      = 2
 local NetwkTime     = enum("NetwkTime")
+local PeriodTime    = enum("PeriodTime")
 
-local poll          = quanta.get("poll")
+local timer_mgr     = quanta.get("timer_mgr")
+local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local Socket = class()
 local prop = property(Socket)
-prop:accessor("fd", nil)
-prop:accessor("ip", nil)
-prop:accessor("host", nil)
-prop:accessor("block_id", nil)
-prop:accessor("listener", false)
-prop:accessor("port", 0)
-prop:accessor("sndbuf", "")
-prop:accessor("recvbuf", "")
+prop:reader("ip", nil)
+prop:reader("fd", nil)
+prop:reader("host", nil)
+prop:reader("session", nil)          --连接成功对象
+prop:reader("listener", nil)
+prop:reader("recvbuf", "")
+prop:reader("port", 0)
 
 function Socket:__init(host)
     self.host = host
@@ -35,99 +30,93 @@ function Socket:__release()
    self:close()
 end
 
-function Socket:close(close_by_peer)
-    if self.fd then
-        poll:control(self, POLL_DEL)
-        if close_by_peer then
-            self.host:on_socket_close(self, self.fd)
-        end
-        lnet.close(self.fd)
-        self.fd = nil
+function Socket:close()
+    if self.session then
+        timer_mgr:once(PeriodTime.FRAME_MS, function()
+            session.close()
+            self.session = nil
+        end)
     end
 end
 
 function Socket:listen(ip, port)
-    if self.fd then
-        return self.fd
+    if self.listener then
+        return true
     end
-    local fd, terr = lnet.tcp(ip, port)
-    if fd < 0 then
-        log_err("[Socket][listen] create tcp failed: %s", terr)
-        return
+    local proto_type = 2
+    self.listener = socket_mgr.listen(ip, port, proto_type)
+    if not self.listener then
+        log_err("[Socket][listen] failed to listen: %s:%d type=%d", ip, port, proto_type)
+        return false
     end
-    local res, lerr = lnet.listen(fd)
-    if res < 0 then
-        log_err("[Socket][listen] listen tcp failed: %s", lerr)
-        return
+    self.ip, self.port = ip, port
+    log_info("[Socket][listen] start listen at: %s:%d type=%d", ip, port, proto_type)
+    self.listener.on_accept = function(session)
+        qxpcall(self.on_session_accept, "on_session_accept: %s", self, session)
     end
-    self.listener = true
-    self.fd, self.ip, self.port = fd, ip, port
-    poll:control(self, POLL_ADD, true, false)
-    return fd
+    return true
 end
 
 function Socket:connect(ip, port)
-    local fd, terr = lnet.tcp()
-    if fd < 0 then
-        log_err("[Socket][connect] create tcp failed: %s", terr)
-        return
+    if self.session then
+        return true
     end
-    local res, cerr = lnet.connect(fd, ip, port)
-    if res < 0 then
-        log_err("[Socket][connect] connect failed: %s", cerr)
-        return
+    local proto_type = 2
+    local session, err = socket_mgr.connect(ip, port, NetwkTime.CONNECT_TIMEOUT, proto_type)
+    if not session then
+        log_err("[Socket][connect] failed to connect: %s:%d type=%d, err=%s", ip, port, proto_type, err)
+        return false, err
     end
-    self.fd = fd
-    self.block_id = thread_mgr:build_session_id()
-    poll:control(self, POLL_ADD, false, true)
-    local ok, err = thread_mgr:yield(self.block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
-    if not ok then
-        log_err("[Socket][connect] connect failed: %s", err)
-        self:close()
-        return
+    --设置阻塞id
+    local block_id = thread_mgr:build_session_id()
+    session.on_connect = function(res)
+        thread_mgr:response(block_id, res == "ok", res)
     end
-    self.block_id = nil
+    session.on_call_text = function(recv_len, data)
+        qxpcall(self.on_session_rpc, "on_session_rpc: %s", self, session, data)
+    end
+    session.on_error = function(err)
+        qxpcall(self.on_session_err, "on_session_err: %s", self, session, err)
+    end
+    self.session = session
+    self.fd = session.token
     self.ip, self.port = ip, port
-    poll:control(self, POLL_MOD, true, false)
-    return fd
+    --阻塞模式挂起
+    return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
 end
 
-function Socket:accept(fd)
-    local newfd, err, ip, port = lnet.accept(fd)
-    if newfd < 0 then
-        log_err("[Socket][accept] accept tcp failed: %s", err)
-        return
-    end
-    self.fd, self.ip, self.port = newfd, ip, port
-    poll:control(self, POLL_ADD, true, false)
-    self.host:on_socket_accept(self, newfd)
+function Socket:on_session_accept(session)
+    local socket = Socket(self.host)
+    socket:accept(session, session.ip, self.port)
 end
 
-function Socket:on_recv(fd)
+function Socket:on_session_rpc(session, data)
+    self.recvbuf = self.recvbuf .. data
     if #self.recvbuf > 0 then
         qxpcall(self.host.on_socket_recv, "on_socket_recv: %s", self.host, self, self.fd)
     end
 end
 
-function Socket:recv()
-    if not self.fd then
-        return false
+function Socket:on_session_err(session, err)
+    if self.session then
+        self.session = nil
+        log_info("[Socket][on_session_err] err: %s!", err)
+        self.host:on_socket_close(self, self.fd)
     end
-    while true do
-        local ret, data_oe = lrecv(self.fd, 8000)
-        if ret == 0 then
-            break
-        end
-        if ret < 0 then
-            self:on_recv()
-            log_err("[Socket][recv] recv failed: %s", data_oe)
-            self:close(true)
-            return false
-        end
-        self.recvbuf = self.recvbuf .. data_oe
+end
+
+function Socket:accept(session, ip, port)
+    session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
+    session.on_call_text = function(recv_len, data)
+        qxpcall(self.on_session_rpc, "on_session_rpc: %s", self, session, data)
     end
-    self:on_recv()
-    return true
+    session.on_error = function(err)
+        qxpcall(self.on_session_err, "on_session_err: %s", self, session, err)
+    end
+    self.session = session
+    self.fd = session.token
+    self.ip, self.port = ip, port
+    self.host:on_socket_accept(self, self.fd)
 end
 
 function Socket:peek(len, offset)
@@ -148,63 +137,17 @@ end
 function Socket:pop(len)
     if #self.recvbuf > len then
         self.recvbuf = ssub(self.recvbuf, len + 1)
-    elseif #self.recvbuf == len then
+    else
         self.recvbuf = ""
     end
 end
 
 function Socket:send(data)
-    if not self.fd then
+    if (not self.session) or (not data) then
         return false
     end
-    if data then
-        self.sndbuf = self.sndbuf .. data
-    end
-    if #self.sndbuf == 0 then
-        return true
-    end
-    while true do
-        local sndlen, err = lsend(self.fd, self.sndbuf)
-        if sndlen == 0 then
-            poll:control(self, POLL_MOD, true, true)
-            break
-        end
-        if sndlen < 0 then
-            log_err("[Socket][send] send failed: %s", err)
-            self:close(true)
-            return false
-        end
-        if sndlen > 0 then
-            if sndlen == #self.sndbuf then
-                poll:control(self, POLL_MOD, true, false)
-                self.sndbuf = ""
-                break
-            else
-                self.sndbuf = ssub(self.sndbuf, sndlen + 1)
-            end
-        end
-    end
-	return true
-end
-
-function Socket:handle_event(bread, bwrite)
-    if bwrite then
-        if self.block_id then
-            thread_mgr:response(self.block_id, true)
-            return
-        end
-        if not self:send() then
-            return
-        end
-    end
-    if bread then
-        if self.listener then
-            local socket = Socket(self.host)
-            socket:accept(self.fd)
-            return
-        end
-        self:recv()
-    end
+    local send_len = self.session.call_text(data)
+	return send_len > 0
 end
 
 return Socket

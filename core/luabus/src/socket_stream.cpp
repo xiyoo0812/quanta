@@ -289,8 +289,8 @@ void socket_stream::send(const void* data, size_t data_len)
     if (m_closed)
         return;
 
-    // luabus原生模式需要发送特殊的head
-    if (eproto_type::proto_luabus == m_proto_type)
+    // rpc模式需要发送特殊的head
+    if (eproto_type::proto_rpc == m_proto_type)
     {
         BYTE header[MAX_VARINT_SIZE];
         size_t header_len = encode_u64(header, sizeof(header), data_len);
@@ -311,8 +311,8 @@ void socket_stream::sendv(const sendv_item items[], int count)
         data_len += items[i].len;
     }
 
-    // luabus原生模式需要发送特殊的head
-    if (eproto_type::proto_luabus == m_proto_type)
+    // rpc模式需要发送特殊的head
+    if (eproto_type::proto_rpc == m_proto_type)
     {
         BYTE  header[MAX_VARINT_SIZE];
         size_t header_len = encode_u64(header, sizeof(header), data_len);
@@ -583,31 +583,32 @@ void socket_stream::dispatch_package()
         auto* data = m_recv_buffer->peek_data(&data_len);
         size_t header_len = 0;  // 包头大小
 
-        // 原生模式使用decode_u64获取head
-        if (eproto_type::proto_luabus == m_proto_type)
+        if (eproto_type::proto_rpc == m_proto_type)
         {
+            // rpc模式使用decode_u64获取head
             header_len = decode_u64(&package_size, data, data_len);
             if (header_len == 0) break;
         }
-        else if (eproto_type::proto_dx == m_proto_type)  // DxClient模式需要解析DxHead
+        else if (eproto_type::proto_pack == m_proto_type)
         {
-            // 接收未满一个包头
-            if (data_len < sizeof(socket_header))
-                break;
-
+            // cmnd模式获取socket_header
             header_len = sizeof(socket_header);
-            uint64_t recv_len = ((socket_header*)data)->len;
-            if (recv_len < header_len)
+            if (data_len < header_len)
                 break;
 
-            package_size = recv_len - header_len;
-
+            socket_header* header = (socket_header*)data;
+            package_size = header->len - header_len;
             // 当前包头标识的数据超过最大长度
             if (header_len + package_size > NET_PACKET_MAX_LEN)
             {
                 on_error("package-parse-large");
                 break;
             }
+        }
+        else if (eproto_type::proto_text == m_proto_type)
+        {
+            if (data_len == 0) break;
+            package_size = data_len;
         }
         else
         {
@@ -617,20 +618,17 @@ void socket_stream::dispatch_package()
 
         // 数据包还没有收完整
         if (data_len < header_len + package_size) break;
-
-        // 抛给包回调（luabus原生协议只需要body，Dx系列需要完整包）
-        if (eproto_type::proto_luabus == m_proto_type)
-        {
-            m_package_cb((char*)data + header_len, (size_t)package_size);
-        }
-        else if (eproto_type::proto_dx == m_proto_type)
+        if (eproto_type::proto_pack == m_proto_type)
         {
             m_package_cb((char*)data, header_len + (size_t)package_size);
+        }
+        else
+        {
+            m_package_cb((char*)data + header_len, (size_t)package_size);
         }
 
         // 接收缓冲读游标调整
         m_recv_buffer->pop_data(header_len + (size_t)package_size);
-
         m_last_recv_time = ltimer::now_ms();
 
         // 防止单个连接处理太久，不能大于20ms

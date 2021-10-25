@@ -1,7 +1,6 @@
 --clock_mgr.lua
 local ltimer = require("ltimer")
 
-import("driver/poll.lua")
 import("kernel/basic/thread_mgr.lua")
 import("kernel/basic/timer_mgr.lua")
 import("kernel/basic/clock_mgr.lua")
@@ -15,7 +14,6 @@ local collectgarbage= collectgarbage
 
 local PeriodTime    = enum("PeriodTime")
 
-local poll          = quanta.get("poll")
 local timer_mgr     = quanta.get("timer_mgr")
 local clock_mgr     = quanta.get("clock_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -49,7 +47,6 @@ end
 
 function UpdateMgr:update(now_ms, count)
     --系统更新
-    poll:update()
     timer_mgr:update(now_ms)
     thread_mgr:update(now_ms)
     --业务更新
@@ -109,7 +106,6 @@ function UpdateMgr:quit()
         obj:on_quit()
     end
     log_info("[UpdateMgr][quit]service quit for signal !")
-    poll:quit()
     timer_mgr:quit()
     clock_mgr:quit()
     quanta.run = nil

@@ -12,9 +12,9 @@
 struct socket_stream : public socket_object
 {
 #ifdef _MSC_VER
-    socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type = eproto_type::proto_luabus);
+    socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type = eproto_type::proto_rpc);
 #endif
-    socket_stream(socket_mgr_impl* mgr, eproto_type proto_type = eproto_type::proto_luabus);
+    socket_stream(socket_mgr_impl* mgr, eproto_type proto_type = eproto_type::proto_rpc);
 
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
@@ -68,7 +68,7 @@ struct socket_stream : public socket_object
 
     int token = 0;
     socket_mgr_impl* m_mgr = nullptr;
-    eproto_type     m_proto_type = eproto_type::proto_luabus;
+    eproto_type     m_proto_type = eproto_type::proto_rpc;
     socket_t m_socket = INVALID_SOCKET;
     std::shared_ptr<io_buffer> m_recv_buffer = std::make_shared<io_buffer>();
     std::shared_ptr<io_buffer> m_send_buffer = std::make_shared<io_buffer>();

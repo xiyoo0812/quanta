@@ -29,6 +29,6 @@ router:upsert({
     quanta_deploy = 'local',
     host_id = 1,
     host = '127.0.0.1',
-    count = 2,
+    count = 1,
     port = 9001,
 })

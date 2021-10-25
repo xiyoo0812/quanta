@@ -17,7 +17,7 @@ KernCode.TOKEN_ERROR        = 10     --登录token错误
 KernCode.DB_NOTINIT         = 11    --数据库没有初始化
 KernCode.RPC_UNREACHABLE    = 12    --RPC目标不可达
 
---dx协议投flag掩码
+--协议投flag掩码
 local FlagMask              = enum("FlagMask", 0)
 FlagMask.REQ                = 0x01  -- 请求
 FlagMask.RES                = 0x02  -- 响应

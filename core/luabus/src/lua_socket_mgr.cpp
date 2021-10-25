@@ -44,11 +44,11 @@ int lua_socket_mgr::listen(lua_State* L)
         return 2;
     }
 
-    eproto_type proto_type = eproto_type::proto_luabus;
+    eproto_type proto_type = eproto_type::proto_rpc;
     if (lua_gettop(L) >= 3)
     {
         proto_type = (eproto_type)lua_tointeger(L, 3);
-        if (proto_type < eproto_type::proto_luabus || proto_type >= eproto_type::proto_max)
+        if (proto_type < eproto_type::proto_rpc || proto_type >= eproto_type::proto_max)
         {
             lua_pushnil(L);
             lua_pushstring(L, "invalid proto_type");
@@ -80,13 +80,13 @@ int lua_socket_mgr::connect(lua_State* L)
     const char* ip = lua_tostring(L, 1);
     const char* port = lua_tostring(L, 2);
     int timeout = (int)lua_tonumber(L, 3);
-    eproto_type proto_type = eproto_type::proto_luabus;
+    eproto_type proto_type = eproto_type::proto_rpc;
     
     // 如果有提供协议类型，需要设置协议类型
     if(lua_param_count >= 4)
     {
         proto_type = (eproto_type)(int)lua_tonumber(L, 4);
-        if (proto_type < eproto_type::proto_luabus || proto_type >= eproto_type::proto_max)
+        if (proto_type < eproto_type::proto_rpc || proto_type >= eproto_type::proto_max)
         {
             lua_pushnil(L);
             lua_pushstring(L, "invalid proto_type");

@@ -11,9 +11,10 @@
 // 协议类型
 enum class eproto_type : int
 {
-	proto_luabus    = 0,  // lua原生协议
-    proto_dx        = 1,  // dx协议
-	proto_max       = 2,  // max 
+    proto_rpc       = 0,  // rpc协议
+    proto_pack      = 1,  // pack协议
+    proto_text      = 2,  // text协议
+    proto_max       = 3,  // max 
 };
 
 struct sendv_item
@@ -34,7 +35,7 @@ public:
     int wait(int timeout);
     int listen(std::string& err, const char ip[], int port, eproto_type proto_type);
     // 注意: connect总是异步的,需要通过回调函数确认连接成功后,才能发送数据
-    int connect(std::string& err, const char node_name[], const char service_name[], int timeout, eproto_type proto_type = eproto_type::proto_luabus);
+    int connect(std::string& err, const char node_name[], const char service_name[], int timeout, eproto_type proto_type = eproto_type::proto_rpc);
 
     void set_send_buffer_size(uint32_t token, size_t size);
     void set_recv_buffer_size(uint32_t token, size_t size);
