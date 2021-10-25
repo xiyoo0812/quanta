@@ -77,10 +77,9 @@ GMType.AREA                 = 3       -- 小区相关
 
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
-CacheCode.CACHE_NOT_SUPPERT         = 2051  -- 不支持的缓存类型
-CacheCode.CACHE_PKEY_IS_NOT_EXIST   = 2052  -- Pkey不存在
-CacheCode.CACHE_KEY_IS_NOT_EXIST    = 2053  -- key不存在
-CacheCode.CACHE_FLUSH_FAILED        = 2054  -- flush失败
-CacheCode.CACHE_KEY_LOCK_FAILD      = 2055  -- 用户锁失败
-CacheCode.CACHE_DELETE_SAVE_FAILD   = 2056  -- 缓存删除失败
-CacheCode.CACHE_IS_HOLDING          = 2057  -- 缓存正在处理
+CacheCode.CACHE_NOT_SUPPERT         = 10001  -- 不支持的缓存类型
+CacheCode.CACHE_IS_HOLDING          = 10002  -- 缓存正在处理
+CacheCode.CACHE_KEY_IS_NOT_EXIST    = 10003  -- key不存在
+CacheCode.CACHE_FLUSH_FAILED        = 10004  -- flush失败
+CacheCode.CACHE_KEY_LOCK_FAILD      = 10005  -- 用户锁失败
+CacheCode.CACHE_DELETE_SAVE_FAILD   = 10006  -- 缓存删除失败

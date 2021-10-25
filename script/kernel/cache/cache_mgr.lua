@@ -1,10 +1,10 @@
 -- cache_mgr.lua
 import("kernel/store/mongo_mgr.lua")
 
-local tunpack       = table.unpack
-local tinsert       = table.insert
 local log_err       = logger.err
 local log_info      = logger.info
+local tunpack       = table.unpack
+local tinsert       = table.insert
 local check_failed  = utility.check_failed
 
 local KernCode      = enum("KernCode")
@@ -129,6 +129,17 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key)
         return CacheCode.CACHE_KEY_LOCK_FAILD
     end
     log_info("[CacheMgr][get_cache_obj] cache=%s,primary=%s", cache_name, primary_key)
+    return SUCCESS, cache_obj:pack()
+end
+
+function CacheMgr:rpc_cache_load(quanta_id, req_data)
+    local cache_name, primary_keys = tunpack(req_data)
+    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key)
+    if SUCCESS ~= code then
+        log_err("[CacheMgr][rpc_cache_update] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
+        return code
+    end
+    log_info("[CacheMgr][rpc_cache_load] cache=%s,primary=%s", cache_name, primary_key)
     return SUCCESS, cache_obj:pack()
 end
 
