@@ -589,7 +589,7 @@ void socket_stream::dispatch_package()
             header_len = decode_u64(&package_size, data, data_len);
             if (header_len == 0) break;
         }
-        else if (eproto_type::proto_cmd == m_proto_type)
+        else if (eproto_type::proto_pack == m_proto_type)
         {
             // cmnd模式获取socket_header
             header_len = sizeof(socket_header);
@@ -618,7 +618,7 @@ void socket_stream::dispatch_package()
 
         // 数据包还没有收完整
         if (data_len < header_len + package_size) break;
-        if (eproto_type::proto_cmd == m_proto_type)
+        if (eproto_type::proto_pack == m_proto_type)
         {
             m_package_cb((char*)data, header_len + (size_t)package_size);
         }

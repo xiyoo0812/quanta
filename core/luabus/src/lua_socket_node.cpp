@@ -10,7 +10,7 @@
 
 EXPORT_CLASS_BEGIN(lua_socket_node)
 EXPORT_LUA_FUNCTION(call)
-EXPORT_LUA_FUNCTION(call_cmd)
+EXPORT_LUA_FUNCTION(call_pack)
 EXPORT_LUA_FUNCTION(call_text)
 EXPORT_LUA_FUNCTION(forward_target)
 EXPORT_LUA_FUNCTION_AS(forward_by_group<msg_id::forward_master>, "forward_master")
@@ -74,7 +74,7 @@ lua_socket_node::~lua_socket_node()
 	close();
 }
 
-int lua_socket_node::call_cmd(lua_State* L)
+int lua_socket_node::call_pack(lua_State* L)
 {
     int top = lua_gettop(L);
     if (top < 4)
@@ -326,9 +326,9 @@ void lua_socket_node::close()
 
 void lua_socket_node::on_recv(char* data, size_t data_len)
 {
-    if (eproto_type::proto_cmd == m_proto_type)
+    if (eproto_type::proto_pack == m_proto_type)
     {
-        on_call_cmd(data, data_len);
+        on_call_pack(data, data_len);
         return;
     }
     if (eproto_type::proto_text == m_proto_type)
@@ -423,14 +423,14 @@ void lua_socket_node::on_call(router_header* header, char* data, size_t data_len
     lua_call_function(m_lvm, nullptr, param_count + 4, 0);
 }
 
-void lua_socket_node::on_call_cmd(char* data, size_t data_len)
+void lua_socket_node::on_call_pack(char* data, size_t data_len)
 {
     std::string body;
     auto head = (socket_header*)data;
     body.append(data + sizeof(socket_header), data_len - sizeof(socket_header));
 
     lua_guard g(m_lvm);
-    lua_call_object_function(m_lvm, nullptr, this, "on_call_cmd", std::tie(), data_len, head->cmd_id, head->flag, head->session_id, body);
+    lua_call_object_function(m_lvm, nullptr, this, "on_call_pack", std::tie(), data_len, head->cmd_id, head->flag, head->session_id, body);
 }
 
 void lua_socket_node::on_call_text(char* data, size_t data_len)

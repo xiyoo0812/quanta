@@ -61,8 +61,8 @@ function NetClient:connect(block)
             thread_mgr:response(block_id, succes, res)
         end
     end
-    socket.on_call_cmd = function(recv_len, cmd_id, flag, session_id, data)
-        statis_mgr:statis_notify("on_cmd_recv", cmd_id, recv_len)
+    socket.on_call_pack = function(recv_len, cmd_id, flag, session_id, data)
+        statis_mgr:statis_notify("on_pack_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, data)
     end
     socket.on_error = function(err)
@@ -170,26 +170,26 @@ function NetClient:write(cmd_id, data, session_id, flag)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_cmd(cmd_id, pflag, session_id or 0, body)
+    local send_len = self.socket.call_pack(cmd_id, pflag, session_id or 0, body)
     if send_len < 0 then
-        log_err("[NetClient][write] call_cmd failed! code:%s", send_len)
+        log_err("[NetClient][write] call_pack failed! code:%s", send_len)
         return false
     end
     return true
 end
 
 -- 发送数据
-function NetClient:send_cmd(cmd_id, data, session_id)
+function NetClient:send_pack(cmd_id, data, session_id)
     return self:write(cmd_id, data, session_id, FlagMask.REQ)
 end
 
 -- 回调数据
-function NetClient:callback_cmd(cmd_id, data, session_id)
+function NetClient:callback_pack(cmd_id, data, session_id)
     return self:write(cmd_id, data, session_id, FlagMask.RES)
 end
 
 -- 发起远程调用
-function NetClient:call_cmd(cmd_id, data)
+function NetClient:call_pack(cmd_id, data)
     local session_id = thread_mgr:build_session_id()
     if not self:write(cmd_id, data, session_id, FlagMask.REQ) then
         return false
@@ -198,7 +198,7 @@ function NetClient:call_cmd(cmd_id, data)
 end
 
 -- 等待远程调用
-function NetClient:wait_cmd(cmd_id, time)
+function NetClient:wait_pack(cmd_id, time)
     local session_id = thread_mgr:build_session_id()
     self.wait_list[cmd_id] = session_id
     return thread_mgr:yield(session_id, cmd_id, time)

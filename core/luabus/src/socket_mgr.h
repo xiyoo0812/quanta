@@ -12,8 +12,8 @@
 enum class eproto_type : int
 {
 	proto_rpc       = 0,  // rpc协议
-    proto_cmd       = 1,  // cmd协议, 有消息头
-	proto_text      = 2,  // 文本协议
+    proto_pack      = 1,  // pack协议
+	proto_text      = 2,  // text协议
 	proto_max       = 3,  // max 
 };
 

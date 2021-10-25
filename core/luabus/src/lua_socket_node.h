@@ -19,7 +19,7 @@ struct lua_socket_node final
     ~lua_socket_node();
 
     int call(lua_State* L);
-    int call_cmd(lua_State* L);
+    int call_pack(lua_State* L);
     int call_text(lua_State* L);
     int forward_target(lua_State* L);
 
@@ -36,7 +36,7 @@ struct lua_socket_node final
 
 private:
 	void on_recv(char* data, size_t data_len);
-    void on_call_cmd(char* data, size_t data_len);
+    void on_call_pack(char* data, size_t data_len);
     void on_call_text(char* data, size_t data_len);
     void on_call(router_header* header, char* data, size_t data_len);
     void on_forward_boardcast(router_header* header, size_t target_size);

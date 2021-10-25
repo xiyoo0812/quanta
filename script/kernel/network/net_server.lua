@@ -74,10 +74,10 @@ function NetServer:on_session_accept(session)
     -- 设置超时(心跳)
     session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
     -- 绑定call回调
-    session.on_call_cmd = function(recv_len, cmd_id, flag, session_id, data)
+    session.on_call_pack = function(recv_len, cmd_id, flag, session_id, data)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
-        statis_mgr:statis_notify("on_cmd_recv", cmd_id, recv_len)
+        statis_mgr:statis_notify("on_pack_recv", cmd_id, recv_len)
         qxpcall(self.on_session_rpc, "on_session_rpc: %s", self, session, cmd_id, flag, session_id, data)
     end
     -- 绑定网络错误回调（断开）
@@ -100,12 +100,12 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     end
     session.serial = session.serial + 1
     -- call lbus
-    local send_len = session.call_cmd(cmd_id, pflag, session_id or 0, body)
+    local send_len = session.call_pack(cmd_id, pflag, session_id or 0, body)
     if send_len > 0 then
-        statis_mgr:statis_notify("on_cmd_send", cmd_id, send_len)
+        statis_mgr:statis_notify("on_pack_send", cmd_id, send_len)
         return true
     end
-    log_err("[NetServer][write] call_cmd failed! code:%s", send_len)
+    log_err("[NetServer][write] call_pack failed! code:%s", send_len)
     return false
 end
 
@@ -117,26 +117,26 @@ function NetServer:boardcast(cmd_id, data)
         return false
     end
     for _, session in pairs(self.sessions) do
-        local send_len = session.call_cmd(cmd_id, pflag, 0, body)
+        local send_len = session.call_pack(cmd_id, pflag, 0, body)
         if send_len > 0 then
-            statis_mgr:statis_notify("on_cmd_send", cmd_id, send_len)
+            statis_mgr:statis_notify("on_pack_send", cmd_id, send_len)
         end
     end
     return true
 end
 
 -- 发送数据
-function NetServer:send_cmd(session, cmd_id, data, session_id)
+function NetServer:send_pack(session, cmd_id, data, session_id)
     return self:write(session, cmd_id, data, session_id, FlagMask.REQ)
 end
 
 -- 回调数据
-function NetServer:callback_cmd(session, cmd_id, data, session_id)
+function NetServer:callback_pack(session, cmd_id, data, session_id)
     return self:write(session, cmd_id, data, session_id, FlagMask.RES)
 end
 
 -- 发起远程调用
-function NetServer:call_cmd(session, cmd_id, data)
+function NetServer:call_pack(session, cmd_id, data)
     local session_id = thread_mgr:build_session_id()
     if not self:write(session, cmd_id, data, session_id, FlagMask.REQ) then
         return false
@@ -266,14 +266,14 @@ end
 function NetServer:add_session(session)
     self.sessions[session.token] = session
     self.session_count = self.session_count + 1
-    statis_mgr:statis_notify("on_cmd_conn_update", self.session_type, self.session_count)
+    statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
 end
 
 -- 移除会话
 function NetServer:remove_session(session)
     self.sessions[session.token] = nil
     self.session_count = self.session_count - 1
-    statis_mgr:statis_notify("on_cmd_conn_update", self.session_type, self.session_count)
+    statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
 end
 
 -- 查询会话

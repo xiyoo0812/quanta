@@ -17,7 +17,7 @@ function StatisMgr:__init()
     -- 统计开关
     self.statis_status  = false
     -- 统计辅助开关
-    self.statis_cmd      = false --统计cmd请求
+    self.statis_pack    = false --统计pack请求
     self.statis_rpc     = true  --统计rpc请求
     self.statis_flow    = true  --统计流量
     self.statis_conn    = false --统计连接
@@ -28,10 +28,10 @@ function StatisMgr:__init()
     self.escape_ms      = 0
     self.escape_minute  = 0
     -- 统计数据
-    -- cmd_send         cmd send 统计
-    -- cmd_recv         cmd recv 统计
-    -- cmd_send_flow    cmd send flow统计
-    -- cmd_recv_flow    cmd recv flow统计
+    -- pack_send        pack send 统计
+    -- pack_recv        pack recv 统计
+    -- pack_send_flow   pack send flow统计
+    -- pack_recv_flow   pack recv flow统计
     -- rpc_send         rpc send 统计
     -- rpc_recv         rpc recv 统计
     -- rpc_send_flow    rpc send flow统计
@@ -68,18 +68,18 @@ end
 --初始化 统计节点
 function StatisMgr:init_statis_node()
     return {
-        count_s = 0,  --<秒>计数器
-        count_m = 0,  --<分>计数器
-        count_h = 0,  --<时>计数器
-        count_t = 0,  --<累计>计数器
-        count_tm = 0, --<分更新次数>计数器
-        count_th = 0, --<时更新次数>计数器
-        count_ps = 0, --<上一秒>计数器
-        count_pm = 0, --<上一分>计数器
-        count_ph = 0, --<上一时>计数器
-        count_hs = 0, --<每秒最高>计数器
-        count_hm = 0, --<每分最高>计数器
-        count_hh = 0, --<每时最高>计数器
+        count_s = 0,    --<秒>计数器
+        count_m = 0,    --<分>计数器
+        count_h = 0,    --<时>计数器
+        count_t = 0,    --<累计>计数器
+        count_tm = 0,   --<分更新次数>计数器
+        count_th = 0,   --<时更新次数>计数器
+        count_ps = 0,   --<上一秒>计数器
+        count_pm = 0,   --<上一分>计数器
+        count_ph = 0,   --<上一时>计数器
+        count_hs = 0,   --<每秒最高>计数器
+        count_hm = 0,   --<每分最高>计数器
+        count_hh = 0,   --<每时最高>计数器
         childs = {},    --子节点数据统计
     }
 end
@@ -141,43 +141,43 @@ function StatisMgr:on_timer(escape)
     end
 end
 
--- 统计cmd协议发送(KB)
-function StatisMgr:on_cmd_send(cmd_id, send_len)
-    if self.statis_cmd then
-        local cmd_send = self:get_statis_node("cmd_send")
-        cmd_send.count_s = cmd_send.count_s + 1
+-- 统计pack协议发送(KB)
+function StatisMgr:on_pack_send(cmd_id, send_len)
+    if self.statis_pack then
+        local pack_send = self:get_statis_node("pack_send")
+        pack_send.count_s = pack_send.count_s + 1
         if self.statis_child then
-            local cmd_cmd_send = self:get_child_node(cmd_send, cmd_id)
-            cmd_cmd_send.count_s = cmd_cmd_send.count_s + 1
+            local child_pack_send = self:get_child_node(pack_send, cmd_id)
+            child_pack_send.count_s = child_pack_send.count_s + 1
         end
         if self.statis_flow then
             local send_kb = send_len / 1000
-            local cmd_send_flow = self:get_statis_node("cmd_send_flow")
-            cmd_send_flow.count_s = cmd_send_flow.count_s + send_kb
+            local pack_send_flow = self:get_statis_node("pack_send_flow")
+            pack_send_flow.count_s = pack_send_flow.count_s + send_kb
             if self.statis_child then
-                local cmd_send_cmd_flow = self:get_child_node(cmd_send_flow, cmd_id)
-                cmd_send_cmd_flow.count_s = cmd_send_cmd_flow.count_s + send_kb
+                local child_pack_send_flow = self:get_child_node(pack_send_flow, cmd_id)
+                child_pack_send_flow.count_s = child_pack_send_flow.count_s + send_kb
             end
         end
     end
 end
 
--- 统计cmd协议接收(KB)
-function StatisMgr:on_cmd_recv(cmd_id, recv_len)
-    if self.statis_cmd then
-        local cmd_recv = self:get_statis_node("cmd_recv")
-        cmd_recv.count_s = cmd_recv.count_s + 1
+-- 统计pack协议接收(KB)
+function StatisMgr:on_pack_recv(cmd_id, recv_len)
+    if self.statis_pack then
+        local pack_recv = self:get_statis_node("pack_recv")
+        pack_recv.count_s = pack_recv.count_s + 1
         if self.statis_child then
-            local cmd_cmd_recv = self:get_child_node(cmd_recv, cmd_id)
-            cmd_cmd_recv.count_s = cmd_cmd_recv.count_s + 1
+            local child_pack_recv = self:get_child_node(pack_recv, cmd_id)
+            child_pack_recv.count_s = child_pack_recv.count_s + 1
         end
         if self.statis_flow then
             local recv_kb = recv_len / 1000
-            local cmd_recv_flow = self:get_statis_node("cmd_recv_flow")
-            cmd_recv_flow.count_s = cmd_recv_flow.count_s + recv_kb
+            local pack_recv_flow = self:get_statis_node("pack_recv_flow")
+            pack_recv_flow.count_s = pack_recv_flow.count_s + recv_kb
             if self.statis_child then
-                local cmd_recv_cmd_flow = self:get_child_node(cmd_recv_flow, cmd_id)
-                cmd_recv_cmd_flow.count_s = cmd_recv_cmd_flow.count_s + recv_kb
+                local child_pack_recv_flow = self:get_child_node(pack_recv_flow, cmd_id)
+                child_pack_recv_flow.count_s = child_pack_recv_flow.count_s + recv_kb
             end
         end
     end
@@ -189,16 +189,16 @@ function StatisMgr:on_rpc_send(rpc, send_len)
         local rpc_send = self:get_statis_node("rpc_send")
         rpc_send.count_s = rpc_send.count_s + 1
         if self.statis_child then
-            local rpc_cmd_send = self:get_child_node(rpc_send, rpc)
-            rpc_cmd_send.count_s = rpc_cmd_send.count_s + 1
+            local child_rpc_send = self:get_child_node(rpc_send, rpc)
+            child_rpc_send.count_s = child_rpc_send.count_s + 1
         end
         if self.statis_flow then
             local send_kb = send_len / 1000
             local rpc_send_flow = self:get_statis_node("rpc_send_flow")
             rpc_send_flow.count_s = rpc_send_flow.count_s + send_kb
             if self.statis_child then
-                local rpc_send_cmd_flow = self:get_child_node(rpc_send_flow, rpc)
-                rpc_send_cmd_flow.count_s = rpc_send_cmd_flow.count_s + send_kb
+                local child_rpc_send_flow = self:get_child_node(rpc_send_flow, rpc)
+                child_rpc_send_flow.count_s = child_rpc_send_flow.count_s + send_kb
             end
         end
     end
@@ -210,23 +210,23 @@ function StatisMgr:on_rpc_recv(rpc, recv_len)
         local rpc_recv = self:get_statis_node("rpc_recv")
         rpc_recv.count_s = rpc_recv.count_s + 1
         if self.statis_child then
-            local rpc_cmd_recv = self:get_child_node(rpc_recv, rpc)
-            rpc_cmd_recv.count_s = rpc_cmd_recv.count_s + 1
+            local child_rpc_recv = self:get_child_node(rpc_recv, rpc)
+            child_rpc_recv.count_s = child_rpc_recv.count_s + 1
         end
         if self.statis_flow then
             local recv_kb = recv_len / 1000
             local rpc_recv_flow = self:get_statis_node("rpc_recv_flow")
             rpc_recv_flow.count_s = rpc_recv_flow.count_s + recv_kb
             if self.statis_child then
-                local rpc_recv_cmd_flow = self:get_child_node(rpc_recv_flow, rpc)
-                rpc_recv_cmd_flow.count_s = rpc_recv_cmd_flow.count_s + recv_kb
+                local child_rpc_recv_flow = self:get_child_node(rpc_recv_flow, rpc)
+                child_rpc_recv_flow.count_s = child_rpc_recv_flow.count_s + recv_kb
             end
         end
     end
 end
 
--- 统计cmd连接
-function StatisMgr:on_cmd_conn_update(conn_type, conn_count)
+-- 统计pack协议连接
+function StatisMgr:on_pack_conn_update(conn_type, conn_count)
     if self.statis_conn then
         local conn_info = self:get_statis_node("conn_info")
         local conn = self:get_child_node(conn_info, conn_type)
