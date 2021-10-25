@@ -29,6 +29,7 @@ function RpcServer:__init()
 end
 
 --初始化
+--induce：根据index推导port
 function RpcServer:setup(ip, port, induce)
     if not ip or not port then
         log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)

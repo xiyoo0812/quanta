@@ -15,10 +15,8 @@ import("kernel/basic/update_mgr.lua")
 import("kernel/statis/perfeval_mgr.lua")
 
 local ltime         = ltimer.time
-local log_err       = logger.err
 local env_get       = environ.get
 local env_number    = environ.number
-local signal_quit   = signal.quit
 local qxpcall       = quanta.xpcall
 
 local socket_mgr    = nil

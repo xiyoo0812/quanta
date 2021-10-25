@@ -113,7 +113,7 @@ function RouterServer:rpc_service_register(server, id)
         local server_token = server.token
         --固定hash不能超过hash值
         if service_hash > 0 and servive_index > service_hash then
-            server:send(exist_server, "rpc_service_kickout", quanta.id, server.ip)
+            server:send(server, "rpc_service_kickout", quanta.id, server.ip)
             return
         end
         -- 检查是否顶号

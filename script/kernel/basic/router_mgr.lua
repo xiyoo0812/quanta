@@ -55,7 +55,9 @@ end
 function RouterMgr:add_router(router_conf, index)
     local router_id = srouter_id(router_conf.host_id, index)
     if not self.routers[router_id] then
-        local host, port = router_conf.host, router_conf.port
+        local host = router_conf.host
+        --端口推导
+        local port = router_conf.port + (index - 1)
         local RpcClient = import("kernel/network/rpc_client.lua")
         self.routers[router_id] = {
             addr = host,

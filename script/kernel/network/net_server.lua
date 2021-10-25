@@ -6,6 +6,7 @@ local log_info      = logger.info
 local qxpcall       = quanta.xpcall
 local env_status    = environ.status
 local env_number    = environ.number
+local signalquit    = signal.quit
 
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -44,7 +45,7 @@ function NetServer:setup(ip, port, induce)
     -- 开启监听
     if not ip or not port then
         log_err("[NetServer][setup] ip:%s or port:%s is nil", ip, port)
-        os.exit(1)
+        signalquit()
     end
     local listen_proto_type = 1
     local socket_mgr = quanta.get("socket_mgr")
@@ -52,7 +53,7 @@ function NetServer:setup(ip, port, induce)
     self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
     if not self.listener then
         log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)
-        os.exit(1)
+        signalquit()
     end
     self.ip, self.port = ip, real_port
     log_info("[NetServer][setup] start listen at: %s:%d type=%d", ip, real_port, listen_proto_type)
