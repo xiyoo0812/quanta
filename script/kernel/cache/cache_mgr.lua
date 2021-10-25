@@ -115,7 +115,7 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key)
         if check_failed(code) then
             return code
         end
-        cache_obj:set_lock_node_id(quanta_id)
+        cobj:set_lock_node_id(quanta_id)
         cache_obj = cobj
     else
         if cache_obj:is_holding() then
@@ -133,7 +133,7 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key)
 end
 
 function CacheMgr:rpc_cache_load(quanta_id, req_data)
-    local cache_name, primary_keys = tunpack(req_data)
+    local cache_name, primary_key = tunpack(req_data)
     local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_update] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
