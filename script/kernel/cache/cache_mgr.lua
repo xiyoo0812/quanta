@@ -129,7 +129,7 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key)
         return CacheCode.CACHE_KEY_LOCK_FAILD
     end
     log_info("[CacheMgr][get_cache_obj] cache=%s,primary=%s", cache_name, primary_key)
-    return SUCCESS, cache_obj:pack()
+    return SUCCESS, cache_obj
 end
 
 function CacheMgr:rpc_cache_load(quanta_id, req_data)
