@@ -47,7 +47,7 @@ function Listener:add_listener(listener, event, handler)
         return
     end
     local callback_name = handler or event
-    local callback_func = trigger[callback_name]
+    local callback_func = listener[callback_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[Listener][add_listener] event(%s) callback is nil!", event)
         return
@@ -65,7 +65,7 @@ function Listener:add_cmd_listener(listener, cmd, handler)
         return
     end
     local callback_name = handler or event
-    local callback_func = trigger[callback_name]
+    local callback_func = listener[callback_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[Listener][add_cmd_listener] cmd(%s) handler is nil!", cmd)
         return
@@ -95,7 +95,7 @@ function Listener:notify_listener(event, ...)
         return tpack(false, "event handler is nil")
     end
     local listener, callback_name = tunpack(listener_ctx)
-    local callback_func = trigger[callback_name]
+    local callback_func = listener[callback_name]
     local result = tpack(pcall(callback_func, listener, ...))
     if not result[1] then
         log_err("[Listener][notify_listener] notify_listener event(%s) failed, because: %s, traceback:%s!", event, result[2], dtraceback())
@@ -111,7 +111,7 @@ function Listener:notify_command(cmd, ...)
     end
     --执行事件
     local listener, callback_name = tunpack(listener_ctx)
-    local callback_func = trigger[callback_name]
+    local callback_func = listener[callback_name]
     local result = tpack(pcall(callback_func, listener, ...))
     if not result[1] then
         log_err("[Listener][notify_command] notify cmd(%s) failed, because: %s!, traceback:%s!", cmd, result[2], dtraceback())
