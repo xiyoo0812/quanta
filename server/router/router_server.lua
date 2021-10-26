@@ -113,14 +113,17 @@ function RouterServer:rpc_service_register(server, id)
         local server_token = server.token
         --固定hash不能超过hash值
         if service_hash > 0 and servive_index > service_hash then
-            server:send(server, "rpc_service_kickout", quanta.id, server.ip)
+            self.kick_servers[exist_token] = id
+            self.rpc_server:send(server, "rpc_service_kickout", quanta.id, "service hash illegal")
+            log_warn("[RouterServer][rpc_service_register] service(%s) be kickout, index(%s) > hash(%s)!", server_name, servive_index, service_hash)
             return
         end
         -- 检查是否顶号
         for exist_token, exist_server in self.rpc_server:iterator() do
             if exist_server.id == id then
                 self.kick_servers[exist_token] = id
-                self.rpc_server:send(exist_server, "rpc_service_kickout", quanta.id, exist_server.ip)
+                self.rpc_server:send(exist_server, "rpc_service_kickout", quanta.id, "service replace")
+                log_warn("[RouterServer][rpc_service_register] service(%s) be kickout, service replace!", server_name)
                 break
             end
         end
@@ -143,7 +146,7 @@ function RouterServer:rpc_service_register(server, id)
             local exist_server_id = exist_server.id
             if exist_server_id and exist_server_id ~= id then
                 self.rpc_server:send(exist_server, "rpc_service_ready", id, servive_name, router_id)
-                self.rpc_server:send(server, "rpc_service_ready", exist_server_id, exist_server.servive_name, router_id)
+                self.rpc_server:send(server, "rpc_service_ready", exist_server_id, router_id)
             end
         end
     end

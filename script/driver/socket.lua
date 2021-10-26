@@ -33,7 +33,7 @@ end
 function Socket:close()
     if self.session then
         timer_mgr:once(PeriodTime.FRAME_MS, function()
-            session.close()
+            self.session.close()
             self.session = nil
         end)
     end
@@ -62,10 +62,10 @@ function Socket:connect(ip, port)
         return true
     end
     local proto_type = 2
-    local session, err = socket_mgr.connect(ip, port, NetwkTime.CONNECT_TIMEOUT, proto_type)
+    local session, cerr = socket_mgr.connect(ip, port, NetwkTime.CONNECT_TIMEOUT, proto_type)
     if not session then
-        log_err("[Socket][connect] failed to connect: %s:%d type=%d, err=%s", ip, port, proto_type, err)
-        return false, err
+        log_err("[Socket][connect] failed to connect: %s:%d type=%d, err=%s", ip, port, proto_type, cerr)
+        return false, cerr
     end
     --设置阻塞id
     local block_id = thread_mgr:build_session_id()

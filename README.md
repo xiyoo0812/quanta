@@ -55,8 +55,6 @@ cd bin
 - lua
 - pbc
 - bson
-- lnet
-- lpeg
 - luna
 - mongo
 - luabt

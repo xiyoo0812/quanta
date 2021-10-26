@@ -297,24 +297,29 @@ end
 
 --服务器关闭
 function RouterMgr:rpc_service_close(id)
-    local server_name = sid2name(id)
-    local listener_set = self.close_watchers[server_name]
-    for listener in pairs(listener_set or {}) do
-        listener:on_service_close(id, server_name)
+    if self.master and self.master.router_id == router_id then
+        local server_name = sid2name(id)
+        local listener_set = self.close_watchers[server_name]
+        for listener in pairs(listener_set or {}) do
+            listener:on_service_close(id, server_name)
+        end
     end
 end
 
 --服务器注册
-function RouterMgr:rpc_service_ready(id, server_name, router_id)
-    local listener_set = self.ready_watchers[server_name]
-    for listener in pairs(listener_set or {}) do
-        listener:on_service_ready(id, server_name, router_id)
+function RouterMgr:rpc_service_ready(id, router_id)
+    if self.master and self.master.router_id == router_id then
+        local server_name = sid2name(id)
+        local listener_set = self.ready_watchers[server_name]
+        for listener in pairs(listener_set or {}) do
+            listener:on_service_ready(id, server_name, router_id)
+        end
     end
 end
 
 --服务被踢下线
-function RouterMgr:rpc_service_kickout(router_id, kick_ip)
-    log_info("[RouterMgr][rpc_service_kickout] router_id:%s, kick_ip:%s", router_id, kick_ip)
+function RouterMgr:rpc_service_kickout(router_id, reason)
+    log_err("[RouterMgr][rpc_service_kickout] reason:%s router_id:%s", reason, router_id)
     signal_quit()
 end
 
