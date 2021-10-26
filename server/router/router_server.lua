@@ -145,7 +145,7 @@ function RouterServer:rpc_service_register(server, id)
         for _, exist_server in self.rpc_server:iterator() do
             local exist_server_id = exist_server.id
             if exist_server_id and exist_server_id ~= id then
-                self.rpc_server:send(exist_server, "rpc_service_ready", id, servive_name, router_id)
+                self.rpc_server:send(exist_server, "rpc_service_ready", id, router_id)
                 self.rpc_server:send(server, "rpc_service_ready", exist_server_id, router_id)
             end
         end

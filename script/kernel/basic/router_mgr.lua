@@ -19,7 +19,7 @@ local config_mgr        = quanta.get("config_mgr")
 
 local NetwkTime         = enum("NetwkTime")
 
-local RouterMgr = class()
+local RouterMgr = singleton()
 local prop = property(RouterMgr)
 prop:accessor("master", nil)
 prop:accessor("routers", {})
@@ -296,7 +296,7 @@ function RouterMgr:rpc_router_update()
 end
 
 --服务器关闭
-function RouterMgr:rpc_service_close(id)
+function RouterMgr:rpc_service_close(id, router_id)
     if self.master and self.master.router_id == router_id then
         local server_name = sid2name(id)
         local listener_set = self.close_watchers[server_name]
