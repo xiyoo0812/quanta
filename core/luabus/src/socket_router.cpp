@@ -215,15 +215,11 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
     size_t header_len = format_header(header_data, sizeof(header_data), header, msg_id::remote_call);
     sendv_item items[] = {{header_data, header_len}, {data, data_len}};
 
-    int idx = hash % count;
-    for (int i = 0; i < count; i++)
+    auto& target = nodes[hash % count];
+    if (target.token != 0)
     {
-        auto& target = nodes[(idx + i) % count];
-        if (target.token != 0)
-        {
-            m_mgr->sendv(target.token, items, _countof(items));
-            return true;
-        }
+        m_mgr->sendv(target.token, items, _countof(items));
+        return true;
     }
     return false;
 }
