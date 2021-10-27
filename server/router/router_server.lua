@@ -113,7 +113,7 @@ function RouterServer:rpc_service_register(server, id)
         local server_token = server.token
         --固定hash不能超过hash值
         if service_hash > 0 and servive_index > service_hash then
-            self.kick_servers[exist_token] = id
+            self.kick_servers[server_token] = id
             self.rpc_server:send(server, "rpc_service_kickout", quanta.id, "service hash illegal")
             log_warn("[RouterServer][rpc_service_register] service(%s) be kickout, index(%s) > hash(%s)!", server_name, servive_index, service_hash)
             return

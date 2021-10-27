@@ -62,8 +62,7 @@ function quanta.init()
     import("kernel/basic/protobuf_mgr.lua")
 
     --初始化路由管理器
-    local service_id = quanta.service_id
-    if service.router(service_id) then
+    if service.router(quanta.service_id) then
         --加载router配置
         import("kernel/basic/router_mgr.lua")
         if env_get("QUANTA_FEISHU_URL") then

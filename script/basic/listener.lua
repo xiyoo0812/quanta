@@ -64,7 +64,7 @@ function Listener:add_cmd_listener(listener, cmd, handler)
         log_warn("[Listener][add_cmd_listener] cmd(%s) repeat!", cmd)
         return
     end
-    local callback_name = handler or event
+    local callback_name = handler
     local callback_func = listener[callback_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[Listener][add_cmd_listener] cmd(%s) handler is nil!", cmd)
