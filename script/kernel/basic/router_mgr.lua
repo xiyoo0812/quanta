@@ -149,14 +149,14 @@ function RouterMgr:forward_client(router, method, ...)
 end
 
 --通过router发送广播，并收集所有的结果
-function RouterMgr:forward_collect(service_id, rpc, ...)
+function RouterMgr:collect(service_id, rpc, ...)
     local collect_res = {}
     local session_id = thread_mgr:build_session_id()
     local ok, code, target_cnt = self:forward_client(self.master, "call_broadcast", session_id, service_id, rpc, ...)
     if ok and check_success(code) then
         while target_cnt > 0 do
             target_cnt = target_cnt - 1
-            local ok_c, code_c, res = thread_mgr:yield(session_id, "forward_collect", NetwkTime.RPC_CALL_TIMEOUT)
+            local ok_c, code_c, res = thread_mgr:yield(session_id, "collect", NetwkTime.RPC_CALL_TIMEOUT)
             if ok_c and check_success(code_c) then
                 tinsert(collect_res, res)
             end
@@ -166,7 +166,7 @@ function RouterMgr:forward_collect(service_id, rpc, ...)
 end
 
 --通过router传递广播
-function RouterMgr:forward_broadcast(service_id, rpc, ...)
+function RouterMgr:broadcast(service_id, rpc, ...)
     return self:forward_client(self.master, "call_broadcast", 0, service_id, rpc, ...)
 end
 
@@ -183,11 +183,11 @@ end
 
 function RouterMgr:random_call(target, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return self:forward_client(self:random_router(target), "call_target", session_id, target, rpc, ...)
+    return self:forward_client(self:random_router(), "call_target", session_id, target, rpc, ...)
 end
 
 function RouterMgr:random_send(target, rpc, ...)
-    return self:forward_client(self:random_router(target), "call_target", 0, target, rpc, ...)
+    return self:forward_client(self:random_router(), "call_target", 0, target, rpc, ...)
 end
 
 function RouterMgr:router_call(router_id, target, rpc, ...)
@@ -208,6 +208,17 @@ end
 --发送给指定service的hash
 function RouterMgr:send_hash(service_id, hash_key, rpc, ...)
     return self:forward_client(self:hash_router(hash_key), "call_hash", 0, service_id, hash_key, rpc, ...)
+end
+
+--发送给指定service的random
+function RouterMgr:call_random(service_id, rpc, ...)
+    local session_id = thread_mgr:build_session_id()
+    return self:forward_client(self:random_router(), "call_random", session_id, service_id, rpc, ...)
+end
+
+--发送给指定service的random
+function RouterMgr:send_random(service_id, rpc, ...)
+    return self:forward_client(self:random_router(), "call_random", 0, service_id, rpc, ...)
 end
 
 --发送给指定service的master
@@ -246,11 +257,17 @@ function RouterMgr:build_service_method(service, service_id)
         ["send_%s_master"] = function(obj, rpc, ...)
             return obj:send_master(service_id, rpc, ...)
         end,
+        ["call_%s_random"] = function(obj, rpc, ...)
+            return obj:call_random(service_id, rpc, ...)
+        end,
+        ["send_%s_random"] = function(obj, rpc, ...)
+            return obj:send_random(service_id, rpc, ...)
+        end,
         ["call_%s_all"] = function(obj, rpc, ...)
-            return obj:forward_broadcast(service_id, rpc, ...)
+            return obj:broadcast(service_id, rpc, ...)
         end,
         ["collect_%s"] = function(obj, rpc, ...)
-            return obj:forward_collect(service_id, rpc, ...)
+            return obj:collect(service_id, rpc, ...)
         end,
     }
     for fmt_key, handler in pairs(method_list) do

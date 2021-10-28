@@ -30,40 +30,40 @@ end
 function RmsgMgr:build_ttl(table_name)
     log_info("[RmsgMgr][build_ttl] rmsg table:%s", table_name)
     local query = { table_name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
-    local ok, code = mongo_agent:create_indexes(1, query, self.db_name)
+    local ok, code = mongo_agent:create_indexes(query, nil, self.db_name)
     if ok and check_success(code) then
         log_info("[RmsgMgr][build_ttl] rmsg table %s build due index success")
     end
 end
 
 -- 查询未处理消息列表
-function RmsgMgr:list_message(to)
-    local query = { self.table_name, {to = to, deal_time = 0}, {_id = 0}, {time = 1} }
-    local ok, code, result = mongo_agent:find(to, query, self.db_name)
+function RmsgMgr:list_message(target)
+    local query = { self.table_name, {target = target, deal_time = 0}, {_id = 0}, {time = 1} }
+    local ok, code, result = mongo_agent:find(query, self.db_name)
     if ok and check_success(code) then
         return result
     end
 end
 
 -- 设置信息为已处理
-function RmsgMgr:deal_message(to, uuid)
+function RmsgMgr:deal_message(target, uuid)
     log_info("[RmsgMgr][deal_message] deal message: %s", uuid)
     local query = { self.table_name, {["$set"] = {deal_time = quanta.now}}, {uuid = uuid} }
-    return mongo_agent:update(to, query, self.db_name)
+    return mongo_agent:update(query, target, self.db_name)
 end
 
 -- 删除消息
-function RmsgMgr:delete_message(to, uuid)
+function RmsgMgr:delete_message(target, uuid)
     log_info("[RmsgMgr][delete_message] delete message: %s", uuid)
-    return mongo_agent:delete(to, {self.table_name, {uuid = uuid}}, self.db_name)
+    return mongo_agent:delete({self.table_name, {uuid = uuid}}, target, self.db_name)
 end
 
 -- 发送消息
-function RmsgMgr:send_message(from, to, typ, body, id)
+function RmsgMgr:send_message(source, target, typ, body, id)
     local uuid = id or new_guid()
     local doc = {
         uuid = uuid,
-        from = from, to = to,
+        source = source, target = target,
         type = typ, body = body,
         time = quanta.now,
         deal_time = 0,
@@ -72,11 +72,11 @@ function RmsgMgr:send_message(from, to, typ, body, id)
     if self.ttl then
         doc.ttl = bdate(quanta.now + self.ttl)
     end
-    local ok = mongo_agent:insert(to, {self.table_name, doc}, self.db_name)
+    local ok = mongo_agent:insert({self.table_name, doc}, target, self.db_name)
     if not ok then
-        log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, from, to, typ)
+        log_err("[RmsgMgr][send_message] send message failed: %s, %s, %s, %s", uuid, source, target, typ)
     else
-        log_info("[RmsgMgr][send_message] send message succeed: %s, %s, %s, %s", uuid, from, to, typ)
+        log_info("[RmsgMgr][send_message] send message succeed: %s, %s, %s, %s", uuid, source, target, typ)
     end
     return ok
 end

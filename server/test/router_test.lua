@@ -10,7 +10,7 @@ function RouterTest:__init()
     router_mgr:watch_service_close(self, "mongo")
 
     timer_mgr:once(4000, function()
-        local ok, code, res = router_mgr:call_mongo_hash(1, "mongo_find", "default", "test_mongo_1", {}, {_id = 0})
+        local ok, code, res = router_mgr:call_mongo_random("mongo_find", "default", "test_mongo_1", {}, {_id = 0})
         log_debug("db find ok:%s, code: %s, res = %s", ok, code, res)
     end)
 end
