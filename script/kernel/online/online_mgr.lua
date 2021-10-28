@@ -1,0 +1,136 @@
+--online_mgr.lua
+
+--本模块维护了所有在线玩家的索引,即: player_id --> lobbysvr-id
+--当然,不在线的玩家查询结果就是nil:)
+--这里维护的在线状态仅供一般性消息中转用,登录状态判定以数据库中记录为准
+local pairs         = pairs
+local log_info      = logger.info
+
+local KernCode      = enum("KernCode")
+local SUCCESS       = KernCode.SUCCESS
+
+local event_mgr     = hive.get("event_mgr")
+local router_mgr    = hive.get("router_mgr")
+
+local OnlineMgr = singleton()
+function OnlineMgr:__init()
+    self.lobbys = {}            --在线玩家
+    self.lobby_players = {}     --lobby玩家索引
+    self.oid2lobby = {}         --玩家open_id 到 lobby分布 map<oid,map<pid,lobby>>
+
+    --初始化，注册事件
+    event_mgr:add_listener(self, "rpc_cas_dispatch_lobby")
+    event_mgr:add_listener(self, "rpc_rm_dispatch_lobby")
+    event_mgr:add_listener(self, "rpc_player_login")
+    event_mgr:add_listener(self, "rpc_player_logout")
+    event_mgr:add_listener(self, "router_message")
+    event_mgr:add_listener(self, "transfer_message")
+    event_mgr:add_listener(self, "query_player_lobby")
+
+    router_mgr:watch_service_close(self, "lobby")
+end
+
+--rpc协议处理
+------------------------------------------------------------------------------
+--lobby/match失活时,所有indexsvr清除对应的索引数据
+function OnlineMgr:on_service_close(id, service_name)
+    if service_name == "lobby" then
+        local lobby_data = self.lobby_players[id]
+        for player_id in pairs(lobby_data or {}) do
+            self.lobbys[player_id] = nil
+        end
+        self.lobby_players[id] = {}
+        -- 清理lobby分配信息
+        for oid in pairs(self.oid2lobby) do
+            self.oid2lobby[oid] = nil
+        end
+    end
+end
+
+--角色分配lobby
+--类cas操作，如果lobby_id一致或者为nill返回lobby_id，否则返回indexsvr上的原值
+function OnlineMgr:rpc_cas_dispatch_lobby(rpc_req)
+    local lobby_id = self:find_lobby_dispatch(rpc_req.open_id, rpc_req.area_id)
+    if not lobby_id then
+        self:update_lobby_dispatch(rpc_req.open_id, rpc_req.area_id, rpc_req.lobby_id)
+        lobby_id = rpc_req.lobby_id
+    end
+
+    return SUCCESS, lobby_id
+end
+
+-- 移除lobby分配
+function OnlineMgr:rpc_rm_dispatch_lobby(rpc_req)
+    self:update_lobby_dispatch(rpc_req.open_id, rpc_req.area_id, nil)
+    return SUCCESS
+end
+
+-- 获取玩家当前的小区分配信息
+function OnlineMgr:find_lobby_dispatch(open_id, area_id)
+    local pid2lid = self.oid2lobby[open_id]
+    if not pid2lid then
+        return nil
+    end
+
+    return pid2lid[area_id]
+end
+
+-- 设置玩家当前的小区分配信息
+function OnlineMgr:update_lobby_dispatch(open_id, area_id, lobby_id)
+    local pid2lid = self.oid2lobby[open_id]
+    if not pid2lid then
+        pid2lid = {}
+        self.oid2lobby[open_id] = pid2lid
+    end
+
+    pid2lid[area_id] = lobby_id
+end
+
+--角色登陆
+function OnlineMgr:rpc_player_login(player_id, lobby)
+    log_info("[OnlineMgr][rpc_player_login]: %s, %s", player_id, lobby)
+    self.lobbys[player_id] = lobby
+    if not self.lobby_players[lobby] then
+        self.lobby_players[lobby] = {}
+    end
+    self.lobby_players[lobby][player_id] = true
+    return SUCCESS
+end
+
+--角色登出
+function OnlineMgr:rpc_player_logout(player_id)
+    log_info("[OnlineMgr][rpc_player_logout]: %s", player_id)
+    local lobby = self.lobbys[player_id]
+    if lobby then
+        self.lobbys[player_id] = nil
+        self.lobby_players[lobby][player_id] = nil
+    end
+    return SUCCESS
+end
+
+-------------------------------------------------------------------
+--根据玩家所在的lobby转发消息
+function OnlineMgr:transfer_message(player_id, msg, ...)
+    local lobby = self.lobbys[player_id]
+    if lobby then
+        router_mgr:send_target(lobby, msg, ...)
+    end
+end
+
+--根据玩家所在的lobby转发消息(随机router,无时序保证)
+function OnlineMgr:router_message(player_id, msg, ...)
+    local lobby = self.lobbys[player_id]
+    if lobby then
+        router_mgr:random_send(lobby, msg, ...)
+    end
+end
+
+--获取玩家所在的lobby
+function OnlineMgr:query_player_lobby(player_id)
+    return self.lobbys[player_id] or 0
+end
+
+-- export
+quanta.online_mgr = OnlineMgr()
+
+return OnlineMgr
