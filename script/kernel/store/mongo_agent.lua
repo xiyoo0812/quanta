@@ -1,7 +1,8 @@
 --mongo_agent.lua
-local tunpack           = table.unpack
+local mrandom       = math.random
+local tunpack       = table.unpack
 
-local router_mgr        = quanta.get("router_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
 local MongoAgent = singleton()
 function MongoAgent:__init()
