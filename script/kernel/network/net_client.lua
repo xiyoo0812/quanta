@@ -34,16 +34,15 @@ end
 
 -- 发起连接
 function NetClient:connect(block)
-    --log_debug("[NetClient][connect] try connect: %s-%d", self.ip, self.port)
     if self.socket then
         return true
     end
-    if not self.ip or not self.port then
-        log_err("[NetClient][connect] try connect: ip:%s or port: %d is nil", self.ip, self.port)
-        return false
+    local proto_type = 1
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT, proto_type)
+    if not socket then
+        log_err("[NetClient][connect] failed to connect: %s:%d type=%d, err=%s", self.ip, self.port, proto_type, cerr)
+        return false, cerr
     end
-    local listen_proto_type = 1
-    local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT, listen_proto_type)
     --设置阻塞id
     local block_id = block and thread_mgr:build_session_id()
     -- 调用成功，开始安装回调函数

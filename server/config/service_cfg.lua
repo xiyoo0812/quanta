@@ -78,3 +78,10 @@ service:upsert({
     router = true,
     hash = 0,
 })
+
+service:upsert({
+    id = 11,
+    name = 'online',
+    router = true,
+    hash = 1,
+})

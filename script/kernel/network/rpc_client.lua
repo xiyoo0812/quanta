@@ -53,7 +53,11 @@ end
 --连接服务器
 function RpcClient:connect()
     --开始连接
-    local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
+    if not socket then
+        log_err("[RpcClient][connect] failed to connect: %s:%d err=%s", self.ip, self.port, cerr)
+        return false, cerr
+    end
     socket.on_call = function(recv_len, session_id, rpc_flag, source, rpc, ...)
         statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, source, rpc, ...)
