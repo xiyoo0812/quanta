@@ -37,34 +37,6 @@ function utility.check_endless_loop()
     end
 end
 
---获得一个hash数值
-function utility.hash_code(key, mod)
-    local val = 0
-    if key then
-        if type(key) == "number" then
-            val = key
-        else
-            if type(key) ~= "string" then
-                key = tostring(key)
-            end
-            for i = 1, #key do
-                local ch = sbyte(key, i)
-                if ch >= 65 and ch <= 90 then
-                    ch = ch + 32
-                end
-                val = val * 3 + ch  --0.7是加权
-            end
-        end
-    end
-    if val == 0 then
-        return mod or 0xffff
-    end
-    if mod then
-        return val % mod + 1
-    end
-    return val
-end
-
 --获取utc时间戳
 local utc_diff_time = nil
 function utility.utc_time(time)

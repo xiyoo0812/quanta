@@ -244,18 +244,6 @@ int lua_socket_node::forward_by_group(lua_State* L)
     return 1;
 }
 
-// BKDR Hash
-static uint32_t string_hash(const char* str)
-{
-    uint32_t seed = 131; // 31 131 1313 13131 131313 etc..
-    uint32_t hash = 0;
-    while (*str)
-    {
-        hash = hash * seed + (*str++);
-    }
-    return (hash & 0x7FFFFFFF);
-}
-
 int lua_socket_node::forward_hash(lua_State* L)
 {
     int top = lua_gettop(L);
@@ -272,20 +260,7 @@ int lua_socket_node::forward_hash(lua_State* L)
     BYTE group_id_data[MAX_VARINT_SIZE];
     size_t group_id_len = encode_u64(group_id_data, sizeof(group_id_data), group_id);
 
-    int type = lua_type(L, 5);
-    uint32_t hash_key = 0;
-    if (type == LUA_TNUMBER)
-    {
-        hash_key = (uint32_t)lua_tointeger(L, 5);
-    }
-    else if (type == LUA_TSTRING)
-    {
-        const char* str = lua_tostring(L, 5);
-        if (str != nullptr)
-        {
-            hash_key = string_hash(str);
-        }
-    }
+    size_t hash_key = luaL_optinteger(L, 5, 0);
     if(hash_key == 0)
     {
         // unexpected hash key
