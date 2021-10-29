@@ -20,6 +20,10 @@ function logger.init(max_line)
     logger.filter(environ.number("QUANTA_LOG_LVL"))
 end
 
+function logger.daemon(daemon)
+    driver:daemon(daemon)
+end
+
 function logger.filter(level)
     for lvl = LOG_LEVEL.DEBUG, LOG_LEVEL.FATAL do
         --driver:filter(level, on/off)

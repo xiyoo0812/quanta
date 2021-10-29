@@ -1,0 +1,1 @@
+start quanta.exe test.conf
