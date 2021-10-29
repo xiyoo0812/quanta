@@ -2,6 +2,7 @@
 local tunpack       = table.unpack
 local log_err       = logger.err
 local qxpcall       = quanta.xpcall
+local qhash_code    = quanta.hash_code
 
 local event_mgr     = quanta.get("event_mgr")
 local socket_mgr    = quanta.get("socket_mgr")
@@ -53,7 +54,11 @@ end
 --连接服务器
 function RpcClient:connect()
     --开始连接
-    local socket = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
+    if not socket then
+        log_err("[RpcClient][connect] failed to connect: %s:%d err=%s", self.ip, self.port, cerr)
+        return false, cerr
+    end
     socket.on_call = function(recv_len, session_id, rpc_flag, source, rpc, ...)
         statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, source, rpc, ...)
@@ -76,10 +81,11 @@ function RpcClient:connect()
         end
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
-        local send_len = socket.forward_hash(session_id, FlagMask.REQ, quanta.id, service_id, hash_key, rpc, ...)
+        local hash_value = qhash_code(hash_key)
+        local send_len = socket.forward_hash(session_id, FlagMask.REQ, quanta.id, service_id, hash_value, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
-    socket.call_random = function(session_id, service_id, hash_key, rpc, ...)
+    socket.call_random = function(session_id, service_id, rpc, ...)
         local send_len = socket.forward_random(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end

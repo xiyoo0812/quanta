@@ -1,6 +1,7 @@
 ﻿#include <locale>
 #include <stdlib.h>
 #include <signal.h>
+#include <functional>
 #include "quanta.h"
 
 extern "C" {
@@ -68,6 +69,21 @@ static void check_input(sol::state& lua) {
         lua.script(fmt::format("quanta.console({:d})", cur));
     }
 #endif
+}
+
+static int hash_code(lua_State* L) {
+    size_t hcode = 0;
+    if (lua_type(L, 1) == LUA_TNUMBER) {
+        hcode = std::hash<int64_t>{}(lua_tointeger(L, 1));
+    } else {
+        hcode = std::hash<std::string>{}(lua_tostring(L, 1));
+    }
+    size_t mod = luaL_optinteger(L, 2, 0);
+    if (mod > 0) {
+        hcode = (hcode % mod) + 1;
+    }
+    lua_pushinteger(L, hcode);
+    return 1;
 }
 
 void quanta_app::set_signal(uint32_t n) {
@@ -152,6 +168,7 @@ void quanta_app::run() {
     quanta.set("logger", m_logger);
     quanta.set("platform", get_platform());
     quanta.set("environs", sol::as_table(quanta_app::m_environs));
+    quanta.set_function("hash_code", hash_code);
     quanta.set_function("get_signal", [&]() { return m_signal; });
     quanta.set_function("set_signal", [&](int n) { set_signal(n); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });

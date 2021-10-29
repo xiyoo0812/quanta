@@ -8,8 +8,8 @@ local tinsert           = table.insert
 local sformat           = string.format
 local sid2name          = service.id2name
 local srouter_id        = service.router_id
-local uhash_code        = utility.hash_code
 local check_success     = utility.check_success
+local qhash_code        = quanta.hash_code
 
 local timer_mgr         = quanta.get("timer_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -135,8 +135,8 @@ end
 function RouterMgr:hash_router(hash_key)
     local count = #self.candidates
     if count > 0 then
-        local hash_code = uhash_code(hash_key, count)
-        return self.candidates[hash_code]
+        local index = qhash_code(hash_key, count)
+        return self.candidates[index]
     end
 end
 
