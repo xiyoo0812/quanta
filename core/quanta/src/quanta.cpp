@@ -73,10 +73,13 @@ static void check_input(sol::state& lua) {
 
 static int hash_code(lua_State* L) {
     size_t hcode = 0;
-    if (lua_type(L, 1) == LUA_TNUMBER) {
+    int type = lua_type(L, 1);
+    if (type == LUA_TNUMBER) {
         hcode = std::hash<int64_t>{}(lua_tointeger(L, 1));
-    } else {
+    } else if (type == LUA_TSTRING) {
         hcode = std::hash<std::string>{}(lua_tostring(L, 1));
+    } else {
+        luaL_error(L, "hashkey type only suppert number or string!");
     }
     size_t mod = luaL_optinteger(L, 2, 0);
     if (mod > 0) {

@@ -15,15 +15,17 @@ import("kernel/basic/update_mgr.lua")
 import("kernel/statis/perfeval_mgr.lua")
 
 local ltime         = ltimer.time
+local log_info      = logger.info
 local env_get       = environ.get
 local env_number    = environ.number
 local qxpcall       = quanta.xpcall
+local qxpcall_quit  = quanta.xpcall_quit
 
 local socket_mgr    = nil
 local update_mgr    = quanta.get("update_mgr")
 
 --quanta启动
-function quanta.startup()
+function quanta.ready()
     quanta.frame = 0
     quanta.now_ms, quanta.now = ltime()
     quanta.index = env_number("QUANTA_INDEX", 1)
@@ -40,7 +42,7 @@ end
 function quanta.init()
     import("utility/service.lua")
     --启动quanta
-    quanta.startup()
+    quanta.ready()
     --初始化环境变量
     environ.init()
     --注册信号
@@ -82,6 +84,22 @@ function quanta.init_gm(gm_service)
     import("kernel/admin/gm_agent.lua")
     if gm_service then
         quanta.gm_agent:watch_service(gm_service)
+    end
+end
+
+local function startup(startup_func)
+    --初始化quanta
+    quanta.init()
+    --启动服务器
+    startup_func()
+    log_info("%s %d now startup!", quanta.service, quanta.id)
+end
+
+--启动
+function quanta.startup(startup_func)
+    if not quanta.init_flag then
+        qxpcall_quit(startup, "quanta startup error: %s", startup_func)
+        quanta.init_flag = true
     end
 end
 
