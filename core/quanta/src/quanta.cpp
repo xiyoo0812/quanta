@@ -79,7 +79,7 @@ static int hash_code(lua_State* L) {
     } else if (type == LUA_TSTRING) {
         hcode = std::hash<std::string>{}(lua_tostring(L, 1));
     } else {
-        luaL_error(L, "hashkey type only suppert number or string!");
+        luaL_error(L, "hashkey only support number or string!");
     }
     size_t mod = luaL_optinteger(L, 2, 0);
     if (mod > 0) {

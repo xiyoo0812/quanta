@@ -1,9 +1,7 @@
 --utility.lua
-local type          = type
 local otime         = os.time
 local odate         = os.date
 local log_err       = logger.err
-local sbyte         = string.byte
 local tunpack       = table.unpack
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
