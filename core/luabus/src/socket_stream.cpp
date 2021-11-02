@@ -86,6 +86,9 @@ bool socket_stream::update(int64_t now) {
             return false;
         }
         case elink_status::link_colsing: {
+#ifdef _MSC_VER
+            if (m_ovl_ref != 0) return true;
+#endif
             if (m_send_buffer->empty()) {
                 m_link_status = elink_status::link_closed;
             }
@@ -295,6 +298,9 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             data += send_len;
             data_len -= send_len;
         }
+        if (data_len == 0) {
+            return;
+        }
     }
     while (data_len > 0) {
         size_t space_len;
@@ -332,7 +338,7 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
     if (m_link_status == elink_status::link_closed)
         return;
 
-    if (m_link_status == elink_status::link_connected){
+    if (m_link_status != elink_status::link_init){
         if (ovl == &m_recv_ovl) {
             do_recv(UINT_MAX, false);
         } else {
@@ -365,11 +371,11 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
 
 #if defined(__linux) || defined(__APPLE__)
 void socket_stream::on_can_send(size_t max_len, bool is_eof) {
-    if (m_link_status == elink_status::link_connected){
-        do_send(max_len, is_eof);
+    if (m_link_status == elink_status::link_closed)
         return;
-    }
+
     if (m_link_status != elink_status::link_init) {
+        do_send(max_len, is_eof);
         return;
     }
 

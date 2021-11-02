@@ -28,9 +28,9 @@ function Socket:__release()
     self:close()
 end
 
-function Socket:close()
+function Socket:close(immediately)
     if self.session then
-        self.session.close()
+        self.session.close(immediately)
         self.session = nil
     end
 end
