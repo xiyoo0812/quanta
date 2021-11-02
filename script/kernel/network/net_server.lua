@@ -78,11 +78,11 @@ function NetServer:on_session_accept(session)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
         statis_mgr:statis_notify("on_pack_recv", cmd_id, recv_len)
-        qxpcall(self.on_session_rpc, "on_session_rpc: %s", self, session, cmd_id, flag, session_id, data)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, session_id, data)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(err)
-        qxpcall(self.on_session_err, "on_session_err: %s", self, session)
+        qxpcall(self.on_socket_error, "on_socket_error: %s", self, session)
     end
     --初始化序号
     session.serial = 0
@@ -187,7 +187,7 @@ function NetServer:decode(cmd_id, data, flag)
 end
 
 -- 收到远程调用回调
-function NetServer:on_session_rpc(session, cmd_id, flag, session_id, data)
+function NetServer:on_socket_recv(session, cmd_id, flag, session_id, data)
     local now_ms = quanta.now_ms
     local command_times = session.command_times
     if command_times[cmd_id] and now_ms - command_times[cmd_id] < flow_cd then
@@ -206,7 +206,7 @@ function NetServer:on_session_rpc(session, cmd_id, flag, session_id, data)
             local eval = perfeval_mgr:begin_eval(cmd_name)
             local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
             if not result[1] then
-                log_err("[NetServer][on_session_rpc] on_session_cmd failed! cmd_id:%s", cmd_id)
+                log_err("[NetServer][on_socket_recv] on_session_cmd failed! cmd_id:%s", cmd_id)
             end
             perfeval_mgr:end_eval(eval)
         end
@@ -245,6 +245,7 @@ end
 function NetServer:close_session(session)
     if session then
         session.close()
+        self:remove_session(session)
     end
 end
 
@@ -255,9 +256,9 @@ function NetServer:close_session_by_token(token)
 end
 
 -- 会话被关闭回调
-function NetServer:on_session_err(session, err)
+function NetServer:on_socket_error(session, err)
     thread_mgr:fork(function()
-        event_mgr:notify_listener("on_session_err", session, err)
+        event_mgr:notify_listener("on_socket_error", session, err)
     end)
     self:remove_session(session)
 end

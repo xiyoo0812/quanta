@@ -49,6 +49,7 @@ prop:reader("db_cmd", "")       --默认cmd
 prop:reader("port", 27017)      --mongo端口
 prop:reader("user", nil)        --user
 prop:reader("passwd", nil)      --passwd
+prop:reader("session_id", nil)  --session_id
 
 function MongoDB:__init(conf)
     self.ip = conf.host
@@ -157,7 +158,10 @@ function MongoDB:auth(username, password)
     return true
 end
 
-function MongoDB:on_socket_close()
+function MongoDB:on_socket_error(sock, fd, err)
+    if self.session_id then
+        thread_mgr:response(self.session_id, false, err)
+    end
 end
 
 function MongoDB:on_socket_recv(sock)
@@ -173,6 +177,7 @@ function MongoDB:on_socket_recv(sock)
         end
         sock:pop(4 + length)
         local documents = {}
+        self.session_id = nil
         local succ, session_id, doc, cursor_id = mreply(bdata, documents)
         thread_mgr:response(session_id, succ, doc, cursor_id, documents)
     end
@@ -208,6 +213,7 @@ function MongoDB:_query(full_name, query, selector, query_num, skip, flag)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
+    self.session_id = session_id
     return thread_mgr:yield(session_id, "mongo_query", NetwkTime.DB_CALL_TIMEOUT)
 end
 
@@ -221,6 +227,7 @@ function MongoDB:_more(full_name, cursor, query_num)
     if not self.sock:send(pack) then
         return false, "send failed"
     end
+    self.session_id = session_id
     local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, "mongo_more", NetwkTime.DB_CALL_TIMEOUT)
     if not succ then
         return self:mongo_result(succ, doc)

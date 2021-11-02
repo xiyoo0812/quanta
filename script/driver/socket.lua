@@ -74,17 +74,19 @@ function Socket:connect(ip, port)
     --设置阻塞id
     local block_id = thread_mgr:build_session_id()
     session.on_connect = function(res)
-        if res == "ok" then
-            thread_mgr:response(block_id, res == "ok", res)
-        else
-            self:on_session_err(socket, res)
+        local success = res == "ok"
+        if not success then
+            self:on_socket_error(socket, res)
         end
+        thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, data)
-        qxpcall(self.on_session_rpc, "on_session_rpc: %s", self, session, data)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end
     session.on_error = function(err)
-        qxpcall(self.on_session_err, "on_session_err: %s", self, session, err)
+        thread_mgr:fork(function()
+            self:on_socket_error(session, err)
+        end)
     end
     self.session = session
     self.fd = session.token
@@ -98,28 +100,30 @@ function Socket:on_session_accept(session)
     socket:accept(session, session.ip, self.port)
 end
 
-function Socket:on_session_rpc(session, data)
+function Socket:on_socket_recv(session, data)
     self.recvbuf = self.recvbuf .. data
     if #self.recvbuf > 0 then
-        qxpcall(self.host.on_socket_recv, "on_socket_recv: %s", self.host, self, self.fd)
+        self.host:on_socket_recv(self, self.fd)
     end
 end
 
-function Socket:on_session_err(session, err)
+function Socket:on_socket_error(session, err)
     if self.session then
         self.session = nil
-        log_err("[Socket][on_session_err] err: %s - %s!", err, self.fd)
-        self.host:on_socket_close(self, self.fd)
+        log_err("[Socket][on_socket_error] err: %s - %s!", err, self.fd)
+        self.host:on_socket_error(self, self.fd, err)
     end
 end
 
 function Socket:accept(session, ip, port)
     session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
     session.on_call_text = function(recv_len, data)
-        qxpcall(self.on_session_rpc, "on_session_rpc: %s", self, session, data)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end
     session.on_error = function(err)
-        qxpcall(self.on_session_err, "on_session_err: %s", self, session, err)
+        thread_mgr:fork(function()
+            self:on_socket_error(session, err)
+        end)
     end
     self.session = session
     self.fd = session.token

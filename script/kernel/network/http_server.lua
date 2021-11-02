@@ -41,13 +41,13 @@ function HttpServer:setup(http_addr, post_handler, get_handler)
     self.sock = socket
 end
 
-function HttpServer:on_socket_close(socket, fd)
+function HttpServer:on_socket_error(socket, fd)
     if socket == self.sock then
-        log_info("[HttpServer][on_socket_close] listener(%s:%s) close!", self.ip, self.port)
+        log_info("[HttpServer][on_socket_error] listener(%s:%s) close!", self.ip, self.port)
         self.sock = nil
         return
     end
-    log_debug("[HttpServer][on_socket_close] client(fd:%s) close!", fd)
+    log_debug("[HttpServer][on_socket_error] client(fd:%s) close!", fd)
     self.clients[fd] = nil
     self.requests[fd] = nil
 end

@@ -52,10 +52,6 @@ end
 
 -- 连接关闭回调
 function MonitorAgent:on_socket_error(client, err)
-    if err == "active-close" then
-        -- 主动关闭连接不走重连逻辑
-        return
-    end
     -- 设置重连时间
     self.next_connect_time = quanta.now
 end

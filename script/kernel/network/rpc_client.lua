@@ -102,7 +102,9 @@ function RpcClient:connect()
         return self:on_call_router(rpc, send_len)
     end
     socket.on_error = function(err)
-        qxpcall(self.on_socket_error, "on_socket_error: %s", self, socket, err)
+        thread_mgr:fork(function()
+            self:on_socket_error(socket, err)
+        end)
     end
     socket.on_connect = function(res)
         if res == "ok" then

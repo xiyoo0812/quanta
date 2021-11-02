@@ -291,9 +291,6 @@ void lua_socket_node::close()
 {
     if (m_token != 0)
     {
-        lua_guard g(m_lvm);
-        lua_call_object_function(m_lvm, nullptr, this, "on_error", std::tie(), "active-close");
-
         m_mgr->close(m_token);
         m_token = 0;
     }

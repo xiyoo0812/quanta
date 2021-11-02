@@ -38,7 +38,7 @@ function MonitorMgr:__init()
     self.rpc_server = RpcServer()
     self.rpc_server:setup(ip, port)
     --监听事件
-    event_mgr:add_listener(self, "on_socket_close")
+    event_mgr:add_listener(self, "on_socket_error")
     event_mgr:add_listener(self, "on_socket_accept")
     event_mgr:add_listener(self, "rpc_monitor_register")
     event_mgr:add_listener(self, "rpc_monitor_post")
@@ -86,8 +86,8 @@ function MonitorMgr:on_socket_accept(client)
 end
 
 -- 会话关闭回调
-function MonitorMgr:on_socket_close(client)
-    log_info("[MonitorMgr][on_socket_close] node name:%s, id:%s, token:%s", client.name, client.id, client.token)
+function MonitorMgr:on_socket_error(client)
+    log_info("[MonitorMgr][on_socket_error] node name:%s, id:%s, token:%s", client.name, client.id, client.token)
     self:post_node_status(client, 0)
 end
 

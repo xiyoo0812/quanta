@@ -45,17 +45,17 @@ function RouterServer:setup()
     self.rpc_server = RpcServer()
     self.rpc_server:setup(host, router_conf.port, true)
     --监听事件
-    event_mgr:add_listener(self, "on_socket_close")
+    event_mgr:add_listener(self, "on_socket_error")
     event_mgr:add_listener(self, "on_socket_accept")
     event_mgr:add_listener(self, "rpc_service_register")
 end
 
 --其他服务器节点关闭
-function RouterServer:on_socket_close(server, server_token, err)
-    log_info("[RouterServer][on_socket_close] %s lost: %s", server.name or server_token, err)
+function RouterServer:on_socket_error(server, server_token, err)
+    log_info("[RouterServer][on_socket_error] %s lost: %s", server.name or server_token, err)
     local kick_server_id = self.kick_servers[server_token]
     if kick_server_id then
-        local format = "[RouterServer][on_socket_close] kick server close! token:%s, name:%s, ip:%s"
+        local format = "[RouterServer][on_socket_error] kick server close! token:%s, name:%s, ip:%s"
         log_warn(format, server_token,  server.name, server.ip)
         self.kick_servers[server_token] = nil
         return
@@ -84,7 +84,7 @@ function RouterServer:on_socket_close(server, server_token, err)
     if is_master and new_master_token then
         self.service_masters[service_id] = new_master
         socket_mgr.set_master(service_id, new_master_token)
-        log_info("[RouterServer][on_socket_close] switch master --> %s", sid2nick(new_master))
+        log_info("[RouterServer][on_socket_error] switch master --> %s", sid2nick(new_master))
     end
 end
 

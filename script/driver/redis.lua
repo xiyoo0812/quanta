@@ -396,10 +396,16 @@ function RedisDB:on_second()
     end
 end
 
-function RedisDB:on_socket_close(sock)
+function RedisDB:on_socket_error(sock, fd, err)
     if sock == self.sock then
+        for _, session_id in self.sessions:iter() do
+            thread_mgr:response(session_id, false, err)
+        end
         self.sessions:clear()
     else
+        for _, session_id in self.ssessions:iter() do
+            thread_mgr:response(session_id, false, err)
+        end
         self.ssessions:clear()
     end
 end

@@ -50,10 +50,10 @@ function NetClient:connect(block)
         local succes = (res == "ok")
         thread_mgr:fork(function()
             if not succes then
-                self:on_socket_err(socket, res)
-                return
+                self:on_socket_error(socket, res)
+            else
+                self:on_socket_connect(socket)
             end
-            self:on_socket_connect(socket)
         end)
         if block_id then
             --阻塞回调
@@ -66,7 +66,7 @@ function NetClient:connect(block)
     end
     socket.on_error = function(err)
         thread_mgr:fork(function()
-            self:on_socket_err(socket, err)
+            self:on_socket_error(socket, err)
         end)
     end
     self.socket = socket
@@ -211,11 +211,11 @@ function NetClient:on_socket_connect(socket)
 end
 
 -- 连接关闭回调
-function NetClient:on_socket_err(socket, err)
+function NetClient:on_socket_error(socket, err)
     self.socket = nil
     self.alive = false
     self.wait_list = {}
-    self.holder:on_socket_err(self, err)
+    self.holder:on_socket_error(self, err)
 end
 
 return NetClient
