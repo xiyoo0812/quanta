@@ -312,12 +312,12 @@ void socket_mgr_impl::sendv(uint32_t token, const sendv_item items[], int count)
     }
 }
 
-void socket_mgr_impl::close(uint32_t token)
+void socket_mgr_impl::close(uint32_t token, bool immediately)
 {
     auto node = get_object(token);
     if (node)
     {
-        node->close();
+        node->close(immediately);
     }
 }
 

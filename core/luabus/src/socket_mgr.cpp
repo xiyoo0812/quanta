@@ -29,7 +29,7 @@ void socket_mgr::set_timeout(uint32_t token, int duration){ m_impl->set_timeout(
 void socket_mgr::set_nodelay(uint32_t token, int flag){ m_impl->set_nodelay(token, flag); }
 void socket_mgr::send(uint32_t token, const void* data, size_t data_len){ m_impl->send(token, data, data_len); }
 void socket_mgr::sendv(uint32_t token, const sendv_item items[], int count){ m_impl->sendv(token, items, count); }
-void socket_mgr::close(uint32_t token){ m_impl->close(token); }
+void socket_mgr::close(uint32_t token, bool immediately){ m_impl->close(token, immediately); }
 bool socket_mgr::get_remote_ip(uint32_t token, std::string& ip){ return m_impl->get_remote_ip(token, ip); }
 void socket_mgr::set_accept_callback(uint32_t token, const std::function<void(uint32_t, eproto_type)>& cb){ m_impl->set_accept_callback(token, cb); }
 void socket_mgr::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb){ m_impl->set_connect_callback(token, cb); }

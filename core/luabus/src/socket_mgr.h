@@ -43,7 +43,7 @@ public:
     void set_nodelay(uint32_t token, int flag); 
     void send(uint32_t token, const void* data, size_t data_len);
     void sendv(uint32_t token, const sendv_item items[], int count);
-    void close(uint32_t token);
+    void close(uint32_t token, bool immediately = true);
     bool get_remote_ip(uint32_t token, std::string& ip);
 
     void set_accept_callback(uint32_t token, const std::function<void(uint32_t, eproto_type)>& cb);

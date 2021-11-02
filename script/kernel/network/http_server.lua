@@ -120,7 +120,7 @@ function HttpServer:response(socket, request, hrsp)
     self.requests[socket:get_fd()] = nil
     local buf = request:response(200, ttype, hrsp or "")
     socket:send(buf)
-    socket:close()
+    socket:close(false)
 end
 
 return HttpServer
