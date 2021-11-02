@@ -35,7 +35,7 @@ socket_stream::~socket_stream()
 {
     if (m_socket != INVALID_SOCKET)
     {
-        close_socket_handle(m_socket);
+        closesocket(m_socket);
         m_socket = INVALID_SOCKET;
     }
     if (m_addr != nullptr)
@@ -63,7 +63,7 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[])
     strncpy(m_ip, ip, INET6_ADDRSTRLEN);
 
     m_socket = fd;
-    m_connected = true;
+    m_link_status = elink_status::link_connected;
     m_last_recv_time = ltimer::now_ms();
     return true;
 }
@@ -77,52 +77,55 @@ void socket_stream::connect(const char node_name[], const char service_name[], i
 
 void socket_stream::close()
 {
-    m_closed = true;
+    if (m_socket == INVALID_SOCKET)
+    {
+        m_link_status = elink_status::link_closed;
+        return;
+    }
+    shutdown(m_socket, SD_RECEIVE);
+    m_link_status = elink_status::link_colsing;
 }
 
 bool socket_stream::update(int64_t now)
 {
-    if (now >= m_next_update)
+    switch (m_link_status)
     {
-        // 没必要每次都update
-        m_next_update = now + 10;
-
-        if (m_closed)
+        case elink_status::link_closed:
         {
-            if (m_socket != INVALID_SOCKET)
+            if(m_socket != INVALID_SOCKET)
             {
-                close_socket_handle(m_socket);
+                closesocket(m_socket);
                 m_socket = INVALID_SOCKET;
             }
-
-#ifdef _MSC_VER
-            return m_ovl_ref != 0;
-#endif
-
-#if defined(__linux) || defined(__APPLE__)
             return false;
-#endif
         }
-
-        if (!m_connected)
+        case elink_status::link_colsing:
+        {
+            if (m_send_buffer->empty())
+            {
+                m_link_status = elink_status::link_closed;
+            }
+            return true;
+        } 
+        case elink_status::link_init:
         {
             if (now > m_connecting_time)
             {
                 on_connect(false, "timeout");
                 return true;
             }
-
             try_connect();
             return true;
         }
-
-        if (m_timeout > 0 && now - m_last_recv_time > m_timeout)
+        default:
         {
-            on_error("timeout");
+            if (m_timeout > 0 && now - m_last_recv_time > m_timeout)
+            {
+                on_error("timeout");
+            }
+            dispatch_package();
         }
     }
-
-    dispatch_package();
     return true;
 }
 
@@ -176,7 +179,7 @@ bool socket_stream::do_connect()
             return true;
         }
 
-        m_closed = true;
+        m_link_status = elink_status::link_closed;
         on_connect(false, "connect-failed");
         return false;
     }
@@ -251,7 +254,7 @@ void socket_stream::try_connect()
     if (m_socket != INVALID_SOCKET)
         return;
 
-    while (m_next != nullptr && !m_closed)
+    while (m_next != nullptr && m_link_status == elink_status::link_init)
     {
         if (m_next->ai_family != AF_INET && m_next->ai_family != AF_INET6)
         {
@@ -276,7 +279,7 @@ void socket_stream::try_connect()
 
         if (m_socket != INVALID_SOCKET)
         {
-            close_socket_handle(m_socket);
+            closesocket(m_socket);
             m_socket = INVALID_SOCKET;
         }
     }
@@ -286,7 +289,7 @@ void socket_stream::try_connect()
 
 void socket_stream::send(const void* data, size_t data_len)
 {
-    if (m_closed)
+    if (m_link_status != elink_status::link_connected)
         return;
 
     // rpc模式需要发送特殊的head
@@ -302,7 +305,7 @@ void socket_stream::send(const void* data, size_t data_len)
 
 void socket_stream::sendv(const sendv_item items[], int count)
 {
-    if (m_closed)
+    if (m_link_status != elink_status::link_connected)
         return;
 
     size_t data_len = 0;
@@ -328,7 +331,7 @@ void socket_stream::sendv(const sendv_item items[], int count)
 
 void socket_stream::stream_send(const char* data, size_t data_len)
 {
-    if (m_closed)
+    if (m_link_status != elink_status::link_connected)
         return;
 
     while (data_len > 0)
@@ -369,10 +372,10 @@ void socket_stream::stream_send(const char* data, size_t data_len)
 void socket_stream::on_complete(WSAOVERLAPPED* ovl)
 {
     m_ovl_ref--;
-    if (m_closed)
+    if (m_link_status == elink_status::link_closed)
         return;
 
-    if (m_connected)
+    if (m_link_status == elink_status::link_connected)
     {
         if (ovl == &m_recv_ovl)
         {
@@ -402,7 +405,7 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
     }
 
     // socket连接失败,还可以继续dns解析的下一个地址继续尝试
-    close_socket_handle(m_socket);
+    closesocket(m_socket);
     m_socket = INVALID_SOCKET;
     if (m_next == nullptr)
     {
@@ -414,12 +417,14 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
 #if defined(__linux) || defined(__APPLE__)
 void socket_stream::on_can_send(size_t max_len, bool is_eof)
 {
-    if (m_closed)
-        return;
-
-    if (m_connected)
+    if (m_link_status == elink_status::link_connected)
     {
         do_send(max_len, is_eof);
+        return;
+    }
+
+    if (m_link_status != elink_status::link_init)
+    {
         return;
     }
 
@@ -439,7 +444,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof)
     }
 
     // socket连接失败,还可以继续dns解析的下一个地址继续尝试
-    close_socket_handle(m_socket);
+    closesocket(m_socket);
     m_socket = INVALID_SOCKET;
     if (m_next == nullptr)
     {
@@ -452,7 +457,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof)
 void socket_stream::do_send(size_t max_len, bool is_eof)
 {
     size_t total_send = 0;
-    while (total_send < max_len && !m_closed)
+    while (total_send < max_len && (m_link_status != elink_status::link_closed))
     {
         size_t data_len = 0;
         auto* data = m_send_buffer->peek_data(&data_len);
@@ -516,7 +521,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof)
 void socket_stream::do_recv(size_t max_len, bool is_eof)
 {
     size_t total_recv = 0;
-    while (total_recv < max_len && !m_closed)
+    while (total_recv < max_len && m_link_status == elink_status::link_connected)
     {
         size_t space_len = 0;
         auto* space = m_recv_buffer->peek_space(&space_len);
@@ -576,7 +581,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
 void socket_stream::dispatch_package()
 {
     int64_t now = ltimer::now_ms();
-    while (!m_closed)
+    while (m_link_status == elink_status::link_connected)
     {
         uint64_t package_size = 0;
         size_t data_len = 0, pack_len = 0;
@@ -638,16 +643,15 @@ void socket_stream::dispatch_package()
 
 void socket_stream::on_error(const char err[])
 {
-    if (!m_closed)
+    if (m_link_status == elink_status::link_connected)
     {
         // kqueue实现下,如果eof时不及时关闭或unwatch,则会触发很多次eof
         if (m_socket != INVALID_SOCKET)
         {
-            close_socket_handle(m_socket);
+            closesocket(m_socket);
             m_socket = INVALID_SOCKET;
         }
-
-        m_closed = true;
+        m_link_status = elink_status::link_closed;
         m_error_cb(err);
     }
 }
@@ -661,19 +665,22 @@ void socket_stream::on_connect(bool ok, const char reason[])
         m_addr = nullptr;
     }
 
-    if (!m_closed)
+    if (m_link_status == elink_status::link_init)
     {
         if (!ok)
         {
             if (m_socket != INVALID_SOCKET)
             {
-                close_socket_handle(m_socket);
+                closesocket(m_socket);
                 m_socket = INVALID_SOCKET;
             }
-            m_closed = true;
+            m_link_status = elink_status::link_closed;
         }
-        m_connected = ok;
-        m_last_recv_time = ltimer::now_ms();
+        else
+        {
+            m_link_status = elink_status::link_connected;
+            m_last_recv_time = ltimer::now_ms();
+        }
         m_connect_cb(ok, reason);
     }
 }

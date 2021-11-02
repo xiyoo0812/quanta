@@ -14,11 +14,19 @@
 #include "socket_helper.h"
 #include "socket_mgr.h"
 
+enum class elink_status : int
+{
+    link_init       = 0,
+    link_connected  = 1,
+    link_colsing    = 2,
+    link_closed     = 3,
+};
+
 struct socket_object
 {
     virtual ~socket_object() {};
     virtual bool update(int64_t now) = 0;
-    virtual void close() { m_closed = true; };
+    virtual void close() { m_link_status = elink_status::link_closed; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char node_name[], const char service_name[]) { }
     virtual void set_send_buffer_size(size_t size) { }
@@ -42,7 +50,7 @@ struct socket_object
 #endif
 
 protected:
-    bool m_closed = false;
+    elink_status m_link_status = elink_status::link_init;
 };
 
 class socket_mgr_impl

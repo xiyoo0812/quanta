@@ -116,7 +116,7 @@ bool socket_mgr_impl::get_socket_funcs()
 Exit0:
     if (fd != INVALID_SOCKET)
     {
-        close_socket_handle(fd);
+        closesocket(fd);
         fd = INVALID_SOCKET;
     }
     return result;
@@ -229,7 +229,7 @@ Exit0:
     delete listener;
     if (fd != INVALID_SOCKET)
     {
-        close_socket_handle(fd);
+        closesocket(fd);
         fd = INVALID_SOCKET;
     }
     return 0;

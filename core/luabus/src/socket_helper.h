@@ -29,15 +29,15 @@ using BYTE = unsigned char;
 const socket_t INVALID_SOCKET = -1;
 const int SOCKET_ERROR = -1;
 inline int get_socket_error() { return errno; }
-inline void close_socket_handle(socket_t fd) { close(fd); }
+inline void closesocket(socket_t fd) { close(fd); }
 template <typename T, int N>
 constexpr int _countof(T(&_array)[N]) { return N; }
+#define SD_RECEIVE SHUT_RD
 #endif
 
 #ifdef _MSC_VER
 using socket_t = SOCKET;
 inline int get_socket_error() { return WSAGetLastError(); }
-inline void close_socket_handle(socket_t fd) { closesocket(fd); }
 bool wsa_send_empty(socket_t fd, WSAOVERLAPPED& ovl);
 bool wsa_recv_empty(socket_t fd, WSAOVERLAPPED& ovl);
 #endif

@@ -78,10 +78,8 @@ struct socket_stream : public socket_object
     struct addrinfo* m_addr = nullptr;
     struct addrinfo* m_next = nullptr;
     char m_ip[INET6_ADDRSTRLEN];
-    bool m_connected = false;
     int m_timeout = -1;
 
-    int64_t m_next_update = 0;
     int64_t m_last_recv_time = 0;
     int64_t m_connecting_time = 0;
 
