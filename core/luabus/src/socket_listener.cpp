@@ -43,7 +43,7 @@ socket_listener::~socket_listener()
     {
         if (node.fd != INVALID_SOCKET)
         {
-            close_socket_handle(node.fd);
+            closesocket(node.fd);
             node.fd = INVALID_SOCKET;
         }
     }
@@ -51,7 +51,7 @@ socket_listener::~socket_listener()
 
     if (m_socket != INVALID_SOCKET)
     {
-        close_socket_handle(m_socket);
+        closesocket(m_socket);
         m_socket = INVALID_SOCKET;
     }
     m_mgr->decrease_count();
@@ -60,19 +60,20 @@ socket_listener::~socket_listener()
 bool socket_listener::setup(socket_t fd)
 {
     m_socket = fd;
+    m_link_status = elink_status::link_connected;
     return true;
 }
 
 bool socket_listener::update(int64_t)
 {
-    if (m_closed && m_socket != INVALID_SOCKET)
+    if (m_link_status == elink_status::link_closed && m_socket != INVALID_SOCKET)
     {
-        close_socket_handle(m_socket);
+        closesocket(m_socket);
         m_socket = INVALID_SOCKET;
     }
 
 #ifdef _MSC_VER
-    if (m_ovl_ref == 0 && !m_closed)
+    if (m_ovl_ref == 0 && m_link_status == elink_status::link_connected)
     {
         for (auto& node : m_nodes)
         {
@@ -84,7 +85,7 @@ bool socket_listener::update(int64_t)
     }
 #endif
 
-    if (m_closed)
+    if (m_link_status == elink_status::link_closed)
     {
 #ifdef _MSC_VER
         return m_ovl_ref != 0;
@@ -101,7 +102,7 @@ bool socket_listener::update(int64_t)
 void socket_listener::on_complete(WSAOVERLAPPED* ovl)
 {
     m_ovl_ref--;
-    if (m_closed)
+    if (m_link_status != elink_status::link_connected)
         return;
 
     listen_node* node = CONTAINING_RECORD(ovl, listen_node, ovl);
@@ -110,7 +111,7 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl)
 
     if (m_mgr->is_full())
     {
-        close_socket_handle(node->fd);
+        closesocket(node->fd);
         node->fd = INVALID_SOCKET;
         queue_accept(ovl);
         return;
@@ -130,7 +131,7 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl)
     auto token = m_mgr->accept_stream(node->fd, ip, m_accept_cb, m_proto_type);
     if (token == 0)
     {
-        close_socket_handle(node->fd);
+        closesocket(node->fd);
     }
     else
     {
@@ -152,14 +153,14 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
     socklen_t listen_addr_len = sizeof(listen_addr);
     getsockname(m_socket, (sockaddr*)&listen_addr, &listen_addr_len);
 
-    while (!m_closed)
+    while (m_link_status == elink_status::link_connected)
     {
         memset(ovl, 0, sizeof(*ovl));
         // 注,AF_INET6本身是可以支持ipv4的,但是...需要win10以上版本,win7不支持, 所以这里取listen_addr
         node->fd = socket(listen_addr.ss_family, SOCK_STREAM, IPPROTO_IP);
         if (node->fd == INVALID_SOCKET)
         {
-            m_closed = true;
+            m_link_status = elink_status::link_closed;
             m_error_cb("new-socket-failed");
             return;
         }
@@ -176,9 +177,9 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
             {
                 char txt[MAX_ERROR_TXT];
                 get_error_string(txt, sizeof(txt), err);
-                close_socket_handle(node->fd);
+                closesocket(node->fd);
                 node->fd = INVALID_SOCKET;
-                m_closed = true;
+                m_link_status = elink_status::link_closed;
                 m_error_cb(txt);
                 return;
             }
@@ -198,9 +199,9 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
         auto token = m_mgr->accept_stream(node->fd, ip, m_accept_cb, m_proto_type);
         if (token == 0)
         {
-            close_socket_handle(node->fd);
+            closesocket(node->fd);
             node->fd = INVALID_SOCKET;
-            m_closed = true;
+            m_link_status = elink_status::link_closed;
             m_error_cb("new-stream-failed");
             return;
         }
@@ -215,7 +216,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl)
 void socket_listener::on_can_recv(size_t max_len, bool is_eof)
 {
     size_t total_accept = 0;
-    while (total_accept < max_len && !m_closed)
+    while (total_accept < max_len && m_link_status == elink_status::link_connected)
     {
         sockaddr_storage addr;
         socklen_t addr_len = (socklen_t)sizeof(addr);
@@ -228,7 +229,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof)
         total_accept++;
         if (m_mgr->is_full())
         {
-            close_socket_handle(fd);
+            closesocket(fd);
             continue;
         }
 
@@ -244,7 +245,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof)
         }
         else
         {
-            close_socket_handle(fd);
+            closesocket(fd);
         }
     }
 }

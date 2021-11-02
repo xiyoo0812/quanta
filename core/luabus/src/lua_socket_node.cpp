@@ -71,7 +71,7 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<s
 
 lua_socket_node::~lua_socket_node()
 {
-	close();
+    close_node();
 }
 
 int lua_socket_node::call_pack(lua_State* L)
@@ -287,13 +287,24 @@ int lua_socket_node::forward_hash(lua_State* L)
     return 1;
 }
 
-void lua_socket_node::close()
+void lua_socket_node::close_node(bool immediately)
 {
     if (m_token != 0)
     {
-        m_mgr->close(m_token);
+        m_mgr->close(m_token, immediately);
         m_token = 0;
     }
+}
+
+int lua_socket_node::close(lua_State* L)
+{
+    bool immediately = true;
+    if (lua_gettop(L) > 0)
+    {
+        immediately = lua_toboolean(L, 1);
+    }
+    close_node(immediately);
+    return 0;
 }
 
 void lua_socket_node::on_recv(char* data, size_t data_len)

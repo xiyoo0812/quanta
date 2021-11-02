@@ -23,7 +23,7 @@ struct socket_stream : public socket_object
     bool update(int64_t now) override;
     bool do_connect();
     void try_connect();
-    void close() override;
+    void close(bool immediately = true) override;
     void set_accept_callback(const std::function<void(int, eproto_type)>& cb) override { m_accept_cb = cb; }
     void set_package_callback(const std::function<void(char*, size_t)>& cb) override { m_package_cb = cb; }
     void set_error_callback(const std::function<void(const char*)>& cb) override { m_error_cb = cb; }
@@ -78,10 +78,8 @@ struct socket_stream : public socket_object
     struct addrinfo* m_addr = nullptr;
     struct addrinfo* m_next = nullptr;
     char m_ip[INET6_ADDRSTRLEN];
-    bool m_connected = false;
     int m_timeout = -1;
 
-    int64_t m_next_update = 0;
     int64_t m_last_recv_time = 0;
     int64_t m_connecting_time = 0;
 

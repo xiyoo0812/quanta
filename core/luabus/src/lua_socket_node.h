@@ -27,8 +27,9 @@ struct lua_socket_node final
     int forward_by_group(lua_State* L);
 
     int forward_hash(lua_State* L);
+    int close(lua_State* L);
 
-    void close();
+    void close_node(bool immediately = true);
     void set_send_buffer_size(size_t size) { m_mgr->set_send_buffer_size(m_token, size); }
     void set_recv_buffer_size(size_t size) { m_mgr->set_recv_buffer_size(m_token, size); }
     void set_timeout(int ms) { m_mgr->set_timeout(m_token, ms); }
