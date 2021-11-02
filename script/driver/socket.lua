@@ -6,9 +6,7 @@ local log_info      = logger.info
 local qxpcall       = quanta.xpcall
 
 local NetwkTime     = enum("NetwkTime")
-local PeriodTime    = enum("PeriodTime")
 
-local timer_mgr     = quanta.get("timer_mgr")
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -32,10 +30,8 @@ end
 
 function Socket:close()
     if self.session then
-        timer_mgr:once(PeriodTime.FRAME_MS, function()
-            self.session.close()
-            self.session = nil
-        end)
+        self.session.close()
+        self.session = nil
     end
 end
 
@@ -76,7 +72,7 @@ function Socket:connect(ip, port)
     session.on_connect = function(res)
         local success = res == "ok"
         if not success then
-            self:on_socket_error(socket, res)
+            self:on_socket_error(session, res)
         end
         thread_mgr:response(block_id, success, res)
     end
