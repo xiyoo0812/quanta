@@ -594,6 +594,7 @@ function MysqlDB:__init(conf)
     self.user = conf.user
     self.passwd = conf.passwd
     self.sessions = QueueFIFO()
+    self.sock = Socket(self)
     --update
     update_mgr:attach_hour(self)
     update_mgr:attach_second(self)
@@ -607,7 +608,6 @@ function MysqlDB:close()
     if self.sock then
         self.sessions:clear()
         self.sock:close()
-        self.sock = nil
     end
 end
 
@@ -616,17 +616,14 @@ function MysqlDB:on_hour()
 end
 
 function MysqlDB:on_second()
-    if not self.sock then
-        self.sock = Socket(self)
+    if not self.sock:is_alive() then
         if not self.sock:connect(self.ip, self.port) then
             log_err("[MysqlDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
-            self.sock = nil
             return
         end
         local ok, err, ver = self:auth()
         if not ok then
             log_err("[MysqlDB][on_second] auth db(%s:%d:%s) failed! because: %s", self.ip, self.port, self.name, err)
-            self.sock = nil
             return
         end
         log_info("[MysqlDB][on_second] connect db(%s:%d-%s[%s]) success!", self.ip, self.port, self.name, ver)
@@ -693,7 +690,6 @@ end
 function MysqlDB:on_socket_close()
     log_err("[MysqlDB][on_socket_close] mysql server lost")
     self.sessions:clear()
-    self.sock = nil
 end
 
 function MysqlDB:on_socket_recv(sock)

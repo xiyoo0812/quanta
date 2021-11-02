@@ -316,6 +316,8 @@ function RedisDB:__init(conf)
     self.index = conf.db
     self.sessions = QueueFIFO()
     self.ssessions = QueueFIFO()
+    self.sock = Socket(self)
+    self.ssock = Socket(self)
     --update
     update_mgr:attach_hour(self)
     update_mgr:attach_second(self)
@@ -344,12 +346,10 @@ function RedisDB:close()
     if self.sock then
         self.sessions:clear()
         self.sock:close()
-        self.sock = nil
     end
     if self.ssock then
         self.ssessions:clear()
         self.ssock:close()
-        self.ssock = nil
     end
 end
 
@@ -381,23 +381,17 @@ function RedisDB:on_hour()
 end
 
 function RedisDB:on_second()
-    if not self.sock then
-        self.sock = Socket(self)
-        if not self:login(self.sock, "query") then
-            self.sock = nil
-        end
+    if not self.sock:is_alive() then
+        self:login(self.sock, "query")
     end
-    if not self.ssock then
-        self.ssock = Socket(self)
-        if not self:login(self.ssock, "subcribe") then
-            self.ssock = nil
-            return
-        end
-        for channel in pairs(self.subscribes) do
-            self:subscribe(channel)
-        end
-        for channel in pairs(self.psubscribes) do
-            self:psubscribes(channel)
+    if not self.ssock:is_alive() then
+        if self:login(self.ssock, "subcribe") then
+            for channel in pairs(self.subscribes) do
+                self:subscribe(channel)
+            end
+            for channel in pairs(self.psubscribes) do
+                self:psubscribes(channel)
+            end
         end
     end
 end
@@ -405,10 +399,8 @@ end
 function RedisDB:on_socket_close(sock)
     if sock == self.sock then
         self.sessions:clear()
-        self.sock = nil
     else
         self.ssessions:clear()
-        self.ssock = nil
     end
 end
 

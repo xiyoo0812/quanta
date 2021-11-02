@@ -27,7 +27,7 @@ function Socket:__init(host)
 end
 
 function Socket:__release()
-   self:close()
+    self:close()
 end
 
 function Socket:close()
@@ -37,6 +37,10 @@ function Socket:close()
             self.session = nil
         end)
     end
+end
+
+function Socket:is_alive()
+    return self.session ~= nil
 end
 
 function Socket:listen(ip, port)
@@ -70,7 +74,11 @@ function Socket:connect(ip, port)
     --设置阻塞id
     local block_id = thread_mgr:build_session_id()
     session.on_connect = function(res)
-        thread_mgr:response(block_id, res == "ok", res)
+        if res == "ok" then
+            thread_mgr:response(block_id, res == "ok", res)
+        else
+            self:on_session_err(socket, res)
+        end
     end
     session.on_call_text = function(recv_len, data)
         qxpcall(self.on_session_rpc, "on_session_rpc: %s", self, session, data)
@@ -100,7 +108,7 @@ end
 function Socket:on_session_err(session, err)
     if self.session then
         self.session = nil
-        log_info("[Socket][on_session_err] err: %s!", err)
+        log_err("[Socket][on_session_err] err: %s - %s!", err, self.fd)
         self.host:on_socket_close(self, self.fd)
     end
 end
