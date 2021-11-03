@@ -172,18 +172,16 @@ function MonitorMgr:on_monitor_post(path, body, headers)
         local data_req = jdecode(jbody)
         if data_req.service then
             return self:broadcast(data_req.rpc, data_req.service, data_req.data, data_req.message)
-        else
-            return self:call(data_req.svr_id, data_req.rpc, data_req.data, data_req.message)
         end
+        return self:call(data_req.svr_id, data_req.rpc, data_req.data, data_req.message)
     end
     --开始执行
     local ok, res = pcall(handler_cmd, body)
-    if ok then  -- 解析成功在协程中等待业务返回
-        return res
-    else        -- 解析错误直接返回
+    if not ok then  
         log_warn("[MonitorMgr:on_monitor_post] pcall: %s", res)
         return {code = 1, msg = res}
     end
+    return res
 end
 
 --http get 回调

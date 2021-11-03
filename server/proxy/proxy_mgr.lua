@@ -11,6 +11,8 @@ function ProxyMgr:__init()
     -- 注册事件
     event_mgr:add_listener(self, "rpc_http_post")
     event_mgr:add_listener(self, "rpc_http_get")
+    event_mgr:add_listener(self, "rpc_http_put")
+    event_mgr:add_listener(self, "rpc_http_del")
 end
 
 function ProxyMgr:rpc_http_get(url, querys, headers)

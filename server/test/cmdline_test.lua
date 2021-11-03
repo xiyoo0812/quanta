@@ -8,9 +8,9 @@ local cmdline       = quanta.get("cmdline")
 local commands = {
     {
         name = "show",
-        args = "show 1234567 10001 meihua",
-        options = "player_id|integer item_id|integer itam_name|string",
-        data = { name = "show", player_id = 1234567, item_id = 10001, itam_name = "meihua" },
+        args = "show 1234567 -10001 \"meihua\"",
+        options = "player_id|integer item_id|integer item_name|string",
+        data = { name = "show", player_id = 1234567, item_id = 10001, item_name = "meihua" },
     },
     {
         name = "buy",
@@ -21,7 +21,7 @@ local commands = {
     {
         name = "add_item",
         args = "add_item 123246545654 10101 1",
-        options = "player_id|integer item_id|integer count|integer",
+        options = "player_id|string item_id|integer count|integer",
         data = { name = "add_item", player_id = 123246545654, item_id = "10101", count = 1},
     },
 }

@@ -39,17 +39,17 @@ local function convert_arg(t, v)
     end
     if t == "integer" then
         return conv_integer(v)
-    elseif t == "number" then
+    elseif t == "float" then
         return conv_number(v)
     elseif t == "table" then
         return conv_table(v)
     end
-    return v
+    return tostring(v)
 end
 
 --转换参数
 local function convert_args(args, cmd_define)
-    local fmtargs = {args = {}, info = {}}
+    local fmtargs = {args = {args[1]}, info = {"cmd"}}
     local define_args = cmd_define.args
     for i = 2, #args do
         local arg = args[i]
@@ -57,7 +57,6 @@ local function convert_args(args, cmd_define)
         tinsert(fmtargs.info, def_arg.name)
         tinsert(fmtargs.args, convert_arg(def_arg.type, arg))
     end
-    tinsert(fmtargs.args, 1, args[1])
     fmtargs.type = cmd_define.type
     fmtargs.name = args[1]
     return fmtargs
@@ -98,7 +97,7 @@ function Cmdline:parser_data(cmd_data)
         return nil, "invalid command: isn't registered"
     end
     local define_args = cmd_define.args
-    local fmtargs = {args = {}, info = {}, name = cmd_name }
+    local fmtargs = {args = {cmd_name}, info = {"cmd"}, name = cmd_name }
     for i, def_arg in ipairs(define_args) do
         local arg = cmd_data[def_arg.name]
         if not arg then
@@ -109,7 +108,6 @@ function Cmdline:parser_data(cmd_data)
         tinsert(fmtargs.info, def_arg.name)
         tinsert(fmtargs.args, convert_arg(def_arg.type, arg))
     end
-    tinsert(fmtargs.args, 1, cmd_name)
     fmtargs.type = cmd_define.type
     fmtargs.name = cmd_name
     return fmtargs
@@ -134,7 +132,7 @@ function Cmdline:parser_command(argument)
     for _, def_arg in ipairs(define_args) do
         pattern = pattern .. blank .. patterns[def_arg.type]
     end
-    local argsfunc = sgmatch(argument, pattern)
+    local argsfunc = sgmatch(argument .. " ", pattern .. blank)
     if not argsfunc then
         log_err("[Cmdline][parser_command] invalid command (%s): format error!", argument)
         return nil, "invalid command: format error"
