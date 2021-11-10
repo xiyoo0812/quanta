@@ -59,13 +59,13 @@ function NetServer:setup(ip, port, induce)
     log_info("[NetServer][setup] start listen at: %s:%d type=%d", ip, real_port, listen_proto_type)
     -- 安装回调
     self.listener.on_accept = function(session)
-        qxpcall(self.on_session_accept, "on_session_accept: %s", self, session)
+        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session)
     end
 end
 
 -- 连接回调
-function NetServer:on_session_accept(session)
-    --log_debug("[on_session_accept]: token:%s, ip:%s", session.token, session.ip)
+function NetServer:on_socket_accept(session)
+    --log_debug("[on_socket_accept]: token:%s, ip:%s", session.token, session.ip)
     self:add_session(session)
     -- 流控配置
     session.fc_packet = 0
@@ -89,7 +89,7 @@ function NetServer:on_session_accept(session)
     session.serial_sync = 0
     session.command_times = {}
     --通知链接成功
-    event_mgr:notify_listener("on_session_accept", session)
+    event_mgr:notify_listener("on_socket_accept", session)
 end
 
 function NetServer:write(session, cmd_id, data, session_id, flag)
