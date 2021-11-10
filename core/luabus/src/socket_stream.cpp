@@ -502,28 +502,30 @@ void socket_stream::dispatch_package() {
     int64_t now = ltimer::now_ms();
     while (m_link_status == elink_status::link_connected) {
         uint64_t package_size = 0;
-        size_t data_len = 0, pack_len = 0;
+        size_t data_len = 0, header_len = 0;
         auto* data = m_recv_buffer->peek_data(&data_len);
-        size_t header_len = 0;  // 包头大小
-
         if (eproto_type::proto_rpc == m_proto_type) {
             // rpc模式使用decode_u64获取head
             header_len = decode_u64(&package_size, data, data_len);
             if (header_len == 0) break;
         }
         else if (eproto_type::proto_pack == m_proto_type) {
-            // cmnd模式获取socket_header
+            // pack模式获取socket_header
             header_len = sizeof(socket_header);
             if (data_len < header_len)
                 break;
-
             socket_header* header = (socket_header*)data;
-            package_size = header->len - header_len;
+            // 当前包长小于headlen，关闭连接
+            if (header->len < header_len) {
+                on_error("package-length-err");
+                break;
+            }
             // 当前包头标识的数据超过最大长度
-            if (header_len + package_size > NET_PACKET_MAX_LEN) {
+            if (header->len > NET_PACKET_MAX_LEN) {
                 on_error("package-parse-large");
                 break;
             }
+            package_size = header->len - header_len;
         }
         else if (eproto_type::proto_text == m_proto_type) {
             if (data_len == 0) break;

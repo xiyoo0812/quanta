@@ -90,7 +90,7 @@ int lua_socket_node::call_pack(lua_State* L)
 
     size_t data_len = 0;
     const char* data_ptr = lua_tolstring(L, 4, &data_len);
-    if (data_len + sizeof(socket_header) >= USHRT_MAX)
+    if (data_len + sizeof(socket_header) >= NET_PACKET_MAX_LEN)
     {
         lua_pushinteger(L, -2);
         return 1;
@@ -108,11 +108,6 @@ int lua_socket_node::call_text(lua_State* L)
 {
     size_t data_len = 0;
     const char* data_ptr = lua_tolstring(L, 1, &data_len);
-    if (data_len  >= USHRT_MAX)
-    {
-        lua_pushinteger(L, -1);
-        return 1;
-    }
     m_mgr->send(m_token, data_ptr, data_len);    
     lua_pushinteger(L, data_len);
     return 1;
