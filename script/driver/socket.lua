@@ -52,7 +52,7 @@ function Socket:listen(ip, port)
     self.ip, self.port = ip, port
     log_info("[Socket][listen] start listen at: %s:%d type=%d", ip, port, proto_type)
     self.listener.on_accept = function(session)
-        qxpcall(self.on_session_accept, "on_session_accept: %s", self, session)
+        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session)
     end
     return true
 end
@@ -91,7 +91,7 @@ function Socket:connect(ip, port)
     return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
 end
 
-function Socket:on_session_accept(session)
+function Socket:on_socket_accept(session)
     local socket = Socket(self.host)
     socket:accept(session, session.ip, self.port)
 end

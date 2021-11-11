@@ -28,6 +28,9 @@
     <ClInclude Include="src\socket_stream.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\stdafx.h">
+      <Filter>inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lua_socket_mgr.cpp">
@@ -60,9 +63,6 @@
     <ClCompile Include="src\stdafx.cpp">
       <Filter>src</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="src\stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="inc">

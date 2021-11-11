@@ -16,6 +16,7 @@
     <ClInclude Include="src\socket_mgr_impl.h" />
     <ClInclude Include="src\socket_router.h" />
     <ClInclude Include="src\socket_stream.h" />
+    <ClInclude Include="src\stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lua_socket_mgr.cpp" />
@@ -30,9 +31,6 @@
     <ClCompile Include="src\stdafx.cpp" >
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Create</PrecompiledHeader>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="src\stdafx.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{EC8C4743-6D5F-E10D-3D10-98330150B2C9}</ProjectGuid>

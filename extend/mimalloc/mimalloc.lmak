@@ -46,9 +46,9 @@ WINDOWS_LIBRARY_DIR = {
 	"mimalloc/bin"
 }
 
---WINDOWS预编译的库文件，需要copy到bin目录
+--WINDOWS预编译命令
 WINDOWS_PREBUILDS = {
-	"mimalloc/bin/mimalloc-redirect.dll"
+    { "copy /y", "mimalloc/bin/mimalloc-redirect.dll $(SolutionDir)bin" }
 }
 
 --分组定义
