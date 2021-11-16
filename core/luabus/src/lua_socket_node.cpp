@@ -58,9 +58,10 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<s
 
     m_mgr->set_error_callback(token, [this](const char* err)
 	{
+        auto token = this->m_token;
         lua_guard g(m_lvm);
-		lua_call_object_function(m_lvm, nullptr, this, "on_error", std::tie(), err);
 		this->m_token = 0;
+		lua_call_object_function(m_lvm, nullptr, this, "on_error", std::tie(), token, err);
     });
 
     m_mgr->set_package_callback(token, [this](char* data, size_t data_len)

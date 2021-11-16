@@ -32,6 +32,8 @@ function Socket:close(immediately)
     if self.session then
         self.session.close(immediately)
         self.session = nil
+        self.host = nil
+        self.fd = nil
     end
 end
 
@@ -72,16 +74,16 @@ function Socket:connect(ip, port)
     session.on_connect = function(res)
         local success = res == "ok"
         if not success then
-            self:on_socket_error(session, res)
+            self:on_socket_error(session.token, res)
         end
         thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, data)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end
-    session.on_error = function(err)
+    session.on_error = function(token, err)
         thread_mgr:fork(function()
-            self:on_socket_error(session, err)
+            self:on_socket_error(token, err)
         end)
     end
     self.session = session
@@ -103,11 +105,13 @@ function Socket:on_socket_recv(session, data)
     end
 end
 
-function Socket:on_socket_error(session, err)
+function Socket:on_socket_error(token, err)
     if self.session then
+        self.fd = nil
+        self.host = nil
         self.session = nil
-        log_err("[Socket][on_socket_error] err: %s - %s!", err, self.fd)
-        self.host:on_socket_error(self, self.fd, err)
+        log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
+        self.host:on_socket_error(self, token, err)
     end
 end
 
@@ -116,9 +120,9 @@ function Socket:accept(session, ip, port)
     session.on_call_text = function(recv_len, data)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end
-    session.on_error = function(err)
+    session.on_error = function(token, err)
         thread_mgr:fork(function()
-            self:on_socket_error(session, err)
+            self:on_socket_error(token, err)
         end)
     end
     self.session = session

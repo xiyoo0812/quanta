@@ -68,11 +68,12 @@ function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_flag, source, ...)
 end
 
 --连接关闭
-function RpcServer:on_socket_error(client, err)
-    local client_token = client.token
+function RpcServer:on_socket_error(token, err)
     --log_err("[RpcServer][on_socket_error] %s lost: %s", client.name or client_token, err)
-    self.clients[client_token] = nil
-    event_mgr:notify_listener("on_socket_error", client, client_token, err)
+    if self.clients[token] then
+        self.clients[token] = nil
+        event_mgr:notify_listener("on_socket_error", token, err)
+    end
 end
 
 --accept事件
@@ -94,8 +95,8 @@ function RpcServer:on_socket_accept(client)
         statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, rpc, session_id, rpc_flag, source, ...)
     end
-    client.on_error = function(err)
-        qxpcall(self.on_socket_error, "on_socket_error: %s", self, client, err)
+    client.on_error = function(token, err)
+        qxpcall(self.on_socket_error, "on_socket_error: %s", self, token, err)
     end
     --通知收到新client
     event_mgr:notify_listener("on_socket_accept", client)

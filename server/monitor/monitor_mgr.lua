@@ -177,7 +177,7 @@ function MonitorMgr:on_monitor_post(path, body, headers)
     end
     --开始执行
     local ok, res = pcall(handler_cmd, body)
-    if not ok then 
+    if not ok then
         log_warn("[MonitorMgr:on_monitor_post] pcall: %s", res)
         return {code = 1, msg = res}
     end

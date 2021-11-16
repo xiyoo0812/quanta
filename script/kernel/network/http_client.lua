@@ -37,7 +37,7 @@ function HttpClient:on_frame()
     local curl_handle, result = lquery()
     while curl_handle do
         --查询请求结果
-        local context = self.contexts[curl_handle];
+        local context = self.contexts[curl_handle]
         if context then
             local request = context.request
             local session_id = context.session_id
