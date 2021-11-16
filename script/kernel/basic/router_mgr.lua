@@ -5,6 +5,7 @@ local log_info          = logger.info
 local mrandom           = math.random
 local signal_quit       = signal.quit
 local tinsert           = table.insert
+local tunpack           = table.unpack
 local sformat           = string.format
 local sid2name          = service.id2name
 local srouter_id        = service.router_id
@@ -172,12 +173,20 @@ end
 
 --发送给指定目标
 function RouterMgr:call_target(target, rpc, ...)
+    if target == quanta.id then
+        local res = event_mgr:notify_listener(rpc, ...)
+        return tunpack(res)
+    end
     local session_id = thread_mgr:build_session_id()
     return self:forward_client(self:hash_router(target), "call_target", session_id, target, rpc, ...)
 end
 
 --发送给指定目标
 function RouterMgr:send_target(target, rpc, ...)
+    if target == quanta.id then
+        event_mgr:notify_listener(rpc, ...)
+        return true
+    end
     return self:forward_client(self:hash_router(target), "call_target", 0, target, rpc, ...)
 end
 
