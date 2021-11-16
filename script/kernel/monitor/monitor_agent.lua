@@ -51,7 +51,7 @@ function MonitorAgent:on_timer()
 end
 
 -- 连接关闭回调
-function MonitorAgent:on_socket_error(client, err)
+function MonitorAgent:on_socket_error(client, token, err)
     -- 设置重连时间
     self.next_connect_time = quanta.now
 end

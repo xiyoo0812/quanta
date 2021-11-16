@@ -13,8 +13,8 @@ local thread_mgr    = quanta.get("thread_mgr")
 local Socket = class()
 local prop = property(Socket)
 prop:reader("ip", nil)
-prop:reader("fd", nil)
 prop:reader("host", nil)
+prop:reader("token", nil)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
 prop:reader("recvbuf", "")
@@ -32,6 +32,8 @@ function Socket:close(immediately)
     if self.session then
         self.session.close(immediately)
         self.session = nil
+        self.host = nil
+        self.token = nil
     end
 end
 
@@ -72,20 +74,20 @@ function Socket:connect(ip, port)
     session.on_connect = function(res)
         local success = res == "ok"
         if not success then
-            self:on_socket_error(session, res)
+            self:on_socket_error(session.token, res)
         end
         thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, data)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end
-    session.on_error = function(err)
+    session.on_error = function(token, err)
         thread_mgr:fork(function()
-            self:on_socket_error(session, err)
+            self:on_socket_error(token, err)
         end)
     end
     self.session = session
-    self.fd = session.token
+    self.token = session.token
     self.ip, self.port = ip, port
     --阻塞模式挂起
     return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
@@ -99,15 +101,17 @@ end
 function Socket:on_socket_recv(session, data)
     self.recvbuf = self.recvbuf .. data
     if #self.recvbuf > 0 then
-        self.host:on_socket_recv(self, self.fd)
+        self.host:on_socket_recv(self, self.token)
     end
 end
 
-function Socket:on_socket_error(session, err)
+function Socket:on_socket_error(token, err)
     if self.session then
         self.session = nil
-        log_err("[Socket][on_socket_error] err: %s - %s!", err, self.fd)
-        self.host:on_socket_error(self, self.fd, err)
+        log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
+        self.host:on_socket_error(self, token, err)
+        self.token = nil
+        self.host = nil
     end
 end
 
@@ -116,15 +120,15 @@ function Socket:accept(session, ip, port)
     session.on_call_text = function(recv_len, data)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end
-    session.on_error = function(err)
+    session.on_error = function(token, err)
         thread_mgr:fork(function()
-            self:on_socket_error(session, err)
+            self:on_socket_error(token, err)
         end)
     end
     self.session = session
-    self.fd = session.token
+    self.token = session.token
     self.ip, self.port = ip, port
-    self.host:on_socket_accept(self, self.fd)
+    self.host:on_socket_accept(self, self.token)
 end
 
 function Socket:peek(len, offset)

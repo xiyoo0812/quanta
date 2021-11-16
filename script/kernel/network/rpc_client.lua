@@ -101,16 +101,14 @@ function RpcClient:connect()
         local send_len = socket.forward_broadcast(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
-    socket.on_error = function(err)
-        thread_mgr:fork(function()
-            self:on_socket_error(socket, err)
-        end)
+    socket.on_error = function(token, err)
+        self:on_socket_error(token, err)
     end
     socket.on_connect = function(res)
         if res == "ok" then
             qxpcall(self.on_socket_connect, "on_socket_connect: %s", self, socket, res)
         else
-            self:on_socket_error(socket, res)
+            self:on_socket_error(socket.token, res)
         end
     end
     self.socket = socket
@@ -151,25 +149,23 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, source, rpc, ...)
 end
 
 --错误处理
-function RpcClient:on_socket_error(socket, err)
+function RpcClient:on_socket_error(token, err)
     --log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
-    local socket_error = function()
+    thread_mgr:fork(function()
         self.socket = nil
         self.alive = false
-        self.holder:on_socket_error(self, err)
-    end
-    thread_mgr:fork(socket_error)
+        self.holder:on_socket_error(self, token, err)
+    end)
 end
 
 --连接成功
 function RpcClient:on_socket_connect(socket)
     --log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
-    local socket_connect = function()
+    thread_mgr:fork(function()
         self.alive = true
         socket.alive_time = quanta.now
         self.holder:on_socket_connect(self)
-    end
-    thread_mgr:fork(socket_connect)
+    end)
 end
 
 --转发系列接口

@@ -396,7 +396,7 @@ function RedisDB:on_second()
     end
 end
 
-function RedisDB:on_socket_error(sock, fd, err)
+function RedisDB:on_socket_error(sock, token, err)
     if sock == self.sock then
         for _, session_id in self.sessions:iter() do
             thread_mgr:response(session_id, false, err)
@@ -410,7 +410,7 @@ function RedisDB:on_socket_error(sock, fd, err)
     end
 end
 
-function RedisDB:on_socket_recv(sock)
+function RedisDB:on_socket_recv(sock, token)
     while true do
         local line, length = sock:peek_line(LineTitle)
         if not line then

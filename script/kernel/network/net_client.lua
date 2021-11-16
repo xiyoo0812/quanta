@@ -50,7 +50,7 @@ function NetClient:connect(block)
         local succes = (res == "ok")
         thread_mgr:fork(function()
             if not succes then
-                self:on_socket_error(socket, res)
+                self:on_socket_error(socket.token, res)
             else
                 self:on_socket_connect(socket)
             end
@@ -64,9 +64,9 @@ function NetClient:connect(block)
         statis_mgr:statis_notify("on_pack_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, data)
     end
-    socket.on_error = function(err)
+    socket.on_error = function(token, err)
         thread_mgr:fork(function()
-            self:on_socket_error(socket, err)
+            self:on_socket_error(token, err)
         end)
     end
     self.socket = socket
@@ -211,11 +211,13 @@ function NetClient:on_socket_connect(socket)
 end
 
 -- 连接关闭回调
-function NetClient:on_socket_error(socket, err)
-    self.socket = nil
-    self.alive = false
-    self.wait_list = {}
-    self.holder:on_socket_error(self, err)
+function NetClient:on_socket_error(token, err)
+    if self.socket then
+        self.socket = nil
+        self.alive = false
+        self.wait_list = {}
+        self.holder:on_socket_error(self, token, err)
+    end
 end
 
 return NetClient

@@ -81,8 +81,8 @@ function NetServer:on_socket_accept(session)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, session_id, data)
     end
     -- 绑定网络错误回调（断开）
-    session.on_error = function(err)
-        qxpcall(self.on_socket_error, "on_socket_error: %s", self, session)
+    session.on_error = function(token, err)
+        qxpcall(self.on_socket_error, "on_socket_error: %s", self, token, err)
     end
     --初始化序号
     session.serial = 0
@@ -243,9 +243,8 @@ end
 
 -- 关闭会话
 function NetServer:close_session(session)
-    if session then
+    if self:remove_session(session.token) then
         session.close()
-        self:remove_session(session)
     end
 end
 
@@ -256,30 +255,39 @@ function NetServer:close_session_by_token(token)
 end
 
 -- 会话被关闭回调
-function NetServer:on_socket_error(session, err)
-    thread_mgr:fork(function()
-        event_mgr:notify_listener("on_socket_error", session, err)
-    end)
-    self:remove_session(session)
+function NetServer:on_socket_error(token, err)
+    local session = self:remove_session(token)
+    if session then
+        thread_mgr:fork(function()
+            event_mgr:notify_listener("on_socket_error", session, token, err)
+        end)
+    end
 end
 
 -- 添加会话
 function NetServer:add_session(session)
-    self.sessions[session.token] = session
-    self.session_count = self.session_count + 1
-    statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
+    local token = session.token
+    if not self.sessions[token] then
+        self.sessions[token] = session
+        self.session_count = self.session_count + 1
+        statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
+    end
 end
 
 -- 移除会话
-function NetServer:remove_session(session)
-    self.sessions[session.token] = nil
-    self.session_count = self.session_count - 1
-    statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
+function NetServer:remove_session(token)
+    local session = self.sessions[token]
+    if session then
+        self.sessions[token] = nil
+        self.session_count = self.session_count - 1
+        statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
+        return session
+    end
 end
 
 -- 查询会话
 function NetServer:get_session_by_token(token)
-    return self.sessions[token];
+    return self.sessions[token]
 end
 
 return NetServer
