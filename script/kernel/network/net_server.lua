@@ -256,17 +256,19 @@ end
 
 -- 会话被关闭回调
 function NetServer:on_socket_error(token, err)
-    if self:remove_session(token) then
+    local session = self:remove_session(token)
+    if session then
         thread_mgr:fork(function()
-            event_mgr:notify_listener("on_socket_error", token, err)
+            event_mgr:notify_listener("on_socket_error", session, token, err)
         end)
     end
 end
 
 -- 添加会话
 function NetServer:add_session(session)
-    if not self.sessions[session.token] then
-        self.sessions[session.token] = session
+    local token = session.token
+    if not self.sessions[token] then
+        self.sessions[token] = session
         self.session_count = self.session_count + 1
         statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
     end
@@ -274,13 +276,13 @@ end
 
 -- 移除会话
 function NetServer:remove_session(token)
-    if self.sessions[token] then
+    local session = self.sessions[token]
+    if session then
         self.sessions[token] = nil
         self.session_count = self.session_count - 1
         statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
-        return true
+        return session
     end
-    return false
 end
 
 -- 查询会话

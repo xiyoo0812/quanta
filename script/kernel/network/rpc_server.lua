@@ -70,9 +70,10 @@ end
 --连接关闭
 function RpcServer:on_socket_error(token, err)
     --log_err("[RpcServer][on_socket_error] %s lost: %s", client.name or client_token, err)
-    if self.clients[token] then
+    local client = self.clients[token]
+    if client then
         self.clients[token] = nil
-        event_mgr:notify_listener("on_socket_error", token, err)
+        event_mgr:notify_listener("on_socket_error", client, token, err)
     end
 end
 

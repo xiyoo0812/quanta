@@ -158,7 +158,7 @@ function MongoDB:auth(username, password)
     return true
 end
 
-function MongoDB:on_socket_error(sock, fd, err)
+function MongoDB:on_socket_error(sock, err)
     if self.session_id then
         thread_mgr:response(self.session_id, false, err)
     end

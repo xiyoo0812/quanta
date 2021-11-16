@@ -50,7 +50,7 @@ function NetClient:connect(block)
         local succes = (res == "ok")
         thread_mgr:fork(function()
             if not succes then
-                self:on_socket_error(socket.tokrn, res)
+                self:on_socket_error(socket.token, res)
             else
                 self:on_socket_connect(socket)
             end

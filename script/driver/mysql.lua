@@ -687,7 +687,7 @@ function MysqlDB:auth()
     return aok, err, version
 end
 
-function MysqlDB:on_socket_error(sock, fd, err)
+function MysqlDB:on_socket_error(sock, err)
     log_err("[MysqlDB][on_socket_error] mysql server lost")
     for _, resp_data in self.sessions:iter() do
         local session_id = resp_data[1]

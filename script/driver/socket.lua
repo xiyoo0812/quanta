@@ -107,11 +107,11 @@ end
 
 function Socket:on_socket_error(token, err)
     if self.session then
-        self.fd = nil
-        self.host = nil
         self.session = nil
         log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
-        self.host:on_socket_error(self, token, err)
+        self.host:on_socket_error(self, err)
+        self.host = nil
+        self.fd = nil
     end
 end
 
