@@ -687,7 +687,7 @@ function MysqlDB:auth()
     return aok, err, version
 end
 
-function MysqlDB:on_socket_error(sock, err)
+function MysqlDB:on_socket_error(sock, token, err)
     log_err("[MysqlDB][on_socket_error] mysql server lost")
     for _, resp_data in self.sessions:iter() do
         local session_id = resp_data[1]
@@ -696,7 +696,7 @@ function MysqlDB:on_socket_error(sock, err)
     self.sessions:clear()
 end
 
-function MysqlDB:on_socket_recv(sock)
+function MysqlDB:on_socket_recv(sock, token)
     while true do
         --mysql 响应报文结构
         local hdata = sock:peek(4)

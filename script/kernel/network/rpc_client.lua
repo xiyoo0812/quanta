@@ -154,7 +154,7 @@ function RpcClient:on_socket_error(token, err)
     thread_mgr:fork(function()
         self.socket = nil
         self.alive = false
-        self.holder:on_socket_error(self, err)
+        self.holder:on_socket_error(self, token, err)
     end)
 end
 

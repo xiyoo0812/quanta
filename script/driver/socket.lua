@@ -13,8 +13,8 @@ local thread_mgr    = quanta.get("thread_mgr")
 local Socket = class()
 local prop = property(Socket)
 prop:reader("ip", nil)
-prop:reader("fd", nil)
 prop:reader("host", nil)
+prop:reader("token", nil)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
 prop:reader("recvbuf", "")
@@ -33,7 +33,7 @@ function Socket:close(immediately)
         self.session.close(immediately)
         self.session = nil
         self.host = nil
-        self.fd = nil
+        self.token = nil
     end
 end
 
@@ -87,7 +87,7 @@ function Socket:connect(ip, port)
         end)
     end
     self.session = session
-    self.fd = session.token
+    self.token = session.token
     self.ip, self.port = ip, port
     --阻塞模式挂起
     return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
@@ -101,7 +101,7 @@ end
 function Socket:on_socket_recv(session, data)
     self.recvbuf = self.recvbuf .. data
     if #self.recvbuf > 0 then
-        self.host:on_socket_recv(self, self.fd)
+        self.host:on_socket_recv(self, self.token)
     end
 end
 
@@ -109,9 +109,9 @@ function Socket:on_socket_error(token, err)
     if self.session then
         self.session = nil
         log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
-        self.host:on_socket_error(self, err)
+        self.host:on_socket_error(self, token, err)
+        self.token = nil
         self.host = nil
-        self.fd = nil
     end
 end
 
@@ -126,9 +126,9 @@ function Socket:accept(session, ip, port)
         end)
     end
     self.session = session
-    self.fd = session.token
+    self.token = session.token
     self.ip, self.port = ip, port
-    self.host:on_socket_accept(self, self.fd)
+    self.host:on_socket_accept(self, self.token)
 end
 
 function Socket:peek(len, offset)

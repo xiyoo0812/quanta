@@ -158,13 +158,13 @@ function MongoDB:auth(username, password)
     return true
 end
 
-function MongoDB:on_socket_error(sock, err)
+function MongoDB:on_socket_error(sock, token, err)
     if self.session_id then
         thread_mgr:response(self.session_id, false, err)
     end
 end
 
-function MongoDB:on_socket_recv(sock)
+function MongoDB:on_socket_recv(sock, token)
     while true do
         local hdata = sock:peek(4)
         if not hdata then

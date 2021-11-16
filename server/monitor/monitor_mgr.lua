@@ -87,7 +87,7 @@ end
 
 -- 会话关闭回调
 function MonitorMgr:on_socket_error(client, token, err)
-    log_info("[MonitorMgr][on_socket_error] node name:%s, id:%s, token:%s", client.name, client.id, client.token)
+    log_info("[MonitorMgr][on_socket_error] node name:%s, id:%s, token:%s", client.name, client.id, token)
     self:post_node_status(client, 0)
 end
 

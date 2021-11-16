@@ -41,33 +41,32 @@ function HttpServer:setup(http_addr, post_handler, get_handler)
     self.sock = socket
 end
 
-function HttpServer:on_socket_error(socket, err)
+function HttpServer:on_socket_error(socket, token, err)
     if socket == self.sock then
         log_info("[HttpServer][on_socket_error] listener(%s:%s) close!", self.ip, self.port)
         self.sock = nil
         return
     end
-    local fd = socket:get_fd()
-    log_debug("[HttpServer][on_socket_error] client(fd:%s) close!", fd)
-    self.clients[fd] = nil
-    self.requests[fd] = nil
+    log_debug("[HttpServer][on_socket_error] client(token:%s) close!", token)
+    self.clients[token] = nil
+    self.requests[token] = nil
 end
 
-function HttpServer:on_socket_accept(socket, fd)
-    log_debug("[HttpServer][on_socket_accept] client(fd:%s) connected!", fd)
-    self.clients[fd] = socket
+function HttpServer:on_socket_accept(socket, token)
+    log_debug("[HttpServer][on_socket_accept] client(token:%s) connected!", token)
+    self.clients[token] = socket
 end
 
-function HttpServer:on_socket_recv(socket, fd)
-    local request = self.requests[fd]
+function HttpServer:on_socket_recv(socket, token)
+    local request = self.requests[token]
     if not request then
         request = lhttp.create_request()
-        log_debug("[HttpServer][on_socket_accept] create_request(fd:%s)!", fd)
-        self.requests[fd] = request
+        log_debug("[HttpServer][on_socket_accept] create_request(token:%s)!", token)
+        self.requests[token] = request
     end
     local buf = socket:get_recvbuf()
     if #buf == 0 or not request:append(buf) then
-        log_err("[HttpServer][on_socket_recv] http request append failed, close client(fd:%s)!", fd)
+        log_err("[HttpServer][on_socket_recv] http request append failed, close client(token:%s)!", token)
         self:response(socket, request, "this http request parse error!")
         return
     end
@@ -76,7 +75,7 @@ function HttpServer:on_socket_recv(socket, fd)
     local state = request:state()
     local HTTP_REQUEST_ERROR = 2
     if state == HTTP_REQUEST_ERROR then
-        log_err("[HttpServer][on_socket_recv] http request process failed, close client(fd:%s)!", fd)
+        log_err("[HttpServer][on_socket_recv] http request process failed, close client(token:%s)!", token)
         self:response(socket, request, "this http request parse error!")
         return
     end
@@ -107,7 +106,7 @@ function HttpServer:on_socket_recv(socket, fd)
         local querys = request:querys()
         log_debug("on_del: %s, %s, %s", url, querys, headers)
     end
-    log_info("[HttpServer][on_socket_recv] http request no process, close client(fd:%s)!", fd)
+    log_info("[HttpServer][on_socket_recv] http request no process, close client(token:%s)!", token)
     self:response(socket, request, "this http request has not match!")
 end
 
@@ -118,7 +117,7 @@ function HttpServer:response(socket, request, hrsp)
         hrsp = json_encode(hrsp)
         ttype = "application/json"
     end
-    self.requests[socket:get_fd()] = nil
+    self.requests[socket:get_token()] = nil
     local buf = request:response(200, ttype, hrsp or "")
     socket:send(buf)
     socket:close(false)

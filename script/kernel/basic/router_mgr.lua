@@ -70,7 +70,7 @@ function RouterMgr:add_router(router_conf, index)
 end
 
 --错误处理
-function RouterMgr:on_socket_error(client, err)
+function RouterMgr:on_socket_error(client, token, err)
     log_err("[RouterMgr][on_socket_error] router lost %s:%s, err=%s", client.ip, client.port, err)
 end
 
