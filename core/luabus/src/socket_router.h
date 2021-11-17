@@ -1,17 +1,11 @@
-﻿/*
-** repository: https://github.com/trumanzhao/luna
-** trumanzhao, 2017-02-11, trumanzhao@foxmail.com
-*/
-
-#pragma once
+﻿#pragma once
 #include <memory>
 #include <array>
 #include <vector>
 #include "socket_mgr.h"
 #include "socket_helper.h"
 
-enum class msg_id : char
-{
+enum class msg_id : char {
     remote_call,
     forward_target,
     forward_master,
@@ -22,21 +16,18 @@ enum class msg_id : char
 
 const int MAX_SERVICE_GROUP = (UCHAR_MAX + 1);
 
-struct service_node
-{
+struct service_node {
     uint32_t id = 0;
     uint32_t token = 0;
 };
 
-struct router_header
-{
+struct router_header {
     uint64_t rpc_flag = 0;
     uint64_t source_id = 0;
     uint64_t session_id = 0;
 };
 
-struct service_group
-{
+struct service_group {
     uint32_t master = 0;
     std::vector<service_node> nodes;
 };

@@ -19,9 +19,6 @@
     <ClInclude Include="src\socket_mgr.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\socket_mgr_impl.h">
-      <Filter>inc</Filter>
-    </ClInclude>
     <ClInclude Include="src\socket_router.h">
       <Filter>inc</Filter>
     </ClInclude>
@@ -51,9 +48,6 @@
     <ClCompile Include="src\socket_mgr.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\socket_mgr_impl.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="src\socket_router.cpp">
       <Filter>src</Filter>
     </ClCompile>
@@ -66,10 +60,10 @@
   </ItemGroup>
   <ItemGroup>
     <Filter Include="inc">
-      <UniqueIdentifier >{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
+      <UniqueIdentifier>{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
-      <UniqueIdentifier >{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
+      <UniqueIdentifier>{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

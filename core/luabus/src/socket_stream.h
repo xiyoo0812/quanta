@@ -1,20 +1,15 @@
-﻿/*
-** repository: https://github.com/trumanzhao/luna
-** trumanzhao, 2016-11-01, trumanzhao@foxmail.com
-*/
-
-#pragma once
+﻿#pragma once
 
 #include "socket_helper.h"
 #include "io_buffer.h"
-#include "socket_mgr_impl.h"
+#include "socket_mgr.h"
 
 struct socket_stream : public socket_object
 {
 #ifdef _MSC_VER
-    socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type = eproto_type::proto_rpc);
+    socket_stream(socket_mgr* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type = eproto_type::proto_rpc);
 #endif
-    socket_stream(socket_mgr_impl* mgr, eproto_type proto_type = eproto_type::proto_rpc);
+    socket_stream(socket_mgr* mgr, eproto_type proto_type = eproto_type::proto_rpc);
 
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
@@ -33,21 +28,8 @@ struct socket_stream : public socket_object
     void set_timeout(int duration) override { m_timeout = duration; }
     void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
 
-    /**
-     * @brief: 发送数据
-     *  luabus协议：[len][data]
-     *  DxClient协议：[data] -> [DxHead][DxBody] data中已经包含有了上层打包好的head
-     */
     void send(const void* data, size_t data_len) override;
-
-    /**
-     * @brief: 多块buffer合并为一个buffer发送（利用stream的概念节省一次内存中的多块buffer合并操作）
-     */
     void sendv(const sendv_item items[], int count) override;
-
-    /**
-     * @brief: raw发送
-     */
     void stream_send(const char* data, size_t data_len);
 
 #ifdef _MSC_VER
@@ -67,7 +49,7 @@ struct socket_stream : public socket_object
     void on_connect(bool ok, const char reason[]);
 
     int token = 0;
-    socket_mgr_impl* m_mgr = nullptr;
+    socket_mgr* m_mgr = nullptr;
     eproto_type     m_proto_type = eproto_type::proto_rpc;
     socket_t m_socket = INVALID_SOCKET;
     std::shared_ptr<io_buffer> m_recv_buffer = std::make_shared<io_buffer>();

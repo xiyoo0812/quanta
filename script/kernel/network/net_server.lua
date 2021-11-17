@@ -33,6 +33,7 @@ prop:reader("sessions", {})             --会话列表
 prop:reader("session_type", "default")  --会话类型
 prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
+prop:reader("command_cds", {})          --CMD定制CD
 prop:accessor("decoder", nil)           --解码函数
 prop:accessor("encoder", nil)           --编码函数
 
@@ -65,7 +66,6 @@ end
 
 -- 连接回调
 function NetServer:on_socket_accept(session)
-    --log_debug("[on_socket_accept]: token:%s, ip:%s", session.token, session.ip)
     self:add_session(session)
     -- 流控配置
     session.fc_packet = 0
@@ -186,11 +186,22 @@ function NetServer:decode(cmd_id, data, flag)
     return de_data, cmd_name
 end
 
+-- 配置指定cmd的cd
+function NetServer:define_cmd_cd(cmd_id, cd_time)
+    self.command_cds[cmd_id] = cd_time
+end
+
+-- 查找指定cmd的cdtime
+function NetServer:get_cmd_cd(cmd_id)
+    return self.command_cds[cmd_id] or flow_cd
+end
+
 -- 收到远程调用回调
 function NetServer:on_socket_recv(session, cmd_id, flag, session_id, data)
     local now_ms = quanta.now_ms
+    local cmd_cd_time = self:get_cmd_cd(cmd_id)
     local command_times = session.command_times
-    if command_times[cmd_id] and now_ms - command_times[cmd_id] < flow_cd then
+    if command_times[cmd_id] and now_ms - command_times[cmd_id] < cmd_cd_time then
         --协议CD
         return
     end

@@ -1,8 +1,3 @@
-/*
-** repository: https://github.com/trumanzhao/luabus.git
-** trumanzhao, 2017-07-09, trumanzhao@foxmail.com
-*/
-
 #pragma once
 #include <memory>
 #include <array>

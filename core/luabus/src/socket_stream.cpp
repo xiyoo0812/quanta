@@ -1,18 +1,13 @@
-﻿/*
-** repository: https://github.com/trumanzhao/luna
-** trumanzhao, 2016-11-01, trumanzhao@foxmail.com
-*/
-
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <algorithm>
 #include <assert.h>
 #include "var_int.h"
-#include "socket_mgr_impl.h"
+#include "socket_mgr.h"
 #include "socket_helper.h"
 #include "socket_stream.h"
 
 #ifdef _MSC_VER
-socket_stream::socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type) :
+socket_stream::socket_stream(socket_mgr* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type) :
     m_proto_type(proto_type) {
     mgr->increase_count();
     m_mgr = mgr;
@@ -21,7 +16,7 @@ socket_stream::socket_stream(socket_mgr_impl* mgr, LPFN_CONNECTEX connect_func, 
 }
 #endif
 
-socket_stream::socket_stream(socket_mgr_impl* mgr, eproto_type proto_type) :
+socket_stream::socket_stream(socket_mgr* mgr, eproto_type proto_type) :
     m_proto_type(proto_type) {
     mgr->increase_count();
     m_proto_type = proto_type;

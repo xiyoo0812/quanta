@@ -1,7 +1,3 @@
-/*
-** repository: https://github.com/trumanzhao/luabus.git
-** trumanzhao, 2017-07-09, trumanzhao@foxmail.com
-*/
 #include "stdafx.h"
 #include "var_int.h"
 #include "lua_socket_mgr.h"
@@ -20,12 +16,10 @@ EXPORT_LUA_FUNCTION(set_master)
 EXPORT_LUA_FUNCTION(map_token)
 EXPORT_CLASS_END()
 
-lua_socket_mgr::~lua_socket_mgr()
-{
+lua_socket_mgr::~lua_socket_mgr() {
 }
 
-bool lua_socket_mgr::setup(lua_State* L, int max_fd)
-{
+bool lua_socket_mgr::setup(lua_State* L, int max_fd) {
     m_lvm = L;
     m_mgr = std::make_shared<socket_mgr>();
     m_archiver = std::make_shared<lua_archiver>(LUA_AR_BUFFER_SIZE);
@@ -33,34 +27,28 @@ bool lua_socket_mgr::setup(lua_State* L, int max_fd)
     return m_mgr->setup(max_fd);
 }
 
-int lua_socket_mgr::listen(lua_State* L)
-{
+int lua_socket_mgr::listen(lua_State* L) {
     const char* ip = lua_tostring(L, 1);
     int port = (int)lua_tointeger(L, 2);
-    if (ip == nullptr || port <= 0)
-    {
+    if (ip == nullptr || port <= 0) {
         lua_pushnil(L);
         lua_pushstring(L, "invalid param");
         return 2;
     }
 
     eproto_type proto_type = eproto_type::proto_rpc;
-    if (lua_gettop(L) >= 3)
-    {
+    if (lua_gettop(L) >= 3) {
         proto_type = (eproto_type)lua_tointeger(L, 3);
-        if (proto_type < eproto_type::proto_rpc || proto_type >= eproto_type::proto_max)
-        {
+        if (proto_type < eproto_type::proto_rpc || proto_type >= eproto_type::proto_max) {
             lua_pushnil(L);
             lua_pushstring(L, "invalid proto_type");
-
             return 2;
         }
     }
 
     std::string err;
     int token = m_mgr->listen(err, ip, port, proto_type);
-    if (token == 0)
-    {
+    if (token == 0) {
         lua_pushnil(L);
         lua_pushstring(L, err.c_str());
         return 2;
@@ -72,8 +60,7 @@ int lua_socket_mgr::listen(lua_State* L)
     return 2;
 }
 
-int lua_socket_mgr::connect(lua_State* L)
-{
+int lua_socket_mgr::connect(lua_State* L) {
     // 获取参数个数
     int lua_param_count = lua_gettop(L);
 
@@ -81,31 +68,26 @@ int lua_socket_mgr::connect(lua_State* L)
     const char* port = lua_tostring(L, 2);
     int timeout = (int)lua_tonumber(L, 3);
     eproto_type proto_type = eproto_type::proto_rpc;
-    
+
     // 如果有提供协议类型，需要设置协议类型
-    if(lua_param_count >= 4)
-    {
+    if (lua_param_count >= 4) {
         proto_type = (eproto_type)(int)lua_tonumber(L, 4);
-        if (proto_type < eproto_type::proto_rpc || proto_type >= eproto_type::proto_max)
-        {
+        if (proto_type < eproto_type::proto_rpc || proto_type >= eproto_type::proto_max) {
             lua_pushnil(L);
             lua_pushstring(L, "invalid proto_type");
-
             return 2;
         }
     }
 
-    if (ip == nullptr || port == nullptr)
-    {
+    if (ip == nullptr || port == nullptr) {
         lua_pushnil(L);
         lua_pushstring(L, "invalid param");
         return 2;
     }
-    
+
     std::string err;
     int token = m_mgr->connect(err, ip, port, timeout, proto_type);
-    if (token == 0)
-    {
+    if (token == 0) {
         lua_pushnil(L);
         lua_pushstring(L, err.c_str());
         return 2;
@@ -117,23 +99,19 @@ int lua_socket_mgr::connect(lua_State* L)
     return 2;
 }
 
-void lua_socket_mgr::set_package_size(size_t size)
-{
+void lua_socket_mgr::set_package_size(size_t size) {
     m_archiver->set_buffer_size(size);
 }
 
-void lua_socket_mgr::set_lz_threshold(size_t size)
-{
+void lua_socket_mgr::set_lz_threshold(size_t size) {
     m_archiver->set_lz_threshold(size);
 }
 
-void lua_socket_mgr::set_master(uint32_t group_idx, uint32_t token)
-{
+void lua_socket_mgr::set_master(uint32_t group_idx, uint32_t token) {
     m_router->set_master(group_idx, token);
 }
 
-int lua_socket_mgr::map_token(lua_State* L)
-{
+int lua_socket_mgr::map_token(lua_State* L) {
     uint32_t service_id = (uint32_t)lua_tointeger(L, 1);
     uint32_t token = (uint32_t)lua_tointeger(L, 2);
     uint16_t hash = (uint16_t)lua_tointeger(L, 3);

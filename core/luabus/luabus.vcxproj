@@ -13,7 +13,6 @@
     <ClInclude Include="src\socket_helper.h" />
     <ClInclude Include="src\socket_listener.h" />
     <ClInclude Include="src\socket_mgr.h" />
-    <ClInclude Include="src\socket_mgr_impl.h" />
     <ClInclude Include="src\socket_router.h" />
     <ClInclude Include="src\socket_stream.h" />
     <ClInclude Include="src\stdafx.h" />
@@ -25,10 +24,9 @@
     <ClCompile Include="src\socket_helper.cpp" />
     <ClCompile Include="src\socket_listener.cpp" />
     <ClCompile Include="src\socket_mgr.cpp" />
-    <ClCompile Include="src\socket_mgr_impl.cpp" />
     <ClCompile Include="src\socket_router.cpp" />
     <ClCompile Include="src\socket_stream.cpp" />
-    <ClCompile Include="src\stdafx.cpp" >
+    <ClCompile Include="src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>

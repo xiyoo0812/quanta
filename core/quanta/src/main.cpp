@@ -2,6 +2,10 @@
 #include <locale>
 #include "quanta.h"
 
+#ifdef WIN32
+#define tzset _tzset
+#endif
+
 int main(int argc, const char* argv[])
 {
     tzset();
@@ -82,7 +86,7 @@ BOOL CMiniDump::GetModulePath(LPTSTR lpBuf, DWORD dwBufSize)
 	TCHAR* pChar = _tcsrchr(sModuleName, _T('\\'));
 	if (NULL != pChar)
 	{
-		int iPos = pChar - sModuleName;
+		size_t iPos = pChar - sModuleName;
 		sModuleName[iPos + 1] = _T('\0');
 		_tcscpy_s(lpBuf, dwBufSize, sModuleName);
 		return TRUE;

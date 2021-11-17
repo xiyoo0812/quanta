@@ -7,19 +7,19 @@
 
 #include "socket_helper.h"
 #include "io_buffer.h"
-#include "socket_mgr_impl.h"
+#include "socket_mgr.h"
 
 struct socket_listener : public socket_object
 {
 #ifdef _MSC_VER
-    socket_listener(socket_mgr_impl* mgr, 
+    socket_listener(socket_mgr* mgr, 
         LPFN_ACCEPTEX accept_func, 
         LPFN_GETACCEPTEXSOCKADDRS addrs_func,
         eproto_type proto_type = eproto_type::proto_rpc);
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-    socket_listener(socket_mgr_impl* mgr, eproto_type proto_type = eproto_type::proto_rpc);
+    socket_listener(socket_mgr* mgr, eproto_type proto_type = eproto_type::proto_rpc);
 #endif
 
     ~socket_listener();
@@ -39,7 +39,7 @@ struct socket_listener : public socket_object
 #endif
 
 private:
-    socket_mgr_impl* m_mgr = nullptr;
+    socket_mgr* m_mgr = nullptr;
 	eproto_type      m_proto_type;
     socket_t m_socket = INVALID_SOCKET;
     std::function<void(const char*)> m_error_cb;

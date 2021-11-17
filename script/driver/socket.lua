@@ -32,7 +32,6 @@ function Socket:close(immediately)
     if self.session then
         self.session.close(immediately)
         self.session = nil
-        self.host = nil
         self.token = nil
     end
 end
@@ -111,7 +110,6 @@ function Socket:on_socket_error(token, err)
         log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
         self.host:on_socket_error(self, token, err)
         self.token = nil
-        self.host = nil
     end
 end
 
