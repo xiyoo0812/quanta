@@ -10,14 +10,11 @@ jobs:
   build:
 
     runs-on: macos-latest
-
+    
     steps:
     - uses: actions/checkout@v2
-    - name: configure
-      run: ./configure
+      with:
+        submodules: recursive
+
     - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      run: make all
