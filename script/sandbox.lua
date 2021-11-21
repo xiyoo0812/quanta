@@ -6,6 +6,8 @@ local pairs     = pairs
 local loadfile  = loadfile
 local iopen     = io.open
 local mabs      = math.abs
+local tpack     = table.pack
+local tunpack   = table.unpack
 local tinsert   = table.insert
 local sformat   = string.format
 local dgetinfo  = debug.getinfo
@@ -62,8 +64,13 @@ local function try_load(node)
         logger:error(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
+    local res = tpack(pcall(trunk_func))
+    if not res[1] then
+        logger:error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res[2]))
+        return
+    end
     logger:info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
-    return trunk_func()
+    return tunpack(res, 2)
 end
 
 function import(filename)

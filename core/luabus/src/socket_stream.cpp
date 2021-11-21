@@ -78,12 +78,12 @@ bool socket_stream::update(int64_t now) {
                 closesocket(m_socket);
                 m_socket = INVALID_SOCKET;
             }
-            return false;
-        }
-        case elink_status::link_colsing: {
 #ifdef _MSC_VER
             if (m_ovl_ref != 0) return true;
 #endif
+            return false;
+        }
+        case elink_status::link_colsing: {
             if (m_send_buffer->empty()) {
                 m_link_status = elink_status::link_closed;
             }
