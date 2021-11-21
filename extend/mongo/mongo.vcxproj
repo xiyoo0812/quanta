@@ -9,7 +9,7 @@
   <ItemGroup>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lua-mongo.c" />
+    <ClCompile Include="src\lua-mongo.c"/>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1ED75A5D-1E2C-0BB0-5F41-0077765AF687}</ProjectGuid>

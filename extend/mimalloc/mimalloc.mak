@@ -49,9 +49,9 @@ EXCLUDE += $(SRC_DIR)/alloc-override-osx.c
 
 #需要连接的库文件
 LIBS =
+#自定义库
 #系统库
 LIBS += -lm -ldl -lstdc++ -lpthread
-#自定义库
 
 #定义基础的编译选项
 CC = gcc

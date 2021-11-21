@@ -7,33 +7,33 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\alloc.h" />
-    <ClInclude Include="src\array.h" />
-    <ClInclude Include="src\bootstrap.h" />
-    <ClInclude Include="src\context.h" />
-    <ClInclude Include="src\descriptor.pbc.h" />
-    <ClInclude Include="src\map.h" />
-    <ClInclude Include="src\pattern.h" />
-    <ClInclude Include="src\pbc.h" />
-    <ClInclude Include="src\proto.h" />
-    <ClInclude Include="src\stringpool.h" />
-    <ClInclude Include="src\varint.h" />
+    <ClInclude Include="src\alloc.h"/>
+    <ClInclude Include="src\array.h"/>
+    <ClInclude Include="src\bootstrap.h"/>
+    <ClInclude Include="src\context.h"/>
+    <ClInclude Include="src\descriptor.pbc.h"/>
+    <ClInclude Include="src\map.h"/>
+    <ClInclude Include="src\pattern.h"/>
+    <ClInclude Include="src\pbc.h"/>
+    <ClInclude Include="src\proto.h"/>
+    <ClInclude Include="src\stringpool.h"/>
+    <ClInclude Include="src\varint.h"/>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\alloc.c" />
-    <ClCompile Include="src\array.c" />
-    <ClCompile Include="src\bootstrap.c" />
-    <ClCompile Include="src\context.c" />
-    <ClCompile Include="src\decode.c" />
-    <ClCompile Include="src\map.c" />
-    <ClCompile Include="src\pattern.c" />
-    <ClCompile Include="src\pbc-lua.c" />
-    <ClCompile Include="src\proto.c" />
-    <ClCompile Include="src\register.c" />
-    <ClCompile Include="src\rmessage.c" />
-    <ClCompile Include="src\stringpool.c" />
-    <ClCompile Include="src\varint.c" />
-    <ClCompile Include="src\wmessage.c" />
+    <ClCompile Include="src\alloc.c"/>
+    <ClCompile Include="src\array.c"/>
+    <ClCompile Include="src\bootstrap.c"/>
+    <ClCompile Include="src\context.c"/>
+    <ClCompile Include="src\decode.c"/>
+    <ClCompile Include="src\map.c"/>
+    <ClCompile Include="src\pattern.c"/>
+    <ClCompile Include="src\pbc-lua.c"/>
+    <ClCompile Include="src\proto.c"/>
+    <ClCompile Include="src\register.c"/>
+    <ClCompile Include="src\rmessage.c"/>
+    <ClCompile Include="src\stringpool.c"/>
+    <ClCompile Include="src\varint.c"/>
+    <ClCompile Include="src\wmessage.c"/>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F12D5CE5-E87A-2C8D-7FB1-10C981C94006}</ProjectGuid>

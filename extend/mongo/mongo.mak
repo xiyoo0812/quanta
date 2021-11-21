@@ -44,10 +44,10 @@ LIBS =
 #是否启用mimalloc库
 LIBS += -lmimalloc
 MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
-#系统库
-LIBS += -lm -ldl -lstdc++ -lpthread
 #自定义库
 LIBS += -llua
+#系统库
+LIBS += -lm -ldl -lstdc++ -lpthread
 
 #定义基础的编译选项
 CC = gcc

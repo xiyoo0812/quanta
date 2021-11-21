@@ -7,13 +7,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\fpconv.h" />
-    <ClInclude Include="src\strbuf.h" />
+    <ClInclude Include="src\fpconv.h"/>
+    <ClInclude Include="src\strbuf.h"/>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\fpconv.c" />
-    <ClCompile Include="src\lua_cjson.c" />
-    <ClCompile Include="src\strbuf.c" />
+    <ClCompile Include="src\fpconv.c"/>
+    <ClCompile Include="src\lua_cjson.c"/>
+    <ClCompile Include="src\strbuf.c"/>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{4ADCD1E9-BF66-35F8-4508-99A5FA07D9D9}</ProjectGuid>

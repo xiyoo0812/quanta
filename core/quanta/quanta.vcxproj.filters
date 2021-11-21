@@ -15,10 +15,10 @@
   </ItemGroup>
   <ItemGroup>
     <Filter Include="inc">
-      <UniqueIdentifier >{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
+      <UniqueIdentifier>{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
-      <UniqueIdentifier >{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
+      <UniqueIdentifier>{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

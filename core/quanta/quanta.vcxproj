@@ -7,11 +7,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\quanta.h" />
+    <ClInclude Include="src\quanta.h"/>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp" />
-    <ClCompile Include="src\quanta.cpp" />
+    <ClCompile Include="src\main.cpp"/>
+    <ClCompile Include="src\quanta.cpp"/>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2CE1C7DB-EA72-ED68-C587-CA3383754760}</ProjectGuid>
