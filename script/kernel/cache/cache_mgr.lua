@@ -102,43 +102,46 @@ function CacheMgr:load_cache_impl(cache_list, conf, primary_key)
     return SUCCESS, cache_obj
 end
 
-function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key)
+function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key, load_mode)
     local cache_list = self.cache_lists[cache_name]
     if not cache_list then
         log_err("[CacheMgr][get_cache_obj] cache list not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return CacheCode.CACHE_NOT_SUPPERT
     end
     local cache_obj = cache_list[primary_key]
-    if not cache_obj then
+    if cache_obj then
+        if cache_obj:is_holding() then
+            log_err("[CacheMgr][get_cache_obj] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
+            return CacheCode.CACHE_IS_HOLDING
+        end
+        if (not load_mode) and (quanta_id ~= cache_obj:get_lock_node_id()) then
+            log_err("[CacheMgr][get_cache_obj] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
+            return CacheCode.CACHE_KEY_LOCK_FAILD
+        end
+        cache_obj:active()
+        return SUCCESS, cache_obj
+    end
+    if load_mode then
         local conf = self.cache_confs[cache_name]
         local code, cobj = self:load_cache_impl(cache_list, conf, primary_key)
         if check_failed(code) then
             return code
         end
         cobj:set_lock_node_id(quanta_id)
-        cache_obj = cobj
-    else
-        if cache_obj:is_holding() then
-            log_err("[CacheMgr][get_cache_obj] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
-            return CacheCode.CACHE_IS_HOLDING
-        end
-        cache_obj:active()
+        return SUCCESS, cobj
     end
-    if quanta_id ~= cache_obj:get_lock_node_id() then
-        log_err("[CacheMgr][get_cache_obj] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
-        return CacheCode.CACHE_KEY_LOCK_FAILD
-    end
-    log_info("[CacheMgr][get_cache_obj] cache=%s,primary=%s", cache_name, primary_key)
-    return SUCCESS, cache_obj
+    log_err("[CacheMgr][get_cache_obj] cache object not exist! cache_name=%s,primary=%s", cache_name, primary_key)
+    return CacheCode.CACHE_IS_NOT_EXIST
 end
 
 function CacheMgr:rpc_cache_load(quanta_id, req_data)
     local cache_name, primary_key = tunpack(req_data)
-    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key)
+    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, true)
     if SUCCESS ~= code then
-        log_err("[CacheMgr][rpc_cache_update] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
+        log_err("[CacheMgr][rpc_cache_load] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
     end
+    cache_obj:set_lock_node_id(quanta_id)
     log_info("[CacheMgr][rpc_cache_load] cache=%s,primary=%s", cache_name, primary_key)
     return SUCCESS, cache_obj:pack()
 end
@@ -196,7 +199,7 @@ function CacheMgr:rpc_cache_flush(quanta_id, req_data)
     local cache_name, primary_key = tunpack(req_data)
     local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key)
     if SUCCESS ~= code then
-        log_err("[CacheMgr][rpc_cache_delete] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
+        log_err("[CacheMgr][rpc_cache_flush] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
     end
     if cache_obj:save() then

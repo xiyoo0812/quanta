@@ -3,6 +3,7 @@ local lcrypt        = require("lcrypt")
 
 local log_err       = logger.err
 local log_info      = logger.info
+local log_warn      = logger.warn
 local qxpcall       = quanta.xpcall
 local env_status    = environ.status
 local env_number    = environ.number
@@ -202,6 +203,7 @@ function NetServer:on_socket_recv(session, cmd_id, flag, session_id, data)
     local cmd_cd_time = self:get_cmd_cd(cmd_id)
     local command_times = session.command_times
     if command_times[cmd_id] and now_ms - command_times[cmd_id] < cmd_cd_time then
+        log_warn("[NetServer][on_socket_recv] session trigger cmd(%s) cd ctrl, will be drop.", cmd_id)
         --协议CD
         return
     end
@@ -210,6 +212,7 @@ function NetServer:on_socket_recv(session, cmd_id, flag, session_id, data)
     -- 解码
     local body, cmd_name = self:decode(cmd_id, data, flag)
     if not body then
+        log_warn("[NetServer][on_socket_recv] cmd(%s) parse failed.", cmd_id)
         return
     end
     if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
@@ -243,6 +246,7 @@ function NetServer:check_serial(session, cserial)
         local escape_time = cur_time - session.last_fc_time
         -- 检查是否超过配置
         if session.fc_packet / escape_time > fc_package or session.fc_bytes / escape_time > fc_bytes then
+            log_warn("[NetServer][check_serial] session trigger package or bytes flowctrl line, will be closed.")
             self:close_session(session)
         end
         session.fc_packet = 0
