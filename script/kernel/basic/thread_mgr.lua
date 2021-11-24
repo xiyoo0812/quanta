@@ -32,12 +32,12 @@ function ThreadMgr:co_create(f)
     local co = tremove(self.coroutine_pool)
     if co == nil then
         co = co_create(function(...)
-            qxpcall(f, "[ThreadMgr][co_create] error: %s", ...)
+            qxpcall(f, "[ThreadMgr][co_create] fork, error: %s", ...)
             while true do
                 f = nil
                 tinsert(self.coroutine_pool, co)
                 f = co_yield()
-                qxpcall(f, "[ThreadMgr][co_create] error: %s", co_yield())
+                qxpcall(f, "[ThreadMgr][co_create] fork, error: %s", co_yield())
             end
         end)
     else
@@ -76,7 +76,7 @@ function ThreadMgr:update(now_ms)
         end
     end
     tsort(timeout_coroutines, function(a, b)
-        if mabs(a.session_id - b.session_id) > 0x7fff0000 then
+        if mabs(a.session_id - b.session_id) > 0x3fffffff then
             return a.session_id > b.session_id
         end
         return a.session_id < b.session_id
