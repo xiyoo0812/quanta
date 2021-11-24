@@ -1,6 +1,7 @@
 --thread_mgr.lua
 local select        = select
-local log_err       = logger.err
+local mabs          = math.abs
+local tsort         = table.sort
 local tremove       = table.remove
 local tunpack       = table.unpack
 local tinsert       = table.insert
@@ -9,21 +10,21 @@ local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running     -- 获取当前运行协程
-local tcopy         = table_ext.copy
 local qxpcall       = quanta.xpcall
+local log_err       = logger.err
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
 prop:reader("session_id", 1)
+prop:reader("coroutine_map", {})
 prop:reader("coroutine_pool", {})
-prop:reader("session_id_coroutine", {})
 
 function ThreadMgr:__init()
 end
 
 function ThreadMgr:size()
     local co_cur_max = #self.coroutine_pool
-    local co_cur_size = #self.session_id_coroutine + 1
+    local co_cur_size = #self.coroutine_map + 1
     return co_cur_size, co_cur_max
 end
 
@@ -31,12 +32,12 @@ function ThreadMgr:co_create(f)
     local co = tremove(self.coroutine_pool)
     if co == nil then
         co = co_create(function(...)
-            qxpcall(f, "fork error: %s", ...)
+            qxpcall(f, "[ThreadMgr][co_create] error: %s", ...)
             while true do
                 f = nil
                 tinsert(self.coroutine_pool, co)
                 f = co_yield()
-                qxpcall(f, "fork error: %s", co_yield())
+                qxpcall(f, "[ThreadMgr][co_create] error: %s", co_yield())
             end
         end)
     else
@@ -46,13 +47,13 @@ function ThreadMgr:co_create(f)
 end
 
 function ThreadMgr:response(session_id, ...)
-    local context = self.session_id_coroutine[session_id]
+    local context = self.coroutine_map[session_id]
     if not context then
-        log_err("[ThreadMgr][response]unknown session_id(%s) response!", session_id)
-        self.session_id_coroutine[session_id] = nil
+        log_err("[ThreadMgr][response] unknown session_id(%s) response!", session_id)
+        self.coroutine_map[session_id] = nil
         return
     end
-    self.session_id_coroutine[session_id] = nil
+    self.coroutine_map[session_id] = nil
     self:resume(context.co, ...)
 end
 
@@ -62,20 +63,31 @@ end
 
 function ThreadMgr:yield(session_id, title, ms_to, ...)
     local context = {co = co_running(), title = title, to = quanta.now_ms + ms_to}
-    self.session_id_coroutine[session_id] = context
+    self.coroutine_map[session_id] = context
     return co_yield(...)
 end
 
 function ThreadMgr:update(now_ms)
-    local session_id_coroutine = tcopy(self.session_id_coroutine)
-    for session_id, context in pairs(session_id_coroutine) do
+    local timeout_coroutines = {}
+    for session_id, context in pairs(self.coroutine_map) do
         if context.to <= now_ms then
-            if context.title then
-                log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
-            end
-            self.session_id_coroutine[session_id] = nil
-            self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
+            context.session_id = session_id
+            tinsert(timeout_coroutines, context)
         end
+    end
+    tsort(timeout_coroutines, function(a, b)
+        if mabs(a.session_id - b.session_id) > 0x7fff0000 then
+            return a.session_id > b.session_id
+        end
+        return a.session_id < b.session_id
+    end)
+    for _, context in pairs(timeout_coroutines) do
+        local session_id = context.session_id
+        if context.title then
+            log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
+        end
+        self.coroutine_map[session_id] = nil
+        self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
     end
 end
 
