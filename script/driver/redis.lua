@@ -21,33 +21,33 @@ local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
-local function _async_call(sessions, quote)
+local function _async_call(context, quote)
     local session_id = thread_mgr:build_session_id()
-    sessions:push(session_id)
+    context.session_id = session_id
     return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
 end
 
 local _redis_resp_parser = {
-    ["+"] = function(sessions, body)
+    ["+"] = function(context, body)
         --simple string
         return true, body
     end,
-    ["-"] = function(sessions, body)
+    ["-"] = function(context, body)
         -- error reply
         return false, body
     end,
-    [":"] = function(sessions, body)
+    [":"] = function(context, body)
         -- integer reply
         return true, tonumber(body)
     end,
-    ["$"] = function(sessions, body)
+    ["$"] = function(context, body)
         -- bulk string
         if tonumber(body) < 0 then
             return true, nil
         end
-        return _async_call(sessions, "redis parse bulk string")
+        return _async_call(context, "redis parse bulk string")
     end,
-    ["*"] = function(sessions, body)
+    ["*"] = function(context, body)
         -- array
         local length = tonumber(body)
         if length < 0 then
@@ -56,7 +56,7 @@ local _redis_resp_parser = {
         local array = {}
         local noerr = true
         for i = 1, length do
-            local ok, value = _async_call(sessions, "redis parse array")
+            local ok, value = _async_call(context, "redis parse array")
             if not ok then
                 noerr = false
             end
@@ -299,25 +299,27 @@ local redis_commands = {
 local RedisDB = class()
 local prop = property(RedisDB)
 prop:reader("ip", nil)          --redis地址
-prop:reader("sock", nil)        --网络连接对象
-prop:reader("ssock", nil)       --网络连接对象
-prop:reader("index", "")        --db index
+prop:reader("index", 0)         --db index
 prop:reader("port", 6379)       --redis端口
 prop:reader("passwd", nil)      --passwd
-prop:reader("sessions", nil)    --sessions
-prop:reader("ssessions", nil)   --ssessions
-prop:reader("subscribes", {})   --subscribes
-prop:reader("psubscribes", {})  --psubscribes
+prop:reader("subscribes", {})           --subscribes
+prop:reader("psubscribes", {})          --psubscribes
+prop:reader("command_sock", nil)        --网络连接对象
+prop:reader("subscribe_sock", nil)      --网络连接对象
+prop:reader("command_sessions", nil)    --command_sessions
+prop:reader("subscribe_sessions", nil)  --subscribe_sessions
+prop:reader("subscribe_context", nil)  --subscribe_sessions
 
 function RedisDB:__init(conf)
     self.ip = conf.host
     self.port = conf.port
     self.passwd = conf.passwd
     self.index = conf.db
-    self.sessions = QueueFIFO()
-    self.ssessions = QueueFIFO()
-    self.sock = Socket(self)
-    self.ssock = Socket(self)
+    self.command_sock = Socket(self)
+    self.subscribe_sock = Socket(self)
+    self.command_sessions = QueueFIFO()
+    self.subscribe_sessions = QueueFIFO()
+    self.subscribe_context = { name = "subcribe_monitor" }
     --update
     update_mgr:attach_hour(self)
     update_mgr:attach_second(self)
@@ -332,24 +334,24 @@ end
 function RedisDB:setup()
     for cmd, param in pairs(redis_commands) do
         RedisDB[cmd] = function(this, ...)
-            return this:commit(this.sock, param, ...)
+            return this:commit(this.command_sock, param, ...)
         end
     end
     for cmd, param in pairs(subscribe_commands) do
         RedisDB[cmd] = function(this, ...)
-            return this:commit(this.ssock, param, ...)
+            return this:commit(this.subscribe_sock, param, ...)
         end
     end
 end
 
 function RedisDB:close()
-    if self.sock then
-        self.sessions:clear()
-        self.sock:close()
+    if self.command_sock then
+        self.command_sessions:clear()
+        self.command_sock:close()
     end
-    if self.ssock then
-        self.ssessions:clear()
-        self.ssock:close()
+    if self.subscribe_sock then
+        self.subscribe_sessions:clear()
+        self.subscribe_sock:close()
     end
 end
 
@@ -381,11 +383,11 @@ function RedisDB:on_hour()
 end
 
 function RedisDB:on_second()
-    if not self.sock:is_alive() then
-        self:login(self.sock, "query")
+    if not self.command_sock:is_alive() then
+        self:login(self.command_sock, "query")
     end
-    if not self.ssock:is_alive() then
-        if self:login(self.ssock, "subcribe") then
+    if not self.subscribe_sock:is_alive() then
+        if self:login(self.subscribe_sock, "subcribe") then
             for channel in pairs(self.subscribes) do
                 self:subscribe(channel)
             end
@@ -397,16 +399,16 @@ function RedisDB:on_second()
 end
 
 function RedisDB:on_socket_error(sock, token, err)
-    if sock == self.sock then
-        for _, session_id in self.sessions:iter() do
+    if sock == self.command_sock then
+        for _, session_id in self.command_sessions:iter() do
             thread_mgr:response(session_id, false, err)
         end
-        self.sessions:clear()
+        self.command_sessions:clear()
     else
-        for _, session_id in self.ssessions:iter() do
+        for _, session_id in self.subscribe_sessions:iter() do
             thread_mgr:response(session_id, false, err)
         end
-        self.ssessions:clear()
+        self.subscribe_sessions:clear()
     end
 end
 
@@ -419,18 +421,20 @@ function RedisDB:on_socket_recv(sock, token)
         sock:pop(length)
         thread_mgr:fork(function()
             local ok, res = true, line
-            local cur_sessions = (sock == self.sock) and self.sessions or self.ssessions
-            local session_id = cur_sessions:pop()
-            local prefix, body = ssub(line, 1, 1), ssub(line, 2)
-            local prefix_func = _redis_resp_parser[prefix]
-            if prefix_func then
-                ok, res = prefix_func(cur_sessions, body)
-            end
-            if ok and sock == self.ssock then
-                self:on_suncribe_reply(res)
-            end
-            if session_id then
-                thread_mgr:response(session_id, ok, res)
+            local context = self:find_context(sock)
+            if context then
+                local session_id = context.session_id
+                local prefix, body = ssub(line, 1, 1), ssub(line, 2)
+                local prefix_func = _redis_resp_parser[prefix]
+                if prefix_func then
+                    ok, res = prefix_func(context, body)
+                end
+                if ok and sock == self.subscribe_sock then
+                    self:on_suncribe_reply(res)
+                end
+                if session_id then
+                    thread_mgr:response(session_id, ok, res)
+                end
             end
         end)
     end
@@ -446,6 +450,17 @@ function RedisDB:on_suncribe_reply(res)
     end
 end
 
+function RedisDB:find_context(sock)
+    local cur_sessions = (sock == self.command_sock) and self.command_sessions or self.subscribe_sessions
+    local context = cur_sessions:head()
+    if context then
+        return context
+    end
+    if sock == self.subscribe_sock then
+        return self.subscribe_context
+    end
+end
+
 function RedisDB:commit(sock, param, ...)
     if not sock then
         return false, "sock isn't connected"
@@ -454,8 +469,13 @@ function RedisDB:commit(sock, param, ...)
     if not sock:send(packet) then
         return false, "send request failed"
     end
-    local cur_sessions = (sock == self.sock) and self.sessions or self.ssessions
-    local ok, res = _async_call(cur_sessions, "redis commit")
+    local context = { name = param.cmd }
+    local cur_sessions = (sock == self.command_sock) and self.command_sessions or self.subscribe_sessions
+    cur_sessions:push(context)
+    local ok, res, session_id = _async_call(context, "redis commit")
+    if not session_id then
+        cur_sessions:pop()
+    end
     local convertor = param.convertor
     if ok and convertor then
         return ok, convertor(res)
@@ -467,12 +487,12 @@ function RedisDB:execute(cmd, ...)
     if RedisDB[cmd] then
         return self[cmd](self, ...)
     end
-    return self:commit(self.sock, { cmd = supper(cmd) }, ...)
+    return self:commit(self.command_sock, { cmd = supper(cmd) }, ...)
 end
 
 function RedisDB:ping()
-    self:commit(self.sock, { cmd = "PING" })
-    self:commit(self.ssock, { cmd = "PING" })
+    self:commit(self.command_sock, { cmd = "PING" })
+    self:commit(self.subscribe_sock, { cmd = "PING" })
 end
 
 function RedisDB:auth(socket)

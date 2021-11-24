@@ -2,7 +2,7 @@
 
 local QueueFIFO = class()
 local prop = property(QueueFIFO)
-prop:reader("head", 1)
+prop:reader("first", 1)
 prop:reader("tail", 0)
 prop:reader("datas", {})
 
@@ -11,24 +11,28 @@ end
 
 function QueueFIFO:clear()
     self.datas = {}
-    self.head = 1
+    self.first = 1
     self.tail = 0
 end
 
 function QueueFIFO:size()
-    return self.tail - self.head + 1
+    return self.tail - self.first + 1
 end
 
 function QueueFIFO:empty()
-    return self.tail + 1 == self.head
+    return self.tail + 1 == self.first
 end
 
-function QueueFIFO:peek(pos)
-    local index = self.head - 1 + pos
+function QueueFIFO:head()
+    return self:elem(1)
+end
+
+function QueueFIFO:elem(pos)
+    local index = self.first - 1 + pos
     if index > self.tail then
-        return false
+        return
     end
-    return true, self.datas[index]
+    return self.datas[index]
 end
 
 function QueueFIFO:push(value)
@@ -37,24 +41,24 @@ function QueueFIFO:push(value)
 end
 
 function QueueFIFO:pop()
-    local head, tail = self.head, self.tail
-    if head > tail then
+    local first, tail = self.first, self.tail
+    if first > tail then
         return
     end
-    local value = self.datas[head]
-    self.datas[head] = nil
-    self.head = head + 1
+    local value = self.datas[first]
+    self.datas[first] = nil
+    self.first = first + 1
     return value
 end
 
 --迭代器
 function QueueFIFO:iter()
     local datas = self.datas
-    local index, tail = self.head - 1, self.tail
+    local index, tail = self.first - 1, self.tail
     local function _iter()
         index = index + 1
         if index <= tail then
-            return index - self.head + 1, datas[index]
+            return index - self.first + 1, datas[index]
         end
     end
     return _iter
