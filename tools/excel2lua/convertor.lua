@@ -66,6 +66,7 @@ end
 
 local value_func = {
     ["int"] = conv_number,
+    ["float"] = conv_number,
     ["byte"] = conv_integer,
     ["bool"] = function(value)
         return value == "1"

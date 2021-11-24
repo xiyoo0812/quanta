@@ -5,6 +5,7 @@ local ipairs        = ipairs
 local sformat       = string.format
 local tinsert       = table.insert
 local tconcat       = table.concat
+local log_warn      = logger.warn
 local log_err       = logger.err
 
 local TABLE_MAX_INDEX = 3
@@ -64,9 +65,15 @@ end
 -- ...必须与初始化index对应。
 function ConfigTable:find_one(...)
     local row_index = tconcat({...}, "@@")
-    if row_index then
-        return self.rows[row_index]
+    if not row_index then
+        log_warn("[ConfigTable][find_one] row index is nil.")
+        return
     end
+    local row = self.rows[row_index]
+    if not row then
+        log_warn("[ConfigTable][find_one] row data not found. index=%s", row_index)
+    end
+    return row
 end
 
 -- 获取一项的指定key值，
