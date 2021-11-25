@@ -78,7 +78,9 @@ function ThreadMgr:update(now_ms)
         local context = self.coroutine_map[session_id]
         if context then
             self.coroutine_map[session_id] = nil
-            log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
+            if context.title then
+                log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
+            end
             self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
         end
     end

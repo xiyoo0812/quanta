@@ -23,6 +23,9 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local function _async_call(context, quote)
     local session_id = thread_mgr:build_session_id()
+    if not context.commit_id then
+        context.commit_id = session_id
+    end
     context.session_id = session_id
     return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
 end
@@ -313,8 +316,8 @@ prop:reader("subscribe_context", nil)  --subscribe_sessions
 function RedisDB:__init(conf)
     self.ip = conf.host
     self.port = conf.port
+    self.index = conf.index
     self.passwd = conf.passwd
-    self.index = conf.db
     self.command_sock = Socket(self)
     self.subscribe_sock = Socket(self)
     self.command_sessions = QueueFIFO()
@@ -421,8 +424,8 @@ function RedisDB:on_socket_recv(sock, token)
         sock:pop(length)
         thread_mgr:fork(function()
             local ok, res = true, line
-            local context = self:find_context(sock)
-            if context then
+            local context, cur_sessions = self:find_context(sock)
+            if context and cur_sessions then
                 local session_id = context.session_id
                 local prefix, body = ssub(line, 1, 1), ssub(line, 2)
                 local prefix_func = _redis_resp_parser[prefix]
@@ -433,6 +436,9 @@ function RedisDB:on_socket_recv(sock, token)
                     self:on_suncribe_reply(res)
                 end
                 if session_id then
+                    if session_id == context.commit_id then
+                        cur_sessions:pop()
+                    end
                     thread_mgr:response(session_id, ok, res)
                 end
             end
@@ -454,10 +460,10 @@ function RedisDB:find_context(sock)
     local cur_sessions = (sock == self.command_sock) and self.command_sessions or self.subscribe_sessions
     local context = cur_sessions:head()
     if context then
-        return context
+        return context, cur_sessions
     end
     if sock == self.subscribe_sock then
-        return self.subscribe_context
+        return self.subscribe_context, cur_sessions
     end
 end
 
@@ -472,10 +478,7 @@ function RedisDB:commit(sock, param, ...)
     local context = { name = param.cmd }
     local cur_sessions = (sock == self.command_sock) and self.command_sessions or self.subscribe_sessions
     cur_sessions:push(context)
-    local ok, res, session_id = _async_call(context, "redis commit")
-    if not session_id then
-        cur_sessions:pop()
-    end
+    local ok, res = _async_call(context, "redis commit")
     local convertor = param.convertor
     if ok and convertor then
         return ok, convertor(res)
