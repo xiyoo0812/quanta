@@ -15,6 +15,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local sformat       = string.format
 local sunpack       = string.unpack
+local tpack         = table.pack
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local tointeger     = math.tointeger
@@ -233,9 +234,14 @@ local store_types = {
     end
 }
 
-local function _async_call(self, quote, ...)
+local function _async_call(context, quote, callback, ...)
     local session_id = thread_mgr:build_session_id()
-    self.sessions:push({ session_id, ... })
+    if not context.commit_id then
+        context.commit_id = session_id
+    end
+    context.args = { ... }
+    context.callback = callback
+    context.session_id = session_id
     return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
 end
 
@@ -429,7 +435,7 @@ local function _parae_packet_type(buff)
     return typ
 end
 
-local function _recv_field_resp(self, packet, typ)
+local function _recv_field_resp(context, packet, typ)
     if typ == "EOF" then
         return true
     end
@@ -439,7 +445,7 @@ local function _recv_field_resp(self, packet, typ)
     return _parse_not_data_packet(packet, typ)
 end
 
-local function _recv_rows_resp(self, packet, typ, fields, binary)
+local function _recv_rows_resp(context, packet, typ, fields, binary)
     if typ == "EOF" then
         local _, status_flags = _parse_eof_packet(packet)
         if status_flags & SERVER_MORE_RESULTS_EXISTS ~= 0 then
@@ -457,7 +463,7 @@ local function _recv_rows_resp(self, packet, typ, fields, binary)
 end
 
 --result_set报文
-local function _parse_result_set_packet(self, packet, ignores, binary)
+local function _parse_result_set_packet(context, packet, ignores, binary)
     --Result Set Header
     --1-9 byte Field结构计数field_count
     local _, pos_field = _from_length_coded_bin(packet, 1)
@@ -466,7 +472,7 @@ local function _parse_result_set_packet(self, packet, ignores, binary)
     -- Field结构
     local fields = {}
     while true do
-        local ok, field = _async_call(self, "recv field packet", _recv_field_resp)
+        local ok, field = _async_call(context, "recv field packet", _recv_field_resp)
         if not ok then
             return nil, field
         end
@@ -479,7 +485,7 @@ local function _parse_result_set_packet(self, packet, ignores, binary)
     -- Row Data
     local rows = {}
     while true do
-        local rok, row = _async_call(self, "recv row packet", _recv_rows_resp, fields, binary)
+        local rok, row = _async_call(context, "recv row packet", _recv_rows_resp, fields, binary)
         if not rok then
             return nil, row
         end
@@ -494,9 +500,9 @@ local function _parse_result_set_packet(self, packet, ignores, binary)
     return rows
 end
 
-local function _recv_result_set_resp(self, packet, typ, ignores, binary)
+local function _recv_result_set_resp(context, packet, typ, ignores, binary)
     if typ == "DATA" then
-        local rows, rerr = _parse_result_set_packet(self, packet, ignores, binary)
+        local rows, rerr = _parse_result_set_packet(context, packet, ignores, binary)
         if not rows then
             return nil, rerr
         end
@@ -505,8 +511,8 @@ local function _recv_result_set_resp(self, packet, typ, ignores, binary)
     return _parse_not_data_packet(packet, typ)
 end
 
-local function _recv_query_resp(self, packet, typ, ignores, binary)
-    local res, err = _recv_result_set_resp(self, packet, typ, ignores, binary)
+local function _recv_query_resp(context, packet, typ, ignores, binary)
+    local res, err = _recv_result_set_resp(context, packet, typ, ignores, binary)
     if not res then
         return false, err
     end
@@ -515,7 +521,7 @@ local function _recv_query_resp(self, packet, typ, ignores, binary)
     end
     local multiresultset = { res }
     while err == "again" do
-        res, err = _async_call(self, "recv resultset packet", _recv_result_set_resp, ignores, binary)
+        res, err = _async_call(context, "recv resultset packet", _recv_result_set_resp, ignores, binary)
         if not res then
             return false, err
         end
@@ -525,7 +531,7 @@ local function _recv_query_resp(self, packet, typ, ignores, binary)
     return true, multiresultset
 end
 
-local function _recv_auth_resp(self, packet, typ)
+local function _recv_auth_resp(context, packet, typ)
     if typ == "ERR" then
         return false, _parse_err_packet(packet)
     end
@@ -535,7 +541,7 @@ local function _recv_auth_resp(self, packet, typ)
     return true, packet
 end
 
-local function _recv_prepare_resp(self, packet, typ)
+local function _recv_prepare_resp(context, packet, typ)
     if typ == "ERR" then
         return false, _parse_err_packet(packet)
     end
@@ -547,7 +553,7 @@ local function _recv_prepare_resp(self, packet, typ)
     local params, fields = {}, {}
     if param_count > 0 then
         while true do
-            local ok, field = _async_call(self, "recv field packet", _recv_field_resp)
+            local ok, field = _async_call(context, "recv field packet", _recv_field_resp)
             if not ok then
                 return false, field
             end
@@ -559,7 +565,7 @@ local function _recv_prepare_resp(self, packet, typ)
     end
     if field_count > 0 then
         while true do
-            local ok, field = _async_call(self, "recv field packet", _recv_field_resp)
+            local ok, field = _async_call(context, "recv field packet", _recv_field_resp)
             if not ok then
                 return false, field
             end
@@ -576,13 +582,13 @@ end
 
 local MysqlDB = class()
 local prop = property(MysqlDB)
-prop:reader("ip", nil)      --mysql地址
-prop:reader("sock", nil)    --网络连接对象
-prop:reader("name", "")     --dbname
-prop:reader("port", 3306)   --mysql端口
-prop:reader("user", nil)     --user
-prop:reader("passwd", nil)   --passwd
-prop:reader("packet_no", 0) --passwd
+prop:reader("ip", nil)          --mysql地址
+prop:reader("sock", nil)        --网络连接对象
+prop:reader("name", "")         --dbname
+prop:reader("port", 3306)       --mysql端口
+prop:reader("user", nil)        --user
+prop:reader("passwd", nil)      --passwd
+prop:reader("packet_no", 0)     --passwd
 prop:reader("sessions", nil)                --sessions
 prop:accessor("charset", "_default")        --charset
 prop:accessor("max_packet_size", 1024*1024) --max_packet_size,1mb
@@ -634,7 +640,9 @@ function MysqlDB:auth()
     if not self.passwd or not self.user or not self.name then
         return false, "user or password or dbname not config!"
     end
-    local ok, packet = _async_call(self, "recv auth packet", _recv_auth_resp)
+    local context = { cmd = "auth" }
+    self.sessions:push(context)
+    local ok, packet = _async_call(context, "recv auth packet", _recv_auth_resp)
     if not ok then
         return false, packet
     end
@@ -689,9 +697,8 @@ end
 
 function MysqlDB:on_socket_error(sock, token, err)
     log_err("[MysqlDB][on_socket_error] mysql server lost")
-    for _, resp_data in self.sessions:iter() do
-        local session_id = resp_data[1]
-        thread_mgr:response(session_id, false, err)
+    for _, context in self.sessions:iter() do
+        thread_mgr:response(context.session_id, false, err)
     end
     self.sessions:clear()
 end
@@ -717,26 +724,36 @@ function MysqlDB:on_socket_recv(sock, token)
         end
         sock:pop(4 + length)
         --收到一个完整包
-        local resp_data = self.sessions:pop()
-        if resp_data then
+        local context = self.sessions:head()
+        if context then
             thread_mgr:fork(function()
-                local session_id, mysql_response = resp_data[1], resp_data[2]
+                local callback = context.callback
+                local session_id = context.session_id
                 local typ, err = _parae_packet_type(bdata)
                 if not typ then
+                    if session_id == context.commit_id then
+                        self.sessions:pop()
+                    end
                     thread_mgr:response(session_id, false, err)
                     return
                 end
-                thread_mgr:response(session_id, mysql_response(self, bdata, typ, tunpack(resp_data, 3)))
+                local result = tpack(callback(context, bdata, typ, tunpack(context.args)))
+                if session_id == context.commit_id then
+                    self.sessions:pop()
+                end
+                thread_mgr:response(session_id, tunpack(result))
             end)
         end
     end
 end
 
-function MysqlDB:request(packet, mysql_response, quote, param)
+function MysqlDB:request(packet, callback, quote, param)
     if not self.sock:send(packet) then
         return false, "send request failed"
     end
-    return _async_call(self, quote, mysql_response, param)
+    local context = { cmd = quote }
+    self.sessions:push(context)
+    return _async_call(context, quote, callback, param)
 end
 
 function MysqlDB:query(query, ignores)

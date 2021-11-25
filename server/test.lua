@@ -20,5 +20,5 @@ quanta.startup(function()--初始化test
     import("test/stdfs_test.lua")
     import("test/cmdline_test.lua")
     ]]
-    import("test/redis_test.lua")
+    import("test/mysql_test.lua")
 end)

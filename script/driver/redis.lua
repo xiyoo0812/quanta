@@ -46,7 +46,7 @@ local _redis_resp_parser = {
     ["$"] = function(context, body)
         -- bulk string
         if tonumber(body) < 0 then
-            return true, nil
+            return true
         end
         return _async_call(context, "redis parse bulk string")
     end,
@@ -54,7 +54,7 @@ local _redis_resp_parser = {
         -- array
         local length = tonumber(body)
         if length < 0 then
-            return true, nil
+            return true
         end
         local array = {}
         local noerr = true
@@ -403,13 +403,13 @@ end
 
 function RedisDB:on_socket_error(sock, token, err)
     if sock == self.command_sock then
-        for _, session_id in self.command_sessions:iter() do
-            thread_mgr:response(session_id, false, err)
+        for _, context in self.command_sessions:iter() do
+            thread_mgr:response(context.session_id, false, err)
         end
         self.command_sessions:clear()
     else
-        for _, session_id in self.subscribe_sessions:iter() do
-            thread_mgr:response(session_id, false, err)
+        for _, context in self.subscribe_sessions:iter() do
+            thread_mgr:response(context.session_id, false, err)
         end
         self.subscribe_sessions:clear()
     end
@@ -422,10 +422,10 @@ function RedisDB:on_socket_recv(sock, token)
             break
         end
         sock:pop(length)
-        thread_mgr:fork(function()
-            local ok, res = true, line
-            local context, cur_sessions = self:find_context(sock)
-            if context and cur_sessions then
+        local context, cur_sessions = self:find_context(sock)
+        if context and cur_sessions then
+            thread_mgr:fork(function()
+                local ok, res = true, line
                 local session_id = context.session_id
                 local prefix, body = ssub(line, 1, 1), ssub(line, 2)
                 local prefix_func = _redis_resp_parser[prefix]
@@ -441,8 +441,8 @@ function RedisDB:on_socket_recv(sock, token)
                     end
                     thread_mgr:response(session_id, ok, res)
                 end
-            end
-        end)
+            end)
+        end
     end
 end
 
