@@ -74,7 +74,7 @@ function OaimNotify:notify(title, context, ...)
             return
         end
         notify.count = notify.count + 1
-        self[interface](title, context, ...)
+        self[interface](self, title, context, ...)
     end
 end
 
