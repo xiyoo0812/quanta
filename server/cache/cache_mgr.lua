@@ -62,7 +62,7 @@ function CacheMgr:setup()
         end
     end
     -- 创建WheelMap
-    local WheelMap = import("kernel/basic/wheel_map.lua")
+    local WheelMap = import("container/wheel_map.lua")
     self.dirty_map = WheelMap(10)
 end
 
@@ -91,7 +91,7 @@ end
 
 --缓存加载
 function CacheMgr:load_cache_impl(cache_list, conf, primary_key)
-    local CacheObj = import("kernel/cache/cache_obj.lua")
+    local CacheObj = import("cache/cache_obj.lua")
     local cache_obj = CacheObj(conf, primary_key)
     cache_list[primary_key] = cache_obj
     local code = cache_obj:load()

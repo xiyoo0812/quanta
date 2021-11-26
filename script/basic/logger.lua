@@ -36,7 +36,7 @@ function logger.filter(level)
     end
 end
 
-local function logger_output(method, fmt, extend, notify, swline, ...)
+local function logger_output(name, method, fmt, extend, notify, swline, ...)
     local content
     if extend then
         local args = tpack(...)
@@ -50,7 +50,7 @@ local function logger_output(method, fmt, extend, notify, swline, ...)
         content = sformat(fmt, ...)
     end
     if notify and om_notifier then
-        om_notifier:notify(method, content)
+        om_notifier:notify(name, content)
     end
     return method(driver, content)
 end
@@ -69,7 +69,7 @@ for lvl, conf in pairs(LOG_LEVEL_METHOD) do
         if driver:is_filter(lvl) then
             return false
         end
-        local ok, res = pcall(logger_output, method, fmt, extend, notify, swline, ...)
+        local ok, res = pcall(logger_output, name, method, fmt, extend, notify, swline, ...)
         if not ok then
             local info = dgetinfo(2, "S")
             driver:warn(sformat("[logger][%s] format failed: %s, source(%s:%s)", name, res, info.short_src, info.linedefined))

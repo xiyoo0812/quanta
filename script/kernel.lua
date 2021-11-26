@@ -71,14 +71,14 @@ function quanta.init()
     end
     if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
-        import("kernel/monitor/monitor_agent.lua")
-        import("kernel/monitor/netlog_mgr.lua")
+        import("agent/monitor_agent.lua")
+        import("kernel/admin/netlog_mgr.lua")
     end
 end
 
 --初始化gm
 function quanta.init_gm(gm_service)
-    import("kernel/admin/gm_agent.lua")
+    import("agent/gm_agent.lua")
     if gm_service then
         quanta.gm_agent:watch_service(gm_service)
     end

@@ -1,5 +1,5 @@
 --rmsg_mgr.lua
-import("kernel/store/mongo_agent.lua")
+import("agent/mongo_agent.lua")
 local bson          = require("bson")
 local lcrypt        = require("lcrypt")
 

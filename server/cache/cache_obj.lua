@@ -12,7 +12,7 @@ local SUCCESS       = KernCode.SUCCESS
 
 local mongo_mgr     = quanta.get("mongo_mgr")
 
-local CacheRow      = import("kernel/cache/cache_row.lua")
+local CacheRow      = import("cache/cache_row.lua")
 
 local CacheObj = class()
 local prop = property(CacheObj)
