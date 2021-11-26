@@ -24,7 +24,6 @@ function quanta.xpcall(func, format, ...)
     local ok, err = xpcall(func, dtraceback, ...)
     if not ok then
         log_err(format, err)
-        event_mgr:notify_trigger("on_feishu_log", "代码异常", err)
     end
 end
 
@@ -46,6 +45,6 @@ function quanta.try_call(func, time, ...)
     return false
 end
 
---quanta全局变量名字空间
-quanta_const    = quanta_const or {}
-
+function quanta.oaim_notify(...)
+    event_mgr:notify_listener("oaim_notify", ...)
+end

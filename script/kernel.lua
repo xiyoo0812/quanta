@@ -67,10 +67,7 @@ function quanta.init()
     if service.router(quanta.service_id) then
         --加载router配置
         import("kernel/basic/router_mgr.lua")
-        if env_get("QUANTA_FEISHU_URL") then
-            --飞书上报
-            import("driver/feishu.lua")
-        end
+        import("utility/oaim_notify.lua")
     end
     if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
