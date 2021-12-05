@@ -5,6 +5,7 @@ local QueueFIFO     = import("container/queue_fifo.lua")
 local tonumber      = tonumber
 local log_err       = logger.err
 local log_info      = logger.info
+local log_debug     = logger.debug
 local ssub          = string.sub
 local sgsub         = string.gsub
 local supper        = string.upper
@@ -14,6 +15,8 @@ local tpack         = table.pack
 
 local NetwkTime     = enum("NetwkTime")
 local DB_TIMEOUT    = NetwkTime.DB_CALL_TIMEOUT
+local NT_TIMEOUT    = NetwkTime.NETWORK_TIMEOUT
+
 
 local LineTitle     = "\r\n"
 
@@ -25,9 +28,12 @@ local function _async_call(context, quote)
     local session_id = thread_mgr:build_session_id()
     if not context.commit_id then
         context.commit_id = session_id
+        log_info("[RedisDB][_async_call] push cmd:%s session_id: %s", context.name, session_id)
     end
     context.session_id = session_id
-    return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+    log_info("[RedisDB][_async_call] yield cmd:%s quote:%s, session_id: %s", context.name, quote, session_id)
+    local fquote = sformat("%s:%s", context.name, quote)
+    return thread_mgr:yield(session_id, fquote, DB_TIMEOUT)
 end
 
 local _redis_resp_parser = {
@@ -59,8 +65,11 @@ local _redis_resp_parser = {
         local array = {}
         local noerr = true
         for i = 1, length do
-            local ok, value = _async_call(context, "redis parse array")
+            local ok, value, session_id = _async_call(context, "redis parse array")
             if not ok then
+                if session_id then
+                    return ok, value, session_id
+                end
                 noerr = false
             end
             array[i] = value
@@ -386,11 +395,22 @@ function RedisDB:on_hour()
 end
 
 function RedisDB:on_second()
-    if not self.command_sock:is_alive() then
-        self:login(self.command_sock, "query")
+    local now = quanta.now
+    local command_sock = self.command_sock
+    local subscribe_sock = self.subscribe_sock
+    if command_sock:is_alive() then
+        if (now - command_sock:get_alive_time() >= NT_TIMEOUT) and (not self.command_sessions:empty()) then
+            command_sock:close()
+        end
+    else
+        self:login(command_sock, "query")
     end
-    if not self.subscribe_sock:is_alive() then
-        if self:login(self.subscribe_sock, "subcribe") then
+    if subscribe_sock:is_alive() then
+        if (now - subscribe_sock:get_alive_time() >= NT_TIMEOUT) and (not self.subscribe_sessions:empty()) then
+            subscribe_sock:close()
+        end
+    else
+        if self:login(subscribe_sock, "subcribe") then
             for channel in pairs(self.subscribes) do
                 self:subscribe(channel)
             end
@@ -425,20 +445,25 @@ function RedisDB:on_socket_recv(sock, token)
         local context, cur_sessions = self:find_context(sock)
         if context and cur_sessions then
             thread_mgr:fork(function()
-                local ok, res = true, line
+                local ok, res, cb_session_id = true, line, nil
+                log_debug("[RedisDB][response] parse cmd %s, line:%s!", context.name, line)
                 local session_id = context.session_id
                 local prefix, body = ssub(line, 1, 1), ssub(line, 2)
                 local prefix_func = _redis_resp_parser[prefix]
                 if prefix_func then
-                    ok, res = prefix_func(context, body)
+                    ok, res, cb_session_id = prefix_func(context, body)
                 end
                 if ok and sock == self.subscribe_sock then
                     self:on_suncribe_reply(res)
                 end
                 if session_id then
                     if session_id == context.commit_id then
-                        cur_sessions:pop()
+                        if not cb_session_id then
+                            log_debug("[RedisDB][response] pop cmd %s,commit_id:%s!", context.name, context.commit_id)
+                            cur_sessions:pop()
+                        end
                     end
+                    log_debug("[RedisDB][response] cmd %s, session_id:%s!", context.name, session_id)
                     thread_mgr:response(session_id, ok, res)
                 end
             end)
@@ -483,6 +508,7 @@ function RedisDB:commit(sock, param, ...)
     if ok and convertor then
         return ok, convertor(res)
     end
+    log_debug("[RedisDB][commit] cmd %s-> ok:%s res: %s!", param.cmd, ok, res)
     return ok, res
 end
 

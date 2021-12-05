@@ -15,6 +15,7 @@ local prop = property(Socket)
 prop:reader("ip", nil)
 prop:reader("host", nil)
 prop:reader("token", nil)
+prop:reader("alive_time", 0)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
 prop:reader("recvbuf", "")
@@ -87,6 +88,7 @@ function Socket:connect(ip, port)
     end
     self.session = session
     self.token = session.token
+    self.alive_time = quanta.now
     self.ip, self.port = ip, port
     --阻塞模式挂起
     return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
@@ -99,6 +101,7 @@ end
 
 function Socket:on_socket_recv(session, data)
     self.recvbuf = self.recvbuf .. data
+    self.alive_time = quanta.now
     if #self.recvbuf > 0 then
         self.host:on_socket_recv(self, self.token)
     end
@@ -140,11 +143,14 @@ function Socket:peek_line(line_flag, offset)
     offset = offset or 0
     local i, j = sfind(self.recvbuf, line_flag, offset + 1)
     if i then
-        return ssub(self.recvbuf, 1, i - 1), j
+        return ssub(self.recvbuf, offset + 1, i - 1), j - offset
     end
 end
 
 function Socket:pop(len)
+    if len <= 0 then
+        return
+    end
     if #self.recvbuf > len then
         self.recvbuf = ssub(self.recvbuf, len + 1)
     else

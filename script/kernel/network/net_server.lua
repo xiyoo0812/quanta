@@ -111,10 +111,10 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
 end
 
 -- 广播数据
-function NetServer:boardcast(cmd_id, data)
+function NetServer:broadcast(cmd_id, data)
     local body, pflag = self:encode(cmd_id, data, FlagMask.REQ)
     if not body then
-        log_err("[NetServer][boardcast] encode failed! cmd_id:%s", cmd_id)
+        log_err("[NetServer][broadcast] encode failed! cmd_id:%s", cmd_id)
         return false
     end
     for _, session in pairs(self.sessions) do

@@ -115,8 +115,8 @@ function RpcServer:send(client, rpc, ...)
     return client.call_rpc(0, FlagMask.REQ, rpc, ...)
 end
 
---boardcast接口
-function RpcServer:boardcast(rpc, ...)
+--broadcast接口
+function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
         client.call_rpc(0, FlagMask.REQ, rpc, ...)
     end

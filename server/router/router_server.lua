@@ -95,8 +95,8 @@ function RouterServer:on_socket_accept(server)
         log_err("[RouterServer][on_socket_accept] on_forward_error, session_id=%s", session_id)
         server.call(session_id, FlagMask.RES, quanta.id, "on_forward_error", false, KernCode.RPC_UNREACHABLE, "router con't find target!")
     end
-    server.on_forward_boardcast = function(session_id, boardcast_num)
-        server.call(session_id, FlagMask.RES, quanta.id, "on_forward_boardcast", true, KernCode.SUCCESS, boardcast_num)
+    server.on_forward_broadcast = function(session_id, broadcast_num)
+        server.call(session_id, FlagMask.RES, quanta.id, "on_forward_broadcast", true, KernCode.SUCCESS, broadcast_num)
     end
 end
 

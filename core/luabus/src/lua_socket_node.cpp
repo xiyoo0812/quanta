@@ -307,9 +307,9 @@ void lua_socket_node::on_recv(char* data, size_t data_len) {
             on_forward_error(&header);
         break;
     case msg_id::forward_broadcast: {
-        size_t boardcast_num = 0;
-        if (m_router->do_forward_broadcast(&header, m_token, data, data_len, boardcast_num))
-            on_forward_boardcast(&header, boardcast_num);
+        size_t broadcast_num = 0;
+        if (m_router->do_forward_broadcast(&header, m_token, data, data_len, broadcast_num))
+            on_forward_broadcast(&header, broadcast_num);
         else
             on_forward_error(&header);
     }
@@ -330,13 +330,13 @@ void lua_socket_node::on_forward_error(router_header* header) {
     }
 }
 
-void lua_socket_node::on_forward_boardcast(router_header* header, size_t boardcast_num) {
+void lua_socket_node::on_forward_broadcast(router_header* header, size_t broadcast_num) {
     if (header->session_id > 0) {
         lua_guard g(m_lvm);
-        if (!lua_get_object_function(m_lvm, this, "on_forward_boardcast"))
+        if (!lua_get_object_function(m_lvm, this, "on_forward_broadcast"))
             return;
         lua_pushinteger(m_lvm, header->session_id);
-        lua_pushinteger(m_lvm, boardcast_num);
+        lua_pushinteger(m_lvm, broadcast_num);
         lua_call_function(m_lvm, nullptr, 2, 0);
     }
 }

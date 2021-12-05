@@ -35,7 +35,7 @@ private:
     void on_call_pack(char* data, size_t data_len);
     void on_call_text(char* data, size_t data_len);
     void on_call(router_header* header, char* data, size_t data_len);
-    void on_forward_boardcast(router_header* header, size_t target_size);
+    void on_forward_broadcast(router_header* header, size_t target_size);
     void on_forward_error(router_header* header);
     size_t format_header(lua_State* L, BYTE* header_data, size_t data_len, msg_id msgid);
     size_t parse_header(BYTE* data, size_t data_len, uint64_t* msgid, router_header* header);

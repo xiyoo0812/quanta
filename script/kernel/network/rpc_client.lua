@@ -20,6 +20,7 @@ local prop = property(RpcClient)
 prop:reader("ip", nil)
 prop:reader("port", nil)
 prop:reader("alive", false)
+prop:reader("alive_time", 0)
 prop:reader("socket", nil)
 prop:reader("holder", nil)    --持有者
 function RpcClient:__init(holder, ip, port)
@@ -40,7 +41,7 @@ end
 
 --检测存活
 function RpcClient:check_lost(now)
-    if now - self.socket.alive_time > NetwkTime.ROUTER_TIMEOUT / 1000 then
+    if now - self.alive_time > NetwkTime.ROUTER_TIMEOUT / 1000 then
         self:close()
         return true
     end
@@ -129,7 +130,7 @@ end
 
 --rpc事件
 function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, source, rpc, ...)
-    socket.alive_time = quanta.now
+    self.alive_time = quanta.now
     if rpc == "on_heartbeat" then
         return self:on_heartbeat(...)
     end
@@ -163,7 +164,7 @@ function RpcClient:on_socket_connect(socket)
     --log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
     thread_mgr:fork(function()
         self.alive = true
-        socket.alive_time = quanta.now
+        self.alive_time = quanta.now
         self.holder:on_socket_connect(self)
     end)
 end
