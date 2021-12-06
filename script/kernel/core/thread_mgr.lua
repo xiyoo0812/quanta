@@ -12,6 +12,7 @@ local qxpcall       = quanta.xpcall
 local log_err       = logger.err
 
 local QueueFIFO     = import("container/queue_fifo.lua")
+local SyncLock      = import("utility/sync_lock.lua")
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
@@ -43,6 +44,7 @@ function ThreadMgr:lock(key)
         queue:push(co)
         co_yield()
     end
+    return SyncLock(self, key)
 end
 
 function ThreadMgr:unlock(key)
