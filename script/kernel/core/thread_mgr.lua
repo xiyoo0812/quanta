@@ -1,6 +1,5 @@
 --thread_mgr.lua
 local select        = select
-local tremove       = table.remove
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local tsize         = table_ext.size
@@ -12,29 +11,60 @@ local co_running    = coroutine.running     -- 获取当前运行协程
 local qxpcall       = quanta.xpcall
 local log_err       = logger.err
 
+local QueueFIFO     = import("container/queue_fifo.lua")
+
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
 prop:reader("session_id", 1)
 prop:reader("coroutine_map", {})
-prop:reader("coroutine_pool", {})
+prop:reader("syncqueue_map", {})
+prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
+    self.coroutine_pool = QueueFIFO()
 end
 
 function ThreadMgr:size()
-    local co_cur_max = #self.coroutine_pool
+    local co_cur_max = self.coroutine_pool:size()
     local co_cur_size = tsize(self.coroutine_map) + 1
     return co_cur_size, co_cur_max
 end
 
+function ThreadMgr:lock(key)
+    local queue = self.syncqueue_map[key]
+    if not queue then
+        queue = QueueFIFO()
+        self.syncqueue_map[key] = queue
+    end
+    local co = co_running()
+    if queue:empty() then
+        queue:push(co)
+    else
+        queue:push(co)
+        co_yield()
+    end
+end
+
+function ThreadMgr:unlock(key)
+    local queue = self.syncqueue_map[key]
+    if queue then
+        queue:pop()
+        if queue:empty() then
+            return
+        end
+        co_resume(queue:pop())
+    end
+end
+
 function ThreadMgr:co_create(f)
-    local co = tremove(self.coroutine_pool)
+    local pool = self.coroutine_pool
+    local co = pool:pop()
     if co == nil then
         co = co_create(function(...)
             qxpcall(f, "[ThreadMgr][co_create] fork error: %s", ...)
             while true do
                 f = nil
-                tinsert(self.coroutine_pool, co)
+                pool:push(co)
                 f = co_yield()
                 if type(f) == "function" then
                     qxpcall(f, "[ThreadMgr][co_create] fork error: %s", co_yield())

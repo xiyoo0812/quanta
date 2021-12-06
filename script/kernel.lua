@@ -11,7 +11,7 @@ import("utility/environ.lua")
 import("utility/constant.lua")
 import("utility/utility.lua")
 import("kernel/config/config_mgr.lua")
-import("kernel/basic/update_mgr.lua")
+import("kernel/core/update_mgr.lua")
 import("kernel/statis/perfeval_mgr.lua")
 
 local ltime         = ltimer.time
@@ -61,12 +61,12 @@ function quanta.init()
     -- 初始化统计管理器
     quanta.perfeval_mgr:setup()
     import("kernel/statis/statis_mgr.lua")
-    import("kernel/basic/protobuf_mgr.lua")
+    import("kernel/core/protobuf_mgr.lua")
 
     --初始化路由管理器
     if service.router(quanta.service_id) then
         --加载router配置
-        import("kernel/basic/router_mgr.lua")
+        import("kernel/core/router_mgr.lua")
         import("utility/oaim_notify.lua")
     end
     if not env_get("QUANTA_MONITOR_HOST") then
