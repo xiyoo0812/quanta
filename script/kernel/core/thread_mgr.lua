@@ -40,7 +40,7 @@ function ThreadMgr:lock(key)
         queue = QueueFIFO()
         self.syncqueue_map[key] = queue
     end
-    queue.ttl = queue.now_ms
+    queue.ttl = quanta.now_ms
     local co = co_running()
     if queue:empty() then
         queue:push(co)

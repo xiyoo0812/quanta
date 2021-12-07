@@ -35,17 +35,17 @@ end
 
 --飞书
 function OaimNotify:lark_log(title, context)
-    title = sformat("service:%s \n %s", quanta.name, title)
-    local body = { title = title, text = context }
+    local text = sformat("service:%s \n %s \n %s", quanta.name, title, context)
+    local body = { msg_type = "text", content = { text = text } }
     router_mgr:send_proxy_hash(quanta.id, "rpc_http_post", self.url, json_encode(body))
 end
 
 --企业微信
 --at_members: 成员列表，数组，如 at_members = {"wangqing", "@all"}
---at_phones: 手机号列表，数组, 如 at_phones = {"156xxxx8827", "@all"}
-function OaimNotify:wechat_log(title, context, at_phones, at_members)
+--at_mobiles: 手机号列表，数组, 如 at_mobiles = {"156xxxx8827", "@all"}
+function OaimNotify:wechat_log(title, context, at_mobiles, at_members)
     local text = sformat("service:%s \n %s \n %s", quanta.name, title, context)
-    local body = { msgtype = "text", text = { content = text, mentioned_list = at_members, mentioned_mobile_list = at_phones } }
+    local body = { msgtype = "text", text = { content = text, mentioned_list = at_members, mentioned_mobile_list = at_mobiles } }
     router_mgr:send_proxy_hash(quanta.id, "rpc_http_post", self.url, json_encode(body))
 end
 
