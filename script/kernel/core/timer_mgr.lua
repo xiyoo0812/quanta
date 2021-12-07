@@ -44,7 +44,7 @@ function TimerMgr:trigger(handle, now_ms)
     driver:insert(handle.timer_id, handle.period)
 end
 
-function TimerMgr:update(now_ms)
+function TimerMgr:on_frame(now_ms)
     if driver then
         local escape_ms = now_ms - self.last_ms + self.escape_ms
         self.escape_ms = escape_ms % TIMER_ACCURYACY
@@ -95,7 +95,7 @@ function TimerMgr:unregister(timer_id)
     self.timers[timer_id] = nil
 end
 
-function TimerMgr:quit()
+function TimerMgr:on_quit()
     self.timers = {}
     driver = nil
 end

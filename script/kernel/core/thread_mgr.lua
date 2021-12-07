@@ -14,6 +14,9 @@ local log_err       = logger.err
 local QueueFIFO     = import("container/queue_fifo.lua")
 local SyncLock      = import("utility/sync_lock.lua")
 
+local PeriodTime    = enum("PeriodTime")
+local MINUTE_10_MS  = PeriodTime.MINUTE_10_MS
+
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
 prop:reader("session_id", 1)
@@ -37,6 +40,7 @@ function ThreadMgr:lock(key)
         queue = QueueFIFO()
         self.syncqueue_map[key] = queue
     end
+    queue.ttl = queue.now_ms
     local co = co_running()
     if queue:empty() then
         queue:push(co)
@@ -99,7 +103,15 @@ function ThreadMgr:yield(session_id, title, ms_to, ...)
     return co_yield(...)
 end
 
-function ThreadMgr:update(now_ms)
+function ThreadMgr:on_minute(now_ms)
+    for key, queue in pairs(self.syncqueue_map) do
+        if queue:empty() and now_ms - queue.ttl > MINUTE_10_MS then
+            self.syncqueue_map[key] = nil
+        end
+    end
+end
+
+function ThreadMgr:on_frame(now_ms)
     local timeout_coroutines = {}
     for session_id, context in pairs(self.coroutine_map) do
         if context.to <= now_ms then
@@ -111,7 +123,7 @@ function ThreadMgr:update(now_ms)
         if context then
             self.coroutine_map[session_id] = nil
             if context.title then
-                log_err("[ThreadMgr][update] session_id(%s:%s) timeout!", session_id, context.title)
+                log_err("[ThreadMgr][on_frame] session_id(%s:%s) timeout!", session_id, context.title)
             end
             self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
         end

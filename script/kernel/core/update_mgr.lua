@@ -43,12 +43,15 @@ function UpdateMgr:setup()
     self.second_id = clock_mgr:alarm(PeriodTime.SECOND_MS, now_ms)
     self.minute_id = clock_mgr:alarm(PeriodTime.MINUTE_MS, now_ms)
     self.reload_id = clock_mgr:alarm(PeriodTime.SECOND_2_MS, now_ms)
+    --注册订阅
+    self:attach_quit(timer_mgr)
+    self:attach_quit(clock_mgr)
+    self:attach_frame(timer_mgr)
+    self:attach_frame(thread_mgr)
+    self:attach_minute(thread_mgr)
 end
 
 function UpdateMgr:update(now_ms, count)
-    --系统更新
-    timer_mgr:update(now_ms)
-    thread_mgr:update(now_ms)
     --业务更新
     thread_mgr:fork(function()
         local clock_ms, frame = clock_mgr:check(self.frame_id, now_ms)
@@ -61,14 +64,14 @@ function UpdateMgr:update(now_ms, count)
         --帧更新
         quanta.frame = frame
         for obj in pairs(self.frame_objs) do
-            obj:on_frame(frame)
+            obj:on_frame(now_ms, frame)
         end
         --秒更新
         if not clock_mgr:check(self.second_id, now_ms) then
             return
         end
         for obj in pairs(self.second_objs) do
-            obj:on_second()
+            obj:on_second(now_ms)
         end
         --gc更新
         if clock_mgr:check(self.gc_id, now_ms) then
@@ -87,14 +90,14 @@ function UpdateMgr:update(now_ms, count)
             return
         end
         for obj in pairs(self.minute_objs) do
-            obj:on_minute()
+            obj:on_minute(now_ms)
         end
         --时更新
         if not clock_mgr:check(self.hour_id, now_ms) then
             return
         end
         for obj in pairs(self.hour_objs) do
-            obj:on_hour()
+            obj:on_hour(now_ms)
         end
         --gc
         collectgarbage("collect")
@@ -106,8 +109,6 @@ function UpdateMgr:quit()
         obj:on_quit()
     end
     log_info("[UpdateMgr][quit]service quit for signal !")
-    timer_mgr:quit()
-    clock_mgr:quit()
     quanta.run = nil
 end
 

@@ -60,7 +60,7 @@ function ClockMgr:close(clock_id)
     self.clocks[clock_id] = nil
 end
 
-function ClockMgr:quit()
+function ClockMgr:on_quit()
     self.clocks = {}
 end
 

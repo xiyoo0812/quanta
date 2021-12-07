@@ -1,7 +1,7 @@
 --sync_lock.lua
 --[[提供协程同步锁功能
 示例:
-    local lock<defer> = thread_mgr:lock(key)
+    local lock<close> = thread_mgr:lock(key)
     ...
 --]]
 
@@ -11,8 +11,8 @@ prop:reader("thread_mgr", nil)
 prop:reader("key", nil)
 
 function SyncLock:__init(thread_mgr, key)
-    self.key = key
     self.thread_mgr = thread_mgr
+    self.key = key
 end
 
 function SyncLock:__defer()
