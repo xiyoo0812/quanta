@@ -16,13 +16,15 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local HttpServer = class()
 local prop = property(HttpServer)
-prop:reader("sock", nil)    --网络连接对象
-prop:reader("ip", nil)      --http server地址
-prop:reader("port", 8080)   --http server端口
-prop:reader("clients", {})  --clients
-prop:reader("requests", {}) --requests
-prop:reader("get_handler", nil)  --get_handler
-prop:reader("post_handler", nil) --post_handler
+prop:reader("sock", nil)            --网络连接对象
+prop:reader("ip", nil)              --http server地址
+prop:reader("port", 8080)           --http server端口
+prop:reader("clients", {})          --clients
+prop:reader("requests", {})         --requests
+prop:reader("get_handler", nil)     --get_handler
+prop:reader("put_handler", nil)     --put_handler
+prop:reader("del_handler", nil)     --del_handler
+prop:reader("post_handler", nil)    --post_handler
 
 function HttpServer:__init()
 end
@@ -85,41 +87,53 @@ function HttpServer:on_socket_recv(socket, token)
     if self.get_handler and method == "GET" then
         thread_mgr:fork(function()
             local querys = request:querys()
-            local http_res = self.get_handler(url, querys, headers)
-            self:response(socket, request, http_res)
+            local hresponse = self.get_handler(url, querys, headers)
+            self:response(socket, request, hresponse)
         end)
         return
     end
     if self.post_handler and method == "POST" then
         thread_mgr:fork(function()
             local body = request:body()
-            local http_res = self.post_handler(url, body, headers)
-            self:response(socket, request, http_res)
+            local hresponse = self.post_handler(url, body, headers)
+            self:response(socket, request, hresponse)
         end)
         return
     end
-    if method == "PUT" then
-        local body = request:body()
-        log_debug("on_put: %s, %s, %s", url, body, headers)
+    if self.put_handler and method == "PUT" then
+        thread_mgr:fork(function()
+            local body = request:body()
+            local hresponse = self.put_handler(url, body, headers)
+            self:response(socket, request, hresponse)
+        end)
+        return
     end
-    if method == "DELETE" then
-        local querys = request:querys()
-        log_debug("on_del: %s, %s, %s", url, querys, headers)
+    if self.del_handler and method == "DELETE" then
+        thread_mgr:fork(function()
+            local querys = request:querys()
+            local hresponse = self.del_handler(url, querys, headers)
+            self:response(socket, request, hresponse)
+        end)
+        return
     end
     log_info("[HttpServer][on_socket_recv] http request no process, close client(token:%s)!", token)
     self:response(socket, request, "this http request has not match!")
 end
 
 
-function HttpServer:response(socket, request, hrsp)
+function HttpServer:response(socket, request, hresponse)
+    self.requests[socket:get_token()] = nil
+    if type(hresponse) == "userdata" then
+        socket:send(hresponse:respond())
+        socket:close(false)
+        return
+    end
     local ttype = "text/plain"
-    if type(hrsp) == "table" then
-        hrsp = json_encode(hrsp)
+    if type(hresponse) == "table" then
+        hresponse = json_encode(hresponse)
         ttype = "application/json"
     end
-    self.requests[socket:get_token()] = nil
-    local buf = request:response(200, ttype, hrsp or "")
-    socket:send(buf)
+    socket:send(request:response(200, ttype, hresponse or ""))
     socket:close(false)
 end
 
