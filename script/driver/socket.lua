@@ -15,6 +15,7 @@ local prop = property(Socket)
 prop:reader("ip", nil)
 prop:reader("host", nil)
 prop:reader("token", nil)
+prop:reader("alive", false)
 prop:reader("alive_time", 0)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
@@ -32,6 +33,7 @@ end
 function Socket:close(immediately)
     if self.session then
         self.session.close(immediately)
+        self.alive = false
         self.session = nil
         self.token = nil
     end
@@ -76,6 +78,8 @@ function Socket:connect(ip, port)
         if not success then
             self:on_socket_error(session.token, res)
         end
+        self.alive = success
+        self.alive_time = quanta.now
         thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, data)
@@ -88,7 +92,6 @@ function Socket:connect(ip, port)
     end
     self.session = session
     self.token = session.token
-    self.alive_time = quanta.now
     self.ip, self.port = ip, port
     --阻塞模式挂起
     return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
@@ -110,6 +113,7 @@ end
 function Socket:on_socket_error(token, err)
     if self.session then
         self.session = nil
+        self.alive = false
         log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
         self.host:on_socket_error(self, token, err)
         self.token = nil
@@ -126,6 +130,7 @@ function Socket:accept(session, ip, port)
             self:on_socket_error(token, err)
         end)
     end
+    self.alive = true
     self.session = session
     self.token = session.token
     self.ip, self.port = ip, port
@@ -159,11 +164,12 @@ function Socket:pop(len)
 end
 
 function Socket:send(data)
-    if (not self.session) or (not data) then
+    if (not self.alive) or (not data) then
+        log_err("[Socket][send] the socket not alive,can't send")
         return false
     end
     local send_len = self.session.call_text(data)
-	return send_len > 0
+    return send_len > 0
 end
 
 return Socket

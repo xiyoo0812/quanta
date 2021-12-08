@@ -5,7 +5,6 @@ local QueueFIFO     = import("container/queue_fifo.lua")
 local tonumber      = tonumber
 local log_err       = logger.err
 local log_info      = logger.info
-local log_debug     = logger.debug
 local ssub          = string.sub
 local sgsub         = string.gsub
 local supper        = string.upper
@@ -446,7 +445,6 @@ function RedisDB:on_socket_recv(sock, token)
         if context and cur_sessions then
             thread_mgr:fork(function()
                 local ok, res, cb_session_id = true, line, nil
-                log_debug("[RedisDB][response] parse cmd %s, line:%s!", context.name, line)
                 local session_id = context.session_id
                 local prefix, body = ssub(line, 1, 1), ssub(line, 2)
                 local prefix_func = _redis_resp_parser[prefix]
@@ -459,11 +457,9 @@ function RedisDB:on_socket_recv(sock, token)
                 if session_id then
                     if session_id == context.commit_id then
                         if not cb_session_id then
-                            log_debug("[RedisDB][response] pop cmd %s,commit_id:%s!", context.name, context.commit_id)
                             cur_sessions:pop()
                         end
                     end
-                    log_debug("[RedisDB][response] cmd %s, session_id:%s!", context.name, session_id)
                     thread_mgr:response(session_id, ok, res)
                 end
             end)
@@ -508,7 +504,6 @@ function RedisDB:commit(sock, param, ...)
     if ok and convertor then
         return ok, convertor(res)
     end
-    log_debug("[RedisDB][commit] cmd %s-> ok:%s res: %s!", param.cmd, ok, res)
     return ok, res
 end
 
