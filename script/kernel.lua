@@ -72,7 +72,7 @@ function quanta.init()
     if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
         import("agent/monitor_agent.lua")
-        import("kernel/admin/netlog_mgr.lua")
+        import("kernel/core/netlog_mgr.lua")
     end
 end
 

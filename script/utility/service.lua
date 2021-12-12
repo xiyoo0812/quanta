@@ -26,9 +26,11 @@ function service.init(name)
 end
 
 --生成节点id
-function service.make_id(service_name, index)
-    local service_id = SERVICES[service_name]
-    return (service_id << 16) | index
+function service.make_id(service, index)
+    if type(service) == "string" then
+        service = SERVICES[service]
+    end
+    return (service << 16) | index
 end
 
 --生成节点nick

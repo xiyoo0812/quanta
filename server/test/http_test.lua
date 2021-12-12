@@ -21,8 +21,9 @@ if quanta.index == 1 then
         return data
     end
     local HttpServer = import("kernel/network/http_server.lua")
-    local server = HttpServer()
-    server:setup("0.0.0.0:8888", on_post, on_get)
+    local server = HttpServer("0.0.0.0:8888")
+    server:register_get("*", on_get)
+    server:register_post("*", on_post)
     quanta.server = server
 elseif quanta.index == 2 then
     thread_mgr:fork(function()

@@ -2,6 +2,7 @@
 local load          = load
 local ipairs        = ipairs
 local log_err       = logger.err
+local log_info      = logger.info
 local log_warn      = logger.warn
 local tpack         = table.pack
 local tinsert       = table.insert
@@ -64,7 +65,7 @@ end
 
 local Cmdline = singleton()
 local prop = property(Cmdline)
-prop:accessor("command_defines", {})
+prop:reader("command_defines", {})
 
 function Cmdline:__init()
 end
@@ -74,16 +75,18 @@ end
 --command : command command定义
 --command 示例
 --command = "player_id|integer aa|table bb|string dd|number"
-function Cmdline:register_command(name, command, cmd_type)
+function Cmdline:register_command(name, command, desc, cmd_type)
     if self.command_defines[name] then
         log_warn("[Cmdline][register_command] command (%s) repeat registered!", name)
-        return
+        return false
     end
-    local cmd_define = {type = cmd_type, args = {}}
+    local cmd_define = {type = cmd_type, desc = desc, command = command, args = {}}
     for arg_name, arg_type in sgmatch(command, "([%a%d%_]+)|([%a%d%_]+)") do
         tinsert(cmd_define.args, {name = arg_name, type = arg_type})
     end
     self.command_defines[name] = cmd_define
+    log_info("[Cmdline][register_command] command (%s) registered!", name)
+    return true
 end
 
 

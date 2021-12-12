@@ -122,14 +122,28 @@ function RpcServer:broadcast(rpc, ...)
     end
 end
 
+--获取client
+function RpcServer:get_client(token)
+    return self.clients[token]
+end
+
+--获取client
+function RpcServer:get_client_by_id(quanta_id)
+    for token, client in pairs(self.client) do
+        if client.id == quanta_id then
+            return client
+        end
+    end
+end
+
 --迭代器
 function RpcServer:iterator()
-    local index = nil
+    local token = nil
     local clients = self.clients
     local function iter()
-        index = next(clients, index)
-        if index then
-            return index, clients[index]
+        token = next(clients, token)
+        if token then
+            return token, clients[token]
         end
     end
     return iter
@@ -138,8 +152,13 @@ end
 --rpc回执
 -----------------------------------------------------------------------------
 --服务器心跳协议
-function RpcServer:rpc_heartbeat(client, qid)
+function RpcServer:rpc_heartbeat(client, node_info)
     self:send(client, "on_heartbeat", quanta.id)
+    if node_info then
+        client.id = node_info.id
+        client.service_id = node_info.service_id
+        event_mgr:notify_listener("on_socket_info", client, node_info)
+    end
 end
 
 return RpcServer

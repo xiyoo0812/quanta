@@ -21,15 +21,16 @@ prop:reader("ip", nil)              --http server地址
 prop:reader("port", 8080)           --http server端口
 prop:reader("clients", {})          --clients
 prop:reader("requests", {})         --requests
-prop:reader("get_handler", nil)     --get_handler
-prop:reader("put_handler", nil)     --put_handler
-prop:reader("del_handler", nil)     --del_handler
-prop:reader("post_handler", nil)    --post_handler
+prop:reader("get_handlers", {})     --get_handlers
+prop:reader("put_handlers", {})     --put_handlers
+prop:reader("del_handlers", {})     --del_handlers
+prop:reader("post_handlers", {})    --post_handlers
 
-function HttpServer:__init()
+function HttpServer:__init(http_addr)
+    self:setup(http_addr)
 end
 
-function HttpServer:setup(http_addr, post_handler, get_handler)
+function HttpServer:setup(http_addr)
     self.ip, self.port = tunpack(ssplit(http_addr, ":"))
     local socket = Socket(self)
     if not socket:listen(self.ip, self.port) then
@@ -38,8 +39,6 @@ function HttpServer:setup(http_addr, post_handler, get_handler)
         return
     end
     log_info("[HttpServer][setup] listen(%s:%s) success!", self.ip, self.port)
-    self.post_handler = post_handler
-    self.get_handler = get_handler
     self.sock = socket
 end
 
@@ -84,47 +83,71 @@ function HttpServer:on_socket_recv(socket, token)
     local url = request:url()
     local method = request:method()
     local headers = request:headers()
-    if self.get_handler and method == "GET" then
-        thread_mgr:fork(function()
-            local querys = request:querys()
-            local hresponse = self.get_handler(url, querys, headers)
-            self:response(socket, request, hresponse)
-        end)
-        return
+    if method == "GET" then
+        local querys = request:querys()
+        return self:on_http_request(self.get_handlers, socket, request, url, querys, headers)
     end
-    if self.post_handler and method == "POST" then
-        thread_mgr:fork(function()
-            local body = request:body()
-            local hresponse = self.post_handler(url, body, headers)
-            self:response(socket, request, hresponse)
-        end)
-        return
+    if method == "POST" then
+        local body = request:body()
+        return self:on_http_request(self.post_handlers, socket, request, url, body, headers)
     end
-    if self.put_handler and method == "PUT" then
-        thread_mgr:fork(function()
-            local body = request:body()
-            local hresponse = self.put_handler(url, body, headers)
-            self:response(socket, request, hresponse)
-        end)
-        return
+    if method == "PUT" then
+        local body = request:body()
+        return self:on_http_request(self.put_handlers, socket, request, url, body, headers)
     end
-    if self.del_handler and method == "DELETE" then
-        thread_mgr:fork(function()
-            local querys = request:querys()
-            local hresponse = self.del_handler(url, querys, headers)
-            self:response(socket, request, hresponse)
-        end)
-        return
+    if method == "DELETE" then
+        local querys = request:querys()
+        return self:on_http_request(self.del_handlers, socket, request, url, querys, headers)
     end
-    log_info("[HttpServer][on_socket_recv] http request no process, close client(token:%s)!", token)
-    self:response(socket, request, "this http request has not match!")
 end
 
+--注册get回调
+function HttpServer:register_get(url, handler, target)
+    log_debug("[HttpServer][register_get] url: %s", url)
+    self.get_handlers[url] = { handler, target }
+end
+
+--注册post回调
+function HttpServer:register_post(url, handler, target)
+    log_debug("[HttpServer][register_post] url: %s", url)
+    self.post_handlers[url] = { handler, target }
+end
+
+--注册put回调
+function HttpServer:register_put(url, handler, target)
+    log_debug("[HttpServer][register_put] url: %s", url)
+    self.put_handlers[url] = { handler, target }
+end
+
+--注册del回调
+function HttpServer:register_del(url, handler, target)
+    log_debug("[HttpServer][register_del] url: %s", url)
+    self.del_handlers[url] = { handler, target }
+end
+
+--http post 回调
+function HttpServer:on_http_request(handlers, socket, request, url, ...)
+
+    local handler_info = handlers[url] or handlers["*"]
+    if not handler_info then
+        log_info("[HttpServer][on_http_request] http request %s no process!", url)
+        self:response(socket, request, "this http request has not match!")
+        return
+    end
+    thread_mgr:fork(function(...)
+        local handler, target = tunpack(handler_info)
+        if target then
+            self:response(socket, request, handler(target, url, ...))
+            return
+        end
+        self:response(socket, request, handler(url, ...))
+    end, ...)
+end
 
 function HttpServer:response(socket, request, hresponse)
     self.requests[socket:get_token()] = nil
     if type(hresponse) == "userdata" then
-        socket:send(hresponse:respond())
+        socket:send(hresponse:respond(request))
         socket:close(false)
         return
     end

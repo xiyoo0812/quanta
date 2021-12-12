@@ -48,8 +48,19 @@ function RpcClient:check_lost(now)
 end
 
 --发送心跳
-function RpcClient:heartbeat()
-    self:send("rpc_heartbeat", quanta.id)
+function RpcClient:heartbeat(initial)
+    if initial then
+        local node_info = {
+            id = quanta.id,
+            index = quanta.index,
+            deploy = quanta.deploy,
+            service = quanta.service,
+            service_id = quanta.service_id,
+        }
+        self:send("rpc_heartbeat", node_info)
+        return
+    end
+    self:send("rpc_heartbeat")
 end
 
 --连接服务器
@@ -166,6 +177,7 @@ function RpcClient:on_socket_connect(socket)
         self.alive = true
         self.alive_time = quanta.now
         self.holder:on_socket_connect(self)
+        self:heartbeat(true)
     end)
 end
 

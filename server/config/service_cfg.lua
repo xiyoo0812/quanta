@@ -85,3 +85,10 @@ service:upsert({
     router = true,
     hash = 1,
 })
+
+service:upsert({
+    id = 12,
+    name = 'admin',
+    router = true,
+    hash = 0,
+})

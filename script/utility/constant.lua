@@ -70,10 +70,9 @@ DBLoading.SUCCESS           = 2
 
 -- GM命令类型
 local GMType                = enum("GMType", 0)
-GMType.PLAYER               = 0       -- 玩家相关
-GMType.ROOM                 = 1       -- 房间系统相关
-GMType.GLOBAL               = 2       -- 全局相关
-GMType.AREA                 = 3       -- 小区相关
+GMType.GLOBAL               = 0       -- 全局相关
+GMType.PLAYER               = 1       -- 玩家相关,ID为玩家的ID
+GMType.SERVICE              = 2       -- 服务相关,ID为队伍ID,房间ID等. 需要注意: 定义GM时需用对应的serviceid，而非GMType.SERVICE
 
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
