@@ -89,10 +89,12 @@ function HttpServer:on_socket_recv(socket, token)
     end
     if method == "POST" then
         local body = request:body()
+        log_debug("[HttpServer][method]: %s", body)
         return self:on_http_request(self.post_handlers, socket, request, url, body, headers)
     end
     if method == "PUT" then
         local body = request:body()
+        print(body)
         return self:on_http_request(self.put_handlers, socket, request, url, body, headers)
     end
     if method == "DELETE" then
@@ -138,19 +140,29 @@ end
 
 --http post 回调
 function HttpServer:on_http_request(handlers, socket, request, url, ...)
-    local handler_info = handlers[url] or handlers["*"]
-    if not handler_info then
-        log_err("[HttpServer][on_http_request] http request %s no process!", url)
-        self:response(socket, request, "this http request has not match!")
-        return
+    local function do_http_request(...)
+        local handler_info = handlers[url] or handlers["*"]
+        if not handler_info then
+            return false, "this http request hasn't process!"
+        end
+        local handler, target = tunpack(handler_info)
+        if not target then
+            if type(handler) == "function" then
+                return pcall(handler, url, ...)
+            end
+            return false, "this http request hasn't process!"
+        end
+        if type(handler) == "string" then
+            handler = target[handler]
+        end
+        if type(handler) == "function" then
+            return pcall(handler, target, url, ...)
+        end
+        return false, "this http request hasn't process!"
     end
     thread_mgr:fork(function(...)
-        local handler, target = tunpack(handler_info)
-        if target then
-            self:response(socket, request, handler(target, url, ...))
-            return
-        end
-        self:response(socket, request, handler(url, ...))
+        local _, response = do_http_request(...)
+        self:response(socket, request, response)
     end, ...)
 end
 

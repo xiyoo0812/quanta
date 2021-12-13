@@ -253,6 +253,7 @@ return [[
                 type: "POST",
                 dataType: "json",
                 contentType: "utf-8",
+                data: { data : inputMsg.value},
                 success: function (result) {
                     if (result.code != 0) {
                         that._displayNewMsg("historyMsg", result.msg, "newMsg");

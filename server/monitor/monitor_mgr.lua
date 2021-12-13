@@ -31,8 +31,8 @@ function MonitorMgr:__init()
 
     --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_MONITOR_HTTP"))
-    server:register_get("/status", self.on_monitor_status, self)
-    server:register_post("/command", self.on_monitor_command, self)
+    server:register_get("/status", "on_monitor_status", self)
+    server:register_post("/command", "on_monitor_command", self)
     self.http_server = server
 end
 
