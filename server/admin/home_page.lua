@@ -206,7 +206,7 @@ return [[
 
             // 加载命令列表
             $.ajax({
-                url:"/gm",
+                url:"/gmlist",
                 type: "GET",
                 dataType: "json",
                 contentType: "utf-8",

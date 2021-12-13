@@ -125,12 +125,22 @@ function HttpServer:register_del(url, handler, target)
     self.del_handlers[url] = { handler, target }
 end
 
+--生成response
+function HttpServer:build_response(status, body, headers)
+    local response = lhttp.create_response()
+    response:set_body(body)
+    response:set_status(status)
+    for name, value in pairs(headers or {}) do
+        response:set_header(name, value)
+    end
+    return response
+end
+
 --http post 回调
 function HttpServer:on_http_request(handlers, socket, request, url, ...)
-
     local handler_info = handlers[url] or handlers["*"]
     if not handler_info then
-        log_info("[HttpServer][on_http_request] http request %s no process!", url)
+        log_err("[HttpServer][on_http_request] http request %s no process!", url)
         self:response(socket, request, "this http request has not match!")
         return
     end

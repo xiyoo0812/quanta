@@ -72,7 +72,7 @@ DBLoading.SUCCESS           = 2
 local GMType                = enum("GMType", 0)
 GMType.GLOBAL               = 0       -- 全局相关
 GMType.PLAYER               = 1       -- 玩家相关,ID为玩家的ID
-GMType.SERVICE              = 2       -- 服务相关,ID为队伍ID,房间ID等. 需要注意: 定义GM时需用对应的serviceid，而非GMType.SERVICE
+GMType.SERVICE              = 2       -- 服务相关,ID为队伍ID,房间ID等
 
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
