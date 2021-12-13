@@ -12,11 +12,10 @@ local tunpack       = table.unpack
 local lserialize    = lbuffer.serialize
 
 local LOG_LEVEL     = llog.LOG_LEVEL
-
-local om_notifier   = nil
 local driver        = quanta.logger
 
 logger = {}
+
 function logger.init(max_line)
     logger.filter(environ.number("QUANTA_LOG_LVL"))
 end
@@ -25,8 +24,12 @@ function logger.daemon(daemon)
     driver:daemon(daemon)
 end
 
-function logger.setup_notyfy(notifier)
-    om_notifier = notifier
+function logger.setup_notifier(notifier)
+    logger.notifier = notifier
+end
+
+function logger.setup_monitor(monitor)
+    logger.monitor = monitor
 end
 
 function logger.filter(level)
@@ -49,8 +52,13 @@ local function logger_output(name, method, fmt, extend, notify, swline, ...)
     else
         content = sformat(fmt, ...)
     end
-    if notify and om_notifier then
-        om_notifier:notify(name, content)
+    local notifier = logger.notifier
+    if notify and notifier then
+        notifier:notify(name, content)
+    end
+    local monitor = logger.monitor
+    if monitor then
+        monitor:notify(name, content)
     end
     return method(driver, content)
 end

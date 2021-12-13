@@ -87,12 +87,12 @@ function OnlineMgr:rpc_router_message(player_id, rpc, ...)
 end
 
 --根据玩家所在的lobby转发消息，然后转发给客户端
-function OnlineMgr:rpc_forward_message(player_id, rpc, ...)
+function OnlineMgr:rpc_forward_message(player_id, ...)
     local lobby = self.lobbys[player_id]
     if not lobby then
         return false, "player not online!"
     end
-    return router_mgr:call_target(lobby, "rpc_forward_client", player_id, rpc, ...)
+    return router_mgr:call_target(lobby, "rpc_forward_client", player_id, ...)
 end
 
 -- export

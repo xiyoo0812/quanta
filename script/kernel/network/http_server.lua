@@ -89,7 +89,6 @@ function HttpServer:on_socket_recv(socket, token)
     end
     if method == "POST" then
         local body = request:body()
-        log_debug("[HttpServer][method]: %s", body)
         return self:on_http_request(self.post_handlers, socket, request, url, body, headers)
     end
     if method == "PUT" then
@@ -161,7 +160,10 @@ function HttpServer:on_http_request(handlers, socket, request, url, ...)
         return false, "this http request hasn't process!"
     end
     thread_mgr:fork(function(...)
-        local _, response = do_http_request(...)
+        local ok, response = do_http_request(...)
+        if not ok then
+            response = { code = 1, msg = response }
+        end
         self:response(socket, request, response)
     end, ...)
 end
