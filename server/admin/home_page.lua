@@ -250,7 +250,7 @@ return [[
 
             $.ajax({
                 url:"/command",
-                type: "GET",
+                type: "POST",
                 dataType: "json",
                 contentType: "utf-8",
                 success: function (result) {

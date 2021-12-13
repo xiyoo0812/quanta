@@ -27,6 +27,7 @@ function MonitorMgr:__init()
     --监听事件
     event_mgr:add_listener(self, "on_socket_info")
     event_mgr:add_listener(self, "on_socket_error")
+    event_mgr:add_listener(self, "on_socket_accept")
 
     --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_MONITOR_HTTP"))
@@ -35,22 +36,25 @@ function MonitorMgr:__init()
     self.http_server = server
 end
 
+function MonitorMgr:on_socket_accept(client)
+end
+
 -- 会话信息
 function MonitorMgr:on_socket_info(client, node_info)
     log_info("[MonitorMgr][on_socket_info] node token:%s", client.token)
     node_info.token = client.token
-    self.moniotor_nodes[client.token] = node_info
+    self.monitor_nodes[client.token] = node_info
 end
 
 -- 会话关闭回调
 function MonitorMgr:on_socket_error(client, token, err)
     log_info("[MonitorMgr][on_socket_error] node name:%s, id:%s, token:%s", client.name, client.id, token)
-    self.moniotor_nodes[client.token] = nil
+    self.monitor_nodes[client.token] = nil
 end
 
 -- status查询
 function MonitorMgr:on_monitor_status(url, querys, headers)
-    return { code = 0, msg = self.moniotor_nodes }
+    return { code = 0, msg = self.monitor_nodes }
 end
 
 --call

@@ -74,10 +74,11 @@ function quanta.init()
         import("agent/monitor_agent.lua")
         import("kernel/core/netlog_mgr.lua")
     end
-    --初始化gm
-    if not env_get("QUANTA_ADMIN_HTTP") then
-        import("agent/gm_agent.lua")
-    end
+end
+
+--初始化gm
+function quanta.init_gm()
+    import("agent/gm_agent.lua")
 end
 
 local function startup(startup_func)

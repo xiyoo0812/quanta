@@ -30,14 +30,14 @@ end
 --主要用于服务器内部执行GM指令
 --command：字符串格式
 function GMAgent:execute_command(command)
-    return router_mgr:call_admin_master("rpc_register_command", command)
+    return router_mgr:call_admin_master("rpc_execute_command", command)
 end
 
 --执行一条command
 --主要用于服务器内部执行GM指令
 --message：lua table格式
 function GMAgent:execute_message(message)
-    return router_mgr:call_admin_master("rpc_register_message", message)
+    return router_mgr:call_admin_master("rpc_execute_message", message)
 end
 
 function GMAgent:report_command()

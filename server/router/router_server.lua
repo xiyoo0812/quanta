@@ -45,6 +45,7 @@ function RouterServer:setup()
     self.rpc_server = RpcServer()
     self.rpc_server:setup(host, router_conf.port, true)
     --监听事件
+    event_mgr:add_listener(self, "on_socket_info")
     event_mgr:add_listener(self, "on_socket_error")
     event_mgr:add_listener(self, "on_socket_accept")
     event_mgr:add_listener(self, "rpc_service_register")
@@ -150,6 +151,10 @@ function RouterServer:rpc_service_register(server, id)
             end
         end
     end
+end
+
+-- 会话信息
+function RouterServer:on_socket_info(client, node_info)
 end
 
 quanta.router_server = RouterServer()

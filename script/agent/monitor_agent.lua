@@ -59,8 +59,6 @@ end
 -- 连接成回调
 function MonitorAgent:on_socket_connect(client)
     log_info("[MonitorAgent][on_socket_connect]: connect monitor success!")
-    -- 到monitor注册
-    self.client:send("rpc_monitor_register", quanta.id, quanta.service_id, quanta.index, quanta.name)
 end
 
 -- 请求服务
