@@ -30,7 +30,7 @@ end
 function OaimNotify:setup(url, interface)
     self.url = url
     self.interface = interface
-    logger.setup_notyfy(self)
+    logger.setup_notifier(self)
 end
 
 --飞书

@@ -34,12 +34,12 @@ function AdminMgr:__init()
 
     --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_ADMIN_HTTP"))
-    server:register_get("/", self.on_home_page, self)
-    server:register_get("/log", self.on_logger, self)
-    server:register_get("/gmlist", self.on_gmlist, self)
-    server:register_post("/command", self.on_command, self)
-    server:register_post("/monitor", self.on_monitor, self)
-    server:register_post("/message", self.on_message, self)
+    server:register_get("/", "on_home_page", self)
+    server:register_get("/log", "on_logger", self)
+    server:register_get("/gmlist", "on_gmlist", self)
+    server:register_post("/command", "on_command", self)
+    server:register_post("/monitor", "on_monitor", self)
+    server:register_post("/message", "on_message", self)
     self.http_server = server
 end
 
@@ -83,14 +83,14 @@ end
 
 --后台GM调用，字符串格式
 function AdminMgr:on_command(url, body, headers)
-    log_debug("[AdminMgr][on_command] body：%s", body)
+    log_debug("[AdminMgr][on_command] body: %s", body)
     local cmd_req = jdecode(body)
     return self:exec_command(cmd_req.data)
 end
 
 --后台GM调用，table格式
 function AdminMgr:on_message(url, body, headers)
-    log_debug("[AdminMgr][on_message] body：%s", body)
+    log_debug("[AdminMgr][on_message] body: %s", body)
     local cmd_req = jdecode(body)
     return self:exec_message(cmd_req.data)
 end
@@ -156,7 +156,7 @@ function AdminMgr:exec_player_cmd(cmd_name, player_id, ...)
         end
         return {code = codeoe, msg = res}
     end
-    local ok, codeoe, res = router_mgr:rpc_transfer_message(player_id, "rpc_command_execute", cmd_name, player_id, ...)
+    local ok, codeoe, res = router_mgr:call_online_hash(player_id, "rpc_transfer_message", player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
         log_err("[AdminMgr][exec_player_cmd] rpc_transfer_message(rpc_command_execute) failed! player_id=%s", player_id)
         return {code = 1, msg = codeoe }

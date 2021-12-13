@@ -28,18 +28,18 @@ end
 
 --有序
 function OnlineAgent:transfer_message(player_id, rpc, ...)
-    return router_mgr:send_online_hash(player_id, "rpc_transfer_message", player_id, rpc, ...)
+    return router_mgr:call_online_hash(player_id, "rpc_transfer_message", player_id, rpc, ...)
 end
 
 --有序
-function OnlineAgent:forward_message(player_id, rpc, ...)
-    return router_mgr:send_online_hash(player_id, "rpc_forward_message", player_id, rpc, ...)
+function OnlineAgent:forward_message(player_id, ...)
+    return router_mgr:call_online_hash(player_id, "rpc_forward_message", player_id, ...)
 end
 
 --rpc处理
 ------------------------------------------------------------------
-function OnlineAgent:rpc_forward_client(player_id, rpc, ...)
-    event_mgr:notify_listener("on_forward_client", player_id, rpc, ...)
+function OnlineAgent:rpc_forward_client(player_id, ...)
+    event_mgr:notify_listener("on_forward_client", player_id, ...)
 end
 
 quanta.online = OnlineAgent()
