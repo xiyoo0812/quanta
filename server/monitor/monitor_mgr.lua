@@ -75,7 +75,7 @@ function MonitorMgr:call(token, rpc, ...)
     if not ok then
         return {code = 1, msg = "call moniotor node failed!"}
     end
-    return {code = code, data = res }
+    return {code = code, msg = res }
 end
 
 --broadcast
@@ -94,10 +94,10 @@ function MonitorMgr:on_monitor_command(url, body, headers)
     --执行函数
     local function handler_cmd(jbody)
         local data_req = jdecode(jbody)
-        if data_req.service_id then
-            return self:broadcast(data_req.rpc, data_req.service_id, data_req.data, data_req.message)
+        if data_req.token then
+            return self:call(data_req.token, data_req.rpc, data_req.data)
         end
-        return self:call(data_req.token, data_req.rpc, data_req.data, data_req.message)
+        return self:broadcast(data_req.rpc, data_req.service_id, data_req.data)
     end
     --开始执行
     local ok, res = pcall(handler_cmd, body)

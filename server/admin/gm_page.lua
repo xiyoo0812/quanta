@@ -127,10 +127,10 @@ return [[
                 type: "GET",
                 dataType: "json",
                 contentType: "utf-8",
-                success: function (result) {
+                success: function (res) {
                     var nodes = [];
-                    that.cmdlist = result;
-                    for (var cmd_name in result) {
+                    that.cmdlist = res;
+                    for (var cmd_name in res) {
                         nodes.push({ text : cmd_name, tag : "gm" });
                     };
                     treeNodes[0].nodes = nodes;
@@ -147,10 +147,10 @@ return [[
                 type: "GET",
                 dataType: "json",
                 contentType: "utf-8",
-                success: function (result) {
+                success: function (res) {
                     var nodes = [];
-                    for (var i in result) {
-                        var addr = result[i]
+                    for (var i in res) {
+                        var addr = res[i]
                         nodes.push({ text : addr, tag : "log" });
                     }
                     treeNodes[1].nodes = nodes;
@@ -209,12 +209,12 @@ return [[
                 dataType: "json",
                 contentType: "utf-8",
                 data: JSON.stringify({ data : msg }),
-                success: function (result) {
-                    if (result.code != 0) {
-                        that._displayNewMsg("historyMsg", result.msg, "newMsg");
+                success: function (res) {
+                    if (res.code != 0) {
+                        that._displayNewMsg("historyMsg", res.msg, "newMsg");
                         return
                     }
-                    result = result.msg
+                    var result = res.msg
                     if (typeof(result) == "object") {
                         var data = JSON.stringify(result, null, "    ");
                         data = "<pre>" + data + "</pre>";

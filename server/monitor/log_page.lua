@@ -108,13 +108,16 @@ return [[
 <script src="http://jonmiles.github.io/bootstrap-treeview/js/bootstrap-treeview.js"></script>
 <script type="text/javascript">
     window.onload = function(){
-        var gmlog = new GMConsole();
+        var gmlog = new LogConsole();
         gmlog.init();
-        //self.setInterval("clock()",1000);
+        function onTimer() {
+            gmlog._onTimer()
+        }
+        //启动定时器
+        setInterval(onTimer, 1000);
     };
-    var GMConsole = function(){
-    };
-    GMConsole.prototype = {
+    var LogConsole = function(){};
+    LogConsole.prototype = {
         init: function(){
             var that = this;
             // 加载节点列表
@@ -133,7 +136,7 @@ return [[
                         }
                     };
                     that._showNodes(nodes);
-                    that.session_id = 0;
+                    that.node = null;
                 },
                 error: function(status) {
                     document.write(JSON.stringify(status));
@@ -142,8 +145,10 @@ return [[
 
             //attachBtn事件
             document.getElementById('attachBtn').addEventListener('click', function(){
-                that.logging = true;
-                that._sendRequest();
+                if (that.node){
+                    that.logging = true;
+                    that._sendRequest(that.node);
+                }
             }, false);
             //detachBtn事件
             document.getElementById('detachBtn').addEventListener('click', function(){
@@ -159,15 +164,22 @@ return [[
                 var token = data.token;
                 var node = that.nodelist[token];
                 if (node) {
+                    that.node = node;
                     that.logging = false;
-                    that.service_id = node.service_id;
                     var msg = "<pre>service: " + node.service + "  index: " + node.index + "</pre>";
                     that._displayNewMsg("historyMsg", msg, "myMsg");
                 }
             });
         },
 
-        _sendRequest: function() {
+        _onTimer : function() {
+            var that = this;
+            if (that.node && that.logging) {
+                that._sendRequest(that.node);
+            }
+        },
+
+        _sendRequest: function(node) {
             var that = this;
             var inputMsg = document.getElementById('inputMsg');
             var filters = inputMsg.value
@@ -176,16 +188,23 @@ return [[
                 type: "POST",
                 dataType: "json",
                 contentType: "utf-8",
-                data: JSON.stringify({ data : msg, service_id : that.service_id, rpc : "rpc_show_log", filters : filters }),
-                success: function (result) {
-                    if (result.code != 0) {
-                        that._displayNewMsg("historyMsg", result.msg, "newMsg");
+                data: JSON.stringify({ 
+                    token : node.token,
+                    rpc : "rpc_show_log",
+                    data : {
+                        filters : filters,
+                        session_id : that.session_id
+                    }
+                }),
+                success: function (res) {
+                    if (res.code != 0) {
+                        that._displayNewMsg("historyMsg", res.msg, "newMsg");
                         return
                     }
+                    var result = res.msg;
                     that.session_id = result.session_id;
-                    var messages = result.msg;
-                    for (var index in messages) {
-                        var log = messages[index];
+                    for (var index in result.logs) {
+                        var log = result.logs[index];
                         that._displayNewMsg("historyMsg", log, "newMsg");
                     }
                 },
@@ -195,8 +214,6 @@ return [[
                     that._displayNewMsg("historyMsg", data, "newMsg");
                 }
             });
-            inputMsg.value = "";
-            inputMsg.focus();
         },
 
         _displayNewMsg: function(container_id, msg, type){
