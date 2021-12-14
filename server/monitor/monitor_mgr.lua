@@ -11,8 +11,13 @@ local env_addr      = environ.addr
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
+local sformat       = string.format
+
+local PeriodTime    = enum("PeriodTime")
 
 local event_mgr     = quanta.get("event_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local http_client   = quanta.get("http_client")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
@@ -30,12 +35,27 @@ function MonitorMgr:__init()
     event_mgr:add_listener(self, "on_socket_error")
     event_mgr:add_listener(self, "on_socket_accept")
 
-    --创建HTTP服务器
+    --创建HTTP服务器aaa
     local server = HttpServer(env_get("QUANTA_MONITOR_HTTP"))
     server:register_get("/", "on_log_page", self)
     server:register_get("/status", "on_monitor_status", self)
     server:register_post("/command", "on_monitor_command", self)
     self.http_server = server
+
+    --上报自己
+    local admin_url = env_get("QUANTA_ADMIN_HTTP")
+    if admin_url then
+        local host = env_get("QUANTA_HOST_IP")
+        local purl = sformat("%s/monitor", admin_url)
+        local http_addr = sformat("%s:%d", host, server:get_port())
+        thread_mgr:success_call(PeriodTime.SECOND_MS, function()
+            local ok, status = http_client:call_post(purl, { addr = http_addr })
+            if ok and status == 200 then
+                return true
+            end
+            return false
+        end)
+    end
 end
 
 function MonitorMgr:on_socket_accept(client)
@@ -90,7 +110,7 @@ end
 
 -- command处理
 function MonitorMgr:on_monitor_command(url, body, headers)
-    log_debug("[MonitorMgr][on_monitor_command]: %s, %s, %s", url, body, headers)
+    log_debug("[MonitorMgr][on_monitor_command]: %s", body)
     --执行函数
     local function handler_cmd(jbody)
         local data_req = jdecode(jbody)

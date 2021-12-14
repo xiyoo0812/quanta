@@ -120,7 +120,7 @@ end
 --monitor拉取
 function AdminMgr:on_monitors(url, body, headers)
     log_debug("[AdminMgr][on_monitors] body: %s", body)
-    local monitors = { "127.0.0.1:9101" }
+    local monitors = {  }
     for addr in pairs(self.monitors) do
         tinsert(monitors, addr)
     end
