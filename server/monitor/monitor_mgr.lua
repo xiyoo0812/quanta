@@ -1,8 +1,9 @@
 --monitor_mgr.lua
 import("kernel/network/http_client.lua")
-local ljson     = require("lcjson")
-local RpcServer = import("kernel/network/rpc_server.lua")
-local HttpServer= import("kernel/network/http_server.lua")
+local ljson         = require("lcjson")
+local log_page      = import("monitor/log_page.lua")
+local RpcServer     = import("kernel/network/rpc_server.lua")
+local HttpServer    = import("kernel/network/http_server.lua")
 
 local jdecode       = ljson.decode
 local env_get       = environ.get
@@ -31,6 +32,7 @@ function MonitorMgr:__init()
 
     --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_MONITOR_HTTP"))
+    server:register_get("/", "on_log_page", self)
     server:register_get("/status", "on_monitor_status", self)
     server:register_post("/command", "on_monitor_command", self)
     self.http_server = server
@@ -52,9 +54,15 @@ function MonitorMgr:on_socket_error(client, token, err)
     self.monitor_nodes[client.token] = nil
 end
 
+--gm_page
+function MonitorMgr:on_log_page(url, body, headers)
+    local ret_headers = {["Access-Control-Allow-Origin"] = "*"}
+    return self.http_server:build_response(200, log_page, ret_headers)
+end
+
 -- status查询
 function MonitorMgr:on_monitor_status(url, querys, headers)
-    return { code = 0, msg = self.monitor_nodes }
+    return self.monitor_nodes
 end
 
 --call

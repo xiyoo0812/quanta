@@ -8,6 +8,7 @@ local ssplit        = string_ext.split
 
 local event_mgr     = quanta.get("event_mgr")
 local timer_mgr     = quanta.get("timer_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local PeriodTime    = enum("PeriodTime")
 
@@ -25,17 +26,21 @@ end
 
 function NetlogMgr:open_session(data)
     local session_id = data.session_id
+    if not session_id then
+        session_id = thread_mgr:build_session_id()
+    end
     local session = self.sessions[session_id]
     if not session then
         session = {
             pull_index  = 0,
             cache_logs  = {},
             filters     = {},
+            session_id  = session_id,
         }
         self.sessions[session_id] = session
     end
     if data.filters then
-        session.filters = ssplit(data.filters, ",")
+        session.filters = ssplit(data.filters, " ")
     end
     session.active_time = quanta.now
     return session
@@ -65,10 +70,6 @@ end
 
 function NetlogMgr:rpc_show_log(data)
     log_debug("[NetlogMgr][rpc_show_log]->data:%s", data)
-    local session_id = data.session_id
-    if not session_id then
-        return { code = 1, msg= "param errror!" }
-    end
     if not next(self.sessions) then
         setup_monitor(self)
     end
@@ -87,7 +88,7 @@ function NetlogMgr:rpc_show_log(data)
             session.pull_index = 0
         end
     end
-    return { code = 0, msg = show_logs }
+    return { code = 0, msg = show_logs, session_id = session.session_id }
 end
 
 function NetlogMgr:on_timer()

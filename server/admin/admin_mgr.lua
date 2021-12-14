@@ -2,12 +2,13 @@
 import("utility/cmdline.lua")
 local ljson         = require("lcjson")
 local lcrypt        = require("lcrypt")
-local home_page     = import("admin/home_page.lua")
+local gm_page       = import("admin/gm_page.lua")
 local HttpServer    = import("kernel/network/http_server.lua")
 
 local jdecode       = ljson.decode
 local guid_index    = lcrypt.guid_index
 local tunpack       = table.unpack
+local tinsert       = table.insert
 local env_get       = environ.get
 local smake_id      = service.make_id
 local log_err       = logger.err
@@ -21,11 +22,12 @@ local cmdline       = quanta.get("cmdline")
 local event_mgr     = quanta.get("event_mgr")
 local router_mgr    = quanta.get("router_mgr")
 
-local AdminMgr = class()
+local AdminMgr = singleton()
 local prop = property(AdminMgr)
 prop:reader("http_server", nil)
 prop:reader("deploy", "local")
 prop:reader("services", {})
+prop:reader("monitors", {})
 
 function AdminMgr:__init()
     --监听事件
@@ -35,13 +37,22 @@ function AdminMgr:__init()
 
     --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_ADMIN_HTTP"))
-    server:register_get("/", "on_home_page", self)
+    server:register_get("/", "on_gm_page", self)
     server:register_get("/log", "on_logger", self)
     server:register_get("/gmlist", "on_gmlist", self)
+    server:register_get("/monitors", "on_monitors", self)
     server:register_post("/command", "on_command", self)
     server:register_post("/monitor", "on_monitor", self)
     server:register_post("/message", "on_message", self)
     self.http_server = server
+
+    --注册GM指令
+    local cmd_list = {
+        {gm_type = GMType.GLOBAL, name = "get_online_count", desc = "获取在线人数", args = ""},
+        {gm_type = GMType.GLOBAL, name = "set_log_level", desc = "设置日志等级", args = "svr_name|string level|number"},
+        {gm_type = GMType.GLOBAL, name = "get_account_info", desc = "获取账号信息", args = "open_id|string area_id|number"},
+    }
+    self:rpc_register_command(cmd_list, quanta.id)
 end
 
 --rpc请求
@@ -73,10 +84,10 @@ end
 
 --http 回调
 ----------------------------------------------------------------------
---home_page
-function AdminMgr:on_home_page(url, body, headers)
+--gm_page
+function AdminMgr:on_gm_page(url, body, headers)
     local ret_headers = {["Access-Control-Allow-Origin"] = "*"}
-    return self.http_server:build_response(200, home_page, ret_headers)
+    return self.http_server:build_response(200, gm_page, ret_headers)
 end
 
 --gm列表
@@ -98,6 +109,24 @@ function AdminMgr:on_message(url, body, headers)
     return self:exec_message(cmd_req.data)
 end
 
+--monitor上报
+function AdminMgr:on_monitor(url, body, headers)
+    log_debug("[AdminMgr][on_monitor] body: %s", body)
+    local cmd_req = jdecode(body)
+    self.monitors[cmd_req.addr] = true
+    return { code = 0 }
+end
+
+--monitor拉取
+function AdminMgr:on_monitors(url, body, headers)
+    log_debug("[AdminMgr][on_monitors] body: %s", body)
+    local monitors = { "127.0.0.1:9101" }
+    for addr in pairs(self.monitors) do
+        tinsert(monitors, addr)
+    end
+    return monitors
+end
+
 -------------------------------------------------------------------------
 --后台GM执行，字符串格式
 function AdminMgr:exec_command(command)
@@ -109,6 +138,7 @@ function AdminMgr:exec_command(command)
 end
 
 --后台GM执行，table格式
+--message必须有name字段，作为cmd_name
 function AdminMgr:exec_message(message)
     local fmtargs, err = cmdline:parser_data(message)
     if not fmtargs then
@@ -153,7 +183,7 @@ end
 
 --service command
 function AdminMgr:exec_service_cmd(service_id, cmd_name, target_id, ...)
-    local ok, codeoe, res = router_mgr:call_hash(service_id, "rpc_command_execute" , cmd_name, target_id, ...)
+    local ok, codeoe, res = router_mgr:call_hash(service_id, target_id, "rpc_command_execute" , cmd_name, target_id, ...)
     if not ok then
         log_err("[AdminMgr][exec_service_cmd] call_target(rpc_command_execute) failed! target_id=%s", target_id)
         return {code = 1, msg = codeoe }
