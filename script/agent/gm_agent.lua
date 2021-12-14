@@ -30,14 +30,22 @@ end
 --主要用于服务器内部执行GM指令
 --command：字符串格式
 function GMAgent:execute_command(command)
-    return router_mgr:call_admin_master("rpc_execute_command", command)
+    local ok, codeoe, res = router_mgr:call_admin_master("rpc_execute_command", command)
+    if ok and check_success(codeoe) then
+        return ok, res
+    end
+    return false, ok and res or codeoe
 end
 
 --执行一条command
 --主要用于服务器内部执行GM指令
 --message：lua table格式
 function GMAgent:execute_message(message)
-    return router_mgr:call_admin_master("rpc_execute_message", message)
+    local ok, codeoe, res = router_mgr:call_admin_master("rpc_execute_message", message)
+    if ok and check_success(codeoe) then
+        return ok, res
+    end
+    return false, ok and res or codeoe
 end
 
 function GMAgent:report_command()

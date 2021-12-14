@@ -73,9 +73,13 @@ end
 function OnlineMgr:rpc_transfer_message(player_id, rpc, ...)
     local lobby = self.lobbys[player_id]
     if not lobby then
-        return false, "player not online!"
+        return KernCode.PLAYER_NOT_EXIST, "player not online!"
     end
-    return router_mgr:call_target(lobby, rpc, ...)
+    local ok, codeoe, res = router_mgr:call_target(lobby, rpc, ...)
+    if not ok then
+        return KernCode.RPC_FAILED, codeoe
+    end
+    return codeoe, res
 end
 
 --根据玩家所在的lobby转发消息(随机router,无时序保证)
@@ -90,9 +94,13 @@ end
 function OnlineMgr:rpc_forward_message(player_id, ...)
     local lobby = self.lobbys[player_id]
     if not lobby then
-        return false, "player not online!"
+        return KernCode.PLAYER_NOT_EXIST, "player not online!"
     end
-    return router_mgr:call_target(lobby, "rpc_forward_client", player_id, ...)
+    local ok, codeoe, res = router_mgr:call_target(lobby, "rpc_forward_client", player_id, ...)
+    if not ok then
+        return KernCode.RPC_FAILED, codeoe
+    end
+    return codeoe, res
 end
 
 -- export

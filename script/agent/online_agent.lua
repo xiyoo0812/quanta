@@ -1,7 +1,10 @@
 --online_agent.lua
+local tunpack       = table.unpack
 
 local event_mgr     = quanta.get("event_mgr")
 local router_mgr    = quanta.get("router_mgr")
+
+local KernCode      = enum("KernCode")
 
 local OnlineAgent = singleton()
 function OnlineAgent:__init()
@@ -39,7 +42,8 @@ end
 --rpc处理
 ------------------------------------------------------------------
 function OnlineAgent:rpc_forward_client(player_id, ...)
-    event_mgr:notify_listener("on_forward_client", player_id, ...)
+    local ok, res = tunpack(event_mgr:notify_listener("on_forward_client", player_id, ...))
+    return ok and KernCode.SUCCESS or KernCode.SUCCESS , res
 end
 
 quanta.online = OnlineAgent()

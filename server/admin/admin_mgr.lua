@@ -15,6 +15,7 @@ local log_debug     = logger.debug
 
 local GMType        = enum("GMType")
 local KernCode      = enum("KernCode")
+local SUCCESS       = KernCode.SUCCESS
 
 local cmdline       = quanta.get("cmdline")
 local event_mgr     = quanta.get("event_mgr")
@@ -55,17 +56,19 @@ function AdminMgr:rpc_register_command(command_list, service_id)
         cmdline:register_command(cmd.name, cmd.args, cmd.desc, cmd.gm_type, service_id)
     end
     self.services[service_id] = true
-    return KernCode.SUCCESS
+    return SUCCESS
 end
 
 --执行gm, command：string
 function AdminMgr:rpc_execute_command(command)
-    return self:exec_command(command)
+    local res = self:exec_command(command)
+    return SUCCESS, res
 end
 
 --执行gm, message: table
 function AdminMgr:rpc_execute_message(message)
-    return self:exec_message(message)
+    local res = self:exec_message(message)
+    return SUCCESS, res
 end
 
 --http 回调
