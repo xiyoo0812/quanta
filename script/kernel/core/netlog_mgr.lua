@@ -8,8 +8,10 @@ local ssplit        = string_ext.split
 
 local event_mgr     = quanta.get("event_mgr")
 local timer_mgr     = quanta.get("timer_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local PeriodTime    = enum("PeriodTime")
+local KernCode      = enum("KernCode")
 
 local PULL_CNT_MAX  = 10
 
@@ -25,17 +27,21 @@ end
 
 function NetlogMgr:open_session(data)
     local session_id = data.session_id
+    if not session_id then
+        session_id = thread_mgr:build_session_id()
+    end
     local session = self.sessions[session_id]
     if not session then
         session = {
             pull_index  = 0,
             cache_logs  = {},
             filters     = {},
+            session_id  = session_id,
         }
         self.sessions[session_id] = session
     end
     if data.filters then
-        session.filters = ssplit(data.filters, ",")
+        session.filters = ssplit(data.filters, " ")
     end
     session.active_time = quanta.now
     return session
@@ -50,25 +56,25 @@ end
 
 function NetlogMgr:notify(level, content)
     for _, session in pairs(self.sessions) do
-        local hit_filter = false
+        local cache = false
+        if #session.filters == 0 then
+            cache = true
+            goto docache
+        end
         for _, filter in pairs(session.filters) do
             if sfind(content, filter) then
-                hit_filter = true
-                break
+                cache = true
+                goto docache
             end
         end
-        if hit_filter then
+        :: docache ::
+        if cache then
             tinsert(session.cache_logs, sformat("[%s]%s", level, content))
         end
     end
 end
 
 function NetlogMgr:rpc_show_log(data)
-    log_debug("[NetlogMgr][rpc_show_log]->data:%s", data)
-    local session_id = data.session_id
-    if not session_id then
-        return { code = 1, msg= "param errror!" }
-    end
     if not next(self.sessions) then
         setup_monitor(self)
     end
@@ -87,13 +93,13 @@ function NetlogMgr:rpc_show_log(data)
             session.pull_index = 0
         end
     end
-    return { code = 0, msg = show_logs }
+    return KernCode.SUCCESS, { logs = show_logs, session_id = session.session_id }
 end
 
 function NetlogMgr:on_timer()
     local cur_time = quanta.now
     for session_id, session in pairs(self.sessions) do
-        if cur_time - session.active_time > PeriodTime.SECOND_10_MS then
+        if cur_time - session.active_time > PeriodTime.SECOND_5_S then
             log_debug("[NetlogMgr][on_timer]->overdue->session_id:%s", session_id)
             self:close_session(session_id)
         end

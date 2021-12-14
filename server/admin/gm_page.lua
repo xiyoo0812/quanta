@@ -5,67 +5,48 @@ return [[
 <head>
     <meta charset="UTF-8">
     <meta name="author" content="quanta">
-    <meta name="description" content="quanta gm">
+    <meta name="description" content="quanta console">
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>GM Console</title>
     <link rel="icon" href="http://kyrieliu.cn/kyrie.ico">
-    <!-- 新 Bootstrap 核心 CSS 文件 -->
     <link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
 </head>
 <style>
     html,body,div,h1,h2,h3,h4,h5,h6,p,span{
         padding: 0;
         margin: 0;
-        overflow: hidden;
     }
     body{
         padding-top: 10px;
         overflow: auto;
     }
-    .banner{
-        border: 1px solid black;
-        height: 20px;
-
-    }
     .gmDumpContainer {
         float: left;
         border: 1px solid black;
-        height: 600px;
+        height: 640px;
         width: 30%;
-        margin-top:100px;
+        margin-top:50px;
         overflow: auto;
     }
     .gmContainer {
-        float: left;
+        padding: 2px;
         border: 1px solid black;
-        margin-top:100px;
-        height: 600px;
+        margin-top:50px;
+        height: 640px;
         width: 70%;
         overflow: auto;
     }
-    .gmDump {
-        width: 800px;
-    }
-    .command_arg {
-        display:inline-block;
-        min-width: 100px;
-        color: red;
-    }
     .historyMsg{
-        float: left;
-        top: 10px;
+        top: 5px;
         border: 1px solid black;
-        height: 500px;
-        padding: 5px;s
+        height: 554px;
+        padding: 3px;
         overflow: auto;
     }
     .newMsg{
         text-align: left;
         margin-top: 5px;
-    }
-    .timespan{
-        color: #ddd;
     }
     .myMsg{
         background-color: grey;
@@ -73,19 +54,12 @@ return [[
         text-align: left;
         margin-top: 5px;
     }
-    /*系统消息*/
-    .system{
-        text-align: left;
-        background-color: grey;
-        color: white;
-        margin-top: 5px;
-    }
     .control{
         border: 1px solid black;
         height: 80px;
     }
     .control-row{
-        margin-top: 20px;
+        margin-top: 10px;
     }
     .inputMsg{
         height: 30px !important;
@@ -97,55 +71,23 @@ return [[
     footer{
         text-align: center;
     }
-    .info{
-        color: white;
-        font-size: 10px;
-    }
-    .nickWrapper{
-        display: none;
-    }
-    /* Tablets: 768px */
-    @media screen and (max-width: 760px){
-        .historyMsg{
-            font-size: 10px;
-            border: 0px;
-            height: 330px;
-            padding: 5px;
-            position: relative;
-            overflow: auto;
-        }
-        .banner{
-            border: 0px;
-            border-bottom: 1px solid gray;
-        }
-        .inputMsg{
-            margin-bottom: 2px;
-        }
-        .control{
-            border: 0px;
-        }
-        footer{
-            font-size: 10px;
-        }
-    }
 </style>
 <body>
 <div class="container gm-container">
     <!-- gm dump -->
     <div class="gmDumpContainer">
-        <div class="gmDump" id="gm_dump">
-        </div>
+        <div id="consoleTree" class=""></div>
     </div>
     <!-- 消息内容 -->
     <div class="gmContainer">
-        <div class="col-md-10 col-md-offset-1 col-sm-12 historyMsg" id="historyMsg">
+        <div class="col-md-12 col-sm-12 historyMsg" id="historyMsg">
         </div>
-        <div class="col-md-10 col-md-offset-1 col-sm-12 control">
+        <div class="col-md-12 col-sm-12 control">
             <div class="row control-row">
-                <div class="col-md-8 col-sm-8">
+                <div class="col-md-10 col-sm-10">
                     <textarea id="inputMsg" class="inputMsg form-control"></textarea>
                 </div>
-                <div class="col-md-4 col-sm-4">
+                <div class="col-md-2 col-sm-2">
                     <button id="sendBtn" class="form-control sendBtn btn btn-primary">send</button>
                 </div>
             </div>
@@ -157,6 +99,7 @@ return [[
 </footer>
 </body>
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="http://jonmiles.github.io/bootstrap-treeview/js/bootstrap-treeview.js"></script>
 <script type="text/javascript">
     window.onload = function(){
         var gmconsole = new GMConsole();
@@ -167,6 +110,16 @@ return [[
     GMConsole.prototype = {
         init: function(){
             var that = this;
+            var treeNodes = [
+                {
+                    text : "GM指令",
+                    nodes : [],
+                },
+                {
+                    text : "在线日志",
+                    nodes : [],
+                }
+            ];
 
             // 加载命令列表
             $.ajax({
@@ -174,22 +127,45 @@ return [[
                 type: "GET",
                 dataType: "json",
                 contentType: "utf-8",
-                success: function (result) {
-                    for (var cmd_name in result) {
-                        var cmd_data = result[cmd_name];
-                        that._displayNewMsg("gm_dump", "命令:" + cmd_name + "(" + cmd_data.desc + ")", "system");
-                        that._displayCmdArgs("参数:" + cmd_data.command);
+                success: function (res) {
+                    var nodes = [];
+                    that.cmdlist = res;
+                    for (var cmd_name in res) {
+                        nodes.push({ text : cmd_name, tag : "gm" });
                     };
-                    document.getElementById("gm_dump").scrollTop = 0;
+                    treeNodes[0].nodes = nodes;
+                    that._showConsole(treeNodes);
                 },
                 error: function(status) {
                     document.write(JSON.stringify(status));
                 }
             });
-            //发送按钮和inputMsg监听事件
+
+            // 加载命令列表
+            $.ajax({
+                url:"/monitors",
+                type: "GET",
+                dataType: "json",
+                contentType: "utf-8",
+                success: function (res) {
+                    var nodes = [];
+                    for (var i in res) {
+                        var addr = res[i]
+                        nodes.push({ text : addr, tag : "log" });
+                    }
+                    treeNodes[1].nodes = nodes;
+                    that._showConsole(treeNodes);
+                },
+                error: function(status) {
+                    document.write(JSON.stringify(status));
+                }
+            });
+
+            //sendBtn事件
             document.getElementById('sendBtn').addEventListener('click', function(){
                 that._sendCommand();
             }, false);
+            //inputMsg事件
             document.getElementById('inputMsg').addEventListener('keyup', function(e){
                 if (e.keyCode == 13){
                     that._sendCommand();
@@ -197,8 +173,29 @@ return [[
             }, false);
         },
 
+        _showConsole: function(treeNodes) {
+            var that = this;
+            $('#consoleTree').treeview({data: treeNodes});
+            //consoleTree事件
+            $('#consoleTree').on('nodeSelected', function(event, data) {
+                if (data.tag == "gm") {
+                    var cmd_name = data.text;
+                    var cmd_data = that.cmdlist[cmd_name];
+                    if (cmd_data) {
+                        var msg = "<pre>命令: " + cmd_data.desc + "  参数: " + cmd_data.command + "</pre>";
+                        that._displayNewMsg("historyMsg", msg, "myMsg");
+                        var inputMsg = document.getElementById('inputMsg');
+                        inputMsg.value = cmd_name + " ";
+                        inputMsg.focus();
+                    }
+                } else if (data.tag == "log") {
+                    window.open("http://" + data.text);
+                }
+            });
+        },
+
         _sendCommand: function() {
-            var that = this
+            var that = this;
             var inputMsg = document.getElementById('inputMsg');
             var msg = inputMsg.value.replace('\n','');
             if (msg == ''){
@@ -212,12 +209,12 @@ return [[
                 dataType: "json",
                 contentType: "utf-8",
                 data: JSON.stringify({ data : msg }),
-                success: function (result) {
-                    if (result.code != 0) {
-                        that._displayNewMsg("historyMsg", result.msg, "newMsg");
+                success: function (res) {
+                    if (res.code != 0) {
+                        that._displayNewMsg("historyMsg", res.msg, "newMsg");
                         return
                     }
-                    result = result.msg
+                    var result = res.msg
                     if (typeof(result) == "object") {
                         var data = JSON.stringify(result, null, "    ");
                         data = "<pre>" + data + "</pre>";
@@ -238,37 +235,17 @@ return [[
             inputMsg.focus();
         },
 
-        _displayCmdArgs: function(arg){
-            var container = document.getElementById("gm_dump");
-
-            var p = document.createElement('p');
-            p.setAttribute('class', "newMsg");
-
-            var text_arg = document.createElement("span");
-            text_arg.setAttribute('class', "command_arg");
-            text_arg.innerHTML = arg;
-
-            p.appendChild(text_arg);
-            container.appendChild(p);
-        },
-
         _displayNewMsg: function(container_id, msg, type){
             var container = document.getElementById(container_id);
-
             var p = document.createElement('p');
-            p.setAttribute('class', type);
-
             var text = document.createElement("span");
             text.innerHTML = msg;
-
+            p.setAttribute('class', type);
             p.appendChild(text);
             container.appendChild(p);
-
-            //控制滚动条自动滚到底部
             container.scrollTop = container.scrollHeight;
         },
     };
 </script>
-
 </html>
 ]]
