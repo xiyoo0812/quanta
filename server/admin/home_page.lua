@@ -206,7 +206,6 @@ return [[
                 return;
             }
             that._displayNewMsg("historyMsg", msg, "myMsg");
-            msg = msg.replace(new RegExp(" ",'g'),"/");
             $.ajax({
                 url:"/command",
                 type: "POST",
