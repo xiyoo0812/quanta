@@ -121,6 +121,8 @@ end
 function AdminMgr:dispatch_command(cmd_args, gm_type, service)
     if gm_type == GMType.GLOBAL then
         return self:exec_global_cmd(service, tunpack(cmd_args))
+    elseif gm_type == GMType.SYSTEM then
+        return self:exec_system_cmd(service, tunpack(cmd_args))
     elseif gm_type == GMType.SERVICE then
         return self:exec_service_cmd(service, tunpack(cmd_args))
     end
@@ -137,11 +139,21 @@ function AdminMgr:exec_global_cmd(service_id, cmd_name, ...)
     return {code = codeoe, msg = res}
 end
 
---service command
-function AdminMgr:exec_service_cmd(service_id, cmd_name, target_id, ...)
+--system command
+function AdminMgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
     local index = guid_index(target_id)
     local quanta_id = smake_id(service_id, index)
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_command_execute" , cmd_name, target_id, ...)
+    if not ok then
+        log_err("[AdminMgr][exec_system_cmd] call_target(rpc_command_execute) failed! target_id=%s", target_id)
+        return {code = 1, msg = codeoe }
+    end
+    return {code = codeoe, msg = res}
+end
+
+--service command
+function AdminMgr:exec_service_cmd(service_id, cmd_name, target_id, ...)
+    local ok, codeoe, res = router_mgr:call_hash(service_id, "rpc_command_execute" , cmd_name, target_id, ...)
     if not ok then
         log_err("[AdminMgr][exec_service_cmd] call_target(rpc_command_execute) failed! target_id=%s", target_id)
         return {code = 1, msg = codeoe }

@@ -41,9 +41,11 @@ end
 
 --rpc处理
 ------------------------------------------------------------------
+--透传给client的消息
+--需由player_mgr实现on_forward_client，给client发消息
 function OnlineAgent:rpc_forward_client(player_id, ...)
     local ok, res = tunpack(event_mgr:notify_listener("on_forward_client", player_id, ...))
-    return ok and KernCode.SUCCESS or KernCode.SUCCESS , res
+    return ok and KernCode.SUCCESS or KernCode.LOGIC_FAILED , res
 end
 
 quanta.online = OnlineAgent()

@@ -5,6 +5,8 @@ local tinsert       = table.insert
 local log_info      = logger.info
 local check_success = utility.check_success
 
+local KernCode      = enum("KernCode")
+
 local router_mgr    = quanta.get("router_mgr")
 local event_mgr     = quanta.get("event_mgr")
 
@@ -63,7 +65,8 @@ end
 -- 通知执行GM指令
 function GMAgent:rpc_command_execute(cmd_name, ...)
     log_info("[GMAgent][rpc_command_execute]->cmd_name:%s", cmd_name)
-    return tunpack(event_mgr:notify_listener(cmd_name, ...))
+    local ok, res = tunpack(event_mgr:notify_listener(cmd_name, ...))
+    return ok and KernCode.SUCCESS or KernCode.LOGIC_FAILED, res
 end
 
 -- GM服务已经ready
