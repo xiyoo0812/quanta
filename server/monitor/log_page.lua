@@ -65,10 +65,7 @@ return [[
         height: 30px !important;
         resize: none;
     }
-    .attachBtn{
-        height: 30px;
-    }
-    .detachBtn{
+    .logBtn{
         height: 30px;
     }
     footer{
@@ -87,14 +84,11 @@ return [[
         </div>
         <div class="col-md-12 col-sm-12 control">
             <div class="row control-row">
-                <div class="col-md-8 col-sm-8">
+                <div class="col-md-10 col-sm-10">
                     <textarea id="inputMsg" class="inputMsg form-control"></textarea>
                 </div>
                 <div class="col-md-2 col-sm-2">
-                    <button id="attachBtn" class="form-control attachBtn btn btn-primary">attach</button>
-                </div>
-                <div class="col-md-2 col-sm-2">
-                    <button id="detachBtn" class="form-control detachBtn btn btn-primary">detach</button>
+                    <button id="logBtn" class="form-control logBtn btn btn-success">start</button>
                 </div>
             </div>
         </div>
@@ -136,24 +130,24 @@ return [[
                         }
                     };
                     that._showNodes(nodes);
-                    that.node = null;
                 },
                 error: function(status) {
                     document.write(JSON.stringify(status));
                 }
             });
-
-            //attachBtn事件
-            document.getElementById('attachBtn').addEventListener('click', function(){
-                if (that.node){
-                    that.logging = true;
-                    that._sendRequest(that.node);
-                }
+            //logBtn事件
+            document.getElementById('logBtn').addEventListener('click', function(){
+                that.logging = !that.logging;
+                that._updateBtn();
+                document.getElementById('inputMsg').focus();
             }, false);
-            //detachBtn事件
-            document.getElementById('detachBtn').addEventListener('click', function(){
-                that.logging = false;
-            }, false);
+        },
+        _updateBtn: function() {
+            var that = this;
+            var btn = document.getElementById('logBtn');
+            var style = that.logging ? "form-control logBtn btn btn-danger" : "form-control logBtn btn btn-success";
+            btn.innerHTML = that.logging ? "stop" : "start";
+            btn.setAttribute("class", style);
         },
 
         _showNodes: function(nodes) {
@@ -168,6 +162,7 @@ return [[
                     that.logging = false;
                     var msg = "<pre>service: " + node.service + "  index: " + node.index + "</pre>";
                     that._displayNewMsg("historyMsg", msg, "myMsg");
+                    that._updateBtn();
                 }
             });
         },

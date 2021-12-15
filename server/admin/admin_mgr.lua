@@ -45,14 +45,6 @@ function AdminMgr:__init()
     server:register_post("/monitor", "on_monitor", self)
     server:register_post("/message", "on_message", self)
     self.http_server = server
-
-    --注册GM指令
-    local cmd_list = {
-        {gm_type = GMType.GLOBAL, name = "get_online_count", desc = "获取在线人数", args = ""},
-        {gm_type = GMType.GLOBAL, name = "set_log_level", desc = "设置日志等级", args = "svr_name|string level|number"},
-        {gm_type = GMType.GLOBAL, name = "get_account_info", desc = "获取账号信息", args = "open_id|string area_id|number"},
-    }
-    self:rpc_register_command(cmd_list, quanta.id)
 end
 
 --rpc请求
