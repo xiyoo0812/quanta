@@ -1,9 +1,9 @@
 --monitor_mgr.lua
-import("kernel/network/http_client.lua")
+import("network/http_client.lua")
 local ljson         = require("lcjson")
 local log_page      = import("monitor/log_page.lua")
-local RpcServer     = import("kernel/network/rpc_server.lua")
-local HttpServer    = import("kernel/network/http_server.lua")
+local RpcServer     = import("network/rpc_server.lua")
+local HttpServer    = import("network/http_server.lua")
 
 local jdecode       = ljson.decode
 local env_get       = environ.get

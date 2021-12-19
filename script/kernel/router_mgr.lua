@@ -59,7 +59,7 @@ function RouterMgr:add_router(router_conf, index)
         local host = router_conf.host
         --端口推导
         local port = router_conf.port + (index - 1)
-        local RpcClient = import("kernel/network/rpc_client.lua")
+        local RpcClient = import("network/rpc_client.lua")
         self.routers[router_id] = {
             addr = host,
             router_id = router_id,

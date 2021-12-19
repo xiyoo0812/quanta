@@ -1,5 +1,5 @@
 -- http_test.lua
-import("kernel/network/http_client.lua")
+import("network/http_client.lua")
 local ljson = require("lcjson")
 local ltimer = require("ltimer")
 
@@ -20,7 +20,7 @@ if quanta.index == 1 then
         log_debug("on_get: %s, %s, %s", path, query, headers)
         return data
     end
-    local HttpServer = import("kernel/network/http_server.lua")
+    local HttpServer = import("network/http_server.lua")
     local server = HttpServer("0.0.0.0:8888")
     server:register_get("*", on_get)
     server:register_post("*", on_post)

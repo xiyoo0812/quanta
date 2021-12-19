@@ -1,5 +1,5 @@
 --proxy_mgr.lua
-import("kernel/network/http_client.lua")
+import("network/http_client.lua")
 local log_err       = logger.err
 
 local event_mgr     = quanta.get("event_mgr")

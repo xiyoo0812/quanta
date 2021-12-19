@@ -28,7 +28,7 @@ FlagMask.ZIP                = 0x08  -- 开启zip压缩
 local NetwkTime             = enum("NetwkTime", 0)
 NetwkTime.CONNECT_TIMEOUT   = 3000      --连接等待时间
 NetwkTime.RPC_CALL_TIMEOUT  = 5000      --RPC调用超时时间
-NetwkTime.HTTP_CALL_TIMEOUT = 4500      --HTTP调用超时时间
+NetwkTime.HTTP_CALL_TIMEOUT = 5000      --HTTP调用超时时间
 NetwkTime.DB_CALL_TIMEOUT   = 5000      --DB调用超时时间
 NetwkTime.ROUTER_TIMEOUT    = 10000     --router连接超时时间
 NetwkTime.NETWORK_TIMEOUT   = 35000     --其他网络连接超时时间
@@ -74,6 +74,13 @@ GMType.GLOBAL               = 0       -- 全局相关
 GMType.PLAYER               = 1       -- 玩家相关,ID为玩家的ID
 GMType.SERVICE              = 2       -- 服务相关,ID按hash分发
 GMType.SYSTEM               = 3       -- 业务相关,ID为队伍ID,房间ID等
+
+--Cache错误码
+local CacheType = enum("CacheType", 0)
+CacheType.READ              = 1     -- 读
+CacheType.WRITE             = 2     -- 写
+CacheType.BOTH              = 3     -- 读写
+
 
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)

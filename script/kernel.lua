@@ -1,18 +1,10 @@
 --kernel.lua
 local ltimer = require("ltimer")
 
-import("enum.lua")
-import("class.lua")
-import("mixin.lua")
-import("property.lua")
 import("basic/basic.lua")
-import("utility/signal.lua")
-import("utility/environ.lua")
-import("utility/constant.lua")
-import("utility/utility.lua")
-import("kernel/config/config_mgr.lua")
-import("kernel/core/update_mgr.lua")
-import("kernel/statis/perfeval_mgr.lua")
+import("kernel/config_mgr.lua")
+import("kernel/update_mgr.lua")
+import("kernel/perfeval_mgr.lua")
 
 local ltime         = ltimer.time
 local log_info      = logger.info
@@ -40,7 +32,7 @@ function quanta.ready()
 end
 
 function quanta.init()
-    import("utility/service.lua")
+    import("basic/service.lua")
     --启动quanta
     quanta.ready()
     --初始化环境变量
@@ -60,19 +52,19 @@ function quanta.init()
 
     -- 初始化统计管理器
     quanta.perfeval_mgr:setup()
-    import("kernel/statis/statis_mgr.lua")
-    import("kernel/core/protobuf_mgr.lua")
+    import("kernel/statis_mgr.lua")
+    import("kernel/protobuf_mgr.lua")
 
     --初始化路由管理器
     if service.router(quanta.service_id) then
         --加载router配置
-        import("kernel/core/router_mgr.lua")
-        import("utility/oaim_notify.lua")
+        import("kernel/router_mgr.lua")
+        import("driver/oanotify.lua")
     end
     if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
         import("agent/monitor_agent.lua")
-        import("kernel/core/netlog_mgr.lua")
+        import("kernel/netlog_mgr.lua")
     end
 end
 

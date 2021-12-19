@@ -1,9 +1,9 @@
 --gm_mgr.lua
-import("utility/cmdline.lua")
+import("basic/cmdline.lua")
 local ljson         = require("lcjson")
 local lcrypt        = require("lcrypt")
 local gm_page       = import("admin/gm_page.lua")
-local HttpServer    = import("kernel/network/http_server.lua")
+local HttpServer    = import("network/http_server.lua")
 
 local jdecode       = ljson.decode
 local guid_index    = lcrypt.guid_index

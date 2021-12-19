@@ -3,7 +3,7 @@ local log_debug = logger.debug
 
 local timer_mgr = quanta.get("timer_mgr")
 
-local MysqlMgr = import("kernel/store/mysql_mgr.lua")
+local MysqlMgr = import("store/mysql_mgr.lua")
 local mysql_mgr = MysqlMgr()
 
 timer_mgr:once(3000, function()

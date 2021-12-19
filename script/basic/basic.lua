@@ -6,12 +6,20 @@ table_ext   = table_ext or {}
 string_ext  = string_ext or {}
 
 --加载basic文件
+import("enum.lua")
+import("class.lua")
+import("mixin.lua")
+import("property.lua")
+import("constant.lua")
 import("basic/math.lua")
 import("basic/table.lua")
 import("basic/string.lua")
 import("basic/logger.lua")
 import("basic/console.lua")
 import("basic/listener.lua")
+import("basic/signal.lua")
+import("basic/environ.lua")
+import("basic/utility.lua")
 
 local log_err       = logger.err
 local dtraceback    = debug.traceback

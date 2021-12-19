@@ -1,9 +1,9 @@
 --clock_mgr.lua
 local ltimer = require("ltimer")
 
-import("kernel/core/thread_mgr.lua")
-import("kernel/core/timer_mgr.lua")
-import("kernel/core/clock_mgr.lua")
+import("kernel/thread_mgr.lua")
+import("kernel/timer_mgr.lua")
+import("kernel/clock_mgr.lua")
 
 local pairs         = pairs
 local log_info      = logger.info

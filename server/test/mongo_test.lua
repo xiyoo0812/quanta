@@ -3,7 +3,7 @@ local log_debug     = logger.debug
 
 local timer_mgr     = quanta.get("timer_mgr")
 
-local MongoMgr      = import("kernel/store/mongo_mgr.lua")
+local MongoMgr      = import("store/mongo_mgr.lua")
 local mongo_mgr     = MongoMgr()
 
 timer_mgr:once(2000, function()

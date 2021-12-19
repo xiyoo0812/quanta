@@ -14,7 +14,7 @@ local sid2index     = service.id2index
 
 local FlagMask      = enum("FlagMask")
 local KernCode      = enum("KernCode")
-local RpcServer     = import("kernel/network/rpc_server.lua")
+local RpcServer     = import("network/rpc_server.lua")
 
 local event_mgr     = quanta.get("event_mgr")
 local socket_mgr    = quanta.get("socket_mgr")

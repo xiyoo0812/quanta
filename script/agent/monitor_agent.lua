@@ -1,5 +1,5 @@
 --monitor_agent.lua
-local RpcClient     = import("kernel/network/rpc_client.lua")
+local RpcClient     = import("network/rpc_client.lua")
 
 local tunpack       = table.unpack
 local signal_quit   = signal.quit

@@ -7,12 +7,12 @@ local sformat       = string.format
 local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
-local co_running    = coroutine.running     -- 获取当前运行协程
+local co_running    = coroutine.running
 local qxpcall       = quanta.xpcall
 local log_err       = logger.err
 
 local QueueFIFO     = import("container/queue_fifo.lua")
-local SyncLock      = import("utility/sync_lock.lua")
+local SyncLock      = import("kernel/object/sync_lock.lua")
 
 local PeriodTime    = enum("PeriodTime")
 local MINUTE_10_MS  = PeriodTime.MINUTE_10_MS
@@ -34,21 +34,29 @@ function ThreadMgr:size()
     return co_cur_size, co_cur_max
 end
 
-function ThreadMgr:lock(key)
+function ThreadMgr:lock(key, to)
     local queue = self.syncqueue_map[key]
     if not queue then
         queue = QueueFIFO()
         self.syncqueue_map[key] = queue
     end
     queue.ttl = quanta.now_ms
-    local co = co_running()
-    if queue:empty() then
-        queue:push(co)
+    local head = queue:head()
+    if not head then
+        local lock = SyncLock(self, key, to)
+        queue:push(lock)
+        return lock
     else
-        queue:push(co)
+        if head.co == co_running() then
+            --防止重入
+            head:increase()
+            return head
+        end
+        local lock = SyncLock(self, key, to)
+        queue:push(lock)
         co_yield()
+        return lock
     end
-    return SyncLock(self, key)
 end
 
 function ThreadMgr:unlock(key)
@@ -112,12 +120,21 @@ function ThreadMgr:on_minute(now_ms)
 end
 
 function ThreadMgr:on_frame(now_ms)
+    --处理锁超时
+    for _, queue in pairs(self.syncqueue_map) do
+        local head = queue:head()
+        if head and head.timeout <= now_ms then
+            head:unlock()
+        end
+    end
+    --检查协程超时
     local timeout_coroutines = {}
     for session_id, context in pairs(self.coroutine_map) do
         if context.to <= now_ms then
             tinsert(timeout_coroutines, session_id)
         end
     end
+    --处理协程超时
     for _, session_id in pairs(timeout_coroutines) do
         local context = self.coroutine_map[session_id]
         if context then

@@ -1,5 +1,5 @@
 --cmdline_test.lua
-import("utility/cmdline.lua")
+import("basic/cmdline.lua")
 
 local log_debug     = logger.debug
 

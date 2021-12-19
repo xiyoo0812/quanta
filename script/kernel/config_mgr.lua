@@ -1,7 +1,7 @@
 --cfg_mgr.lua
 
 -- 配置管理器
-local ConfigTable = import("kernel/config/config_table.lua")
+local ConfigTable = import("kernel/object/config_table.lua")
 local ConfigMgr = singleton()
 function ConfigMgr:__init()
     -- 配置对象列表
