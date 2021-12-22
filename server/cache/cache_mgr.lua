@@ -118,9 +118,13 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key, cache_type)
             log_err("[CacheMgr][get_cache_obj] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
             return CacheCode.CACHE_IS_HOLDING
         end
-        if (cache_type & CAWRITE == CAWRITE) and (quanta_id ~= cache_obj:get_lock_node_id()) then
-            log_err("[CacheMgr][get_cache_obj] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
-            return CacheCode.CACHE_KEY_LOCK_FAILD
+        if cache_type & CAWRITE == CAWRITE then
+            local lock_node_id = cache_obj:get_lock_node_id()
+            if lock_node_id ~= 0 and quanta_id ~= lock_node_id then
+                log_err("[CacheMgr][get_cache_obj] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
+                return CacheCode.CACHE_KEY_LOCK_FAILD
+            end
+            cache_obj:set_lock_node_id(quanta_id)
         end
         cache_obj:active()
         return SUCCESS, cache_obj
@@ -140,8 +144,8 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key, cache_type)
     return CacheCode.CACHE_IS_NOT_EXIST
 end
 
-function CacheMgr:rpc_cache_load(quanta_id, req_data, cache_type)
-    local cache_name, primary_key = tunpack(req_data)
+function CacheMgr:rpc_cache_load(quanta_id, req_data)
+    local cache_name, primary_key, cache_type = tunpack(req_data)
     local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, cache_type or CacheType.READ)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_load] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
@@ -209,6 +213,7 @@ function CacheMgr:rpc_cache_flush(quanta_id, req_data)
     end
     if cache_obj:save() then
         cache_obj:set_flush(true)
+        cache_obj:set_lock_node_id(0)
         self.dirty_map:set(cache_obj:get_uuid(), nil)
         log_info("[CacheMgr][rpc_cache_flush] cache=%s,primary=%s", cache_name, primary_key)
         return SUCCESS
