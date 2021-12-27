@@ -84,7 +84,6 @@ public:
     void set_recv_buffer_size(uint32_t token, size_t size);
     void set_timeout(uint32_t token, int duration);
     void set_nodelay(uint32_t token, int flag);
-    void set_close_time(uint32_t token, uint32_t close_ms);
     void send(uint32_t token, const void* data, size_t data_len);
     void sendv(uint32_t token, const sendv_item items[], int count);
     void close(uint32_t token);
