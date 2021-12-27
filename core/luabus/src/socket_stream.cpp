@@ -62,8 +62,8 @@ void socket_stream::connect(const char node_name[], const char service_name[], i
     m_connecting_time = ltimer::now_ms() + timeout;
 }
 
-void socket_stream::close(bool immediately) {
-    if (immediately || m_socket == INVALID_SOCKET) {
+void socket_stream::close() {
+    if (m_socket == INVALID_SOCKET) {
         m_link_status = elink_status::link_closed;
         return;
     }
@@ -74,13 +74,13 @@ void socket_stream::close(bool immediately) {
 bool socket_stream::update(int64_t now) {
     switch (m_link_status) {
         case elink_status::link_closed: {
-            if(m_socket != INVALID_SOCKET) {
-                closesocket(m_socket);
-                m_socket = INVALID_SOCKET;
-            }
 #ifdef _MSC_VER
             if (m_ovl_ref != 0) return true;
 #endif
+            if (m_socket != INVALID_SOCKET) {
+                closesocket(m_socket);
+                m_socket = INVALID_SOCKET;
+            }
             return false;
         }
         case elink_status::link_colsing: {

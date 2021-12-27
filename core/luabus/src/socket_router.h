@@ -28,6 +28,7 @@ struct router_header {
 };
 
 struct service_group {
+    uint16_t hash = 0;
     uint32_t master = 0;
     std::vector<service_node> nodes;
 };
@@ -48,7 +49,6 @@ public:
     size_t format_header(BYTE* header_data, size_t data_len, router_header* header, msg_id msgid);
 
 private:
-    uint16_t m_hash = 0;
     std::shared_ptr<socket_mgr> m_mgr;
     std::array<service_group, MAX_SERVICE_GROUP> m_groups;
 };

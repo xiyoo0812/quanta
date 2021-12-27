@@ -13,9 +13,9 @@ void socket_router::map_token(uint32_t service_id, uint32_t token, uint16_t hash
     uint32_t group_idx = get_group_idx(service_id);
     auto& group = m_groups[group_idx];
     auto& nodes = group.nodes;
-    if (m_hash < hash) {
+    if (group.hash < hash) {
         //启动hash模式
-        m_hash = hash;
+        group.hash = hash;
         nodes.resize(hash);
         for (uint16_t i = 0; i < hash; ++i) {
             if (nodes[i].id == 0) {
@@ -25,7 +25,7 @@ void socket_router::map_token(uint32_t service_id, uint32_t token, uint16_t hash
     }
     auto it = std::lower_bound(nodes.begin(), nodes.end(), service_id, [](service_node& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == service_id) {
-        if (m_hash > 0 || token > 0) {
+        if (group.hash > 0 || token > 0) {
             it->token = token;
             return;
         }

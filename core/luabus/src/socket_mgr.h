@@ -36,7 +36,7 @@ struct socket_object
 {
     virtual ~socket_object() {};
     virtual bool update(int64_t now) = 0;
-    virtual void close(bool immediately = false) { m_link_status = elink_status::link_closed; };
+    virtual void close() { m_link_status = elink_status::link_closed; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char node_name[], const char service_name[]) { }
     virtual void set_send_buffer_size(size_t size) { }
@@ -84,9 +84,10 @@ public:
     void set_recv_buffer_size(uint32_t token, size_t size);
     void set_timeout(uint32_t token, int duration);
     void set_nodelay(uint32_t token, int flag);
+    void set_close_time(uint32_t token, uint32_t close_ms);
     void send(uint32_t token, const void* data, size_t data_len);
     void sendv(uint32_t token, const sendv_item items[], int count);
-    void close(uint32_t token, bool immediately = true);
+    void close(uint32_t token);
     bool get_remote_ip(uint32_t token, std::string& ip);
 
     void set_accept_callback(uint32_t token, const std::function<void(uint32_t, eproto_type eproto_type)>& cb);

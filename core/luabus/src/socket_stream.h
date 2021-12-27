@@ -18,7 +18,7 @@ struct socket_stream : public socket_object
     bool update(int64_t now) override;
     bool do_connect();
     void try_connect();
-    void close(bool immediately = true) override;
+    void close() override;
     void set_accept_callback(const std::function<void(int, eproto_type)>& cb) override { m_accept_cb = cb; }
     void set_package_callback(const std::function<void(char*, size_t)>& cb) override { m_package_cb = cb; }
     void set_error_callback(const std::function<void(const char*)>& cb) override { m_error_cb = cb; }

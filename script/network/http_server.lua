@@ -172,7 +172,7 @@ function HttpServer:response(socket, request, hresponse)
     self.requests[socket:get_token()] = nil
     if type(hresponse) == "userdata" then
         socket:send(hresponse:respond(request))
-        socket:close(false)
+        socket:close()
         return
     end
     local ttype = "text/plain"
@@ -181,7 +181,7 @@ function HttpServer:response(socket, request, hresponse)
         ttype = "application/json"
     end
     socket:send(request:response(200, ttype, hresponse or ""))
-    socket:close(false)
+    socket:close()
 end
 
 return HttpServer
