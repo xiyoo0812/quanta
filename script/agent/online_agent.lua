@@ -1,5 +1,9 @@
 --online_agent.lua
+local log_info      = logger.info
 local tunpack       = table.unpack
+local sidhash       = service.hash
+local sid2sid       = service.id2sid
+local sid2index     = service.id2index
 
 local event_mgr     = quanta.get("event_mgr")
 local router_mgr    = quanta.get("router_mgr")
@@ -9,6 +13,7 @@ local KernCode      = enum("KernCode")
 local OnlineAgent = singleton()
 function OnlineAgent:__init()
     event_mgr:add_listener(self, "rpc_forward_client")
+    router_mgr:watch_service_ready(self, "online")
 end
 
 --执行远程rpc消息
@@ -46,6 +51,15 @@ end
 function OnlineAgent:rpc_forward_client(player_id, ...)
     local ok, res = tunpack(event_mgr:notify_listener("on_forward_client", player_id, ...))
     return ok and KernCode.SUCCESS or KernCode.LOGIC_FAILED , res
+end
+
+-- Online服务已经ready
+function OnlineAgent:on_service_ready(id, service_name)
+    log_info("[OnlineAgent][on_service_ready]->id:%s, service_name:%s", id, service_name)
+    local service_id = sid2sid(id)
+    local servive_index = sid2index(id)
+    local service_hash = sidhash(service_id)
+    event_mgr:notify_listener("on_rebuild_online", service_hash, servive_index)
 end
 
 quanta.online = OnlineAgent()

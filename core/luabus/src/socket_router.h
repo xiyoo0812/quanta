@@ -14,7 +14,7 @@ enum class msg_id : char {
     forward_hash,
 };
 
-const int MAX_SERVICE_GROUP = (UCHAR_MAX + 1);
+const int MAX_SERVICE_GROUP = 255;
 
 struct service_node {
     uint32_t id = 0;
