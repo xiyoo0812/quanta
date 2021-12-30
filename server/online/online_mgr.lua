@@ -22,8 +22,10 @@ function OnlineMgr:__init()
     event_mgr:add_listener(self, "rpc_logout_player")
     event_mgr:add_listener(self, "rpc_query_player")
     event_mgr:add_listener(self, "rpc_router_message")
-    event_mgr:add_listener(self, "rpc_transfer_message")
     event_mgr:add_listener(self, "rpc_forward_message")
+    event_mgr:add_listener(self, "rpc_transfer_message")
+    event_mgr:add_listener(self, "rpc_send_forward_message")
+    event_mgr:add_listener(self, "rpc_send_transfer_message")
 
     router_mgr:watch_service_close(self, "lobby")
 end
@@ -82,6 +84,14 @@ function OnlineMgr:rpc_transfer_message(player_id, rpc, ...)
     return codeoe, res
 end
 
+--根据玩家所在的lobby转发消息
+function OnlineMgr:rpc_send_transfer_message(player_id, rpc, ...)
+    local lobby = self.lobbys[player_id]
+    if lobby then
+        router_mgr:send_target(lobby, rpc, ...)
+    end
+end
+
 --根据玩家所在的lobby转发消息(随机router,无时序保证)
 function OnlineMgr:rpc_router_message(player_id, rpc, ...)
     local lobby = self.lobbys[player_id]
@@ -101,6 +111,13 @@ function OnlineMgr:rpc_forward_message(player_id, ...)
         return KernCode.RPC_FAILED, codeoe
     end
     return codeoe, res
+end
+
+function OnlineMgr:rpc_send_forward_message(player_id, ...)
+    local lobby = self.lobbys[player_id]
+    if lobby then
+        router_mgr:send_target(lobby, "rpc_forward_client", player_id, ...)
+    end
 end
 
 -- export

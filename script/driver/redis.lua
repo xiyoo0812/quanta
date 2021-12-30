@@ -27,10 +27,8 @@ local function _async_call(context, quote)
     local session_id = thread_mgr:build_session_id()
     if not context.commit_id then
         context.commit_id = session_id
-        log_info("[RedisDB][_async_call] push cmd:%s session_id: %s", context.name, session_id)
     end
     context.session_id = session_id
-    log_info("[RedisDB][_async_call] yield cmd:%s quote:%s, session_id: %s", context.name, quote, session_id)
     local fquote = sformat("%s:%s", context.name, quote)
     return thread_mgr:yield(session_id, fquote, DB_TIMEOUT)
 end
