@@ -19,21 +19,31 @@ local PeriodTime    = enum("PeriodTime")
 local update_mgr    = quanta.get("update_mgr")
 
 local PerfevalMgr = singleton()
+local prop = property(PerfevalMgr)
+prop:reader("eval_id", 0)
+prop:reader("perfeval", false)  --性能开关
+prop:reader("eval_co_map", {})  --协程评估表
+prop:reader("perfeval_map", {}) --性能数据
 function PerfevalMgr:__init()
-    -- 性能开关
-    self.perfeval = false
-    -- 数据
-    self.perfeval_map = {}
-    -- 协程评估表
-    self.eval_co_map = {}
-    self.eval_id = 0
 end
 
 function PerfevalMgr:setup()
     -- 退出通知
     update_mgr:attach_quit(self)
     -- 初始化开关
-    self:set_perfeval(env_status("QUANTA_PERFEVAL"))
+    self.perfeval = env_status("QUANTA_PERFEVAL")
+    --协程改造
+    coroutine.yield = function(...)
+        self:yield()
+        return raw_yield(...)
+    end
+    coroutine.resume = function(co, ...)
+        self:yield()
+        self:resume(co)
+        local args = tpack(raw_resume(co, ...))
+        self:resume()
+        return tunpack(args)
+    end
 end
 
 function PerfevalMgr:on_quit()
@@ -166,22 +176,6 @@ function PerfevalMgr:dump()
     log_info("----------------------------------------------------")
 end
 
-local perfeval_mgr = PerfevalMgr()
-
---协程改造
-coroutine.yield = function(...)
-    perfeval_mgr:yield()
-    return raw_yield(...)
-end
-
-coroutine.resume = function(co, ...)
-    perfeval_mgr:yield()
-    perfeval_mgr:resume(co)
-    local args = tpack(raw_resume(co, ...))
-    perfeval_mgr:resume()
-    return tunpack(args)
-end
-
-quanta.perfeval_mgr = perfeval_mgr
+quanta.perfeval_mgr = PerfevalMgr()
 
 return PerfevalMgr

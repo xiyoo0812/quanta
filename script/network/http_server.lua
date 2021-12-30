@@ -16,7 +16,7 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local HttpServer = class()
 local prop = property(HttpServer)
-prop:reader("sock", nil)            --网络连接对象
+prop:reader("listener", nil)        --网络连接对象
 prop:reader("ip", nil)              --http server地址
 prop:reader("port", 8080)           --http server端口
 prop:reader("clients", {})          --clients
@@ -39,13 +39,13 @@ function HttpServer:setup(http_addr)
         return
     end
     log_info("[HttpServer][setup] listen(%s:%s) success!", self.ip, self.port)
-    self.sock = socket
+    self.listener = socket
 end
 
 function HttpServer:on_socket_error(socket, token, err)
-    if socket == self.sock then
+    if socket == self.listener then
         log_info("[HttpServer][on_socket_error] listener(%s:%s) close!", self.ip, self.port)
-        self.sock = nil
+        self.listener = nil
         return
     end
     log_debug("[HttpServer][on_socket_error] client(token:%s) close!", token)
