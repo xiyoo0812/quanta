@@ -434,7 +434,7 @@ end
 
 function RedisDB:on_socket_recv(sock, token)
     while true do
-        local line, length = sock:peek_line(LineTitle)
+        local line, length = sock:peek_data(LineTitle)
         if not line then
             break
         end

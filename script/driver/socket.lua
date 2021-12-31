@@ -144,9 +144,9 @@ function Socket:peek(len, offset)
     end
 end
 
-function Socket:peek_line(line_flag, offset)
+function Socket:peek_data(split_char, offset)
     offset = offset or 0
-    local i, j = sfind(self.recvbuf, line_flag, offset + 1)
+    local i, j = sfind(self.recvbuf, split_char, offset + 1)
     if i then
         return ssub(self.recvbuf, offset + 1, i - 1), j - offset
     end
