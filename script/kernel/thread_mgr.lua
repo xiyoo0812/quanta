@@ -66,7 +66,8 @@ function ThreadMgr:unlock(key)
         if queue:empty() then
             return
         end
-        co_resume(queue:pop())
+        local lock = queue:pop()
+        co_resume(lock.co)
     end
 end
 
