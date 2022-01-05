@@ -18,22 +18,22 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 --网络时间常量定义
 local HookStatus = enum("HookStatus", 0)
-HookStatus.DISCONNECT_HOOK  = 0,    --断开连接
-HookStatus.LITE_HOOK        = 1,    --全局无断点
-HookStatus.MID_HOOK         = 2,    --全局有断点，本文件无断点
-HookStatus.ALL_HOOK         = 3,    --本文件有断点
+HookStatus.DISCONNECT_HOOK  = 0     --断开连接
+HookStatus.LITE_HOOK        = 1     --全局无断点
+HookStatus.MID_HOOK         = 2     --全局有断点，本文件无断点
+HookStatus.ALL_HOOK         = 3     --本文件有断点
 
 local RunStatus = enum("RunStatus", 0)
-RunStatus.DISCONNECT        = 0,    --未连接
-RunStatus.WAIT_CMD          = 1,    --已连接，等待命令
-RunStatus.STOP_ON_ENTRY     = 2,    --初始状态
-RunStatus.RUN               = 3,
-RunStatus.STEPOVER          = 4,
-RunStatus.STEPIN            = 5,
-RunStatus.STEPOUT           = 6,
-RunStatus.STEPOVER_STOP     = 7,
-RunStatus.STEPIN_STOP       = 8,
-RunStatus.STEPOUT_STOP      = 9,
+RunStatus.DISCONNECT        = 0     --未连接
+RunStatus.WAIT_CMD          = 1     --已连接，等待命令
+RunStatus.STOP_ON_ENTRY     = 2     --初始状态
+RunStatus.RUN               = 3
+RunStatus.STEPOVER          = 4
+RunStatus.STEPIN            = 5
+RunStatus.STEPOUT           = 6
+RunStatus.STEPOVER_STOP     = 7
+RunStatus.STEPIN_STOP       = 8
+RunStatus.STEPOUT_STOP      = 9
 RunStatus.HIT_BREAKPOINT    = 10
 
 local LuaPanda = singleton()

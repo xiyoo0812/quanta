@@ -39,10 +39,6 @@ function Socket:close()
     end
 end
 
-function Socket:is_alive()
-    return self.session ~= nil
-end
-
 function Socket:listen(ip, port)
     if self.listener then
         return true
@@ -56,7 +52,7 @@ function Socket:listen(ip, port)
     self.ip, self.port = ip, port
     log_info("[Socket][listen] start listen at: %s:%d type=%d", ip, port, proto_type)
     self.listener.on_accept = function(session)
-        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session)
+        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session, ip, port)
     end
     return true
 end
@@ -105,9 +101,7 @@ end
 function Socket:on_socket_recv(session, data)
     self.recvbuf = self.recvbuf .. data
     self.alive_time = quanta.now
-    if #self.recvbuf > 0 then
-        self.host:on_socket_recv(self, self.token)
-    end
+    self.host:on_socket_recv(self, self.token)
 end
 
 function Socket:on_socket_error(token, err)
@@ -164,12 +158,12 @@ function Socket:pop(len)
 end
 
 function Socket:send(data)
-    if (not self.alive) or (not data) then
-        log_err("[Socket][send] the socket not alive,can't send")
-        return false
+    if self.alive and data then
+        local send_len = self.session.call_text(data)
+        return send_len > 0
     end
-    local send_len = self.session.call_text(data)
-    return send_len > 0
+    log_err("[Socket][send] the socket not alive, can't send")
+    return false
 end
 
 return Socket

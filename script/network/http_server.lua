@@ -68,7 +68,7 @@ function HttpServer:on_socket_recv(socket, token)
     local buf = socket:get_recvbuf()
     if #buf == 0 or not request:append(buf) then
         log_err("[HttpServer][on_socket_recv] http request append failed, close client(token:%s)!", token)
-        self:response(socket, request, "this http request parse error!")
+        self:response(socket, 400, request, "this http request parse error!")
         return
     end
     socket:pop(#buf)
@@ -77,29 +77,30 @@ function HttpServer:on_socket_recv(socket, token)
     local HTTP_REQUEST_ERROR = 2
     if state == HTTP_REQUEST_ERROR then
         log_err("[HttpServer][on_socket_recv] http request process failed, close client(token:%s)!", token)
-        self:response(socket, request, "this http request parse error!")
+        self:response(socket, 400, request, "this http request parse error!")
         return
     end
-    local url = request:url()
-    local method = request:method()
-    local headers = request:headers()
-    if method == "GET" then
-        local querys = request:querys()
-        return self:on_http_request(self.get_handlers, socket, request, url, querys, headers)
-    end
-    if method == "POST" then
-        local body = request:body()
-        return self:on_http_request(self.post_handlers, socket, request, url, body, headers)
-    end
-    if method == "PUT" then
-        local body = request:body()
-        print(body)
-        return self:on_http_request(self.put_handlers, socket, request, url, body, headers)
-    end
-    if method == "DELETE" then
-        local querys = request:querys()
-        return self:on_http_request(self.del_handlers, socket, request, url, querys, headers)
-    end
+    thread_mgr:fork(function()
+        local url = request:url()
+        local method = request:method()
+        local headers = request:headers()
+        if method == "GET" then
+            local querys = request:querys()
+            return self:on_http_request(self.get_handlers, socket, request, url, querys, headers)
+        end
+        if method == "POST" then
+            local body = request:body()
+            return self:on_http_request(self.post_handlers, socket, request, url, body, headers)
+        end
+        if method == "PUT" then
+            local body = request:body()
+            return self:on_http_request(self.put_handlers, socket, request, url, body, headers)
+        end
+        if method == "DELETE" then
+            local querys = request:querys()
+            return self:on_http_request(self.del_handlers, socket, request, url, querys, headers)
+        end
+    end)
 end
 
 --注册get回调
@@ -139,36 +140,37 @@ end
 
 --http post 回调
 function HttpServer:on_http_request(handlers, socket, request, url, ...)
-    local function do_http_request(...)
-        local handler_info = handlers[url] or handlers["*"]
-        if not handler_info then
-            return false, "this http request hasn't process!"
-        end
+    local handler_info = handlers[url] or handlers["*"]
+    if handler_info then
         local handler, target = tunpack(handler_info)
         if not target then
             if type(handler) == "function" then
-                return pcall(handler, url, ...)
+                local ok, response = pcall(handler, url, ...)
+                if not ok then
+                    response = { code = 1, msg = response }
+                end
+                self:response(socket, 200, request, response)
+                return
             end
-            return false, "this http request hasn't process!"
+        else
+            if type(handler) == "string" then
+                handler = target[handler]
+            end
+            if type(handler) == "function" then
+                local ok, response = pcall(handler, target, url, ...)
+                if not ok then
+                    response = { code = 1, msg = response }
+                end
+                self:response(socket, 200, request, response)
+                return
+            end
         end
-        if type(handler) == "string" then
-            handler = target[handler]
-        end
-        if type(handler) == "function" then
-            return pcall(handler, target, url, ...)
-        end
-        return false, "this http request hasn't process!"
     end
-    thread_mgr:fork(function(...)
-        local ok, response = do_http_request(...)
-        if not ok then
-            response = { code = 1, msg = response }
-        end
-        self:response(socket, request, response)
-    end, ...)
+    log_err("[HttpServer][on_http_request] request %s hasn't process!", url)
+    self:response(socket, 404, request, "this http request hasn't process!")
 end
 
-function HttpServer:response(socket, request, hresponse)
+function HttpServer:response(socket, status, request, hresponse)
     self.requests[socket:get_token()] = nil
     if type(hresponse) == "userdata" then
         socket:send(hresponse:respond(request))
@@ -180,7 +182,7 @@ function HttpServer:response(socket, request, hresponse)
         hresponse = json_encode(hresponse)
         ttype = "application/json"
     end
-    socket:send(request:response(200, ttype, hresponse or ""))
+    socket:send(request:response(status, ttype, hresponse or ""))
     socket:close()
 end
 
