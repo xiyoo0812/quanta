@@ -1,24 +1,21 @@
 --websocket.lua
 local lhttp         = require("lhttp")
 local lcrypt        = require("lcrypt")
-local ljson         = require("lcjson")
 
 local ssub          = string.sub
-local sfind         = string.find
+local schar         = string.char
+local sbyte         = string.byte
 local spack         = string.pack
+local sformat       = string.format
 local sunpack       = string.unpack
+local tconcat       = table.concat
 local log_err       = logger.err
 local log_info      = logger.info
 local lsha1         = lcrypt.sha1
 local lb64encode    = lcrypt.b64_encode
 local qxpcall       = quanta.xpcall
 
-local type          = type
-local log_err       = logger.err
-local log_info      = logger.info
-local log_debug     = logger.debug
-local json_encode   = ljson.encode
-local tunpack       = table.unpack
+local NetwkTime     = enum("NetwkTime")
 
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -34,13 +31,8 @@ prop:reader("session", nil)         --连接成功对象
 prop:reader("listener", nil)
 prop:reader("recvbuf", "")
 prop:reader("context", nil)         --context
+prop:reader("url", "")
 prop:reader("port", 0)
-
-local function _async_call(quote, callback)
-    local session_id = thread_mgr:build_session_id()
-    self.context = { callback = callback, session_id = session_id }
-    return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
-end
 
 function WebSocket:__init(host)
     self.host = host
@@ -82,41 +74,6 @@ function WebSocket:on_socket_accept(session)
     socket:accept(session, session.ip, self.port)
 end
 
-function WebSocket:on_socket_recv(session, data)
-    self.recvbuf = self.recvbuf .. data
-    self.alive_time = quanta.now
-    local token = session.token
-    if self.alive then
-        while true do
-            thread_mgr:fork(function()
-                local context = self.context
-                if not context then
-                    local ok, message = self:recv_frame()
-                    if not ok then
-                        log_err("[WebSocket][on_socket_recv] recv_frame failed: %s", message)
-                        self:close()
-                        return
-                    end
-                    if not message then
-                        break
-                    end
-                    self.context = nil
-                    self.host:on_socket_recv(self, message)
-                else
-                    thread_mgr:response(context.session_id, conteext.callback(self))
-                end
-            end)
-        end
-    else
-        if self:on_accept_connect(session, token) then
-            self.alive = true
-            self.token = token
-            self.session = session
-            self.host:on_socket_accept(self, token)
-        end
-    end
-end
-
 function WebSocket:on_socket_error(token, err)
     if self.session then
         self.session = nil
@@ -127,6 +84,50 @@ function WebSocket:on_socket_error(token, err)
     end
 end
 
+function WebSocket:on_socket_recv(session, data)
+    local token = session.token
+    if self.alive then
+        self.alive_time = quanta.now
+        self.recvbuf = self.recvbuf .. data
+        while true do
+            local frame = self:recv_frame()
+            if not frame then
+                break
+            end
+            if frame.error and frame.opcode == 0x8 then -- close/error
+                self:close()
+                self.host:on_socket_error(self, token, frame.data)
+            end
+            if frame.opcode == 0x9 then --Ping
+                self:send_frame(true, 0xA, data)
+                goto continue
+            end
+            if frame.opcode == 0xA then --Pong
+                goto continue
+            end
+            thread_mgr:fork(function()
+                local context = self.context
+                if context then
+                    thread_mgr:response(context.session_id, frame)
+                    return
+                end
+                local message = self:combine_frame(frame)
+                self.host:on_socket_recv(self, token, message)
+                self.context = nil
+            end)
+            :: continue ::
+        end
+        return
+    end
+    if self:on_accept_connect(session, token, data) then
+        self.alive = true
+        self.token = token
+        self.session = session
+        self.host:on_socket_accept(self, token)
+    end
+end
+
+--accept
 function WebSocket:accept(session, ip, port)
     self.ip, self.port = ip, port
     session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
@@ -140,24 +141,19 @@ function WebSocket:accept(session, ip, port)
     end
 end
 
-function WebSocket:on_accept_connect(session, token)
+--握手协议
+function WebSocket:on_accept_connect(session, token, data)
     local request = lhttp.create_request()
-    if not request then
-        log_debug("[WebSocket][on_accept_connect] create_request(token:%s)!", token)
-        session.close()
-        return
-    end
-    if not request:append(self.recvbuf) then
+    if not request:append(data) then
         log_err("[WebSocket][on_accept_connect] http request append failed, close client(token:%s)!", token)
         return self:response(400, request, "this http request parse error!")
     end
-    self.recvbuf = ""
     request:process()
     local state = request:state()
     local HTTP_REQUEST_ERROR = 2
     if state == HTTP_REQUEST_ERROR then
         log_err("[WebSocket][on_accept_connect] http request process failed, close client(token:%s)!", token)
-        return self:response(400, request, "this http request parse error!") 
+        return self:response(400, request, "this http request parse error!")
     end
     local headers = request:headers()
     local upgrade = headers["upgrade"]
@@ -165,7 +161,7 @@ function WebSocket:on_accept_connect(session, token)
         return self:response(400, request, "can upgrade only to websocket!")
     end
     local connection = headers["connection"]
-    if not connection or not connection:lower():find("upgrade", 1, true) then
+    if not connection or not connection:lower() ~= "upgrade" then
         return self:response(400, request, "connection must be upgrade!")
     end
     local version = headers["sec-websocket-version"]
@@ -176,34 +172,37 @@ function WebSocket:on_accept_connect(session, token)
     if not key then
         return self:response(400, request, "Sec-WebSocket-Key must not be nil!")
     end
-    local protocol = headers["sec-websocket-protocol"] 
+    local protocol = headers["sec-websocket-protocol"]
     if protocol then
         local i = protocol:find(",", 1, true)
-        protocol = sformat("Sec-WebSocket-Protocol: %s\r\n", protocol:sub(1, i and i-1))
+        protocol = "Sec-WebSocket-Protocol: " .. protocol:sub(1, i and i-1)
     end
     local accept = lb64encode(lsha1(key .. "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
     local fmt_text = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n%s\r\n"
     self:send(sformat(fmt_text, accept, protocol or ""))
+    self.url = request:url()
     return true
 end
 
+--回执
 function WebSocket:response(status, request, response)
     local text = request:response(status, "text/plain", response or "")
     self:send(text)
     self:close()
 end
 
+--释放数据
 function WebSocket:pop(len)
-    if len <= 0 then
-        return
-    end
-    if #self.recvbuf > len then
-        self.recvbuf = ssub(self.recvbuf, len + 1)
-    else
-        self.recvbuf = ""
+    if len > 0 then
+        if #self.recvbuf > len then
+            self.recvbuf = ssub(self.recvbuf, len + 1)
+        else
+            self.recvbuf = ""
+        end
     end
 end
 
+--peek
 function WebSocket:peek(len, offset)
     offset = offset or 0
     if offset + len <= #self.recvbuf then
@@ -211,6 +210,7 @@ function WebSocket:peek(len, offset)
     end
 end
 
+--发送数据
 function WebSocket:send(data)
     if self.alive and data then
         local send_len = self.session.call_text(data)
@@ -220,21 +220,18 @@ function WebSocket:send(data)
     return false
 end
 
+--发送帧
 function WebSocket:send_frame(fin, opcode, data)
+    local len = #data
     local finbit = fin and 0x80 or 0
-    local frame = spack("B", finbit | opcode)
-
-    local l = #data
-    local mask_bit = self.mask_outgoing and 0x80 or 0
-    if l < 126 then
-        frame = frame .. spack("B", l | mask_bit)
-    elseif l < 0xFFFF then
-        frame = frame .. spack(">BH", 126 | mask_bit, l)
-    else 
-        frame = frame .. spack(">BL", 127 | mask_bit, l)
+    --服务器回包不需要掩码格式化
+    if len < 126 then
+        self:send(spack("BB", finbit | opcode, len) .. data)
+    elseif len < 0xFFFF then
+        self:send(spack(">BBI2", finbit | opcode, 126, len) .. data)
+    else
+        self:send(spack(">BBI8", finbit | opcode, 127, len) .. data)
     end
-    frame = frame .. data
-    self:send(frame)
 end
 
 function WebSocket:send_text(data)
@@ -245,112 +242,80 @@ function WebSocket:send_binary(data)
     self:send_frame(true, 0x2, data)
 end
 
-function WebSocket:send_ping(data)
-    self:send_frame(true, 0x9, data)
-end
-
-function WebSocket:send_pong(data)
-    self:send_frame(true, 0xA, data)
-end
-
+--掩码解析
 function WebSocket:websocket_mask(mask, data, length)
     local umasked = {}
-    for i=1, length do
-        umasked[i] = string.char(string.byte(data, i) ~ string.byte(mask, (i-1)%4 + 1))
+    for i = 1, length do
+        --DECODED[i] = ENCODED[i] ^ MASK[i % 4];
+        umasked[i] = schar(sbyte(data, i) ~ sbyte(mask, (i-1) % 4 + 1))
     end
-    return table.concat(umasked)
+    return tconcat(umasked)
 end
 
-function WebSocket:recv_frame_data()
-    local frame_length, frame_mask
-    if payloadlen < 126 then
-        frame_length = payloadlen
-    elseif payloadlen == 126 then
-        local h_data = self:peek(2, offset)
-        if not h_data then
-            return false, nil, "Payloadlen 126 read true length error"
-        end
-        frame_length = sunpack(">H", h_data)
-        offset = offset + 2
-    else --payloadlen == 127
-        local h_data = self:peek(8, offset)
-        if not l_data then
-            return false, nil, "Payloadlen 127 read true length error"
-        end
-        frame_length = sunpack(">L", l_data)
-        offset = offset + 8
-    end
-    if mask_frame then
-        local mask = self:peek(4, offset)
-        if not mask then
-            return false, nil, "Masking Key read error"
-        end
-        frame_mask = mask
-        offset = offset + 4
-    end
-
-    local  frame_data = ""
-    if frame_length > 0 then
-        local fdata = self:peek(frame_length, offset)
-        if not fdata then
-            return false, nil, "Payload data read error:"
-        end
-        frame_data = fdata
-    end
-    if mask_frame and frame_length > 0 then
-        frame_data = self:websocket_mask(frame_mask, frame_data, frame_length)
-    end
-    if not final_frame then
-        return true, false, frame_data
-    end
-
-    if frame_opcode  == 0x1 then -- text
-        return true, true, frame_data
-    elseif frame_opcode == 0x2 then -- binary
-        return true, true, frame_data
-    elseif frame_opcode == 0x8 then -- close
-        local code, reason
-        if #frame_data >= 2 then
-            code = sunpack(">H", frame_data:sub(1,2))
-        end
-        if #frame_data > 2 then
-            reason = frame_data:sub(3)
-        end
-        self:close()
-        self.host:on_close(self, code, reason)
-    elseif frame_opcode == 0x9 then --Ping
-        self:send_pong()
-    elseif frame_opcode == 0xA then -- Pong
-        self.host:on_socket_pong(self, frame_data)
-    end
-    return true, true, nil
-end
-
+--接收ws帧
 function WebSocket:recv_frame()
+    local offset = 2
     local data = self.recvbuf
-    if #data < 2 then
-        return true
+    if #data < offset then
+        return
     end
     local header, payloadlen = sunpack("BB", data)
-    local reserved_bits = header & 0x70 ~= 0
-    if reserved_bits then
-        -- client is using as-yet-undefined extensions
-        return false, "Reserved_bits show using undefined extensions"
+    if header & 0x70 ~= 0 then
+        return { error = true, data = "Reserved_bits show using undefined extensions" }
     end
-    local frame_opcode = header & 0xf
-    local mask_frame = payloadlen & 0x80 ~= 0
-    local frame_opcode_is_control = frame_opcode & 0x8 ~= 0
-    payloadlen = payloadlen & 0x7f
-    if frame_opcode_is_control and payloadlen >= 126 then
-        -- control frames must have payload < 126
-        return false, "Control frame payload overload"
+    local masklen, packlen = 0, 0
+    local fmtlen = payloadlen & 0x7f
+    if payloadlen & 0x80 ~= 0 then
+        masklen = 4
     end
-    local final_frame = header & 0x80 ~= 0
-    if frame_opcode_is_control and not final_frame then
-        return false, "Control frame must not be fragmented"
+    if fmtlen == 126 then
+        packlen = 2
+    elseif fmtlen == 127 then
+        packlen = 8
     end
-    self:pop(2)
-    return _async_call("get_frame_data", self.recv_frame_data)
+    if #data < offset + packlen + masklen  then
+        return
+    end
+    local data_len = fmtlen
+    local frame = {opcode = header & 0xf, final = header & 0x80 ~= 0 }
+    if packlen == 2 then
+        data_len = sunpack(">H", self:peek(packlen, offset))
+    elseif packlen == 8 then
+        data_len = sunpack(">I8", self:peek(packlen, offset))
+    end
+    offset = offset + packlen
+    if masklen > 0 then
+        frame.mask = sunpack(">I4", self:peek(masklen, offset))
+        offset = offset + masklen
+    end
+    if #data < offset + data_len then
+        return
+    end
+    if data_len > 0 then
+        frame.data = self:peek(data_len, offset)
+        if masklen > 0 then
+            frame.data = self:websocket_mask(frame.mask, data, data_len)
+        end
+    end
+    self:pop(data_len + offset)
+    return frame
+end
+
+--组合帧数据
+function WebSocket:combine_frame(frame)
+    if frame.final then
+        return frame
+    end
+    while true do
+        local session_id = thread_mgr:build_session_id()
+        self.context = { session_id = session_id }
+        local next_frame = thread_mgr:yield(session_id, "combine_frame", NetwkTime.DB_TIMEOUT)
+        frame.data = frame.data .. next_frame.data
+        if next_frame.final then
+            break
+        end
+    end
+    return frame
 end
 
 return WebSocket

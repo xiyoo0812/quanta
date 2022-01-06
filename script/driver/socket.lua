@@ -147,13 +147,12 @@ function Socket:peek_data(split_char, offset)
 end
 
 function Socket:pop(len)
-    if len <= 0 then
-        return
-    end
-    if #self.recvbuf > len then
-        self.recvbuf = ssub(self.recvbuf, len + 1)
-    else
-        self.recvbuf = ""
+    if len > 0 then
+        if #self.recvbuf > len then
+            self.recvbuf = ssub(self.recvbuf, len + 1)
+        else
+            self.recvbuf = ""
+        end
     end
 end
 

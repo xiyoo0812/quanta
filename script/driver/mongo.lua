@@ -354,4 +354,14 @@ function MongoDB:find(collection, selector, fields, sortor, limit)
     return true, results
 end
 
+function MongoDB:find_and_modify(collection, update, selector, upsert, fields)
+    local doc = { query = selector, update = update, fields = fields, upsert = upsert, new = true }
+    local cmd = { "findAndModify", collection };
+    for k, v in pairs(doc) do
+        tinsert(cmd, k)
+        tinsert(cmd, v)
+    end
+    return self:runCommand(tunpack(cmd))
+end
+
 return MongoDB

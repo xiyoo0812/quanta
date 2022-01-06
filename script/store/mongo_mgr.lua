@@ -24,6 +24,7 @@ function MongoMgr:__init()
     event_mgr:add_listener(self, "mongo_find_one", "find_one")
     event_mgr:add_listener(self, "mongo_drop_indexes", "drop_indexes")
     event_mgr:add_listener(self, "mongo_create_indexes", "create_indexes")
+    event_mgr:add_listener(self, "mongo_find_and_modify", "find_and_modify")
 end
 
 --初始化
@@ -119,6 +120,15 @@ function MongoMgr:drop_indexes(db_name, coll_name, index_name)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
+end
+
+function MongoMgr:find_and_modify(db_name, coll_name, obj, selector, upsert, fields)
+    local mongodb = self:get_db(db_name)
+    if mongodb then
+        local ok, res_oe = mongodb:find_and_modify(coll_name, obj, selector, upsert, fields)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, sformat("mongo db:%s not exist", db_name)
 end
 
 function MongoMgr:execute(db_name, cmd, ...)
