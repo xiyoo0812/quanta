@@ -29,9 +29,8 @@ function OnlineAgent:query_player(player_id)
     return router_mgr:call_online_hash(player_id, "rpc_query_player", player_id)
 end
 
---无序
 function OnlineAgent:router_message(player_id, rpc, ...)
-    return router_mgr:random_online_hash("rpc_router_message", player_id, rpc, ...)
+    return router_mgr:random_online_hash(player_id, "rpc_router_message", player_id, rpc, ...)
 end
 
 function OnlineAgent:transfer_message(player_id, rpc, ...)

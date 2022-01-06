@@ -39,10 +39,6 @@ function Socket:close()
     end
 end
 
-function Socket:is_alive()
-    return self.session ~= nil
-end
-
 function Socket:listen(ip, port)
     if self.listener then
         return true
@@ -56,7 +52,7 @@ function Socket:listen(ip, port)
     self.ip, self.port = ip, port
     log_info("[Socket][listen] start listen at: %s:%d type=%d", ip, port, proto_type)
     self.listener.on_accept = function(session)
-        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session)
+        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session, ip, port)
     end
     return true
 end
@@ -105,9 +101,7 @@ end
 function Socket:on_socket_recv(session, data)
     self.recvbuf = self.recvbuf .. data
     self.alive_time = quanta.now
-    if #self.recvbuf > 0 then
-        self.host:on_socket_recv(self, self.token)
-    end
+    self.host:on_socket_recv(self, self.token)
 end
 
 function Socket:on_socket_error(token, err)
@@ -144,32 +138,31 @@ function Socket:peek(len, offset)
     end
 end
 
-function Socket:peek_line(line_flag, offset)
+function Socket:peek_data(split_char, offset)
     offset = offset or 0
-    local i, j = sfind(self.recvbuf, line_flag, offset + 1)
+    local i, j = sfind(self.recvbuf, split_char, offset + 1)
     if i then
         return ssub(self.recvbuf, offset + 1, i - 1), j - offset
     end
 end
 
 function Socket:pop(len)
-    if len <= 0 then
-        return
-    end
-    if #self.recvbuf > len then
-        self.recvbuf = ssub(self.recvbuf, len + 1)
-    else
-        self.recvbuf = ""
+    if len > 0 then
+        if #self.recvbuf > len then
+            self.recvbuf = ssub(self.recvbuf, len + 1)
+        else
+            self.recvbuf = ""
+        end
     end
 end
 
 function Socket:send(data)
-    if (not self.alive) or (not data) then
-        log_err("[Socket][send] the socket not alive,can't send")
-        return false
+    if self.alive and data then
+        local send_len = self.session.call_text(data)
+        return send_len > 0
     end
-    local send_len = self.session.call_text(data)
-    return send_len > 0
+    log_err("[Socket][send] the socket not alive, can't send")
+    return false
 end
 
 return Socket

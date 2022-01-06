@@ -48,10 +48,16 @@ function MongoAgent:drop_indexes(db_query, hash_key, db_name)
     return router_mgr:call_mongo_hash(hash_key or mrandom(10000), "mongo_drop_indexes", db_name or "default", tunpack(db_query))
 end
 
+--db_query: {coll_name, update, selector, upsert, fields}
+function MongoAgent:find_and_modify(db_query, hash_key, db_name)
+    return router_mgr:call_mongo_hash(hash_key or mrandom(10000), "mongo_find_and_modify", db_name or "default", tunpack(db_query))
+end
+
 --db_query: {cmd, ...}
 function MongoAgent:execute(db_query, hash_key, db_name)
     return router_mgr:call_mongo_hash(hash_key or mrandom(10000), "mongo_execute", db_name or "default", tunpack(db_query))
 end
+
 ------------------------------------------------------------------
 quanta.mongo_agent = MongoAgent()
 
