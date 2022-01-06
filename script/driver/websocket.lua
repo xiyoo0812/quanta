@@ -3,15 +3,13 @@ local lhttp         = require("lhttp")
 local lcrypt        = require("lcrypt")
 
 local ssub          = string.sub
-local schar         = string.char
-local sbyte         = string.byte
 local spack         = string.pack
 local sformat       = string.format
 local sunpack       = string.unpack
-local tconcat       = table.concat
 local log_err       = logger.err
 local log_info      = logger.info
 local lsha1         = lcrypt.sha1
+local lxor_byte     = lcrypt.xor_byte
 local lb64encode    = lcrypt.b64_encode
 local qxpcall       = quanta.xpcall
 
@@ -119,10 +117,10 @@ function WebSocket:on_socket_recv(session, data)
         end
         return
     end
-    if self:on_accept_connect(session, token, data) then
-        self.alive = true
-        self.token = token
-        self.session = session
+    self.alive = true
+    self.token = token
+    self.session = session
+    if self:on_accept_handshake(session, token, data) then
         self.host:on_socket_accept(self, token)
     end
 end
@@ -142,37 +140,38 @@ function WebSocket:accept(session, ip, port)
 end
 
 --握手协议
-function WebSocket:on_accept_connect(session, token, data)
+function WebSocket:on_accept_handshake(session, token, data)
     local request = lhttp.create_request()
     if not request:append(data) then
-        log_err("[WebSocket][on_accept_connect] http request append failed, close client(token:%s)!", token)
+        log_err("[WebSocket][on_accept_handshake] http request append failed, close client(token:%s)!", token)
         return self:response(400, request, "this http request parse error!")
     end
     request:process()
     local state = request:state()
     local HTTP_REQUEST_ERROR = 2
     if state == HTTP_REQUEST_ERROR then
-        log_err("[WebSocket][on_accept_connect] http request process failed, close client(token:%s)!", token)
+        log_err("[WebSocket][on_accept_handshake] http request process failed, close client(token:%s)!", token)
         return self:response(400, request, "this http request parse error!")
     end
     local headers = request:headers()
-    local upgrade = headers["upgrade"]
-    if not upgrade or upgrade:lower() ~= "websocket" then
+    local upgrade = headers["Upgrade"]
+    if not upgrade or upgrade ~= "websocket" then
         return self:response(400, request, "can upgrade only to websocket!")
     end
-    local connection = headers["connection"]
-    if not connection or not connection:lower() ~= "upgrade" then
+    local connection = headers["Connection"]
+    if not connection or connection ~= "Upgrade" then
         return self:response(400, request, "connection must be upgrade!")
     end
-    local version = headers["sec-websocket-version"]
+    local version = headers["Sec-WebSocket-Version"]
     if not version or version ~= "13" then
         return self:response(400, request, "HTTP/1.1 Upgrade Required\r\nSec-WebSocket-Version: 13\r\n\r\n")
     end
-    local key = headers["sec-websocket-key"]
+    local key = headers["Sec-WebSocket-Key"]
     if not key then
         return self:response(400, request, "Sec-WebSocket-Key must not be nil!")
     end
-    local protocol = headers["sec-websocket-protocol"]
+    self.url = request:url()
+    local protocol = headers["Sec-WebSocket-Protocol"]
     if protocol then
         local i = protocol:find(",", 1, true)
         protocol = "Sec-WebSocket-Protocol: " .. protocol:sub(1, i and i-1)
@@ -180,7 +179,6 @@ function WebSocket:on_accept_connect(session, token, data)
     local accept = lb64encode(lsha1(key .. "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
     local fmt_text = "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n%s\r\n"
     self:send(sformat(fmt_text, accept, protocol or ""))
-    self.url = request:url()
     return true
 end
 
@@ -242,16 +240,6 @@ function WebSocket:send_binary(data)
     self:send_frame(true, 0x2, data)
 end
 
---掩码解析
-function WebSocket:websocket_mask(mask, data, length)
-    local umasked = {}
-    for i = 1, length do
-        --DECODED[i] = ENCODED[i] ^ MASK[i % 4];
-        umasked[i] = schar(sbyte(data, i) ~ sbyte(mask, (i-1) % 4 + 1))
-    end
-    return tconcat(umasked)
-end
-
 --接收ws帧
 function WebSocket:recv_frame()
     local offset = 2
@@ -285,7 +273,7 @@ function WebSocket:recv_frame()
     end
     offset = offset + packlen
     if masklen > 0 then
-        frame.mask = sunpack(">I4", self:peek(masklen, offset))
+        frame.mask = self:peek(masklen, offset)
         offset = offset + masklen
     end
     if #data < offset + data_len then
@@ -294,7 +282,7 @@ function WebSocket:recv_frame()
     if data_len > 0 then
         frame.data = self:peek(data_len, offset)
         if masklen > 0 then
-            frame.data = self:websocket_mask(frame.mask, data, data_len)
+            frame.data = lxor_byte(frame.data, frame.mask)
         end
     end
     self:pop(data_len + offset)
@@ -304,7 +292,7 @@ end
 --组合帧数据
 function WebSocket:combine_frame(frame)
     if frame.final then
-        return frame
+        return frame.data
     end
     while true do
         local session_id = thread_mgr:build_session_id()
@@ -315,7 +303,7 @@ function WebSocket:combine_frame(frame)
             break
         end
     end
-    return frame
+    return frame.data
 end
 
 return WebSocket

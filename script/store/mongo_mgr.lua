@@ -128,7 +128,7 @@ function MongoMgr:find_and_modify(db_name, coll_name, obj, selector, upsert, fie
         local ok, res_oe = mongodb:find_and_modify(coll_name, obj, selector, upsert, fields)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
-    return MONGO_FAILED, sformat("mongo db:%s not exist", db_name)
+    return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:execute(db_name, cmd, ...)
