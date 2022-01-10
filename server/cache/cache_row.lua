@@ -82,8 +82,10 @@ function CacheRow:update(data, flush)
 end
 
 --更新子数据
-function CacheRow:update_key(key, value, flush)
-    self.data[key] = value
+function CacheRow:update_key(table_kvs, flush)
+    for key, value in pairs(table_kvs) do
+        self.data[key] = value
+    end
     self.dirty = true
     if flush then
         local code = self:save()

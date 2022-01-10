@@ -1,4 +1,6 @@
 --redis_mgr.lua
+local tpack         = table.pack
+local log_err       = logger.err
 
 local KernCode      = enum("KernCode")
 local SUCCESS       = KernCode.SUCCESS
@@ -45,6 +47,9 @@ function RedisMgr:execute(db_name, cmd, ...)
     local redisdb = self:get_db(db_name)
     if redisdb then
         local ok, res_oe = redisdb:execute(cmd, ...)
+        if not ok then
+            log_err("[RedisMgr][execute] execute %s (%s) failed, because: %s", cmd, tpack(...), res_oe)
+        end
         return ok and SUCCESS or REDIS_FAILED, res_oe
     end
     return REDIS_FAILED, "redis db not exist"

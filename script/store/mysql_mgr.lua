@@ -1,4 +1,5 @@
 --mysql_mgr.lua
+local log_err       = logger.err
 
 local KernCode      = enum("KernCode")
 local SUCCESS       = KernCode.SUCCESS
@@ -45,6 +46,9 @@ function MysqlMgr:execute(db_name, sql)
     local mysqldb = self:get_db(db_name)
     if mysqldb then
         local ok, res_oe = mysqldb:query(sql)
+        if not ok then
+            log_err("[MysqlMgr][execute] execute %s failed, because: %s", sql, res_oe)
+        end
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end
     return MYSQL_FAILED, "mysql db not exist"

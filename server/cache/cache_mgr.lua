@@ -172,13 +172,13 @@ end
 
 --更新缓存kv
 function CacheMgr:rpc_cache_update_key(quanta_id, req_data)
-    local cache_name, primary_key, table_name, table_key, table_value, flush = tunpack(req_data)
+    local cache_name, primary_key, table_name, table_kvs, flush = tunpack(req_data)
     local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CacheType.WRITE)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_update_key] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
     end
-    local ucode = cache_obj:update_key(table_name, table_key, table_value, flush)
+    local ucode = cache_obj:update_key(table_name, table_kvs, flush)
     if cache_obj:is_dirty() then
         self.dirty_map:set(cache_obj:get_uuid(), cache_obj)
     end

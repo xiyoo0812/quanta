@@ -157,7 +157,7 @@ function CacheObj:update(tab_name, tab_data, flush)
     return code
 end
 
-function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
+function CacheObj:update_key(tab_name, table_kvs, flush)
     local record = self.records[tab_name]
     if not record then
         log_err("[CacheObj][update_key] cannot find record! cache:%s, table:%s", self.cache_table, tab_name)
@@ -166,7 +166,7 @@ function CacheObj:update_key(tab_name, tab_key, tab_value, flush)
     self.flush = false
     self.active_tick = quanta.now
     self.update_count = self.update_count + 1
-    local code = record:update_key(tab_key, tab_value, flush)
+    local code = record:update_key(table_kvs, flush)
     if record:is_dirty() then
         self.dirty_records[record] = true
     end
