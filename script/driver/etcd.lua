@@ -1,5 +1,5 @@
 --etcd.lua
-import("driver/http:lua")
+import("driver/http.lua")
 local ljson = require("lcjson")
 
 local sformat       = string.format

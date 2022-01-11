@@ -38,7 +38,6 @@ function AdminMgr:__init()
     --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_ADMIN_HTTP"))
     server:register_get("/", "on_gm_page", self)
-    server:register_get("/log", "on_logger", self)
     server:register_get("/gmlist", "on_gmlist", self)
     server:register_get("/monitors", "on_monitors", self)
     server:register_post("/command", "on_command", self)
