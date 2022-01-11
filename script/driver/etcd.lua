@@ -1,11 +1,11 @@
 --etcd.lua
-import("driver/http.lua")
+import("network/http_client.lua")
 local ljson = require("lcjson")
 
 local sformat       = string.format
 local json_encode   = ljson.encode
 
-local http          = quanta.get("http")
+local http          = quanta.get("http_client")
 
 local CLIENT_KEYS   = '/v2/keys'
 local CLIENT_ENDPOINTS = {
