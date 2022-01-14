@@ -20,6 +20,7 @@ quanta.startup(function()--初始化test
     import("test/stdfs_test.lua")
     import("test/cmdline_test.lua")
     import("test/ws_test.lua")
+    import("test/influx_test.lua")
     ]]
-    import("test/ws_test.lua")
+    import("test/influx_test.lua")
 end)

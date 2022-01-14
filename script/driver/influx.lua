@@ -5,7 +5,7 @@ local lbuffer       = require("lbuffer")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local json_encode   = ljson.encode
+local json_decode   = ljson.decode
 local tinsert       = table.insert
 local tconcat       = table.concat
 local sgsub         = string.gsub
@@ -24,23 +24,31 @@ prop:reader("org", nil)         --org
 prop:reader("org_id", nil)      --org_id
 prop:reader("token", nil)       --token
 prop:reader("bucket", nil)      --bucket
+prop:reader("org_addr", nil)    --org_addr
 prop:reader("query_addr", nil)  --query_addr
 prop:reader("write_addr", nil)  --query_addr
 prop:reader("bucket_addr", nil) --bucket_addr
 prop:reader("common_headers", nil)
 
-function Influx:__init(conf)
+function Influx:__init()
+end
+
+function Influx:setup(conf)
     self.ip = conf.host
     self.port = conf.port
     self.org = conf.user
     self.bucket = conf.db
     self.token = sformat("Token %s", conf.passwd)
+    self.org_addr = sformat("http://%s:%s/api/v2/orgs", self.ip, self.port)
+    self.write_addr = sformat("http://%s:%s/api/v2/write", self.ip, self.port)
     self.query_addr = sformat("http://%s:%s/api/v2/query", self.ip, self.port)
     self.bucket_addr = sformat("http://%s:%s/api/v2/buckets", self.ip, self.port)
-    self.write_addr = sformat("http://%s:%s/api/v2/write", self.ip, self.port)
     self.common_headers = { ["Authorization"] = self.token, ["Content-type"] = "application/json" }
+    local my_org = self:find_org(conf.user)
+    if my_org then
+        self.org_id = my_org.id
+    end
 end
-
 --line protocol
 --https://docs.influxdata.com/influxdb/v2.1/api/#operation/PostBuckets
 local BOOL_STR = { 't', 'T', 'true', 'True', 'TRUE', 'f', 'F', 'false', 'False', 'FALSE' }
@@ -86,25 +94,45 @@ end
 
 --influx操作接口
 --查找bucket信息
-function Influx:find_bucket(bucket_name )
-    local querys = { name = bucket_name  }
+function Influx:find_bucket(bucket_name)
+    local querys = { name = bucket_name }
     local ok, status, res = http_client:call_get(self.bucket_addr, querys, self.common_headers)
     if not ok then
         log_err("[Influx][find_bucket] failed! code: %s, err: %s", status, res)
         return
     end
-    log_info("[Influx][find_bucket]! code: %s, res: %s", status, res)
+    log_info("[Influx][find_bucket]! status: %s", status)
+    local response = json_decode(res)
+    local buckets = response.buckets
+    if not bucket_name then
+        return buckets
+    end
+    for _, bucket in pairs(buckets) do
+        if bucket.name == bucket_name then
+            return bucket
+        end
+    end
 end
 
 --查找org信息
 function Influx:find_org(org_name)
     local querys = { org = org_name }
-    local ok, status, res = http_client:call_get(self.bucket_addr, querys, self.common_headers)
+    local ok, status, res = http_client:call_get(self.org_addr, querys, self.common_headers)
     if not ok then
         log_err("[Influx][find_org] failed! code: %s, err: %s", status, res)
         return
     end
-    log_info("[Influx][find_org]! code: %s, res: %s", status, res)
+    log_info("[Influx][find_org]! status: %s", status)
+    local response = json_decode(res)
+    local orgs = response.orgs
+    if not org_name then
+        return orgs
+    end
+    for _, org in pairs(orgs) do
+        if org.name == org_name then
+            return org
+        end
+    end
 end
 
 --create bucket
