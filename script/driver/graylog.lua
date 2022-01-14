@@ -56,7 +56,7 @@ function GrayLog:on_second()
     end
 end
 
-function GrayLog:build(host, quanta_id, message, level, debuf_info, optional)
+function GrayLog:build(host, quanta_id, message, level, debug_info, optional)
     local gelf = {
         version = "1.1",
         host = host,
@@ -69,9 +69,9 @@ function GrayLog:build(host, quanta_id, message, level, debuf_info, optional)
         _index = sid2index(quanta_id),
         _service = sid2sid(quanta_id)
     }
-    if debuf_info then
-        gelf.file = debuf_info.short_src
-        gelf.line = debuf_info.linedefined
+    if debug_info then
+        gelf.file = debug_info.short_src
+        gelf.line = debug_info.linedefined
     end
     if optional then
         tcopy(optional, gelf)
@@ -79,16 +79,16 @@ function GrayLog:build(host, quanta_id, message, level, debuf_info, optional)
     return gelf
 end
 
-function GrayLog:send_tcp(host, quanta_id, message, level, debuf_info, optional)
+function GrayLog:send_tcp(host, quanta_id, message, level, debug_info, optional)
     if not self.sock:is_alive() then
         return
     end
-    local gelf = self:build(host, quanta_id, message, level, debuf_info, optional)
+    local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
     self.sock:send(sformat("%s\0", json_encode(gelf)))
 end
 
-function GrayLog:send_http(host, quanta_id, message, level, debuf_info, optional)
-    local gelf = self:build(host, quanta_id, message, level, debuf_info, optional)
+function GrayLog:send_http(host, quanta_id, message, level, debug_info, optional)
+    local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
     local ok, status, res = http_client:call_post(self.addr, gelf)
     if not ok then
         log_err("[GrayLog][send_http] failed! code: %s, err: %s", status, res)

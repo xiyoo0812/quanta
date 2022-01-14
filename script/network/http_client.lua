@@ -105,48 +105,52 @@ function HttpClient:build_request(url, session_id, headers, method, ...)
 end
 
 --get接口
-function HttpClient:call_get(url, querys, headers, timeout)
+function HttpClient:call_get(url, querys, headers, datas, timeout)
     local fmt_url = self:format_url(url, querys)
     local session_id = thread_mgr:build_session_id()
-    if not self:build_request(fmt_url, session_id, headers, "call_get") then
+    if type(datas) == "table" then
+        datas = jencode(datas)
+        headers["Content-Type"] = "application/json"
+    end
+    if not self:build_request(fmt_url, session_id, headers, "call_get", datas) then
         return false
     end
     return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
 end
 
 --post接口
-function HttpClient:call_post(url, post_datas, headers, querys, timeout)
+function HttpClient:call_post(url, datas, headers, querys, timeout)
     if not headers then
         headers = {["Content-Type"] = "text/plain" }
     end
     if querys then
         url = self:format_url(url, querys)
     end
-    if type(post_datas) == "table" then
-        post_datas = jencode(post_datas)
+    if type(datas) == "table" then
+        datas = jencode(datas)
         headers["Content-Type"] = "application/json"
     end
     local session_id = thread_mgr:build_session_id()
-    if not self:build_request(url, session_id, headers, "call_post", post_datas) then
+    if not self:build_request(url, session_id, headers, "call_post", datas) then
         return false
     end
     return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
 end
 
 --put接口
-function HttpClient:call_put(url, put_datas, headers, querys, timeout)
+function HttpClient:call_put(url, datas, headers, querys, timeout)
     if not headers then
         headers = {["Content-Type"] = "text/plain" }
     end
     if querys then
         url = self:format_url(url, querys)
     end
-    if type(put_datas) == "table" then
-        put_datas = jencode(put_datas)
+    if type(datas) == "table" then
+        datas = jencode(datas)
         headers["Content-Type"] = "application/json"
     end
     local session_id = thread_mgr:build_session_id()
-    if not self:build_request(url, session_id, headers, "call_put", put_datas) then
+    if not self:build_request(url, session_id, headers, "call_put", datas) then
         return false
     end
     return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
