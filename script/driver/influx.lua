@@ -222,7 +222,7 @@ function Influx:query(script)
         log_err("[Influx][query] failed! status: %s, err: %s", status, ok and res or status)
         return nil, ok and res or status
     end
-    log_info("[Influx][write] success! status: %s", status)
+    log_info("[Influx][query] success! status: %s", status)
     return self:parse_csv(res)
 end
 
