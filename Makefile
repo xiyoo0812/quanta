@@ -15,29 +15,30 @@ clean:
 	rm -rf temp;
 
 core:
-	cd core/luna; make SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
-	cd core/luabus; make SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
-	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
+	cd core/luna; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
+	cd core/luabus; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
+	cd core/quanta; make -j4 SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 
 lua:
-	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
-	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
-	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
+	cd extend/lua; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
+	cd extend/lua; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
+	cd extend/lua; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 
 luaext:
-	cd extend/bson; make SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
-	cd extend/lbuffer; make SOLUTION_DIR=$(CUR_DIR) -f lbuffer.mak;
-	cd extend/lcjson; make SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
-	cd extend/lcrypt; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
-	cd extend/lcurl; make SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
-	cd extend/lhttp; make SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
-	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
-	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
-	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
-	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
-	cd extend/mongo; make SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
-	cd extend/pbc; make SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
+	cd extend/bson; make -j4 SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
+	cd extend/lbuffer; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lbuffer.mak;
+	cd extend/lcjson; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
+	cd extend/lcrypt; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
+	cd extend/lcurl; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
+	cd extend/lhttp; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
+	cd extend/lkcp; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lkcp.mak;
+	cd extend/lstdfs; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
+	cd extend/ltimer; make -j4 SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
+	cd extend/lualog; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
+	cd extend/luaxlsx; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
+	cd extend/mongo; make -j4 SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
+	cd extend/pbc; make -j4 SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
 
 share:
-	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
+	cd extend/mimalloc; make -j4 SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
 

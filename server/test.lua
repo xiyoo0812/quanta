@@ -21,6 +21,8 @@ quanta.startup(function()--初始化test
     import("test/cmdline_test.lua")
     import("test/ws_test.lua")
     import("test/influx_test.lua")
+    import("test/udp_test.lua")
+    import("test/kcp_test.lua")
     ]]
-    import("test/influx_test.lua")
+    import("test/kcp_test.lua")
 end)

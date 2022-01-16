@@ -40,3 +40,6 @@
 [submodule "extend/fmt"]
 	path = extend/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "extend/lkcp"]
+	path = extend/lkcp
+	url = https://github.com/xiyoo0812/lkcp
