@@ -12,15 +12,15 @@ if quanta.index == 1 then
     thread_mgr:fork(function()
         local index = 0
         while true do
-            local ok, buf, ip, port = udp:recv()
-            if ok then
+            local ok2, buf, ip, port = udp:recv()
+            if ok2 then
                 index = index + 1
                 log_debug("udp-svr recv: %s from %s:%s", buf, ip, port)
                 local buff = string.format("server send %s", index)
                 udp:send(buff, #buff, ip, port)
             else
                 if buf ~= "EWOULDBLOCK" then
-                    og_debug("udp-svr recv failed: %s", buf)
+                    log_debug("udp-svr recv failed: %s", buf)
                 end
             end
             thread_mgr:sleep(1000)

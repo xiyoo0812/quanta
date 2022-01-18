@@ -12,5 +12,7 @@ quanta.startup(function()
         import("store/mysql_mgr.lua")
     elseif db_driver == "redis" then
         import("store/redis_mgr.lua")
+    elseif db_driver == "influx" then
+        import("store/influx_mgr.lua")
     end
 end)

@@ -96,20 +96,20 @@ function Influx:find_bucket(bucket_name)
     local ok, status, res = http_client:call_get(self.bucket_addr, querys, self.common_headers)
     if not ok or status >= 300 then
         log_err("[Influx][find_bucket] failed! status: %s, err: %s", status, ok and res or status)
-        return nil, ok and res or status
+        return false, ok and res or status
     end
     log_info("[Influx][find_bucket]! status: %s", status)
     local response = json_decode(res)
     local buckets = response.buckets
     if not bucket_name then
-        return buckets
+        return true, buckets
     end
     for _, bucket in pairs(buckets) do
         if bucket.name == bucket_name then
-            return bucket
+            return true, bucket
         end
     end
-    return nil, "bucket not exist"
+    return false, "bucket not exist"
 end
 
 --查找org信息
@@ -118,20 +118,20 @@ function Influx:find_org(org_name)
     local ok, status, res = http_client:call_get(self.org_addr, querys, self.common_headers)
     if not ok or status >= 300 then
         log_err("[Influx][find_org] failed! status: %s, err: %s", status, ok and res or status)
-        return nil, ok and res or status
+        return false, ok and res or status
     end
     log_info("[Influx][find_org]! call success! status: %s", status)
     local response = json_decode(res)
     local orgs = response.orgs
     if not org_name then
-        return orgs
+        return true, orgs
     end
     for _, org in pairs(orgs) do
         if org.name == org_name then
-            return org
+            return true, org
         end
     end
-    return nil, "org no t exist"
+    return false, "org no t exist"
 end
 
 --create bucket
@@ -139,7 +139,7 @@ function Influx:create_bucket(name, expire_time, description)
     local cur_org = self:find_org(self.org_name)
     if not cur_org then
         log_err("[Influx][create_bucket] org(%s) config error", self.org_name)
-        return nil, "org config error"
+        return false, "org config error"
     end
     local data = {
         name = name,
@@ -155,9 +155,9 @@ function Influx:create_bucket(name, expire_time, description)
     local ok, status, res = http_client:call_post(self.bucket_addr, data, self.common_headers)
     if not ok or status >= 300 then
         log_err("[Influx][create_bucket] failed! status: %s, err: %s", status, ok and res or status)
-        return nil, ok and res or status
+        return false, ok and res or status
     end
-    return json_decode(res)
+    return true, json_decode(res)
 end
 
 --delete bucket
@@ -220,10 +220,10 @@ function Influx:query(script)
     local ok, status, res = http_client:call_post(self.query_addr, script, headers, querys)
     if not ok or status >= 300 then
         log_err("[Influx][query] failed! status: %s, err: %s", status, ok and res or status)
-        return nil, ok and res or status
+        return false, ok and res or status
     end
     log_info("[Influx][query] success! status: %s", status)
-    return self:parse_csv(res)
+    return true, self:parse_csv(res)
 end
 
 --解析结果
