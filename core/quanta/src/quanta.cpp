@@ -66,7 +66,9 @@ static void check_input(sol::state& lua) {
                 return;
             }
         }
-        lua.script(fmt::format("quanta.console({:d})", cur));
+        lua.safe_script(fmt::format("quanta.console({:d})", cur), [&](lua_State*, sol::protected_function_result result) {
+            return result;
+        });
     }
 #endif
 }

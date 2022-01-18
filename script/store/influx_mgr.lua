@@ -1,10 +1,9 @@
 --influx_mgr.lua
-local tpack         = table.pack
 local log_err       = logger.err
 
 local KernCode      = enum("KernCode")
 local SUCCESS       = KernCode.SUCCESS
-local REDIS_FAILED  = KernCode.REDIS_FAILED
+local INFLUX_FAILED = KernCode.INFLUX_FAILED
 
 local event_mgr     = quanta.get("event_mgr")
 local config_mgr    = quanta.get("config_mgr")
@@ -51,21 +50,21 @@ function InfluxMgr:query(db_name, script)
         if not ok then
             log_err("[InfluxMgr][query] query %s failed, because: %s", script, res_oe)
         end
-        return ok and SUCCESS or REDIS_FAILED, res_oe
+        return ok and SUCCESS or INFLUX_FAILED, res_oe
     end
-    return REDIS_FAILED, "influx db not exist"
+    return INFLUX_FAILED, "influx db not exist"
 end
 
 function InfluxMgr:write(db_name, tab_name, tags, fields)
     local influxdb = self:get_db(db_name)
     if influxdb then
-        local ok, res_oe = influxdb:write(cmd, ...)
+        local ok, res_oe = influxdb:write(tab_name, tags, fields)
         if not ok then
             log_err("[InfluxMgr][write] write %s tags:%s,fields:%s  failed, because: %s", tab_name, tags, fields, res_oe)
         end
-        return ok and SUCCESS or REDIS_FAILED, res_oe
+        return ok and SUCCESS or INFLUX_FAILED, res_oe
     end
-    return REDIS_FAILED, "influx db not exist"
+    return INFLUX_FAILED, "influx db not exist"
 end
 
 quanta.influx_mgr = InfluxMgr()

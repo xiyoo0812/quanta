@@ -1,5 +1,6 @@
 --perfeval_mgr.lua
 local ltimer = require("ltimer")
+import("agent/influx_agent.lua")
 
 local pairs         = pairs
 local tpack         = table.pack
@@ -11,6 +12,7 @@ local raw_resume    = coroutine.resume
 local raw_running   = coroutine.running
 
 local EvalSlot      = import("kernel/object/eval_slot.lua")
+local influx_agent  = quanta.get("influx_agent")
 
 local PerfevalMgr = singleton()
 local prop = property(PerfevalMgr)
@@ -23,18 +25,6 @@ end
 function PerfevalMgr:setup()
     -- 初始化开关
     self.perfeval = env_status("QUANTA_PERFEVAL")
-    --协程改造
-    coroutine.yield = function(...)
-        self:yield()
-        return raw_yield(...)
-    end
-    coroutine.resume = function(co, ...)
-        self:yield()
-        self:resume(co)
-        local args = tpack(raw_resume(co, ...))
-        self:resume()
-        return tunpack(args)
-    end
 end
 
 function PerfevalMgr:yield()
@@ -98,12 +88,36 @@ end
 
 function PerfevalMgr:stop(eval_data)
     local now_ms = ltime()
-    local eval_name = eval_data.eval_name
-    local eval_time = now_ms - eval_data.begin_time - eval_data.yield_time
-    
+    local tital_time = now_ms - eval_data.begin_time
+    local tags = {
+        index = quanta.index,
+        service = quanta.service,
+        name = eval_data.eval_name
+    }
+    local fields = {
+        tital_time = tital_time,
+        yield_time = eval_data.yield_time,
+        eval_time = tital_time - eval_data.yield_time
+    }
+    influx_agent:write("perfeval", tags, fields)
     self.eval_co_map[eval_data.co][eval_data.eval_id] = nil
 end
 
-quanta.perfeval_mgr = PerfevalMgr()
+local perfeval_mgr = PerfevalMgr()
+
+--协程改造
+coroutine.yield = function(...)
+    perfeval_mgr:yield()
+    return raw_yield(...)
+end
+coroutine.resume = function(co, ...)
+    perfeval_mgr:yield()
+    perfeval_mgr:resume(co)
+    local args = tpack(raw_resume(co, ...))
+    perfeval_mgr:resume()
+    return tunpack(args)
+end
+
+quanta.perfeval_mgr = perfeval_mgr
 
 return PerfevalMgr
