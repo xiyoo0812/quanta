@@ -11,6 +11,7 @@ local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
 local sid2index     = service.id2index
+local protoaddr     = environ.protoaddr
 
 local Socket        = import("driver/socket.lua")
 
@@ -20,35 +21,44 @@ local http_client   = quanta.get("http_client")
 local GrayLog = class()
 local prop = property(GrayLog)
 prop:reader("ip", nil)          --地址
-prop:reader("sock", nil)        --网络连接对象
+prop:reader("tcp", nil)         --网络连接对象
+prop:reader("udp", nil)         --网络连接对象
 prop:reader("port", 12021)      --端口
 prop:reader("addr", nil)        --http addr
 
 function GrayLog:__init()
 end
 
-function GrayLog:tcp(ip, port)
-    self.ip = ip
-    self.port = port
-    --attach_second
-    self.sock = Socket(self)
-    update_mgr:attach_second(self)
+function GrayLog:setup(addr)
+    local ip, port, proto = protoaddr(addr)
+    if proto == "tcp" then
+        self.ip = ip
+        self.port = port
+        --attach_second
+        self.tcp = Socket(self)
+        update_mgr:attach_second(self)
+        return
+    end
+    if proto == "http" then
+        self.addr = sformat("http://%s:%s/gelf", ip, port)
+        log_info("[GrayLog][http] setup (%s) success!", self.addr)
+        return
+    end
+
 end
 
 function GrayLog:http(ip, port)
-    self.addr = sformat("http://%s:%s/gelf", ip, port)
-    log_info("[GrayLog][http] setup (%s) success!", self.addr)
 end
 
 function GrayLog:close()
-    if self.sock then
-        self.sock:close()
+    if self.tcp then
+        self.tcp:close()
     end
 end
 
 function GrayLog:on_second()
-    if not self.sock:is_alive() then
-        if not self.sock:connect(self.ip, self.port) then
+    if not self.tcp:is_alive() then
+        if not self.tcp:connect(self.ip, self.port) then
             log_err("[GrayLog][on_second] connect (%s:%s) failed!", self.ip, self.port, self.name)
             return
         end
@@ -80,18 +90,19 @@ function GrayLog:build(host, quanta_id, message, level, debug_info, optional)
 end
 
 function GrayLog:send_tcp(host, quanta_id, message, level, debug_info, optional)
-    if not self.sock:is_alive() then
-        return
+    if self.tcp and self.tcp:is_alive() then
+        local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
+        self.tcp:send(sformat("%s\0", json_encode(gelf)))
     end
-    local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
-    self.sock:send(sformat("%s\0", json_encode(gelf)))
 end
 
 function GrayLog:send_http(host, quanta_id, message, level, debug_info, optional)
-    local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
-    local ok, status, res = http_client:call_post(self.addr, gelf)
-    if not ok then
-        log_err("[GrayLog][send_http] failed! code: %s, err: %s", status, res)
+    if self.addr then
+        local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
+        local ok, status, res = http_client:call_post(self.addr, gelf)
+        if not ok then
+            log_err("[GrayLog][send_http] failed! code: %s, err: %s", status, res)
+        end
     end
 end
 

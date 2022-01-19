@@ -26,13 +26,13 @@ end
 
 print("logger test end")
 
-glog:tcp("9.134.163.87", 8081)
+glog:setup("9.134.163.87:8081/tcp")
 timer_mgr:register(3000, 1000, 2, function()
     print("GrayLog tcp test:" .. quanta.now)
     glog:send_tcp("127.0.0.1", quanta.id, "logger tcp test" .. quanta.now, 1)
 end)
 
-glog:http("9.134.163.87", 8080)
+glog:setup("9.134.163.87:8080/http")
 timer_mgr:register(3000, 1000, 2, function()
     print("GrayLog http test:" .. quanta.now)
     glog:send_http("127.0.0.1", quanta.id, "logger http test" .. quanta.now, 2)

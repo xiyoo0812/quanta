@@ -81,20 +81,13 @@ service:upsert({
 
 service:upsert({
     id = 11,
-    name = 'influx',
-    router = true,
-    hash = 0,
-})
-
-service:upsert({
-    id = 12,
     name = 'online',
     router = true,
     hash = 1,
 })
 
 service:upsert({
-    id = 13,
+    id = 12,
     name = 'admin',
     router = true,
     hash = 0,

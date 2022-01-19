@@ -96,14 +96,3 @@ database:upsert({
     passwd = '123456',
     port = 27017,
 })
-
-database:upsert({
-    quanta_deploy = 'local',
-    driver = 'influx',
-    db = 'quanta',
-    default = true,
-    host = '9.134.163.87',
-    user = 'xiyoo0812',
-    passwd = 'd5SUTYyl4jou8BNN4Ee2kn1U0IhWuj3P7qR7JDU_59e7UAzW0yQq_oCyLcHbFt7nX_45yYfDCsmF7beZd6LiSQ==',
-    port = 8086,
-})

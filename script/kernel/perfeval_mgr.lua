@@ -1,6 +1,5 @@
 --perfeval_mgr.lua
 local ltimer = require("ltimer")
-import("agent/influx_agent.lua")
 
 local pairs         = pairs
 local tpack         = table.pack
@@ -12,13 +11,13 @@ local raw_resume    = coroutine.resume
 local raw_running   = coroutine.running
 
 local EvalSlot      = import("kernel/object/eval_slot.lua")
-local influx_agent  = quanta.get("influx_agent")
+local event_mgr     = quanta.get("event_mgr")
 
 local PerfevalMgr = singleton()
 local prop = property(PerfevalMgr)
 prop:reader("eval_id", 0)
 prop:reader("perfeval", false)  --性能开关
-prop:reader("eval_co_map", {})  --协程评估表
+prop:reader("eval_list", {})    --协程评估表
 function PerfevalMgr:__init()
 end
 
@@ -31,7 +30,7 @@ function PerfevalMgr:yield()
     if self.perfeval then
         local now_ms = ltime()
         local yield_co = raw_running()
-        local eval_cos = self.eval_co_map[yield_co]
+        local eval_cos = self.eval_list[yield_co]
         for _, eval_data in pairs(eval_cos or {}) do
             eval_data.yield_tick = now_ms
         end
@@ -42,7 +41,7 @@ function PerfevalMgr:resume(co)
     if self.perfeval then
         local now_ms = ltime()
         local resume_co = co or raw_running()
-        local eval_cos = self.eval_co_map[resume_co]
+        local eval_cos = self.eval_list[resume_co]
         for _, eval_data in pairs(eval_cos or {}) do
             if eval_data.yield_tick > 0 then
                 local pause_time = now_ms - eval_data.yield_tick
@@ -77,30 +76,19 @@ function PerfevalMgr:start(eval_name)
         eval_name = eval_name,
         begin_time = ltime(),
     }
-    local eval_cos = self.eval_co_map[co]
+    local eval_cos = self.eval_list[co]
     if eval_cos then
         eval_cos[eval_id] = eval_data
     else
-        self.eval_co_map[co] = { [eval_id] = eval_data }
+        self.eval_list[co] = { [eval_id] = eval_data }
     end
     return eval_data
 end
 
 function PerfevalMgr:stop(eval_data)
     local now_ms = ltime()
-    local tital_time = now_ms - eval_data.begin_time
-    local tags = {
-        index = quanta.index,
-        service = quanta.service,
-        name = eval_data.eval_name
-    }
-    local fields = {
-        tital_time = tital_time,
-        yield_time = eval_data.yield_time,
-        eval_time = tital_time - eval_data.yield_time
-    }
-    influx_agent:write("perfeval", tags, fields)
-    self.eval_co_map[eval_data.co][eval_data.eval_id] = nil
+    event_mgr:notify_listener("on_perfeval", eval_data, now_ms)
+    self.eval_list[eval_data.co][eval_data.eval_id] = nil
 end
 
 local perfeval_mgr = PerfevalMgr()
@@ -110,6 +98,7 @@ coroutine.yield = function(...)
     perfeval_mgr:yield()
     return raw_yield(...)
 end
+
 coroutine.resume = function(co, ...)
     perfeval_mgr:yield()
     perfeval_mgr:resume(co)

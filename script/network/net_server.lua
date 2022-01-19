@@ -13,7 +13,6 @@ local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 local perfeval_mgr  = quanta.get("perfeval_mgr")
-local statis_mgr    = quanta.get("statis_mgr")
 
 local FlagMask      = enum("FlagMask")
 local NetwkTime     = enum("NetwkTime")
@@ -78,7 +77,7 @@ function NetServer:on_socket_accept(session)
     session.on_call_pack = function(recv_len, cmd_id, flag, session_id, data)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
-        statis_mgr:statis_notify("on_pack_recv", cmd_id, recv_len)
+        event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, session_id, data)
     end
     -- 绑定网络错误回调（断开）
@@ -103,7 +102,7 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     -- call lbus
     local send_len = session.call_pack(cmd_id, pflag, session_id or 0, body)
     if send_len > 0 then
-        statis_mgr:statis_notify("on_pack_send", cmd_id, send_len)
+        event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         return true
     end
     log_err("[NetServer][write] call_pack failed! code:%s", send_len)
@@ -120,7 +119,7 @@ function NetServer:broadcast(cmd_id, data)
     for _, session in pairs(self.sessions) do
         local send_len = session.call_pack(cmd_id, pflag, 0, body)
         if send_len > 0 then
-            statis_mgr:statis_notify("on_pack_send", cmd_id, send_len)
+            event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         end
     end
     return true
@@ -217,12 +216,11 @@ function NetServer:on_socket_recv(session, cmd_id, flag, session_id, data)
     end
     if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
         local function dispatch_rpc_message(_session, cmd, bd)
-            local eval = perfeval_mgr:begin_eval(cmd_name)
+            local _<close> = perfeval_mgr:eval(cmd_name)
             local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
             if not result[1] then
                 log_err("[NetServer][on_socket_recv] on_session_cmd failed! cmd_id:%s", cmd_id)
             end
-            perfeval_mgr:end_eval(eval)
         end
         thread_mgr:fork(dispatch_rpc_message, session, cmd_id, body)
         return
@@ -285,7 +283,7 @@ function NetServer:add_session(session)
     if not self.sessions[token] then
         self.sessions[token] = session
         self.session_count = self.session_count + 1
-        statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
+        event_mgr:notify_listener("on_conn_update", self.session_type, self.session_count)
     end
 end
 
@@ -295,7 +293,7 @@ function NetServer:remove_session(token)
     if session then
         self.sessions[token] = nil
         self.session_count = self.session_count - 1
-        statis_mgr:statis_notify("on_pack_conn_update", self.session_type, self.session_count)
+        event_mgr:notify_listener("on_conn_update", self.session_type, self.session_count)
         return session
     end
 end

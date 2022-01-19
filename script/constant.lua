@@ -15,7 +15,6 @@ KernCode.LOGIC_FAILED       = 101   --业务执行失败
 KernCode.MYSQL_FAILED       = 102   --MYSQL执行失败
 KernCode.MONGO_FAILED       = 103   --MONGO执行失败
 KernCode.REDIS_FAILED       = 104   --REDIS执行失败
-KernCode.INFLUX_FAILED      = 105   --INFLUX执行失败
 
 --协议投flag掩码
 local FlagMask              = enum("FlagMask", 0)

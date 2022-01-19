@@ -5,18 +5,15 @@ local log_debug = logger.debug
 
 local timer_mgr = quanta.get("timer_mgr")
 
-local conf = {
-    host = "9.134.163.87",
-    port = 8086,
-    user = "xiyoo0812",
-    db = "testdb",
-    passwd = "d5SUTYyl4jou8BNN4Ee2kn1U0IhWuj3P7qR7JDU_59e7UAzW0yQq_oCyLcHbFt7nX_45yYfDCsmF7beZd6LiSQ=="
-}
+local ip = "9.134.163.87"
+local port = 8086
+local org = "xiyoo0812"
+local bucket = "testdb"
+local token = "d5SUTYyl4jou8BNN4Ee2kn1U0IhWuj3P7qR7JDU_59e7UAzW0yQq_oCyLcHbFt7nX_45yYfDCsmF7beZd6LiSQ=="
 
-local influx    = Influx()
+local influx    = Influx(ip, port, org, bucket, token)
 
 timer_mgr:once(2000, function()
-    influx:setup(conf)
     local _, orgs = influx:find_org()
     log_debug("find_org: %s", orgs)
     local _, bucket1 = influx:create_bucket("testdb")

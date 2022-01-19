@@ -6,9 +6,8 @@ local qhash_code    = quanta.hash_code
 
 local event_mgr     = quanta.get("event_mgr")
 local socket_mgr    = quanta.get("socket_mgr")
-local statis_mgr    = quanta.get("statis_mgr")
-local perfeval_mgr  = quanta.get("perfeval_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+local perfeval_mgr  = quanta.get("perfeval_mgr")
 
 local FlagMask      = enum("FlagMask")
 local KernCode      = enum("KernCode")
@@ -32,7 +31,7 @@ end
 --调用rpc后续处理
 function RpcClient:on_call_router(rpc, send_len)
     if send_len > 0 then
-        statis_mgr:statis_notify("on_rpc_send", rpc, send_len)
+        event_mgr:notify_listener("on_rpc_send", rpc, send_len)
         return true, send_len
     end
     log_err("[RpcClient][on_call_router] rpc %s call failed! code:%s", rpc, send_len)
@@ -65,6 +64,10 @@ end
 
 --连接服务器
 function RpcClient:connect()
+    --连接中
+    if self.socket then
+        return true
+    end
     --开始连接
     local socket, cerr = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
     if not socket then
@@ -72,7 +75,7 @@ function RpcClient:connect()
         return false, cerr
     end
     socket.on_call = function(recv_len, session_id, rpc_flag, source, rpc, ...)
-        statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
+        event_mgr:notify_listener("on_rpc_recv", rpc, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, source, rpc, ...)
     end
     socket.call_rpc = function(session_id, rpc_flag, rpc, ...)
@@ -147,12 +150,11 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, source, rpc, ...)
     end
     if session_id == 0 or rpc_flag == FlagMask.REQ then
         local function dispatch_rpc_message(...)
-            local eval = perfeval_mgr:begin_eval("rpc." .. rpc)
+            local _<close> = perfeval_mgr:eval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
                 socket.callback_target(session_id, source, rpc, tunpack(rpc_datas))
             end
-            perfeval_mgr:end_eval(eval)
         end
         thread_mgr:fork(dispatch_rpc_message, ...)
         return

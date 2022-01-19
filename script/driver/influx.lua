@@ -19,10 +19,7 @@ local http_client   = quanta.get("http_client")
 
 local Influx = class()
 local prop = property(Influx)
-prop:reader("ip", nil)          --地址
-prop:reader("port", 8086)       --端口
 prop:reader("org", nil)         --org
-prop:reader("token", nil)       --token
 prop:reader("bucket", nil)      --bucket
 prop:reader("org_addr", nil)    --org_addr
 prop:reader("query_addr", nil)  --query_addr
@@ -30,20 +27,14 @@ prop:reader("write_addr", nil)  --query_addr
 prop:reader("bucket_addr", nil) --bucket_addr
 prop:reader("common_headers", nil)
 
-function Influx:__init()
-end
-
-function Influx:setup(conf)
-    self.ip = conf.host
-    self.port = conf.port
-    self.org = conf.user
-    self.bucket = conf.db
-    self.token = sformat("Token %s", conf.passwd)
-    self.org_addr = sformat("http://%s:%s/api/v2/orgs", self.ip, self.port)
-    self.write_addr = sformat("http://%s:%s/api/v2/write", self.ip, self.port)
-    self.query_addr = sformat("http://%s:%s/api/v2/query", self.ip, self.port)
-    self.bucket_addr = sformat("http://%s:%s/api/v2/buckets", self.ip, self.port)
-    self.common_headers = { ["Authorization"] = self.token, ["Content-type"] = "application/json" }
+function Influx:__init(ip, port, org, bucket, token)
+    self.org = org
+    self.bucket = bucket
+    self.org_addr = sformat("http://%s:%s/api/v2/orgs", ip, port)
+    self.write_addr = sformat("http://%s:%s/api/v2/write", ip, port)
+    self.query_addr = sformat("http://%s:%s/api/v2/query", ip, port)
+    self.bucket_addr = sformat("http://%s:%s/api/v2/buckets", ip, port)
+    self.common_headers = { ["Authorization"] = sformat("Token %s", token), ["Content-type"] = "application/json" }
 end
 
 --line protocol

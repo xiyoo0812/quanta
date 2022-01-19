@@ -1,57 +1,64 @@
 --statis_mgr.lua
-import("agent/influx_agent.lua")
 import("kernel/object/linux.lua")
+local InfluxDB = import("driver/influx.lua")
 
+local env_get       = environ.get
+local env_addr      = environ.addr
 local env_status    = environ.status
 
-local linux_statis  = quanta.get("linux_statis")
+local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
-local influx_agent  = quanta.get("influx_agent")
+local linux_statis  = quanta.get("linux_statis")
 
 local StatisMgr = singleton()
 local prop = property(StatisMgr)
+prop:reader("influx", nil)              --influx
 prop:reader("statis_status", false)     --统计开关
 function StatisMgr:__init()
+    local org = env_get("QUANTA_INFLUX_ORG")
+    local token = env_get("QUANTA_INFLUX_TOKEN")
+    local bucket = env_get("QUANTA_INFLUX_BUCKET")
+    local ip, port = env_addr("QUANTA_INFLUX_ADDR")
+    --初始化参数
+    self.statis_status = env_status("QUANTA_STATIS")
+    self.influx = InfluxDB(ip, port, org, bucket, token)
+    --事件监听
+    event_mgr:add_listener(self, "on_rpc_send")
+    event_mgr:add_listener(self, "on_rpc_recv")
+    event_mgr:add_listener(self, "on_perfeval")
+    event_mgr:add_listener(self, "on_proto_recv")
+    event_mgr:add_listener(self, "on_proto_send")
+    event_mgr:add_listener(self, "on_conn_update")
+    --定时处理
+    update_mgr:attach_minute(self)
+    --系统监控
     if quanta.platform == "linux" then
         linux_statis:setup()
     end
-    self.statis_status = env_status("QUANTA_STATIS")
-    -- 退出通知
-    update_mgr:attach_minute(self)
 end
 
--- 统计系统入口
-function StatisMgr:statis_notify(event, ...)
-    if self.statis_status then
-        local handler = StatisMgr[event]
-        if handler then
-            handler(self, ...)
-        end
-    end
-end
-
--- 统计pack协议发送(KB)
-function StatisMgr:on_pack_send(cmd_id, send_len)
+-- 统计proto协议发送(KB)
+function StatisMgr:on_proto_recv(cmd_id, send_len)
     local tags = {
         name = cmd_id,
-        type = "pack_send",
+        type = "proto_recv",
         index = quanta.index,
         service = quanta.service
     }
     local fields = { count = send_len }
-    influx_agent:write("network", tags, fields)
+    self.influx:write("network", tags, fields)
 end
 
--- 统计pack协议接收(KB)
-function StatisMgr:on_pack_recv(cmd_id, recv_len)
+-- 统计proto协议接收(KB)
+function StatisMgr:on_proto_send(cmd_id, recv_len)
     local tags = {
         name = cmd_id,
-        type = "pack_recv",
+        type = "proto_send",
         index = quanta.index,
         service = quanta.service
     }
     local fields = { count = recv_len }
-    influx_agent:write("network", tags, fields)
+    self.influx:write("network", tags, fields)
 end
 
 -- 统计rpc协议发送(KB)
@@ -63,7 +70,7 @@ function StatisMgr:on_rpc_send(rpc, send_len)
         service = quanta.service
     }
     local fields = { count = send_len }
-    influx_agent:write("network", tags, fields)
+    self.influx:write("network", tags, fields)
 end
 
 -- 统计rpc协议接收(KB)
@@ -75,11 +82,11 @@ function StatisMgr:on_rpc_recv(rpc, recv_len)
         service = quanta.service
     }
     local fields = { count = recv_len }
-    influx_agent:write("network", tags, fields)
+    self.influx:write("network", tags, fields)
 end
 
--- 统计pack协议连接
-function StatisMgr:on_pack_conn_update(conn_type, conn_count)
+-- 统计cmd协议连接
+function StatisMgr:on_conn_update(conn_type, conn_count)
     local tags = {
         type = "conn",
         name = conn_type,
@@ -87,7 +94,23 @@ function StatisMgr:on_pack_conn_update(conn_type, conn_count)
         service = quanta.service
     }
     local fields = { count = conn_count }
-    influx_agent:write("network", tags, fields)
+    self.influx:write("network", tags, fields)
+end
+
+-- 统计性能
+function StatisMgr:on_perfeval(eval_data, now_ms)
+    local tags = {
+        index = quanta.index,
+        service = quanta.service,
+        name = eval_data.eval_name
+    }
+    local tital_time = now_ms - eval_data.begin_time
+    local fields = {
+        tital_time = tital_time,
+        yield_time = eval_data.yield_time,
+        eval_time = tital_time - eval_data.yield_time
+    }
+    self.influx:write("perfeval", tags, fields)
 end
 
 -- 统计系统信息
@@ -102,7 +125,7 @@ function StatisMgr:on_minute(now)
             lua_mem = self:_calc_lua_mem(),
             cpu_rate = self:_calc_cpu_rate(),
         }
-        influx_agent:write("system", tags, fields)
+        self.influx:write("system", tags, fields)
     end
 end
 
