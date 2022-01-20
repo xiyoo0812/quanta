@@ -8,6 +8,7 @@ local env_status    = environ.status
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 local linux_statis  = quanta.get("linux_statis")
 
 local StatisMgr = singleton()
@@ -37,6 +38,13 @@ function StatisMgr:__init()
     end
 end
 
+-- 发送给influx
+function StatisMgr:write(measurement, tags, fields)
+    thread_mgr:fork(function()
+        self.influx:write(measurement, tags, fields)
+    end)
+end
+
 -- 统计proto协议发送(KB)
 function StatisMgr:on_proto_recv(cmd_id, send_len)
     local tags = {
@@ -46,7 +54,7 @@ function StatisMgr:on_proto_recv(cmd_id, send_len)
         service = quanta.service
     }
     local fields = { count = send_len }
-    self.influx:write("network", tags, fields)
+    self:write("network", tags, fields)
 end
 
 -- 统计proto协议接收(KB)
@@ -58,7 +66,7 @@ function StatisMgr:on_proto_send(cmd_id, recv_len)
         service = quanta.service
     }
     local fields = { count = recv_len }
-    self.influx:write("network", tags, fields)
+    self:write("network", tags, fields)
 end
 
 -- 统计rpc协议发送(KB)
@@ -70,7 +78,7 @@ function StatisMgr:on_rpc_send(rpc, send_len)
         service = quanta.service
     }
     local fields = { count = send_len }
-    self.influx:write("network", tags, fields)
+    self:write("network", tags, fields)
 end
 
 -- 统计rpc协议接收(KB)
@@ -82,7 +90,7 @@ function StatisMgr:on_rpc_recv(rpc, recv_len)
         service = quanta.service
     }
     local fields = { count = recv_len }
-    self.influx:write("network", tags, fields)
+    self:write("network", tags, fields)
 end
 
 -- 统计cmd协议连接
@@ -94,7 +102,7 @@ function StatisMgr:on_conn_update(conn_type, conn_count)
         service = quanta.service
     }
     local fields = { count = conn_count }
-    self.influx:write("network", tags, fields)
+    self:write("network", tags, fields)
 end
 
 -- 统计性能
@@ -110,7 +118,7 @@ function StatisMgr:on_perfeval(eval_data, now_ms)
         yield_time = eval_data.yield_time,
         eval_time = tital_time - eval_data.yield_time
     }
-    self.influx:write("perfeval", tags, fields)
+    self:write("perfeval", tags, fields)
 end
 
 -- 统计系统信息
@@ -125,7 +133,7 @@ function StatisMgr:on_minute(now)
             lua_mem = self:_calc_lua_mem(),
             cpu_rate = self:_calc_cpu_rate(),
         }
-        self.influx:write("system", tags, fields)
+        self:write("system", tags, fields)
     end
 end
 

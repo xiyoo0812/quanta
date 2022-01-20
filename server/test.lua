@@ -24,5 +24,5 @@ quanta.startup(function()--初始化test
     import("test/udp_test.lua")
     import("test/kcp_test.lua")
     ]]
-    import("test/kcp_test.lua")
+    import("test/log_test.lua")
 end)

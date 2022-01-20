@@ -10,7 +10,7 @@ local log_debug     = logger.debug
 local json_encode   = ljson.encode
 local tunpack       = table.unpack
 local signalquit    = signal.quit
-local ssplit        = string_ext.split
+local saddr         = string_ext.addr
 
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -31,7 +31,7 @@ function HttpServer:__init(http_addr)
 end
 
 function HttpServer:setup(http_addr)
-    self.ip, self.port = tunpack(ssplit(http_addr, ":"))
+    self.ip, self.port = saddr(http_addr)
     local socket = Socket(self)
     if not socket:listen(self.ip, self.port) then
         log_info("[HttpServer][setup] now listen %s failed", http_addr)

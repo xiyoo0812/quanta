@@ -9,7 +9,7 @@ local log_debug     = logger.debug
 local json_encode   = ljson.encode
 local tunpack       = table.unpack
 local signalquit    = signal.quit
-local ssplit        = string_ext.split
+local saddr         = string_ext.addr
 
 local WSServer = class()
 local prop = property(WSServer)
@@ -25,7 +25,7 @@ function WSServer:__init(ws_addr)
 end
 
 function WSServer:setup(ws_addr)
-    self.ip, self.port = tunpack(ssplit(ws_addr, ":"))
+    self.ip, self.port = saddr(ws_addr)
     local socket = WebSocket(self)
     if not socket:listen(self.ip, self.port) then
         log_info("[WSServer][setup] now listen %s failed", ws_addr)

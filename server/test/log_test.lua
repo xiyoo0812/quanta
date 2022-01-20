@@ -7,7 +7,6 @@ local lnow_ms   = ltimer.now_ms
 local log_info  = logger.info
 
 local timer_mgr = quanta.get("timer_mgr")
-local glog      = GrayLog()
 
 local function logger_test(cycle)
     local t1 = lnow_ms()
@@ -26,16 +25,24 @@ end
 
 print("logger test end")
 
-glog:setup("9.134.163.87:8081/tcp")
-timer_mgr:register(3000, 1000, 2, function()
+local host = "127.0.0.1"
+
+local glog1 = GrayLog("9.134.163.87:8081/tcp")
+timer_mgr:register(2000, 1000, 2, function()
     print("GrayLog tcp test:" .. quanta.now)
-    glog:send_tcp("127.0.0.1", quanta.id, "logger tcp test" .. quanta.now, 1)
+    glog1:write(host, quanta.id, "logger tcp test" .. quanta.now, 1)
 end)
 
-glog:setup("9.134.163.87:8080/http")
-timer_mgr:register(3000, 1000, 2, function()
+local glog2 = GrayLog("9.134.163.87:8080/http")
+timer_mgr:register(2000, 1000, 2, function()
     print("GrayLog http test:" .. quanta.now)
-    glog:send_http("127.0.0.1", quanta.id, "logger http test" .. quanta.now, 2)
+    glog2:write(host, quanta.id, "logger http test" .. quanta.now, 2)
+end)
+
+local glog3 = GrayLog("9.134.163.87:8081/udp")
+timer_mgr:register(2000, 1000, 2, function()
+    print("GrayLog udp test:" .. quanta.now)
+    glog3:write(host, quanta.id, "logger udp test" .. quanta.now, 2)
 end)
 
 --os.exit()
