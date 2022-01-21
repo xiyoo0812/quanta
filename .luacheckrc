@@ -5,7 +5,7 @@ stds.quanta = {
         "tonubmer", "lfs", "util", "coroutine",
         "quanta_const", "table_ext", "string_ext", "math_ext",
         "quanta", "environ", "signal", "http", "guid", "luabt", "service", "logger", "utility", "platform",
-        "import", "class", "enum", "mixin", "property", "singleton", "super", "implemented", 
+        "import", "class", "enum", "mixin", "property", "singleton", "super", "implemented", "logfeature", 
         "classof", "is_class", "is_subclass", "instanceof", "conv_class",
     }
 }

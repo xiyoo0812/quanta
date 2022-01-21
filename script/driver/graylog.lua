@@ -27,8 +27,10 @@ prop:reader("udp", nil)         --网络连接对象
 prop:reader("port", 12021)      --端口
 prop:reader("addr", nil)        --http addr
 prop:reader("proto", "http")    --proto
+prop:reader("host", nil)        --proto
 
 function GrayLog:__init(addr)
+    self.host = environ.get("QUANTA_HOST_IP")
     local ip, port, proto = protoaddr(addr)
     log_info("%s-%s-%s-%s", addr, ip, port, proto)
     self.proto = proto
@@ -68,18 +70,18 @@ function GrayLog:on_second()
     end
 end
 
-function GrayLog:build(host, quanta_id, message, level, debug_info, optional)
+function GrayLog:build(message, level, debug_info, optional)
     local gelf = {
-        version = "1.1",
-        host = host,
         level = level,
+        version = "1.1",
+        host = self.host,
+        _node_id = quanta.id,
         timestamp = quanta.now,
         short_message = message,
-        _node_id = quanta_id,
-        _name = sid2name(quanta_id),
-        _nick = sid2nick(quanta_id),
-        _index = sid2index(quanta_id),
-        _service = sid2sid(quanta_id)
+        _name = sid2name(quanta.id),
+        _nick = sid2nick(quanta.id),
+        _index = sid2index(quanta.id),
+        _service = sid2sid(quanta.id)
     }
     if debug_info then
         gelf.file = debug_info.short_src
@@ -91,8 +93,8 @@ function GrayLog:build(host, quanta_id, message, level, debug_info, optional)
     return gelf
 end
 
-function GrayLog:write(host, quanta_id, message, level, debug_info, optional)
-    local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
+function GrayLog:write(message, level, debug_info, optional)
+    local gelf = self:build(message, level, debug_info, optional)
     if self.proto == "http" then
         local ok, status, res = http_client:call_post(self.addr, gelf)
         if not ok then
