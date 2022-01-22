@@ -56,7 +56,6 @@ function quanta.init()
         import("kernel/router_mgr.lua")
         import("driver/oanotify.lua")
     end
-
     -- 初始化统计管理器
     quanta.perfeval_mgr:setup()
     import("kernel/statis_mgr.lua")
@@ -67,6 +66,8 @@ function quanta.init()
         import("agent/monitor_agent.lua")
         import("kernel/netlog_mgr.lua")
     end
+    --graylog
+    logger.setup_graylog()
 end
 
 --初始化gm
