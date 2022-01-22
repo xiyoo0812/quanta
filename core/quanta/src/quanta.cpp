@@ -66,7 +66,9 @@ static void check_input(sol::state& lua) {
                 return;
             }
         }
-        lua.script(fmt::format("quanta.console({:d})", cur));
+        lua.safe_script(fmt::format("quanta.console({:d})", cur), [&](lua_State*, sol::protected_function_result result) {
+            return result;
+        });
     }
 #endif
 }
@@ -106,7 +108,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
 
 void quanta_app::sol_exception_handler(std::string msg, sol::protected_function_result& result) {
     sol::error err = result;
-    LOG_FATAL(m_logger) << msg << err.what();
+    LOG_FATAL(m_logger, "global") << msg << err.what();
     m_logger->stop();
 #if WIN32
     _getch();
@@ -150,13 +152,13 @@ void quanta_app::init_logger() {
         auto value = getenv(key.c_str());
         return value ? value : def;
     };
-    auto index = getenv("QUANTA_INDEX");
-    auto service = getenv("QUANTA_SERVICE");
-    auto logname = fmt::format("{}-{}", service, index);
+    std::string index = getenv("QUANTA_INDEX");
+    std::string service = getenv("QUANTA_SERVICE");
+    auto logpath = lgetenv("QUANTA_LOG_PATH", "./logs/");
     auto maxline = std::stoi(lgetenv("QUANTA_LOG_LINE", "100000"));
-    auto logpath = fmt::format("{}/{}/", lgetenv("QUANTA_LOG_PATH", "./logs/"), service);
     auto rolltype = (logger::rolling_type)std::stoi(lgetenv("QUANTA_LOG_ROLL", "0"));
-    m_logger->add_dest(logpath, logname, rolltype, maxline);
+    m_logger->option(logpath, service, index, rolltype, maxline);
+    m_logger->add_dest(service);
     if (std::stoi(lgetenv("QUANTA_DAEMON", "0"))) {
         quanta_daemon();
     }

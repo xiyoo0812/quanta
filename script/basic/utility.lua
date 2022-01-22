@@ -2,10 +2,8 @@
 local otime         = os.time
 local odate         = os.date
 local log_err       = logger.err
-local tunpack       = table.unpack
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
-local ssplit        = string_ext.split
 
 local KernCode      = enum("KernCode")
 local PeriodTime    = enum("PeriodTime")
@@ -75,9 +73,4 @@ end
 function utility.edition_utc(period, time, offset)
     local utime = utility.utc_time(time)
     return utility.edition(period, utime, offset)
-end
-
---解析ip地址
-function utility.addr(addr)
-    return tunpack(ssplit(addr, ":"))
 end

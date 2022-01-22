@@ -1,5 +1,6 @@
 --graylog.lua
 import("network/http_client.lua")
+local lkcp          = require("lkcp")
 local ljson         = require("lcjson")
 
 local log_err       = logger.err
@@ -11,6 +12,7 @@ local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
 local sid2name      = service.id2name
 local sid2index     = service.id2index
+local protoaddr     = string_ext.protoaddr
 
 local Socket        = import("driver/socket.lua")
 
@@ -20,35 +22,47 @@ local http_client   = quanta.get("http_client")
 local GrayLog = class()
 local prop = property(GrayLog)
 prop:reader("ip", nil)          --地址
-prop:reader("sock", nil)        --网络连接对象
+prop:reader("tcp", nil)         --网络连接对象
+prop:reader("udp", nil)         --网络连接对象
 prop:reader("port", 12021)      --端口
 prop:reader("addr", nil)        --http addr
+prop:reader("proto", "http")    --proto
+prop:reader("host", nil)        --proto
 
-function GrayLog:__init()
-end
-
-function GrayLog:tcp(ip, port)
+function GrayLog:__init(addr)
+    self.host = environ.get("QUANTA_HOST_IP")
+    local ip, port, proto = protoaddr(addr)
+    log_info("%s-%s-%s-%s", addr, ip, port, proto)
+    self.proto = proto
+    if proto == "http" then
+        self.addr = sformat("http://%s:%s/gelf", ip, port)
+        log_info("[GrayLog][setup] setup http (%s) success!", self.addr)
+        return
+    end
     self.ip = ip
     self.port = port
-    --attach_second
-    self.sock = Socket(self)
-    update_mgr:attach_second(self)
+    if proto == "tcp" then
+        self.tcp = Socket(self)
+        update_mgr:attach_second(self)
+        log_info("[GrayLog][setup] setup tcp (%s:%s) success!", self.ip, self.port)
+        return
+    end
+    self.udp = lkcp.udp()
+    log_info("[GrayLog][setup] setup udp (%s:%s) success!", self.ip, self.port)
 end
 
 function GrayLog:http(ip, port)
-    self.addr = sformat("http://%s:%s/gelf", ip, port)
-    log_info("[GrayLog][http] setup (%s) success!", self.addr)
 end
 
 function GrayLog:close()
-    if self.sock then
-        self.sock:close()
+    if self.tcp then
+        self.tcp:close()
     end
 end
 
 function GrayLog:on_second()
-    if not self.sock:is_alive() then
-        if not self.sock:connect(self.ip, self.port) then
+    if not self.tcp:is_alive() then
+        if not self.tcp:connect(self.ip, self.port) then
             log_err("[GrayLog][on_second] connect (%s:%s) failed!", self.ip, self.port, self.name)
             return
         end
@@ -56,18 +70,18 @@ function GrayLog:on_second()
     end
 end
 
-function GrayLog:build(host, quanta_id, message, level, debug_info, optional)
+function GrayLog:build(message, level, debug_info, optional)
     local gelf = {
-        version = "1.1",
-        host = host,
         level = level,
+        version = "1.1",
+        host = self.host,
+        _node_id = quanta.id,
         timestamp = quanta.now,
         short_message = message,
-        _node_id = quanta_id,
-        _name = sid2name(quanta_id),
-        _nick = sid2nick(quanta_id),
-        _index = sid2index(quanta_id),
-        _service = sid2sid(quanta_id)
+        _name = sid2name(quanta.id),
+        _nick = sid2nick(quanta.id),
+        _index = sid2index(quanta.id),
+        _service = sid2sid(quanta.id)
     }
     if debug_info then
         gelf.file = debug_info.short_src
@@ -79,20 +93,23 @@ function GrayLog:build(host, quanta_id, message, level, debug_info, optional)
     return gelf
 end
 
-function GrayLog:send_tcp(host, quanta_id, message, level, debug_info, optional)
-    if not self.sock:is_alive() then
+function GrayLog:write(message, level, debug_info, optional)
+    local gelf = self:build(message, level, debug_info, optional)
+    if self.proto == "http" then
+        local ok, status, res = http_client:call_post(self.addr, gelf)
+        if not ok then
+            log_err("[GrayLog][write] http failed! code: %s, err: %s", status, res)
+        end
         return
     end
-    local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
-    self.sock:send(sformat("%s\0", json_encode(gelf)))
-end
-
-function GrayLog:send_http(host, quanta_id, message, level, debug_info, optional)
-    local gelf = self:build(host, quanta_id, message, level, debug_info, optional)
-    local ok, status, res = http_client:call_post(self.addr, gelf)
-    if not ok then
-        log_err("[GrayLog][send_http] failed! code: %s, err: %s", status, res)
+    if self.proto == "tcp" then
+        if self.tcp and self.tcp:is_alive() then
+            self.tcp:send(sformat("%s\0", json_encode(gelf)))
+        end
+        return
     end
+    local udpmsg = json_encode(gelf)
+    self.udp:send(udpmsg, #udpmsg, self.ip, self.port)
 end
 
 return GrayLog

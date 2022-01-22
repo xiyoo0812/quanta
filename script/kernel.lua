@@ -3,8 +3,8 @@ local ltimer = require("ltimer")
 
 import("basic/basic.lua")
 import("kernel/config_mgr.lua")
-import("kernel/update_mgr.lua")
 import("kernel/perfeval_mgr.lua")
+import("kernel/update_mgr.lua")
 
 local ltime         = ltimer.time
 local log_info      = logger.info
@@ -50,22 +50,24 @@ function quanta.init()
     socket_mgr = lbus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
 
-    -- 初始化统计管理器
-    quanta.perfeval_mgr:setup()
-    import("kernel/statis_mgr.lua")
-    import("kernel/protobuf_mgr.lua")
-
     --初始化路由管理器
     if service.router(quanta.service_id) then
         --加载router配置
         import("kernel/router_mgr.lua")
         import("driver/oanotify.lua")
     end
+    -- 初始化统计管理器
+    quanta.perfeval_mgr:setup()
+    import("kernel/statis_mgr.lua")
+    import("kernel/protobuf_mgr.lua")
+
     if not env_get("QUANTA_MONITOR_HOST") then
         --加载monotor
         import("agent/monitor_agent.lua")
         import("kernel/netlog_mgr.lua")
     end
+    --graylog
+    logger.setup_graylog()
 end
 
 --初始化gm

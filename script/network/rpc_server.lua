@@ -15,7 +15,6 @@ local SUCCESS       = KernCode.SUCCESS
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local socket_mgr    = quanta.get("socket_mgr")
-local statis_mgr    = quanta.get("statis_mgr")
 local perfeval_mgr  = quanta.get("perfeval_mgr")
 
 local RpcServer = singleton()
@@ -54,12 +53,11 @@ function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_flag, source, ...)
     client.alive_time = quanta.now
     if session_id == 0 or rpc_flag == FlagMask.REQ then
         local function dispatch_rpc_message(...)
-            local eval = perfeval_mgr:begin_eval("rpc." .. rpc)
+            local _<close> = perfeval_mgr:eval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
                 client.call_rpc(session_id, FlagMask.RES, rpc, tunpack(rpc_datas))
             end
-            perfeval_mgr:end_eval(eval)
         end
         thread_mgr:fork(dispatch_rpc_message, ...)
         return
@@ -84,14 +82,14 @@ function RpcServer:on_socket_accept(client)
     client.call_rpc = function(session_id, rpc_flag, rpc, ...)
         local send_len = client.call(session_id, rpc_flag, 0, rpc, ...)
         if send_len < 0 then
-            statis_mgr:statis_notify("on_rpc_send", rpc, send_len)
+            event_mgr:notify_listener("on_rpc_send", rpc, send_len)
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
             return false
         end
         return true, SUCCESS
     end
     client.on_call = function(recv_len, session_id, rpc_flag, source, rpc, ...)
-        statis_mgr:statis_notify("on_rpc_recv", rpc, recv_len)
+        event_mgr:notify_listener("on_rpc_recv", rpc, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, rpc, session_id, rpc_flag, source, ...)
     end
     client.on_error = function(token, err)

@@ -5,7 +5,9 @@ local ogetenv   = os.getenv
 local log_info  = logger.info
 local tunpack   = table.unpack
 local tkvsort   = table_ext.kvsort
+local saddr     = string_ext.addr
 local ssplit    = string_ext.split
+local protoaddr = string_ext.protoaddr
 
 environ = {}
 
@@ -49,18 +51,23 @@ function environ.status(key)
 end
 
 function environ.addr(key)
-    local addr = QUANTA_ENV[key] or ogetenv(key)
-    if addr then
-        local ip, port = tunpack(ssplit(addr, ":"))
-        return ip, tonumber(port)
+    local value = QUANTA_ENV[key] or ogetenv(key)
+    if value then
+        return saddr(value)
     end
 end
 
-function environ.colon(key)
+function environ.protoaddr(key)
     local value = QUANTA_ENV[key] or ogetenv(key)
     if value then
-        local arg1, arg2 = tunpack(ssplit(value, ":"))
-        return tonumber(arg1), tonumber(arg2)
+        return protoaddr(value)
+    end
+end
+
+function environ.split(key, val)
+    local value = QUANTA_ENV[key] or ogetenv(key)
+    if value then
+        return tunpack(ssplit(value, val))
     end
 end
 

@@ -3,6 +3,7 @@ local type = type
 local load = load
 local pcall     = pcall
 local tostring  = tostring
+local tunpack   = table.unpack
 local tinsert   = table.insert
 local ssub      = string.sub
 local sfind     = string.find
@@ -76,4 +77,20 @@ function string_ext.chars(src)
         pos_bytes = pos_bytes + byteCount
     end
     return chars
+end
+
+--辅助接口
+--------------------------------------------------------------------------------
+local ssplit = string_ext.split
+function string_ext.addr(value)
+    local ip, port = tunpack(ssplit(value, ":"))
+    return ip, tonumber(port)
+end
+
+function string_ext.protoaddr(value)
+    local addr, proto = tunpack(ssplit(value, "/"))
+    if addr then
+        local ip, port = tunpack(ssplit(addr, ":"))
+        return ip, tonumber(port), proto
+    end
 end

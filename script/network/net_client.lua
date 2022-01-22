@@ -3,11 +3,11 @@ local log_err           = logger.err
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 
+local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 local perfeval_mgr      = quanta.get("perfeval_mgr")
-local statis_mgr        = quanta.get("statis_mgr")
 
 local FlagMask          = enum("FlagMask")
 local NetwkTime         = enum("NetwkTime")
@@ -62,7 +62,7 @@ function NetClient:connect(block)
         end
     end
     socket.on_call_pack = function(recv_len, cmd_id, flag, session_id, data)
-        statis_mgr:statis_notify("on_pack_recv", cmd_id, recv_len)
+        event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, data)
     end
     socket.on_error = function(token, err)
@@ -134,9 +134,8 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
     if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
-            local eval = perfeval_mgr:begin_eval(cmd_name)
+            local _<close> = perfeval_mgr:eval(cmd_name)
             self.holder:on_socket_rpc(self, cmd_id, body, session_id)
-            perfeval_mgr:end_eval(eval)
         end
         thread_mgr:fork(dispatch_rpc_message)
         --等待协议处理

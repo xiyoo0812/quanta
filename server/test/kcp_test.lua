@@ -31,14 +31,14 @@ if quanta.index == 1 then
     thread_mgr:fork(function()
         local index = 0
         while true do
-            local ok, buf, ip, port = udp:recv()
-            if ok then
+            local ok2, buf, ip, port = udp:recv()
+            if ok2 then
                 --input
                 local kcp = find_kcp(ip, port)
                 kcp:input(buf)
             else
                 if buf ~= "EWOULDBLOCK" then
-                    og_debug("kcp-svr recv failed: %s", buf)
+                    log_debug("kcp-svr recv failed: %s", buf)
                 end
             end
             for session_id, session in pairs(sessions) do
@@ -46,9 +46,9 @@ if quanta.index == 1 then
                 --update
                 kcp:update(quanta.now_ms)
                 --recv
-                local len, buf = kcp:recv()
+                local len, rbuf = kcp:recv()
                 if len > 0 then
-                    log_debug("kcp-svr recv: %s(len: %s) from %s", buf, len, session_id)
+                    log_debug("kcp-svr recv: %s(len: %s) from %s", rbuf, len, session_id)
                     --send
                     index = index + 1
                     local buff = string.format("server send %s", index)
@@ -72,7 +72,7 @@ elseif quanta.index == 2 then
         local cdata = "kcp send 0!"
         kcp:send(cdata)
         while true do
-            local ok, buf, ip, port = udp:recv()
+            local ok, buf = udp:recv()
             if ok then
                 kcp:input(buf)
             else
@@ -83,9 +83,9 @@ elseif quanta.index == 2 then
             --update
             kcp:update(quanta.now_ms)
             --recv
-            local len, buf = kcp:recv()
+            local len, rbuf = kcp:recv()
             if len > 0 then
-                log_debug("kcp-cli recv: %s(len: %s) from %s", buf, len, session_id)
+                log_debug("kcp-cli recv: %s(len: %s) from %s", rbuf, len, session_id)
                 --send
                 index = index + 1
                 local buff = string.format("client send %s", index)

@@ -1,13 +1,10 @@
 --log_test.lua
 require("lualog")
-local GrayLog   = import("driver/graylog.lua")
 
 local ltimer    = require("ltimer")
 local lnow_ms   = ltimer.now_ms
 local log_info  = logger.info
-
-local timer_mgr = quanta.get("timer_mgr")
-local glog      = GrayLog()
+local log_debug = logfeature.debug("lualog")
 
 local function logger_test(cycle)
     local t1 = lnow_ms()
@@ -21,21 +18,9 @@ end
 local params = { 1, 2, }
 for _, cycle in ipairs(params) do
     local time = logger_test(cycle)
-    print(string.format("logger_test: cycle %d use time %s ms!", cycle, time))
+    log_debug(string.format("logger_test: cycle %d use time %s ms!", cycle, time))
 end
 
-print("logger test end")
-
-glog:tcp("9.134.163.87", 8081)
-timer_mgr:register(3000, 1000, 2, function()
-    print("GrayLog tcp test:" .. quanta.now)
-    glog:send_tcp("127.0.0.1", quanta.id, "logger tcp test" .. quanta.now, 1)
-end)
-
-glog:http("9.134.163.87", 8080)
-timer_mgr:register(3000, 1000, 2, function()
-    print("GrayLog http test:" .. quanta.now)
-    glog:send_http("127.0.0.1", quanta.id, "logger http test" .. quanta.now, 2)
-end)
+log_info("logger test end")
 
 --os.exit()
