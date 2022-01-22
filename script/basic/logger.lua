@@ -88,8 +88,7 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
     end
     local graydriver = logger.graydriver
     if graylog and graydriver then
-        local info = dgetinfo(4, "S")
-        graydriver:write(content, lvl, info)
+        graydriver:write(content, lvl)
     end
     return lvl_func(driver, content, feature)
 end

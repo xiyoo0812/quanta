@@ -70,31 +70,31 @@ function GrayLog:on_second()
     end
 end
 
-function GrayLog:build(message, level, debug_info, optional)
+function GrayLog:build(message, level, optional)
+    local quanta_id = quanta.id
+    local debug_info = dgetinfo(6, "S")
     local gelf = {
         level = level,
         version = "1.1",
         host = self.host,
-        _node_id = quanta.id,
+        _node_id = quanta_id,
         timestamp = quanta.now,
         short_message = message,
-        _name = sid2name(quanta.id),
-        _nick = sid2nick(quanta.id),
-        _index = sid2index(quanta.id),
-        _service = sid2sid(quanta.id)
+        file = debug_info.short_src,
+        line = debug_info.linedefined,
+        _name = sid2name(quanta_id),
+        _nick = sid2nick(quanta_id),
+        _index = sid2index(quanta_id),
+        _service = sid2sid(quanta_id)
     }
-    if debug_info then
-        gelf.file = debug_info.short_src
-        gelf.line = debug_info.linedefined
-    end
     if optional then
         tcopy(optional, gelf)
     end
     return gelf
 end
 
-function GrayLog:write(message, level, debug_info, optional)
-    local gelf = self:build(message, level, debug_info, optional)
+function GrayLog:write(message, level, optional)
+    local gelf = self:build(message, level, optional)
     if self.proto == "http" then
         local ok, status, res = http_client:call_post(self.addr, gelf)
         if not ok then
