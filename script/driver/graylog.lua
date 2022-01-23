@@ -98,7 +98,7 @@ function GrayLog:write(message, level, optional)
     if self.proto == "http" then
         local ok, status, res = http_client:call_post(self.addr, gelf)
         if not ok then
-            log_err("[GrayLog][write] http failed! code: %s, err: %s", status, res)
+            log_err("[GrayLog][write] post failed! code: %s, err: %s", status, res)
         end
         return
     end
