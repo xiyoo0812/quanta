@@ -28,12 +28,11 @@ prop:reader("udp", nil)         --网络连接对象
 prop:reader("port", 12021)      --端口
 prop:reader("addr", nil)        --http addr
 prop:reader("proto", "http")    --proto
-prop:reader("host", nil)        --proto
+prop:reader("host", nil)        --host
 
 function GrayLog:__init(addr)
     self.host = environ.get("QUANTA_HOST_IP")
     local ip, port, proto = protoaddr(addr)
-    log_info("%s-%s-%s-%s", addr, ip, port, proto)
     self.proto = proto
     if proto == "http" then
         self.addr = sformat("http://%s:%s/gelf", ip, port)
