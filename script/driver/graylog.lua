@@ -7,6 +7,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local json_encode   = ljson.encode
 local sformat       = string.format
+local dgetinfo      = debug.getinfo
 local tcopy         = table_ext.copy
 local sid2sid       = service.id2sid
 local sid2nick      = service.id2nick
