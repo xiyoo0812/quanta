@@ -2,6 +2,9 @@
 import("driver/zipkin.lua")
 
 local zipkin        = quanta.get("zipkin")
+local timer_mgr     = quanta.get("timer_mgr")
+local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
 local function zipkin_func4(span)
     local key4 = 44
@@ -24,7 +27,15 @@ local function zipkin_func2(span)
     local nspan = zipkin:sub_span("zipkin_func2", span.id)
     zipkin:set_tag(nspan, "key2", key2)
     zipkin:set_annotation(nspan, "call zipkin_func2!")
-    zipkin_func3(nspan)
+    local rspan = zipkin:inject_span(nspan)
+    local target = service.make_id("test", 2)
+    local ok, res =  router_mgr:call_target(target, "rpc_zipkin_test", rspan)
+    if ok and res then
+        local fspan = zipkin:sub_span("zipkin_finish", nspan.id)
+        zipkin:set_annotation(fspan, "call zipkin finish!")
+        zipkin:set_tag(fspan, "key5", "5555")
+        zipkin:finish_span(fspan)
+    end
 end
 
 local function zipkin_func1()
@@ -35,4 +46,18 @@ local function zipkin_func1()
     zipkin_func2(span)
 end
 
-zipkin_func1()
+timer_mgr:once(2000, function()
+    if quanta.index == 1 then
+        zipkin_func1()
+    else
+        quanta.testobj = {
+            ["rpc_zipkin_test"] = function(self, span)
+                local nspan = zipkin:recovery_span(span)
+                zipkin_func3(nspan)
+                return true
+            end
+        }
+        event_mgr:add_listener(quanta.testobj, "rpc_zipkin_test")
+    end
+end)
+

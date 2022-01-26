@@ -97,6 +97,7 @@ void quanta_app::set_signal(uint32_t n) {
 }
 
 void quanta_app::setup(int argc, const char* argv[]) {
+    srand((unsigned)time(nullptr));
     //初始化日志
     m_logger = std::make_shared<log_service>();
     m_logger->start();
