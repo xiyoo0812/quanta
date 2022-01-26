@@ -1,5 +1,4 @@
 --trace.lua
-local llog          = require("lualog")
 
 local load          = load
 local pcall         = pcall
@@ -8,7 +7,7 @@ local ssub          = string.sub
 local schar         = string.char
 local tpack         = table.pack
 local tconcat       = table.concat
-local ldaemon       = llog.daemon
+local logger        = quanta.logger
 
 --
 local console_buf    = ""
@@ -40,7 +39,7 @@ quanta.console = function(ch)
             end
         end
         if ch == 13 or #console_buf > 255 then
-            ldaemon(false)
+            logger:daemon(false)
             if #console_buf > 0 then
                 exec_command(console_buf)
             end
@@ -51,7 +50,7 @@ quanta.console = function(ch)
     else
         if ch == 13 then
             console_input = true
-            ldaemon(true)
+            logger:daemon(true)
             stdout:write("input> ")
         end
     end
