@@ -108,7 +108,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
 
 void quanta_app::sol_exception_handler(std::string msg, sol::protected_function_result& result) {
     sol::error err = result;
-    LOG_FATAL(m_logger, "") << msg << err.what();
+    LOG_FATAL(m_logger) << msg << err.what();
     m_logger->stop();
 #if WIN32
     _getch();
