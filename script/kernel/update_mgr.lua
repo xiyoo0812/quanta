@@ -47,7 +47,7 @@ function UpdateMgr:setup()
     self:attach_quit(timer_mgr)
     self:attach_quit(clock_mgr)
     self:attach_frame(timer_mgr)
-    self:attach_frame(thread_mgr)
+    self:attach_second(thread_mgr)
     self:attach_minute(thread_mgr)
 end
 

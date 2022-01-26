@@ -120,7 +120,7 @@ function ThreadMgr:on_minute(now_ms)
     end
 end
 
-function ThreadMgr:on_frame(now_ms)
+function ThreadMgr:on_second(now_ms)
     --处理锁超时
     for _, queue in pairs(self.syncqueue_map) do
         local head = queue:head()
@@ -141,7 +141,7 @@ function ThreadMgr:on_frame(now_ms)
         if context then
             self.coroutine_map[session_id] = nil
             if context.title then
-                log_err("[ThreadMgr][on_frame] session_id(%s:%s) timeout!", session_id, context.title)
+                log_err("[ThreadMgr][on_second] session_id(%s:%s) timeout!", session_id, context.title)
             end
             self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
         end

@@ -35,6 +35,7 @@ function Influx:__init(ip, port, org, bucket, token)
     self.query_addr = sformat("http://%s:%s/api/v2/query", ip, port)
     self.bucket_addr = sformat("http://%s:%s/api/v2/buckets", ip, port)
     self.common_headers = { ["Authorization"] = sformat("Token %s", token), ["Content-type"] = "application/json" }
+    log_info("[Influx] influx driver(%s:%s) setup success!", ip, port)
 end
 
 --line protocol
@@ -89,7 +90,6 @@ function Influx:find_bucket(bucket_name)
         log_err("[Influx][find_bucket] failed! status: %s, err: %s", status, ok and res or status)
         return false, ok and res or status
     end
-    log_info("[Influx][find_bucket]! status: %s", status)
     local response = json_decode(res)
     local buckets = response.buckets
     if not bucket_name then
@@ -111,7 +111,6 @@ function Influx:find_org(org_name)
         log_err("[Influx][find_org] failed! status: %s, err: %s", status, ok and res or status)
         return false, ok and res or status
     end
-    log_info("[Influx][find_org]! call success! status: %s", status)
     local response = json_decode(res)
     local orgs = response.orgs
     if not org_name then
@@ -159,7 +158,6 @@ function Influx:delete_bucket_by_id(bucket_id)
         log_err("[Influx][delete_bucket_by_id] failed! status: %s, err: %s", status, ok and res or status)
         return false, ok and res or status
     end
-    log_info("[Influx][delete_bucket_by_id]! success status: %s", status)
     return true
 end
 
@@ -176,7 +174,6 @@ function Influx:delete_bucket(bucket_name)
         log_err("[Influx][delete_bucket] failed! status: %s, err: %s", status, ok and res or status)
         return false, ok and res or status
     end
-    log_info("[Influx][delete_bucket]! success status: %s", status)
     return true
 end
 
@@ -196,7 +193,6 @@ function Influx:write(measurement, tags, fields)
         log_err("[Influx][write] failed! status: %s, err: %s", status, ok and res or status)
         return false, ok and res or status
     end
-    log_info("[Influx][write] success! status: %s", status)
     return true
 end
 
@@ -213,7 +209,6 @@ function Influx:query(script)
         log_err("[Influx][query] failed! status: %s, err: %s", status, ok and res or status)
         return false, ok and res or status
     end
-    log_info("[Influx][query] success! status: %s", status)
     return true, self:parse_csv(res)
 end
 

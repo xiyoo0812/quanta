@@ -40,9 +40,11 @@ end
 
 -- 发送给influx
 function StatisMgr:write(measurement, tags, fields)
-    thread_mgr:fork(function()
-        self.influx:write(measurement, tags, fields)
-    end)
+    if self.statis_status then
+        thread_mgr:fork(function()
+            self.influx:write(measurement, tags, fields)
+        end)
+    end
 end
 
 -- 统计proto协议发送(KB)
