@@ -16,8 +16,9 @@ local prop = property(StatisMgr)
 prop:reader("influx", nil)              --influx
 prop:reader("statis_status", false)     --统计开关
 function StatisMgr:__init()
-    self.statis_status = env_status("QUANTA_STATIS")
-    if self.statis_status then
+    local statis_status = env_status("QUANTA_STATIS")
+    if statis_status then
+        self.statis_status = statis_status
         --初始化参数
         local org = env_get("QUANTA_INFLUX_ORG")
         local token = env_get("QUANTA_INFLUX_TOKEN")

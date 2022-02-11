@@ -10,7 +10,7 @@ return [[
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>Log Console</title>
     <link rel="icon" href="http://kyrieliu.cn/kyrie.ico">
-    <link rel="stylesheet" href="http://cdn.bootcss.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
 </head>
 <style>
     html,body,div,h1,h2,h3,h4,h5,h6,p,span{
