@@ -16,25 +16,27 @@ local prop = property(StatisMgr)
 prop:reader("influx", nil)              --influx
 prop:reader("statis_status", false)     --统计开关
 function StatisMgr:__init()
-    local org = env_get("QUANTA_INFLUX_ORG")
-    local token = env_get("QUANTA_INFLUX_TOKEN")
-    local bucket = env_get("QUANTA_INFLUX_BUCKET")
-    local ip, port = env_addr("QUANTA_INFLUX_ADDR")
-    --初始化参数
     self.statis_status = env_status("QUANTA_STATIS")
-    self.influx = InfluxDB(ip, port, org, bucket, token)
-    --事件监听
-    event_mgr:add_listener(self, "on_rpc_send")
-    event_mgr:add_listener(self, "on_rpc_recv")
-    event_mgr:add_listener(self, "on_perfeval")
-    event_mgr:add_listener(self, "on_proto_recv")
-    event_mgr:add_listener(self, "on_proto_send")
-    event_mgr:add_listener(self, "on_conn_update")
-    --定时处理
-    update_mgr:attach_minute(self)
-    --系统监控
-    if quanta.platform == "linux" then
-        linux_statis:setup()
+    if self.statis_status then
+        --初始化参数
+        local org = env_get("QUANTA_INFLUX_ORG")
+        local token = env_get("QUANTA_INFLUX_TOKEN")
+        local bucket = env_get("QUANTA_INFLUX_BUCKET")
+        local ip, port = env_addr("QUANTA_INFLUX_ADDR")
+        self.influx = InfluxDB(ip, port, org, bucket, token)
+        --事件监听
+        event_mgr:add_listener(self, "on_rpc_send")
+        event_mgr:add_listener(self, "on_rpc_recv")
+        event_mgr:add_listener(self, "on_perfeval")
+        event_mgr:add_listener(self, "on_proto_recv")
+        event_mgr:add_listener(self, "on_proto_send")
+        event_mgr:add_listener(self, "on_conn_update")
+        --定时处理
+        update_mgr:attach_minute(self)
+        --系统监控
+        if quanta.platform == "linux" then
+            linux_statis:setup()
+        end
     end
 end
 
