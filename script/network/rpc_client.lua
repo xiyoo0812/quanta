@@ -201,6 +201,7 @@ end
 function RpcClient:send(rpc, ...)
     if self.alive then
         self.socket.call_rpc(0, FlagMask.REQ, rpc, ...)
+        return true
     end
     return false, "socket not connected"
 end
