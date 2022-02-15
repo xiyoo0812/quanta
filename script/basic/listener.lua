@@ -15,6 +15,7 @@ function Listener:__init()
     self._triggers = {}     -- map<event, {{listener, callback_name}, ...}
     self._listeners = {}    -- map<event, listener>
     self._commands = {}     -- map<cmd, listener>
+    self._ignores = {}       -- map<cmd, listener>
 end
 
 function Listener:add_trigger(trigger, event, handler)
@@ -91,7 +92,10 @@ end
 function Listener:notify_listener(event, ...)
     local listener_ctx = self._listeners[event]
     if not listener_ctx then
-        log_warn("[Listener][notify_listener] event %s handler is nil!", event)
+        if not self._ignores[event] then
+            log_warn("[Listener][notify_listener] event %s handler is nil!", event)
+            self._ignores[event] = true
+        end
         return tpack(false, "event handler is nil")
     end
     local listener, callback_name = tunpack(listener_ctx)
@@ -106,7 +110,10 @@ end
 function Listener:notify_command(cmd, ...)
     local listener_ctx = self._commands[cmd]
     if not listener_ctx then
-        log_warn("[Listener][notify_command] command %s handler is nil!", cmd)
+        if not self._ignores[cmd] then
+            log_warn("[Listener][notify_command] command %s handler is nil!", cmd)
+            self._ignores[cmd] = true
+        end
         return tpack(false, "command handler is nil")
     end
     --执行事件

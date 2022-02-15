@@ -1,4 +1,5 @@
 -- netlog_mgr.lua
+local odate         = os.date
 local tinsert       = table.insert
 local log_debug     = logger.debug
 local setup_monitor = logger.setup_monitor
@@ -69,7 +70,7 @@ function NetlogMgr:notify(level, content)
         end
         :: docache ::
         if cache then
-            tinsert(session.cache_logs, sformat("[%s]%s", level, content))
+            tinsert(session.cache_logs, sformat("[%s][%s]%s", odate("%Y-%m-%d %H:%M:%S"), level, content))
         end
     end
 end
