@@ -5,7 +5,6 @@ local WheelMap      = import("container/wheel_map.lua")
 local log_err       = logger.err
 local log_info      = logger.info
 local tunpack       = table.unpack
-local tinsert       = table.insert
 local check_failed  = utility.check_failed
 
 local KernCode      = enum("KernCode")
@@ -61,7 +60,8 @@ function CacheMgr:setup()
         local cache_name = row_conf.cache_name
         local obj_conf =  self.cache_confs[cache_name]
         if obj_conf then
-            tinsert(obj_conf.rows, row_conf)
+            local rows = obj_conf.rows
+            rows[#rows + 1] = row_conf
         else
             log_err("[CacheMgr:setup] cache row config obj:%s not exist !", cache_name)
         end

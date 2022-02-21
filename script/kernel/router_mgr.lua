@@ -4,7 +4,6 @@ local log_err           = logger.err
 local log_info          = logger.info
 local mrandom           = math.random
 local signal_quit       = signal.quit
-local tinsert           = table.insert
 local tunpack           = table.unpack
 local sformat           = string.format
 local sid2name          = service.id2name
@@ -88,7 +87,7 @@ function RouterMgr:switch_master()
     self.candidates = {}
     for _, node in pairs(self.routers) do
         if node.client:is_alive() then
-            tinsert(self.candidates, node)
+            self.candidates[#self.candidates + 1] = node
         end
     end
     local node = self:random_router()
@@ -159,7 +158,7 @@ function RouterMgr:collect(service_id, rpc, ...)
             target_cnt = target_cnt - 1
             local ok_c, code_c, res = thread_mgr:yield(session_id, "collect", NetwkTime.RPC_CALL_TIMEOUT)
             if ok_c and check_success(code_c) then
-                tinsert(collect_res, res)
+                collect_res[#collect_res + 1] = res
             end
         end
     end

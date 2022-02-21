@@ -3,7 +3,6 @@ local pcall     = pcall
 local xpcall    = xpcall
 local ipairs    = ipairs
 local tpack     = table.pack
-local tinsert   = table.insert
 local tunpack   = table.unpack
 local tremove   = table.remove
 local log_err   = logger.err
@@ -19,16 +18,19 @@ function Listener:__init()
 end
 
 function Listener:add_trigger(trigger, event, handler)
-    if not self._triggers[event] then
-        self._triggers[event] = {}
-    end
     local callback_name = handler or event
     local callback_func = trigger[callback_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[Listener][add_trigger] event(%s) handler is nil!", event)
         return
     end
-    tinsert(self._triggers[event], { trigger, callback_name })
+    local info = { trigger, callback_name }
+    local triggers = self._triggers[event]
+    if not triggers then
+        self._triggers[event] = { info }
+        return
+    end
+    triggers[#triggers + 1] = info
 end
 
 function Listener:remove_trigger(trigger, event)

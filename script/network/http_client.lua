@@ -5,7 +5,6 @@ local ljson = require("lcjson")
 local pairs         = pairs
 local log_err       = logger.err
 local tunpack       = table.unpack
-local tinsert       = table.insert
 local tconcat       = table.concat
 local sformat       = string.format
 local lquery        = lcurl.query
@@ -65,7 +64,7 @@ function HttpClient:format_url(url, query)
     if next(query) then
         local fquery = {}
         for key, value in pairs(query) do
-            tinsert(fquery, sformat("%s=%s", luencode(key), luencode(value)))
+            fquery[#fquery + 1] = sformat("%s=%s", luencode(key), luencode(value))
         end
         return sformat("%s?%s", url, tconcat(fquery, "&"))
     end
@@ -77,7 +76,7 @@ function HttpClient:format_headers(request, headers)
     if next(headers) then
         local fmt_headers = {}
         for key, value in pairs(headers) do
-            tinsert(fmt_headers, sformat("%s:%s", key, value))
+            fmt_headers[#fmt_headers + 1] = sformat("%s:%s", key, value)
         end
         request:set_headers(tunpack(fmt_headers))
     end

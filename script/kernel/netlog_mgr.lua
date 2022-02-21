@@ -1,6 +1,5 @@
 -- netlog_mgr.lua
 local odate         = os.date
-local tinsert       = table.insert
 local log_debug     = logger.debug
 local setup_monitor = logger.setup_monitor
 local sfind         = string.find
@@ -70,7 +69,8 @@ function NetlogMgr:notify(level, content)
         end
         :: docache ::
         if cache then
-            tinsert(session.cache_logs, sformat("[%s][%s]%s", odate("%Y-%m-%d %H:%M:%S"), level, content))
+            local cache_logs = session.cache_logs
+            cache_logs[#cache_logs + 1] = sformat("[%s][%s]%s", odate("%Y-%m-%d %H:%M:%S"), level, content)
         end
     end
 end
@@ -86,7 +86,7 @@ function NetlogMgr:rpc_show_log(data)
     if log_cnt > 0 then
         local count = log_cnt > PULL_CNT_MAX and PULL_CNT_MAX or log_cnt
         for idx = 1, count do
-            tinsert(show_logs, session.cache_logs[session.pull_index + idx])
+            show_logs[#show_logs + 1] = session.cache_logs[session.pull_index + idx]
         end
         session.pull_index = session.pull_index + count
         if session.pull_index >= log_size then

@@ -3,7 +3,6 @@ local next          = next
 local pairs         = pairs
 local ipairs        = ipairs
 local sformat       = string.format
-local tinsert       = table.insert
 local tconcat       = table.concat
 local log_warn      = logger.warn
 local log_err       = logger.err
@@ -45,7 +44,7 @@ function ConfigTable:upsert(row)
     end
     local row_indexs = {}
     for _, index in ipairs(self.indexs) do
-        tinsert(row_indexs, row[index])
+        row_indexs[#row_indexs + 1] = row[index]
     end
     if #row_indexs ~= #self.indexs then
         log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", row, self.indexs)
@@ -94,7 +93,7 @@ function ConfigTable:select(query, single)
                 goto continue
             end
         end
-        tinsert(rows, row)
+        rows[#rows + 1] = row
         if single then
             return rows
         end

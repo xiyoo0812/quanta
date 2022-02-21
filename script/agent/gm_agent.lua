@@ -1,7 +1,6 @@
 --gm_agent.lua
 
 local tunpack       = table.unpack
-local tinsert       = table.insert
 local log_info      = logger.info
 local check_success = utility.check_success
 
@@ -53,7 +52,7 @@ end
 function GMAgent:report_command()
     local command_list = {}
     for _, cmd in pairs(self.command_list) do
-        tinsert(command_list, cmd)
+        command_list[#command_list + 1] = cmd
     end
     local ok, code = router_mgr:call_admin_master("rpc_register_command", command_list, quanta.service_id)
     if ok and check_success(code) then

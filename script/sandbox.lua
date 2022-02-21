@@ -8,7 +8,6 @@ local iopen     = io.open
 local mabs      = math.abs
 local tpack     = table.pack
 local tunpack   = table.unpack
-local tinsert   = table.insert
 local sformat   = string.format
 local dgetinfo  = debug.getinfo
 local file_time = lstdfs.last_write_time
@@ -23,7 +22,7 @@ local function ssplit(str, token)
     while #str > 0 do
         local pos = str:find(token)
         if pos then
-            tinsert(t, str:sub(1, pos - 1))
+            t[#t+1] = str:sub(1, pos - 1)
             str = str:sub(pos + 1, #str)
         else
             t[#t + 1] = str

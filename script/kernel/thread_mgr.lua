@@ -1,7 +1,6 @@
 --thread_mgr.lua
 local select        = select
 local tunpack       = table.unpack
-local tinsert       = table.insert
 local tsize         = table_ext.size
 local sformat       = string.format
 local co_yield      = coroutine.yield
@@ -132,7 +131,7 @@ function ThreadMgr:on_second(now_ms)
     local timeout_coroutines = {}
     for session_id, context in pairs(self.coroutine_map) do
         if context.to <= now_ms then
-            tinsert(timeout_coroutines, session_id)
+            timeout_coroutines[#timeout_coroutines + 1] = session_id
         end
     end
     --处理协程超时

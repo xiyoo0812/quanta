@@ -6,7 +6,6 @@ local lbuffer       = require("lbuffer")
 local log_err       = logger.err
 local log_info      = logger.info
 local json_decode   = ljson.decode
-local tinsert       = table.insert
 local tconcat       = table.concat
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -68,7 +67,7 @@ end
 function Influx:quote_tags(measurement, tags)
     local qtags = { measurement }
     for key, value in pairs(tags) do
-        tinsert(qtags, sformat("%s=%s", self:quote_field(key), self:quote_field(value)))
+        qtags[#qtags + 1] = sformat("%s=%s", self:quote_field(key), self:quote_field(value))
     end
     return tconcat(qtags, ",")
 end
@@ -76,7 +75,7 @@ end
 function Influx:quote_fields(fields)
     local qfields = { }
     for key, value in pairs(fields) do
-        tinsert(qfields, sformat("%s=%s", self:quote_field(key), self:quote_value(value)))
+        qfields[#qfields + 1] = sformat("%s=%s", self:quote_field(key), self:quote_value(value))
     end
     return tconcat(qfields, ",")
 end
@@ -227,7 +226,7 @@ function Influx:parse_csv(value)
             for j = 1, #values do
                 record[titles[j]] = values[j]
             end
-            tinsert(res, record)
+            res[#res + 1] = record
         end
     end
     return res

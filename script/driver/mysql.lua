@@ -17,7 +17,6 @@ local sformat       = string.format
 local sunpack       = string.unpack
 local tpack         = table.pack
 local tunpack       = table.unpack
-local tinsert       = table.insert
 local tointeger     = math.tointeger
 
 local NetwkTime     = enum("NetwkTime")
@@ -480,7 +479,7 @@ local function _parse_result_set_packet(context, packet, ignores, binary)
             break
         end
         field.ignore = ignores and ignores[field.name]
-        tinsert(fields, field)
+        fields[#fields + 1] = field
     end
     -- Row Data
     local rows = {}
@@ -495,7 +494,7 @@ local function _parse_result_set_packet(context, packet, ignores, binary)
         if row == "again" then
             return rows, row
         end
-        tinsert(rows, row)
+        rows[#rows + 1] = row
     end
     return rows
 end
@@ -525,7 +524,7 @@ local function _recv_query_resp(context, packet, typ, ignores, binary)
         if not res then
             return false, err
         end
-        tinsert(multiresultset, res)
+        multiresultset[#multiresultset + 1] = res
     end
     multiresultset.multiresultset = true
     return true, multiresultset
@@ -560,7 +559,7 @@ local function _recv_prepare_resp(context, packet, typ)
             if not field then
                 break
             end
-            tinsert(params, field)
+            params[#params + 1] = field
         end
     end
     if field_count > 0 then
@@ -572,7 +571,7 @@ local function _recv_prepare_resp(context, packet, typ)
             if not field then
                 break
             end
-            tinsert(fields, field)
+            fields[#fields + 1] = field
         end
     end
     return true, { params = params, fields = fields, prepare_id = prepare_id,

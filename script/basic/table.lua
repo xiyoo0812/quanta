@@ -3,14 +3,12 @@ local type      = type
 local pairs     = pairs
 local tsort     = table.sort
 local mrandom   = math.random
-local tinsert   = table.insert
 local tremove   = table.remove
 
---------------------------------------------------------------------------------
-function table_ext.random(tab)
+local function trandom(tab)
     local keys = {}
     for k in pairs(tab) do
-        tinsert(keys, k)
+        keys[#keys + 1] = k
     end
     if #keys > 0 then
         local key = keys[mrandom(#keys)]
@@ -18,15 +16,13 @@ function table_ext.random(tab)
     end
 end
 
---------------------------------------------------------------------------------
-function table_ext.random_array(tab)
+local function trandom_array(tab)
     if #tab > 0 then
         return tab[mrandom(#tab)]
     end
 end
 
---------------------------------------------------------------------------------
-function table_ext.indexof(tab, val)
+local function tindexof(tab, val)
     for i, v in pairs(tab) do
         if v == val then
             return i
@@ -34,18 +30,13 @@ function table_ext.indexof(tab, val)
     end
 end
 
---------------------------------------------------------------------------------
-function table_ext.is_array(tab)
+local function tis_array(tab)
     if not tab then
         return false
     end
     local idx = 1
-    for f in pairs(tab) do
-        if type(f) == "number" then
-            if f ~= idx then
-                return false
-            end
-        else
+    for key in pairs(tab) do
+        if key ~= idx then
             return false
         end
         idx = idx + 1
@@ -53,8 +44,7 @@ function table_ext.is_array(tab)
     return true
 end
 
---------------------------------------------------------------------------------
-function table_ext.size(t, filter)
+local function tsize(t, filter)
     local c = 0
     for _, v in pairs(t or {}) do
         if not filter or filter(v) then
@@ -64,8 +54,7 @@ function table_ext.size(t, filter)
     return c
 end
 
---------------------------------------------------------------------------------
-function table_ext.copy(src, dst)
+local function tcopy(src, dst)
     local ndst = dst or {}
     for field, value in pairs(src) do
         ndst[field] = value
@@ -73,14 +62,13 @@ function table_ext.copy(src, dst)
     return ndst
 end
 
---------------------------------------------------------------------------------
-function table_ext.deep_copy(src, dst)
+local function tdeep_copy(src, dst)
     local ndst = dst or {}
     for key, value in pairs(src or {}) do
         if is_class(value) then
             ndst[key] = value()
         elseif (type(value) == "table") then
-            ndst[key] = table_ext.deep_copy(value)
+            ndst[key] = tdeep_copy(value)
         else
             ndst[key] = value
         end
@@ -88,8 +76,7 @@ function table_ext.deep_copy(src, dst)
     return ndst
 end
 
---------------------------------------------------------------------------------
-function table_ext.delete(stab, val, num)
+local function tdelete(stab, val, num)
     num = num or 1
     for i = #stab, 1, -1 do
         if stab[i] == val then
@@ -103,28 +90,34 @@ function table_ext.delete(stab, val, num)
     return stab
 end
 
---------------------------------------------------------------------------------
-function table_ext.join(src, dst)
+local function tjoin(src, dst)
     local ndst = dst or {}
     for _, v in pairs(src) do
-        tinsert(ndst, v)
+        ndst[#ndst + 1] = v
     end
     return ndst
 end
 
--- map转为{key,value}类型的array
---------------------------------------------------------------------------------
-function table_ext.kv2array(src)
+-- map中的value抽出来变成array (会丢失key信息)
+local function tarray(src)
     local dst = {}
-    for key, value in pairs(src or {}) do
-        tinsert(dst, { key, value })
+    for _, value in pairs(src or {}) do
+        dst[#dst + 1] = value
     end
     return dst
 end
 
--- {key,value}array转为hash
---------------------------------------------------------------------------------
-function table_ext.tohash(src)
+-- map转为{key,value}类型的array
+local function tkvarray(src)
+    local dst = {}
+    for key, value in pairs(src or {}) do
+        dst[#dst + 1] = { key, value }
+    end
+    return dst
+end
+
+-- {key,value}array转为map
+local function tmap(src)
     local dst = {}
     for _, pair in pairs(src or {}) do
         dst[pair[1]] = pair[2]
@@ -132,19 +125,22 @@ function table_ext.tohash(src)
     return dst
 end
 
--- map中的value抽出来变成array (会丢失key信息)
---------------------------------------------------------------------------------
-function table_ext.v2array(src)
-    local dst = {}
-    for _, value in pairs(src or {}) do
-        tinsert(dst, value)
-    end
-    return dst
-end
-
---------------------------------------------------------------------------------
-function table_ext.kvsort(src)
-    local dst = table_ext.kv2array(src)
+local function tmapsort(src)
+    local dst = tkvarray(src)
     tsort(dst, function(a, b) return a[1] < b[1] end)
     return dst
 end
+
+table_ext.random        = trandom
+table_ext.random_array  = trandom_array
+table_ext.indexof       = tindexof
+table_ext.is_array      = tis_array
+table_ext.size          = tsize
+table_ext.copy          = tcopy
+table_ext.deep_copy     = tdeep_copy
+table_ext.delete        = tdelete
+table_ext.join          = tjoin
+table_ext.map           = tmap
+table_ext.array         = tarray
+table_ext.kvarray       = tkvarray
+table_ext.mapsort       = tmapsort

@@ -1,7 +1,6 @@
 --mysql_agent.lua
 local mrandom       = math.random
 local sformat       = string.format
-local tinsert       = table.insert
 local tconcat       = table.concat
 
 local KernCode      = enum("KernCode")
@@ -22,7 +21,7 @@ end
 function MysqlAgent:format_condition_sql(conditions)
     local condition_sqls = {}
     for key, value in pairs(conditions) do
-        tinsert(condition_sqls, sformat("%s=%s", key, self:format(value)))
+        condition_sqls[#condition_sqls + 1] = sformat("%s=%s", key, self:format(value))
     end
     return tconcat(condition_sqls, " and ")
 end
@@ -30,7 +29,7 @@ end
 function MysqlAgent:format_update_sql(columns)
     local valuess = {}
     for key, value in pairs(columns) do
-        tinsert(valuess, sformat("%s=%s", key, self:format(value)))
+        valuess[#valuess + 1] = sformat("%s=%s", key, self:format(value))
     end
     return tconcat(valuess, ",")
 end
@@ -38,8 +37,8 @@ end
 function MysqlAgent:format_insert_sql(columns)
     local keys, values = {}, {}
     for key, value in pairs(columns) do
-        tinsert(keys, key)
-        tinsert(values, self:format(value))
+        keys[#keys + 1] = key
+        values[#values + 1] = self:format(value)
     end
     return sformat("(%s) values (%s)", tconcat(keys, ","), tconcat(values, ","))
 end

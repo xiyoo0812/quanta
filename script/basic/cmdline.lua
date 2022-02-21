@@ -5,7 +5,6 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
 local tpack         = table.pack
-local tinsert       = table.insert
 local smatch        = string.match
 local sgmatch       = string.gmatch
 local sformat       = string.format
@@ -55,8 +54,8 @@ local function convert_args(args, cmd_define)
     for i = 2, #args do
         local arg = args[i]
         local def_arg = define_args[i-1]
-        tinsert(fmtargs.info, def_arg.name)
-        tinsert(fmtargs.args, convert_arg(def_arg.type, arg))
+        fmtargs.info[#fmtargs.info + 1] = def_arg.name
+        fmtargs.args[#fmtargs.args + 1] = convert_arg(def_arg.type, arg)
     end
     fmtargs.service = cmd_define.service
     fmtargs.type = cmd_define.type
@@ -83,7 +82,7 @@ function Cmdline:register_command(name, command, desc, cmd_type, service)
     end
     local cmd_define = {type = cmd_type, desc = desc, command = command, service = service, args = {}}
     for arg_name, arg_type in sgmatch(command, "([%a%d%_]+)|([%a%d%_]+)") do
-        tinsert(cmd_define.args, {name = arg_name, type = arg_type})
+        cmd_define.args[#cmd_define.args + 1] = {name = arg_name, type = arg_type}
     end
     self.command_defines[name] = cmd_define
     log_info("[Cmdline][register_command] command (%s) registered!", name)
@@ -109,8 +108,8 @@ function Cmdline:parser_data(cmd_data)
             log_err("[Cmdline][parser_data] (%s) %s!", cmd_name, err)
             return nil, err
         end
-        tinsert(fmtargs.info, def_arg.name)
-        tinsert(fmtargs.args, convert_arg(def_arg.type, arg))
+        fmtargs.info[#fmtargs.info + 1] = def_arg.name
+        fmtargs.args[#fmtargs.args + 1] = convert_arg(def_arg.type, arg)
     end
     fmtargs.service = cmd_define.service
     fmtargs.type = cmd_define.type

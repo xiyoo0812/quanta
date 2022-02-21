@@ -17,7 +17,6 @@ local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
 local tconcat       = table.concat
-local tinsert       = table.insert
 local tunpack       = table.unpack
 local mtointeger    = math.tointeger
 local slower        = string.lower
@@ -113,26 +112,26 @@ local function export_records_to_lua(output, title, records)
         return
     end
     local lines = {}
-    tinsert(lines, sformat("--%s.lua", table_name))
-    tinsert(lines, "--luacheck: ignore 631\n")
-    tinsert(lines, '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")')
-    tinsert(lines, sformat('local %s = config_mgr:get_table("%s")\n', title, title))
-    tinsert(lines, sformat("--导出版本号\n%s:set_version(%s)\n", title, version))
+    lines[#lines + 1] = sformat("--%s.lua", table_name)
+    lines[#lines + 1] = "--luacheck: ignore 631\n"
+    lines[#lines + 1] = '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")'
+    lines[#lines + 1] = sformat('local %s = config_mgr:get_table("%s")\n', title, title)
+    lines[#lines + 1] = sformat("--导出版本号\n%s:set_version(%s)\n", title, version)
 
-    tinsert(lines, "--导出配置内容")
+    lines[#lines + 1] = "--导出配置内容"
     for _, record in pairs(records) do
         for index, info in ipairs(record) do
             local key, value, ftype = tunpack(info)
             if index == 1 then
-                tinsert(lines, sformat("%s:upsert({", title))
+                lines[#lines + 1] = sformat("%s:upsert({", title)
             end
             if type(value) == "string" and ftype ~= "array" then
                 value = "'" .. value .. "'"
                 value = sgsub(value, "\n", "\\n")
             end
-            tinsert(lines, sformat("    %s = %s,", key, tostring(value)))
+            lines[#lines + 1] = sformat("    %s = %s,", key, tostring(value))
         end
-        tinsert(lines, "})\n")
+        lines[#lines + 1] = "})\n"
     end
 
     local output_data = tconcat(lines, "\n")
@@ -174,12 +173,12 @@ local function export_sheet_to_table(sheet, output, title, dim)
             if ftype then
                 local value = get_sheet_value(sheet, row, col, ftype, header[col])
                 if value ~= nil then
-                    tinsert(record, {header[col], value, ftype})
+                    record[#record + 1] = {header[col], value, ftype}
                 end
             end
         end
         if #record > 0 then
-            tinsert(records, record)
+            records[#records + 1] = record
         end
         local end_tag = get_sheet_value(sheet, row, 1)
         if end_tag and end_tag == "End" then

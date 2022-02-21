@@ -10,7 +10,6 @@ local rawget = rawget
 local rawset = rawset
 local setmetatable = setmetatable
 local log_warn = logger.warn
-local tinsert = table.insert
 local tconcat = table.concat
 
 local M = {}
@@ -81,7 +80,7 @@ function _reader:real_repeated(key)
     local n = c._rmessage_size(cobj , key)
     local ret = {}
     for i=0,n-1 do
-        tinsert(ret,  c._rmessage_real(cobj , key , i))
+        ret[#ret + 1] = c._rmessage_real(cobj , key , i)
     end
     return ret
 end
@@ -91,7 +90,7 @@ function _reader:string_repeated(key)
     local n = c._rmessage_size(cobj , key)
     local ret = {}
     for i=0,n-1 do
-        tinsert(ret,  c._rmessage_string(cobj , key , i))
+        ret[#ret + 1] = c._rmessage_string(cobj , key , i)
     end
     return ret
 end
@@ -101,7 +100,7 @@ function _reader:bool_repeated(key)
     local n = c._rmessage_size(cobj , key)
     local ret = {}
     for i=0,n-1 do
-        tinsert(ret,  c._rmessage_int(cobj , key , i) ~= 0)
+        ret[#ret + 1] = (c._rmessage_int(cobj , key , i) ~= 0)
     end
     return ret
 end
@@ -116,7 +115,7 @@ function _reader:message_repeated(key, message_type)
             _CType = message_type,
             _Parent = self,
         }
-        tinsert(ret, setmetatable( m , _R_meta ))
+        ret[#ret + 1] = setmetatable( m , _R_meta )
     end
     return ret
 end
@@ -126,7 +125,7 @@ function _reader:int_repeated(key)
     local n = c._rmessage_size(cobj , key)
     local ret = {}
     for i=0,n-1 do
-        tinsert(ret,  c._rmessage_int(cobj , key , i))
+        ret[#ret + 1] = c._rmessage_int(cobj , key , i)
     end
     return ret
 end
@@ -383,8 +382,8 @@ local function _pattern_create(pattern)
         local tidx = c._env_type(P, message, v)
         local t = _pattern_type[tidx]
         assert(t,tidx)
-        tinsert(cpat,v .. " " .. t[1])
-        tinsert(lua,t[2])
+        cpat[#cpat] = v .. " " .. t[1]
+        lua[#lua] = t[2]
     end
     local cobj = c._pattern_new(P, message , "@" .. tconcat(cpat," "))
     if cobj == nil then

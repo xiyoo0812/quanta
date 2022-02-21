@@ -4,7 +4,6 @@ local load = load
 local pcall     = pcall
 local tostring  = tostring
 local tunpack   = table.unpack
-local tinsert   = table.insert
 local ssub      = string.sub
 local sfind     = string.find
 local supper    = string.upper
@@ -73,8 +72,9 @@ function string_ext.chars(src)
         else
             byteCount = 4  -- 4字节字符
         end
-        tinsert(chars, ssub(src, pos_bytes, pos_bytes + byteCount - 1))
+        local subchar = ssub(src, pos_bytes, pos_bytes + byteCount - 1)
         pos_bytes = pos_bytes + byteCount
+        chars[#chars + 1] = subchar
     end
     return chars
 end

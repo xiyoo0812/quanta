@@ -8,7 +8,6 @@ local Socket        = import("driver/socket.lua")
 local ipairs        = ipairs
 local log_err       = logger.err
 local log_info      = logger.info
-local tinsert       = table.insert
 local tunpack       = table.unpack
 local ssub          = string.sub
 local sgsub         = string.gsub
@@ -292,12 +291,12 @@ end
 function MongoDB:count(collection, selector, limit, skip)
     local cmds = {}
     if limit then
-        tinsert(cmds, "limit")
-        tinsert(cmds, limit)
+        cmds[#cmds + 1] = "limit"
+        cmds[#cmds + 1] = limit
     end
     if skip then
-        tinsert(cmds, "skip")
-        tinsert(cmds, skip)
+        cmds[#cmds + 1] = "skip"
+        cmds[#cmds + 1] = skip
     end
     local succ, doc = self:runCommand("count", collection, "query", selector, tunpack(cmds))
     if not succ then
@@ -322,7 +321,7 @@ function MongoDB:build_results(documents, results, limit)
         if limit and #results >= limit then
             break
         end
-        tinsert(results, bson_decode(_doc))
+        results[#results + 1] = bson_decode(_doc)
     end
 end
 
@@ -358,8 +357,8 @@ function MongoDB:find_and_modify(collection, update, selector, upsert, fields)
     local doc = { query = selector, update = update, fields = fields, upsert = upsert, new = true }
     local cmd = { "findAndModify", collection };
     for k, v in pairs(doc) do
-        tinsert(cmd, k)
-        tinsert(cmd, v)
+        cmd[#cmd + 1] = k
+        cmd[#cmd + 1] = v
     end
     return self:runCommand(tunpack(cmd))
 end

@@ -9,7 +9,6 @@ local ssub          = string.sub
 local sgsub         = string.gsub
 local supper        = string.upper
 local sformat       = string.format
-local tinsert       = table.insert
 local tpack         = table.pack
 
 local NetwkTime     = enum("NetwkTime")
@@ -141,7 +140,7 @@ local function _tokeys(value)
         -- backwards compatibility path for Redis < 2.0
         local keys = {}
         sgsub(value, '[^%s]+', function(key)
-            tinsert(keys, key)
+            keys[#keys + 1] = key
         end)
         return keys
     end

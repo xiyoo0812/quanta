@@ -4,7 +4,7 @@ local tonumber  = tonumber
 local ogetenv   = os.getenv
 local log_info  = logger.info
 local tunpack   = table.unpack
-local tkvsort   = table_ext.kvsort
+local tmapsort  = table_ext.mapsort
 local saddr     = string_ext.addr
 local ssplit    = string_ext.split
 local protoaddr = string_ext.protoaddr
@@ -31,7 +31,7 @@ function environ.init()
         QUANTA_ENV.QUANTA_PERFEVAL = 1
     end
     log_info("---------------------environ value dump-------------------")
-    local sort_envs = tkvsort(QUANTA_ENV)
+    local sort_envs = tmapsort(QUANTA_ENV)
     for _, env_pair in pairs(sort_envs) do
         log_info("%s ----> %s", env_pair[1], env_pair[2])
     end

@@ -4,7 +4,6 @@ local lcrypt        = require("lcrypt")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local tinsert       = table.insert
 local sformat       = string.format
 local lrandomkey    = lcrypt.randomkey
 local lhex_encode   = lcrypt.hex_encode
@@ -47,11 +46,12 @@ function Zipkin:general(name, trace_id, parent_id)
             ipv4 = self.host
         }
     }
+    local trace_span = self.spans[trace_id]
     self.span_indexs[span_id] = trace_id
-    if not self.spans[trace_id] then
+    if not trace_span then
         self.spans[trace_id] = { }
     end
-    tinsert(self.spans[trace_id], span)
+    trace_span[#trace_span + 1] = span
     log_info("[Zipkin][general] new span name:%s, id:%s, trace_id:%s, parent_id:%s!", name, span_id, trace_id, parent_id)
     return span
 end
@@ -88,7 +88,8 @@ function Zipkin:set_annotation(span, value)
         value = tostring(value),
         timestamp = quanta.now_ms * 1000
     }
-    tinsert(span.annotations, annotation)
+    local annotations = span.annotations
+    annotations[#annotations + 1] = annotation
     span.duration = quanta.now_ms * 1000 - span.timestamp
 end
 

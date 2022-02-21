@@ -6,7 +6,6 @@ local ipairs    = ipairs
 local ltime     = ltimer.time
 local tpack     = table.pack
 local tunpack   = table.unpack
-local tinsert   = table.insert
 local new_guid  = lcrypt.guid_new
 
 --定时器精度，20ms
@@ -78,7 +77,7 @@ function TimerMgr:register(interval, period, times, cb, ...)
     driver:insert(timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
-    tinsert(params, 0)
+    params[#params + 1] = 0
     --保存信息
     self.timers[timer_id] = {
         cb = cb,

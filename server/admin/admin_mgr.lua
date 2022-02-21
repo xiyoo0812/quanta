@@ -8,7 +8,6 @@ local HttpServer    = import("network/http_server.lua")
 local jdecode       = ljson.decode
 local guid_index    = lcrypt.guid_index
 local tunpack       = table.unpack
-local tinsert       = table.insert
 local env_get       = environ.get
 local smake_id      = service.make_id
 local log_err       = logger.err
@@ -113,7 +112,7 @@ function AdminMgr:on_monitors(url, body, headers)
     log_debug("[AdminMgr][on_monitors] body: %s", body)
     local monitors = {  }
     for addr in pairs(self.monitors) do
-        tinsert(monitors, addr)
+        monitors[#monitors + 1] = addr
     end
     return monitors
 end
