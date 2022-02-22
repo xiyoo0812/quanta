@@ -49,18 +49,20 @@ end
 
 --转换参数
 local function convert_args(args, cmd_define)
-    local fmtargs = {args = {args[1]}, info = {"cmd"}}
     local define_args = cmd_define.args
+    local fmtargs, fmtinfos = { args[1] }, { "cmd" }
     for i = 2, #args do
-        local arg = args[i]
-        local def_arg = define_args[i-1]
-        fmtargs.info[#fmtargs.info + 1] = def_arg.name
-        fmtargs.args[#fmtargs.args + 1] = convert_arg(def_arg.type, arg)
+        local def_arg = define_args[i - 1]
+        fmtinfos[#fmtinfos + 1] = def_arg.name
+        fmtargs[#fmtargs + 1] = convert_arg(def_arg.type, args[i])
     end
-    fmtargs.service = cmd_define.service
-    fmtargs.type = cmd_define.type
-    fmtargs.name = args[1]
-    return fmtargs
+    return {
+        args = fmtargs,
+        info = fmtinfos,
+        name = args[1],
+        type = cmd_define.type,
+        service = cmd_define.service
+    }
 end
 
 local Cmdline = singleton()
@@ -80,10 +82,12 @@ function Cmdline:register_command(name, command, desc, cmd_type, service)
         log_warn("[Cmdline][register_command] command (%s) repeat registered!", name)
         return false
     end
-    local cmd_define = {type = cmd_type, desc = desc, command = command, service = service, args = {}}
+    local def_args = {}
+    local cmd_define = {type = cmd_type, desc = desc, command = command, service = service }
     for arg_name, arg_type in sgmatch(command, "([%a%d%_]+)|([%a%d%_]+)") do
-        cmd_define.args[#cmd_define.args + 1] = {name = arg_name, type = arg_type}
+        def_args[#def_args + 1] = {name = arg_name, type = arg_type}
     end
+    cmd_define.args = def_args
     self.command_defines[name] = cmd_define
     log_info("[Cmdline][register_command] command (%s) registered!", name)
     return true
@@ -100,7 +104,7 @@ function Cmdline:parser_data(cmd_data)
         return nil, "invalid command: isn't registered"
     end
     local define_args = cmd_define.args
-    local fmtargs = {args = {cmd_name}, info = {"cmd"}, name = cmd_name }
+    local fmtargs, fmtinfos = { cmd_name }, { "cmd" }
     for i, def_arg in ipairs(define_args) do
         local arg = cmd_data[def_arg.name]
         if not arg then
@@ -108,13 +112,16 @@ function Cmdline:parser_data(cmd_data)
             log_err("[Cmdline][parser_data] (%s) %s!", cmd_name, err)
             return nil, err
         end
-        fmtargs.info[#fmtargs.info + 1] = def_arg.name
-        fmtargs.args[#fmtargs.args + 1] = convert_arg(def_arg.type, arg)
+        fmtinfos[#fmtinfos + 1] = def_arg.name
+        fmtargs[#fmtargs + 1] = convert_arg(def_arg.type, arg)
     end
-    fmtargs.service = cmd_define.service
-    fmtargs.type = cmd_define.type
-    fmtargs.name = cmd_name
-    return fmtargs
+    return {
+        args = fmtargs,
+        info = fmtinfos,
+        name = cmd_name,
+        type = cmd_define.type,
+        service = cmd_define.service
+    }
 end
 
 --参数解析
