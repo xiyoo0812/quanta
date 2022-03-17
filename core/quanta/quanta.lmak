@@ -33,6 +33,12 @@ LIBS = {
 	"lua",
 }
 
+--LINUX需要连接的库文件
+--gcc9.1前filesystem需要链接stdc++fs
+LINUX_LIBS = {
+	"stdc++fs"
+}
+
 --依赖项目
 DEPS = {
 	"luabus"
