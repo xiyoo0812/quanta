@@ -11,20 +11,20 @@ local dtraceback= debug.traceback
 
 local Listener = class()
 function Listener:__init()
-    self._triggers = {}     -- map<event, {{listener, callback_name}, ...}
+    self._triggers = {}     -- map<event, {{listener, func_name}, ...}
     self._listeners = {}    -- map<event, listener>
     self._commands = {}     -- map<cmd, listener>
     self._ignores = {}       -- map<cmd, listener>
 end
 
 function Listener:add_trigger(trigger, event, handler)
-    local callback_name = handler or event
-    local callback_func = trigger[callback_name]
+    local func_name = handler or event
+    local callback_func = trigger[func_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[Listener][add_trigger] event(%s) handler is nil!", event)
         return
     end
-    local info = { trigger, callback_name }
+    local info = { trigger, func_name }
     local triggers = self._triggers[event]
     if not triggers then
         self._triggers[event] = { info }
@@ -49,13 +49,13 @@ function Listener:add_listener(listener, event, handler)
         log_warn("[Listener][add_listener] event(%s) repeat!", event)
         return
     end
-    local callback_name = handler or event
-    local callback_func = listener[callback_name]
+    local func_name = handler or event
+    local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[Listener][add_listener] event(%s) callback is nil!", event)
         return
     end
-    self._listeners[event] = { listener, callback_name }
+    self._listeners[event] = { listener, func_name }
 end
 
 function Listener:remove_listener(event)
@@ -67,13 +67,13 @@ function Listener:add_cmd_listener(listener, cmd, handler)
         log_warn("[Listener][add_cmd_listener] cmd(%s) repeat!", cmd)
         return
     end
-    local callback_name = handler
-    local callback_func = listener[callback_name]
+    local func_name = handler
+    local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[Listener][add_cmd_listener] cmd(%s) handler is nil!", cmd)
         return
     end
-    self._commands[cmd] = { listener, callback_name }
+    self._commands[cmd] = { listener, func_name }
 end
 
 function Listener:remove_cmd_listener(cmd)
@@ -82,11 +82,11 @@ end
 
 function Listener:notify_trigger(event, ...)
     for _, trigger_ctx in ipairs(self._triggers[event] or {}) do
-        local trigger, callback_name = tunpack(trigger_ctx)
-        local callback_func = trigger[callback_name]
+        local trigger, func_name = tunpack(trigger_ctx)
+        local callback_func = trigger[func_name]
         local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)
         if not ok then
-            log_err("[Listener][notify_listener] xpcall %s:%s failed, err : %s!", trigger, event, ret)
+            log_err("[Listener][notify_listener] xpcall [%s:%s] failed: %s!", trigger:source(), func_name, ret)
         end
     end
 end
@@ -100,11 +100,11 @@ function Listener:notify_listener(event, ...)
         end
         return tpack(false, "event handler is nil")
     end
-    local listener, callback_name = tunpack(listener_ctx)
-    local callback_func = listener[callback_name]
+    local listener, func_name = tunpack(listener_ctx)
+    local callback_func = listener[func_name]
     local result = tpack(pcall(callback_func, listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_listener] notify_listener event(%s) failed, because: %s, traceback:%s!", event, result[2], dtraceback())
+        log_err("[Listener][notify_listener] pcall [%s:%s] failed: %s, traceback:%s!", listener:source(), func_name, result[2], dtraceback())
     end
     return result
 end
@@ -119,11 +119,11 @@ function Listener:notify_command(cmd, ...)
         return tpack(false, "command handler is nil")
     end
     --执行事件
-    local listener, callback_name = tunpack(listener_ctx)
-    local callback_func = listener[callback_name]
+    local listener, func_name = tunpack(listener_ctx)
+    local callback_func = listener[func_name]
     local result = tpack(pcall(callback_func, listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_command] notify cmd(%s) failed, because: %s!, traceback:%s!", cmd, result[2], dtraceback())
+        log_err("[Listener][notify_command] pcall [%s:%s] failed: %s!, traceback:%s!", listener:source(), func_name, result[2], dtraceback())
     end
     return result
 end
