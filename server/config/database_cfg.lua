@@ -96,3 +96,14 @@ database:upsert({
     passwd = '123456',
     port = 27017,
 })
+
+database:upsert({
+    quanta_deploy = 'local',
+    driver = 'clickhouse',
+    db = 'quanta',
+    default = true,
+    host = '9.134.163.87',
+    user = 'default',
+    passwd = '123456',
+    port = 9004,
+})
