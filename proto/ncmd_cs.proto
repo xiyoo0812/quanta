@@ -1,4 +1,5 @@
-syntax = "proto2";
+syntax = "proto3";
+
 import "common.proto";
 
 package ncmd_cs;
@@ -6,6 +7,7 @@ package ncmd_cs;
 // NCmdId
 enum NCmdId
 {
+    NID_QUANTA_ZERO                     = 0;
     NID_HEARTBEAT_REQ                   = 1001;
     NID_HEARTBEAT_RES                   = 1002;
 }

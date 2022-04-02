@@ -53,7 +53,6 @@ cd bin
 
 # 依赖
 - lua
-- pbc
 - bson
 - luna
 - mongo
@@ -67,14 +66,15 @@ cd bin
 - lualog
 - lbuffer
 - luaxlsx
+- lua-protobuf
 
 # 数据库支持
+- etcd
 - mongo
 - mysql
 - redis
 - influx
 - clickhouse
-- etcd
 
 # 支持功能
 - protobuf协议支持

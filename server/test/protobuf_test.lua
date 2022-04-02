@@ -7,12 +7,11 @@ local NCmdId        = ncmd_cs.NCmdId
 
 local pb_data  = {
     serial = 80,
-    time = 801
+    time = 801000000
 }
 
 local pb_str = protobuf_mgr:encode(NCmdId.NID_HEARTBEAT_REQ, pb_data)
-local data = protobuf_mgr:decode(NCmdId.NID_HEARTBEAT_RES, pb_str)
+local data = protobuf_mgr:decode(NCmdId.NID_HEARTBEAT_REQ, pb_str)
 
 log_debug("serial:%d", data.serial)
 log_debug("time:%d", data.time)
-
