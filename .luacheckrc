@@ -7,6 +7,7 @@ stds.quanta = {
         "quanta", "environ", "signal", "http", "guid", "luabt", "service", "logger", "utility", "platform",
         "import", "class", "enum", "mixin", "property", "singleton", "super", "implemented", "logfeature", 
         "classof", "is_class", "is_subclass", "instanceof", "conv_class",
+        "ncmd_cs"
     }
 }
 std = "max+quanta"

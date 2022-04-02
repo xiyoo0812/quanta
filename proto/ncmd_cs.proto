@@ -1,4 +1,5 @@
 syntax = "proto2";
+import "common.proto";
 
 package ncmd_cs;
 
@@ -8,5 +9,3 @@ enum NCmdId
     NID_HEARTBEAT_REQ                   = 1001;
     NID_HEARTBEAT_RES                   = 1002;
 }
-
-

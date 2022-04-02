@@ -1,8 +1,8 @@
 --工程名字
-PROJECT_NAME = "pbc"
+PROJECT_NAME = "pb"
 
 --目标名字
-TARGET_NAME = "pbc"
+TARGET_NAME = "pb"
 
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
@@ -11,6 +11,15 @@ PROJECT_TYPE = "dynamic"
 INCLUDES = {
 	"../lua/lua"
 }
+
+
+--WINDOWS需要定义的选项
+WINDOWS_DEFINES = {
+	"LUA_BUILD_AS_DLL"
+}
+
+--源文件路径
+SRC_DIR = "lua-protobuf"
 
 --需要连接的库文件
 LIBS = {

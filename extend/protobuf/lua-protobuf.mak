@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = pbc
+PROJECT_NAME = pb
 
 #目标名字
-TARGET_NAME = pbc
+TARGET_NAME = pb
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -34,7 +34,7 @@ LDFLAGS =
 
 
 #源文件路径
-SRC_DIR = src
+SRC_DIR = lua-protobuf
 
 #需要排除的源文件,目录基于$(SRC_DIR)
 EXCLUDE =

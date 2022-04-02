@@ -9,13 +9,11 @@ set ProtoDir=%RootDir%\..\bin\proto\
 rmdir /Q /S %ProtoDir%
 md %ProtoDir%
 
+set Files=
 for %%i in (*.proto) do (
-	set name=%%i
-	set name=!name:~0,-6!
-	echo !name!
-	
-	protoc.exe --descriptor_set_out=%ProtoDir%\!name!.pb !name!.proto
+	call set "Files=%%i %%Files%%"
 )
+protoc.exe --descriptor_set_out=%ProtoDir%\ncmd_cs.pb %Files%
 
 pause
 

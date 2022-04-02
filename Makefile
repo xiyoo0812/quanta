@@ -37,7 +37,7 @@ luaext:
 	cd extend/lualog; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
 	cd extend/luaxlsx; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 	cd extend/mongo; make -j4 SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
-	cd extend/pbc; make -j4 SOLUTION_DIR=$(CUR_DIR) -f pbc.mak;
+	cd extend/protobuf; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lua-protobuf.mak;
 
 share:
 	cd extend/mimalloc; make -j4 SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;

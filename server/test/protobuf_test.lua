@@ -1,20 +1,18 @@
 --protobuf_test.lua
 
-local protobuf      = require("driver.protobuf")
-local pb_decode     = protobuf.decode
-local pb_encode     = protobuf.encode
+local protobuf_mgr  = quanta.get("protobuf_mgr")
+
+local log_debug     = logger.debug
+local NCmdId        = ncmd_cs.NCmdId
 
 local pb_data  = {
-    level = 80,
-    level1 = 801,
-    talent_id = 5000
+    serial = 80,
+    time = 801
 }
 
-local pb_str = pb_encode("common.player_talent_info", pb_data)
-local data = pb_decode("common.player_talent_info", pb_str)
+local pb_str = protobuf_mgr:encode(NCmdId.NID_HEARTBEAT_REQ, pb_data)
+local data = protobuf_mgr:decode(NCmdId.NID_HEARTBEAT_RES, pb_str)
 
-print("talent_id", data.talent_id)
-print("level", data.level)
-print("level", data.level1)
+log_debug("serial:%d", data.serial)
+log_debug("time:%d", data.time)
 
-os.exit()

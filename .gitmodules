@@ -43,3 +43,6 @@
 [submodule "extend/lkcp"]
 	path = extend/lkcp
 	url = https://github.com/xiyoo0812/lkcp
+[submodule "extend/protobuf/lua-protobuf"]
+	path = extend/protobuf/lua-protobuf
+	url = https://github.com/starwing/lua-protobuf.git
