@@ -1,5 +1,4 @@
 --_listener.lua
-local pcall     = pcall
 local xpcall    = xpcall
 local ipairs    = ipairs
 local tpack     = table.pack
@@ -102,9 +101,9 @@ function Listener:notify_listener(event, ...)
     end
     local listener, func_name = tunpack(listener_ctx)
     local callback_func = listener[func_name]
-    local result = tpack(pcall(callback_func, listener, ...))
+    local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_listener] pcall [%s:%s] failed: %s, traceback:%s!", listener:source(), func_name, result[2], dtraceback())
+        log_err("[Listener][notify_listener] xpcall [%s:%s] failed: %s", listener:source(), func_name, result[2])
     end
     return result
 end
@@ -121,9 +120,9 @@ function Listener:notify_command(cmd, ...)
     --执行事件
     local listener, func_name = tunpack(listener_ctx)
     local callback_func = listener[func_name]
-    local result = tpack(pcall(callback_func, listener, ...))
+    local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_command] pcall [%s:%s] failed: %s!, traceback:%s!", listener:source(), func_name, result[2], dtraceback())
+        log_err("[Listener][notify_command] xpcall [%s:%s] failed: %s!", listener:source(), func_name, result[2])
     end
     return result
 end
