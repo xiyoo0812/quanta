@@ -68,10 +68,15 @@ cd bin
 - lbuffer
 - luaxlsx
 
+# 数据库支持
+- mongo
+- mysql
+- redis
+- influx
+- clickhouse
+- etcd
+
 # 支持功能
-- mongo数据库支持
-- mysql数据库支持
-- redis数据库支持
 - protobuf协议支持
 - json协议支持
 - http服务器支持
@@ -93,3 +98,7 @@ cd bin
 - 基于行为树的机器人测试框架
 - 星型分布式服务器框架
 
+# 辅助工具
+- graylog日志系统
+- zipkin/jager调用链系统
+- dingding/wechat/lark等webhook通知

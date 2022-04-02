@@ -248,9 +248,10 @@ local function _compute_token(password, scramble)
     if password == "" then
         return ""
     end
+    local nscramble = ssub(scramble, 1, 20)
     local stage1 = lsha1(password)
     local stage2 = lsha1(stage1)
-    local stage3 = lsha1(scramble .. stage2)
+    local stage3 = lsha1(nscramble .. stage2)
     local i = 0
     return sgsub(stage3, ".", function(x)
         i = i + 1
@@ -530,12 +531,27 @@ local function _recv_query_resp(context, packet, typ, ignores, binary)
     return true, multiresultset
 end
 
-local function _recv_auth_resp(context, packet, typ)
+local function _compute_auth_token(plugin, passwd, scramble)
+    if plugin == "mysql_native_password" then
+        return true, _compute_token(passwd, scramble), true
+    end
+    return false, "only mysql_native_password is supported"
+end
+
+local function _recv_auth_resp(context, packet, typ, passwd)
     if typ == "ERR" then
         return false, _parse_err_packet(packet)
     end
     if typ == "EOF" then
-        return false, "old pre-4.1 authentication protocol not supported"
+        if #packet == 1 then
+            return false, "old pre-4.1 authentication protocol not supported"
+        end
+        local plugin, pos = _from_cstring(packet, 2)
+        if not plugin then
+            return false, "malformed packet"
+        end
+        local scramble = ssub(packet, pos);
+        return _compute_auth_token(plugin, passwd, scramble)
     end
     return true, packet
 end
@@ -672,6 +688,8 @@ function MysqlDB:auth()
         return false, "2nd part of scramble not found"
     end
     --1 byte 挑战数结束(服务器认证报文结束)(skip)
+    --n byte plugin
+    local plugin =  _from_cstring(packet, pos + 13)
     --客户端认证报文
     --2 byte 客户端权能标志
     --2 byte 客户端权能标志扩展
@@ -683,15 +701,21 @@ function MysqlDB:auth()
     --23 byte 填充值
     local fuller = srep("\0", 23)
     --n byte 用户名
-    local user = self.user
     --n byte 挑战认证数据（scramble1+scramble2+passwd）
     local scramble = scramble1 .. scramble2
-    local token = _compute_token(self.passwd, scramble)
+    local tok, token = _compute_auth_token(plugin, self.passwd, scramble)
+    if not tok then
+        return false, token
+    end
     --n byte 数据库名（可选）
-    local req = spack("<I4I4c1c23zs1z", client_flags, packet_size, charset, fuller, user, token, self.name)
+    local req = spack("<I4I4c1c23zs1z", client_flags, packet_size, charset, fuller, self.user, token, self.name)
     local authpacket = self:_compose_packet(req)
-    local aok, err = self:request(authpacket, _recv_auth_resp, "mysql_auth")
-    return aok, err, version
+    local aok, nscramble, double = self:request(authpacket, _recv_auth_resp, "mysql_auth", self.passwd)
+    if double then
+        --double sha1 auth
+        aok, nscramble = self:request(self:_compose_packet(nscramble), _recv_auth_resp, "mysql_auth_double")
+    end
+    return aok, nscramble, version
 end
 
 function MysqlDB:on_socket_error(sock, token, err)
