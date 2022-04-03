@@ -6,7 +6,7 @@ local log_debug     = logger.debug
 local NCmdId        = ncmd_cs.NCmdId
 
 local pb_data  = {
-    serial = 80,
+    serial = 0,
     time = 801000000
 }
 

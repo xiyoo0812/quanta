@@ -6,7 +6,7 @@ package ncmd_cs;
 message heartbeat_req
 {
     uint32 serial          = 1;        // 心跳序列号
-    uint64 time            = 2;        // 客户端时间
+    uint32 time            = 2;        // 客户端时间
 }
 
 // NID_HEARTBEAT_RES

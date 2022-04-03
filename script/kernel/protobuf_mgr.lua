@@ -36,8 +36,6 @@ function ProtobufMgr:load_pbfiles(proto_dir, proto_file)
     protobuf.loadfile(full_name)
     --设置枚举解析成number
     protobuf.option("enum_as_value")
-    protobuf.option("no_default_values")
-    protobuf.option("decode_default_array")
     --注册枚举
     for name, basename, typ in protobuf.types() do
         if typ == "enum" then

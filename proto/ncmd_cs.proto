@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "common.proto";
-
 package ncmd_cs;
 
 // NCmdId
