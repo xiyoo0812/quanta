@@ -132,10 +132,10 @@ void quanta_app::load(int argc, const char* argv[]) {
     set_environ("QUANTA_SERVICE", "quanta");
     set_environ("QUANTA_INDEX", "1");
     //加载LUA配置
-    lua.set_function("set_env", [&](std::string& k, std::string& v) { 
+    lua.set_function("set_env", [&](std::string k, std::string v) { 
         m_environs[k] = v; 
     });
-    lua.set_function("set_osenv", [&](std::string& k, std::string& v) {
+    lua.set_function("set_osenv", [&](std::string k, std::string v) {
         m_environs[k] = v;
         setenv(k.c_str(), v.c_str(), 1); 
     });
@@ -190,8 +190,8 @@ void quanta_app::run() {
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
-    quanta.set_function("getenv", [&](std::string& k) { return get_environ(k); });
-    quanta.set_function("setenv", [&](std::string& k, std::string& v) { m_environs[k] = v; });
+    quanta.set_function("getenv", [&](std::string k) { return get_environ(k); });
+    quanta.set_function("setenv", [&](std::string k, std::string v) { m_environs[k] = v; });
 
     lua.safe_script(fmt::format("require '{}'", get_environ("QUANTA_SANDBOX")), [&](lua_State*, sol::protected_function_result result) {
         sol_exception_handler("load sandbox err: ", result);
