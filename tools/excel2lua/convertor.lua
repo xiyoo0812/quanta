@@ -6,13 +6,13 @@ local type          = type
 local pairs         = pairs
 local tostring      = tostring
 local iopen         = io.open
-local ogetenv       = os.getenv
 local ldir          = lstdfs.dir
 local lmkdir        = lstdfs.mkdir
 local lappend       = lstdfs.append
 local lconcat       = lstdfs.concat
 local lfilename     = lstdfs.filename
 local lcurdir       = lstdfs.current_path
+local qgetenv       = quanta.getenv
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -246,14 +246,14 @@ end
 local function export_config()
     local input = lcurdir()
     local output = lcurdir()
-    local env_input = ogetenv("QUANTA_INPUT")
+    local env_input = qgetenv("QUANTA_INPUT")
     if not env_input or #env_input == 0 then
         print("input dir not config!")
         input = input
     else
         input = lappend(input, env_input)
     end
-    local env_output = ogetenv("QUANTA_OUTPUT")
+    local env_output = qgetenv("QUANTA_OUTPUT")
     if not env_output or #env_output == 0 then
         print("output dir not config!")
         output = output
@@ -261,7 +261,7 @@ local function export_config()
         output = lappend(output, env_output)
         lmkdir(output)
     end
-    local env_version = ogetenv("QUANTA_VERSION")
+    local env_version = qgetenv("QUANTA_VERSION")
     if env_version then
         version = conv_integer(env_version)
     end

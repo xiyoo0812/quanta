@@ -20,6 +20,8 @@ public:
 
 protected:
     void init_logger();
+    const char* get_environ(std::string k);
+    void set_environ(std::string k, std::string v) { m_environs[k] = v; }
     void sol_exception_handler(std::string msg, sol::protected_function_result& result);
 
 private:

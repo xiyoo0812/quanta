@@ -1,9 +1,9 @@
 --environ.lua
 local pairs     = pairs
 local tonumber  = tonumber
-local ogetenv   = os.getenv
 local log_info  = logger.info
 local tunpack   = table.unpack
+local qgetenv   = quanta.getenv
 local tmapsort  = table_ext.mapsort
 local saddr     = string_ext.addr
 local ssplit    = string_ext.split
@@ -15,7 +15,7 @@ environ = {}
 local QUANTA_ENV = quanta.environs
 
 function environ.init()
-    local env_file = ogetenv("QUANTA_ENV")
+    local env_file = qgetenv("QUANTA_ENV")
     if env_file then
         --exp: --env=env/router
         local custom = require(env_file)
@@ -39,38 +39,38 @@ function environ.init()
 end
 
 function environ.get(key, def)
-    return QUANTA_ENV[key] or ogetenv(key) or def
+    return QUANTA_ENV[key] or qgetenv(key) or def
 end
 
 function environ.number(key, def)
-    return tonumber(QUANTA_ENV[key] or ogetenv(key) or def)
+    return tonumber(QUANTA_ENV[key] or qgetenv(key) or def)
 end
 
 function environ.status(key)
-    return (tonumber(QUANTA_ENV[key] or ogetenv(key) or 0) > 0)
+    return (tonumber(QUANTA_ENV[key] or qgetenv(key) or 0) > 0)
 end
 
 function environ.addr(key)
-    local value = QUANTA_ENV[key] or ogetenv(key)
+    local value = QUANTA_ENV[key] or qgetenv(key)
     if value then
         return saddr(value)
     end
 end
 
 function environ.protoaddr(key)
-    local value = QUANTA_ENV[key] or ogetenv(key)
+    local value = QUANTA_ENV[key] or qgetenv(key)
     if value then
         return protoaddr(value)
     end
 end
 
 function environ.split(key, val)
-    local value = QUANTA_ENV[key] or ogetenv(key)
+    local value = QUANTA_ENV[key] or qgetenv(key)
     if value then
         return tunpack(ssplit(value, val))
     end
 end
 
 function environ.table(key, str)
-    return ssplit(QUANTA_ENV[key] or ogetenv(key) or "", str or ",")
+    return ssplit(QUANTA_ENV[key] or qgetenv(key) or "", str or ",")
 end
