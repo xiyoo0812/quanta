@@ -43,7 +43,7 @@ struct buffer {
 };
 
 static inline uint32_t
-to_little_endian(uint32_t v) {
+little_endian(uint32_t v) {
 	union {
 		uint32_t v;
 		uint8_t b[4];
@@ -55,7 +55,7 @@ to_little_endian(uint32_t v) {
 typedef void * document;
 
 static inline uint32_t
-get_length(const document buffer) {
+get_length(document buffer) {
 	union {
 		uint32_t v;
 		uint8_t b[4];
@@ -87,10 +87,10 @@ buffer_reserve(struct buffer *b, int sz) {
 	} while (b->cap <= b->size + sz);
 
 	if (b->ptr == b->buffer) {
-		b->ptr = malloc(b->cap);
+		b->ptr = (uint8_t*)malloc(b->cap);
 		memcpy(b->ptr, b->buffer, b->size);
 	} else {
-		b->ptr = realloc(b->ptr, b->cap);
+		b->ptr = (uint8_t*)realloc(b->ptr, b->cap);
 	}
 }
 
@@ -206,7 +206,7 @@ static int
 op_reply(lua_State *L) {
 	size_t data_len = 0;
 	const char * data = luaL_checklstring(L,1,&data_len);
-	struct {
+	struct reply_type {
 //		int32_t length; // total message size, including this
 		int32_t request_id; // identifier for this message
 		int32_t response_id; // requestID from the original request
@@ -216,15 +216,16 @@ op_reply(lua_State *L) {
 		int32_t cursor_id[2];
 		int32_t starting;
 		int32_t number;
-	} const *reply = (const void *)data;
+	};
+	const struct reply_type* reply = (const struct reply_type*)data;
 
 	if (data_len < sizeof(*reply)) {
 		lua_pushboolean(L, 0);
 		return 1;
 	}
 
-	int id = to_little_endian(reply->response_id);
-	int flags = to_little_endian(reply->flags);
+	int id = little_endian(reply->response_id);
+	int flags = little_endian(reply->flags);
 	if (flags & REPLY_QUERYFAILURE) {
 		lua_pushboolean(L,0);
 		lua_pushinteger(L, id);
@@ -232,8 +233,8 @@ op_reply(lua_State *L) {
 		return 3;
 	}
 
-	int starting_from = to_little_endian(reply->starting);
-	int number = to_little_endian(reply->number);
+	int starting_from = little_endian(reply->starting);
+	int number = little_endian(reply->number);
 	int sz = (int)data_len - sizeof(*reply);
 	const uint8_t * doc = (const uint8_t *)(reply+1);
 
@@ -243,10 +244,11 @@ op_reply(lua_State *L) {
 			lua_pushlightuserdata(L, (void *)doc);
 			lua_rawseti(L, 2, i);
 
-			int32_t doc_len = get_length((const document)doc);
+			int32_t doc_len = get_length((document)doc);
 			if (doc_len <= 0) {
 				return luaL_error(L, "Invalid result bson document");
 			}
+
 			doc += doc_len;
 			sz -= doc_len;
 
@@ -262,6 +264,13 @@ op_reply(lua_State *L) {
 			lua_pushnil(L);
 			lua_rawseti(L, 2, i);
 		}
+	} else {
+		if (sz >= 4) {
+			sz -= get_length((document)doc);
+		}
+	}
+	if (sz != 0) {
+		return luaL_error(L, "Invalid result bson document");
 	}
 	lua_pushboolean(L,1);
 	lua_pushinteger(L, id);
@@ -316,7 +325,6 @@ op_kill(lua_State *L) {
 	1 string collection
 	2 integer single remove
 	3 document selector
-
 	return string package
  */
 static int
@@ -359,7 +367,6 @@ op_delete(lua_State *L) {
 	2 string collection
 	3 integer number
 	4 cursor_id (8 bytes string/ 64bit)
-
 	return string package
  */
 static int
@@ -501,7 +508,7 @@ op_insert(lua_State *L) {
 		int i;
 		for (i=1;i<=s;i++) {
 			lua_rawgeti(L,3,i);
-			document doc = lua_touserdata(L,3);
+			document doc = lua_touserdata(L,-1);
 			lua_pop(L,1);	// must call lua_pop before luaL_addlstring, because addlstring may change stack top
 			luaL_addlstring(&b, (const char *)doc, get_length(doc));
 		}
@@ -519,19 +526,13 @@ reply_length(lua_State *L) {
 	const char * rawlen_str = luaL_checkstring(L, 1);
 	int rawlen = 0;
 	memcpy(&rawlen, rawlen_str, sizeof(int));
-	int length = to_little_endian(rawlen);
+	int length = little_endian(rawlen);
 	lua_pushinteger(L, length - 4);
 	return 1;
 }
 
-#ifdef _MSC_VER
-#define LUAMONGO_API _declspec(dllexport)
-#else
-#define LUAMONGO_API 
-#endif
-
-LUAMONGO_API int
-luaopen_mongo(lua_State *L) {
+LUALIB_API int
+luaopen_skynet_mongo_driver(lua_State *L) {
 	luaL_checkversion(L);
 	luaL_Reg l[] ={
 		{ "query", op_query },
