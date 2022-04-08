@@ -195,6 +195,31 @@ function Influx:write(measurement, tags, fields)
     return true
 end
 
+--写数据
+function Influx:batch(batch_datas)
+    local protocols = {}
+    for measurement, datas in pairs(batch_datas) do
+        local prefix = self:quote_tags(measurement, datas.tags)
+        for _, fields in pairs(datas.field_list) do
+            local suffix = self:quote_fields(fields)
+            protocols[#protocols] = sformat("%s %s", prefix, suffix)
+        end
+    end
+    local line_protocol = tconcat(protocols, "\n")
+    local headers = {
+        ["Accept"] = "application/json",
+        ["Content-type"] = "text/plain",
+        ["Authorization"] = self.common_headers["Authorization"],
+    }
+    local querys = { org = self.org, bucket = self.bucket }
+    local ok, status, res = http_client:call_post(self.write_addr, line_protocol, headers, querys)
+    if not ok or status >= 300 then
+        log_err("[Influx][batch] failed! status: %s, err: %s", status, ok and res or status)
+        return false, ok and res or status
+    end
+    return true
+end
+
 --查询
 function Influx:query(script)
     local headers = {

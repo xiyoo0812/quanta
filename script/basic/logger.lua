@@ -5,7 +5,7 @@ local lbuffer       = require("lbuffer")
 local lstdfs        = require("lstdfs")
 
 local pcall         = pcall
-local ipairs        = ipairs
+local pairs         = pairs
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local tpack         = table.pack
@@ -69,7 +69,7 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
     local lvl_func, extend, notify, swline, graylog = tunpack(log_conf)
     if extend then
         local args = tpack(...)
-        for i, arg in ipairs(args) do
+        for i, arg in pairs(args) do
             if type(arg) == "table" then
                 args[i] = lserialize(arg, swline and 1 or 0)
             end
