@@ -36,6 +36,7 @@
  *       difficult to know object/array sizes ahead of time.
  */
 
+#define LUA_LIB
 #include <assert.h>
 #include <string.h>
 #include <math.h>
@@ -57,10 +58,6 @@
 #ifdef _MSC_VER
 #define strcasecmp _stricmp
 #define strncasecmp  _strnicmp 
-
-#define LUACJSON_API _declspec(dllexport)
-#else
-#define LUACJSON_API 
 #endif
 
 /* Workaround for Solaris platforms missing isinf() */
@@ -1427,7 +1424,7 @@ static int lua_cjson_safe_new(lua_State *l)
     return 1;
 }
 
-LUACJSON_API int luaopen_lcjson(lua_State *l)
+LUALIB_API int luaopen_lcjson(lua_State *l)
 {
     lua_cjson_new(l);
 
@@ -1441,7 +1438,7 @@ LUACJSON_API int luaopen_lcjson(lua_State *l)
     return 1;
 }
 
-LUACJSON_API int luaopen_lcjson_safe(lua_State *l)
+LUALIB_API int luaopen_lcjson_safe(lua_State *l)
 {
     lua_cjson_safe_new(l);
 

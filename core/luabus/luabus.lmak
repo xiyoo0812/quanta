@@ -27,6 +27,11 @@ LIBS = {
 	"luna"
 }
 
+--WINDOWS需要定义的选项
+WINDOWS_DEFINES = {
+	"LUA_BUILD_AS_DLL"
+}
+
 --依赖项目
 DEPS = {
 	"luna",

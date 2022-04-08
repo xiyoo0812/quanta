@@ -532,7 +532,7 @@ reply_length(lua_State *L) {
 }
 
 LUALIB_API int
-luaopen_skynet_mongo_driver(lua_State *L) {
+luaopen_mongo(lua_State *L) {
 	luaL_checkversion(L);
 	luaL_Reg l[] ={
 		{ "query", op_query },
