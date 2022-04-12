@@ -40,7 +40,7 @@ function RouterServer:setup()
     end
     --重定义routerid
     quanta.id = service.router_id(router_conf.host_id, quanta.index)
-    quanta.name = service.id2name(quanta.id)
+    quanta.name = service.router_name(router_conf.host_id, quanta.index)
     --启动server
     self.rpc_server = RpcServer()
     self.rpc_server:setup(host, router_conf.port, true)

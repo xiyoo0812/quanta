@@ -97,3 +97,8 @@ function service.router_id(host_id, index)
     local router_index = host_id << 8 | index
     return service.make_id("router", router_index)
 end
+
+--生成router_name
+function service.router_name(host_id, index)
+    return sformat("router_%s_%s", host_id, index)
+end

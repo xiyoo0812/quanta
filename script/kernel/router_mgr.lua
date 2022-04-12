@@ -7,7 +7,6 @@ local signal_quit       = signal.quit
 local tunpack           = table.unpack
 local sformat           = string.format
 local sid2name          = service.id2name
-local srouter_id        = service.router_id
 local check_success     = utility.check_success
 local qhash_code        = quanta.hash_code
 
@@ -53,7 +52,7 @@ end
 
 --添加router
 function RouterMgr:add_router(router_conf, index)
-    local router_id = srouter_id(router_conf.host_id, index)
+    local router_id = service.router_id(router_conf.host_id, index)
     if not self.routers[router_id] then
         local host = router_conf.host
         --端口推导
