@@ -46,3 +46,6 @@
 [submodule "extend/protobuf/lua-protobuf"]
 	path = extend/protobuf/lua-protobuf
 	url = https://github.com/starwing/lua-protobuf.git
+[submodule "extend/luakit"]
+	path = extend/luakit
+	url = https://github.com/xiyoo0812/luakit.git
