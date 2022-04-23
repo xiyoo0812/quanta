@@ -27,5 +27,5 @@ quanta.startup(function()--初始化test
     import("test/zipkin_test.lua")
     import("test/clickhouse_test.lua")
     ]]
-    import("test/protobuf_test.lua")
+    import("test/timer_test.lua")
 end)
