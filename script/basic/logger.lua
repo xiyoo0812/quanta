@@ -14,18 +14,18 @@ local fsstem        = lstdfs.stem
 local lserialize    = lbuffer.serialize
 
 local LOG_LEVEL     = llog.LOG_LEVEL
-local driver        = quanta.logger
+local driver        = quanta.get_logger()
 
 logger = {}
 logfeature = {}
 
 function logger.init()
-    driver:add_lvl_dest(LOG_LEVEL.ERROR)
+    driver.add_lvl_dest(LOG_LEVEL.ERROR)
     logger.filter(environ.number("QUANTA_LOG_LVL"))
 end
 
 function logger.daemon(daemon)
-    driver:daemon(daemon)
+    driver.daemon(daemon)
 end
 
 function logger.setup_graylog()
@@ -42,7 +42,7 @@ function logger.feature(name)
     end
     if not logfeature.features[name] then
         logfeature.features[name] = true
-        driver:add_dest(name)
+        driver.add_dest(name)
     end
 end
 
@@ -56,13 +56,13 @@ end
 
 function logger.filter(level)
     for lvl = LOG_LEVEL.DEBUG, LOG_LEVEL.FATAL do
-        --driver:filter(level, on/off)
-        driver:filter(lvl, lvl >= level)
+        --driver.filter(level, on/off)
+        driver.filter(lvl, lvl >= level)
     end
 end
 
 local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
-    if driver:is_filter(lvl) then
+    if driver.is_filter(lvl) then
         return false
     end
     local content
@@ -90,7 +90,7 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
     if graylog and graydriver then
         graydriver:write(content, lvl)
     end
-    return lvl_func(driver, content, feature)
+    return lvl_func(content, feature)
 end
 
 local LOG_LEVEL_OPTIONS = {
@@ -107,7 +107,7 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
         local ok, res = pcall(logger_output, "", lvl, lvl_name, fmt, log_conf, ...)
         if not ok then
             local info = dgetinfo(2, "S")
-            driver:warn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
+            driver.warn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
             return false
         end
         return res
@@ -126,7 +126,7 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
             local ok, res = pcall(logger_output, feature, lvl, lvl_name, fmt, log_conf, ...)
             if not ok then
                 local info = dgetinfo(2, "S")
-                driver:warn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
+                driver.warn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
                 return false
             end
             return res

@@ -24,7 +24,7 @@ DEFINES = {
 INCLUDES = {
 	"../../extend/lua/lua",
 	"../../extend/fmt/include",
-	"../../extend/sol2/include",
+	"../../extend/luakit/include",
 	"../../extend/lualog/lualog"
 }
 
