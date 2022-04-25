@@ -46,6 +46,7 @@ EXCLUDE += $(SRC_DIR)/page-queue.c
 EXCLUDE += $(SRC_DIR)/static.c
 EXCLUDE += $(SRC_DIR)/alloc-override.c
 EXCLUDE += $(SRC_DIR)/alloc-override-osx.c
+EXCLUDE += $(SRC_DIR)/region.c
 
 #需要连接的库文件
 LIBS =

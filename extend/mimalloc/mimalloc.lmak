@@ -33,7 +33,7 @@ SRC_DIR = "mimalloc/src"
 
 --需要排除的源文件,目录基于$(SRC_DIR)
 EXCLUDE_FILE={
-	"page-queue.c", "static.c", "alloc-override.c", "alloc-override-osx.c"
+	"page-queue.c", "static.c", "alloc-override.c", "alloc-override-osx.c", "region.c"
 }
 
 --WINDOWS需要连接的库文件

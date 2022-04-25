@@ -30,7 +30,10 @@
     </ClCompile>
     <ClCompile Include="mimalloc\src\page.c"/>
     <ClCompile Include="mimalloc\src\random.c"/>
-    <ClCompile Include="mimalloc\src\region.c"/>
+    <ClCompile Include="mimalloc\src\region.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="mimalloc\src\segment-cache.c"/>
     <ClCompile Include="mimalloc\src\segment.c"/>
     <ClCompile Include="mimalloc\src\static.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
