@@ -1,5 +1,4 @@
 --log_test.lua
-require("lualog")
 
 local ltimer    = require("ltimer")
 local lnow_ms   = ltimer.now_ms

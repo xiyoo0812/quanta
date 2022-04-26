@@ -4,11 +4,7 @@
 #include <functional>
 #include "quanta.h"
 
-extern "C" {
-    #include "lua.h"
-    #include "lauxlib.h"
-}
-
+#include "lua_kit.h"
 #include <fmt/core.h>
 
 #if WIN32
@@ -56,7 +52,7 @@ static int quanta_daemon() {
     return 0;
 }
 
-static void check_input(sol::state& lua) {
+static void check_input(luakit::kit_state& lua) {
 #ifdef WIN32
     if (_kbhit()) {
         char cur = _getch();
@@ -66,9 +62,7 @@ static void check_input(sol::state& lua) {
                 return;
             }
         }
-        lua.safe_script(fmt::format("quanta.console({:d})", cur), [&](lua_State*, sol::protected_function_result result) {
-            return result;
-        });
+        lua.run_script(fmt::format("quanta.console({:d})", cur));
     }
 #endif
 }
@@ -107,9 +101,8 @@ void quanta_app::setup(int argc, const char* argv[]) {
     run();
 }
 
-void quanta_app::sol_exception_handler(std::string msg, sol::protected_function_result& result) {
-    sol::error err = result;
-    LOG_FATAL(m_logger) << msg << err.what();
+void quanta_app::exception_handler(std::string msg, std::string& err) {
+    LOG_FATAL(m_logger) << msg << err;
     m_logger->stop();
 #if WIN32
     _getch();
@@ -125,8 +118,7 @@ const char* quanta_app::get_environ(std::string k) {
 
 void quanta_app::load(int argc, const char* argv[]) {
     //初始化lua
-    sol::state lua;
-    lua.open_libraries();
+    luakit::kit_state lua;
     lua.set("platform", get_platform());
     //设置默认参数
     set_environ("QUANTA_SERVICE", "quanta");
@@ -139,9 +131,8 @@ void quanta_app::load(int argc, const char* argv[]) {
         m_environs[k] = v;
         setenv(k.c_str(), v.c_str(), 1); 
     });
-    lua.safe_script_file(argv[1], [&](lua_State*, sol::protected_function_result result) {
-        sol_exception_handler("load config err: ", result);
-        return result;
+    lua.run_file(argv[1], [&](std::string err) {
+        exception_handler("load config err: ", err);
     });
     //将启动参数转换成环境变量
     for (int i = 2; i < argc; ++i) {
@@ -154,6 +145,7 @@ void quanta_app::load(int argc, const char* argv[]) {
             set_environ(ekey, evalue);
         }
     }
+    lua.close();
 }
 
 void quanta_app::init_logger() {
@@ -176,36 +168,34 @@ void quanta_app::init_logger() {
 void quanta_app::run() {
     init_logger();
     //初始化lua
-    sol::state lua;
-    lua.open_libraries();
+    luakit::kit_state lua;
     lua.set("platform", get_platform());
-    sol::table quanta = lua.create_named_table("quanta");
+    auto quanta = lua.new_table("quanta");
     quanta.set("pid", ::getpid());
-    quanta.set("logger", m_logger);
+    quanta.set("environs", m_environs);
     quanta.set("platform", get_platform());
-    quanta.set("environs", sol::as_table(quanta_app::m_environs));
     quanta.set_function("hash_code", hash_code);
     quanta.set_function("get_signal", [&]() { return m_signal; });
     quanta.set_function("set_signal", [&](int n) { set_signal(n); });
+    quanta.set_function("get_logger", [&]() { return m_logger.get(); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
     quanta.set_function("getenv", [&](std::string k) { return get_environ(k); });
     quanta.set_function("setenv", [&](std::string k, std::string v) { m_environs[k] = v; });
 
-    lua.safe_script(fmt::format("require '{}'", get_environ("QUANTA_SANDBOX")), [&](lua_State*, sol::protected_function_result result) {
-        sol_exception_handler("load sandbox err: ", result);
-        return result;
+    lua.run_script(fmt::format("require '{}'", get_environ("QUANTA_SANDBOX")), [&](std::string err) {
+        exception_handler("load sandbox err: ", err);
     });
-    lua.safe_script(fmt::format("require '{}'", get_environ("QUANTA_ENTRY")), [&](lua_State*, sol::protected_function_result result) {
-        sol_exception_handler("load entry err: ", result);
-        return result;
+    lua.run_script(fmt::format("require '{}'", get_environ("QUANTA_ENTRY")), [&](std::string err) {
+        exception_handler("load entry err: ", err);
     });
-    sol::function quanta_run = quanta["run"];
-    while (quanta_run.valid()) {
-        quanta_run();
+    while (quanta.get_function("run")) {
+        quanta.call([&](std::string err) {
+            exception_handler("quanta run err: ", err);
+        });
         check_input(lua);
-        quanta_run = quanta["run"];
     }
+    lua.close();
     m_logger->stop();
 }

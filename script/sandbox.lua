@@ -12,7 +12,7 @@ local sformat   = string.format
 local dgetinfo  = debug.getinfo
 local file_time = lstdfs.last_write_time
 
-local logger    = quanta.logger
+local logger    = quanta.get_logger()
 
 local load_files    = {}
 local search_path   = {}
@@ -60,15 +60,15 @@ end
 local function try_load(node)
     local trunk_func, err = search_load(node)
     if not trunk_func then
-        logger:error(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
+        logger.error(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
     local res = tpack(pcall(trunk_func))
     if not res[1] then
-        logger:error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res[2]))
+        logger.error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res[2]))
         return
     end
-    logger:info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
+    logger.info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
     return tunpack(res, 2)
 end
 
@@ -100,7 +100,7 @@ function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then
         local info = dgetinfo(2, "S")
-        logger:error(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
+        logger.error(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
         return
     end
     return global_obj

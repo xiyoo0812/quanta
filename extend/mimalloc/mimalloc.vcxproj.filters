@@ -51,6 +51,9 @@
     <ClCompile Include="mimalloc\src\region.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="mimalloc\src\segment-cache.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="mimalloc\src\segment.c">
       <Filter>src</Filter>
     </ClCompile>

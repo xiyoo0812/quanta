@@ -46,7 +46,7 @@ function OnlineAgent:forward_message(player_id, ...)
 end
 
 function OnlineAgent:send_forward_message(player_id, ...)
-    return router_mgr:random_online_hash(player_id, "rpc_send_forward_message", player_id, ...)
+    return router_mgr:send_online_hash(player_id, "rpc_send_forward_message", player_id, ...)
 end
 
 --rpc处理

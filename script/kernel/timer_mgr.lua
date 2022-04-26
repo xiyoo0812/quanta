@@ -11,7 +11,7 @@ local new_guid  = lcrypt.guid_new
 --定时器精度，20ms
 local TIMER_ACCURYACY = 20
 
-local driver        = ltimer.lua_timer.new()
+local driver        = ltimer.new()
 local thread_mgr    = quanta.get("thread_mgr")
 
 local TimerMgr = singleton()
@@ -40,7 +40,7 @@ function TimerMgr:trigger(handle, now_ms)
         return
     end
     --继续注册
-    driver:insert(handle.timer_id, handle.period)
+    driver.insert(handle.timer_id, handle.period)
 end
 
 function TimerMgr:on_frame(now_ms)
@@ -49,8 +49,8 @@ function TimerMgr:on_frame(now_ms)
         self.escape_ms = escape_ms % TIMER_ACCURYACY
         self.last_ms = now_ms
         if escape_ms >= TIMER_ACCURYACY then
-            local timers = driver:update(escape_ms // TIMER_ACCURYACY)
-            for _, timer_id in ipairs(timers) do
+            local timers = driver.update(escape_ms // TIMER_ACCURYACY)
+            for _, timer_id in ipairs(timers or {}) do
                 local handle = self.timers[timer_id]
                 if handle then
                     self:trigger(handle, now_ms)
@@ -74,7 +74,7 @@ function TimerMgr:register(interval, period, times, cb, ...)
     local timer_id = new_guid(period, interval)
     --矫正时间误差
     interval = interval + (now_ms - self.last_ms)
-    driver:insert(timer_id, interval // TIMER_ACCURYACY)
+    driver.insert(timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
     params[#params + 1] = 0
