@@ -32,11 +32,6 @@ thread_mgr:fork(function()
     timer_mgr:register(500, 1000, 5, function(escape_ms)
         log_info("register: %s", escape_ms)
     end)
-
-    local function load_strongest_players()
-        return false, {}
-    end
-
 end)
 
 --os.exit()

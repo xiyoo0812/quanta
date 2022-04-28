@@ -151,39 +151,34 @@ function NetServer:encode(cmd_id, data, flag)
     else
         encode_data = protobuf_mgr:encode(cmd_id, data)
     end
-    if encode_data then
-        -- 加密处理
-        if out_encrypt then
-            encode_data = lcrypt.b64_encode(encode_data)
-            flag = flag | FlagMask.ENCRYPT
-        end
-        -- 压缩处理
-        if out_press then
-            encode_data = lcrypt.lz4_encode(encode_data)
-            flag = flag | FlagMask.ZIP
-        end
+    -- 加密处理
+    if out_encrypt then
+        encode_data = lcrypt.b64_encode(encode_data)
+        flag = flag | FlagMask.ENCRYPT
+    end
+    -- 压缩处理
+    if out_press then
+        encode_data = lcrypt.lz4_encode(encode_data)
+        flag = flag | FlagMask.ZIP
     end
     return encode_data, flag
 end
 
 function NetServer:decode(cmd_id, data, flag)
-    local de_data, cmd_name
-    if self.decoder then
-        de_data, cmd_name = self.decoder(cmd_id, data)
-    else
-        de_data, cmd_name = protobuf_mgr:decode(cmd_id, data)
-    end
-    if de_data then
+    local de_data = data
+    if flag & FlagMask.ZIP == FlagMask.ZIP then
         --解压处理
-        if flag & FlagMask.ZIP == FlagMask.ZIP then
-            de_data = lcrypt.lz4_decode(de_data)
-        end
-        --解密处理
-        if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
-            de_data = lcrypt.b64_decode(de_data)
-        end
+        de_data = lcrypt.lz4_decode(de_data)
     end
-    return de_data, cmd_name
+    if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
+        --解密处理
+        de_data = lcrypt.b64_decode(de_data)
+    end
+    if self.decoder then
+        return self.decoder(cmd_id, de_data)
+    else
+        return protobuf_mgr:decode(cmd_id, de_data)
+    end
 end
 
 -- 配置指定cmd的cd

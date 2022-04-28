@@ -89,39 +89,34 @@ function NetClient:encode(cmd_id, data, flag)
     else
         encode_data = protobuf_mgr:encode(cmd_id, data)
     end
-    if encode_data then
-        -- 加密处理
-        if out_encrypt then
-            encode_data = lcrypt.b64_encode(encode_data)
-            flag = flag | FlagMask.ENCRYPT
-        end
-        -- 压缩处理
-        if out_press then
-            encode_data = lcrypt.lz4_encode(encode_data)
-            flag = flag | FlagMask.ZIP
-        end
+    -- 加密处理
+    if out_encrypt then
+        encode_data = lcrypt.b64_encode(encode_data)
+        flag = flag | FlagMask.ENCRYPT
+    end
+    -- 压缩处理
+    if out_press then
+        encode_data = lcrypt.lz4_encode(encode_data)
+        flag = flag | FlagMask.ZIP
     end
     return encode_data, flag
 end
 
 function NetClient:decode(cmd_id, data, flag)
-    local decode_data, cmd_name
-    if self.decoder then
-        decode_data, cmd_name = self.decoder(cmd_id, data)
-    else
-        decode_data, cmd_name = protobuf_mgr:decode(cmd_id, data)
-    end
-    if decode_data then
+    local decode_data = data
+    if flag & FlagMask.ZIP == FlagMask.ZIP then
         --解压处理
-        if flag & FlagMask.ZIP == FlagMask.ZIP then
-            decode_data = lcrypt.lz4_decode(decode_data)
-        end
-        --解密处理
-        if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
-            decode_data = lcrypt.b64_decode(decode_data)
-        end
+        decode_data = lcrypt.lz4_decode(decode_data)
     end
-    return decode_data, cmd_name
+    if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
+        --解密处理
+        decode_data = lcrypt.b64_decode(decode_data)
+    end
+    if self.decoder then
+        return self.decoder(cmd_id, decode_data)
+    else
+        return protobuf_mgr:decode(cmd_id, decode_data)
+    end
 end
 
 function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
