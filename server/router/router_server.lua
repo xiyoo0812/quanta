@@ -1,6 +1,8 @@
 --router_server.lua
 
 local mhuge         = math.huge
+local qget          = quanta.get
+local qenum         = quanta.enum
 local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
@@ -12,13 +14,15 @@ local sid2nick      = service.id2nick
 local sid2name      = service.id2name
 local sid2index     = service.id2index
 
-local FlagMask      = enum("FlagMask")
-local KernCode      = enum("KernCode")
+local event_mgr     = qget("event_mgr")
+local socket_mgr    = qget("socket_mgr")
+local config_mgr    = qget("config_mgr")
+
 local RpcServer     = import("network/rpc_server.lua")
 
-local event_mgr     = quanta.get("event_mgr")
-local socket_mgr    = quanta.get("socket_mgr")
-local config_mgr    = quanta.get("config_mgr")
+local FLAG_RES      = qenum("FlagMask", "RES")
+local SUCCESS       = qenum("KernCode", "SUCCESS")
+local UNREACHABLE   = qenum("KernCode", "RPC_UNREACHABLE")
 
 local RouterServer = singleton()
 local prop = property(RouterServer)
@@ -94,10 +98,10 @@ function RouterServer:on_socket_accept(server)
     --log_info("[RouterServer][on_socket_accept] new connection, token=%s", server.token)
     server.on_forward_error = function(session_id)
         log_err("[RouterServer][on_socket_accept] on_forward_error, session_id=%s", session_id)
-        server.call(session_id, FlagMask.RES, quanta.id, "on_forward_error", false, KernCode.RPC_UNREACHABLE, "router con't find target!")
+        server.call(session_id, FLAG_RES, quanta.id, "on_forward_error", false, UNREACHABLE, "router con't find target!")
     end
     server.on_forward_broadcast = function(session_id, broadcast_num)
-        server.call(session_id, FlagMask.RES, quanta.id, "on_forward_broadcast", true, KernCode.SUCCESS, broadcast_num)
+        server.call(session_id, FLAG_RES, quanta.id, "on_forward_broadcast", true, SUCCESS, broadcast_num)
     end
 end
 

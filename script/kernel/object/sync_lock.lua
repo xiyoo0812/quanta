@@ -6,8 +6,7 @@
 --]]
 local co_running    = coroutine.running
 
-local PeriodTime    = enum("PeriodTime")
-local MINUTE_5_MS   = PeriodTime.MINUTE_5_MS
+local MINUTE_5_MS   = quanta.enum("PeriodTime", "MINUTE_5_MS")
 
 local SyncLock = class()
 local prop = property(SyncLock)

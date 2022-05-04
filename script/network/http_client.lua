@@ -3,6 +3,7 @@ local lcurl = require("lcurl")
 local ljson = require("lcjson")
 
 local pairs         = pairs
+local qget          = quanta.get
 local log_err       = logger.err
 local tunpack       = table.unpack
 local tconcat       = table.concat
@@ -12,9 +13,10 @@ local luencode      = lcurl.url_encode
 local lcrequest     = lcurl.create_request
 local jencode       = ljson.encode
 
-local NetwkTime     = enum("NetwkTime")
-local thread_mgr    = quanta.get("thread_mgr")
-local update_mgr    = quanta.get("update_mgr")
+local thread_mgr        = qget("thread_mgr")
+local update_mgr        = qget("update_mgr")
+
+local HTTP_CALL_TIMEOUT = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
 local HttpClient = singleton()
 local prop = property(HttpClient)
@@ -54,7 +56,7 @@ function HttpClient:on_frame()
     --清除超时请求
     local now_ms = quanta.now_ms
     for handle, context in pairs(self.contexts) do
-        if now_ms - context.time > NetwkTime.HTTP_CALL_TIMEOUT then
+        if now_ms - context.time > HTTP_CALL_TIMEOUT then
             self.contexts[handle] = nil
         end
     end
@@ -114,7 +116,7 @@ function HttpClient:call_get(url, querys, headers, datas, timeout)
     if not self:build_request(fmt_url, session_id, headers, "call_get", datas) then
         return false
     end
-    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, url, timeout or HTTP_CALL_TIMEOUT)
 end
 
 --post接口
@@ -133,7 +135,7 @@ function HttpClient:call_post(url, datas, headers, querys, timeout)
     if not self:build_request(url, session_id, headers, "call_post", datas) then
         return false
     end
-    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, url, timeout or HTTP_CALL_TIMEOUT)
 end
 
 --put接口
@@ -152,7 +154,7 @@ function HttpClient:call_put(url, datas, headers, querys, timeout)
     if not self:build_request(url, session_id, headers, "call_put", datas) then
         return false
     end
-    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, url, timeout or HTTP_CALL_TIMEOUT)
 end
 
 --del接口
@@ -162,7 +164,7 @@ function HttpClient:call_del(url, querys, headers, timeout)
     if not self:build_request(fmt_url, session_id, headers, "call_del") then
         return false
     end
-    return thread_mgr:yield(session_id, url, timeout or NetwkTime.HTTP_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, url, timeout or HTTP_CALL_TIMEOUT)
 end
 
 quanta.http_client = HttpClient()

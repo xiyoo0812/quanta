@@ -12,9 +12,8 @@ local sformat       = string.format
 local ssplit        = string_ext.split
 local lserialize    = lbuffer.serialize
 
-local PeriodTime    = enum("PeriodTime")
-
 local http_client   = quanta.get("http_client")
+local WEEK_S        = quanta.enum("PeriodTime", "WEEK_S")
 
 local Influx = class()
 local prop = property(Influx)
@@ -139,7 +138,7 @@ function Influx:create_bucket(name, expire_time, description)
     data.retentionRules[1] = {
         type = "expire",
         shardGroupDurationSeconds = 0,
-        everySeconds = expire_time or PeriodTime.WEEK_S
+        everySeconds = expire_time or WEEK_S
     }
     local ok, status, res = http_client:call_post(self.bucket_addr, data, self.common_headers)
     if not ok or status >= 300 then

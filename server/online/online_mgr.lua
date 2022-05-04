@@ -3,14 +3,17 @@
 --本模块维护了所有在线玩家的索引,即: player_id --> lobbysvr-id
 --当然,不在线的玩家查询结果就是nil:)
 --这里维护的在线状态仅供一般性消息中转用,登录状态判定以数据库中记录为准
-local pairs         = pairs
-local log_info      = logger.info
+local pairs             = pairs
+local qget              = quanta.get
+local qenum             = quanta.enum
+local log_info          = logger.info
 
-local KernCode      = enum("KernCode")
-local SUCCESS       = KernCode.SUCCESS
+local event_mgr         = qget("event_mgr")
+local router_mgr        = qget("router_mgr")
 
-local event_mgr     = quanta.get("event_mgr")
-local router_mgr    = quanta.get("router_mgr")
+local SUCCESS           = qenum("KernCode", "SUCCESS")
+local RPC_FAILED        = qenum("KernCode", "RPC_FAILED")
+local PLAYER_NOT_EXIST  = qenum("KernCode", "PLAYER_NOT_EXIST")
 
 local OnlineMgr = singleton()
 function OnlineMgr:__init()
@@ -75,11 +78,11 @@ end
 function OnlineMgr:rpc_transfer_message(player_id, rpc, ...)
     local lobby = self.lobbys[player_id]
     if not lobby then
-        return KernCode.PLAYER_NOT_EXIST, "player not online!"
+        return PLAYER_NOT_EXIST, "player not online!"
     end
     local ok, codeoe, res = router_mgr:call_target(lobby, rpc, ...)
     if not ok then
-        return KernCode.RPC_FAILED, codeoe
+        return RPC_FAILED, codeoe
     end
     return codeoe, res
 end
@@ -104,11 +107,11 @@ end
 function OnlineMgr:rpc_forward_message(player_id, ...)
     local lobby = self.lobbys[player_id]
     if not lobby then
-        return KernCode.PLAYER_NOT_EXIST, "player not online!"
+        return PLAYER_NOT_EXIST, "player not online!"
     end
     local ok, codeoe, res = router_mgr:call_target(lobby, "rpc_forward_client", player_id, ...)
     if not ok then
-        return KernCode.RPC_FAILED, codeoe
+        return RPC_FAILED, codeoe
     end
     return codeoe, res
 end

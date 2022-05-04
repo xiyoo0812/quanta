@@ -5,10 +5,9 @@ local log_err       = logger.err
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 
-local KernCode      = enum("KernCode")
-local PeriodTime    = enum("PeriodTime")
-local SUCCESS       = KernCode.SUCCESS
-local DAY_S         = PeriodTime.DAY_S
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local DAY_S         = quanta.enum("PeriodTime", "DAY_S")
+local HOUR_S        = quanta.enum("PeriodTime", "HOUR_S")
 
 utility = {}
 function utility.check_success(code)
@@ -42,7 +41,7 @@ function utility.utc_time(time)
     if not utc_diff_time then
         local nowt = odate("*t", time)
         local utct = odate("!*t", time)
-        utc_diff_time = (nowt.hour - utct.hour) * PeriodTime.HOUR_S
+        utc_diff_time = (nowt.hour - utct.hour) * HOUR_S
     end
     return time - utc_diff_time
 end
@@ -55,7 +54,7 @@ function utility.edition(period, time, offset)
     end
     local t = odate("*t", time - (offset or 0))
     if period == "hour" then
-        edition = time // PeriodTime.HOUR_S
+        edition = time // HOUR_S
     elseif period == "day" then
         edition = time // DAY_S
     elseif period == "week" then

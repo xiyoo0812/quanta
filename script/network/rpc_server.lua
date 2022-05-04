@@ -1,21 +1,24 @@
 --rpc_server.lua
-local next          = next
-local pairs         = pairs
-local tunpack       = table.unpack
-local log_err       = logger.err
-local log_info      = logger.info
-local qxpcall       = quanta.xpcall
-local signalquit    = signal.quit
+local next              = next
+local pairs             = pairs
+local tunpack           = table.unpack
+local log_err           = logger.err
+local log_info          = logger.info
+local qget              = quanta.get
+local qenum             = quanta.enum
+local qxpcall           = quanta.xpcall
+local signalquit        = signal.quit
 
-local FlagMask      = enum("FlagMask")
-local KernCode      = enum("KernCode")
-local NetwkTime     = enum("NetwkTime")
-local SUCCESS       = KernCode.SUCCESS
+local event_mgr         = qget("event_mgr")
+local thread_mgr        = qget("thread_mgr")
+local socket_mgr        = qget("socket_mgr")
+local perfeval_mgr      = qget("perfeval_mgr")
 
-local event_mgr     = quanta.get("event_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
-local socket_mgr    = quanta.get("socket_mgr")
-local perfeval_mgr  = quanta.get("perfeval_mgr")
+local FLAG_REQ          = qenum("FlagMask", "REQ")
+local FLAG_RES          = qenum("FlagMask", "RES")
+local SUCCESS           = qenum("KernCode", "SUCCESS")
+local ROUTER_TIMEOUT    = qenum("NetwkTime", "ROUTER_TIMEOUT")
+local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RpcServer = singleton()
 
@@ -51,12 +54,12 @@ end
 --rpc事件
 function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_flag, source, ...)
     client.alive_time = quanta.now
-    if session_id == 0 or rpc_flag == FlagMask.REQ then
+    if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
             local _<close> = perfeval_mgr:eval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
-                client.call_rpc(session_id, FlagMask.RES, rpc, tunpack(rpc_datas))
+                client.call_rpc(session_id, FLAG_RES, rpc, tunpack(rpc_datas))
             end
         end
         thread_mgr:fork(dispatch_rpc_message, ...)
@@ -76,7 +79,7 @@ end
 
 --accept事件
 function RpcServer:on_socket_accept(client)
-    client.set_timeout(NetwkTime.ROUTER_TIMEOUT)
+    client.set_timeout(ROUTER_TIMEOUT)
     self.clients[client.token] = client
 
     client.call_rpc = function(session_id, rpc_flag, rpc, ...)
@@ -102,21 +105,21 @@ end
 --send接口
 function RpcServer:call(client, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    if client.call_rpc(session_id, FlagMask.REQ, rpc, ...) then
-        return thread_mgr:yield(session_id, rpc, NetwkTime.RPC_CALL_TIMEOUT)
+    if client.call_rpc(session_id, FLAG_REQ, rpc, ...) then
+        return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
     end
     return false, "rpc server send failed"
 end
 
 --send接口
 function RpcServer:send(client, rpc, ...)
-    return client.call_rpc(0, FlagMask.REQ, rpc, ...)
+    return client.call_rpc(0, FLAG_REQ, rpc, ...)
 end
 
 --broadcast接口
 function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
-        client.call_rpc(0, FlagMask.REQ, rpc, ...)
+        client.call_rpc(0, FLAG_REQ, rpc, ...)
     end
 end
 

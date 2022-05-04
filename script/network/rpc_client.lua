@@ -1,18 +1,22 @@
 -- rpc_client.lua
-local tunpack       = table.unpack
-local log_err       = logger.err
-local qxpcall       = quanta.xpcall
-local qhash_code    = quanta.hash_code
+local tunpack           = table.unpack
+local log_err           = logger.err
+local qget              = quanta.get
+local qenum             = quanta.enum
+local qxpcall           = quanta.xpcall
+local qhash_code        = quanta.hash_code
 
-local event_mgr     = quanta.get("event_mgr")
-local socket_mgr    = quanta.get("socket_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
-local perfeval_mgr  = quanta.get("perfeval_mgr")
+local event_mgr         = qget("event_mgr")
+local socket_mgr        = qget("socket_mgr")
+local thread_mgr        = qget("thread_mgr")
+local perfeval_mgr      = qget("perfeval_mgr")
 
-local FlagMask      = enum("FlagMask")
-local KernCode      = enum("KernCode")
-local NetwkTime     = enum("NetwkTime")
-local SUCCESS       = KernCode.SUCCESS
+local FLAG_REQ          = qenum("FlagMask", "REQ")
+local FLAG_RES          = qenum("FlagMask", "RES")
+local SUCCESS           = qenum("KernCode", "SUCCESS")
+local ROUTER_TIMEOUT    = qenum("NetwkTime", "ROUTER_TIMEOUT")
+local CONNECT_TIMEOUT   = qenum("NetwkTime", "CONNECT_TIMEOUT")
+local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RpcClient = class()
 local prop = property(RpcClient)
@@ -40,7 +44,7 @@ end
 
 --检测存活
 function RpcClient:check_lost(now)
-    if now - self.alive_time > NetwkTime.ROUTER_TIMEOUT / 1000 then
+    if now - self.alive_time > ROUTER_TIMEOUT / 1000 then
         self:close()
         return true
     end
@@ -69,7 +73,7 @@ function RpcClient:connect()
         return true
     end
     --开始连接
-    local socket, cerr = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT)
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT)
     if not socket then
         log_err("[RpcClient][connect] failed to connect: %s:%d err=%s", self.ip, self.port, cerr)
         return false, cerr
@@ -83,37 +87,37 @@ function RpcClient:connect()
         return self:on_call_router(rpc, send_len)
     end
     socket.call_target = function(session_id, target, rpc, ...)
-        local send_len = socket.forward_target(session_id, FlagMask.REQ, quanta.id, target, rpc, ...)
+        local send_len = socket.forward_target(session_id, FLAG_REQ, quanta.id, target, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.callback_target = function(session_id, target, rpc, ...)
         if target == 0 then
-            local send_len = socket.call(session_id, FlagMask.RES, quanta.id, rpc, ...)
+            local send_len = socket.call(session_id, FLAG_RES, quanta.id, rpc, ...)
             return self:on_call_router(rpc, send_len)
         else
-            local send_len = socket.forward_target(session_id, FlagMask.RES, quanta.id, target, rpc, ...)
+            local send_len = socket.forward_target(session_id, FLAG_RES, quanta.id, target, rpc, ...)
             return self:on_call_router(rpc, send_len)
         end
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
         local hash_value = qhash_code(hash_key)
-        local send_len = socket.forward_hash(session_id, FlagMask.REQ, quanta.id, service_id, hash_value, rpc, ...)
+        local send_len = socket.forward_hash(session_id, FLAG_REQ, quanta.id, service_id, hash_value, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_random = function(session_id, service_id, rpc, ...)
-        local send_len = socket.forward_random(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
+        local send_len = socket.forward_random(session_id, FLAG_REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_master = function(session_id, service_id, rpc, ...)
-        local send_len = socket.forward_master(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
+        local send_len = socket.forward_master(session_id, FLAG_REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_broadcast = function(session_id, service_id, rpc, ...)
-        local send_len = socket.forward_broadcast(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
+        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.call_collect = function(session_id, service_id, rpc, ...)
-        local send_len = socket.forward_broadcast(session_id, FlagMask.REQ, quanta.id, service_id, rpc, ...)
+        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, quanta.id, service_id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     socket.on_error = function(token, err)
@@ -148,7 +152,7 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, source, rpc, ...)
     if rpc == "on_heartbeat" then
         return self:on_heartbeat(...)
     end
-    if session_id == 0 or rpc_flag == FlagMask.REQ then
+    if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
             local _<close> = perfeval_mgr:eval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
@@ -188,7 +192,7 @@ function RpcClient:forward_socket(method, session_id, ...)
     if self.alive then
         if self.socket[method](session_id, ...) then
             if session_id > 0 then
-                return thread_mgr:yield(session_id, method, NetwkTime.RPC_CALL_TIMEOUT)
+                return thread_mgr:yield(session_id, method, RPC_CALL_TIMEOUT)
             end
             return true, SUCCESS
         end
@@ -200,7 +204,7 @@ end
 --直接发送接口
 function RpcClient:send(rpc, ...)
     if self.alive then
-        self.socket.call_rpc(0, FlagMask.REQ, rpc, ...)
+        self.socket.call_rpc(0, FLAG_REQ, rpc, ...)
         return true
     end
     return false, "socket not connected"
@@ -210,8 +214,8 @@ end
 function RpcClient:call(rpc, ...)
     if self.alive then
         local session_id = thread_mgr:build_session_id()
-        if self.socket.call_rpc(session_id, FlagMask.REQ, rpc, ...) then
-            return thread_mgr:yield(session_id, rpc, NetwkTime.RPC_CALL_TIMEOUT)
+        if self.socket.call_rpc(session_id, FLAG_REQ, rpc, ...) then
+            return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
         end
     end
     return false, "socket not connected"

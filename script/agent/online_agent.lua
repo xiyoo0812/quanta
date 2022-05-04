@@ -8,7 +8,8 @@ local sid2index     = service.id2index
 local event_mgr     = quanta.get("event_mgr")
 local router_mgr    = quanta.get("router_mgr")
 
-local KernCode      = enum("KernCode")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
 
 local OnlineAgent = singleton()
 function OnlineAgent:__init()
@@ -55,7 +56,7 @@ end
 --需由player_mgr实现on_forward_client，给client发消息
 function OnlineAgent:rpc_forward_client(player_id, ...)
     local ok, res = tunpack(event_mgr:notify_listener("on_forward_client", player_id, ...))
-    return ok and KernCode.SUCCESS or KernCode.LOGIC_FAILED , res
+    return ok and SUCCESS or LOGIC_FAILED , res
 end
 
 -- Online服务已经ready

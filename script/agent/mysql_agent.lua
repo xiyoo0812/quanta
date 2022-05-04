@@ -3,9 +3,9 @@ local mrandom       = math.random
 local sformat       = string.format
 local tconcat       = table.concat
 
-local KernCode      = enum("KernCode")
-
 local router_mgr    = quanta.get("router_mgr")
+
+local PARAM_ERROR   = quanta.enum("KernCode", "PARAM_ERROR")
 
 local MysqlAgent = singleton()
 function MysqlAgent:__init()
@@ -50,7 +50,7 @@ end
 -- 更新
 function MysqlAgent:update(db_name, table_name, columns, conditions)
     if not next(columns) or not next(conditions) then
-        return false, KernCode.PARAM_ERROR
+        return false, PARAM_ERROR
     end
     local sql = sformat("update %s set %s where %s", table_name, self:format_update_sql(columns), self:format_condition_sql(conditions))
     return self:excute(sql, db_name)
@@ -59,7 +59,7 @@ end
 -- 插入
 function MysqlAgent:insert(db_name, table_name, columns)
     if not next(columns) then
-        return false, KernCode.PARAM_ERROR
+        return false, PARAM_ERROR
     end
     local sql = sformat("insert into %s %s", table_name, self:format_insert_sql(columns))
     return self:excute(sql, db_name)
@@ -68,7 +68,7 @@ end
 -- 重复插入(存在则更新，不存在则插入)
 function MysqlAgent:insert_or_update(db_name, table_name, columns)
     if not next(columns) then
-        return false, KernCode.PARAM_ERROR
+        return false, PARAM_ERROR
     end
     local sql = sformat("insert into %s %s on duplicate key update %s", table_name, self:format_insert_sql(columns), self:format_update_sql(columns))
     return self:excute(sql, db_name)
@@ -77,7 +77,7 @@ end
 -- 替换
 function MysqlAgent:replace(db_name, table_name, columns)
     if not next(columns) then
-        return false, KernCode.PARAM_ERROR
+        return false, PARAM_ERROR
     end
     local sql = sformat("replace into %s %s", table_name, self:format_insert_sql(columns))
     return self:excute(sql, db_name)
@@ -103,7 +103,7 @@ end
 -- 删除
 function MysqlAgent:delete(db_name, table_name, conditions)
     if not next(conditions) then
-        return false, KernCode.PARAM_ERROR
+        return false, PARAM_ERROR
     end
     local sql = sformat("delete from %s where %s", table_name, self:format_condition_sql(conditions))
     return self:excute(sql, db_name)

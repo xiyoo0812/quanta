@@ -5,10 +5,10 @@ local env_get       = environ.get
 local sformat       = string.format
 local json_encode   = ljson.encode
 
-local router_mgr    = quanta.get("router_mgr")
-
-local PeriodTime    = enum("PeriodTime")
 local LIMIT_COUNT   = 3    -- 周期内最大次数
+
+local router_mgr    = quanta.get("router_mgr")
+local HOUR_S        = quanta.enum("PeriodTime", "HOUR_S")
 
 local OaNotify      = singleton()
 local prop          = property(OaNotify)
@@ -67,7 +67,7 @@ function OaNotify:notify(title, context, ...)
             notify = { time = now, count = 0 }
             self.notify_limit[context] = notify
         end
-        if now - notify.time > PeriodTime.HOUR_S then
+        if now - notify.time > HOUR_S then
             notify = { time = now, count = 0 }
         end
         if notify.count > LIMIT_COUNT then

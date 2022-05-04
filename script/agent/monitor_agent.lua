@@ -10,13 +10,14 @@ local log_info      = logger.info
 local check_success = utility.check_success
 local check_failed  = utility.check_failed
 
-local KernCode      = enum("KernCode")
-local NetwkTime     = enum("NetwkTime")
-local PeriodTime    = enum("PeriodTime")
+local event_mgr         = quanta.get("event_mgr")
+local timer_mgr         = quanta.get("timer_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 
-local event_mgr     = quanta.get("event_mgr")
-local timer_mgr     = quanta.get("timer_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local RPC_FAILED        = quanta.enum("KernCode", "RPC_FAILED")
+local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
+local RECONNECT_TIME    = quanta.enum("NetwkTime", "RECONNECT_TIME")
+local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
 
 local MonitorAgent = singleton()
 local prop = property(MonitorAgent)
@@ -27,7 +28,7 @@ function MonitorAgent:__init()
     local ip, port = env_addr("QUANTA_MONITOR_ADDR")
     self.client = RpcClient(self, ip, port)
     --心跳定时器
-    timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
+    timer_mgr:loop(HEARTBEAT_TIME, function()
         self:on_timer()
     end)
     --注册事件
@@ -40,7 +41,7 @@ function MonitorAgent:on_timer()
     local client = self.client
     if not client:is_alive() then
         if now >= self.next_connect_time then
-            self.next_connect_time = now + NetwkTime.RECONNECT_TIME
+            self.next_connect_time = now + RECONNECT_TIME
             client:connect()
         end
     else
@@ -82,10 +83,10 @@ function MonitorAgent:on_quanta_quit(reason)
     event_mgr:notify_trigger("on_quanta_quit", reason)
     -- 关闭会话连接
     thread_mgr:fork(function()
-        thread_mgr:sleep(PeriodTime.SECOND_MS)
+        thread_mgr:sleep(SECOND_MS)
         self.client:close()
     end)
-    timer_mgr:once(PeriodTime.SECOND_MS, function()
+    timer_mgr:once(SECOND_MS, function()
         log_warn("[MonitorAgent][on_quanta_quit]->service:%s", quanta.name)
         signal_quit()
     end)
@@ -95,12 +96,12 @@ end
 --执行远程rpc消息
 function MonitorAgent:on_remote_message(data, message)
     if not message then
-        return {code = KernCode.RPC_FAILED, msg = "message is nil !"}
+        return {code = RPC_FAILED, msg = "message is nil !"}
     end
     local ok, code, res = tunpack(event_mgr:notify_listener(message, data))
     if not ok or check_failed(code) then
         log_err("[MonitorAgent][on_remote_message] web_rpc faild: ok=%s, ec=%s", ok, code)
-        return { code = ok and code or KernCode.RPC_FAILED, msg = ok and "" or code}
+        return { code = ok and code or RPC_FAILED, msg = ok and "" or code}
     end
     return { code = 0 , data = res}
 end

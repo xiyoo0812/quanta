@@ -3,12 +3,15 @@ local ssub          = string.sub
 local sfind         = string.find
 local log_err       = logger.err
 local log_info      = logger.info
+local qget          = quanta.get
+local qenum         = quanta.enum
 local qxpcall       = quanta.xpcall
 
-local NetwkTime     = enum("NetwkTime")
+local socket_mgr        = qget("socket_mgr")
+local thread_mgr        = qget("thread_mgr")
 
-local socket_mgr    = quanta.get("socket_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local CONNECT_TIMEOUT   = qenum("NetwkTime", "CONNECT_TIMEOUT")
+local NETWORK_TIMEOUT   = qenum("NetwkTime", "NETWORK_TIMEOUT")
 
 local Socket = class()
 local prop = property(Socket)
@@ -62,7 +65,7 @@ function Socket:connect(ip, port)
         return true
     end
     local proto_type = 2
-    local session, cerr = socket_mgr.connect(ip, port, NetwkTime.CONNECT_TIMEOUT, proto_type)
+    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_type)
     if not session then
         log_err("[Socket][connect] failed to connect: %s:%d type=%d, err=%s", ip, port, proto_type, cerr)
         return false, cerr
@@ -90,7 +93,7 @@ function Socket:connect(ip, port)
     self.token = session.token
     self.ip, self.port = ip, port
     --阻塞模式挂起
-    return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
+    return thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
 end
 
 function Socket:on_socket_accept(session)
@@ -115,7 +118,7 @@ function Socket:on_socket_error(token, err)
 end
 
 function Socket:accept(session, ip, port)
-    session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
+    session.set_timeout(NETWORK_TIMEOUT)
     session.on_call_text = function(recv_len, data)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end

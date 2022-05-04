@@ -1,28 +1,34 @@
 --net_server.lua
 local lcrypt        = require("lcrypt")
 
-local log_err       = logger.err
-local log_info      = logger.info
-local log_warn      = logger.warn
-local qxpcall       = quanta.xpcall
-local env_status    = environ.status
-local env_number    = environ.number
-local signalquit    = signal.quit
+local log_err           = logger.err
+local log_info          = logger.info
+local log_warn          = logger.warn
+local qget              = quanta.get
+local qenum             = quanta.enum
+local qxpcall           = quanta.xpcall
+local env_status        = environ.status
+local env_number        = environ.number
+local signalquit        = signal.quit
 
-local event_mgr     = quanta.get("event_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
-local protobuf_mgr  = quanta.get("protobuf_mgr")
-local perfeval_mgr  = quanta.get("perfeval_mgr")
+local event_mgr         =  qget("event_mgr")
+local thread_mgr        =  qget("thread_mgr")
+local protobuf_mgr      =  qget("protobuf_mgr")
+local perfeval_mgr      =  qget("perfeval_mgr")
 
-local FlagMask      = enum("FlagMask")
-local NetwkTime     = enum("NetwkTime")
+local FLAG_REQ          = qenum("FlagMask", "REQ")
+local FLAG_RES          = qenum("FlagMask", "RES")
+local FLAG_ZIP          = qenum("FlagMask", "ZIP")
+local FLAG_ENCRYPT      = qenum("FlagMask", "ENCRYPT")
+local NETWORK_TIMEOUT   = qenum("NetwkTime", "NETWORK_TIMEOUT")
+local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
 
-local out_press     = env_status("QUANTA_OUT_PRESS")
-local out_encrypt   = env_status("QUANTA_OUT_ENCRYPT")
-local flow_ctrl     = env_status("QUANTA_FLOW_CTRL")
-local flow_cd       = env_number("QUANTA_FLOW_CTRL_CD")
-local fc_package    = env_number("QUANTA_FLOW_CTRL_PACKAGE") / 1000
-local fc_bytes      = env_number("QUANTA_FLOW_CTRL_BYTES") / 1000
+local out_press         = env_status("QUANTA_OUT_PRESS")
+local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
+local flow_ctrl         = env_status("QUANTA_FLOW_CTRL")
+local flow_cd           = env_number("QUANTA_FLOW_CTRL_CD")
+local fc_package        = env_number("QUANTA_FLOW_CTRL_PACKAGE") / 1000
+local fc_bytes          = env_number("QUANTA_FLOW_CTRL_BYTES") / 1000
 
 -- Dx协议会话对象管理器
 local NetServer = class()
@@ -72,7 +78,7 @@ function NetServer:on_socket_accept(session)
     session.fc_bytes  = 0
     session.last_fc_time = quanta.now_ms
     -- 设置超时(心跳)
-    session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
+    session.set_timeout(NETWORK_TIMEOUT)
     -- 绑定call回调
     session.on_call_pack = function(recv_len, cmd_id, flag, session_id, data)
         session.fc_packet = session.fc_packet + 1
@@ -111,7 +117,7 @@ end
 
 -- 广播数据
 function NetServer:broadcast(cmd_id, data)
-    local body, pflag = self:encode(cmd_id, data, FlagMask.REQ)
+    local body, pflag = self:encode(cmd_id, data, FLAG_REQ)
     if not body then
         log_err("[NetServer][broadcast] encode failed! cmd_id:%s", cmd_id)
         return false
@@ -127,21 +133,21 @@ end
 
 -- 发送数据
 function NetServer:send_pack(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id, FlagMask.REQ)
+    return self:write(session, cmd_id, data, session_id, FLAG_REQ)
 end
 
 -- 回调数据
 function NetServer:callback_pack(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id, FlagMask.RES)
+    return self:write(session, cmd_id, data, session_id, FLAG_RES)
 end
 
 -- 发起远程调用
 function NetServer:call_pack(session, cmd_id, data)
     local session_id = thread_mgr:build_session_id()
-    if not self:write(session, cmd_id, data, session_id, FlagMask.REQ) then
+    if not self:write(session, cmd_id, data, session_id, FLAG_REQ) then
         return false
     end
-    return thread_mgr:yield(session_id, cmd_id, NetwkTime.RPC_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, cmd_id, RPC_CALL_TIMEOUT)
 end
 
 function NetServer:encode(cmd_id, data, flag)
@@ -154,23 +160,23 @@ function NetServer:encode(cmd_id, data, flag)
     -- 加密处理
     if out_encrypt then
         encode_data = lcrypt.b64_encode(encode_data)
-        flag = flag | FlagMask.ENCRYPT
+        flag = flag | FLAG_ENCRYPT
     end
     -- 压缩处理
     if out_press then
         encode_data = lcrypt.lz4_encode(encode_data)
-        flag = flag | FlagMask.ZIP
+        flag = flag | FLAG_ZIP
     end
     return encode_data, flag
 end
 
 function NetServer:decode(cmd_id, data, flag)
     local de_data = data
-    if flag & FlagMask.ZIP == FlagMask.ZIP then
+    if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
         de_data = lcrypt.lz4_decode(de_data)
     end
-    if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
+    if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
         --解密处理
         de_data = lcrypt.b64_decode(de_data)
     end
@@ -209,7 +215,7 @@ function NetServer:on_socket_recv(session, cmd_id, flag, session_id, data)
         log_warn("[NetServer][on_socket_recv] cmd(%s) parse failed.", cmd_id)
         return
     end
-    if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
+    if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(_session, cmd, bd)
             local _<close> = perfeval_mgr:eval(cmd_name)
             local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)

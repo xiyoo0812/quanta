@@ -12,14 +12,17 @@ local env_get       = environ.get
 local smake_id      = service.make_id
 local log_err       = logger.err
 local log_debug     = logger.debug
+local qget          = quanta.get
+local qenum         = quanta.enum
 
-local GMType        = enum("GMType")
-local KernCode      = enum("KernCode")
-local SUCCESS       = KernCode.SUCCESS
+local cmdline       = qget("cmdline")
+local event_mgr     = qget("event_mgr")
+local router_mgr    = qget("router_mgr")
 
-local cmdline       = quanta.get("cmdline")
-local event_mgr     = quanta.get("event_mgr")
-local router_mgr    = quanta.get("router_mgr")
+local GLOBAL        = qenum("GMType", "GLOBAL")
+local SYSTEM        = qenum("GMType", "SYSTEM")
+local SERVICE       = qenum("GMType", "SERVICE")
+local SUCCESS       = qenum("KernCode", "SUCCESS")
 
 local AdminMgr = singleton()
 local prop = property(AdminMgr)
@@ -139,11 +142,11 @@ end
 
 --分发command
 function AdminMgr:dispatch_command(cmd_args, gm_type, service)
-    if gm_type == GMType.GLOBAL then
+    if gm_type == GLOBAL then
         return self:exec_global_cmd(service, tunpack(cmd_args))
-    elseif gm_type == GMType.SYSTEM then
+    elseif gm_type == SYSTEM then
         return self:exec_system_cmd(service, tunpack(cmd_args))
-    elseif gm_type == GMType.SERVICE then
+    elseif gm_type == SERVICE then
         return self:exec_service_cmd(service, tunpack(cmd_args))
     end
     return self:exec_player_cmd(tunpack(cmd_args))

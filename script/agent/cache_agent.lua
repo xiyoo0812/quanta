@@ -4,11 +4,9 @@ local log_err       = logger.err
 local check_failed  = utility.check_failed
 
 local router_mgr    = quanta.get("router_mgr")
-local KernCode      = enum("KernCode")
-local CacheType     = enum("CacheType")
 
-local RPC_FAILED    = KernCode.RPC_FAILED
-local CACHE_BOTH    = CacheType.BOTH
+local RPC_FAILED    = quanta.enum("KernCode", "RPC_FAILED")
+local CACHE_BOTH    = quanta.enum("CacheType", "BOTH")
 
 local CacheAgent = singleton()
 function CacheAgent:__init()

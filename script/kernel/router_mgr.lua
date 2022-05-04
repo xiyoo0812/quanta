@@ -1,5 +1,7 @@
 -- router_mgr.lua
 local pairs             = pairs
+local qget              = quanta.get
+local qenum             = quanta.enum
 local log_err           = logger.err
 local log_info          = logger.info
 local mrandom           = math.random
@@ -10,13 +12,15 @@ local sid2name          = service.id2name
 local check_success     = utility.check_success
 local qhash_code        = quanta.hash_code
 
-local timer_mgr         = quanta.get("timer_mgr")
-local thread_mgr        = quanta.get("thread_mgr")
-local event_mgr         = quanta.get("event_mgr")
-local update_mgr        = quanta.get("update_mgr")
-local config_mgr        = quanta.get("config_mgr")
+local timer_mgr         = qget("timer_mgr")
+local thread_mgr        = qget("thread_mgr")
+local event_mgr         = qget("event_mgr")
+local update_mgr        = qget("update_mgr")
+local config_mgr        = qget("config_mgr")
 
-local NetwkTime         = enum("NetwkTime")
+local HEARTBEAT_TIME    = qenum("NetwkTime", "HEARTBEAT_TIME")
+local RECONNECT_TIME    = qenum("NetwkTime", "RECONNECT_TIME")
+local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
 local prop = property(RouterMgr)
@@ -43,7 +47,7 @@ function RouterMgr:setup()
     --加入更新
     update_mgr:attach_frame(self)
     --心跳定时器
-    timer_mgr:loop(NetwkTime.HEARTBEAT_TIME, function()
+    timer_mgr:loop(HEARTBEAT_TIME, function()
         for _, node in pairs(self.routers) do
             node.client:heartbeat()
         end
@@ -103,7 +107,7 @@ function RouterMgr:on_frame()
         local client = node.client
         if not client:is_alive() then
             if now_tick > node.next_connect_time then
-                node.next_connect_time = now_tick + NetwkTime.RECONNECT_TIME
+                node.next_connect_time = now_tick + RECONNECT_TIME
                 client:connect()
             end
         else
@@ -155,7 +159,7 @@ function RouterMgr:collect(service_id, rpc, ...)
     if ok and check_success(code) then
         while target_cnt > 0 do
             target_cnt = target_cnt - 1
-            local ok_c, code_c, res = thread_mgr:yield(session_id, "collect", NetwkTime.RPC_CALL_TIMEOUT)
+            local ok_c, code_c, res = thread_mgr:yield(session_id, "collect", RPC_CALL_TIMEOUT)
             if ok_c and check_success(code_c) then
                 collect_res[#collect_res + 1] = res
             end

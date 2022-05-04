@@ -4,24 +4,28 @@ local WheelMap      = import("container/wheel_map.lua")
 
 local log_err       = logger.err
 local log_info      = logger.info
+local qget          = quanta.get
+local qenum         = quanta.enum
 local tunpack       = table.unpack
 local check_failed  = utility.check_failed
 
-local KernCode      = enum("KernCode")
-local CacheCode     = enum("CacheCode")
-local PeriodTime    = enum("PeriodTime")
-local CacheType     = enum("CacheType")
+local event_mgr         = qget("event_mgr")
+local timer_mgr         = qget("timer_mgr")
+local config_mgr        = qget("config_mgr")
 
-local SUCCESS       = KernCode.SUCCESS
-local CAREAD        = CacheType.READ
-local CAWRITE       = CacheType.WRITE
+local obj_table         = config_mgr:init_table("cache_obj", "cache_table")
+local row_table         = config_mgr:init_table("cache_row", "cache_table")
 
-local event_mgr     = quanta.get("event_mgr")
-local timer_mgr     = quanta.get("timer_mgr")
-local config_mgr    = quanta.get("config_mgr")
-
-local obj_table     = config_mgr:init_table("cache_obj", "cache_table")
-local row_table     = config_mgr:init_table("cache_row", "cache_table")
+local CREAD                 = qenum("CacheType", "READ")
+local CWRITE                = qenum("CacheType", "WRITE")
+local SUCCESS               = qenum("KernCode", "SUCCESS")
+local SECOND_MS             = qenum("PeriodTime", "SECOND_MS")
+local SECOND_10_MS          = qenum("PeriodTime", "SECOND_10_MS")
+local CACHE_IS_HOLDING      = qenum("CacheCode", "CACHE_IS_HOLDING")
+local CACHE_NOT_SUPPERT     = qenum("CacheCode", "CACHE_NOT_SUPPERT")
+local CACHE_IS_NOT_EXIST    = qenum("CacheCode", "CACHE_IS_NOT_EXIST")
+local CACHE_KEY_LOCK_FAILD  = qenum("CacheCode", "CACHE_KEY_LOCK_FAILD")
+local CACHE_DEL_SAVE_FAILD  = qenum("CacheCode", "CACHE_DELETE_SAVE_FAILD")
 
 local CacheMgr = singleton()
 local prop = property(CacheMgr)
@@ -40,10 +44,10 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "rpc_cache_delete")
     event_mgr:add_listener(self, "rpc_cache_flush")
     --定时器
-    timer_mgr:loop(PeriodTime.SECOND_MS, function(ms)
+    timer_mgr:loop(SECOND_MS, function(ms)
         self:on_timer_update(ms)
     end)
-    timer_mgr:loop(PeriodTime.SECOND_10_MS, function(ms)
+    timer_mgr:loop(SECOND_10_MS, function(ms)
         self:on_timer_expire(ms)
     end)
 end
@@ -110,43 +114,43 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key, cache_type)
     local cache_list = self.cache_lists[cache_name]
     if not cache_list then
         log_err("[CacheMgr][get_cache_obj] cache list not find! cache_name=%s,primary=%s", cache_name, primary_key)
-        return CacheCode.CACHE_NOT_SUPPERT
+        return CACHE_NOT_SUPPERT
     end
     local cache_obj = cache_list[primary_key]
     if cache_obj then
         if cache_obj:is_holding() then
             log_err("[CacheMgr][get_cache_obj] cache is holding! cache_name=%s,primary=%s", cache_name, primary_key)
-            return CacheCode.CACHE_IS_HOLDING
+            return CACHE_IS_HOLDING
         end
-        if cache_type & CAWRITE == CAWRITE then
+        if cache_type & CWRITE == CWRITE then
             local lock_node_id = cache_obj:get_lock_node_id()
             if lock_node_id ~= 0 and quanta_id ~= lock_node_id then
                 log_err("[CacheMgr][get_cache_obj] cache node not match! cache_name=%s,primary=%s", cache_name, primary_key)
-                return CacheCode.CACHE_KEY_LOCK_FAILD
+                return CACHE_KEY_LOCK_FAILD
             end
             cache_obj:set_lock_node_id(quanta_id)
         end
         cache_obj:active()
         return SUCCESS, cache_obj
     end
-    if cache_type & CAREAD == CAREAD then
+    if cache_type & CREAD == CREAD then
         local conf = self.cache_confs[cache_name]
         local code, cobj = self:load_cache_impl(cache_list, conf, primary_key)
         if check_failed(code) then
             return code
         end
-        if cache_type & CAWRITE == CAWRITE then
+        if cache_type & CWRITE == CWRITE then
             cobj:set_lock_node_id(quanta_id)
         end
         return SUCCESS, cobj
     end
     log_err("[CacheMgr][get_cache_obj] cache object not exist! cache_name=%s,primary=%s", cache_name, primary_key)
-    return CacheCode.CACHE_IS_NOT_EXIST
+    return CACHE_IS_NOT_EXIST
 end
 
 function CacheMgr:rpc_cache_load(quanta_id, req_data)
     local cache_name, primary_key, cache_type = tunpack(req_data)
-    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, cache_type or CacheType.READ)
+    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, cache_type or CREAD)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_load] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
@@ -158,7 +162,7 @@ end
 --更新缓存
 function CacheMgr:rpc_cache_update(quanta_id, req_data)
     local cache_name, primary_key, table_name, table_data, flush = tunpack(req_data)
-    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CacheType.WRITE)
+    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CWRITE)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_update] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
@@ -173,7 +177,7 @@ end
 --更新缓存kv
 function CacheMgr:rpc_cache_update_key(quanta_id, req_data)
     local cache_name, primary_key, table_name, table_kvs, flush = tunpack(req_data)
-    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CacheType.WRITE)
+    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CWRITE)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_update_key] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
@@ -188,7 +192,7 @@ end
 --删除缓存，通常由运维指令执行
 function CacheMgr:rpc_cache_delete(quanta_id, req_data)
     local cache_name, primary_key = tunpack(req_data)
-    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CacheType.WRITE)
+    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CWRITE)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_delete] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
@@ -200,13 +204,13 @@ function CacheMgr:rpc_cache_delete(quanta_id, req_data)
         return SUCCESS
     end
     log_err("[CacheMgr][rpc_cache_delete] save failed: cache=%s,primary=%s", cache_name, primary_key)
-    return CacheCode.CACHE_DELETE_SAVE_FAILD
+    return CACHE_DEL_SAVE_FAILD
 end
 
 --缓存落地
 function CacheMgr:rpc_cache_flush(quanta_id, req_data)
     local cache_name, primary_key = tunpack(req_data)
-    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CacheType.WRITE)
+    local code, cache_obj = self:get_cache_obj(quanta_id, cache_name, primary_key, CWRITE)
     if SUCCESS ~= code then
         log_err("[CacheMgr][rpc_cache_flush] cache obj not find! cache_name=%s,primary=%s", cache_name, primary_key)
         return code
@@ -219,7 +223,7 @@ function CacheMgr:rpc_cache_flush(quanta_id, req_data)
         return SUCCESS
     end
     log_err("[CacheMgr][rpc_cache_flush] save failed: cache=%s,primary=%s", cache_name, primary_key)
-    return CacheCode.CACHE_DELETE_SAVE_FAILD
+    return CACHE_DEL_SAVE_FAILD
 end
 
 quanta.cache_mgr = CacheMgr()

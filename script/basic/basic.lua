@@ -19,9 +19,10 @@ import("basic/console.lua")
 import("basic/listener.lua")
 import("basic/signal.lua")
 import("basic/environ.lua")
-import("basic/utility.lua")
 
 local log_err       = logger.err
+local sformat       = string.format
+local dgetinfo      = debug.getinfo
 local dtraceback    = debug.traceback
 
 --函数装饰器: 保护性的调用指定函数,如果出错则写日志
@@ -50,4 +51,20 @@ function quanta.try_call(func, time, ...)
         end
     end
     return false
+end
+
+function quanta.enum(ename, ekey)
+    local eobj = enum(ename)
+    if not eobj then
+        local info = dgetinfo(2, "S")
+        log_err(sformat("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined))
+        return
+    end
+    local eval = eobj[ekey]
+    if not eval then
+        local info = dgetinfo(2, "S")
+        log_err(sformat("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined))
+        return
+    end
+    return eval
 end

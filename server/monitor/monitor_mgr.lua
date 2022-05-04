@@ -5,19 +5,20 @@ local log_page      = import("monitor/log_page.lua")
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
 
-local jdecode       = ljson.decode
+local qget          = quanta.get
 local env_get       = environ.get
 local env_addr      = environ.addr
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
+local jdecode       = ljson.decode
 local sformat       = string.format
 
-local PeriodTime    = enum("PeriodTime")
+local event_mgr     = qget("event_mgr")
+local thread_mgr    = qget("thread_mgr")
+local http_client   = qget("http_client")
 
-local event_mgr     = quanta.get("event_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
-local http_client   = quanta.get("http_client")
+local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
@@ -48,7 +49,7 @@ function MonitorMgr:__init()
         local host = env_get("QUANTA_HOST_IP")
         local purl = sformat("%s/monitor", admin_url)
         local http_addr = sformat("%s:%d", host, server:get_port())
-        thread_mgr:success_call(PeriodTime.SECOND_MS, function()
+        thread_mgr:success_call(SECOND_MS, function()
             local ok, status = http_client:call_post(purl, { addr = http_addr })
             if ok and status == 200 then
                 return true

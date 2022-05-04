@@ -4,10 +4,11 @@ local tunpack       = table.unpack
 local log_info      = logger.info
 local check_success = utility.check_success
 
-local KernCode      = enum("KernCode")
-
 local router_mgr    = quanta.get("router_mgr")
 local event_mgr     = quanta.get("event_mgr")
+
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
 
 local GMAgent = singleton()
 local prop = property(GMAgent)
@@ -65,7 +66,7 @@ end
 function GMAgent:rpc_command_execute(cmd_name, ...)
     log_info("[GMAgent][rpc_command_execute]->cmd_name:%s", cmd_name)
     local ok, res = tunpack(event_mgr:notify_listener(cmd_name, ...))
-    return ok and KernCode.SUCCESS or KernCode.LOGIC_FAILED, res
+    return ok and SUCCESS or LOGIC_FAILED, res
 end
 
 -- GM服务已经ready

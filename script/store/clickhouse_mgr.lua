@@ -1,12 +1,13 @@
 --clickhouse_mgr.lua
 local log_err       = logger.err
+local qget          = quanta.get
+local qenum         = quanta.enum
 
-local KernCode      = enum("KernCode")
-local SUCCESS       = KernCode.SUCCESS
-local MYSQL_FAILED  = KernCode.MYSQL_FAILED
+local event_mgr     = qget("event_mgr")
+local config_mgr    = qget("config_mgr")
 
-local event_mgr     = quanta.get("event_mgr")
-local config_mgr    = quanta.get("config_mgr")
+local SUCCESS       = qenum("KernCode", "SUCCESS")
+local MYSQL_FAILED  = qenum("KernCode", "MYSQL_FAILED")
 
 local ClickHouseMgr = singleton()
 local prop = property(ClickHouseMgr)

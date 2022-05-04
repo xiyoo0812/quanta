@@ -1,17 +1,20 @@
 -- netlog_mgr.lua
 local odate         = os.date
+local qget          = quanta.get
+local qenum         = quanta.enum
 local log_debug     = logger.debug
 local setup_monitor = logger.setup_monitor
 local sfind         = string.find
 local sformat       = string.format
 local ssplit        = string_ext.split
 
-local event_mgr     = quanta.get("event_mgr")
-local timer_mgr     = quanta.get("timer_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local event_mgr     = qget("event_mgr")
+local timer_mgr     = qget("timer_mgr")
+local thread_mgr    = qget("thread_mgr")
 
-local PeriodTime    = enum("PeriodTime")
-local KernCode      = enum("KernCode")
+local SUCCESS       = qenum("KernCode", "SUCCESS")
+local SECOND_MS     = qenum("PeriodTime", "SECOND_MS")
+local SECOND_5_S    = qenum("PeriodTime", "SECOND_5_S")
 
 local PULL_CNT_MAX  = 10
 
@@ -20,7 +23,7 @@ local prop = property(NetlogMgr)
 prop:reader("sessions", {})
 function NetlogMgr:__init()
     event_mgr:add_listener(self, "rpc_show_log")
-    timer_mgr:loop(PeriodTime.SECOND_MS, function()
+    timer_mgr:loop(SECOND_MS, function()
         self:on_timer()
     end)
 end
@@ -94,13 +97,13 @@ function NetlogMgr:rpc_show_log(data)
             session.pull_index = 0
         end
     end
-    return KernCode.SUCCESS, { logs = show_logs, session_id = session.session_id }
+    return SUCCESS, { logs = show_logs, session_id = session.session_id }
 end
 
 function NetlogMgr:on_timer()
     local cur_time = quanta.now
     for session_id, session in pairs(self.sessions) do
-        if cur_time - session.active_time > PeriodTime.SECOND_5_S then
+        if cur_time - session.active_time > SECOND_5_S then
             log_debug("[NetlogMgr][on_timer]->overdue->session_id:%s", session_id)
             self:close_session(session_id)
         end

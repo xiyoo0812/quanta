@@ -13,8 +13,7 @@ local log_err       = logger.err
 local QueueFIFO     = import("container/queue_fifo.lua")
 local SyncLock      = import("kernel/object/sync_lock.lua")
 
-local PeriodTime    = enum("PeriodTime")
-local MINUTE_10_MS  = PeriodTime.MINUTE_10_MS
+local MINUTE_10_MS  = quanta.enum("PeriodTime", "MINUTE_10_MS")
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)

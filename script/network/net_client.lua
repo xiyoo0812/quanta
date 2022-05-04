@@ -1,19 +1,27 @@
+--net_client.lua
 local lcrypt            = require("lcrypt")
 local log_err           = logger.err
+local qget              = quanta.get
+local qenum             = quanta.enum
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 
-local event_mgr         = quanta.get("event_mgr")
-local socket_mgr        = quanta.get("socket_mgr")
-local thread_mgr        = quanta.get("thread_mgr")
-local protobuf_mgr      = quanta.get("protobuf_mgr")
-local perfeval_mgr      = quanta.get("perfeval_mgr")
-
-local FlagMask          = enum("FlagMask")
-local NetwkTime         = enum("NetwkTime")
+local event_mgr         = qget("event_mgr")
+local socket_mgr        = qget("socket_mgr")
+local thread_mgr        = qget("thread_mgr")
+local protobuf_mgr      = qget("protobuf_mgr")
+local perfeval_mgr      = qget("perfeval_mgr")
 
 local out_press         = env_status("QUANTA_OUT_PRESS")
 local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
+
+local FLAG_REQ          = qenum("FlagMask", "REQ")
+local FLAG_RES          = qenum("FlagMask", "RES")
+local FLAG_ZIP          = qenum("FlagMask", "ZIP")
+local FLAG_ENCRYPT      = qenum("FlagMask", "ENCRYPT")
+local CONNECT_TIMEOUT   = qenum("NetwkTime", "CONNECT_TIMEOUT")
+local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
+
 
 local NetClient = class()
 local prop = property(NetClient)
@@ -39,7 +47,7 @@ function NetClient:connect(block)
         return true
     end
     local proto_type = 1
-    local socket, cerr = socket_mgr.connect(self.ip, self.port, NetwkTime.CONNECT_TIMEOUT, proto_type)
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, proto_type)
     if not socket then
         log_err("[NetClient][connect] failed to connect: %s:%d type=%d, err=%s", self.ip, self.port, proto_type, cerr)
         return false, cerr
@@ -73,7 +81,7 @@ function NetClient:connect(block)
     self.socket = socket
     --阻塞模式挂起
     if block_id then
-        return thread_mgr:yield(block_id, "connect", NetwkTime.CONNECT_TIMEOUT)
+        return thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
     end
     return true
 end
@@ -92,23 +100,23 @@ function NetClient:encode(cmd_id, data, flag)
     -- 加密处理
     if out_encrypt then
         encode_data = lcrypt.b64_encode(encode_data)
-        flag = flag | FlagMask.ENCRYPT
+        flag = flag | FLAG_ENCRYPT
     end
     -- 压缩处理
     if out_press then
         encode_data = lcrypt.lz4_encode(encode_data)
-        flag = flag | FlagMask.ZIP
+        flag = flag | FLAG_ZIP
     end
     return encode_data, flag
 end
 
 function NetClient:decode(cmd_id, data, flag)
     local decode_data = data
-    if flag & FlagMask.ZIP == FlagMask.ZIP then
+    if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
         decode_data = lcrypt.lz4_decode(decode_data)
     end
-    if flag & FlagMask.ENCRYPT == FlagMask.ENCRYPT then
+    if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
         --解密处理
         decode_data = lcrypt.b64_decode(decode_data)
     end
@@ -126,7 +134,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s，data:%s", cmd_id, data)
         return
     end
-    if session_id == 0 or (flag & FlagMask.REQ == FlagMask.REQ) then
+    if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
             local _<close> = perfeval_mgr:eval(cmd_name)
@@ -174,21 +182,21 @@ end
 
 -- 发送数据
 function NetClient:send_pack(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, FlagMask.REQ)
+    return self:write(cmd_id, data, session_id, FLAG_REQ)
 end
 
 -- 回调数据
 function NetClient:callback_pack(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, FlagMask.RES)
+    return self:write(cmd_id, data, session_id, FLAG_RES)
 end
 
 -- 发起远程调用
 function NetClient:call_pack(cmd_id, data)
     local session_id = thread_mgr:build_session_id()
-    if not self:write(cmd_id, data, session_id, FlagMask.REQ) then
+    if not self:write(cmd_id, data, session_id, FLAG_REQ) then
         return false
     end
-    return thread_mgr:yield(session_id, cmd_id, NetwkTime.RPC_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, cmd_id, RPC_CALL_TIMEOUT)
 end
 
 -- 等待远程调用

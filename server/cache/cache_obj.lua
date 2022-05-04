@@ -2,17 +2,16 @@
 -- cache的实体类
 local lcrypt = require("lcrypt")
 local log_err       = logger.err
+local qenum         = quanta.enum
 local new_guid      = lcrypt.guid_new
 local check_failed  = utility.check_failed
 local check_success = utility.check_success
 
-local KernCode      = enum("KernCode")
-local CacheCode     = enum("CacheCode")
-local SUCCESS       = KernCode.SUCCESS
-
 local mongo_mgr     = quanta.get("mongo_mgr")
-
 local CacheRow      = import("cache/cache_row.lua")
+
+local SUCCESS       = qenum("KernCode", "SUCCESS")
+local KEY_NOT_EXIST = qenum("CacheCode", "CACHE_KEY_IS_NOT_EXIST")
 
 local CacheObj = class()
 local prop = property(CacheObj)
@@ -145,7 +144,7 @@ function CacheObj:update(tab_name, tab_data, flush)
     local record = self.records[tab_name]
     if not record then
         log_err("[CacheObj][update] cannot find record! cache:%s, table:%s", self.cache_table, tab_name)
-        return CacheCode.CACHE_KEY_IS_NOT_EXIST
+        return KEY_NOT_EXIST
     end
     self.flush = false
     self.active_tick = quanta.now
@@ -161,7 +160,7 @@ function CacheObj:update_key(tab_name, table_kvs, flush)
     local record = self.records[tab_name]
     if not record then
         log_err("[CacheObj][update_key] cannot find record! cache:%s, table:%s", self.cache_table, tab_name)
-        return CacheCode.CACHE_KEY_IS_NOT_EXIST
+        return KEY_NOT_EXIST
     end
     self.flush = false
     self.active_tick = quanta.now

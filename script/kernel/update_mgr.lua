@@ -6,17 +6,24 @@ import("kernel/timer_mgr.lua")
 import("kernel/clock_mgr.lua")
 
 local pairs         = pairs
+local qget          = quanta.get
+local qenum         = quanta.enum
 local log_info      = logger.info
 local log_warn      = logger.warn
 local ltime         = ltimer.time
 local sig_check     = signal.check
 local collectgarbage= collectgarbage
 
-local PeriodTime    = enum("PeriodTime")
+local timer_mgr     = qget("timer_mgr")
+local clock_mgr     = qget("clock_mgr")
+local thread_mgr    = qget("thread_mgr")
 
-local timer_mgr     = quanta.get("timer_mgr")
-local clock_mgr     = quanta.get("clock_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local HALF_MS       = qenum("PeriodTime", "HALF_MS")
+local HOUR_MS       = qenum("PeriodTime", "HOUR_MS")
+local FRAME_MS      = qenum("PeriodTime", "FRAME_MS")
+local SECOND_MS     = qenum("PeriodTime", "SECOND_MS")
+local MINUTE_MS     = qenum("PeriodTime", "MINUTE_MS")
+local SECOND_2_MS   = qenum("PeriodTime", "SECOND_2_MS")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
@@ -37,12 +44,12 @@ end
 
 function UpdateMgr:setup()
     local now_ms = ltime()
-    self.gc_id = clock_mgr:alarm(PeriodTime.SECOND_2_MS, now_ms)
-    self.hour_id = clock_mgr:alarm(PeriodTime.HOUR_MS, now_ms)
-    self.frame_id = clock_mgr:alarm(PeriodTime.FRAME_MS, now_ms)
-    self.second_id = clock_mgr:alarm(PeriodTime.SECOND_MS, now_ms)
-    self.minute_id = clock_mgr:alarm(PeriodTime.MINUTE_MS, now_ms)
-    self.reload_id = clock_mgr:alarm(PeriodTime.SECOND_2_MS, now_ms)
+    self.gc_id = clock_mgr:alarm(SECOND_2_MS, now_ms)
+    self.hour_id = clock_mgr:alarm(HOUR_MS, now_ms)
+    self.frame_id = clock_mgr:alarm(FRAME_MS, now_ms)
+    self.second_id = clock_mgr:alarm(SECOND_MS, now_ms)
+    self.minute_id = clock_mgr:alarm(MINUTE_MS, now_ms)
+    self.reload_id = clock_mgr:alarm(SECOND_2_MS, now_ms)
     --注册订阅
     self:attach_quit(timer_mgr)
     self:attach_quit(clock_mgr)
@@ -58,7 +65,7 @@ function UpdateMgr:update(now_ms, count)
         if not clock_ms then
             return
         end
-        if clock_ms > PeriodTime.HALF_MS then
+        if clock_ms > HALF_MS then
             log_warn("[quanta][update] warning clock_ms(%d) too long count(%d)!", clock_ms, count)
         end
         --帧更新

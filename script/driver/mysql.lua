@@ -19,11 +19,10 @@ local tpack         = table.pack
 local tunpack       = table.unpack
 local tointeger     = math.tointeger
 
-local NetwkTime     = enum("NetwkTime")
-local DB_TIMEOUT    = NetwkTime.DB_CALL_TIMEOUT
-
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
+
+local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
 
 --charset编码
 local CHARSET_MAP = {

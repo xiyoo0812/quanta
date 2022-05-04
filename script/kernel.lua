@@ -2,6 +2,7 @@
 local ltimer = require("ltimer")
 
 import("basic/basic.lua")
+import("basic/utility.lua")
 import("kernel/config_mgr.lua")
 import("kernel/perfeval_mgr.lua")
 import("kernel/update_mgr.lua")

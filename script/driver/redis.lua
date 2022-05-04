@@ -10,17 +10,16 @@ local sgsub         = string.gsub
 local supper        = string.upper
 local sformat       = string.format
 local tpack         = table.pack
+local qget          = quanta.get
+local qenum         = quanta.enum
 
-local NetwkTime     = enum("NetwkTime")
-local DB_TIMEOUT    = NetwkTime.DB_CALL_TIMEOUT
-local NT_TIMEOUT    = NetwkTime.NETWORK_TIMEOUT
-
+local event_mgr     = qget("event_mgr")
+local update_mgr    = qget("update_mgr")
+local thread_mgr    = qget("thread_mgr")
 
 local LineTitle     = "\r\n"
-
-local event_mgr     = quanta.get("event_mgr")
-local update_mgr    = quanta.get("update_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local DB_TIMEOUT    = qenum("NetwkTime", "DB_CALL_TIMEOUT")
+local NT_TIMEOUT    = qenum("NetwkTime", "NETWORK_TIMEOUT")
 
 local function _async_call(context, quote)
     local session_id = thread_mgr:build_session_id()

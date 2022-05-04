@@ -31,13 +31,11 @@ local bson_encode_o = bson.encode_order
 local mtointeger    = math.tointeger
 
 local empty_bson    = bson_encode({})
-
-local ONCE_QUERY    = 100
-
-local NetwkTime     = enum("NetwkTime")
-
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+
+local ONCE_QUERY    = 100
+local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
 
 local MongoDB = class()
 local prop = property(MongoDB)
@@ -213,7 +211,7 @@ function MongoDB:_query(full_name, query, selector, query_num, skip, flag)
         return false, "send failed"
     end
     self.session_id = session_id
-    return thread_mgr:yield(session_id, "mongo_query", NetwkTime.DB_CALL_TIMEOUT)
+    return thread_mgr:yield(session_id, "mongo_query", DB_TIMEOUT)
 end
 
 
@@ -227,7 +225,7 @@ function MongoDB:_more(full_name, cursor, query_num)
         return false, "send failed"
     end
     self.session_id = session_id
-    local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, "mongo_more", NetwkTime.DB_CALL_TIMEOUT)
+    local succ, doc, new_cursor, documents = thread_mgr:yield(session_id, "mongo_more", DB_TIMEOUT)
     if not succ then
         return self:mongo_result(succ, doc)
     end

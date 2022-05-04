@@ -11,12 +11,15 @@ local log_info      = logger.info
 local lsha1         = lcrypt.sha1
 local lxor_byte     = lcrypt.xor_byte
 local lb64encode    = lcrypt.b64_encode
+local qget          = quanta.get
+local qenum         = quanta.enum
 local qxpcall       = quanta.xpcall
 
-local NetwkTime     = enum("NetwkTime")
+local socket_mgr        = qget("socket_mgr")
+local thread_mgr        = qget("thread_mgr")
 
-local socket_mgr    = quanta.get("socket_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local NETWORK_TIMEOUT   = qenum("NetwkTime", "NETWORK_TIMEOUT")
+local HTTP_CALL_TIMEOUT = qenum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
 local WebSocket = class()
 local prop = property(WebSocket)
@@ -128,7 +131,7 @@ end
 --accept
 function WebSocket:accept(session, ip, port)
     self.ip, self.port = ip, port
-    session.set_timeout(NetwkTime.NETWORK_TIMEOUT)
+    session.set_timeout(NETWORK_TIMEOUT)
     session.on_call_text = function(recv_len, data)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
     end
@@ -297,7 +300,7 @@ function WebSocket:combine_frame(frame)
     while true do
         local session_id = thread_mgr:build_session_id()
         self.context = { session_id = session_id }
-        local next_frame = thread_mgr:yield(session_id, "combine_frame", NetwkTime.DB_TIMEOUT)
+        local next_frame = thread_mgr:yield(session_id, "combine_frame", HTTP_CALL_TIMEOUT)
         frame.data = frame.data .. next_frame.data
         if next_frame.final then
             break

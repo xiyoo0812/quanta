@@ -1,13 +1,13 @@
 -- cache_row.lua
 -- cache单行
 local log_err       = logger.err
+local qenum         = quanta.enum
 local check_failed  = utility.check_failed
 
-local KernCode      = enum("KernCode")
-local CacheCode     = enum("CacheCode")
-local SUCCESS       = KernCode.SUCCESS
-
 local mongo_mgr     = quanta.get("mongo_mgr")
+
+local SUCCESS       = qenum("KernCode", "SUCCESS")
+local FLUSH_FAILED  = qenum("CacheCode", "CACHE_FLUSH_FAILED")
 
 local CacheRow = class()
 local prop = property(CacheRow)
@@ -75,7 +75,7 @@ function CacheRow:update(data, flush)
         local code = self:save()
         if check_failed(code) then
             log_err("[CacheRow][update] flush failed: db: %s, table: %s", self.db_name, self.cache_table)
-            return CacheCode.CACHE_FLUSH_FAILED
+            return FLUSH_FAILED
         end
     end
     return SUCCESS
@@ -91,7 +91,7 @@ function CacheRow:update_key(table_kvs, flush)
         local code = self:save()
         if check_failed(code) then
             log_err("[CacheRow][update_key] flush failed: db: %s, table: %s", self.db_name, self.cache_table)
-            return CacheCode.CACHE_FLUSH_FAILED
+            return FLUSH_FAILED
         end
     end
     return SUCCESS
