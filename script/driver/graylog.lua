@@ -3,6 +3,7 @@ import("network/http_client.lua")
 local lkcp          = require("lkcp")
 local ljson         = require("lcjson")
 
+local qget          = quanta.get
 local log_err       = logger.err
 local log_info      = logger.info
 local json_encode   = ljson.encode
@@ -15,10 +16,10 @@ local sid2name      = service.id2name
 local sid2index     = service.id2index
 local protoaddr     = string_ext.protoaddr
 
-local Socket        = import("driver/socket.lua")
+local update_mgr    = qget("update_mgr")
+local http_client   = qget("http_client")
 
-local update_mgr    = quanta.get("update_mgr")
-local http_client   = quanta.get("http_client")
+local Socket        = import("driver/socket.lua")
 
 local GrayLog = class()
 local prop = property(GrayLog)

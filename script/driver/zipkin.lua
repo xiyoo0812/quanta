@@ -2,14 +2,15 @@
 import("network/http_client.lua")
 local lcrypt        = require("lcrypt")
 
+local qget          = quanta.get
 local log_err       = logger.err
 local log_info      = logger.info
 local sformat       = string.format
 local lrandomkey    = lcrypt.randomkey
 local lhex_encode   = lcrypt.hex_encode
 
-local thread_mgr    = quanta.get("thread_mgr")
-local http_client   = quanta.get("http_client")
+local thread_mgr    = qget("thread_mgr")
+local http_client   = qget("http_client")
 
 local Zipkin = singleton()
 local prop = property(Zipkin)

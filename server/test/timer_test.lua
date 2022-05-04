@@ -1,6 +1,7 @@
 --log_test.lua
 local ltimer    = require("ltimer")
 
+local qget      = quanta.get
 local log_info  = logger.info
 
 local msec, sec = ltimer.time()
@@ -14,8 +15,8 @@ local steady = ltimer.steady()
 local steady_ms = ltimer.steady_ms()
 log_info("time: steady:%s, steady_ms:%s", steady, steady_ms)
 
-local timer_mgr = quanta.get("timer_mgr")
-local thread_mgr = quanta.get("thread_mgr")
+local timer_mgr = qget("timer_mgr")
+local thread_mgr = qget("thread_mgr")
 
 thread_mgr:fork(function()
     log_info("once")

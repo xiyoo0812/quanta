@@ -2,12 +2,13 @@
 local otime         = os.time
 local odate         = os.date
 local log_err       = logger.err
+local qenum         = quanta.enum
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 
-local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local DAY_S         = quanta.enum("PeriodTime", "DAY_S")
-local HOUR_S        = quanta.enum("PeriodTime", "HOUR_S")
+local SUCCESS       = qenum("KernCode", "SUCCESS")
+local DAY_S         = qenum("PeriodTime", "DAY_S")
+local HOUR_S        = qenum("PeriodTime", "HOUR_S")
 
 utility = {}
 function utility.check_success(code)

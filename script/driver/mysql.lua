@@ -11,6 +11,7 @@ local sgsub         = string.gsub
 local sbyte         = string.byte
 local schar         = string.char
 local spack         = string.pack
+local qget          = quanta.get
 local log_err       = logger.err
 local log_info      = logger.info
 local sformat       = string.format
@@ -19,8 +20,8 @@ local tpack         = table.pack
 local tunpack       = table.unpack
 local tointeger     = math.tointeger
 
-local thread_mgr    = quanta.get("thread_mgr")
-local update_mgr    = quanta.get("update_mgr")
+local thread_mgr    = qget("thread_mgr")
+local update_mgr    = qget("update_mgr")
 
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
 

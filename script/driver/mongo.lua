@@ -6,6 +6,7 @@ local lcrypt        = require("lcrypt")
 local Socket        = import("driver/socket.lua")
 
 local ipairs        = ipairs
+local qget          = quanta.get
 local log_err       = logger.err
 local log_info      = logger.info
 local tunpack       = table.unpack
@@ -31,8 +32,8 @@ local bson_encode_o = bson.encode_order
 local mtointeger    = math.tointeger
 
 local empty_bson    = bson_encode({})
-local update_mgr    = quanta.get("update_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local update_mgr    = qget("update_mgr")
+local thread_mgr    = qget("thread_mgr")
 
 local ONCE_QUERY    = 100
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")

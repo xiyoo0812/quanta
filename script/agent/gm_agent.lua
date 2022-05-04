@@ -2,13 +2,15 @@
 
 local tunpack       = table.unpack
 local log_info      = logger.info
+local qget          = quanta.get
+local qenum         = quanta.enum
 local check_success = utility.check_success
 
-local router_mgr    = quanta.get("router_mgr")
-local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = qget("router_mgr")
+local event_mgr     = qget("event_mgr")
 
-local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
+local SUCCESS       = qenum("KernCode", "SUCCESS")
+local LOGIC_FAILED  = qenum("KernCode", "LOGIC_FAILED")
 
 local GMAgent = singleton()
 local prop = property(GMAgent)

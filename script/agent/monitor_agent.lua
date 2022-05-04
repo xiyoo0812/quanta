@@ -7,17 +7,19 @@ local env_addr      = environ.addr
 local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
+local qget          = quanta.get
+local qenum         = quanta.enum
 local check_success = utility.check_success
 local check_failed  = utility.check_failed
 
-local event_mgr         = quanta.get("event_mgr")
-local timer_mgr         = quanta.get("timer_mgr")
-local thread_mgr        = quanta.get("thread_mgr")
+local event_mgr         = qget("event_mgr")
+local timer_mgr         = qget("timer_mgr")
+local thread_mgr        = qget("thread_mgr")
 
-local RPC_FAILED        = quanta.enum("KernCode", "RPC_FAILED")
-local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
-local RECONNECT_TIME    = quanta.enum("NetwkTime", "RECONNECT_TIME")
-local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
+local RPC_FAILED        = qenum("KernCode", "RPC_FAILED")
+local SECOND_MS         = qenum("PeriodTime", "SECOND_MS")
+local RECONNECT_TIME    = qenum("NetwkTime", "RECONNECT_TIME")
+local HEARTBEAT_TIME    = qenum("NetwkTime", "HEARTBEAT_TIME")
 
 local MonitorAgent = singleton()
 local prop = property(MonitorAgent)
