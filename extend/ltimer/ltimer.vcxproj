@@ -7,10 +7,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ltimer\ltimer.h"/>
+    <ClInclude Include="ltimer\ltimer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ltimer\ltimer.cpp"/>
+    <ClCompile Include="ltimer\ltimer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2DE9C09F-02F5-DF2B-524C-FFBEBC8DE5EE}</ProjectGuid>
@@ -22,7 +22,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

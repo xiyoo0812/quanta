@@ -45,7 +45,7 @@
   </ItemGroup>
   <ItemGroup>
   {{% for _, CINC in pairs(CINCLUDES or {}) do %}}
-    <ClInclude Include="{{%= CINC[1] %}}"/>
+    <ClInclude Include="{{%= CINC[1] %}}" />
   {{% end %}}
   </ItemGroup>
   <ItemGroup>
@@ -57,7 +57,7 @@
     </ClCompile>
   {{% else %}}
     {{% if CSRC[4] or (#OBJS == 0 and not CSRC[3]) then %}}
-    <ClCompile Include="{{%= CSRC[1] %}}"/>
+    <ClCompile Include="{{%= CSRC[1] %}}" />
     {{% else %}}
     <ClCompile Include="{{%= CSRC[1] %}}">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
@@ -83,7 +83,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     {{% end %}}
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

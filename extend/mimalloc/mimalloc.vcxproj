@@ -7,38 +7,38 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="mimalloc\src\bitmap.h"/>
+    <ClInclude Include="mimalloc\src\bitmap.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="mimalloc\src\alloc-aligned.c"/>
+    <ClCompile Include="mimalloc\src\alloc-aligned.c" />
     <ClCompile Include="mimalloc\src\alloc-override-osx.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="mimalloc\src\alloc-override.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="mimalloc\src\alloc-posix.c"/>
-    <ClCompile Include="mimalloc\src\alloc.c"/>
-    <ClCompile Include="mimalloc\src\arena.c"/>
-    <ClCompile Include="mimalloc\src\bitmap.c"/>
-    <ClCompile Include="mimalloc\src\heap.c"/>
-    <ClCompile Include="mimalloc\src\init.c"/>
-    <ClCompile Include="mimalloc\src\options.c"/>
-    <ClCompile Include="mimalloc\src\os.c"/>
+    <ClCompile Include="mimalloc\src\alloc-posix.c" />
+    <ClCompile Include="mimalloc\src\alloc.c" />
+    <ClCompile Include="mimalloc\src\arena.c" />
+    <ClCompile Include="mimalloc\src\bitmap.c" />
+    <ClCompile Include="mimalloc\src\heap.c" />
+    <ClCompile Include="mimalloc\src\init.c" />
+    <ClCompile Include="mimalloc\src\options.c" />
+    <ClCompile Include="mimalloc\src\os.c" />
     <ClCompile Include="mimalloc\src\page-queue.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="mimalloc\src\page.c"/>
-    <ClCompile Include="mimalloc\src\random.c"/>
+    <ClCompile Include="mimalloc\src\page.c" />
+    <ClCompile Include="mimalloc\src\random.c" />
     <ClCompile Include="mimalloc\src\region.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="mimalloc\src\segment-cache.c"/>
-    <ClCompile Include="mimalloc\src\segment.c"/>
+    <ClCompile Include="mimalloc\src\segment-cache.c" />
+    <ClCompile Include="mimalloc\src\segment.c" />
     <ClCompile Include="mimalloc\src\static.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="mimalloc\src\stats.c"/>
+    <ClCompile Include="mimalloc\src\stats.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6805C141-3788-A994-7DCA-ADD6574D1386}</ProjectGuid>
@@ -50,7 +50,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

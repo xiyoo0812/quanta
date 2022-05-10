@@ -7,11 +7,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\quanta.h"/>
+    <ClInclude Include="src\quanta.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp"/>
-    <ClCompile Include="src\quanta.cpp"/>
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\quanta.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2CE1C7DB-EA72-ED68-C587-CA3383754760}</ProjectGuid>
@@ -24,7 +24,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

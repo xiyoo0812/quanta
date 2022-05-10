@@ -7,34 +7,34 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="lua\lapi.h"/>
-    <ClInclude Include="lua\lauxlib.h"/>
-    <ClInclude Include="lua\lcode.h"/>
-    <ClInclude Include="lua\lctype.h"/>
-    <ClInclude Include="lua\ldebug.h"/>
-    <ClInclude Include="lua\ldo.h"/>
-    <ClInclude Include="lua\lfunc.h"/>
-    <ClInclude Include="lua\lgc.h"/>
-    <ClInclude Include="lua\ljumptab.h"/>
-    <ClInclude Include="lua\llex.h"/>
-    <ClInclude Include="lua\llimits.h"/>
-    <ClInclude Include="lua\lmem.h"/>
-    <ClInclude Include="lua\lobject.h"/>
-    <ClInclude Include="lua\lopcodes.h"/>
-    <ClInclude Include="lua\lopnames.h"/>
-    <ClInclude Include="lua\lparser.h"/>
-    <ClInclude Include="lua\lprefix.h"/>
-    <ClInclude Include="lua\lstate.h"/>
-    <ClInclude Include="lua\lstring.h"/>
-    <ClInclude Include="lua\ltable.h"/>
-    <ClInclude Include="lua\ltests.h"/>
-    <ClInclude Include="lua\ltm.h"/>
-    <ClInclude Include="lua\lua.h"/>
-    <ClInclude Include="lua\luaconf.h"/>
-    <ClInclude Include="lua\lualib.h"/>
-    <ClInclude Include="lua\lundump.h"/>
-    <ClInclude Include="lua\lvm.h"/>
-    <ClInclude Include="lua\lzio.h"/>
+    <ClInclude Include="lua\lapi.h" />
+    <ClInclude Include="lua\lauxlib.h" />
+    <ClInclude Include="lua\lcode.h" />
+    <ClInclude Include="lua\lctype.h" />
+    <ClInclude Include="lua\ldebug.h" />
+    <ClInclude Include="lua\ldo.h" />
+    <ClInclude Include="lua\lfunc.h" />
+    <ClInclude Include="lua\lgc.h" />
+    <ClInclude Include="lua\ljumptab.h" />
+    <ClInclude Include="lua\llex.h" />
+    <ClInclude Include="lua\llimits.h" />
+    <ClInclude Include="lua\lmem.h" />
+    <ClInclude Include="lua\lobject.h" />
+    <ClInclude Include="lua\lopcodes.h" />
+    <ClInclude Include="lua\lopnames.h" />
+    <ClInclude Include="lua\lparser.h" />
+    <ClInclude Include="lua\lprefix.h" />
+    <ClInclude Include="lua\lstate.h" />
+    <ClInclude Include="lua\lstring.h" />
+    <ClInclude Include="lua\ltable.h" />
+    <ClInclude Include="lua\ltests.h" />
+    <ClInclude Include="lua\ltm.h" />
+    <ClInclude Include="lua\lua.h" />
+    <ClInclude Include="lua\luaconf.h" />
+    <ClInclude Include="lua\lualib.h" />
+    <ClInclude Include="lua\lundump.h" />
+    <ClInclude Include="lua\lvm.h" />
+    <ClInclude Include="lua\lzio.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lua\lapi.c">
@@ -139,7 +139,7 @@
     <ClCompile Include="lua\lzio.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="lua\onelua.c"/>
+    <ClCompile Include="lua\onelua.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B0AEF51E-FBD8-3472-DB40-2C819DE2E5DF}</ProjectGuid>
@@ -151,7 +151,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

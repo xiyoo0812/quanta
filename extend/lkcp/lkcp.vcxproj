@@ -7,11 +7,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\ikcp.h"/>
+    <ClInclude Include="src\ikcp.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\ikcp.c"/>
-    <ClCompile Include="src\lkcp.c"/>
+    <ClCompile Include="src\ikcp.c" />
+    <ClCompile Include="src\lkcp.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{CADB1650-91D5-CEAE-233B-F22F72E5E0BE}</ProjectGuid>
@@ -23,7 +23,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

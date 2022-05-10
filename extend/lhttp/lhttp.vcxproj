@@ -7,11 +7,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\http.h"/>
+    <ClInclude Include="src\http.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\http.c"/>
-    <ClCompile Include="src\lhttp.c"/>
+    <ClCompile Include="src\http.c" />
+    <ClCompile Include="src\lhttp.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{11E2E293-CF1A-0E75-B860-D3F9B4ED0407}</ProjectGuid>
@@ -23,7 +23,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />

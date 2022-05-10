@@ -7,15 +7,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\MiniExcel.h"/>
-    <ClInclude Include="src\miniz.h"/>
-    <ClInclude Include="src\tinyxml2.h"/>
+    <ClInclude Include="src\MiniExcel.h" />
+    <ClInclude Include="src\miniz.h" />
+    <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\MiniExcel.cpp"/>
-    <ClCompile Include="src\luaxlsx.cpp"/>
-    <ClCompile Include="src\miniz.c"/>
-    <ClCompile Include="src\tinyxml2.cpp"/>
+    <ClCompile Include="src\MiniExcel.cpp" />
+    <ClCompile Include="src\luaxlsx.cpp" />
+    <ClCompile Include="src\miniz.c" />
+    <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B2999D78-279A-1A53-CC82-74D494144722}</ProjectGuid>
@@ -27,7 +27,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
