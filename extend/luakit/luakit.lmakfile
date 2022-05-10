@@ -1,0 +1,41 @@
+--工程名字
+PROJECT_NAME = "luakit"
+
+--目标名字
+TARGET_NAME = "luakit"
+
+----工程类型: static/dynamic/exe
+PROJECT_TYPE = "exe"
+
+--禁用，不会生成到项目
+DISABLE = false
+
+--需要的FLAGS
+FLAGS = {
+	"fpermissive",
+	"Wno-unused-variable",
+	"Wno-unused-parameter",
+	"Wno-unused-but-set-parameter"
+}
+
+--源文件路径
+SRC_DIR = "test"
+
+--需要的include目录
+INCLUDES = {
+	"include",
+	"../../extend/lua/lua"
+}
+
+--需要连接的库文件
+LIBS = {
+	"lua"
+}
+
+--依赖项目
+DEPS = {
+	"lualib"
+}
+
+--分组定义
+GROUP = "test"
