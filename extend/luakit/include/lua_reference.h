@@ -81,6 +81,8 @@ namespace luakit {
 
     template <> 
     inline reference lua_to_native(lua_State* L, int i) {
+        lua_guard g(L);
+        lua_pushvalue(L, i);
         return reference(L);
     }
 }

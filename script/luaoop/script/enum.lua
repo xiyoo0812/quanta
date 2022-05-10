@@ -28,7 +28,11 @@ local setmetatable  = setmetatable
 local enum_tpls     = _ENV.enum_tpls or {}
 
 local function enum_tostring(eo)
-    return sformat("enum:%s(max:%s, elems: {%s})", eo.__name, eo.__vmax, tconcat(eo.__vlist, ","))
+    local ekv = {}
+    for k, v in pairs(eo.__vlist) do
+        ekv[#ekv + 1] = sformat("%s=%s", k, v)
+    end
+    return sformat("enum:%s(max:%s, elems: {%s})", eo.__name, eo.__vmax, tconcat(ekv, ","))
 end
 
 local function enum_new(emobj, field, value)
