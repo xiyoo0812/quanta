@@ -171,7 +171,11 @@ function HttpServer:on_http_request(handlers, socket, request, url, ...)
 end
 
 function HttpServer:response(socket, status, request, hresponse)
-    self.requests[socket:get_token()] = nil
+    local token = socket:get_token()
+    if not token then
+        return
+    end
+    self.requests[token] = nil
     if type(hresponse) == "userdata" then
         socket:send(hresponse:respond(request))
         socket:close()

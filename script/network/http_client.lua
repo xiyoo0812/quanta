@@ -63,7 +63,11 @@ function HttpClient:on_frame()
 end
 
 function HttpClient:format_url(url, query)
-    if next(query) then
+    local qtype = type(query)
+    if qtype == "string" and #query > 0 then
+        return sformat("%s?%s", url, query)
+    end
+    if qtype == "table" and next(query) then
         local fquery = {}
         for key, value in pairs(query) do
             fquery[#fquery + 1] = sformat("%s=%s", luencode(key), luencode(value))
