@@ -63,6 +63,7 @@ cd bin
 - lcrypt
 - lcjson
 - lstdfs
+- luakit
 - lualog
 - lbuffer
 - luaxlsx
@@ -81,6 +82,7 @@ cd bin
 - json协议支持
 - http服务器支持
 - http客户端访问
+- websocket支持
 - excel(xlsx/xlsm)配置导出
 - tcp服务器/客户端支持
 - rpc调用机制支持
@@ -101,4 +103,5 @@ cd bin
 # 辅助工具
 - graylog日志系统
 - zipkin/jager调用链系统
+- nacos配置管理和服务发现系统
 - dingding/wechat/lark等webhook通知

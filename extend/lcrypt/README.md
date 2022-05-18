@@ -73,8 +73,11 @@ local sha512 = lhex_encode(lsha512(value))
 log_info("sha512: %s", sha512)
 
 --md5
-local md5 = lhex_encode(lmd5(value))
-log_info("md5: %s", md5)
+local omd5 = lmd5(value)
+local nmd5 = lmd5(value, true)
+local hmd5 = lhex_encode(omd5)
+log_info("md5: %s", nmd5)
+log_info("omd5: %s, hmd5: %s", omd5, hmd5)
 
 --hmac_sha
 local key = "1235456"
