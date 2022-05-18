@@ -91,6 +91,8 @@ namespace luakit {
 
     template <> 
     inline lua_table lua_to_native(lua_State* L, int i) {
+        lua_guard g(L);
+        lua_pushvalue(L, i);
         return lua_table(L);
     }
 }

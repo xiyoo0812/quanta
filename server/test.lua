@@ -26,6 +26,7 @@ quanta.startup(function()--初始化test
     import("test/graylog_test.lua")
     import("test/zipkin_test.lua")
     import("test/clickhouse_test.lua")
+    import("test/nacos_test.lua")
     ]]
-    import("test/timer_test.lua")
+    import("test/nacos_test.lua")
 end)
