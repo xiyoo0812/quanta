@@ -131,68 +131,73 @@ namespace logger {
         std::string         source_, stream_, feature_;
         log_level           level_ = log_level::LOG_LEVEL_DEBUG;
     }; // class log_message
+    typedef std::list<std::shared_ptr<log_message>> log_message_list;
 
     class log_message_pool {
     public:
         log_message_pool(size_t msg_size) {
             for (size_t i = 0; i < msg_size; ++i) {
-                messages_.push_back(std::make_shared<log_message>());
+                alloc_messages_->push_back(std::make_shared<log_message>());
             }
         }
         ~log_message_pool() {
-            messages_.clear();
+            alloc_messages_->clear();
+            free_messages_->clear();
         }
         std::shared_ptr<log_message> allocate() {
-            if (messages_.empty()) {
+            if (alloc_messages_->empty()) {
+                std::unique_lock<spin_mutex> lock(mutex_);
+                alloc_messages_.swap(free_messages_);
+            }
+            if (alloc_messages_->empty()) {
                 auto logmsg = std::make_shared<log_message>();
                 logmsg->set_grow(true);
                 return logmsg;
             }
-            std::unique_lock<spin_mutex> lock(mutex_);
-            auto logmsg = messages_.front();
-            messages_.pop_front();
+            auto logmsg = alloc_messages_->front();
+            alloc_messages_->pop_front();
             logmsg->clear();
             return logmsg;
         }
         void release(std::shared_ptr<log_message> logmsg) {
             if (!logmsg->is_grow()) {
                 std::unique_lock<spin_mutex> lock(mutex_);
-                messages_.push_back(logmsg);
+                free_messages_->push_back(logmsg);
             }
         }
 
     private:
         spin_mutex mutex_;
-        std::list<std::shared_ptr<log_message>>    messages_;
+        std::shared_ptr<log_message_list> free_messages_ = std::make_shared<log_message_list>();
+        std::shared_ptr<log_message_list> alloc_messages_ = std::make_shared<log_message_list>();
     }; // class log_message_pool
 
     class log_message_queue {
     public:
         void put(std::shared_ptr<log_message> logmsg) {
             std::unique_lock<spin_mutex> lock(spin_);
-            messages_.push_back(logmsg);
-            condv_.notify_all();
+            write_messages_->push_back(logmsg);
         }
 
-        void timed_getv(std::vector<std::shared_ptr<log_message>>& vec_msg, int number, int time) {
-            if (messages_.empty()) {
-                std::unique_lock<std::mutex> lock(mutex_);
-                condv_.wait_for(lock, std::chrono::milliseconds(time));
-            }
-            while (!messages_.empty() && number > 0) {
-                auto logmsg = messages_.front();
-                vec_msg.push_back(logmsg);
-                number--;
+        std::shared_ptr<log_message_list> timed_getv() {
+            {
+                read_messages_->clear();
                 std::unique_lock<spin_mutex> lock(spin_);
-                messages_.pop_front();
+                read_messages_.swap(write_messages_);
             }
+            if (read_messages_->empty()) {
+                std::unique_lock<std::mutex> lock(mutex_);
+                condv_.wait_for(lock, std::chrono::milliseconds(5));
+            }
+            return read_messages_;
         }
 
     private:
         spin_mutex                  spin_;
         std::mutex                  mutex_;
         std::condition_variable     condv_;
-        std::list<std::shared_ptr<log_message>> messages_;
+        std::shared_ptr<log_message_list> read_messages_ = std::make_shared<log_message_list>();
+        std::shared_ptr<log_message_list> write_messages_ = std::make_shared<log_message_list>();
     }; // class log_message_queue
 
     class log_service;
@@ -430,9 +435,8 @@ namespace logger {
         void run() {
             bool loop = true;
             while (loop) {
-                std::vector<std::shared_ptr<log_message>> logmsgs;
-                logmsgque_->timed_getv(logmsgs, log_getv_, log_period_);
-                for (auto logmsg : logmsgs) {
+                auto logmsgs = logmsgque_->timed_getv().get();
+                for (auto logmsg : *logmsgs) {
                     if (logmsg == stop_msg_) {
                         loop = false;
                         continue;
@@ -456,9 +460,9 @@ namespace logger {
                 flush();
             }
         }
-
+        
+        int  log_pid_ = 0, max_line_ = 100000;
         bool log_daemon_ = false, ignore_postfix_ = true;
-        int  log_pid_ = 0, log_getv_ = 50, log_period_ = 10, max_line_ = 100000;
         spin_mutex              mutex_;
         std::thread             thread_;
         rolling_type            rolling_type_;
