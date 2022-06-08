@@ -83,7 +83,7 @@ function NetServer:on_socket_accept(session)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
         event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, session_id, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, slice)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(token, err)
@@ -108,7 +108,7 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     if session_id > 0 then
         session_id = session_id & 0xffff
     end
-    local send_len = session.call_pack(cmd_id, pflag, session_id, body, #body)
+    local send_len = session.call_pack(cmd_id, pflag, 0, session_id, body, #body)
     if send_len > 0 then
         event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         return true
@@ -125,7 +125,7 @@ function NetServer:broadcast(cmd_id, data)
         return false
     end
     for _, session in pairs(self.sessions) do
-        local send_len = session.call_pack(cmd_id, pflag, 0, body, #body)
+        local send_len = session.call_pack(cmd_id, pflag, 0, 0, body, #body)
         if send_len > 0 then
             event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         end
@@ -191,7 +191,7 @@ function NetServer:get_cmd_cd(cmd_id)
 end
 
 -- 收到远程调用回调
-function NetServer:on_socket_recv(session, cmd_id, flag, session_id, slice)
+function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice)
     local clock_ms = quanta.clock_ms
     local cmd_cd_time = self:get_cmd_cd(cmd_id)
     local command_times = session.command_times
@@ -209,14 +209,14 @@ function NetServer:on_socket_recv(session, cmd_id, flag, session_id, slice)
         return
     end
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
-        local function dispatch_rpc_message(_session, cmd, bd)
+        local function dispatch_rpc_message(_session, typ, cmd, bd)
             local _<close> = perfeval_mgr:eval(cmd_name)
-            local result = event_mgr:notify_listener("on_session_cmd", _session, cmd, bd, session_id)
+            local result = event_mgr:notify_listener("on_session_cmd", _session, typ, cmd, bd, session_id)
             if not result[1] then
                 log_err("[NetServer][on_socket_recv] on_session_cmd failed! cmd_id:%s", cmd_id)
             end
         end
-        thread_mgr:fork(dispatch_rpc_message, session, cmd_id, body)
+        thread_mgr:fork(dispatch_rpc_message, session, type, cmd_id, body)
         return
     end
     --异步回执

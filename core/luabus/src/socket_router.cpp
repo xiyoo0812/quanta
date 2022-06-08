@@ -50,7 +50,7 @@ bool socket_router::do_forward_target(router_header* header, char* data, size_t 
         return false;
 
 	uint8_t flag = header->context & 0xff;
-	header->context = (uint8_t)msg_id::remote_call << 4 | flag;
+	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
     sendv_item items[] = {{header, sizeof(router_header)}, {data, data_len}};
     m_mgr->sendv(it->token, items, _countof(items));
     return true;
@@ -63,7 +63,7 @@ bool socket_router::do_forward_master(router_header* header, char* data, size_t 
 		return false;
 
 	uint8_t flag = header->context & 0xff;
-	header->context = (uint8_t)msg_id::remote_call << 4 | flag;
+	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
     m_mgr->sendv(token, items, _countof(items));
     return true;
@@ -73,7 +73,7 @@ bool socket_router::do_forward_broadcast(router_header* header, int source, char
 	uint16_t service_id = (uint16_t)header->target_id;
 
 	uint8_t flag = header->context & 0xff;
-	header->context = (uint8_t)msg_id::remote_call << 4 | flag;
+	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
 
     auto& services = m_services[service_id];
@@ -99,7 +99,7 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
         return false;
 
 	uint8_t flag = header->context & 0xff;
-	header->context = (uint8_t)msg_id::remote_call << 4 | flag;
+	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
 
     auto& target = nodes[hash % count];

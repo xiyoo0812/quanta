@@ -35,8 +35,8 @@ namespace luabus {
             "forward_hash", &lua_socket_node::forward_hash,
             "forward_target", &lua_socket_node::forward_target,
             "build_session_id", &lua_socket_node::build_session_id,
-            "forward_master", &lua_socket_node::forward_by_group<msg_id::forward_master>,
-            "forward_broadcast", &lua_socket_node::forward_by_group<msg_id::forward_broadcast>
+            "forward_master", &lua_socket_node::forward_by_group<rpc_type::forward_master>,
+            "forward_broadcast", &lua_socket_node::forward_by_group<rpc_type::forward_broadcast>
             );
         return lluabus;
     }

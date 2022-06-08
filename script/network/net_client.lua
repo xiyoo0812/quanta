@@ -69,9 +69,9 @@ function NetClient:connect(block)
             thread_mgr:response(block_id, succes, res)
         end
     end
-    socket.on_call_pack = function(recv_len, cmd_id, flag, session_id, slice)
+    socket.on_call_pack = function(recv_len, cmd_id, flag, type, session_id, slice)
         event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, slice)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, type, session_id, slice)
     end
     socket.on_error = function(token, err)
         thread_mgr:fork(function()
@@ -127,7 +127,7 @@ function NetClient:decode(cmd_id, slice, flag)
     end
 end
 
-function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, slice)
+function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
     self.alive_time = quanta.now
     local body, cmd_name = self:decode(cmd_id, slice, flag)
     if not body  then
