@@ -43,28 +43,38 @@ service:upsert({
 
 service:upsert({
     id = 8,
-    name = 'mongo',
+    name = 'login',
 })
 
 service:upsert({
     id = 9,
-    name = 'mysql',
+    name = 'gateway',
 })
 
 service:upsert({
     id = 10,
-    name = 'redis',
-})
-
-service:upsert({
-    id = 11,
     name = 'online',
 })
 
 service:upsert({
-    id = 12,
+    id = 11,
     name = 'admin',
 })
 
+service:upsert({
+    id = 12,
+    name = 'mongo',
+})
+
+service:upsert({
+    id = 13,
+    name = 'mysql',
+})
+
+service:upsert({
+    id = 14,
+    name = 'redis',
+})
+
 --general md5 version
-service:set_version('44c2f4429ff6629adacb4e9dbb700291')
+service:set_version('79cacd001229178e5f176440c69a2e1f')

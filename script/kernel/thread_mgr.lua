@@ -34,7 +34,7 @@ function ThreadMgr:size()
     return co_cur_size, co_cur_max
 end
 
-function ThreadMgr:lock(key, to)
+function ThreadMgr:lock(key, waiting)
     local queue = self.syncqueue_map[key]
     if not queue then
         queue = QueueFIFO()
@@ -43,7 +43,7 @@ function ThreadMgr:lock(key, to)
     queue.ttl = quanta.clock_ms
     local head = queue:head()
     if not head then
-        local lock = SyncLock(self, key, to)
+        local lock = SyncLock(self, key)
         queue:push(lock)
         return lock
     else
@@ -52,10 +52,13 @@ function ThreadMgr:lock(key, to)
             head:increase()
             return head
         end
-        local lock = SyncLock(self, key, to)
-        queue:push(lock)
-        co_yield()
-        return lock
+        if waiting then
+            --等待则挂起
+            local lock = SyncLock(self, key)
+            queue:push(lock)
+            co_yield()
+            return lock
+        end
     end
 end
 

@@ -190,22 +190,24 @@ end
 local function export_sheet_to_table(sheet, output, title, dim)
     local header     = {}
     local field_type = {}
+    local head_line = start_line - 1
     for col = dim.firstCol, dim.lastCol do
         -- 读取类型行，作为筛选条件
         field_type[col] = get_sheet_value(sheet, type_line, col)
         -- 读取第四行作为表头
-        header[col] = get_sheet_value(sheet, 4, col)
+        header[col] = get_sheet_value(sheet, head_line, col)
     end
     --定位起始行
+    local read_len = start_line
     local end_line = dim.lastRow
-    for row = start_line, end_line do
+    for row = read_len, end_line do
         local start_tag = get_sheet_value(sheet, row, 1)
         if start_tag and start_tag == "Start" then
-            start_line = row
+            read_len = row
             break
         end
     end
-    for row = start_line, end_line do
+    for row = read_len, end_line do
         local end_tag = get_sheet_value(sheet, row, 1)
         if end_tag and end_tag == "End" then
             end_line = row
@@ -214,7 +216,7 @@ local function export_sheet_to_table(sheet, output, title, dim)
     end
     -- 开始处理
     local records = {}
-    for row = start_line, end_line do
+    for row = read_len, end_line do
         local record = {}
         -- 遍历每一列
         for col = 2, dim.lastCol do

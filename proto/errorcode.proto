@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package ncmd_cs;
+
+// ErrorCode
+enum ErrorCode
+{
+    //框架错误码
+    FRAME_SUCCESS           = 0;        //成功
+    FRAME_FAILED            = 1;        //系统错误，请重试
+    FRAME_TOOFAST           = 2;        //请求太频繁
+    
+    //登陆错误码
+    LOGIN_PLATFORM_ERROR    = 1001;     //平台错误
+    LOGIN_VERIFY_FAILED     = 1002;     //验证失败
+    LOGIN_SERVER_UPHOLD     = 1003;     //服务器维护
+    LOGIN_ACCOUTN_BANS      = 1004;     //账号被封
+    LOGIN_ACCOUTN_INLINE    = 1005;     //账号已经登陆
+    LOGIN_ROLE_NOT_EXIST    = 1006;     //角色不存在
+    LOGIN_ROLE_NUM_LIMIT    = 1007;     //角色数量超过上限
+    LOGIN_PLAYER_INLINE     = 1020;     //角色已经登陆
+
+    //踢出错误码
+    KICK_DEVICE_REPLACE     = 1051;     //其他设备登陆
+    KICK_SERVER_UPHOLD      = 1052;     //服务器维护
+    KICK_ACCOUTN_BANS       = 1053;     //账号被封
+}

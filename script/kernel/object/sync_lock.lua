@@ -6,23 +6,21 @@
 --]]
 local co_running    = coroutine.running
 
-local MINUTE_5_MS   = quanta.enum("PeriodTime", "MINUTE_5_MS")
+local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 
 local SyncLock = class()
 local prop = property(SyncLock)
-prop:reader("timeout", MINUTE_5_MS)
 prop:reader("thread_mgr", nil)
+prop:reader("timeout", 0)
 prop:reader("count", 1)
 prop:reader("key", nil)
 prop:reader("co", nil)
 
-function SyncLock:__init(thread_mgr, key, to)
+function SyncLock:__init(thread_mgr, key)
     self.thread_mgr = thread_mgr
+    self.timeout = quanta.clock_ms + SECOND_10_MS
     self.co = co_running()
     self.key = key
-    if to then
-        self.timeout = to
-    end
 end
 
 function SyncLock:increase()

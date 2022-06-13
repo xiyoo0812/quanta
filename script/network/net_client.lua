@@ -16,7 +16,6 @@ local out_press         = env_status("QUANTA_OUT_PRESS")
 local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
 
 local FLAG_REQ          = qenum("FlagMask", "REQ")
-local FLAG_RES          = qenum("FlagMask", "RES")
 local FLAG_ZIP          = qenum("FlagMask", "ZIP")
 local FLAG_ENCRYPT      = qenum("FlagMask", "ENCRYPT")
 local CONNECT_TIMEOUT   = qenum("NetwkTime", "CONNECT_TIMEOUT")
@@ -181,17 +180,12 @@ function NetClient:write(cmd_id, data, session_id, flag)
 end
 
 -- 发送数据
-function NetClient:send_pack(cmd_id, data)
+function NetClient:send(cmd_id, data)
     return self:write(cmd_id, data, 0, FLAG_REQ)
 end
 
--- 回调数据
-function NetClient:callback_pack(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, FLAG_RES)
-end
-
 -- 发起远程调用
-function NetClient:call_pack(cmd_id, data)
+function NetClient:call(cmd_id, data)
     local session_id = self.socket.build_session_id()
     if not self:write(cmd_id, data, session_id, FLAG_REQ) then
         return false
@@ -200,7 +194,7 @@ function NetClient:call_pack(cmd_id, data)
 end
 
 -- 等待远程调用
-function NetClient:wait_pack(cmd_id, time)
+function NetClient:wait(cmd_id, time)
     local session_id = thread_mgr:build_session_id()
     self.wait_list[cmd_id] = session_id
     return thread_mgr:yield(session_id, cmd_id, time)

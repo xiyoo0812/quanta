@@ -8,4 +8,25 @@ enum NCmdId
     NID_QUANTA_ZERO                     = 0;
     NID_HEARTBEAT_REQ                   = 1001;
     NID_HEARTBEAT_RES                   = 1002;
+    
+    //登陆系统10001-10100
+    NID_LOGIN_ACCOUNT_LOGIN_REQ         = 10001;    //登陆账号请求
+    NID_LOGIN_ACCOUNT_LOGIN_RES         = 10002;
+    NID_LOGIN_ACCOUNT_RELOAD_REQ        = 10003;    //重登账号请求
+    NID_LOGIN_ACCOUNT_RELOAD_RES        = 10004;
+    NID_LOGIN_RANDOM_NAME_REQ           = 10005;    //随机名字请求
+    NID_LOGIN_RANDOM_NAME_RES           = 10006;    
+    NID_LOGIN_ROLE_CREATE_REQ           = 10007;    //创建角色请求
+    NID_LOGIN_ROLE_CREATE_RES           = 10008;    
+    NID_LOGIN_ROLE_CHOOSE_REQ           = 10009;    //选择角色请求
+    NID_LOGIN_ROLE_CHOOSE_RES           = 10010;
+    NID_LOGIN_ROLE_DELETE_REQ           = 10011;    //删除角色请求
+    NID_LOGIN_ROLE_DELETE_RES           = 10012;
+    NID_LOGIN_ROLE_LOGIN_REQ            = 10013;    //登陆角色请求
+    NID_LOGIN_ROLE_LOGIN_RES            = 10014;
+    NID_LOGIN_ROLE_LOGOUT_REQ           = 10015;    //登出角色请求
+    NID_LOGIN_ROLE_LOGOUT_RES           = 10016;
+    NID_LOGIN_ROLE_RELOAD_REQ           = 10017;    //重登角色请求
+    NID_LOGIN_ROLE_RELOAD_RES           = 10018;    
+    NID_LOGIN_ROLE_KICKOUT_NTF          = 10019;    //踢玩家下线通知
 }

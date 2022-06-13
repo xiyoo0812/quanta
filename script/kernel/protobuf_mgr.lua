@@ -23,10 +23,16 @@ local pb_enum_id    = protobuf.enum
 local ProtobufMgr = singleton()
 local prop = property(ProtobufMgr)
 prop:accessor("pb_indexs", {})
+prop:accessor("pb_callbacks", {})
 prop:accessor("allow_reload", false)
 
 function ProtobufMgr:__init()
     self:load_protos()
+end
+
+--返回回调id
+function ProtobufMgr:callback_id(req_id)
+    return self.pb_callbacks[req_id]
 end
 
 --加载pb文件
@@ -118,11 +124,19 @@ function ProtobufMgr:define_command(full_name, proto_name)
         return
     end
     local msg_name = "NID_" .. supper(proto_name)
-    if sends_with(proto_name, "_req") or sends_with(proto_name, "_res") or sends_with(proto_name, "_ntf") then
+    local proto_isreq = sends_with(proto_name, "_req")
+    if proto_isreq or sends_with(proto_name, "_res") or sends_with(proto_name, "_ntf") then
         for enum_type, enum in pairs(enum_set) do
             local msg_id = pb_enum_id(package_name .. "." .. enum_type, msg_name)
             if msg_id then
                 self.pb_indexs[msg_id] = full_name
+                if proto_isreq then
+                    local msg_res_name = msg_name:sub(0, -2) .. "s"
+                    local msg_res_id = pb_enum_id(package_name .. "." .. enum_type, msg_res_name)
+                    if msg_res_id then
+                        self.pb_callbacks[msg_id] = msg_res_id
+                    end
+                end
                 return
             end
         end

@@ -29,7 +29,7 @@ local flow_cd           = env_number("QUANTA_FLOW_CTRL_CD")
 local fc_package        = env_number("QUANTA_FLOW_CTRL_PACKAGE") / 1000
 local fc_bytes          = env_number("QUANTA_FLOW_CTRL_BYTES") / 1000
 
--- Dx协议会话对象管理器
+-- CS协议会话对象管理器
 local NetServer = class()
 local prop = property(NetServer)
 prop:reader("ip", "")                   --监听ip
@@ -134,13 +134,26 @@ function NetServer:broadcast(cmd_id, data)
 end
 
 -- 发送数据
-function NetServer:send_pack(session, cmd_id, data)
+function NetServer:send(session, cmd_id, data)
     return self:write(session, cmd_id, data, 0, FLAG_REQ)
 end
 
 -- 回调数据
-function NetServer:callback_pack(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id, FLAG_RES)
+function NetServer:callback(session, cmd_id, data, session_id)
+    return self:write(session, cmd_id, data, session_id or 0, FLAG_RES)
+end
+
+-- 回调数据
+function NetServer:callback_by_id(session, cmd_id, data, session_id)
+    local callback_id = protobuf_mgr:callback_id(cmd_id)
+    return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
+end
+
+-- 回复错误码
+function NetServer:callback_errcode(session, cmd_id, code, session_id)
+    local data = { error_code = code }
+    local callback_id = protobuf_mgr:callback_id(cmd_id)
+    return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
 end
 
 function NetServer:encode(cmd_id, data, flag)
@@ -266,7 +279,7 @@ function NetServer:on_socket_error(token, err)
     local session = self:remove_session(token)
     if session then
         thread_mgr:fork(function()
-            event_mgr:notify_listener("on_socket_error", session, token, err)
+            event_mgr:notify_listener("on_session_error", session, token, err)
         end)
     end
 end

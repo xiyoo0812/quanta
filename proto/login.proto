@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package ncmd_cs;
+
+//角色信息
+message role_info
+{
+    uint32 role_id              = 1;       // 角色id
+    string role_name            = 2;       // 角色名字
+    uint32 role_gender          = 3;       // 角色性别
+}
+
+//平台定义
+enum platform_type
+{
+    PLATFORM_GUEST              = 0;        //游客
+    PLATFORM_PASSWORD           = 1;        //PASSWORD
+}
+
+//NID_LOGIN_ACCOUNT_LOGIN_REQ
+message login_account_login_req
+{
+    string openid               = 1;        // 第三方账号openid
+    string session              = 2;        // 第三方账号登陆验证session
+    platform_type platform      = 3;        // 平台类型
+}
+
+//NID_LOGIN_ACCOUNT_LOGIN_RES
+message login_account_login_res
+{
+    uint32 error_code           = 1;        // 错误码
+    uint64 user_id              = 2;        // 第三方账号openid
+    repeated role_info roles    = 3;        // 账号角色列表
+}
+
+//NID_LOGIN_ACCOUNT_RELOAD_REQ
+message login_account_reload_req
+{
+    string openid               = 1;        // 第三方账号openid
+    uint32 account_token        = 2;        // account_token
+}
+
+//NID_LOGIN_ACCOUNT_RELOAD_RES
+message login_account_reload_res
+{
+    uint32 error_code           = 1;        // 错误码
+}
+
+//NID_LOGIN_RANDOM_NAME_REQ
+message login_random_name_req
+{
+}
+
+//NID_LOGIN_RANDOM_NAME_RES
+message login_random_name_res
+{
+    uint32 error_code           = 1;        // 错误码
+    string name                 = 2;        // 随机名字
+}
+
+//NID_LOGIN_ROLE_CREATE_REQ
+message login_role_create_req
+{
+    uint64 user_id              = 1;        // 账号id
+    string name                 = 2;        // 名字
+    string gender               = 3;        // 性别
+}
+
+//NID_LOGIN_ROLE_CREATE_RES
+message login_role_create_res
+{
+    uint32 error_code           = 1;        // 错误码
+    role_info role              = 2;        // 新角色信息
+}
+
+//NID_LOGIN_ROLE_CHOOSE_REQ
+message login_role_choose_req
+{
+    uint64 user_id              = 1;        // 账号id
+    uint32 role_id              = 2;        // 角色id
+}
+
+//NID_LOGIN_ROLE_CHOOSE_RES
+message login_role_choose_res
+{
+    uint32 error_code           = 1;        // 错误码
+    string addr                 = 2;        // gateway ip
+    uint32 port                 = 3;        // gateway port
+    uint32 lobby                = 4;        // lobby id
+    uint32 token                = 5;        // 验证token
+}
+
+//NID_LOGIN_ROLE_DELETE_REQ
+message login_role_delete_req
+{
+    uint64 user_id              = 1;        // 账号id
+    uint32 role_id              = 2;        // 角色id
+}
+
+//NID_LOGIN_ROLE_DELETE_RES
+message login_role_delete_res
+{
+    uint32 error_code           = 1;        // 错误码
+}
+
+//NID_LOGIN_ROLE_LOGIN_REQ
+message login_role_login_req
+{
+    uint64 user_id              = 1;        // 账号id
+    uint32 role_id              = 2;        // 角色id
+    uint32 lobby                = 3;        // lobby id
+    uint32 token                = 4;        // 验证token
+}
+
+//NID_LOGIN_ROLE_LOGIN_RES
+message login_role_login_res
+{
+    uint32 error_code           = 1;        // 错误码
+}
+
+//NID_LOGIN_ROLE_LOGOUT_REQ
+message login_role_logout_req
+{
+    uint32 role_id              = 1;        // 角色id
+}
+
+//NID_LOGIN_ROLE_LOGOUT_RES
+message login_role_logout_res
+{
+    uint32 error_code           = 1;        // 错误码
+    uint32 account_token        = 2;        // 重登账号token
+}
+
+//NID_LOGIN_ROLE_RELOAD_REQ
+message login_role_reload_req
+{
+    uint64 user_id              = 1;        // 账号id
+    uint32 role_id              = 2;        // 角色id
+    uint32 lobby                = 3;        // lobby id
+    uint32 token                = 4;        // 验证token
+}
+
+//NID_LOGIN_ROLE_RELOAD_RES
+message login_role_reload_res
+{
+    uint32 error_code           = 1;        // 错误码
+}
+
+//NID_LOGIN_ROLE_KICKOUT_NTF
+message login_role_kickout_ntf
+{
+    uint32 reason               = 1;        // 原因
+}

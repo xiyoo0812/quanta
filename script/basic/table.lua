@@ -7,7 +7,7 @@ local tremove   = table.remove
 
 local function trandom(tab)
     local keys = {}
-    for k in pairs(tab) do
+    for k in pairs(tab or {}) do
         keys[#keys + 1] = k
     end
     if #keys > 0 then
