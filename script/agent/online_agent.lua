@@ -1,17 +1,15 @@
 --online_agent.lua
-local qget          = quanta.get
-local qenum         = quanta.enum
 local log_info      = logger.info
 local tunpack       = table.unpack
 local sidhash       = service.hash
 local sid2index     = service.id2index
 local get_service   = service.get_service
 
-local event_mgr     = qget("event_mgr")
-local router_mgr    = qget("router_mgr")
+local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
-local SUCCESS       = qenum("KernCode", "SUCCESS")
-local LOGIC_FAILED  = qenum("KernCode", "LOGIC_FAILED")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
 
 local OnlineAgent = singleton()
 function OnlineAgent:__init()

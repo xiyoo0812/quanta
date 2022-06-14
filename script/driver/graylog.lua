@@ -3,7 +3,6 @@ import("network/http_client.lua")
 local lkcp          = require("lkcp")
 local ljson         = require("lcjson")
 
-local qget          = quanta.get
 local log_err       = logger.err
 local log_info      = logger.info
 local json_encode   = ljson.encode
@@ -12,8 +11,8 @@ local dgetinfo      = debug.getinfo
 local tcopy         = table_ext.copy
 local protoaddr     = string_ext.protoaddr
 
-local update_mgr    = qget("update_mgr")
-local http_client   = qget("http_client")
+local update_mgr    = quanta.get("update_mgr")
+local http_client   = quanta.get("http_client")
 
 local Socket        = import("driver/socket.lua")
 

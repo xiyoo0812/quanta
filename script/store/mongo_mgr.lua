@@ -1,12 +1,10 @@
 --mongo_mgr.lua
-local qget          = quanta.get
-local qenum         = quanta.enum
 
-local event_mgr     = qget("event_mgr")
-local config_mgr    = qget("config_mgr")
+local event_mgr     = quanta.get("event_mgr")
+local config_mgr    = quanta.get("config_mgr")
 
-local SUCCESS       = qenum("KernCode", "SUCCESS")
-local MONGO_FAILED  = qenum("KernCode", "MONGO_FAILED")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local MONGO_FAILED  = quanta.enum("KernCode", "MONGO_FAILED")
 
 local MongoMgr = singleton()
 local prop = property(MongoMgr)

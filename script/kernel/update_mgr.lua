@@ -3,18 +3,16 @@
 local pairs         = pairs
 local odate         = os.date
 local otime         = os.time
-local qget          = quanta.get
-local qenum         = quanta.enum
 local log_info      = logger.info
 local log_warn      = logger.warn
 local sig_check     = signal.check
 local collectgarbage= collectgarbage
 
-local timer_mgr     = qget("timer_mgr")
-local thread_mgr    = qget("thread_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
-local HALF_MS       = qenum("PeriodTime", "HALF_MS")
-local SECOND_5_S    = qenum("PeriodTime", "SECOND_5_S")
+local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
+local SECOND_5_S    = quanta.enum("PeriodTime", "SECOND_5_S")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)

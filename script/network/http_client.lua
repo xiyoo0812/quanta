@@ -3,7 +3,6 @@ local lcurl = require("lcurl")
 local ljson = require("lcjson")
 
 local pairs         = pairs
-local qget          = quanta.get
 local log_err       = logger.err
 local tunpack       = table.unpack
 local tconcat       = table.concat
@@ -13,8 +12,8 @@ local luencode      = lcurl.url_encode
 local lcrequest     = lcurl.create_request
 local jencode       = ljson.encode
 
-local thread_mgr        = qget("thread_mgr")
-local update_mgr        = qget("update_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
+local update_mgr        = quanta.get("update_mgr")
 
 local HTTP_CALL_TIMEOUT = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 

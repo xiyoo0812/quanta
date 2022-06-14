@@ -1,7 +1,5 @@
 -- router_mgr.lua
 local pairs             = pairs
-local qget              = quanta.get
-local qenum             = quanta.enum
 local log_err           = logger.err
 local log_info          = logger.info
 local log_debug         = logger.debug
@@ -12,15 +10,15 @@ local qsuccess          = quanta.success
 local qhash_code        = quanta.hash_code
 local signal_quit       = signal.quit
 
-local monitor           = qget("monitor")
-local timer_mgr         = qget("timer_mgr")
-local event_mgr         = qget("event_mgr")
-local thread_mgr        = qget("thread_mgr")
-local update_mgr        = qget("update_mgr")
+local monitor           = quanta.get("monitor")
+local timer_mgr         = quanta.get("timer_mgr")
+local event_mgr         = quanta.get("event_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
+local update_mgr        = quanta.get("update_mgr")
 
-local HEARTBEAT_TIME    = qenum("NetwkTime", "HEARTBEAT_TIME")
-local RECONNECT_TIME    = qenum("NetwkTime", "RECONNECT_TIME")
-local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
+local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
+local RECONNECT_TIME    = quanta.enum("NetwkTime", "RECONNECT_TIME")
+local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
 local prop = property(RouterMgr)

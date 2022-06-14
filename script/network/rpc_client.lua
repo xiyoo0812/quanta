@@ -2,24 +2,22 @@
 local tpack             = table.pack
 local tunpack           = table.unpack
 local log_err           = logger.err
-local qget              = quanta.get
-local qenum             = quanta.enum
 local qxpcall           = quanta.xpcall
 local qhash_code        = quanta.hash_code
 local lencode           = quanta.encode
 local ldecode           = quanta.decode
 
-local event_mgr         = qget("event_mgr")
-local socket_mgr        = qget("socket_mgr")
-local thread_mgr        = qget("thread_mgr")
-local perfeval_mgr      = qget("perfeval_mgr")
+local event_mgr         = quanta.get("event_mgr")
+local socket_mgr        = quanta.get("socket_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
+local perfeval_mgr      = quanta.get("perfeval_mgr")
 
-local FLAG_REQ          = qenum("FlagMask", "REQ")
-local FLAG_RES          = qenum("FlagMask", "RES")
-local SUCCESS           = qenum("KernCode", "SUCCESS")
-local RPCLINK_TIMEOUT   = qenum("NetwkTime", "RPCLINK_TIMEOUT")
-local CONNECT_TIMEOUT   = qenum("NetwkTime", "CONNECT_TIMEOUT")
-local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
+local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
+local FLAG_RES          = quanta.enum("FlagMask", "RES")
+local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
+local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
+local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RpcClient = class()
 local prop = property(RpcClient)

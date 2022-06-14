@@ -3,15 +3,13 @@ local ssub          = string.sub
 local sfind         = string.find
 local log_err       = logger.err
 local log_info      = logger.info
-local qget          = quanta.get
-local qenum         = quanta.enum
 local qxpcall       = quanta.xpcall
 
-local socket_mgr        = qget("socket_mgr")
-local thread_mgr        = qget("thread_mgr")
+local socket_mgr        = quanta.get("socket_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 
-local CONNECT_TIMEOUT   = qenum("NetwkTime", "CONNECT_TIMEOUT")
-local NETWORK_TIMEOUT   = qenum("NetwkTime", "NETWORK_TIMEOUT")
+local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 
 local Socket = class()
 local prop = property(Socket)

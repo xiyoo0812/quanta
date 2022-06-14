@@ -1,14 +1,12 @@
 --redis_mgr.lua
 local tpack         = table.pack
 local log_err       = logger.err
-local qget          = quanta.get
-local qenum         = quanta.enum
 
-local event_mgr     = qget("event_mgr")
-local config_mgr    = qget("config_mgr")
+local event_mgr     = quanta.get("event_mgr")
+local config_mgr    = quanta.get("config_mgr")
 
-local SUCCESS       = qenum("KernCode", "SUCCESS")
-local REDIS_FAILED  = qenum("KernCode", "REDIS_FAILED")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local REDIS_FAILED  = quanta.enum("KernCode", "REDIS_FAILED")
 
 local RedisMgr = singleton()
 local prop = property(RedisMgr)

@@ -3,13 +3,12 @@ import("network/http_client.lua")
 local ljson = require("lcjson")
 local ltimer = require("ltimer")
 
-local qget          = quanta.get
 local ltime         = ltimer.time
 local log_debug     = logger.debug
 local json_encode   = ljson.encode
 
-local thread_mgr    = qget("thread_mgr")
-local http_client   = qget("http_client")
+local thread_mgr    = quanta.get("thread_mgr")
+local http_client   = quanta.get("http_client")
 
 if quanta.index == 1 then
     local data = {aaa = 123}

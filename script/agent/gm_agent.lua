@@ -1,17 +1,15 @@
 --gm_agent.lua
 
-local tunpack   = table.unpack
-local log_info  = logger.info
-local qget      = quanta.get
-local qenum     = quanta.enum
-local qsuccess  = quanta.success
+local tunpack       = table.unpack
+local log_info      = logger.info
+local qsuccess      = quanta.success
 
-local monitor       = qget("monitor")
-local router_mgr    = qget("router_mgr")
-local event_mgr     = qget("event_mgr")
+local monitor       = quanta.get("monitor")
+local router_mgr    = quanta.get("router_mgr")
+local event_mgr     = quanta.get("event_mgr")
 
-local SUCCESS       = qenum("KernCode", "SUCCESS")
-local LOGIC_FAILED  = qenum("KernCode", "LOGIC_FAILED")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
 
 local GMAgent = singleton()
 local prop = property(GMAgent)

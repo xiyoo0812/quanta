@@ -1,13 +1,12 @@
 -- cache_agent.lua
 
 local log_err       = logger.err
-local qenum         = quanta.enum
 local qfailed       = quanta.failed
 
 local router_mgr    = quanta.get("router_mgr")
 
-local RPC_FAILED    = qenum("KernCode", "RPC_FAILED")
-local CACHE_BOTH    = qenum("CacheType", "BOTH")
+local RPC_FAILED    = quanta.enum("KernCode", "RPC_FAILED")
+local CACHE_BOTH    = quanta.enum("CacheType", "BOTH")
 
 local CacheAgent = singleton()
 function CacheAgent:__init()

@@ -4,23 +4,21 @@ local lcrypt        = require("lcrypt")
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
-local qget              = quanta.get
-local qenum             = quanta.enum
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 local env_number        = environ.number
 local signalquit        = signal.quit
 
-local event_mgr         =  qget("event_mgr")
-local thread_mgr        =  qget("thread_mgr")
-local protobuf_mgr      =  qget("protobuf_mgr")
-local perfeval_mgr      =  qget("perfeval_mgr")
+local event_mgr         = quanta.get("event_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
+local protobuf_mgr      = quanta.get("protobuf_mgr")
+local perfeval_mgr      = quanta.get("perfeval_mgr")
 
-local FLAG_REQ          = qenum("FlagMask", "REQ")
-local FLAG_RES          = qenum("FlagMask", "RES")
-local FLAG_ZIP          = qenum("FlagMask", "ZIP")
-local FLAG_ENCRYPT      = qenum("FlagMask", "ENCRYPT")
-local NETWORK_TIMEOUT   = qenum("NetwkTime", "NETWORK_TIMEOUT")
+local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
+local FLAG_RES          = quanta.enum("FlagMask", "RES")
+local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
+local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
+local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 
 local out_press         = env_status("QUANTA_OUT_PRESS")
 local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")

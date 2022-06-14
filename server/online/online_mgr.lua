@@ -4,17 +4,15 @@
 --当然,不在线的玩家查询结果就是nil:)
 --这里维护的在线状态仅供一般性消息中转用,登录状态判定以数据库中记录为准
 local pairs             = pairs
-local qget              = quanta.get
-local qenum             = quanta.enum
 local log_info          = logger.info
 
-local monitor           = qget("monitor")
-local event_mgr         = qget("event_mgr")
-local router_mgr        = qget("router_mgr")
+local monitor           = quanta.get("monitor")
+local event_mgr         = quanta.get("event_mgr")
+local router_mgr        = quanta.get("router_mgr")
 
-local SUCCESS           = qenum("KernCode", "SUCCESS")
-local RPC_FAILED        = qenum("KernCode", "RPC_FAILED")
-local PLAYER_NOT_EXIST  = qenum("KernCode", "PLAYER_NOT_EXIST")
+local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
+local RPC_FAILED        = quanta.enum("KernCode", "RPC_FAILED")
+local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 
 local OnlineMgr = singleton()
 function OnlineMgr:__init()

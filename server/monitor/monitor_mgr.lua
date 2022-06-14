@@ -5,7 +5,6 @@ local log_page      = import("monitor/log_page.lua")
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
 
-local qget          = quanta.get
 local env_get       = environ.get
 local env_addr      = environ.addr
 local log_warn      = logger.warn
@@ -14,9 +13,9 @@ local log_debug     = logger.debug
 local jdecode       = ljson.decode
 local tdiff         = table_ext.diff
 
-local nacos         = qget("nacos")
-local update_mgr    = qget("update_mgr")
-local thread_mgr    = qget("thread_mgr")
+local nacos         = quanta.get("nacos")
+local update_mgr    = quanta.get("update_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)

@@ -1,10 +1,9 @@
 --proxy_mgr.lua
 import("network/http_client.lua")
-local qget          = quanta.get
 local log_err       = logger.err
 
-local event_mgr     = qget("event_mgr")
-local http_client   = qget("http_client")
+local event_mgr     = quanta.get("event_mgr")
+local http_client   = quanta.get("http_client")
 
 local ProxyMgr = singleton()
 

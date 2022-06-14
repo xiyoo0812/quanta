@@ -1,6 +1,4 @@
 --router_server.lua
-local qget          = quanta.get
-local qenum         = quanta.enum
 local log_err       = logger.err
 local log_info      = logger.info
 local signalquit    = signal.quit
@@ -8,14 +6,14 @@ local env_get       = environ.get
 local sformat       = string.format
 local qhash_code    = quanta.hash_code
 
-local socket_mgr    = qget("socket_mgr")
-local config_mgr    = qget("config_mgr")
+local socket_mgr    = quanta.get("socket_mgr")
+local config_mgr    = quanta.get("config_mgr")
 
 local RpcServer     = import("network/rpc_server.lua")
 
-local FLAG_RES      = qenum("FlagMask", "RES")
-local SUCCESS       = qenum("KernCode", "SUCCESS")
-local UNREACHABLE   = qenum("KernCode", "RPC_UNREACHABLE")
+local FLAG_RES      = quanta.enum("FlagMask", "RES")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local UNREACHABLE   = quanta.enum("KernCode", "RPC_UNREACHABLE")
 
 local RouterServer = singleton()
 local prop = property(RouterServer)

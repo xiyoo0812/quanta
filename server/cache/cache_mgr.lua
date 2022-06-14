@@ -4,28 +4,26 @@ local WheelMap      = import("container/wheel_map.lua")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local qget          = quanta.get
-local qenum         = quanta.enum
 local tunpack       = table.unpack
 local qfailed       = quanta.failed
 
-local event_mgr         = qget("event_mgr")
-local timer_mgr         = qget("timer_mgr")
-local config_mgr        = qget("config_mgr")
+local event_mgr         = quanta.get("event_mgr")
+local timer_mgr         = quanta.get("timer_mgr")
+local config_mgr        = quanta.get("config_mgr")
 
 local obj_table         = config_mgr:init_table("cache_obj", "cache_table")
 local row_table         = config_mgr:init_table("cache_row", "cache_table")
 
-local CREAD                 = qenum("CacheType", "READ")
-local CWRITE                = qenum("CacheType", "WRITE")
-local SUCCESS               = qenum("KernCode", "SUCCESS")
-local SECOND_MS             = qenum("PeriodTime", "SECOND_MS")
-local SECOND_10_MS          = qenum("PeriodTime", "SECOND_10_MS")
-local CACHE_IS_HOLDING      = qenum("CacheCode", "CACHE_IS_HOLDING")
-local CACHE_NOT_SUPPERT     = qenum("CacheCode", "CACHE_NOT_SUPPERT")
-local CACHE_IS_NOT_EXIST    = qenum("CacheCode", "CACHE_IS_NOT_EXIST")
-local CACHE_KEY_LOCK_FAILD  = qenum("CacheCode", "CACHE_KEY_LOCK_FAILD")
-local CACHE_DEL_SAVE_FAILD  = qenum("CacheCode", "CACHE_DELETE_SAVE_FAILD")
+local CREAD                 = quanta.enum("CacheType", "READ")
+local CWRITE                = quanta.enum("CacheType", "WRITE")
+local SUCCESS               = quanta.enum("KernCode", "SUCCESS")
+local SECOND_MS             = quanta.enum("PeriodTime", "SECOND_MS")
+local SECOND_10_MS          = quanta.enum("PeriodTime", "SECOND_10_MS")
+local CACHE_IS_HOLDING      = quanta.enum("CacheCode", "CACHE_IS_HOLDING")
+local CACHE_NOT_SUPPERT     = quanta.enum("CacheCode", "CACHE_NOT_SUPPERT")
+local CACHE_IS_NOT_EXIST    = quanta.enum("CacheCode", "CACHE_IS_NOT_EXIST")
+local CACHE_KEY_LOCK_FAILD  = quanta.enum("CacheCode", "CACHE_KEY_LOCK_FAILD")
+local CACHE_DEL_SAVE_FAILD  = quanta.enum("CacheCode", "CACHE_DELETE_SAVE_FAILD")
 
 local CacheMgr = singleton()
 local prop = property(CacheMgr)

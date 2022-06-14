@@ -3,7 +3,6 @@ import("network/http_client.lua")
 local ljson         = require("lcjson")
 local lcrypt        = require("lcrypt")
 
-local qget          = quanta.get
 local log_err       = logger.err
 local log_info      = logger.info
 local lmd5          = lcrypt.md5
@@ -13,8 +12,8 @@ local json_decode   = ljson.decode
 local json_encode   = ljson.encode
 local mtointeger    = math.tointeger
 
-local http_client   = qget("http_client")
-local thread_mgr    = qget("thread_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local http_client   = quanta.get("http_client")
 
 local WORD_SEPARATOR    = "\x02"
 local LINE_SEPARATOR    = "\x01"

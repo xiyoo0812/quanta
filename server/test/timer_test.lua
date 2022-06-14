@@ -1,7 +1,6 @@
 --log_test.lua
 local ltimer    = require("ltimer")
 
-local qget      = quanta.get
 local log_info  = logger.info
 
 local msec, sec = ltimer.time()
@@ -15,8 +14,8 @@ local clock = ltimer.clock()
 local clock_ms = ltimer.clock_ms()
 log_info("time: clock:%s, clock_ms:%s", clock, clock_ms)
 
-local timer_mgr = qget("timer_mgr")
-local thread_mgr = qget("thread_mgr")
+local timer_mgr = quanta.get("timer_mgr")
+local thread_mgr = quanta.get("thread_mgr")
 
 thread_mgr:fork(function()
     log_info("once")

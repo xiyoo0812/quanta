@@ -5,12 +5,11 @@ local lcrypt        = require("lcrypt")
 local lhex_encode   = lcrypt.hex_encode
 local lrandomkey    = lcrypt.randomkey
 
-local qget          = quanta.get
 local log_debug     = logger.debug
 
-local nacos         = qget("nacos")
-local timer_mgr     = qget("timer_mgr")
-local thread_mgr    = qget("thread_mgr")
+local nacos         = quanta.get("nacos")
+local timer_mgr     = quanta.get("timer_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 thread_mgr:fork(function()
     local cres = nacos:create_namespace("1234567", "quanta", "test create_namespace")

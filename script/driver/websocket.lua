@@ -11,15 +11,13 @@ local log_info      = logger.info
 local lsha1         = lcrypt.sha1
 local lxor_byte     = lcrypt.xor_byte
 local lb64encode    = lcrypt.b64_encode
-local qget          = quanta.get
-local qenum         = quanta.enum
 local qxpcall       = quanta.xpcall
 
-local socket_mgr        = qget("socket_mgr")
-local thread_mgr        = qget("thread_mgr")
+local socket_mgr        = quanta.get("socket_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 
-local NETWORK_TIMEOUT   = qenum("NetwkTime", "NETWORK_TIMEOUT")
-local HTTP_CALL_TIMEOUT = qenum("NetwkTime", "HTTP_CALL_TIMEOUT")
+local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
+local HTTP_CALL_TIMEOUT = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
 local WebSocket = class()
 local prop = property(WebSocket)

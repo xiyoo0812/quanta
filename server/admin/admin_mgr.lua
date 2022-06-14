@@ -13,18 +13,16 @@ local env_get       = environ.get
 local make_sid      = service.make_sid
 local log_err       = logger.err
 local log_debug     = logger.debug
-local qget          = quanta.get
-local qenum         = quanta.enum
 
-local cmdline       = qget("cmdline")
-local monitor       = qget("monitor")
-local event_mgr     = qget("event_mgr")
-local router_mgr    = qget("router_mgr")
+local cmdline       = quanta.get("cmdline")
+local monitor       = quanta.get("monitor")
+local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
-local GLOBAL        = qenum("GMType", "GLOBAL")
-local SYSTEM        = qenum("GMType", "SYSTEM")
-local SERVICE       = qenum("GMType", "SERVICE")
-local SUCCESS       = qenum("KernCode", "SUCCESS")
+local GLOBAL        = quanta.enum("GMType", "GLOBAL")
+local SYSTEM        = quanta.enum("GMType", "SYSTEM")
+local SERVICE       = quanta.enum("GMType", "SERVICE")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local AdminMgr = singleton()
 local prop = property(AdminMgr)

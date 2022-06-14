@@ -1,13 +1,12 @@
 -- cache_row.lua
 -- cache单行
 local log_err       = logger.err
-local qenum         = quanta.enum
 local qfailed       = quanta.failed
 
 local mongo_mgr     = quanta.get("mongo_mgr")
 
-local SUCCESS       = qenum("KernCode", "SUCCESS")
-local FLUSH_FAILED  = qenum("CacheCode", "CACHE_FLUSH_FAILED")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FLUSH_FAILED  = quanta.enum("CacheCode", "CACHE_FLUSH_FAILED")
 
 local CacheRow = class()
 local prop = property(CacheRow)

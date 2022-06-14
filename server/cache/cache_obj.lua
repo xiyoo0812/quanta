@@ -2,7 +2,6 @@
 -- cache的实体类
 local lcrypt = require("lcrypt")
 local log_err       = logger.err
-local qenum         = quanta.enum
 local new_guid      = lcrypt.guid_new
 local qsuccess      = quanta.success
 local qfailed       = quanta.failed
@@ -10,8 +9,8 @@ local qfailed       = quanta.failed
 local mongo_mgr     = quanta.get("mongo_mgr")
 local CacheRow      = import("cache/cache_row.lua")
 
-local SUCCESS       = qenum("KernCode", "SUCCESS")
-local KEY_NOT_EXIST = qenum("CacheCode", "CACHE_KEY_IS_NOT_EXIST")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local KEY_NOT_EXIST = quanta.enum("CacheCode", "CACHE_KEY_IS_NOT_EXIST")
 
 local CacheObj = class()
 local prop = property(CacheObj)

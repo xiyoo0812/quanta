@@ -1,9 +1,8 @@
 -- route_test.lua
-local qget          = quanta.get
 local log_debug     = logger.debug
 
-local router_mgr    = qget("router_mgr")
-local timer_mgr     = qget("timer_mgr")
+local router_mgr    = quanta.get("router_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
 
 local RouterTest = singleton()
 function RouterTest:__init()

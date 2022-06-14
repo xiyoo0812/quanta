@@ -1,25 +1,23 @@
 --net_client.lua
 local lcrypt            = require("lcrypt")
 local log_err           = logger.err
-local qget              = quanta.get
-local qenum             = quanta.enum
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 
-local event_mgr         = qget("event_mgr")
-local socket_mgr        = qget("socket_mgr")
-local thread_mgr        = qget("thread_mgr")
-local protobuf_mgr      = qget("protobuf_mgr")
-local perfeval_mgr      = qget("perfeval_mgr")
+local event_mgr         = quanta.get("event_mgr")
+local socket_mgr        = quanta.get("socket_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
+local protobuf_mgr      = quanta.get("protobuf_mgr")
+local perfeval_mgr      = quanta.get("perfeval_mgr")
 
 local out_press         = env_status("QUANTA_OUT_PRESS")
 local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
 
-local FLAG_REQ          = qenum("FlagMask", "REQ")
-local FLAG_ZIP          = qenum("FlagMask", "ZIP")
-local FLAG_ENCRYPT      = qenum("FlagMask", "ENCRYPT")
-local CONNECT_TIMEOUT   = qenum("NetwkTime", "CONNECT_TIMEOUT")
-local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
+local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
+local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
+local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
+local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 
 local NetClient = class()

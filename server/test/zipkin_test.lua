@@ -1,11 +1,10 @@
 -- zipkin_test.lua
 import("driver/zipkin.lua")
-local qget          = quanta.get
 
-local zipkin        = qget("zipkin")
-local timer_mgr     = qget("timer_mgr")
-local event_mgr     = qget("event_mgr")
-local router_mgr    = qget("router_mgr")
+local zipkin        = quanta.get("zipkin")
+local timer_mgr     = quanta.get("timer_mgr")
+local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
 local function zipkin_func4(span)
     local key4 = 44

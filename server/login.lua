@@ -11,5 +11,6 @@ quanta.startup(function()
     quanta.client_mgr = client_mgr
     --加载登陆管理
     import("login/login_mgr.lua")
+    import("login/login_dao.lua")
     import("login/login_servlet.lua")
 end)
