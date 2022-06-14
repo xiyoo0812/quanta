@@ -351,8 +351,8 @@ function MongoDB:find(collection, selector, fields, sortor, limit)
     return true, results
 end
 
-function MongoDB:find_and_modify(collection, update, selector, upsert, fields)
-    local doc = { query = selector, update = update, fields = fields, upsert = upsert, new = true }
+function MongoDB:find_and_modify(collection, update, selector, upsert, fields, new)
+    local doc = { query = selector, update = update, fields = fields, upsert = upsert, new = new }
     local cmd = { "findAndModify", collection };
     for k, v in pairs(doc) do
         cmd[#cmd + 1] = k

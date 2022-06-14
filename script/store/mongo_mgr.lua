@@ -123,10 +123,10 @@ function MongoMgr:drop_indexes(db_name, coll_name, index_name)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:find_and_modify(db_name, coll_name, obj, selector, upsert, fields)
+function MongoMgr:find_and_modify(db_name, coll_name, obj, selector, upsert, fields, new)
     local mongodb = self:get_db(db_name)
     if mongodb then
-        local ok, res_oe = mongodb:find_and_modify(coll_name, obj, selector, upsert, fields)
+        local ok, res_oe = mongodb:find_and_modify(coll_name, obj, selector, upsert, fields, new)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
