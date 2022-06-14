@@ -1,7 +1,6 @@
 --sandbox.lua
 require("lualog")
 local lstdfs    = require("lstdfs")
-local lbuffer   = require("lbuffer")
 
 local pairs     = pairs
 local loadfile  = loadfile
@@ -13,7 +12,6 @@ local dtraceback= debug.traceback
 local file_time = lstdfs.last_write_time
 
 local logger    = quanta.get_logger()
-local serializer= lbuffer.new_serializer()
 
 local load_files    = {}
 local search_path   = {}
@@ -106,28 +104,3 @@ function quanta.get(name)
     end
     return global_obj
 end
-
-function quanta.encode(...)
-    return serializer.encode(...)
-end
-
-function quanta.decode(slice)
-    return serializer.decode(slice)
-end
-
-function quanta.encode_string(...)
-    return serializer.encode_string(...)
-end
-
-function quanta.decode_string(data, len)
-    return serializer.decode_string(data, len)
-end
-
-function quanta.serialize(tab, line)
-    return serializer.serialize(tab, line)
-end
-
-function quanta.unserialize(str)
-    return serializer.unserialize(str)
-end
-

@@ -188,6 +188,12 @@ void quanta_app::run() {
     lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string err) {
         exception_handler("load entry err: ", err);
     });
+    const char* env_include = get_env("QUANTA_INCLUDE");
+    if (env_include) {
+        lua.run_script(fmt::format("require '{}'", env_include), [&](std::string err) {
+            exception_handler("load includes err: ", err);
+        });
+    }
     while (quanta.get_function("run")) {
         quanta.call([&](std::string err) {
             LOG_FATAL(m_logger) << "quanta run err: " << err;
