@@ -52,7 +52,7 @@ function GatePlayer:notify_command(service_type, cmd_id, body, session_id)
         client_mgr:callback_errcode(cmd_id, FRAME_FAILED, session_id)
         return
     end
-    local codeoe, res = self:trans_message(server_id, "rpc_session_command", self.player_id, cmd_id, body, session_id)
+    local codeoe, res = self:trans_message(server_id, "rpc_session_command", self.player_id, cmd_id, body)
     if qfailed(codeoe) then
         log_err("[GatePlayer][notify_command] call rpc_session_command(%s) code %s, failed: %s", cmd_id, codeoe, res)
         client_mgr:callback_errcode(cmd_id, codeoe, session_id)

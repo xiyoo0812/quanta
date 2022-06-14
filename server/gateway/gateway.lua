@@ -1,7 +1,7 @@
 --gateway.lua
 local log_err           = logger.err
 local log_info          = logger.info
-local log_warn          = logger.warn
+local log_debug         = logger.debug
 local qfailed           = quanta.failed
 
 local event_mgr         = quanta.get("event_mgr")
@@ -93,12 +93,12 @@ end
 --玩家登陆
 function Gateway:on_role_login_req(session, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
-    log_info("[Gateway][on_role_login_req] user(%s) player(%s) login start!", user_id, player_id)
+    log_debug("[Gateway][on_role_login_req] user(%s) player(%s) login start!", user_id, player_id)
     if session.player_id or self:get_player(player_id) then
         return client_mgr:callback_errcode(ROLE_LOGIN_REQ, PLAYER_INLINE, session_id)
     end
     local player = GatePlayer(session, user_id, player_id)
-    local codeoe, res = player:trans_message(lobby, "rpc_player_login", user_id, player_id, lobby, token)
+    local codeoe, res = player:trans_message(lobby, "rpc_player_login", user_id, player_id, lobby, token, quanta.id)
     if qfailed(codeoe) then
         log_err("[Gateway][on_role_login_req] call rpc_player_login code %s failed: %s", codeoe, res)
         return client_mgr:callback_errcode(ROLE_LOGIN_REQ, codeoe, session_id)
@@ -116,7 +116,7 @@ end
 --玩家登出
 function Gateway:on_role_logout_req(session, body, session_id)
     local user_id, player_id = body.user_id, body.role_id
-    log_info("[Gateway][on_role_logout_req] user(%s) player(%s) logout start!", user_id, player_id)
+    log_debug("[Gateway][on_role_logout_req] user(%s) player(%s) logout start!", user_id, player_id)
     local player = self:get_player(player_id)
     if player then
         local codeoe, token = player:trans_message(player:get_lobby_id(), "rpc_player_logout", user_id, player_id)
@@ -135,7 +135,7 @@ end
 --玩家重登
 function Gateway:on_role_reload_req(session, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
-    log_info("[Gateway][on_role_reload_req] user(%s) player(%s) reload start!", user_id, player_id)
+    log_debug("[Gateway][on_role_reload_req] user(%s) player(%s) reload start!", user_id, player_id)
     if session.player_id or self:get_player(player_id) then
         return client_mgr:callback_errcode(ROLE_RELOAD_REQ, PLAYER_INLINE, session_id)
     end
@@ -185,7 +185,7 @@ function Gateway:on_session_cmd(session, service_type, cmd_id, body, session_id)
     local player_id = session.player_id
     local player = self:get_player(player_id)
     if not player then
-        log_warn("[Gateway][on_session_cmd] need login, cmd_id=%s, player_id=%s", cmd_id, player_id)
+        log_err("[Gateway][on_session_cmd] need login, cmd_id=%s, player_id=%s", cmd_id, player_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         return
     end
