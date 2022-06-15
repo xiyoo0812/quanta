@@ -23,7 +23,7 @@ function LoginDao:create_account(open_id, user_id, session_token)
         log_err("[LoginDao][create_account] insert failed! code: %s, res: %s", code, res)
         return
     end
-    return res
+    return udata
 end
 
 function LoginDao:load_account(open_id)
@@ -35,7 +35,8 @@ function LoginDao:load_account(open_id)
     return true, udata
 end
 
-function LoginDao:update_account(user_id, udata)
+function LoginDao:update_account_roles(user_id, new_roles)
+    local udata = { ["$set"] = { roles = new_roles }}
     local ok, code, res = mongo_agent:update({ "account", udata, { user_id = user_id } })
     if not ok or qfailed(code) then
         log_err("[LoginDao][update_account] user_id(%s) update failed!: code: %s, res: %s!", user_id, code, res)

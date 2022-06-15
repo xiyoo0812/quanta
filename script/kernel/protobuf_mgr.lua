@@ -131,7 +131,7 @@ function ProtobufMgr:define_command(full_name, proto_name)
             if msg_id then
                 self.pb_indexs[msg_id] = full_name
                 if proto_isreq then
-                    local msg_res_name = msg_name:sub(0, -2) .. "s"
+                    local msg_res_name = msg_name:sub(0, -2) .. "S"
                     local msg_res_id = pb_enum_id(package_name .. "." .. enum_type, msg_res_name)
                     if msg_res_id then
                         self.pb_callbacks[msg_id] = msg_res_id

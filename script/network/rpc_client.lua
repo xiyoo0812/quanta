@@ -76,7 +76,6 @@ function RpcClient:connect()
     socket.on_call = function(recv_len, session_id, rpc_flag, slice)
         local rpc_res = tpack(pcall(ldecode, slice))
         if not rpc_res[1] then
-            log_err("[RpcClient][on_socket_rpc] recv_len %s!", recv_len)
             log_err("[RpcClient][on_socket_rpc] decode failed %s!", rpc_res[2])
             return
         end
@@ -102,8 +101,6 @@ function RpcClient:connect()
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
         local hash_value = qhash_code(hash_key, 0xffff)
-        local slice = lencode(quanta.id, rpc, ...)
-        log_err("[RpcClient][call_hash] send: %s!", slice.size())
         local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, send_len)
     end

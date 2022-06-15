@@ -26,6 +26,7 @@ local ACCOUTN_BANS          = ErrorCode.LOGIN_ACCOUTN_BANS
 local VERIFY_FAILED         = ErrorCode.LOGIN_VERIFY_FAILED
 local ROLE_NOT_EXIST        = ErrorCode.LOGIN_ROLE_NOT_EXIST
 local ROLE_NUM_LIMIT        = ErrorCode.LOGIN_ROLE_NUM_LIMIT
+local ACCOUTN_OFFLINE       = ErrorCode.LOGIN_ACCOUTN_OFFLINE
 
 local platform_type         = ncmd_cs.platform_type
 local PLATFORM_PASSWORD     = platform_type.PLATFORM_PASSWORD
@@ -97,6 +98,10 @@ end
 function LoginServlet:on_role_create_req(session, body, session_id)
     local user_id, name, gender = body.user_id, body.name, body.gender
     log_debug("[LoginServlet][on_role_create_req] user(%s) name(%s) create role start!", user_id, name)
+    if not session.open_id then
+        log_err("[LoginServlet][on_role_create_req] user_id(%s) need login!", user_id)
+        return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, ACCOUTN_OFFLINE, session_id)
+    end
     local role_count = #session.roles
     if role_count >= 3 then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) role num limit!", user_id)
@@ -106,20 +111,23 @@ function LoginServlet:on_role_create_req(session, body, session_id)
     local add_role = { gender = gender, name = name, role_id = role_id }
     session.roles[role_count + 1] = add_role
     --更新数据库
-    local udata = { open_id = session.open_id, user_id = user_id, roles = session.roles }
-    if not login_dao:update_account(user_id, udata) then
+    if not login_dao:update_account_roles(user_id, session.roles) then
         self:delete_role(session, role_id)
         return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, FRAME_FAILED, session_id)
     end
     log_info("[LoginServlet][on_role_create_req] user_id(%s) create role %s success!", user_id, name)
     local callback_data = {error_code = 0, role = add_role }
-    login_mgr:callback_by_id(session, ROLE_CREATE_REQ, callback_data, session_id)
+    client_mgr:callback_by_id(session, ROLE_CREATE_REQ, callback_data, session_id)
 end
 
 --选择角色
 function LoginServlet:on_role_choose_req(session, body, session_id)
     local user_id, role_id = body.user_id, body.role_id
     log_debug("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose start!", user_id, role_id)
+    if not session.open_id then
+        log_err("[LoginServlet][on_role_choose_req] user_id(%s) need login!", user_id)
+        return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, ACCOUTN_OFFLINE, session_id)
+    end
     if not self:find_role(session, role_id) then
         log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) role nit exist!", user_id, role_id)
         return client_mgr:callback_errcode(session, ROLE_CHOOSE_REQ, ROLE_NOT_EXIST, session_id)
@@ -137,20 +145,23 @@ function LoginServlet:on_role_choose_req(session, body, session_id)
         return client_mgr:callback_errcode(session, ROLE_CHOOSE_REQ, FRAME_FAILED, session_id)
     end
     log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose success!", user_id, role_id)
-    login_mgr:callback_by_id(session, ROLE_CHOOSE_REQ, server, session_id)
+    client_mgr:callback_by_id(session, ROLE_CHOOSE_REQ, server, session_id)
 end
 
 --删除角色
 function LoginServlet:on_role_delete_req(session, body, session_id)
     local user_id, role_id = body.user_id, body.role_id
     log_debug("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete start!", user_id, role_id)
+    if not session.open_id then
+        log_err("[LoginServlet][on_role_delete_req] user_id(%s) need login!", user_id)
+        return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, ACCOUTN_OFFLINE, session_id)
+    end
     local del_role = self:delete_role(session, role_id)
     if not del_role then
         log_err("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) role nit exist!", user_id, role_id)
         return client_mgr:callback_errcode(session, ROLE_DELETE_REQ, ROLE_NOT_EXIST, session_id)
     end
-    local udata = { open_id = session.open_id, user_id = user_id, roles = session.roles }
-    if not login_dao:update_account(user_id, udata) then
+    if not login_dao:update_account_roles(user_id, session.roles) then
         session.roles[#session.roles] = del_role
         return client_mgr:callback_errcode(session, ROLE_DELETE_REQ, FRAME_FAILED, session_id)
     end
@@ -178,27 +189,28 @@ function LoginServlet:verify_account(session, udata, open_id, session_id)
     end
     self:save_account(session, udata)
     local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
-    login_mgr:callback_by_id(session, ACCOUNT_LOGIN_REQ, callback_data, session_id)
-    log_err("[LoginServlet][verify_account] success! open_id: %s", open_id)
+    client_mgr:callback_by_id(session, ACCOUNT_LOGIN_REQ, callback_data, session_id)
+    log_info("[LoginServlet][verify_account] success! open_id: %s", open_id)
 end
 
 --创建账号
 function LoginServlet:create_account(session, open_id, token, session_id)
     local user_id = guid_new(quanta.service, quanta.index)
-    local udata = login_dao:create_account(open_id, token)
+    local udata = login_dao:create_account(open_id, user_id, token)
     if not udata then
         client_mgr:callback_errcode(session, ACCOUNT_LOGIN_REQ, FRAME_FAILED, session_id)
         return
     end
     self:save_account(session, udata)
-    local callback_data = {error_code = 0, roles = {}, user_id = user_id }
-    login_mgr:callback_by_id(session, ACCOUNT_LOGIN_REQ, callback_data, session_id)
-    log_err("[LoginServlet][create_account] success! open_id: %s", open_id)
+    local callback_data = { error_code = 0, roles = {}, user_id = user_id }
+    client_mgr:callback_by_id(session, ACCOUNT_LOGIN_REQ, callback_data, session_id)
+    log_info("[LoginServlet][create_account] success! open_id: %s", open_id)
 end
 
 --保存账号
 function LoginServlet:save_account(session, udata)
-    session.roles = udata.roles
+    log_debug("[LoginServlet][save_account] success! udata: %s", udata)
+    session.roles = udata.roles or {}
     session.open_id = udata.open_id
     session.user_id = udata.user_id
 end

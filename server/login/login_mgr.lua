@@ -38,7 +38,7 @@ end
 
 --客户端连接断开
 function LoginMgr:on_session_error(session, token, err)
-    log_debug("[LoginMgr][on_session_error] %s disconnected!", token)
+    log_debug("[LoginMgr][on_session_error] %s lost, because: %s!", token, err)
 end
 
 --客户端消息分发
