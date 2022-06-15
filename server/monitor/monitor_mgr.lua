@@ -42,7 +42,8 @@ function MonitorMgr:__init()
     thread_mgr:fork(function()
         nacos:modify_switchs("healthCheckEnabled", "false")
         nacos:modify_switchs("autoChangeHealthCheckEnabled", "false")
-        nacos:regi_instance(quanta.service_name, self.port, nil, { id = quanta.id })
+        local metadata = { region = quanta.region, group = quanta.group, id = quanta.id, name = quanta.name }
+        nacos:regi_instance(quanta.service_name, self.port, nil, metadata)
     end)
 end
 
@@ -71,7 +72,7 @@ function MonitorMgr:on_client_beat(client)
     local node = self.monitor_nodes[client.token]
     if node then
         if not node.status then
-            local metadata = { region = node.region, group = node.group, id = node.id }
+            local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
             node.status = nacos:regi_instance(node.service_name, node.port, nil, metadata)
         end
         nacos:sent_beat(node.service_name, node.port)
@@ -81,7 +82,7 @@ end
 function MonitorMgr:on_client_register(client, node)
     local token = client.token
     log_debug("[MonitorMgr][on_service_register] node:%s, token: %s", node.name, token)
-    local metadata = { region = node.region, group = node.group, id = node.id }
+    local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
     local status = nacos:regi_instance(node.service_name, node.port, nil, metadata)
     self.monitor_nodes[token] = node
     node.status = status

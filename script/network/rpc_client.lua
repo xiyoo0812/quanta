@@ -6,11 +6,11 @@ local qxpcall           = quanta.xpcall
 local qhash_code        = quanta.hash_code
 local lencode           = quanta.encode
 local ldecode           = quanta.decode
+local qeval             = quanta.eval
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
-local perfeval_mgr      = quanta.get("perfeval_mgr")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -76,6 +76,7 @@ function RpcClient:connect()
     socket.on_call = function(recv_len, session_id, rpc_flag, slice)
         local rpc_res = tpack(pcall(ldecode, slice))
         if not rpc_res[1] then
+            log_err("[RpcClient][on_socket_rpc] recv_len %s!", recv_len)
             log_err("[RpcClient][on_socket_rpc] decode failed %s!", rpc_res[2])
             return
         end
@@ -101,6 +102,8 @@ function RpcClient:connect()
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
         local hash_value = qhash_code(hash_key, 0xffff)
+        local slice = lencode(quanta.id, rpc, ...)
+        log_err("[RpcClient][call_hash] send: %s!", slice.size())
         local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, send_len)
     end
@@ -147,7 +150,7 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source,
     event_mgr:notify_listener("on_rpc_recv", rpc, recv_len)
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
-            local _<close> = perfeval_mgr:eval(rpc)
+            local _<close> = qeval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
                 socket.callback_target(session_id, source, rpc, tunpack(rpc_datas))

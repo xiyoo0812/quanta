@@ -10,11 +10,11 @@ local qxpcall           = quanta.xpcall
 local signalquit        = signal.quit
 local lencode           = quanta.encode
 local ldecode           = quanta.decode
+local qeval             = quanta.eval
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
-local perfeval_mgr      = quanta.get("perfeval_mgr")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -59,7 +59,7 @@ function RpcServer:on_socket_rpc(client, session_id, rpc_flag, recv_len, source,
     event_mgr:notify_listener("on_rpc_recv", rpc, recv_len)
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
-            local _<close> = perfeval_mgr:eval(rpc)
+            local _<close> = qeval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
                 client.call_rpc(session_id, FLAG_RES, rpc, tunpack(rpc_datas))

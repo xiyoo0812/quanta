@@ -130,9 +130,11 @@ namespace lbuffer {
                     value_encode(type_str_shrt);
                     value_encode<uint8_t>(sz);
                 }
-                value_encode(ptr, sz);
-                if (m_sshares.size() < max_share_string) {
-                    m_sshares.push_back(value);
+                if (sz > 0) {
+                    value_encode(ptr, sz);
+                    if (m_sshares.size() < max_share_string) {
+                        m_sshares.push_back(value);
+                    }
                 }
                 return;
             }
@@ -204,6 +206,10 @@ namespace lbuffer {
         }
 
         void string_decode(lua_State* L, slice* buf, uint16_t sz) {
+            if (sz == 0) {
+                lua_pushstring(L, "");
+                return;
+            }
             auto str = (const char*)buf->peek(sz);
             if (str == nullptr) {
                 luaL_error(L, "decode string is out of range");
@@ -315,6 +321,16 @@ namespace lbuffer {
             }
         }
 
+        void serialize_string(lua_State* L, int index) {
+            size_t sz;
+            serialize_value("'");
+            const char* str = luaL_checklstring(L, index, &sz);
+            if (sz > 0) {
+                m_buffer->push_data((const uint8_t*)str, sz);
+            }
+            serialize_value("'");
+        }
+
         void serialize_quote(const char* str, const char* l, const char* r) {
             serialize_value(l);
             serialize_value(str);
@@ -334,7 +350,7 @@ namespace lbuffer {
                 serialize_value(lua_toboolean(L, index) ? "true" : "false");
                 break;
             case LUA_TSTRING:
-                serialize_quote(lua_tostring(L, index), "'", "'");
+                serialize_string(L, index);
                 break;
             case LUA_TNUMBER:
                 serialize_value(lua_tostring(L, index));

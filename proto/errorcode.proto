@@ -18,7 +18,7 @@ enum ErrorCode
     LOGIN_ACCOUTN_INLINE    = 1005;     //账号已经登陆
     LOGIN_ROLE_NOT_EXIST    = 1006;     //角色不存在
     LOGIN_ROLE_NUM_LIMIT    = 1007;     //角色数量超过上限
-    LOGIN_PLAYER_INLINE     = 1020;     //角色已经登陆
+    LOGIN_ROLE_IS_INLINE    = 1020;     //角色已经登陆
 
     //踢出错误码
     KICK_DEVICE_REPLACE     = 1051;     //其他设备登陆

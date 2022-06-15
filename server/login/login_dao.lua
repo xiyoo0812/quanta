@@ -1,4 +1,5 @@
 --login_dao.lua
+import("agent/mongo_agent.lua")
 
 local log_err           = logger.err
 local qfailed           = quanta.failed
@@ -22,11 +23,11 @@ function LoginDao:create_account(open_id, user_id, session_token)
         log_err("[LoginDao][create_account] insert failed! code: %s, res: %s", code, res)
         return
     end
-    return udata
+    return res
 end
 
 function LoginDao:load_account(open_id)
-    local ok, code, udata = mongo_agent:find_one({ "account", { open_id = open_id }, {_id = 0} })
+    local ok, code, udata = mongo_agent:find_one({ "account", { open_id = open_id } })
     if not ok or qfailed(code) then
         log_err("[LoginDao][load_account] find failed! code: %s, res: %s", code, udata)
         return false
@@ -44,7 +45,7 @@ function LoginDao:update_account(user_id, udata)
 end
 
 function LoginDao:load_account_status(user_id)
-    local ok, code, adata = mongo_agent:find_one({ "account_status", { user_id = user_id }, {_id = 0}})
+    local ok, code, adata = mongo_agent:find_one({ "account_status", { user_id = user_id } })
     if not ok or qfailed(code) then
         log_err("[LoginDao][load_account_status] find failed! code: %s, res: %s", code, adata)
         return false

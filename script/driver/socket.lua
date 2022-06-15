@@ -79,8 +79,8 @@ function Socket:connect(ip, port)
         self.alive_time = quanta.now
         thread_mgr:response(block_id, success, res)
     end
-    session.on_call_text = function(recv_len, data)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
+    session.on_call_text = function(recv_len, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, slice)
     end
     session.on_error = function(token, err)
         thread_mgr:fork(function()
@@ -99,8 +99,8 @@ function Socket:on_socket_accept(session)
     socket:accept(session, session.ip, self.port)
 end
 
-function Socket:on_socket_recv(session, data)
-    self.recvbuf = self.recvbuf .. data
+function Socket:on_socket_recv(session, slice)
+    self.recvbuf = self.recvbuf .. slice.string()
     self.alive_time = quanta.now
     self.host:on_socket_recv(self, self.token)
 end
@@ -159,7 +159,7 @@ end
 
 function Socket:send(data)
     if self.alive and data then
-        local send_len = self.session.call_text(data)
+        local send_len = self.session.call_text(data, #data)
         return send_len > 0
     end
     return false, "socket not alive"

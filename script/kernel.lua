@@ -1,11 +1,16 @@
 --kernel.lua
 import("basic/basic.lua")
-local ltimer = require("ltimer")
+local ltimer        = require("ltimer")
 
-local socket_mgr    = nil
-local update_mgr    = nil
+local tpack         = table.pack
+local tunpack       = table.unpack
+local raw_yield     = coroutine.yield
+local raw_resume    = coroutine.resume
 local ltime         = ltimer.time
 
+local co_hookor     = nil
+local socket_mgr    = nil
+local update_mgr    = nil
 local QuantaMode    = enum("QuantaMode")
 
 --初始化网络
@@ -14,6 +19,32 @@ local function init_network()
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
     socket_mgr = lbus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
+end
+
+--协程改造
+local function init_coroutine()
+    coroutine.yield = function(...)
+        if co_hookor then
+            co_hookor:yield()
+        end
+        return raw_yield(...)
+    end
+    coroutine.resume = function(co, ...)
+        if co_hookor then
+            co_hookor:yield()
+            co_hookor:resume(co)
+        end
+        local args = tpack(raw_resume(co, ...))
+        if co_hookor then
+            co_hookor:resume()
+        end
+        return tunpack(args)
+    end
+    quanta.eval = function(name)
+        if co_hookor then
+            return co_hookor:eval(name)
+        end
+    end
 end
 
 --初始化路由
@@ -37,11 +68,11 @@ function quanta.init()
     service.init()
     logger.init()
     --主循环
+    init_coroutine()
     init_mainloop()
     --网络
     if quanta.mode <= QuantaMode.TOOL then
         --加载统计
-        import("kernel/perfeval_mgr.lua")
         import("kernel/statis_mgr.lua")
         init_network()
     end
@@ -64,13 +95,14 @@ function quanta.init_gm()
     import("agent/gm_agent.lua")
 end
 
+function quanta.hook_coroutine(hooker)
+    co_hookor = hooker
+end
+
 --启动
 function quanta.startup(entry)
     quanta.now = 0
     quanta.frame = 0
-    quanta.yield = coroutine.yield
-    quanta.resume = coroutine.resume
-    quanta.running = coroutine.running
     quanta.now_ms, quanta.clock_ms = ltime()
     --初始化随机种子
     math.randomseed(quanta.now_ms)

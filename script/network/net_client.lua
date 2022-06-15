@@ -1,6 +1,7 @@
 --net_client.lua
 local lcrypt            = require("lcrypt")
 local log_err           = logger.err
+local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 
@@ -8,7 +9,6 @@ local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
-local perfeval_mgr      = quanta.get("perfeval_mgr")
 
 local out_press         = env_status("QUANTA_OUT_PRESS")
 local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
@@ -134,7 +134,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
-            local _<close> = perfeval_mgr:eval(cmd_name)
+            local _<close> = qeval(cmd_name)
             self.holder:on_socket_rpc(self, cmd_id, body, session_id)
         end
         thread_mgr:fork(dispatch_rpc_message)

@@ -63,7 +63,7 @@ message login_role_create_req
 {
     uint64 user_id              = 1;        // 账号id
     string name                 = 2;        // 名字
-    string gender               = 3;        // 性别
+    uint32 gender               = 3;        // 性别
 }
 
 //NID_LOGIN_ROLE_CREATE_RES

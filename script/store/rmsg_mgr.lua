@@ -38,7 +38,7 @@ end
 
 -- 查询未处理消息列表
 function RmsgMgr:list_message(target)
-    local query = { self.table_name, {target = target, deal_time = 0}, {_id = 0}, {time = 1} }
+    local query = { self.table_name, {target = target, deal_time = 0}, nil, {time = 1} }
     local ok, code, result = mongo_agent:find(query, self.db_name)
     if ok and qsuccess(code) then
         return result

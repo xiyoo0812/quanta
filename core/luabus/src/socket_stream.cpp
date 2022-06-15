@@ -505,7 +505,7 @@ void socket_stream::dispatch_package() {
 
         // 数据包还没有收完整
 		if (data_len < package_size) break;
-		m_package_cb(m_recv_buffer->slice());
+		m_package_cb(m_recv_buffer->slice(package_size));
         // 接收缓冲读游标调整
         m_recv_buffer->pop_size(package_size);
         m_last_recv_time = ltimer::steady_ms();

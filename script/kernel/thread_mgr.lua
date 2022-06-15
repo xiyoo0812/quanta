@@ -24,7 +24,7 @@ prop:reader("syncqueue_map", {})
 prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
-    self.session_id = mrandom()
+    self.session_id = mrandom(100000)
     self.coroutine_pool = QueueFIFO()
 end
 

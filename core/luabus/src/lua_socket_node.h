@@ -21,13 +21,15 @@ public:
 	int call_text(const char* data, uint32_t data_len);
 	int call(uint32_t session_id, uint8_t flag, slice* slice);
 	int call_pack(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len);
-    int forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, const char* data, uint32_t data_len);
+    int forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, slice* slice);
 
-    int forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, const char* data, uint32_t data_len);
+    int forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, slice* slice);
 
 	template <rpc_type forward_method>
-	int forward_by_group(uint32_t session_id, uint8_t flag, uint16_t service_id, const char* data, uint32_t data_len) {
+	int forward_by_group(uint32_t session_id, uint8_t flag, uint16_t service_id, slice* slice) {
+		size_t data_len = 0;
 		router_header header;
+		char* data = (char*)slice->data(&data_len);
 		header.len = data_len + sizeof(router_header);
 		header.context = (uint8_t)forward_method << 4 | flag;
 		header.session_id = session_id;

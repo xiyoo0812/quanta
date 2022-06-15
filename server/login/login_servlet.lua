@@ -60,7 +60,7 @@ end
 
 --账号登陆
 function LoginServlet:on_account_login_req(session, body, session_id)
-    local open_id, token, platform = body.open_id, body.session, body.platform
+    local open_id, token, platform = body.openid, body.session, body.platform
     log_debug("[LoginServlet][on_account_login_req] open_id(%s) token(%s) login start!", open_id, token)
     if session.open_id then
         return client_mgr:callback_errcode(session, ACCOUNT_LOGIN_REQ, ACCOUTN_INLINE, session_id)
@@ -251,6 +251,7 @@ function LoginServlet:on_service_ready(id, name, info)
     local gate_region = self.gateways[region]
     if not gate_region then
         self.gateways[region] = { info }
+        return
     end
     gate_region[#gate_region + 1] = info
 end

@@ -12,7 +12,7 @@ local GatePlayer     	= import("gateway/player.lua")
 
 local ErrorCode         = ncmd_cs.ErrorCode
 local FRAME_FAILED      = ErrorCode.FRAME_FAILED
-local PLAYER_INLINE     = ErrorCode.LOGIN_PLAYER_INLINE
+local ROLE_IS_INLINE    = ErrorCode.LOGIN_ROLE_IS_INLINE
 
 local NCmdId            = ncmd_cs.NCmdId
 local HEARTBEAT_REQ     = NCmdId.NID_HEARTBEAT_REQ
@@ -22,7 +22,7 @@ local ROLE_LOGOUT_REQ   = NCmdId.NID_LOGIN_ROLE_LOGOUT_REQ
 local ROLE_RELOAD_REQ   = NCmdId.NID_LOGIN_ROLE_RELOAD_REQ
 local ROLE_KICKOUT_NTF  = NCmdId.NID_LOGIN_ROLE_KICKOUT_NTF
 
-local Gateway = class()
+local Gateway = singleton()
 local prop = property(Gateway)
 prop:reader("players", {})          --会话列表
 
@@ -41,6 +41,8 @@ function Gateway:__init(session_type)
     event_mgr:add_cmd_listener(self, ROLE_LOGIN_REQ, "on_role_login_req")
     event_mgr:add_cmd_listener(self, ROLE_LOGOUT_REQ, "on_role_logout_req")
     event_mgr:add_cmd_listener(self, ROLE_RELOAD_REQ, "on_role_reload_req")
+    -- 重新设置
+    service.make_node(client_mgr:get_port())
 end
 
 --查找玩家
@@ -88,6 +90,12 @@ function Gateway:on_heartbeat_req(session, body, session_id)
     local sserial  = client_mgr:check_serial(session, body.serial)
     local data_res = { serial = sserial, time = quanta.now }
     client_mgr:callback(session, HEARTBEAT_RES, data_res, session_id)
+    --通知lobby
+    local player_id = session.player_id
+    local player = self:get_player(player_id)
+    if player then
+        player:trans_message(player:get_lobby_id(), "rpc_player_heatbeat", player_id)
+    end
 end
 
 --玩家登陆
@@ -95,7 +103,7 @@ function Gateway:on_role_login_req(session, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
     log_debug("[Gateway][on_role_login_req] user(%s) player(%s) login start!", user_id, player_id)
     if session.player_id or self:get_player(player_id) then
-        return client_mgr:callback_errcode(ROLE_LOGIN_REQ, PLAYER_INLINE, session_id)
+        return client_mgr:callback_errcode(ROLE_LOGIN_REQ, ROLE_IS_INLINE, session_id)
     end
     local player = GatePlayer(session, user_id, player_id)
     local codeoe, res = player:trans_message(lobby, "rpc_player_login", user_id, player_id, lobby, token, quanta.id)
@@ -137,7 +145,7 @@ function Gateway:on_role_reload_req(session, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
     log_debug("[Gateway][on_role_reload_req] user(%s) player(%s) reload start!", user_id, player_id)
     if session.player_id or self:get_player(player_id) then
-        return client_mgr:callback_errcode(ROLE_RELOAD_REQ, PLAYER_INLINE, session_id)
+        return client_mgr:callback_errcode(ROLE_RELOAD_REQ, ROLE_IS_INLINE, session_id)
     end
     local player = GatePlayer(session, user_id, player_id)
     local codeoe, res = player:trans_message(lobby, "rpc_player_reload", user_id, player_id, lobby, token)
@@ -191,5 +199,7 @@ function Gateway:on_session_cmd(session, service_type, cmd_id, body, session_id)
     end
     player:notify_command(service_type, cmd_id, body, session_id)
 end
+
+quanta.gateway = Gateway()
 
 return Gateway

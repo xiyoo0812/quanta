@@ -1,4 +1,5 @@
 --mongo_mgr.lua
+local log_debug     = logger.debug
 
 local event_mgr     = quanta.get("event_mgr")
 local config_mgr    = quanta.get("config_mgr")
@@ -50,24 +51,27 @@ function MongoMgr:get_db(db_name)
 end
 
 function MongoMgr:find(db_name, coll_name, selector, fields, sortor, limit)
+    log_debug("[MongoMgr][find]: %s, selector:%s", coll_name, selector)
     local mongodb = self:get_db(db_name)
     if mongodb then
-        local ok, res_oe = mongodb:find(coll_name, selector, fields, sortor, limit)
+        local ok, res_oe = mongodb:find(coll_name, selector, fields or {_id = 0}, sortor, limit)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:find_one(db_name, coll_name, selector, fields)
+    log_debug("[MongoMgr][find_one]: %s, selector:%s", coll_name, selector)
     local mongodb = self:get_db(db_name)
     if mongodb then
-        local ok, res_oe = mongodb:find_one(coll_name, selector, fields)
+        local ok, res_oe = mongodb:find_one(coll_name, selector, fields or {_id = 0})
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
 function MongoMgr:insert(db_name, coll_name, obj)
+    log_debug("[MongoMgr][insert]: %s, obj:%s", coll_name, obj)
     local mongodb = self:get_db(db_name)
     if mongodb then
         local ok, res_oe = mongodb:insert(coll_name, obj)
@@ -77,6 +81,7 @@ function MongoMgr:insert(db_name, coll_name, obj)
 end
 
 function MongoMgr:update(db_name, coll_name, obj, selector, upsert, multi)
+    log_debug("[MongoMgr][update]: %s, obj:%s", coll_name, obj)
     local mongodb = self:get_db(db_name)
     if mongodb then
         local ok, res_oe = mongodb:update(coll_name, obj, selector, upsert, multi)
@@ -86,6 +91,7 @@ function MongoMgr:update(db_name, coll_name, obj, selector, upsert, multi)
 end
 
 function MongoMgr:delete(db_name, coll_name, selector, onlyone)
+    log_debug("[MongoMgr][delete]: %s, selector:%s", coll_name, selector)
     local mongodb = self:get_db(db_name)
     if mongodb then
         local ok, res_oe = mongodb:delete(coll_name, selector, onlyone)

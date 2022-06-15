@@ -66,8 +66,10 @@ int lua_socket_node::call(uint32_t session_id, uint8_t flag, slice* slice) {
     return header.len;
 }
 
-int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, const char* data, uint32_t data_len) {
+int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, slice* slice) {
+    size_t data_len = 0;
     router_header header;
+    char* data = (char*)slice->data(&data_len);
     header.len = data_len + sizeof(router_header);
     header.context = (uint8_t)rpc_type::forward_target << 4 | flag;
     header.session_id = session_id;
@@ -78,8 +80,10 @@ int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t 
     return header.len;
 }
 
-int lua_socket_node::forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, const char* data, uint32_t data_len) {
+int lua_socket_node::forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, slice* slice) {
+    size_t data_len = 0;
     router_header header;
+    char* data = (char*)slice->data(&data_len);
     header.len = data_len + sizeof(router_header);
     header.context = (uint8_t)rpc_type::forward_hash << 4 | flag;
     header.session_id = session_id;
@@ -176,9 +180,10 @@ void lua_socket_node::on_call_pack(slice* slice) {
     uint8_t flag = header->flag;
     uint8_t type = header->type;
     uint16_t cmd_id = header->cmd_id;
-    uint32_t session_id = (m_stoken | header->session_id);
-    luakit::kit_state kit_state(m_lvm);
+    uint32_t session_id = header->session_id;
+    if (session_id > 0) session_id |= m_stoken;
     slice->erase(header_len);
+    luakit::kit_state kit_state(m_lvm);
     kit_state.object_call(this, "on_call_pack", nullptr, std::tie(), header->len, cmd_id, flag, type, session_id, slice);
 }
 

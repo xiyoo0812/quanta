@@ -1,7 +1,7 @@
 --eval_slot.lua
 --[[性能上报
 示例:
-    local _<close> = perfeval_mgr:eval(key)
+    local _<close> = quanta.eval(key)
     ...
 --]]
 

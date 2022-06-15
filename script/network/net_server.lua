@@ -4,15 +4,16 @@ local lcrypt        = require("lcrypt")
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
+local log_debug         = logger.debug
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 local env_number        = environ.number
 local signalquit        = signal.quit
+local qeval             = quanta.eval
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
-local perfeval_mgr      = quanta.get("perfeval_mgr")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -77,7 +78,7 @@ function NetServer:on_socket_accept(session)
     -- 设置超时(心跳)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 绑定call回调
-    session.on_call_pack = function(recv_len, cmd_id, flag, session_id, slice)
+    session.on_call_pack = function(recv_len, cmd_id, flag, type, session_id, slice)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
         event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
@@ -219,9 +220,10 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice
         log_warn("[NetServer][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
         return
     end
+    log_debug("[NetServer][on_socket_recv] recv session_id %s, cmd_id:%s, body:%s", session_id, cmd_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(_session, typ, cmd, bd)
-            local _<close> = perfeval_mgr:eval(cmd_name)
+            local _<close> = qeval(cmd_name)
             local result = event_mgr:notify_listener("on_session_cmd", _session, typ, cmd, bd, session_id)
             if not result[1] then
                 log_err("[NetServer][on_socket_recv] on_session_cmd failed! cmd_id:%s", cmd_id)
