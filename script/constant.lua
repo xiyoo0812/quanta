@@ -82,6 +82,12 @@ GMType.PLAYER               = 1       -- 玩家相关,ID为玩家的ID
 GMType.SERVICE              = 2       -- 服务相关,ID按hash分发
 GMType.SYSTEM               = 3       -- 业务相关,ID为队伍ID,房间ID等
 
+-- robot类型
+local RobotType             = enum("RobotType", 0)
+RobotType.RANDOM            = 0       -- 随机账号
+RobotType.COMPOSE           = 1       -- 组合账号
+RobotType.PLAYER            = 2       -- 指定账号
+
 --Cache错误码
 local CacheType = enum("CacheType", 0)
 CacheType.READ              = 1     -- 读

@@ -2,11 +2,11 @@
 local log_err           = logger.err
 local qfailed           = quanta.failed
 
-local ErrorCode         = ncmd_cs.ErrorCode
-local FRAME_FAILED      = ErrorCode.FRAME_FAILED
-
 local router_mgr        = quanta.get("router_mgr")
 local client_mgr        = quanta.get("client_mgr")
+local protobuf_mgr      = quanta.get("protobuf_mgr")
+
+local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 
 --创建角色数据
 local GatePlayer = class()
@@ -40,7 +40,7 @@ end
 
 --转发消息
 function GatePlayer:trans_message(server_id, rpc, ...)
-    local ok, codeoe, res = router_mgr:call_target(server_id, "rpc", ...)
+    local ok, codeoe, res = router_mgr:call_target(server_id, rpc, ...)
     return ok and codeoe or FRAME_FAILED, ok and res or codeoe
 end
 
@@ -49,13 +49,13 @@ function GatePlayer:notify_command(service_type, cmd_id, body, session_id)
     local server_id = self.gate_services[service_type]
     if not server_id then
         log_err("[GatePlayer][notify_command] service(%s) cnot transfor, cmd_id=%s, player=%s", service, cmd_id, self.player_id)
-        client_mgr:callback_errcode(cmd_id, FRAME_FAILED, session_id)
+        client_mgr:callback_errcode(self.session, cmd_id, FRAME_FAILED, session_id)
         return
     end
     local codeoe, res = self:trans_message(server_id, "rpc_session_command", self.player_id, cmd_id, body)
     if qfailed(codeoe) then
         log_err("[GatePlayer][notify_command] call rpc_session_command(%s) code %s, failed: %s", cmd_id, codeoe, res)
-        client_mgr:callback_errcode(cmd_id, codeoe, session_id)
+        client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
         return
     end
     client_mgr:callback_by_id(self.session, cmd_id, res, session_id)

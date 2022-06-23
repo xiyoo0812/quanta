@@ -5,26 +5,28 @@ local lstdfs        = require('lstdfs')
 local pairs         = pairs
 local ipairs        = ipairs
 local pcall         = pcall
+local supper        = string.upper
+local tunpack       = table.unpack
+local dgetinfo      = debug.getinfo
+local setmetatable  = setmetatable
+local log_err       = logger.err
+local env_get       = environ.get
 local ldir          = lstdfs.dir
 local lappend       = lstdfs.append
 local lfilename     = lstdfs.filename
 local lextension    = lstdfs.extension
-local supper        = string.upper
-local ssplit        = string_ext.split
-local sends_with    = string_ext.ends_with
-local tunpack       = table.unpack
-local log_err       = logger.err
-local env_get       = environ.get
-local setmetatable  = setmetatable
+local pb_enum_id    = protobuf.enum
 local pb_decode     = protobuf.decode
 local pb_encode     = protobuf.encode
-local pb_enum_id    = protobuf.enum
+local ssplit        = string_ext.split
+local sends_with    = string_ext.ends_with
 
 local ProtobufMgr = singleton()
 local prop = property(ProtobufMgr)
-prop:accessor("pb_indexs", {})
-prop:accessor("pb_callbacks", {})
-prop:accessor("allow_reload", false)
+prop:reader("pb_naems", {})
+prop:reader("pb_indexs", {})
+prop:reader("pb_callbacks", {})
+prop:reader("allow_reload", false)
 
 function ProtobufMgr:__init()
     self:load_protos()
@@ -33,6 +35,35 @@ end
 --返回回调id
 function ProtobufMgr:callback_id(req_id)
     return self.pb_callbacks[req_id]
+end
+
+--返回协议名称
+function ProtobufMgr:msg_name(cmd_id)
+    return self.pb_naems[cmd_id]
+end
+
+function ProtobufMgr:enum(ename, ekey)
+    local emun = ncmd_cs[ename]
+    if not emun then
+        local info = dgetinfo(2, "S")
+        log_err("[ProtobufMgr][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined)
+        return
+    end
+    local value = emun[ekey]
+    if not value then
+        local info = dgetinfo(2, "S")
+        log_err("[ProtobufMgr][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined)
+        return
+    end
+    return value
+end
+
+function ProtobufMgr:error_code(err_key)
+    return self:enum("ErrorCode", err_key)
+end
+
+function ProtobufMgr:msg_id(msg_name)
+    return self:enum("NCmdId", msg_name)
 end
 
 --加载pb文件
@@ -129,6 +160,7 @@ function ProtobufMgr:define_command(full_name, proto_name)
         for enum_type, enum in pairs(enum_set) do
             local msg_id = pb_enum_id(package_name .. "." .. enum_type, msg_name)
             if msg_id then
+                self.pb_naems[msg_id] = msg_name
                 self.pb_indexs[msg_id] = full_name
                 if proto_isreq then
                     local msg_res_name = msg_name:sub(0, -2) .. "S"

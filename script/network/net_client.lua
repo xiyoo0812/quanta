@@ -135,7 +135,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
         -- 执行消息分发
         local function dispatch_rpc_message()
             local _<close> = qeval(cmd_name)
-            self.holder:on_socket_rpc(self, cmd_id, body, session_id)
+            self.holder:on_socket_rpc(self, cmd_id, body)
         end
         thread_mgr:fork(dispatch_rpc_message)
         --等待协议处理
@@ -159,7 +159,7 @@ function NetClient:close()
     end
 end
 
-function NetClient:write(cmd_id, data, session_id, flag)
+function NetClient:write(cmd_id, data, type, session_id, flag)
     if not self.alive then
         return false
     end
@@ -169,7 +169,7 @@ function NetClient:write(cmd_id, data, session_id, flag)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_pack(cmd_id, pflag, session_id or 0, body, #body)
+    local send_len = self.socket.call_pack(cmd_id, pflag, type or 0, session_id or 0, body, #body)
     if send_len < 0 then
         log_err("[NetClient][write] call_pack failed! code:%s", send_len)
         return false
@@ -178,14 +178,14 @@ function NetClient:write(cmd_id, data, session_id, flag)
 end
 
 -- 发送数据
-function NetClient:send(cmd_id, data)
-    return self:write(cmd_id, data, 0, FLAG_REQ)
+function NetClient:send(cmd_id, data, type)
+    return self:write(cmd_id, data, type, 0, FLAG_REQ)
 end
 
 -- 发起远程调用
-function NetClient:call(cmd_id, data)
+function NetClient:call(cmd_id, data, type)
     local session_id = self.socket.build_session_id()
-    if not self:write(cmd_id, data, session_id, FLAG_REQ) then
+    if not self:write(cmd_id, data, type, session_id, FLAG_REQ) then
         return false
     end
     return thread_mgr:yield(session_id, cmd_id, RPC_CALL_TIMEOUT)

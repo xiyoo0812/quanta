@@ -3,10 +3,10 @@ local log_debug         = logger.debug
 
 local event_mgr         = quanta.get("event_mgr")
 local client_mgr        = quanta.get("client_mgr")
+local protobuf_mgr      = quanta.get("protobuf_mgr")
 
-local NCmdId            = ncmd_cs.NCmdId
-local HEARTBEAT_REQ     = NCmdId.NID_HEARTBEAT_REQ
-local HEARTBEAT_RES     = NCmdId.NID_HEARTBEAT_RES
+local HEARTBEAT_REQ     = protobuf_mgr:msg_id("NID_HEARTBEAT_REQ")
+local HEARTBEAT_RES     = protobuf_mgr:msg_id("NID_HEARTBEAT_RES")
 
 local LoginMgr = singleton()
 

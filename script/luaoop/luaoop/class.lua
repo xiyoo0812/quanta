@@ -170,7 +170,7 @@ local function class_constructor(class, super, ...)
         class.__props = {}
         class.__mixins = {}
         class_tpl = setmetatable(class, classMT)
-        implemented(class, { ... })
+        implemented(class, ...)
         class_tpls[source] = class_tpl
     end
     return class_tpl

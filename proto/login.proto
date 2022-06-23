@@ -5,9 +5,9 @@ package ncmd_cs;
 //角色信息
 message role_info
 {
-    uint32 role_id              = 1;       // 角色id
-    string role_name            = 2;       // 角色名字
-    uint32 role_gender          = 3;       // 角色性别
+    uint64 role_id              = 1;       // 角色id
+    string name                 = 2;       // 角色名字
+    uint32 gender               = 3;       // 角色性别
 }
 
 //平台定义
@@ -44,6 +44,8 @@ message login_account_reload_req
 message login_account_reload_res
 {
     uint32 error_code           = 1;        // 错误码
+    uint64 user_id              = 2;        // 第三方账号openid
+    repeated role_info roles    = 3;        // 账号角色列表
 }
 
 //NID_LOGIN_RANDOM_NAME_REQ
@@ -77,7 +79,7 @@ message login_role_create_res
 message login_role_choose_req
 {
     uint64 user_id              = 1;        // 账号id
-    uint32 role_id              = 2;        // 角色id
+    uint64 role_id              = 2;        // 角色id
 }
 
 //NID_LOGIN_ROLE_CHOOSE_RES
@@ -94,7 +96,7 @@ message login_role_choose_res
 message login_role_delete_req
 {
     uint64 user_id              = 1;        // 账号id
-    uint32 role_id              = 2;        // 角色id
+    uint64 role_id              = 2;        // 角色id
 }
 
 //NID_LOGIN_ROLE_DELETE_RES
@@ -107,7 +109,7 @@ message login_role_delete_res
 message login_role_login_req
 {
     uint64 user_id              = 1;        // 账号id
-    uint32 role_id              = 2;        // 角色id
+    uint64 role_id              = 2;        // 角色id
     uint32 lobby                = 3;        // lobby id
     uint32 token                = 4;        // 验证token
 }
@@ -121,7 +123,7 @@ message login_role_login_res
 //NID_LOGIN_ROLE_LOGOUT_REQ
 message login_role_logout_req
 {
-    uint32 role_id              = 1;        // 角色id
+    uint64 role_id              = 1;        // 角色id
 }
 
 //NID_LOGIN_ROLE_LOGOUT_RES
@@ -135,7 +137,7 @@ message login_role_logout_res
 message login_role_reload_req
 {
     uint64 user_id              = 1;        // 账号id
-    uint32 role_id              = 2;        // 角色id
+    uint64 role_id              = 2;        // 角色id
     uint32 lobby                = 3;        // lobby id
     uint32 token                = 4;        // 验证token
 }

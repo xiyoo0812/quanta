@@ -70,8 +70,8 @@ struct socket_stream : public socket_object
     int m_ovl_ref = 0;
 #endif
 
-    std::function<void(int, eproto_type)> m_accept_cb = nullptr;
+    std::function<void(slice*)> m_package_cb = nullptr;
     std::function<void(const char*)> m_error_cb = nullptr;
-    std::function<void(lbuffer::slice*)> m_package_cb = nullptr;
+    std::function<void(int, eproto_type)> m_accept_cb = nullptr;
     std::function<void(bool, const char*)> m_connect_cb = nullptr;
 };

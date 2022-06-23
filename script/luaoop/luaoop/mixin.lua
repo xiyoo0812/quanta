@@ -1,8 +1,12 @@
 --mixin.lua
 --[[提供混入机制
 示例:
+    --构造函数混入
     Execute = mixin()
     Listener = class(nil, Listener)
+    --委托函数混入
+    Robot = class()
+    Robot:delegate(Execute)
 说明：
     mixin声明的成员自动附加到主类
     mixin声明的函数(除带下划线的私有方法)自动附加到主类
@@ -19,14 +23,6 @@ local sformat       = string.format
 local setmetatable  = setmetatable
 
 local mixin_tpls    = _ENV.mixin_tpls or {}
-
-local function index(mixin, field)
-    return mixin.__methods[field]
-end
-
-local function newindex(mixin, field, value)
-    mixin.__methods[field] = value
-end
 
 local function invoke(class, object, method, ...)
     if class.__super then
@@ -63,14 +59,10 @@ local function collect(class, object, method, ...)
     return true
 end
 
---代理一个类的所有接口，并检测接口是否实现
-function implemented(class, mixins)
-    class.invoke = function(object, method, ...)
-        invoke(object.__class, object, method, ...)
-    end
-    class.collect = function(object, method, ...)
-        return collect(object.__class, object, method, ...)
-    end
+--委托一个mixin给class
+local function delegate(class, ...)
+    local mixins = { ... }
+    local cmixins = class.__mixins
     for _, mixin in ipairs(mixins) do
         for name, value in pairs(mixin.__props) do
             --属性处理
@@ -94,14 +86,37 @@ function implemented(class, mixins)
             end
             :: continue ::
         end
-        local minixs = class.__mixins
-        minixs[#minixs + 1] = mixin
+        cmixins[#cmixins + 1] = mixin
     end
+end
+
+--代理一个类的所有接口，并检测接口是否实现
+function implemented(class, ...)
+    --定义委托接口，在声明后添加委托
+    class.delegate = delegate
+    --调用所有mixin的接口
+    class.invoke = function(object, method, ...)
+        invoke(object.__class, object, method, ...)
+    end
+    --调用所有mixin的接口，并收集结果
+    class.collect = function(object, method, ...)
+        return collect(object.__class, object, method, ...)
+    end
+    --委托声明的mixins给class
+    delegate(class, ...)
+end
+
+local function index(mixin, field)
+    return mixin.__methods[field]
+end
+
+local function newindex(mixin, field, value)
+    mixin.__methods[field] = value
 end
 
 local mixinMT = {
     __index = index,
-    __newindex = newindex
+    __newindex = newindex,
 }
 
 local function mixin_tostring(mixin)
@@ -114,13 +129,13 @@ function mixin()
     local source = info.short_src
     local mixin_tpl = mixin_tpls[source]
     if not mixin_tpl then
-        local mixin = {
+        local mixino = {
             __props = {},
             __methods = {},
             __source = source,
             __tostring = mixin_tostring,
         }
-        mixin_tpl = setmetatable(mixin, mixinMT)
+        mixin_tpl = setmetatable(mixino, mixinMT)
         mixin_tpls[source] = mixin_tpl
     end
     return mixin_tpl

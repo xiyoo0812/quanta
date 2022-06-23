@@ -1,13 +1,13 @@
 --thread_mgr.lua
 local select        = select
-local mrandom       = math.random
 local tunpack       = table.unpack
-local tsize         = table_ext.size
 local sformat       = string.format
 local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running
+local mrandom       = math_ext.random
+local tsize         = table_ext.size
 local qxpcall       = quanta.xpcall
 local log_err       = logger.err
 
@@ -24,7 +24,7 @@ prop:reader("syncqueue_map", {})
 prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
-    self.session_id = mrandom(100000)
+    self.session_id = mrandom()
     self.coroutine_pool = QueueFIFO()
 end
 

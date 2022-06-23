@@ -51,6 +51,7 @@ function NetServer:setup(ip, port, induce)
     if not ip or not port then
         log_err("[NetServer][setup] ip:%s or port:%s is nil", ip, port)
         signalquit()
+        return
     end
     local listen_proto_type = 1
     local socket_mgr = quanta.get("socket_mgr")
@@ -59,6 +60,7 @@ function NetServer:setup(ip, port, induce)
     if not self.listener then
         log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)
         signalquit()
+        return
     end
     self.ip, self.port = ip, real_port
     log_info("[NetServer][setup] start listen at: %s:%d type=%d", ip, real_port, listen_proto_type)
@@ -89,8 +91,8 @@ function NetServer:on_socket_accept(session)
         qxpcall(self.on_socket_error, "on_socket_error: %s", self, token, err)
     end
     --初始化序号
-    session.serial = 0
-    session.serial_sync = 0
+    session.serial = 1
+    session.serial_sync = 1
     session.command_times = {}
     --通知链接成功
     event_mgr:notify_listener("on_socket_accept", session)
@@ -240,6 +242,7 @@ end
 function NetServer:check_serial(session, cserial)
     local sserial = session.serial
     if cserial and cserial ~= session.serial_sync then
+        log_warn("[NetServer][check_serial] serial number(%s-%s) error", cserial, session.serial_sync)
         event_mgr:notify_listener("on_session_sync", session)
     end
     session.serial_sync = sserial

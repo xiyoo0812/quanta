@@ -6,21 +6,20 @@ local qfailed           = quanta.failed
 
 local event_mgr         = quanta.get("event_mgr")
 local client_mgr        = quanta.get("client_mgr")
+local protobuf_mgr      = quanta.get("protobuf_mgr")
 
 local service_gate      = service.name2sid("gateway")
 local GatePlayer     	= import("gateway/player.lua")
 
-local ErrorCode         = ncmd_cs.ErrorCode
-local FRAME_FAILED      = ErrorCode.FRAME_FAILED
-local ROLE_IS_INLINE    = ErrorCode.LOGIN_ROLE_IS_INLINE
+local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
+local ROLE_IS_INLINE    = protobuf_mgr:error_code("LOGIN_ROLE_IS_INLINE")
 
-local NCmdId            = ncmd_cs.NCmdId
-local HEARTBEAT_REQ     = NCmdId.NID_HEARTBEAT_REQ
-local HEARTBEAT_RES     = NCmdId.NID_HEARTBEAT_RES
-local ROLE_LOGIN_REQ    = NCmdId.NID_LOGIN_ROLE_LOGIN_REQ
-local ROLE_LOGOUT_REQ   = NCmdId.NID_LOGIN_ROLE_LOGOUT_REQ
-local ROLE_RELOAD_REQ   = NCmdId.NID_LOGIN_ROLE_RELOAD_REQ
-local ROLE_KICKOUT_NTF  = NCmdId.NID_LOGIN_ROLE_KICKOUT_NTF
+local HEARTBEAT_REQ     = protobuf_mgr:msg_id("NID_HEARTBEAT_REQ")
+local HEARTBEAT_RES     = protobuf_mgr:msg_id("NID_HEARTBEAT_RES")
+local ROLE_LOGIN_REQ    = protobuf_mgr:msg_id("NID_LOGIN_ROLE_LOGIN_REQ")
+local ROLE_LOGOUT_REQ   = protobuf_mgr:msg_id("NID_LOGIN_ROLE_LOGOUT_REQ")
+local ROLE_RELOAD_REQ   = protobuf_mgr:msg_id("NID_LOGIN_ROLE_RELOAD_REQ")
+local ROLE_KICKOUT_NTF  = protobuf_mgr:msg_id("NID_LOGIN_ROLE_KICKOUT_NTF")
 
 local Gateway = singleton()
 local prop = property(Gateway)
@@ -31,6 +30,7 @@ function Gateway:__init(session_type)
     event_mgr:add_listener(self, "on_session_cmd")
     event_mgr:add_listener(self, "on_session_sync")
     event_mgr:add_listener(self, "on_session_error")
+    event_mgr:add_listener(self, "on_socket_accept")
     -- rpc消息监听
     event_mgr:add_listener(self, "on_update_gateway")
     event_mgr:add_listener(self, "on_kickout_client")
@@ -103,13 +103,13 @@ function Gateway:on_role_login_req(session, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
     log_debug("[Gateway][on_role_login_req] user(%s) player(%s) login start!", user_id, player_id)
     if session.player_id or self:get_player(player_id) then
-        return client_mgr:callback_errcode(ROLE_LOGIN_REQ, ROLE_IS_INLINE, session_id)
+        return client_mgr:callback_errcode(session, ROLE_LOGIN_REQ, ROLE_IS_INLINE, session_id)
     end
     local player = GatePlayer(session, user_id, player_id)
     local codeoe, res = player:trans_message(lobby, "rpc_player_login", user_id, player_id, lobby, token, quanta.id)
     if qfailed(codeoe) then
         log_err("[Gateway][on_role_login_req] call rpc_player_login code %s failed: %s", codeoe, res)
-        return client_mgr:callback_errcode(ROLE_LOGIN_REQ, codeoe, session_id)
+        return client_mgr:callback_errcode(session, ROLE_LOGIN_REQ, codeoe, session_id)
     end
     for service, server_id in pairs(res) do
         player:update_gateway(service, server_id)
@@ -118,21 +118,21 @@ function Gateway:on_role_login_req(session, body, session_id)
     session.player_id = player_id
     self.players[player_id] = player
     log_info("[Gateway][on_role_login_req] user(%s) player(%s) login success!", user_id, player_id)
-    client_mgr:callback_errcode(ROLE_LOGIN_REQ, codeoe, session_id)
+    client_mgr:callback_errcode(session, ROLE_LOGIN_REQ, codeoe, session_id)
 end
 
 --玩家登出
 function Gateway:on_role_logout_req(session, body, session_id)
-    local user_id, player_id = body.user_id, body.role_id
-    log_debug("[Gateway][on_role_logout_req] user(%s) player(%s) logout start!", user_id, player_id)
+    local player_id = body.role_id
+    log_debug("[Gateway][on_role_logout_req] player(%s) logout start!", player_id)
     local player = self:get_player(player_id)
     if player then
-        local codeoe, token = player:trans_message(player:get_lobby_id(), "rpc_player_logout", user_id, player_id)
+        local codeoe, token = player:trans_message(player:get_lobby_id(), "rpc_player_logout", player_id)
         if qfailed(codeoe) then
             log_err("[Gateway][on_role_logout_req] call rpc_player_logout code %s failed: %s", codeoe, token)
-            return client_mgr:callback_errcode(ROLE_LOGOUT_REQ, codeoe, session_id)
+            return client_mgr:callback_errcode(session, ROLE_LOGOUT_REQ, codeoe, session_id)
         end
-        log_info("[Gateway][on_role_logout_req] user(%s) player(%s) logout success!", user_id, player_id)
+        log_info("[Gateway][on_role_logout_req] player(%s) logout success!", player_id)
         local callback_data = { error_code = codeoe, account_token = token}
         client_mgr:callback_by_id(session, ROLE_LOGOUT_REQ, callback_data, session_id)
         client_mgr:close_session(session)
@@ -145,13 +145,13 @@ function Gateway:on_role_reload_req(session, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
     log_debug("[Gateway][on_role_reload_req] user(%s) player(%s) reload start!", user_id, player_id)
     if session.player_id or self:get_player(player_id) then
-        return client_mgr:callback_errcode(ROLE_RELOAD_REQ, ROLE_IS_INLINE, session_id)
+        return client_mgr:callback_errcode(session, ROLE_RELOAD_REQ, ROLE_IS_INLINE, session_id)
     end
     local player = GatePlayer(session, user_id, player_id)
     local codeoe, res = player:trans_message(lobby, "rpc_player_reload", user_id, player_id, lobby, token)
     if qfailed(codeoe) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", codeoe, res)
-        return client_mgr:callback_errcode(ROLE_RELOAD_REQ, codeoe, session_id)
+        return client_mgr:callback_errcode(session, ROLE_RELOAD_REQ, codeoe, session_id)
     end
     for service, server_id in pairs(res) do
         player:update_gateway(service, server_id)
@@ -160,7 +160,14 @@ function Gateway:on_role_reload_req(session, body, session_id)
     session.player_id = player_id
     self.players[player_id] = player
     log_info("[Gateway][on_role_reload_req] user(%s) player(%s) login success!", user_id, player_id)
-    client_mgr:callback_errcode(ROLE_RELOAD_REQ, codeoe, session_id)
+    client_mgr:callback_errcode(session, ROLE_RELOAD_REQ, codeoe, session_id)
+end
+
+--连接信息
+----------------------------------------------------------------------
+--客户端连上
+function Gateway:on_socket_accept(session)
+    log_debug("[Gateway][on_socket_accept] %s connected!", session.token)
 end
 
 --客户端数据同步
@@ -175,6 +182,7 @@ end
 --客户端连接断开
 function Gateway:on_session_error(session, token, err)
     local player_id = session.player_id
+    log_debug("[Gateway][on_session_error] session(%s-%s) lost, because: %s!", token, player_id, err)
     local player = self:get_player(player_id)
     if player then
         self.players[player_id] = nil

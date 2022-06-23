@@ -28,7 +28,7 @@ function ConfigTable:setup(name, ...)
         self.indexs = {...}
         import(sformat("config/%s_cfg.lua", name))
     else
-        log_err("[ConfigTable][__init] keys len illegal. name=%s, size=%s", name, size)
+        log_err("[ConfigTable][setup] keys len illegal. name=%s, size=%s", name, size)
     end
 end
 

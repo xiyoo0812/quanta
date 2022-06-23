@@ -91,7 +91,7 @@ namespace lbuffer {
             return 0;
         }
 
-        slice* slice(size_t len = 0) {
+        slice* get_slice(size_t len = 0) {
             size_t data_len = m_tail - m_head;
             m_slice.attach(m_head, len == 0 ? data_len : len);
             return &m_slice;
@@ -167,6 +167,6 @@ namespace lbuffer {
         uint8_t* m_tail;
         uint8_t* m_end;
         uint8_t* m_data;
-        lbuffer::slice m_slice;
+        slice m_slice;
     };
 }

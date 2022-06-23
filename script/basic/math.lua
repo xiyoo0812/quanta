@@ -9,8 +9,8 @@ function math_ext.round(n)
     return mfloor(0.5 + n)
 end
 
-function math_ext.rand(n1, n2)
-    return mrandom(n1 * 1000000, n2 * 1000000)/1000000
+function math_ext.random()
+    return mrandom(0xffff, 0xfffffff)
 end
 
 --区间检查

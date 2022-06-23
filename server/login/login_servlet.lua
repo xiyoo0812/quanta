@@ -6,7 +6,7 @@ local log_debug             = logger.debug
 local qfailed               = quanta.failed
 local guid_new              = lcrypt.guid_new
 local trandom               = table_ext.random
-local mrandom               = math_ext.rand
+local mrandom               = math_ext.random
 local tremove               = table.remove
 
 local monitor               = quanta.get("monitor")
@@ -15,29 +15,28 @@ local login_mgr             = quanta.get("login_mgr")
 local event_mgr             = quanta.get("event_mgr")
 local thread_mgr            = quanta.get("thread_mgr")
 local client_mgr            = quanta.get("client_mgr")
+local protobuf_mgr          = quanta.get("protobuf_mgr")
 
-local ErrorCode             = ncmd_cs.ErrorCode
-local FRAME_FAILED          = ErrorCode.FRAME_FAILED
-local FRAME_TOOFAST         = ErrorCode.FRAME_TOOFAST
-local FRAME_SUCCESS         = ErrorCode.FRAME_SUCCESS
-local SERVER_UPHOLD         = ErrorCode.LOGIN_SERVER_UPHOLD
-local ACCOUTN_INLINE        = ErrorCode.LOGIN_ACCOUTN_INLINE
-local ACCOUTN_BANS          = ErrorCode.LOGIN_ACCOUTN_BANS
-local VERIFY_FAILED         = ErrorCode.LOGIN_VERIFY_FAILED
-local ROLE_NOT_EXIST        = ErrorCode.LOGIN_ROLE_NOT_EXIST
-local ROLE_NUM_LIMIT        = ErrorCode.LOGIN_ROLE_NUM_LIMIT
-local ACCOUTN_OFFLINE       = ErrorCode.LOGIN_ACCOUTN_OFFLINE
+local FRAME_FAILED          = protobuf_mgr:error_code("FRAME_FAILED")
+local FRAME_TOOFAST         = protobuf_mgr:error_code("FRAME_TOOFAST")
+local FRAME_SUCCESS         = protobuf_mgr:error_code("FRAME_SUCCESS")
+local SERVER_UPHOLD         = protobuf_mgr:error_code("LOGIN_SERVER_UPHOLD")
+local ACCOUTN_INLINE        = protobuf_mgr:error_code("LOGIN_ACCOUTN_INLINE")
+local ACCOUTN_BANS          = protobuf_mgr:error_code("LOGIN_ACCOUTN_BANS")
+local VERIFY_FAILED         = protobuf_mgr:error_code("LOGIN_VERIFY_FAILED")
+local ROLE_NOT_EXIST        = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
+local ROLE_NUM_LIMIT        = protobuf_mgr:error_code("LOGIN_ROLE_NUM_LIMIT")
+local ROLE_NAME_EXIST       = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
+local ACCOUTN_OFFLINE       = protobuf_mgr:error_code("LOGIN_ACCOUTN_OFFLINE")
 
-local platform_type         = ncmd_cs.platform_type
-local PLATFORM_PASSWORD     = platform_type.PLATFORM_PASSWORD
+local RANDOM_NAME_REQ       = protobuf_mgr:msg_id("NID_LOGIN_RANDOM_NAME_REQ")
+local ROLE_CREATE_REQ       = protobuf_mgr:msg_id("NID_LOGIN_ROLE_CREATE_REQ")
+local ROLE_CHOOSE_REQ       = protobuf_mgr:msg_id("NID_LOGIN_ROLE_CHOOSE_REQ")
+local ROLE_DELETE_REQ       = protobuf_mgr:msg_id("NID_LOGIN_ROLE_DELETE_REQ")
+local ACCOUNT_LOGIN_REQ     = protobuf_mgr:msg_id("NID_LOGIN_ACCOUNT_LOGIN_REQ")
+local ACCOUNT_RELOAD_REQ    = protobuf_mgr:msg_id("NID_LOGIN_ACCOUNT_RELOAD_REQ")
 
-local NCmdId                = ncmd_cs.NCmdId
-local RANDOM_NAME_REQ       = NCmdId.NID_LOGIN_RANDOM_NAME_REQ
-local ROLE_CREATE_REQ       = NCmdId.NID_LOGIN_ROLE_CREATE_REQ
-local ROLE_CHOOSE_REQ       = NCmdId.NID_LOGIN_ROLE_CHOOSE_REQ
-local ROLE_DELETE_REQ       = NCmdId.NID_LOGIN_ROLE_DELETE_REQ
-local ACCOUNT_LOGIN_REQ     = NCmdId.NID_LOGIN_ACCOUNT_LOGIN_REQ
-local ACCOUNT_RELOAD_REQ    = NCmdId.NID_LOGIN_ACCOUNT_RELOAD_REQ
+local PLATFORM_PASSWORD     = protobuf_mgr:enum("platform_type", "PLATFORM_PASSWORD")
 
 local LoginServlet = singleton()
 local prop = property(LoginServlet)
@@ -91,7 +90,7 @@ function LoginServlet:on_account_login_req(session, body, session_id)
         return client_mgr:callback_errcode(session, ACCOUNT_LOGIN_REQ, VERIFY_FAILED, session_id)
     end
     --其他验证
-    self:verify_account(session, udata, open_id, session_id)
+    self:verify_account(session, udata, open_id, session_id, ACCOUNT_LOGIN_REQ)
 end
 
 --创建角色
@@ -107,11 +106,21 @@ function LoginServlet:on_role_create_req(session, body, session_id)
         log_err("[LoginServlet][on_role_create_req] user_id(%s) role num limit!", user_id)
         return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, ROLE_NUM_LIMIT, session_id)
     end
+    if login_dao:check_name_exist(name) then
+        log_err("[LoginServlet][on_role_create_req] user_id(%s) name %s exist!", user_id, name)
+        return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, ROLE_NAME_EXIST, session_id)
+    end
+    --创建角色
     local role_id = guid_new(quanta.service, quanta.index)
     local add_role = { gender = gender, name = name, role_id = role_id }
-    session.roles[role_count + 1] = add_role
+    if not login_dao:create_player(user_id, add_role) then
+        return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, FRAME_FAILED, session_id)
+    end
     --更新数据库
+    session.roles[role_count + 1] = add_role
     if not login_dao:update_account_roles(user_id, session.roles) then
+        --失败删除角色
+        login_dao:delete_player(role_id)
         self:delete_role(session, role_id)
         return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, FRAME_FAILED, session_id)
     end
@@ -122,9 +131,9 @@ end
 
 --选择角色
 function LoginServlet:on_role_choose_req(session, body, session_id)
-    local user_id, role_id = body.user_id, body.role_id
+    local user_id, role_id, open_id = body.user_id, body.role_id, session.open_id
     log_debug("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose start!", user_id, role_id)
-    if not session.open_id then
+    if not open_id then
         log_err("[LoginServlet][on_role_choose_req] user_id(%s) need login!", user_id)
         return client_mgr:callback_errcode(session, ROLE_CREATE_REQ, ACCOUTN_OFFLINE, session_id)
     end
@@ -132,20 +141,21 @@ function LoginServlet:on_role_choose_req(session, body, session_id)
         log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) role nit exist!", user_id, role_id)
         return client_mgr:callback_errcode(session, ROLE_CHOOSE_REQ, ROLE_NOT_EXIST, session_id)
     end
-    local ok, adata = login_dao:load_account_status(user_id)
+    local ok, adata = login_dao:load_account_status(open_id)
     if not ok then
         return client_mgr:callback_errcode(session, ACCOUNT_LOGIN_REQ, FRAME_FAILED, session_id)
     end
-    local fok, server, acc_data = self:find_server(adata)
+    local fok, gateway = self:find_gateway(user_id, adata)
+    log_debug("[LoginServlet][on_role_choose_req] choose gateway(%s)!", gateway)
     if not fok then
         log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) server uphold!", user_id, role_id)
         return client_mgr:callback_errcode(session, ROLE_CHOOSE_REQ, SERVER_UPHOLD, session_id)
     end
-    if not login_dao:update_account_status(user_id, acc_data) then
+    if not login_dao:update_account_status(session, gateway) then
         return client_mgr:callback_errcode(session, ROLE_CHOOSE_REQ, FRAME_FAILED, session_id)
     end
     log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose success!", user_id, role_id)
-    client_mgr:callback_by_id(session, ROLE_CHOOSE_REQ, server, session_id)
+    client_mgr:callback_by_id(session, ROLE_CHOOSE_REQ, gateway, session_id)
 end
 
 --删除角色
@@ -165,31 +175,61 @@ function LoginServlet:on_role_delete_req(session, body, session_id)
         session.roles[#session.roles] = del_role
         return client_mgr:callback_errcode(session, ROLE_DELETE_REQ, FRAME_FAILED, session_id)
     end
+    if not login_dao:delete_player(role_id)  then
+        return client_mgr:callback_errcode(session, ROLE_DELETE_REQ, FRAME_FAILED, session_id)
+    end
     log_info("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete success!", user_id, role_id)
     client_mgr:callback_errcode(session, ROLE_DELETE_REQ, FRAME_SUCCESS, session_id)
 end
 
 --账号重登
 function LoginServlet:on_account_reload_req(session, body, session_id)
-    local openid, token = body.openid, body.account_token
-    log_debug("[LoginServlet][on_account_reload_req] openid(%s) token(%s) reload start!", openid, token)
+    local open_id, token = body.openid, body.account_token
+    log_debug("[LoginServlet][on_account_reload_req] openid(%s) token(%s) reload start!", open_id, token)
+    if session.open_id then
+        return client_mgr:callback_errcode(session, ACCOUNT_RELOAD_REQ, ACCOUTN_INLINE, session_id)
+    end
+    local _lock<close> = thread_mgr:lock(open_id)
+    if not _lock then
+        return client_mgr:callback_errcode(session, ACCOUNT_RELOAD_REQ, FRAME_TOOFAST, session_id)
+    end
+    --验证token
+    local ok, adata = login_dao:load_account_status(open_id)
+    if not ok then
+        return client_mgr:callback_errcode(session, ACCOUNT_RELOAD_REQ, FRAME_FAILED, session_id)
+    end
+    if not adata.reload_time or token ~= adata.reload_token or quanta.now > adata.reload_time then
+        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: %s, time: %s, adata: %s", open_id, quanta.now, adata)
+        return client_mgr:callback_errcode(session, ACCOUNT_RELOAD_REQ, VERIFY_FAILED, session_id)
+    end
+    --加载账号信息
+    local lok, udata = login_dao:load_account(open_id)
+    if not lok then
+        return client_mgr:callback_errcode(session, ACCOUNT_RELOAD_REQ, FRAME_FAILED, session_id)
+    end
+    --其他验证
+    self:verify_account(session, udata, open_id, session_id, ACCOUNT_RELOAD_REQ)
 end
 
 --随机名字
 function LoginServlet:on_random_name_req(session, body, session_id)
+    local rname = login_dao:random_name()
+    log_debug("[LoginServlet][on_account_reload_req] open_id(%s) randname: %s!",session.open_id, rname)
+    local callback_data = { error_code = 0, name = rname }
+    client_mgr:callback_by_id(session, RANDOM_NAME_REQ, callback_data, session_id)
 end
 
 --内部接口
 -----------------------------------------------------
 --验证账户
-function LoginServlet:verify_account(session, udata, open_id, session_id)
+function LoginServlet:verify_account(session, udata, open_id, session_id, cmd_id)
     if udata.bantime and quanta.now < udata.bantime then
         log_err("[LoginServlet][verify_account] account is ban! open_id: %s", open_id)
-        return client_mgr:callback_errcode(session, ACCOUNT_LOGIN_REQ, ACCOUTN_BANS, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_BANS, session_id)
     end
     self:save_account(session, udata)
     local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
-    client_mgr:callback_by_id(session, ACCOUNT_LOGIN_REQ, callback_data, session_id)
+    client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
     log_info("[LoginServlet][verify_account] success! open_id: %s", open_id)
 end
 
@@ -268,38 +308,30 @@ function LoginServlet:on_service_ready(id, name, info)
     gate_region[#gate_region + 1] = info
 end
 
-function LoginServlet:find_server(user_id, adata)
+function LoginServlet:find_gateway(user_id, adata)
     --分配lobby
     local lobby = adata.lobby or 0
     local lobby_info = self.lobbys[lobby]
     if not lobby_info then
-        lobby_info = trandom(self.lobbys)
-        if not lobby_info then
+        lobby, lobby_info = trandom(self.lobbys)
+        if not lobby then
             return false
         end
-        lobby = lobby_info.id
     end
     --分配gateway
     local region = lobby_info.region
-    local gate_info = trandom(self.gateways[region])
+    local _, gate_info = trandom(self.gateways[region])
     if not gate_info then
         return false
     end
-    local token = mrandom(100000, 999999)
-    local acc_data = {
-        token = token,
-        lobby = lobby,
-        user_id = user_id,
-        time = quanta.now,
-    }
     local gateway = {
-        token = token,
         lobby = lobby,
+        token = mrandom(),
         addr = gate_info.ip,
         port = gate_info.port,
         error_code = FRAME_SUCCESS
     }
-    return true, gateway, acc_data
+    return true, gateway
 end
 
 quanta.login_servlet = LoginServlet()

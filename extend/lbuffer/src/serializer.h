@@ -35,7 +35,7 @@ namespace lbuffer {
         ~serializer() {
             delete m_buffer;
         }
-        
+
         slice* encode(lua_State* L) {
             m_buffer->reset();
             m_sshares.clear();
@@ -43,7 +43,7 @@ namespace lbuffer {
             for (int i = 1; i <= n; i++) {
                 encode_one(L, i, 0);
             }
-            return m_buffer->slice();
+            return m_buffer->get_slice();
         }
 
         int encode_string(lua_State* L) {
@@ -70,7 +70,7 @@ namespace lbuffer {
         int decode_string(lua_State* L, const char* buf, size_t len) {
             m_buffer->reset();
             m_buffer->push_data((uint8_t*)buf, len);
-            return decode(L, m_buffer->slice());
+            return decode(L, m_buffer->get_slice());
         }
 
         int serialize(lua_State* L) {
@@ -161,7 +161,7 @@ namespace lbuffer {
             value_encode(type_int64);
             value_encode(integer);
         }
-        
+
         void number_encode(double number) {
             value_encode(type_number);
             value_encode(number);
@@ -192,7 +192,7 @@ namespace lbuffer {
                 break;
             }
         }
-        
+
         void table_encode(lua_State* L, int index, int depth) {
             index = lua_absindex(L, index);
             value_encode(type_tab_head);
@@ -236,7 +236,7 @@ namespace lbuffer {
                 lua_rawset(L, -3);
             } while (1);
         }
-        
+
         void decode_value(lua_State* L, slice* buf, uint8_t type) {
             switch (type) {
             case type_nil:
@@ -398,7 +398,7 @@ namespace lbuffer {
             serialize_crcn(depth - 1, line);
             serialize_value("}");
         }
-    
+
     public:
         var_buffer* m_buffer;
         std::vector<std::string> m_sshares;

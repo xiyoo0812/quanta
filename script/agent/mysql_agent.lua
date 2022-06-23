@@ -1,7 +1,7 @@
 --mysql_agent.lua
-local mrandom       = math.random
-local sformat       = string.format
 local tconcat       = table.concat
+local sformat       = string.format
+local mrandom       = math_ext.random
 
 local router_mgr    = quanta.get("router_mgr")
 
@@ -117,7 +117,7 @@ end
 
 --发送数据库请求
 function MysqlAgent:execute(sql, db_name, hash_key)
-    return router_mgr:call_mysql_hash(hash_key or mrandom(10000), "mysql_execute", db_name or "default", sql)
+    return router_mgr:call_mysql_hash(hash_key or mrandom(), "mysql_execute", db_name or "default", sql)
 end
 
 ------------------------------------------------------------------

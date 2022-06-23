@@ -18,7 +18,6 @@ import("basic/listener.lua")
 local otime         = os.time
 local odate         = os.date
 local log_err       = logger.err
-local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
@@ -62,13 +61,13 @@ local function qenum(ename, ekey)
     local eobj = enum(ename)
     if not eobj then
         local info = dgetinfo(2, "S")
-        log_err(sformat("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined))
+        log_err("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined)
         return
     end
     local eval = eobj[ekey]
     if not eval then
         local info = dgetinfo(2, "S")
-        log_err(sformat("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined))
+        log_err("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined)
         return
     end
     return eval
