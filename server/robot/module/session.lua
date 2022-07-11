@@ -18,7 +18,6 @@ function SessionModule:connect(ip, port, block)
         self.client:close()
     end
     self.serial = 1
-    self.conn_name = nil
     self.client = NetClient(self, ip, port)
     return self.client:connect(block)
 end
@@ -31,7 +30,6 @@ end
 -- 连接关闭回调
 function SessionModule:on_socket_error(client, token, err)
     log_debug("[SessionModule][on_socket_error], robot %s, err:%s", self.robot_id, err)
-    self.conn_name = nil
 end
 
 -- ntf消息回调
@@ -64,6 +62,7 @@ function SessionModule:call(cmdid, data)
     return false
 end
 
+-- 等待NTF命令或者非RPC命令
 function SessionModule:wait(cmdid, time)
     if self.client then
         return self.client:wait(cmdid, time)

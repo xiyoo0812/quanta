@@ -1,4 +1,5 @@
 --login_mgr.lua
+local log_err           = logger.err
 local log_debug         = logger.debug
 
 local event_mgr         = quanta.get("event_mgr")
@@ -38,7 +39,7 @@ end
 
 --客户端连接断开
 function LoginMgr:on_session_error(session, token, err)
-    log_debug("[LoginMgr][on_session_error] %s lost, because: %s!", token, err)
+    log_err("[LoginMgr][on_session_error] %s lost, because: %s!", token, err)
 end
 
 --客户端消息分发

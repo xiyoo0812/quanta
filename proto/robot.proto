@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package ncmd_cs;
+
+// BtNodeId
+enum BtNodeId
+{
+    BT_ZERO         = 0;
+    //login
+    BT_LOGIN        = 1001;     //登陆
+    BT_LOGIN_UNIT   = 1002;     //登陆单元测试
+    BT_LOGOUT       = 1003;     //登出
+    BT_LOGIN_WAIT   = 1004;     //登陆
+}

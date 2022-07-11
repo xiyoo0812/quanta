@@ -1,5 +1,7 @@
 --gm_mgr.lua
 import("basic/cmdline.lua")
+import("agent/online_agent.lua")
+
 local ljson         = require("lcjson")
 local lcrypt        = require("lcrypt")
 local gm_page       = import("admin/gm_page.lua")
@@ -14,6 +16,7 @@ local make_sid      = service.make_sid
 local log_err       = logger.err
 local log_debug     = logger.debug
 
+local online        = quanta.get("online")
 local cmdline       = quanta.get("cmdline")
 local monitor       = quanta.get("monitor")
 local event_mgr     = quanta.get("event_mgr")
@@ -81,12 +84,12 @@ function AdminMgr:rpc_execute_message(message)
 end
 
 function AdminMgr:on_service_close(id, name)
-    log_debug("[AdminMgr][on_service_close] name: %s", name)
+    log_debug("[AdminMgr][on_service_close] node: %s-%s", name, id)
     self.monitors[id] = nil
 end
 
 function AdminMgr:on_service_ready(id, name, info)
-    log_debug("[AdminMgr][on_service_ready] id: %s, info: %s", id, info)
+    log_debug("[AdminMgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
     self.monitors[id] = sformat("%s:%s", info.ip, info.port)
 end
 
@@ -201,9 +204,9 @@ function AdminMgr:exec_player_cmd(cmd_name, player_id, ...)
         end
         return {code = codeoe, msg = res}
     end
-    local ok, codeoe, res = router_mgr:call_online_hash(player_id, "rpc_transfer_message", player_id, "rpc_command_execute", cmd_name, player_id, ...)
+    local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
-        log_err("[AdminMgr][exec_player_cmd] rpc_transfer_message(rpc_command_execute) failed! player_id=%s", player_id)
+        log_err("[AdminMgr][exec_player_cmd] rpc_call_lobby(rpc_command_execute) failed! player_id=%s", player_id)
         return {code = 1, msg = codeoe }
     end
     return {code = codeoe, msg = res}

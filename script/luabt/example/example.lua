@@ -21,7 +21,7 @@ local robot = {id = 1, hp = 100}
 local root = Sequence(
     HpCheck(Health(), Flee(), 30),
     Random(Fight(), Health()),
-    Repeat(5, Flee())
+    Repeat(Flee(), 5)
 )
 
 local bt = LuaBT(robot, root)

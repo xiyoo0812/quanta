@@ -4,6 +4,7 @@ local ipairs    = ipairs
 local tpack     = table.pack
 local tunpack   = table.unpack
 local tremove   = table.remove
+local sformat   = string.format
 local log_err   = logger.err
 local log_warn  = logger.warn
 local dtraceback= debug.traceback
@@ -104,6 +105,7 @@ function Listener:notify_listener(event, ...)
     local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
     if not result[1] then
         log_err("[Listener][notify_listener] xpcall [%s:%s] failed: %s", listener:source(), func_name, result[2])
+        result[2] = sformat("event %s execute failed!", event)
     end
     return result
 end
@@ -123,6 +125,7 @@ function Listener:notify_command(cmd, ...)
     local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
     if not result[1] then
         log_err("[Listener][notify_command] xpcall [%s:%s] failed: %s!", listener:source(), func_name, result[2])
+        result[2] = sformat("cmd %s execute failed!", cmd)
     end
     return result
 end

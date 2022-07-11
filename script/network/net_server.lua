@@ -4,7 +4,6 @@ local lcrypt        = require("lcrypt")
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
-local log_debug         = logger.debug
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 local env_number        = environ.number
@@ -222,7 +221,6 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice
         log_warn("[NetServer][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
         return
     end
-    log_debug("[NetServer][on_socket_recv] recv token %s, cmd_id:%s, body:%s", session.token, cmd_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(_session, typ, cmd, bd)
             local _<close> = qeval(cmd_name)

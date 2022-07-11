@@ -16,8 +16,8 @@ function LoginLobby:run(tree)
         if robot:role_login_req() then
             return SUCCESS
         end
+        return FAIL
     end
-    robot:set_wait_time(500)
     return FAIL
 end
 

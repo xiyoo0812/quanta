@@ -2,10 +2,13 @@
 local next          = next
 local pairs         = pairs
 local ipairs        = ipairs
-local sformat       = string.format
-local tconcat       = table.concat
-local log_warn      = logger.warn
+local select        = select
 local log_err       = logger.err
+local log_warn      = logger.warn
+local tconcat       = table.concat
+local tunpack       = table.unpack
+local sformat       = string.format
+local tointeger     = math.tointeger
 
 local TABLE_MAX_INDEX = 3
 
@@ -37,7 +40,7 @@ function ConfigTable:upsert(row)
     if not self.name then
         return
     end
-    local cluster = row.quanta_cluster
+    local cluster = row.cluster
     if cluster and cluster ~= quanta.cluster then
         --部署环境不一样，不加载配置
         return
@@ -50,7 +53,7 @@ function ConfigTable:upsert(row)
         log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", row, self.indexs)
         return
     end
-    local row_index = tconcat(row_indexs, "@@")
+    local row_index = self:build_index(tunpack(row_indexs))
     if row_index then
         row.version = self.version
         if not self.rows[row_index] then
@@ -60,10 +63,21 @@ function ConfigTable:upsert(row)
     end
 end
 
+--生成index
+function ConfigTable:build_index(...)
+    local n = select("#", ...)
+    if n == 1 then
+        return ...
+    end
+    if n > 0 then
+        return tconcat({...}, "@@")
+    end
+end
+
 -- 获取一项，
 -- ...必须与初始化index对应。
 function ConfigTable:find_one(...)
-    local row_index = tconcat({...}, "@@")
+    local row_index = self:build_index(...)
     if not row_index then
         log_warn("[ConfigTable][find_one] row index is nil.")
         return
@@ -84,8 +98,26 @@ function ConfigTable:find_value(key, ...)
     end
 end
 
+-- 获取一项的指定key值，
+-- ...必须与初始化index对应。
+function ConfigTable:find_number(key, ...)
+    local row = self:find_one(...)
+    if row then
+        return tonumber(row[key])
+    end
+end
+
+-- 获取一项的指定key值，
+-- ...必须与初始化index对应。
+function ConfigTable:find_integer(key, ...)
+    local row = self:find_one(...)
+    if row then
+        return tointeger(row[key])
+    end
+end
+
 -- 获取所有项，参数{field1=val1,field2=val2,field3=val3}，与初始化index无关
-function ConfigTable:select(query, single)
+function ConfigTable:select(query, key)
     local rows = {}
     for _, row in pairs(self.rows) do
         for field, value in pairs(query or {}) do
@@ -93,9 +125,10 @@ function ConfigTable:select(query, single)
                 goto continue
             end
         end
-        rows[#rows + 1] = row
-        if single then
-            return rows
+        if key then
+            rows[#rows + 1] = row[key]
+        else
+            rows[#rows + 1] = row
         end
         ::continue::
     end

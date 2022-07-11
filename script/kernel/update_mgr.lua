@@ -2,7 +2,6 @@
 
 local pairs         = pairs
 local odate         = os.date
-local otime         = os.time
 local log_info      = logger.info
 local log_warn      = logger.warn
 local sig_check     = signal.check
@@ -16,7 +15,6 @@ local SECOND_5_S    = quanta.enum("PeriodTime", "SECOND_5_S")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
-prop:reader("last_day", 0)
 prop:reader("last_hour", 0)
 prop:reader("last_minute", 0)
 prop:reader("last_second", 0)
@@ -26,6 +24,7 @@ prop:reader("frame_objs", {})
 prop:reader("minute_objs", {})
 prop:reader("second_objs", {})
 prop:reader("second5_objs", {})
+prop:reader("next_handlers", {})
 
 function UpdateMgr:__init()
     --注册订阅
@@ -37,62 +36,77 @@ end
 
 function UpdateMgr:update(now_ms, clock_ms)
     --业务更新
-    thread_mgr:fork(function()
-        local diff_ms = clock_ms - quanta.clock_ms
-        if diff_ms > HALF_MS then
-            log_warn("[UpdateMgr][update] last frame exec too long(%d ms)!", diff_ms)
-        end
-        --帧更新
-        local frame = quanta.frame + 1
-        for obj in pairs(self.frame_objs) do
+    local diff_ms = clock_ms - quanta.clock_ms
+    if diff_ms > HALF_MS then
+        log_warn("[UpdateMgr][update] last frame exec too long(%d ms)!", diff_ms)
+    end
+    --帧更新
+    local frame = quanta.frame + 1
+    for obj in pairs(self.frame_objs) do
+        thread_mgr:fork(function()
             obj:on_frame(clock_ms, frame)
-        end
-        quanta.frame = frame
-        quanta.now_ms = now_ms
-        quanta.clock_ms = clock_ms
-        --秒更新
-        local now = otime()
-        if now == quanta.now then
-            return
-        end
-        quanta.now = now
-        for obj in pairs(self.second_objs) do
+        end)
+    end
+    for handler in pairs(self.next_handlers) do
+        thread_mgr:fork(function()
+            handler(clock_ms)
+        end)
+    end
+    self.next_handlers = {}
+    quanta.frame = frame
+    quanta.now_ms = now_ms
+    quanta.clock_ms = clock_ms
+    --秒更新
+    local now = now_ms // 1000
+    if now == quanta.now then
+        return
+    end
+    quanta.now = now
+    for obj in pairs(self.second_objs) do
+        thread_mgr:fork(function()
             obj:on_second(clock_ms)
-        end
-        --检查信号
-        self:sig_check()
-        --5秒更新
-        if now < self.last_second then
-            return
-        end
-        self.last_second = now + SECOND_5_S
-        for obj in pairs(self.second5_objs) do
+        end)
+    end
+    --检查信号
+    self:sig_check()
+    --5秒更新
+    if now < self.last_second then
+        return
+    end
+    self.last_second = now + SECOND_5_S
+    for obj in pairs(self.second5_objs) do
+        thread_mgr:fork(function()
             obj:on_second5(clock_ms)
-        end
-        --执行gc
-        collectgarbage("step", 1)
-        --检查文件更新
-        quanta.reload()
-        --分更新
-        local time = odate("*t", now)
-        if time.min == self.last_minute then
-            return
-        end
-        self.last_minute = time.min
-        for obj in pairs(self.minute_objs) do
+        end)
+    end
+    --执行gc
+    collectgarbage("step", 1)
+    --检查文件更新
+    quanta.reload()
+    --分更新
+    local time = odate("*t", now)
+    if time.min == self.last_minute then
+        return
+    end
+    self.last_minute = time.min
+    for obj in pairs(self.minute_objs) do
+        thread_mgr:fork(function()
             obj:on_minute(clock_ms)
-        end
-        --时更新
-        if time.hour == self.last_hour then
-            return
-        end
-        self.last_hour = time.hour
-        for obj in pairs(self.hour_objs) do
-            obj:on_hour(clock_ms, time.hour)
-        end
-        --gc
-        collectgarbage("collect")
-    end)
+        end)
+    end
+    --时更新
+    local cur_hour = time.hour
+    if cur_hour == self.last_hour then
+        return
+    end
+    self.last_hour = cur_hour
+    for obj in pairs(self.hour_objs) do
+        thread_mgr:fork(function()
+            obj:on_hour(clock_ms, cur_hour, time)
+        end)
+    end
+    --gc
+    collectgarbage("collect")
 end
 
 function UpdateMgr:sig_check()
@@ -168,6 +182,11 @@ end
 
 function UpdateMgr:detach_frame(obj)
     self.frame_objs[obj] = nil
+end
+
+--下一帧执行一个函数
+function UpdateMgr:attach_next(func)
+    self.next_handlers[func] = true
 end
 
 --添加对象到程序退出通知列表

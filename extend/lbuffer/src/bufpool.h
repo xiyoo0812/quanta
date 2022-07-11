@@ -23,7 +23,6 @@ namespace lbuffer {
             for (auto block : m_blocks) {
                 if (block) delete block;
             }
-            m_used = 0;
         }
 
         uint8_t* alloc() {
@@ -59,7 +58,7 @@ namespace lbuffer {
         mem_pool() {}
 
         fix_block* m_first_free = nullptr;
-        std::mutex m_mutex;
         std::list<fix_block*> m_blocks;
+        std::mutex m_mutex;
     };
 }

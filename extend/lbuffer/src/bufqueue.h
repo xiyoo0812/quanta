@@ -14,11 +14,11 @@ namespace lbuffer {
     class bufqueue {
     public:
         void init_pool() {
-            m_pool = mem_pool::instance();
+            m_pool = mem_pool<BLOCK_SIZE>::instance();
         }
 
         void init_shmpool(size_t shm_id) {
-            auto pool = shmpool::instance();
+            auto pool = shmpool<BLOCK_SIZE>::instance();
             pool->setup(shm_id);
             m_pool = pool;
         }
@@ -99,7 +99,7 @@ namespace lbuffer {
                 data = m_pool->alloc();
             }
             else {
-                data = new uint8_t[BLOCK_SIZE]
+                data = new uint8_t[BLOCK_SIZE];
             }
             if (!data) {
                 return false;

@@ -214,7 +214,7 @@ end
 --随机名字
 function LoginServlet:on_random_name_req(session, body, session_id)
     local rname = login_dao:random_name()
-    log_debug("[LoginServlet][on_account_reload_req] open_id(%s) randname: %s!",session.open_id, rname)
+    log_debug("[LoginServlet][on_random_name_req] open_id(%s) randname: %s!",session.open_id, rname)
     local callback_data = { error_code = 0, name = rname }
     client_mgr:callback_by_id(session, RANDOM_NAME_REQ, callback_data, session_id)
 end
@@ -278,7 +278,7 @@ end
 --网关和lobby相关接口
 ----------------------------------------------------------------
 function LoginServlet:on_service_close(id, name, info)
-    log_debug("[LoginServlet][on_service_close] name: %s", name)
+    log_debug("[LoginServlet][on_service_close] node: %s-%s", name, id)
     if name == "lobby" then
         self.lobbys[id] = nil
         return
@@ -294,7 +294,7 @@ function LoginServlet:on_service_close(id, name, info)
 end
 
 function LoginServlet:on_service_ready(id, name, info)
-    log_debug("[LoginServlet][on_service_ready] id: %s, info: %s", id, info)
+    log_debug("[LoginServlet][on_service_ready] node: %s-%s, info: %s", name, id, info)
     if name == "lobby" then
         self.lobbys[id] = info
         return

@@ -182,8 +182,11 @@ function NetClient:send(cmd_id, data, type)
     return self:write(cmd_id, data, type, 0, FLAG_REQ)
 end
 
--- 发起远程调用
+-- 发起远程命令
 function NetClient:call(cmd_id, data, type)
+    if not self.alive then
+        return false
+    end
     local session_id = self.socket.build_session_id()
     if not self:write(cmd_id, data, type, session_id, FLAG_REQ) then
         return false
@@ -191,7 +194,7 @@ function NetClient:call(cmd_id, data, type)
     return thread_mgr:yield(session_id, cmd_id, RPC_CALL_TIMEOUT)
 end
 
--- 等待远程调用
+-- 等待NTF命令或者非RPC命令
 function NetClient:wait(cmd_id, time)
     local session_id = thread_mgr:build_session_id()
     self.wait_list[cmd_id] = session_id

@@ -42,7 +42,7 @@ namespace lbuffer {
                 return NULL;
             }
         }
-        uint8_t* shm_buff = shmat(handle, 0, 0);
+        uint8_t* shm_buff = (uint8_t*)shmat(handle, 0, 0);
         if (shm_buff == (uint8_t*)-1) {
             return NULL;
         }

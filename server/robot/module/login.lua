@@ -1,7 +1,7 @@
 --login.lua
 local mrandom               = math.random
 local log_warn              = logger.warn
-local log_info              = logger.info
+local log_debug             = logger.debug
 local tdelete               = table_ext.delete
 local trandarray            = table_ext.random_array
 
@@ -31,23 +31,28 @@ prop:reader("gate_port", nil)       --gate_port
 prop:reader("lobby", nil)           --lobby
 prop:reader("lobby_token", nil)     --lobby_token
 prop:reader("account_token", nil)   --account_token
-prop:reader("conn_name", nil)
 prop:reader("serial", 1)
+prop:reader("login_connect", false)
+prop:reader("lobby_connect", false)
+prop:reader("login_success", false)
 
 function LoginModule:__init()
 end
 
 function LoginModule:connect_login()
+    self.lobby_connect = false
+    self.login_connect = false
     if self:connect(self.ip, self.port, true) then
-        self.conn_name = "login"
+        self.login_connect = true
         return true
     end
     return false
 end
 
 function LoginModule:connect_gateway()
+    self.lobby_connect = false
     if self:connect(self.gate_ip, self.gate_port, true) then
-        self.conn_name = "gateway"
+        self.lobby_connect = true
         return true
     end
     return false
@@ -55,7 +60,7 @@ end
 
 
 function LoginModule:send_heartbeat()
-    if self.conn_name then
+    if self.login_success then
         local req_data = { time = quanta.now, serial = self.serial }
         local ok, res = self:call(HEARTBEAT_REQ, req_data)
         if ok then
@@ -77,7 +82,7 @@ function LoginModule:guest_login_req()
     end
     self.roles = res.roles
     self.user_id = res.user_id
-    log_info("[LoginModule][guest_login_req] robot:%s success", self.index)
+    log_debug("[LoginModule][guest_login_req] robot:%s success", self.index)
     return true
 end
 
@@ -94,7 +99,7 @@ function LoginModule:account_login_req()
     end
     self.roles = res.roles
     self.user_id = res.user_id
-    log_info("[LoginModule][account_login_req] robot:%s success", self.index)
+    log_debug("[LoginModule][account_login_req] robot:%s success", self.index)
     return true
 end
 
@@ -104,7 +109,7 @@ function LoginModule:random_name_req()
         log_warn("[LoginModule][random_name_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
         return
     end
-    log_info("[LoginModule][random_name_req] robot:%s success", self.index)
+    log_debug("[LoginModule][random_name_req] robot:%s success", self.index)
     return res.name
 end
 
@@ -121,7 +126,7 @@ function LoginModule:create_role_req(name)
     end
     local roles = self.roles
     roles[#roles + 1] = res.role
-    log_info("[LoginModule][create_role_req] robot:%s success", self.index)
+    log_debug("[LoginModule][create_role_req] robot:%s success", self.index)
     return true
 end
 
@@ -145,7 +150,7 @@ function LoginModule:choose_role_req()
     self.gate_port = res.port
     self.lobby_token = res.token
     self.player_id = role.role_id
-    log_info("[LoginModule][choose_role_req] robot:%s success", self.index)
+    log_debug("[LoginModule][choose_role_req] robot:%s success", self.index)
     return true
 end
 
@@ -165,7 +170,7 @@ function LoginModule:delete_role_req()
         return false
     end
     tdelete(self.roles, role)
-    log_info("[LoginModule][delete_role_req] robot:%s success", self.index)
+    log_debug("[LoginModule][delete_role_req] robot:%s success", self.index)
     return true
 end
 
@@ -181,7 +186,7 @@ function LoginModule:account_reload_req()
     end
     self.roles = res.roles
     self.user_id = res.user_id
-    log_info("[LoginModule][account_reload_req] robot:%s success", self.index)
+    log_debug("[LoginModule][account_reload_req] robot:%s success", self.index)
     return true
 end
 
@@ -197,7 +202,7 @@ function LoginModule:role_login_req()
         log_warn("[LoginModule][role_login_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
         return false
     end
-    log_info("[LoginModule][role_login_req] robot:%s success", self.index)
+    log_debug("[LoginModule][role_login_req] robot:%s success", self.index)
     return true
 end
 
@@ -210,7 +215,7 @@ function LoginModule:role_logout_req()
     end
     self.account_token = res.account_token
     self.player_id = nil
-    log_info("[LoginModule][role_logout_req] robot:%s success", self.index)
+    log_debug("[LoginModule][role_logout_req] robot:%s success", self.index)
     return true
 end
 
@@ -226,7 +231,7 @@ function LoginModule:role_reload_req()
         log_warn("[LoginModule][role_reload_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
         return false
     end
-    log_info("[LoginModule][role_reload_req] robot:%s success", self.index)
+    log_debug("[LoginModule][role_reload_req] robot:%s success", self.index)
     return true
 end
 

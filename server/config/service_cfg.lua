@@ -8,37 +8,37 @@ local service = config_mgr:get_table("service")
 --导出配置内容
 service:upsert({
     id = 1,
-    name = 'router',
+    name = 'lobby',
 })
 
 service:upsert({
     id = 2,
-    name = 'tool',
+    name = 'scene',
 })
 
 service:upsert({
     id = 3,
-    name = 'monitor',
+    name = 'chat',
 })
 
 service:upsert({
     id = 4,
-    name = 'robot',
+    name = 'friend',
 })
 
 service:upsert({
     id = 5,
-    name = 'test',
+    name = 'team',
 })
 
 service:upsert({
     id = 6,
-    name = 'proxy',
+    name = 'room',
 })
 
 service:upsert({
     id = 7,
-    name = 'cachesvr',
+    name = 'match',
 })
 
 service:upsert({
@@ -58,23 +58,68 @@ service:upsert({
 
 service:upsert({
     id = 11,
-    name = 'admin',
+    name = 'task',
 })
 
 service:upsert({
     id = 12,
+    name = 'activity',
+})
+
+service:upsert({
+    id = 21,
+    name = 'router',
+})
+
+service:upsert({
+    id = 22,
+    name = 'tool',
+})
+
+service:upsert({
+    id = 23,
+    name = 'monitor',
+})
+
+service:upsert({
+    id = 24,
+    name = 'robot',
+})
+
+service:upsert({
+    id = 25,
+    name = 'test',
+})
+
+service:upsert({
+    id = 26,
+    name = 'proxy',
+})
+
+service:upsert({
+    id = 27,
+    name = 'cachesvr',
+})
+
+service:upsert({
+    id = 28,
+    name = 'admin',
+})
+
+service:upsert({
+    id = 29,
     name = 'mongo',
 })
 
 service:upsert({
-    id = 13,
+    id = 30,
     name = 'mysql',
 })
 
 service:upsert({
-    id = 14,
+    id = 31,
     name = 'redis',
 })
 
 --general md5 version
-service:set_version('79cacd001229178e5f176440c69a2e1f')
+service:set_version('0145090987c497c7a46216f6620bd465')

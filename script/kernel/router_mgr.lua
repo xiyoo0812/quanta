@@ -48,7 +48,7 @@ function RouterMgr:setup()
 end
 
 function RouterMgr:on_service_close(id, name)
-    log_info("[RouterMgr][on_service_close] name: %s", name)
+    log_debug("[RouterMgr][on_service_close] node: %s-%s", name, id)
     local router = self.routers[id]
     if router then
         router.client:close()
@@ -57,7 +57,7 @@ function RouterMgr:on_service_close(id, name)
 end
 
 function RouterMgr:on_service_ready(id, name, info)
-    log_debug("[RouterMgr][on_service_ready] id: %s, info: %s", id, info)
+    log_debug("[RouterMgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
     if info.region == quanta.region and info.group == quanta.group then
         self:add_router(info.id, info.ip, info.port)
     end

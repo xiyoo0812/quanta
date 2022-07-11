@@ -48,6 +48,12 @@ function ConditionNode:on_check(tree)
     return true
 end
 ```
+* 循环节点Repeat：子节点从框架节点继承，同时实现on_check接口控制循环
+```
+function RepeatNode:on_check(tree)
+    return true
+end
+```
 * 普通节点Node：子节点从框架Node节点继承，同时实现run接口
 ```
 function Flee:run(tree)

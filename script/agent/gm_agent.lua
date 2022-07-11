@@ -5,8 +5,9 @@ local log_info      = logger.info
 local qsuccess      = quanta.success
 
 local monitor       = quanta.get("monitor")
-local router_mgr    = quanta.get("router_mgr")
 local event_mgr     = quanta.get("event_mgr")
+local router_mgr    = quanta.get("router_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
@@ -51,16 +52,18 @@ function GMAgent:execute_message(message)
     return false, ok and res or codeoe
 end
 
-function GMAgent:report_command()
+--上报gm
+function GMAgent:report_command(id)
     local command_list = {}
     for _, cmd in pairs(self.command_list) do
         command_list[#command_list + 1] = cmd
     end
-    local ok, code = router_mgr:call_admin_master("rpc_register_command", command_list, quanta.service_id)
+    local ok, code = router_mgr:call_target(id, "rpc_register_command", command_list, quanta.id)
     if ok and qsuccess(code) then
         log_info("[GMAgent][report_command] success!")
         return true
     end
+    return false
 end
 
 -- 通知执行GM指令
@@ -74,7 +77,9 @@ end
 function GMAgent:on_service_ready(id, service_name)
     log_info("[GMAgent][on_service_ready]->id:%s, service_name:%s", id, service_name)
     -- 上报gm列表
-    self:report_command()
+    thread_mgr:success_call(2000, function()
+        return self:report_command(id)
+    end)
 end
 
 quanta.gm_agent = GMAgent()

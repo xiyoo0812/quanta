@@ -38,9 +38,11 @@ NetwkTime.RPC_CALL_TIMEOUT  = 5000      --RPC调用超时时间
 NetwkTime.HTTP_CALL_TIMEOUT = 5000      --HTTP调用超时时间
 NetwkTime.DB_CALL_TIMEOUT   = 5000      --DB调用超时时间
 NetwkTime.RPCLINK_TIMEOUT   = 10000     --RPC连接超时时间
-NetwkTime.NETWORK_TIMEOUT   = 35000     --其他网络连接超时时间
 NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间（s）
 NetwkTime.HEARTBEAT_TIME    = 5000      --RPC连接心跳时间
+NetwkTime.NETWORK_TIMEOUT   = 15000     --心跳断线时间
+NetwkTime.OFFLINE_TIMEOUT   = 30000     --掉线清理时间
+NetwkTime.KICKOUT_TIMEOUT   = 60000     --强制清理时间
 
 --常用时间周期
 local PeriodTime = enum("PeriodTime", 0)
@@ -74,6 +76,13 @@ local DBLoading             = enum("DBLoading", 0)
 DBLoading.INIT              = 0
 DBLoading.LOADING           = 1
 DBLoading.SUCCESS           = 2
+
+--在线状态
+local OnlineStatus          = enum("OnlineStatus", 0)
+OnlineStatus.LOADING        = 1
+OnlineStatus.INLINE         = 2
+OnlineStatus.OFFLINE        = 3
+OnlineStatus.CLOSE          = 4
 
 -- GM命令类型
 local GMType                = enum("GMType", 0)

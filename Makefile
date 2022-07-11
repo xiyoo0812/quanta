@@ -25,6 +25,7 @@ lua:
 
 luaext:
 	cd extend/bson; make -j4 SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
+	cd extend/laoi; make -j4 SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
 	cd extend/lbuffer; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lbuffer.mak;
 	cd extend/lcjson; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
 	cd extend/lcrypt; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;

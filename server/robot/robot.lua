@@ -1,16 +1,17 @@
 -- robot.lua
-local log_err           = logger.err
-local log_info          = logger.info
-local sformat           = string.format
-local qfailed           = quanta.failed
+local log_err       = logger.err
+local log_info      = logger.info
+local sformat       = string.format
+local qfailed       = quanta.failed
+local env_number    = environ.number
 
-local LuaBT             = import("luabt/luabt.lua")
-local ROBOT_TREES       = import("robot/robot_tree.lua")
-local LoginModule       = import("robot/module/login.lua")
-local SessionModule     = import("robot/module/session.lua")
+local LuaBT         = import("luabt/luabt.lua")
+local LoginModule   = import("robot/module/login.lua")
+local SessionModule = import("robot/module/session.lua")
 
-local update_mgr        = quanta.get("update_mgr")
-local report_mgr        = quanta.get("report_mgr")
+local update_mgr    = quanta.get("update_mgr")
+local report_mgr    = quanta.get("report_mgr")
+local node_factory  = quanta.get("node_factory")
 
 local Robot = class(nil, SessionModule, LoginModule)
 local prop = property(Robot)
@@ -27,14 +28,21 @@ prop:accessor("wait_time", 0)       --sleep
 
 function Robot:__init(conf, index)
     self.index = index
+    
     self.robot_id = index + conf.start
     --创建行为树
-    self.lua_tree = LuaBT(self, ROBOT_TREES[conf.tree_id])
+    local tree_id = env_number("QUANTA_TREE_ID", conf.tree_id)
+    local node = node_factory:create(tree_id)
+    if not node then
+        log_err("[Robot][init] robot(%s) create tree(%s) failed!", index, tree_id)
+        return
+    end
+    self.lua_tree = LuaBT(self, node)
     --设置行为树参数
     if conf.args then
         local ok, args = pcall(load(sformat("return %s", conf.args)))
         if not ok then
-            log_err("[Robot][init] load robot args(%s) failed: %s", index, args)
+            log_err("[Robot][init] robot(%s) load args failed: %s", index, args)
             return
         end
         if args and args[index] then
@@ -70,6 +78,9 @@ function Robot:update()
     --清理状态
     self.wait_time = nil
     --行为树执行
+    if not self.lua_tree then
+        return 0
+    end
     if self.lua_tree:tick() then
         log_info("lua_tree tick finish")
         self.running = false

@@ -10,9 +10,9 @@ local config_mgr        = quanta.get("config_mgr")
 local mongo_agent       = quanta.get("mongo_agent")
 local name_db           = config_mgr:init_table("name", "id")
 
-local name_frist        = name_db:select({ type = 1 })
-local name_second       = name_db:select({ type = 2 })
-local name_three        = name_db:select({ type = 3 })
+local name_frist        = name_db:select({ type = 1 }, "name")
+local name_second       = name_db:select({ type = 2 }, "name")
+local name_three        = name_db:select({ type = 3 }, "name")
 
 local MINUTE_5_S        = quanta.enum("PeriodTime", "MINUTE_5_S")
 
@@ -47,10 +47,10 @@ end
 
 function LoginDao:create_player(user_id, role_info)
     local udata = {
-        attrs = {},
+        login_time = 0,
         user_id = user_id,
-        time = quanta.now,
         name = role_info.name,
+        create_time = quanta.now,
         gender = role_info.gender,
         role_id = role_info.role_id
     }
@@ -118,9 +118,9 @@ end
 
 function LoginDao:random_name()
     local names = {
-        name_frist[mrandom(#name_frist)].name, name_second[mrandom(#name_second)].name, "_",
-        name_three[mrandom(#name_three)].name, name_three[mrandom(#name_three)].name,
-        name_three[mrandom(#name_three)].name,name_three[mrandom(#name_three)].name
+        name_frist[mrandom(#name_frist)], name_second[mrandom(#name_second)], "_",
+        name_three[mrandom(#name_three)], name_three[mrandom(#name_three)],
+        name_three[mrandom(#name_three)], name_three[mrandom(#name_three)]
     }
     return tconcat(names)
 end

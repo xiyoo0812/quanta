@@ -91,10 +91,6 @@ function quanta.init()
     end
 end
 
-function quanta.init_gm()
-    import("agent/gm_agent.lua")
-end
-
 function quanta.hook_coroutine(hooker)
     co_hookor = hooker
 end

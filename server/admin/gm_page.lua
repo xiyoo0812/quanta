@@ -131,7 +131,7 @@ return [[
                     var nodes = [];
                     that.cmdlist = res;
                     for (var cmd_name in res) {
-                        nodes.push({ text : cmd_name, tag : "gm" });
+                        nodes.push({ text : res[cmd_name].desc, name : cmd_name,  tag : "gm" });
                     };
                     treeNodes[0].nodes = nodes;
                     that._showConsole(treeNodes);
@@ -179,7 +179,7 @@ return [[
             //consoleTree事件
             $('#consoleTree').on('nodeSelected', function(event, data) {
                 if (data.tag == "gm") {
-                    var cmd_name = data.text;
+                    var cmd_name = data.name;
                     var cmd_data = that.cmdlist[cmd_name];
                     if (cmd_data) {
                         var msg = "<pre>命令: " + cmd_data.desc + "  参数: " + cmd_data.command + "</pre>";

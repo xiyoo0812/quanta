@@ -3,17 +3,18 @@ local log_err           = logger.err
 local log_info          = logger.info
 local log_debug         = logger.debug
 local qfailed           = quanta.failed
+local name2sid          =  service.name2sid
 
 local event_mgr         = quanta.get("event_mgr")
 local client_mgr        = quanta.get("client_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
-local service_gate      = service.name2sid("gateway")
 local GatePlayer     	= import("gateway/player.lua")
 
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local ROLE_IS_INLINE    = protobuf_mgr:error_code("LOGIN_ROLE_IS_INLINE")
 
+local SERVICE_GATE      = name2sid("gateway")
 local HEARTBEAT_REQ     = protobuf_mgr:msg_id("NID_HEARTBEAT_REQ")
 local HEARTBEAT_RES     = protobuf_mgr:msg_id("NID_HEARTBEAT_RES")
 local ROLE_LOGIN_REQ    = protobuf_mgr:msg_id("NID_LOGIN_ROLE_LOGIN_REQ")
@@ -32,10 +33,11 @@ function Gateway:__init(session_type)
     event_mgr:add_listener(self, "on_session_error")
     event_mgr:add_listener(self, "on_socket_accept")
     -- rpc消息监听
-    event_mgr:add_listener(self, "on_update_gateway")
-    event_mgr:add_listener(self, "on_kickout_client")
-    event_mgr:add_listener(self, "on_forward_client")
-    event_mgr:add_listener(self, "on_broadcast_client")
+    event_mgr:add_listener(self, "rpc_update_gateway")
+    event_mgr:add_listener(self, "rpc_kickout_client")
+    event_mgr:add_listener(self, "rpc_forward_client")
+    event_mgr:add_listener(self, "rpc_groupcast_client")
+    event_mgr:add_listener(self, "rpc_broadcast_client")
     -- cs协议监听
     event_mgr:add_cmd_listener(self, HEARTBEAT_REQ, "on_heartbeat_req")
     event_mgr:add_cmd_listener(self, ROLE_LOGIN_REQ, "on_role_login_req")
@@ -54,15 +56,16 @@ function Gateway:get_player(player_id)
 end
 
 --更新网关信息
-function Gateway:on_update_gateway(player_id, service_type, server_id)
+function Gateway:rpc_update_gateway(player_id, service_name, server_id)
     local player = self:get_player(player_id)
     if player then
+        local service_type = name2sid(service_name)
         player:update_gateway(service_type, server_id)
     end
 end
 
 --踢掉客户端
-function Gateway:on_kickout_client(player_id, reason)
+function Gateway:rpc_kickout_client(player_id, reason)
     local player = self:get_player(player_id)
     if player then
         local session = player:get_session()
@@ -73,15 +76,25 @@ function Gateway:on_kickout_client(player_id, reason)
 end
 
 --转发给客户端
-function Gateway:on_forward_client(player_id, cmd_id, data)
+function Gateway:rpc_forward_client(player_id, cmd_id, data)
+    log_debug("[Gateway][rpc_forward_client] cmd_id(%s) player(%s)!", cmd_id, player_id)
     local player = self:get_player(player_id)
-    if player then
-        player:send_message(cmd_id, data)
+    if not player then
+        log_err("[Gateway][rpc_forward_client] cmd_id(%s) player(%s) not exist!", cmd_id, player_id)
+        return
+    end
+    player:send_message(cmd_id, data)
+end
+
+--组发消息
+function Gateway:rpc_groupcast_client(player_ids, cmd_id, data)
+    for _, player_id in pairs(player_ids) do
+        self:rpc_forward_client(player_id, cmd_id, data)
     end
 end
 
 --广播给客户端
-function Gateway:on_broadcast_client(cmd_id, data)
+function Gateway:rpc_broadcast_client(cmd_id, data)
     client_mgr:broadcast(cmd_id, data)
 end
 
@@ -90,11 +103,10 @@ function Gateway:on_heartbeat_req(session, body, session_id)
     local sserial  = client_mgr:check_serial(session, body.serial)
     local data_res = { serial = sserial, time = quanta.now }
     client_mgr:callback(session, HEARTBEAT_RES, data_res, session_id)
-    --通知lobby
-    local player_id = session.player_id
-    local player = self:get_player(player_id)
+    --通知其他服务器
+    local player = self:get_player(session.player_id)
     if player then
-        player:trans_message(player:get_lobby_id(), "rpc_player_heatbeat", player_id)
+        player:notify_heartbeat()
     end
 end
 
@@ -106,13 +118,14 @@ function Gateway:on_role_login_req(session, body, session_id)
         return client_mgr:callback_errcode(session, ROLE_LOGIN_REQ, ROLE_IS_INLINE, session_id)
     end
     local player = GatePlayer(session, user_id, player_id)
-    local codeoe, res = player:trans_message(lobby, "rpc_player_login", user_id, player_id, lobby, token, quanta.id)
+    local codeoe, res = player:trans_message(lobby, "rpc_player_login", user_id, player_id, token, quanta.id)
     if qfailed(codeoe) then
         log_err("[Gateway][on_role_login_req] call rpc_player_login code %s failed: %s", codeoe, res)
         return client_mgr:callback_errcode(session, ROLE_LOGIN_REQ, codeoe, session_id)
     end
-    for service, server_id in pairs(res) do
-        player:update_gateway(service, server_id)
+    for service_name, server_id in pairs(res) do
+        local service_type = name2sid(service_name)
+        player:update_gateway(service_type, server_id)
     end
     player:set_lobby_id(lobby)
     session.player_id = player_id
@@ -153,8 +166,9 @@ function Gateway:on_role_reload_req(session, body, session_id)
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", codeoe, res)
         return client_mgr:callback_errcode(session, ROLE_RELOAD_REQ, codeoe, session_id)
     end
-    for service, server_id in pairs(res) do
-        player:update_gateway(service, server_id)
+    for service_name, server_id in pairs(res) do
+        local service_type = name2sid(service_name)
+        player:update_gateway(service_type, server_id)
     end
     player:set_lobby_id(lobby)
     session.player_id = player_id
@@ -182,9 +196,9 @@ end
 --客户端连接断开
 function Gateway:on_session_error(session, token, err)
     local player_id = session.player_id
-    log_debug("[Gateway][on_session_error] session(%s-%s) lost, because: %s!", token, player_id, err)
     local player = self:get_player(player_id)
     if player then
+        log_err("[Gateway][on_session_error] session(%s-%s) lost, because: %s!", token, player_id, err)
         self.players[player_id] = nil
         player:notify_disconnect()
     end
@@ -192,7 +206,7 @@ end
 
 --客户端消息分发
 function Gateway:on_session_cmd(session, service_type, cmd_id, body, session_id)
-    if service_type == 0 or service_type == service_gate then
+    if service_type == 0 or service_type == SERVICE_GATE then
         --gateway消息，本地转发
         event_mgr:notify_command(cmd_id, session, body, session_id)
         return

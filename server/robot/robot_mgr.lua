@@ -5,11 +5,13 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local sformat       = string.format
 local signalquit    = signal.quit
+local env_number    = environ.number
 local guid_string   = lcrypt.guid_string
 
 local timer_mgr     = quanta.get("timer_mgr")
 local report_mgr    = quanta.get("report_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+local node_factory  = quanta.get("node_factory")
 
 local RRANDOM       = quanta.enum("RobotType", "RANDOM")
 local RCOMPOSE      = quanta.enum("RobotType", "COMPOSE")
@@ -37,16 +39,19 @@ function RobotMgr:setup()
         signalquit()
         return
     end
-    log_debug("[RobotMgr][setup] robot config(%s) is loading!", index)
-    local robot_count = conf.count
+    log_debug("[RobotMgr][setup] robot config(%s) is loading!", index)    
+    local robot_count = env_number("QUANTA_COUNT", conf.count)
     --指定账号模式，只能一个机器人
     if conf.openid_type == RPLAYER then
         robot_count = 1
     end
     -- 配置上报管理器
     report_mgr:setup(robot_count)
-    -- 创建机器人
+    --启动定时器
     timer_mgr:once(SECOND_MS, function()
+        -- 节点工厂初始化
+        node_factory:load()
+        -- 创建机器人
         for i = 1, robot_count do
             self:create_robot(conf, i)
         end

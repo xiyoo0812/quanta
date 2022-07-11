@@ -1,0 +1,62 @@
+--entity.lua
+local log_warn      = logger.warn
+local log_info      = logger.info
+
+local AttributeSet  = import("business/attr/attribute_set.lua")
+
+local Entity = class(nil, AttributeSet)
+
+local prop = property(Entity)
+prop:reader("id")                       --id
+prop:accessor("name")                   --name
+prop:accessor("active_time")            --active_time
+prop:accessor("release", false) --release
+prop:accessor("load_success", false)    --load_success
+
+function Entity:__init(id)
+    self.id = id
+end
+
+-- 初始化
+function Entity:setup()
+    if not self:load() then
+        log_warn("[Entity][setup] entity %s load faild!", self.id)
+        return false
+    end
+    local setup_ok = self:collect("_setup")
+    if not setup_ok then
+        log_warn("[Entity][setup] entity %s setup faild!", self.id)
+        return setup_ok
+    end
+    log_info("[Entity][setup] entity %s setup success!", self.id)
+    return setup_ok
+end
+
+--load
+function Entity:load()
+    return true
+end
+
+--on_update
+function Entity:check()
+    return true
+end
+
+--update
+function Entity:update(now)
+    if self:check(now) then
+        self:invoke("_update", now)
+    end
+end
+
+--unload
+function Entity:unload()
+end
+
+--destory
+function Entity:destory()
+    self:unload()
+    self:invoke("_destory")
+end
+
+return Entity

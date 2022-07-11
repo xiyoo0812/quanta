@@ -24,6 +24,14 @@ local setmetatable  = setmetatable
 
 local mixin_tpls    = _ENV.mixin_tpls or {}
 
+local function tab_copy(src, dst)
+    local ndst = dst or {}
+    for field, value in pairs(src) do
+        ndst[field] = value
+    end
+    return ndst
+end
+
 local function invoke(class, object, method, ...)
     if class.__super then
         invoke(class.__super, object, method, ...)
@@ -59,34 +67,41 @@ local function collect(class, object, method, ...)
     return true
 end
 
+local function delegate_one(class, mixin)
+    if mixin.__delegate then
+        mixin.__delegate()
+    end
+    for name, value in pairs(mixin.__props) do
+        --属性处理
+        if class.__props[name] then
+            print(sformat("the mixin default %s has repeat defined.", name))
+        end
+        class.__props[name] = value
+    end
+    for method in pairs(mixin.__methods) do
+        if ssub(method, 1, 1) == "_" then
+            --下划线前缀方法不代理
+            goto continue
+        end
+        if class[method] then
+            print(sformat("the mixin method %s has repeat defined.", method))
+            goto continue
+        end
+        --接口代理
+        class[method] = function(...)
+            return mixin[method](...)
+        end
+        :: continue ::
+    end
+    local cmixins = class.__mixins
+    cmixins[#cmixins + 1] = mixin
+end
+
 --委托一个mixin给class
 local function delegate(class, ...)
     local mixins = { ... }
-    local cmixins = class.__mixins
     for _, mixin in ipairs(mixins) do
-        for name, value in pairs(mixin.__props) do
-            --属性处理
-            if class.__props[name] then
-                print(sformat("the mixin default %s has repeat defined.", name))
-            end
-            class.__props[name] = value
-        end
-        for method in pairs(mixin.__methods) do
-            if ssub(method, 1, 1) == "_" then
-                --下划线前缀方法不代理
-                goto continue
-            end
-            if class[method] then
-                print(sformat("the mixin method %s has repeat defined.", method))
-                goto continue
-            end
-            --接口代理
-            class[method] = function(...)
-                return mixin[method](...)
-            end
-            :: continue ::
-        end
-        cmixins[#cmixins + 1] = mixin
+        delegate_one(class, mixin)
     end
 end
 
@@ -124,7 +139,7 @@ local function mixin_tostring(mixin)
 end
 
 --接口定义函数
-function mixin()
+function mixin(super)
     local info = dgetinfo(2, "S")
     local source = info.short_src
     local mixin_tpl = mixin_tpls[source]
@@ -132,9 +147,14 @@ function mixin()
         local mixino = {
             __props = {},
             __methods = {},
+            __super = super,
             __source = source,
             __tostring = mixin_tostring,
         }
+        if super then
+            mixino.__props = tab_copy(super.__props)
+            mixino.__methods = tab_copy(super.__methods)
+        end
         mixin_tpl = setmetatable(mixino, mixinMT)
         mixin_tpls[source] = mixin_tpl
     end

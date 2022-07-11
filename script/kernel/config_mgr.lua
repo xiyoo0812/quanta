@@ -50,10 +50,10 @@ function ConfigMgr:find_one(name, ...)
 end
 
 -- 筛选配置表记录
-function ConfigMgr:select(name, query)
+function ConfigMgr:select(name, query, key)
     local conf_tab = self.table_list[name]
     if conf_tab then
-        return conf_tab:select(query)
+        return conf_tab:select(query, key)
     end
 end
 
