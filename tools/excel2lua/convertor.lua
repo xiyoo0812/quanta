@@ -84,9 +84,11 @@ local value_func = {
             return sgsub(value, '[(.*)]', function (s)
                 return s == '(' and '{' or '}'
             end)
-        else
-            return '{' .. value .. '}'
         end
+        if sfind(value, '[{]') then
+            return value
+        end
+        return '{' .. value .. '}'
     end,
 }
 

@@ -32,12 +32,16 @@ end
 
 --通知数据同步
 function GatePlayer:notify_sync()
-    router_mgr:send_target(self.lobby_id, "rpc_session_sync", self.player_id)
+    for _, server_id in pairs(self.gate_services) do
+        router_mgr:send_target(server_id, "rpc_player_sync", self.player_id)
+    end
 end
 
 --通知连接断开
 function GatePlayer:notify_disconnect()
-    router_mgr:send_target(self.lobby_id, "rpc_session_error", self.player_id)
+    for _, server_id in pairs(self.gate_services) do
+        router_mgr:send_target(server_id, "rpc_player_disconnect", self.player_id)
+    end
 end
 
 --通知心跳
@@ -66,9 +70,9 @@ function GatePlayer:notify_command(service_type, cmd_id, body, session_id)
         client_mgr:callback_errcode(self.session, cmd_id, FRAME_FAILED, session_id)
         return
     end
-    local codeoe, res = self:trans_message(server_id, "rpc_session_command", self.player_id, cmd_id, body)
+    local codeoe, res = self:trans_message(server_id, "rpc_player_command", self.player_id, cmd_id, body)
     if qfailed(codeoe) then
-        log_err("[GatePlayer][notify_command] call rpc_session_command(%s) code %s, failed: %s", cmd_id, codeoe, res)
+        log_err("[GatePlayer][notify_command] call rpc_player_command(%s) code %s, failed: %s", cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
         return
     end

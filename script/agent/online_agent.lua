@@ -1,11 +1,7 @@
 --online_agent.lua
 local log_info      = logger.info
-local sidhash       = service.hash
-local sid2index     = service.id2index
-local get_service   = service.get_service
 
 local monitor       = quanta.get("monitor")
-local event_mgr     = quanta.get("event_mgr")
 local router_mgr    = quanta.get("router_mgr")
 
 local OnlineAgent = singleton()
@@ -59,10 +55,6 @@ end
 -- Online服务已经ready
 function OnlineAgent:on_service_ready(id, service_name)
     log_info("[OnlineAgent][on_service_ready]->id:%s, service_name:%s", id, service_name)
-    --[[local service_id = get_service(id)
-    local servive_index = sid2index(id)
-    local service_hash = sidhash(service_id)
-    event_mgr:notify_listener("on_rebuild_online", service_hash, servive_index)]]
 end
 
 quanta.online = OnlineAgent()

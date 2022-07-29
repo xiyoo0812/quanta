@@ -39,7 +39,7 @@ function RobotMgr:setup()
         signalquit()
         return
     end
-    log_debug("[RobotMgr][setup] robot config(%s) is loading!", index)    
+    log_debug("[RobotMgr][setup] robot config(%s) is loading!", index)
     local robot_count = env_number("QUANTA_COUNT", conf.count)
     --指定账号模式，只能一个机器人
     if conf.openid_type == RPLAYER then

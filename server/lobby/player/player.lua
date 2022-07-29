@@ -23,7 +23,7 @@ local Entity        = import("business/entity/entity.lua")
 local Player = class(Entity)
 
 local prop = property(Player)
-prop:reader("gender")                       --gender
+prop:reader("sex")                          --sex
 prop:reader("user_id")                      --user_id
 prop:reader("passkey", {})          --passkey
 prop:reader("status", ONL_LOADING)
@@ -47,10 +47,12 @@ end
 --load
 function Player:load()
     self:init_attrset(attr_db)
+    self.active_time = quanta.now_ms
     local ok, data = login_dao:load_player(self.id)
     if ok then
         self.name = data.name
-        self.gender = data.gender
+        self.sex = data.gender
+        self.model = data.model
         self.user_id = data.user_id
         self.login_time = data.login_time
         self:update_token()
@@ -138,6 +140,7 @@ end
 --掉线
 function Player:offline()
     self.gateway = nil
+    self.attr_sync = false
     self.status = ONL_OFFLINE
     self.active_time = quanta.now_ms
     online:logout_player(self.id)

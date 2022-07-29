@@ -12,7 +12,9 @@ local thread_mgr    = quanta.get("thread_mgr")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
 
-local GMAgent = singleton()
+local Listener      = import("basic/listener.lua")
+
+local GMAgent = singleton(Listener)
 local prop = property(GMAgent)
 prop:accessor("command_list", {})
 
@@ -69,7 +71,7 @@ end
 -- 通知执行GM指令
 function GMAgent:rpc_command_execute(cmd_name, ...)
     log_info("[GMAgent][rpc_command_execute]->cmd_name:%s", cmd_name)
-    local ok, res = tunpack(event_mgr:notify_listener(cmd_name, ...))
+    local ok, res = tunpack(self:notify_listener(cmd_name, ...))
     return ok and SUCCESS or LOGIC_FAILED, res
 end
 

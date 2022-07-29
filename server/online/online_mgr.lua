@@ -52,6 +52,7 @@ end
 function OnlineMgr:rpc_login_player(player_id, gateway, data)
     local lobby = data.lobby
     log_info("[OnlineMgr][rpc_login_player]: %s, lobby: %s, gateway: %s", player_id, lobby, gateway)
+    data.gateway = gateway
     self.players[player_id] = data
     if not self.lobby_indexs[lobby] then
         self.lobby_indexs[lobby] = {}

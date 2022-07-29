@@ -4,6 +4,7 @@ local log_info      = logger.info
 local signalquit    = signal.quit
 local env_get       = environ.get
 local sformat       = string.format
+local lencode       = quanta.encode
 local qhash_code    = quanta.hash_code
 
 local socket_mgr    = quanta.get("socket_mgr")
@@ -55,10 +56,12 @@ function RouterServer:on_client_accept(client)
     log_info("[RouterServer][on_client_accept] new connection, token=%s", client.token)
     client.on_forward_error = function(session_id)
         log_err("[RouterServer][on_client_accept] on_forward_error, session_id=%s", session_id)
-        client.call(session_id, FLAG_RES, quanta.id, "on_forward_error", false, UNREACHABLE, "router con't find target!")
+        local slice = lencode(false, UNREACHABLE, "router con't find target!")
+        client.call(session_id, FLAG_RES, slice)
     end
     client.on_forward_broadcast = function(session_id, broadcast_num)
-        client.call(session_id, FLAG_RES, quanta.id, "on_forward_broadcast", true, SUCCESS, broadcast_num)
+        local slice = lencode(true, SUCCESS, broadcast_num)
+        client.call(session_id, FLAG_RES, slice)
     end
 end
 

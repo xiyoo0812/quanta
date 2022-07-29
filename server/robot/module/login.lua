@@ -117,6 +117,7 @@ function LoginModule:create_role_req(name)
     local req_data = {
         name = name,
         user_id = self.user_id,
+        model = mrandom(1, 2),
         gender = mrandom(1, 2)
     }
     local ok, res = self:call(ROLE_CREATE_REQ, req_data)

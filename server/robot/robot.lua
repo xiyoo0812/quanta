@@ -28,7 +28,7 @@ prop:accessor("wait_time", 0)       --sleep
 
 function Robot:__init(conf, index)
     self.index = index
-    
+
     self.robot_id = index + conf.start
     --创建行为树
     local tree_id = env_number("QUANTA_TREE_ID", conf.tree_id)

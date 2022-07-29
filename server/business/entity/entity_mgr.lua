@@ -4,7 +4,7 @@ local log_info      = logger.info
 
 local update_mgr    = quanta.get("update_mgr")
 
-local EntityMgr     = singleton()
+local EntityMgr = singleton()
 local prop = property(EntityMgr)
 prop:reader("entity_map", nil)
 

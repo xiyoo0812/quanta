@@ -50,6 +50,7 @@ function LoginDao:create_player(user_id, role_info)
         login_time = 0,
         user_id = user_id,
         name = role_info.name,
+        model = role_info.model,
         create_time = quanta.now,
         gender = role_info.gender,
         role_id = role_info.role_id

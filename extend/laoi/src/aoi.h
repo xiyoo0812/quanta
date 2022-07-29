@@ -18,29 +18,13 @@ enum class aoi_type : int
     marker      = 1,    //被观察者
 };
 
-class hot_area
-{
-public:
-    long pos_x;     //位置
-    long pos_y;     //位置
-    long pos_z;     //位置
-    long radius;    //半径
-    long hid;       //hid
-
-    bool in(long x, long y, long z) {
-        return (abs(x - pos_x) < radius || abs(y - pos_y) < radius || abs(z - pos_z) < radius);
-    }
-
-    hot_area(long id, long r, long x, long y, long z) : hid(id), radius(r), pos_x(x), pos_y(y), pos_z(z) {}
-};
-
 class aoi_obj
 {
 public:
     uint64_t eid;
-    long grid_x;
-    long grid_z;
     aoi_type type;
+    long grid_x = 0;
+    long grid_z = 0;
 
     void set_grid(long x, long z) {
         grid_x = x;
@@ -55,14 +39,8 @@ typedef set<aoi_obj*> object_set;
 class aoi_grid
 {
 public:
-    ~aoi_grid() {
-        if (hotarea) {
-            delete hotarea;
-            hotarea = nullptr;
-        }
-    }
-    hot_area* hotarea = nullptr;
-    object_set objs;
+    uint32_t hotarea_id = 0;
+    object_set objs = {};
 };
 
 typedef vector<aoi_grid> grid_axis;
@@ -78,7 +56,7 @@ public:
         xgrid_num = w / glen;
         zgrid_num = h / glen;
         grids.resize(zgrid_num);
-        for (long i = 0; i <= zgrid_num; i++) {
+        for (long i = 0; i < zgrid_num; i++) {
             grids[i].resize(xgrid_num);
         }
         if (offset) {
@@ -102,8 +80,7 @@ public:
         return (inoout_z + offset_h) / grid_len;
     }
     
-    void add_hotarea(long id, long r, long x, long y, long z) {
-        hot_area* hobj = new hot_area(id, r, x, y, z);
+    void add_hotarea(long id, long r, long x, long z) {
         long grid_num = r / grid_len;
         long nxgrid = convert_x(x);
         long nzgrid = convert_z(z);
@@ -113,17 +90,10 @@ public:
         long maxZ = min(zgrid_num, nzgrid + grid_num);
         for(int z = minZ; z <= maxZ; z++) {
             for(int x = minX; x <= maxX; x++) {
-                grids[nzgrid][nxgrid].hotarea = hobj;
+                grids[z][x].hotarea_id = id;
+                printf("map add_hotarea: %d-%d-%d\n", id, z, x);
             }
         }
-    }
-
-    long in_hotarea(aoi_grid& grid, long x, long y, long z) {
-        auto hotarea = grid.hotarea;
-        if (hotarea && hotarea->in(x, y, z)) {
-            return hotarea->hid;
-        }
-        return 0;
     }
     
     void get_rect_objects(object_set& objs, long minX, long maxX, long minZ, long maxZ) {
@@ -228,7 +198,7 @@ public:
         aoi_grid& grid = grids[nzgrid][nxgrid];
         obj->set_grid(nxgrid, nzgrid);
         grid.objs.insert(obj);
-        return in_hotarea(grid, x, y, z);
+        return grid.hotarea_id;
     }
 
 private:

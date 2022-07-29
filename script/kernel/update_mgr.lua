@@ -47,7 +47,7 @@ function UpdateMgr:update(now_ms, clock_ms)
             obj:on_frame(clock_ms, frame)
         end)
     end
-    for handler in pairs(self.next_handlers) do
+    for _, handler in pairs(self.next_handlers) do
         thread_mgr:fork(function()
             handler(clock_ms)
         end)
@@ -185,8 +185,8 @@ function UpdateMgr:detach_frame(obj)
 end
 
 --下一帧执行一个函数
-function UpdateMgr:attach_next(func)
-    self.next_handlers[func] = true
+function UpdateMgr:attach_next(obj, func)
+    self.next_handlers[obj] = func
 end
 
 --添加对象到程序退出通知列表

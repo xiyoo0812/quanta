@@ -82,8 +82,7 @@ function RpcClient:connect()
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
     end
     socket.call_rpc = function(session_id, rpc_flag, rpc, ...)
-        local data, data_len = lencode(quanta.id, rpc, ...)
-        local send_len = socket.call(session_id, rpc_flag, data, data_len)
+        local send_len = socket.call(session_id, rpc_flag, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, send_len)
     end
     socket.call_target = function(session_id, target, rpc, ...)

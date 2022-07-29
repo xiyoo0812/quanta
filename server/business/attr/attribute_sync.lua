@@ -63,7 +63,7 @@ function AttributeSync:open_sync_attr(player, player_id, target_id)
         log_err("[AttributeSync][open_sync_attr] setup failed attrs=%s, player_id=%s, code=%s", attrs, player_id, code)
         return false
     end
-    log_info("[AttributeSync][open_sync_attr] setup success attrs=%s, player_id=%s", attrs, player_id)
+    log_info("[AttributeSync][open_sync_attr] setup success player_id=%s", player_id)
     return true
 end
 

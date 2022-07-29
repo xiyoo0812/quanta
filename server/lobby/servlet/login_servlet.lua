@@ -21,9 +21,9 @@ local ROLE_TOKEN_ERR    = protobuf_mgr:error_code("LOGIN_ROLE_TOKEN_ERR")
 local LoginServlet = singleton()
 function LoginServlet:__init()
     -- 事件监听
-    event_mgr:add_listener(self, "rpc_session_sync")
-    event_mgr:add_listener(self, "rpc_session_error")
-    event_mgr:add_listener(self, "rpc_session_command")
+    event_mgr:add_listener(self, "rpc_player_sync")
+    event_mgr:add_listener(self, "rpc_player_command")
+    event_mgr:add_listener(self, "rpc_player_disconnect")
 
     event_mgr:add_listener(self, "rpc_player_login")
     event_mgr:add_listener(self, "rpc_player_logout")
@@ -31,7 +31,7 @@ function LoginServlet:__init()
 end
 
 -- 会话需要同步
-function LoginServlet:rpc_session_sync(player_id)
+function LoginServlet:rpc_player_sync(player_id)
     local player = player_mgr:get_entity(player_id)
     if player then
         player:sync_data()
@@ -39,19 +39,19 @@ function LoginServlet:rpc_session_sync(player_id)
 end
 
 -- 会话需要关闭
-function LoginServlet:rpc_session_error(player_id)
+function LoginServlet:rpc_player_disconnect(player_id)
     local player = player_mgr:get_entity(player_id)
     if player then
-        log_err("[LoginServlet][rpc_session_error] player(%s) offline", player_id)
+        log_err("[LoginServlet][rpc_player_disconnect] player(%s) offline", player_id)
         player:offline()
     end
 end
 
 -- 会话消息
-function LoginServlet:rpc_session_command(player_id, cmd_id, message)
+function LoginServlet:rpc_player_command(player_id, cmd_id, message)
     local player = player_mgr:get_entity(player_id)
     if not player then
-        log_err("[LoginServlet][rpc_session_command] need login cmd_id=%s, player_id=%s", cmd_id, player_id)
+        log_err("[LoginServlet][rpc_player_command] need login cmd_id=%s, player_id=%s", cmd_id, player_id)
         return ROLE_NOT_EXIST
     end
     local result = event_mgr:notify_command(cmd_id, player, player_id, message)
@@ -83,8 +83,8 @@ function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
     end
     --通知online
     local passkey = player:get_passkey()
-    local ok, code = online:login_player(player, passkey)
-    if not ok or qfailed(code) then
+    local lok, code = online:login_player(player, passkey)
+    if not lok or qfailed(code) then
         return FRAME_FAILED
     end
     --通知登陆成功
