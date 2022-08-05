@@ -28,5 +28,5 @@ quanta.startup(function()--初始化test
     import("test/clickhouse_test.lua")
     import("test/nacos_test.lua")
     ]]
-    import("test/protobuf_test.lua")
+    import("test/url_test.lua")
 end)

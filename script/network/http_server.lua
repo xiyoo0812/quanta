@@ -4,6 +4,8 @@ local ljson         = require("lcjson")
 local Socket        = import("driver/socket.lua")
 
 local type          = type
+local tostring      = tostring
+local getmetatable  = getmetatable
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
@@ -66,39 +68,28 @@ function HttpServer:on_socket_recv(socket, token)
         self.requests[token] = request
     end
     local buf = socket:get_recvbuf()
-    if #buf == 0 or not request:append(buf) then
+    if #buf == 0 or not request.parse(buf) then
         log_err("[HttpServer][on_socket_recv] http request append failed, close client(token:%s)!", token)
-        self:response(socket, 400, request, "this http request parse error!")
+        self:response(socket, 400, "this http request parse error!")
         return
     end
     socket:pop(#buf)
-    request:process()
-    local state = request:state()
-    local HTTP_REQUEST_ERROR = 2
-    if state == HTTP_REQUEST_ERROR then
-        log_err("[HttpServer][on_socket_recv] http request process failed, close client(token:%s)!", token)
-        self:response(socket, 400, request, "this http request parse error!")
-        return
-    end
     thread_mgr:fork(function()
-        local url = request:url()
-        local method = request:method()
-        local headers = request:headers()
+        local method = request.method
+        local headers = request.get_headers()
         if method == "GET" then
-            local querys = request:querys()
-            return self:on_http_request(self.get_handlers, socket, request, url, querys, headers)
+            local querys = request.get_params()
+            return self:on_http_request(self.get_handlers, socket, request.url, querys, headers)
         end
         if method == "POST" then
-            local body = request:body()
-            return self:on_http_request(self.post_handlers, socket, request, url, body, headers)
+            return self:on_http_request(self.post_handlers, socket, request.url, request.body, headers)
         end
         if method == "PUT" then
-            local body = request:body()
-            return self:on_http_request(self.put_handlers, socket, request, url, body, headers)
+            return self:on_http_request(self.put_handlers, socket, request.url, request.body, headers)
         end
         if method == "DELETE" then
-            local querys = request:querys()
-            return self:on_http_request(self.del_handlers, socket, request, url, querys, headers)
+            local querys = request.get_params()
+            return self:on_http_request(self.del_handlers, socket, request.url, querys, headers)
         end
     end)
 end
@@ -128,18 +119,19 @@ function HttpServer:register_del(url, handler, target)
 end
 
 --生成response
-function HttpServer:build_response(status, body, headers)
+function HttpServer:build_response(status, content, headers)
     local response = lhttp.create_response()
-    response:set_body(body)
-    response:set_status(status)
+    response.status = status
+    response.content = content
     for name, value in pairs(headers or {}) do
-        response:set_header(name, value)
+        response.set_header(name, value)
     end
     return response
 end
 
 --http post 回调
-function HttpServer:on_http_request(handlers, socket, request, url, ...)
+function HttpServer:on_http_request(handlers, socket, url, ...)
+    log_info("[HttpServer][on_http_request] request %s process!", url)
     local handler_info = handlers[url] or handlers["*"]
     if handler_info then
         local handler, target = tunpack(handler_info)
@@ -149,7 +141,7 @@ function HttpServer:on_http_request(handlers, socket, request, url, ...)
                 if not ok then
                     response = { code = 1, msg = response }
                 end
-                self:response(socket, 200, request, response)
+                self:response(socket, 200, response)
                 return
             end
         else
@@ -161,32 +153,36 @@ function HttpServer:on_http_request(handlers, socket, request, url, ...)
                 if not ok then
                     response = { code = 1, msg = response }
                 end
-                self:response(socket, 200, request, response)
+                self:response(socket, 200, response)
                 return
             end
         end
     end
     log_err("[HttpServer][on_http_request] request %s hasn't process!", url)
-    self:response(socket, 404, request, "this http request hasn't process!")
+    self:response(socket, 404, "this http request hasn't process!")
 end
 
-function HttpServer:response(socket, status, request, hresponse)
+function HttpServer:response(socket, status, response)
     local token = socket:get_token()
     if not token then
         return
     end
     self.requests[token] = nil
-    if type(hresponse) == "userdata" then
-        socket:send(hresponse:respond(request))
+    if getmetatable(response) then
+        socket:send(response.serialize())
         socket:close()
         return
     end
-    local ttype = "text/plain"
-    if type(hresponse) == "table" then
-        hresponse = json_encode(hresponse)
-        ttype = "application/json"
+    local new_resp = lhttp.create_response()
+    if type(response) == "table" then
+        new_resp.set_header("Content-Type", "application/json")
+        new_resp.content = json_encode(response)
+    else
+        new_resp.set_header("Content-Type", "text/plain")
+        new_resp.content = (type(response) == "string") and response or tostring(response)
     end
-    socket:send(request:response(status, ttype, hresponse or ""))
+    new_resp.status = status
+    socket:send(new_resp.serialize())
     socket:close()
 end
 

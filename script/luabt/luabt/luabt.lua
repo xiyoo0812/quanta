@@ -81,7 +81,7 @@ end
 function LuaBT:push(node)
     self.nodes[#self.nodes + 1] = node
     if node.on_interrupt then
-        self.interrupts[#self.interrupts] = node
+        self.interrupts[#self.interrupts + 1] = node
     end
 end
 

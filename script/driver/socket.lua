@@ -117,8 +117,8 @@ end
 
 function Socket:accept(session, ip, port)
     session.set_timeout(NETWORK_TIMEOUT)
-    session.on_call_text = function(recv_len, data)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, data)
+    session.on_call_text = function(recv_len, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, slice)
     end
     session.on_error = function(token, err)
         thread_mgr:fork(function()

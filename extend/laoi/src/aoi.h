@@ -88,48 +88,43 @@ public:
         long maxX = min(xgrid_num, nxgrid + grid_num);
         long minZ = max<long>(0, nzgrid - grid_num);
         long maxZ = min(zgrid_num, nzgrid + grid_num);
-        for(int z = minZ; z <= maxZ; z++) {
-            for(int x = minX; x <= maxX; x++) {
+        for(int z = minZ; z < maxZ; z++) {
+            for(int x = minX; x < maxX; x++) {
                 grids[z][x].hotarea_id = id;
-                printf("map add_hotarea: %d-%d-%d\n", id, z, x);
             }
         }
     }
     
-    void get_rect_objects(object_set& objs, long minX, long maxX, long minZ, long maxZ) {
-        for(int z = minZ; z <= maxZ; z++) {
-            for(int x = minX; x <= maxX; x++) {
+    void get_rect_objects(object_set& objs, long lx, long rx, long lz, long rz) {
+        long minX = max<long>(0, lx);
+        long minZ = max<long>(0, lz);
+        long maxX = min(xgrid_num, rx);
+        long maxZ = min(zgrid_num, rz);
+        for(int z = minZ; z < maxZ; z++) {
+            for(int x = minX; x < maxX; x++) {
                 copy(objs, grids[z][x].objs);
             }
         }
-    }
-
-    void get_objects(object_set& objs, long nxgrid, long nzgrid) {
-        long minX = max<long>(0, nxgrid - aoi_radius);
-        long maxX = min(xgrid_num, nxgrid + aoi_radius);
-        long minZ = max<long>(0, nzgrid - aoi_radius);
-        long maxZ = min(zgrid_num, nzgrid + aoi_radius);
-        get_rect_objects(objs, minX, maxX, minZ, maxZ);
     }
 
     void get_around_objects(object_set& enters, object_set& leaves, long oxgrid, long ozgrid, long nxgrid, long nzgrid) {
         long offsetX = nxgrid - oxgrid;
         long offsetZ = nzgrid - ozgrid;
         if (offsetX < 0) {
-            get_rect_objects(enters, nxgrid - aoi_radius, oxgrid - aoi_radius, max<long>(0, nzgrid - aoi_radius), min(zgrid_num, nzgrid + aoi_radius));
-            get_rect_objects(leaves, nxgrid + aoi_radius, oxgrid + aoi_radius, max<long>(0, ozgrid - aoi_radius), min(zgrid_num, ozgrid + aoi_radius));
+            get_rect_objects(enters, nxgrid - aoi_radius, oxgrid - aoi_radius, nzgrid - aoi_radius, nzgrid + aoi_radius);
+            get_rect_objects(leaves, nxgrid + aoi_radius, oxgrid + aoi_radius, ozgrid - aoi_radius, ozgrid + aoi_radius);
         }
         else if (offsetX > 0){
-            get_rect_objects(enters, oxgrid + aoi_radius, nxgrid + aoi_radius, max<long>(0, nzgrid - aoi_radius), min(zgrid_num, nzgrid + aoi_radius));
-            get_rect_objects(leaves, oxgrid - aoi_radius, nxgrid - aoi_radius, max<long>(0, ozgrid - aoi_radius), min(zgrid_num, ozgrid + aoi_radius));
+            get_rect_objects(enters, oxgrid + aoi_radius, nxgrid + aoi_radius, nzgrid - aoi_radius, nzgrid + aoi_radius);
+            get_rect_objects(leaves, oxgrid - aoi_radius, nxgrid - aoi_radius, ozgrid - aoi_radius, ozgrid + aoi_radius);
         }
         if (offsetZ < 0) {
-            get_rect_objects(enters, max<long>(0, nxgrid - aoi_radius), min(xgrid_num, nxgrid + aoi_radius), nzgrid - aoi_radius, ozgrid - aoi_radius);
-            get_rect_objects(leaves, max<long>(0, oxgrid - aoi_radius), min(xgrid_num, oxgrid + aoi_radius), nzgrid + aoi_radius, ozgrid + aoi_radius);
+            get_rect_objects(enters, nxgrid - aoi_radius, nxgrid + aoi_radius, nzgrid - aoi_radius, ozgrid - aoi_radius);
+            get_rect_objects(leaves, oxgrid - aoi_radius, oxgrid + aoi_radius, nzgrid + aoi_radius, ozgrid + aoi_radius);
         }
         else if (offsetZ > 0){
-            get_rect_objects(enters, max<long>(0, nxgrid - aoi_radius), min(xgrid_num, nxgrid + aoi_radius), ozgrid + aoi_radius, nzgrid + aoi_radius);
-            get_rect_objects(leaves, max<long>(0, oxgrid - aoi_radius), min(xgrid_num, oxgrid + aoi_radius), ozgrid - aoi_radius, nzgrid - aoi_radius);
+            get_rect_objects(enters, nxgrid - aoi_radius, nxgrid + aoi_radius, ozgrid + aoi_radius, nzgrid + aoi_radius);
+            get_rect_objects(leaves, oxgrid - aoi_radius, oxgrid + aoi_radius, ozgrid - aoi_radius, nzgrid - aoi_radius);
         }
     }
 
@@ -141,7 +136,7 @@ public:
         }
         //查询节点
         object_set objs;
-        get_objects(objs, nxgrid, nzgrid);
+        get_rect_objects(objs, nxgrid - aoi_radius, nxgrid + aoi_radius, nzgrid - aoi_radius, nzgrid + aoi_radius);
         //消息通知
         luakit::kit_state kit_state(mL);
         for (auto cobj : objs) {

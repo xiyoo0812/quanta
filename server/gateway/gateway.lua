@@ -77,11 +77,14 @@ end
 
 --转发给客户端
 function Gateway:rpc_forward_client(player_id, cmd_id, data)
-    log_debug("[Gateway][rpc_forward_client] cmd_id(%s) player(%s)!", cmd_id, player_id)
     local player = self:get_player(player_id)
     if not player then
         log_err("[Gateway][rpc_forward_client] cmd_id(%s) player(%s) not exist!", cmd_id, player_id)
         return
+    end
+
+    if cmd_id ~= 12105 then
+        log_debug("[Gateway][rpc_forward_client] player(%s) send message(%s-%s) !", player_id, cmd_id, data)
     end
     player:send_message(cmd_id, data)
 end

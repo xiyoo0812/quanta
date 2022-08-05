@@ -14,12 +14,19 @@ FLAGS = {
 
 --需要的include目录
 INCLUDES = {
-	"../lua/lua"
+	"../lua/lua",
+	"../fmt/include",
+	"../luakit/include"
 }
 
 --需要定义的选项
 DEFINES = {
-	"LHTTP_EXPORT"
+	"FMT_HEADER_ONLY"
+}
+
+--WINDOWS需要定义的选项
+WINDOWS_DEFINES = {
+	"LUA_BUILD_AS_DLL"
 }
 
 --需要连接的库文件

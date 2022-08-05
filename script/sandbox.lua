@@ -21,7 +21,7 @@ local function ssplit(str, token)
     while #str > 0 do
         local pos = str:find(token)
         if pos then
-            t[#t+1] = str:sub(1, pos - 1)
+            t[#t + 1] = str:sub(1, pos - 1)
             str = str:sub(pos + 1, #str)
         else
             t[#t + 1] = str

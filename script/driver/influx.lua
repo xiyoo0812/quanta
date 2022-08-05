@@ -200,7 +200,7 @@ function Influx:batch(batch_datas)
         local prefix = self:quote_tags(measurement, datas.tags)
         for _, fields in pairs(datas.field_list) do
             local suffix = self:quote_fields(fields)
-            protocols[#protocols] = sformat("%s %s", prefix, suffix)
+            protocols[#protocols + 1] = sformat("%s %s", prefix, suffix)
         end
     end
     local line_protocol = tconcat(protocols, "\n")

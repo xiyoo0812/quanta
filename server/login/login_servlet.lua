@@ -172,7 +172,7 @@ function LoginServlet:on_role_delete_req(session, body, session_id)
         return client_mgr:callback_errcode(session, ROLE_DELETE_REQ, ROLE_NOT_EXIST, session_id)
     end
     if not login_dao:update_account_roles(user_id, session.roles) then
-        session.roles[#session.roles] = del_role
+        session.roles[#session.roles + 1] = del_role
         return client_mgr:callback_errcode(session, ROLE_DELETE_REQ, FRAME_FAILED, session_id)
     end
     if not login_dao:delete_player(role_id)  then

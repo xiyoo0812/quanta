@@ -37,7 +37,7 @@ function RouterServer:__init()
         return
     end
     --启动server
-    self.rpc_server = RpcServer(self, host, config.port, true)
+    self.rpc_server = RpcServer(self, "0.0.0.0", config.port, true)
 
     --因为按host简化配置，可以重复index, 需要重定义routerid
     quanta.name = sformat("router_%s-%s", host, index)

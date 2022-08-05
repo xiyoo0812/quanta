@@ -64,7 +64,7 @@ function StatisMgr:write(measurement, name, type, fields)
         }
         self.statis[measurement] = measure
     end
-    measure.field_list[#measure.field_list] = fields
+    measure.field_list[#measure.field_list + 1] = fields
 end
 
 -- 统计proto协议发送(KB)
