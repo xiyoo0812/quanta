@@ -15,6 +15,9 @@ c++和lua通用的多线程日志库
 - msvc : 准备好lua依赖库并放到指定位置，将proj文件加到sln后编译。
 - linux：准备好lua依赖库并放到指定位置，执行make -f lualog.mak
 
+# 注意事项
+- mimalloc: 参考[quanta](https://github.com/xiyoo0812/quanta.git)使用，不用则在工程文件中注释
+
 # 功能
 - 支持C++和lua使用
 - 多线程日志输出

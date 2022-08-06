@@ -12,6 +12,9 @@
 - msvc: 准备好lua依赖库并放到指定位置，将proj文件加到sln后编译。
 - linux: 准备好lua依赖库并放到指定位置，执行make -f lcrypt.mak
 
+# 注意事项
+- mimalloc: 参考[quanta](https://github.com/xiyoo0812/quanta.git)使用，不用则在工程文件中注释
+
 # 用法
 ```lua
 --crypt_test.lua

@@ -12,6 +12,8 @@ using namespace std;
 
 namespace laoi {
 
+const long zero = 0;
+
 enum class aoi_type : int
 {
     watcher     = 0,    //观察者
@@ -84,9 +86,9 @@ public:
         long grid_num = r / grid_len;
         long nxgrid = convert_x(x);
         long nzgrid = convert_z(z);
-        long minX = max<long>(0, nxgrid - grid_num);
+        long minX = max(zero, nxgrid - grid_num);
+        long minZ = max(zero, nzgrid - grid_num);
         long maxX = min(xgrid_num, nxgrid + grid_num);
-        long minZ = max<long>(0, nzgrid - grid_num);
         long maxZ = min(zgrid_num, nzgrid + grid_num);
         for(int z = minZ; z < maxZ; z++) {
             for(int x = minX; x < maxX; x++) {
@@ -96,8 +98,8 @@ public:
     }
     
     void get_rect_objects(object_set& objs, long lx, long rx, long lz, long rz) {
-        long minX = max<long>(0, lx);
-        long minZ = max<long>(0, lz);
+        long minX = max(zero, lx);
+        long minZ = max(zero, lz);
         long maxX = min(xgrid_num, rx);
         long maxZ = min(zgrid_num, rz);
         for(int z = minZ; z < maxZ; z++) {

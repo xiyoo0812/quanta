@@ -7,6 +7,9 @@
   |--proj <br>
   &emsp;|--lua <br>
   &emsp;|--lkcp
+  
+# 注意事项
+- mimalloc: 参考[quanta](https://github.com/xiyoo0812/quanta.git)使用，不用则在工程文件中注释
 
 # 用法
 - UDP Server

@@ -13,6 +13,7 @@
 # 注意事项
 - 本库只做http协议解析
 - 数据收发由调用方实现
+- mimalloc: 参考[quanta](https://github.com/xiyoo0812/quanta.git)使用，不用则在工程文件中注释
 
 # 用法
 ```lua

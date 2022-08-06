@@ -27,6 +27,7 @@ quanta.startup(function()--初始化test
     import("test/zipkin_test.lua")
     import("test/clickhouse_test.lua")
     import("test/nacos_test.lua")
-    ]]
     import("test/url_test.lua")
+    ]]
+    import("test/http_test.lua")
 end)

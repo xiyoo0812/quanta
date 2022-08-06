@@ -116,7 +116,8 @@ namespace lhttp {
             vector<string> parts;
             split(args, "&", parts);
             for (const string& part : parts) {
-                if ((pos = part.find("=")) != string::npos) {
+                size_t pos = part.find("=");
+                if (pos != string::npos) {
                     params.insert(make_pair(part.substr(0, pos), part.substr(pos + 1)));
                 }
             }
@@ -129,10 +130,10 @@ namespace lhttp {
                 string value = str.substr(pos + 2);
                 headers.insert(make_pair(key, value));
                 if (method == "POST" || method != "PUT") {
-                    if (strcasecmp(key.c_str(), "Content-Length")) {
+                    if (!strcasecmp(key.c_str(), "Content-Length")) {
                         content_size = atoi(value.c_str());
                     }
-                    else if (strcasecmp(key.c_str(), "Transfer-Encoding") && strcasecmp(value.c_str(), "chunked")) {
+                    else if (!strcasecmp(key.c_str(), "Transfer-Encoding") && !strcasecmp(value.c_str(), "chunked")) {
                         chunked = true;
                     }
                 }

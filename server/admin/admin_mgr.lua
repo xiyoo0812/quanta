@@ -96,32 +96,32 @@ end
 --http 回调
 ----------------------------------------------------------------------
 --gm_page
-function AdminMgr:on_gm_page(url, body, headers)
+function AdminMgr:on_gm_page(url, body, request)
     local ret_headers = {["Access-Control-Allow-Origin"] = "*"}
     return self.http_server:build_response(200, gm_page, ret_headers)
 end
 
 --gm列表
-function AdminMgr:on_gmlist(url, body, headers)
+function AdminMgr:on_gmlist(url, body, request)
     return cmdline:get_command_defines()
 end
 
 --后台GM调用，字符串格式
-function AdminMgr:on_command(url, body, headers)
+function AdminMgr:on_command(url, body, request)
     log_debug("[AdminMgr][on_command] body: %s", body)
     local cmd_req = jdecode(body)
     return self:exec_command(cmd_req.data)
 end
 
 --后台GM调用，table格式
-function AdminMgr:on_message(url, body, headers)
+function AdminMgr:on_message(url, body, request)
     log_debug("[AdminMgr][on_message] body: %s", body)
     local cmd_req = jdecode(body)
     return self:exec_message(cmd_req.data)
 end
 
 --monitor拉取
-function AdminMgr:on_monitors(url, body, headers)
+function AdminMgr:on_monitors(url, body, request)
     log_debug("[AdminMgr][on_monitors] body: %s", body)
     local monitors = {}
     for _, addr in pairs(self.monitors) do

@@ -106,13 +106,13 @@ function MonitorMgr:on_client_error(client, token, err)
 end
 
 --gm_page
-function MonitorMgr:on_log_page(url, body, headers)
+function MonitorMgr:on_log_page(url, body, request)
     local ret_headers = {["Access-Control-Allow-Origin"] = "*"}
     return self.http_server:build_response(200, log_page, ret_headers)
 end
 
 -- status查询
-function MonitorMgr:on_monitor_status(url, querys, headers)
+function MonitorMgr:on_monitor_status(url, querys, request)
     return self.monitor_nodes
 end
 
@@ -136,7 +136,7 @@ function MonitorMgr:broadcast(service_id, rpc, ...)
 end
 
 -- command处理
-function MonitorMgr:on_monitor_command(url, body, headers)
+function MonitorMgr:on_monitor_command(url, body, request)
     log_debug("[MonitorMgr][on_monitor_command]: %s", body)
     --执行函数
     local function handler_cmd(jbody)
