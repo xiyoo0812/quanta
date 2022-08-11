@@ -134,7 +134,7 @@ local function export_records_to_struct(output, title, records)
             if index == 1 then
                 lines[#lines + 1] = sformat("%s:upsert({", title)
             end
-            if type(value) == "string" and ftype ~= "array" then
+            if type(value) == "string" and ftype ~= "array" and ftype ~= "struct" then
                 value = "'" .. value .. "'"
                 value = sgsub(value, "\n", "\\n")
             end
@@ -172,7 +172,7 @@ local function export_records_to_table(output, title, records)
             if index == 1 then
                 lines[#lines + 1] =  "    {"
             end
-            if type(value) == "string" and ftype ~= "array" then
+            if type(value) == "string" and ftype ~= "array" and ftype ~= "struct" then
                 value = "'" .. value .. "'"
                 value = sgsub(value, "\n", "\\n")
             end
