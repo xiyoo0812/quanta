@@ -53,7 +53,7 @@ function Nacos:__init()
         self.instances_url = sformat("http://%s:%s/nacos/v1/ns/instance/list", ip, port)
         self.inst_beat_url = sformat("http://%s:%s/nacos/v1/ns/instance/beat", ip, port)
         self.namespace_url = sformat("http://%s:%s/nacos/v1/console/namespaces", ip, port)
-        log_info("[Nacos][setup] setup (%s) success!", self.addr)
+        log_info("[Nacos][setup] setup (%s:%s) success!", ip, port)
     end
 end
 

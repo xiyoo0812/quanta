@@ -10,6 +10,7 @@ local qfailed           = quanta.failed
 local online            = quanta.get("online")
 local login_dao         = quanta.get("login_dao")
 local event_mgr         = quanta.get("event_mgr")
+local update_mgr        = quanta.get("update_mgr")
 local player_mgr        = quanta.get("player_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
@@ -88,7 +89,9 @@ function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
         return FRAME_FAILED
     end
     --通知登陆成功
-    event_mgr:notify_trigger("on_login_success", player, player_id)
+    update_mgr:attach_next(self, function()
+        event_mgr:notify_trigger("on_login_success", player, player_id)
+    end)
     log_info("[LoginServlet][rpc_player_login] player(%s) login success!", player_id)
     return FRAME_SUCCESS, passkey
 end

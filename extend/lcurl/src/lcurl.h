@@ -44,12 +44,12 @@ namespace lcurl {
 
         bool call_post(string data) {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
-            return request(data);
+            return request(data, true);
         }
 
         bool call_put(string data) {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
-            return request(data);
+            return request(data, true);
         }
 
         bool call_del(string data) {
@@ -72,11 +72,11 @@ namespace lcurl {
         }
 
     private:
-        bool request(const string& data) {
+        bool request(const string& data, bool body_field = false) {
             if (header) {
                 curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header);
             }
-            if (data.size() > 0) {
+            if (body_field || data.size() > 0) {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data.size());
             }
@@ -125,23 +125,23 @@ namespace lcurl {
         }
 
         int update(lua_State* L) {
+            int msgs_in_queue;
+            CURLMsg* curlmsg = nullptr;
             luakit::kit_state kit_state(L);
-            while (true) {
-                int msgs_in_queue;
-                CURLMsg* curlmsg = curl_multi_info_read(curlm, &msgs_in_queue);
-                if (!curlmsg) {
-                    int running_handles;
-                    CURLMcode perform_result = curl_multi_perform(curlm, &running_handles);
-                    if (perform_result != CURLM_OK && perform_result != CURLM_CALL_MULTI_PERFORM) {
-                        lua_pushboolean(L, false);
-                        lua_pushstring(L, "curl_multi_perform failed");
-                        return 2;
-                    }
-                    break;
-                }
+            while ((curlmsg = curl_multi_info_read(curlm, &msgs_in_queue)) != nullptr) {
                 if (curlmsg->msg == CURLMSG_DONE){
-                    CURLcode ret_result = curlmsg->data.result;
-                    kit_state.object_call(this, "on_respond", nullptr, std::tie(), curlmsg->easy_handle, ret_result);
+                    kit_state.object_call(this, "on_respond", nullptr, tie(), curlmsg->easy_handle, curlmsg->data.result);
+                    curl_multi_remove_handle(curlm, curlmsg->easy_handle);
+                }
+            }
+            while (true) {
+                int running_handles;
+                CURLMcode result = curl_multi_perform(curlm, &running_handles);
+                if (running_handles == 0) break;
+                if (result != CURLM_OK && result != CURLM_CALL_MULTI_PERFORM) {
+                    lua_pushboolean(L, false);
+                    lua_pushstring(L, "curl_multi_perform failed");
+                    return 2;
                 }
             }
             lua_pushboolean(L, true);

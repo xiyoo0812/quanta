@@ -50,13 +50,15 @@ end
 
 function SessionModule:send(cmdid, data)
     if self.client then
-        return self.client:send(cmdid, data)
+        local type = (cmdid // 10000) %10
+        return self.client:send(cmdid, data, type)
     end
 end
 
 function SessionModule:call(cmdid, data)
     if self.client then
-        local ok, resp = self.client:call(cmdid, data)
+        local type = (cmdid // 10000) %10
+        local ok, resp = self.client:call(cmdid, data, type)
         return ok, resp
     end
     return false

@@ -97,8 +97,7 @@ end
 ----------------------------------------------------------------------
 --gm_page
 function AdminMgr:on_gm_page(url, body, request)
-    local ret_headers = {["Access-Control-Allow-Origin"] = "*"}
-    return self.http_server:build_response(200, gm_page, ret_headers)
+    return gm_page, {["Access-Control-Allow-Origin"] = "*"}
 end
 
 --gm列表

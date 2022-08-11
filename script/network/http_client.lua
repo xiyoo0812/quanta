@@ -131,7 +131,7 @@ end
 
 --del接口
 function HttpClient:call_del(url, querys, headers, timeout)
-    return self:send_request(url, timeout, querys, headers, "call_put")
+    return self:send_request(url, timeout, querys, headers, "call_del")
 end
 
 quanta.http_client = HttpClient()

@@ -100,7 +100,7 @@ end
 function NetServer:write(session, cmd_id, data, session_id, flag)
     local body, pflag = self:encode(cmd_id, data, flag)
     if not body then
-        log_err("[NetServer][write] encode failed! cmd_id:%s", cmd_id)
+        log_err("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd_id, data)
         return false
     end
     session.serial = session.serial + 1
@@ -121,7 +121,7 @@ end
 function NetServer:broadcast(cmd_id, data)
     local body, pflag = self:encode(cmd_id, data, FLAG_REQ)
     if not body then
-        log_err("[NetServer][broadcast] encode failed! cmd_id:%s", cmd_id)
+        log_err("[NetServer][broadcast] encode failed! cmd_id:%s-(%s)", cmd_id, data)
         return false
     end
     for _, session in pairs(self.sessions) do

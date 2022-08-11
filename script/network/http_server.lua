@@ -4,14 +4,16 @@ local ljson         = require("lcjson")
 local Socket        = import("driver/socket.lua")
 
 local type          = type
+local pcall         = pcall
+local pairs         = pairs
 local tostring      = tostring
 local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
-local json_encode   = ljson.encode
 local tunpack       = table.unpack
 local signalquit    = signal.quit
+local json_encode   = ljson.encode
 local saddr         = string_ext.addr
 
 local thread_mgr    = quanta.get("thread_mgr")
@@ -42,6 +44,12 @@ function HttpServer:setup(http_addr)
     end
     log_info("[HttpServer][setup] listen(%s:%s) success!", self.ip, self.port)
     self.listener = socket
+end
+
+function HttpServer:close(token, socket)
+    self.clients[token] = nil
+    self.requests[token] = nil
+    socket:close()
 end
 
 function HttpServer:on_socket_error(socket, token, err)
@@ -114,17 +122,6 @@ function HttpServer:register_del(url, handler, target)
     self.del_handlers[url] = { handler, target }
 end
 
---生成response
-function HttpServer:build_response(status, content, headers)
-    local response = lhttp.create_response()
-    response.status = status
-    response.content = content
-    for name, value in pairs(headers or {}) do
-        response.set_header(name, value)
-    end
-    return response
-end
-
 --http post 回调
 function HttpServer:on_http_request(handlers, socket, url, ...)
     local handler_info = handlers[url] or handlers["*"]
@@ -132,11 +129,11 @@ function HttpServer:on_http_request(handlers, socket, url, ...)
         local handler, target = tunpack(handler_info)
         if not target then
             if type(handler) == "function" then
-                local ok, response = pcall(handler, url, ...)
+                local ok, response, headers = pcall(handler, url, ...)
                 if not ok then
                     response = { code = 1, msg = response }
                 end
-                self:response(socket, 200, response)
+                self:response(socket, 200, response, headers)
                 return
             end
         else
@@ -144,11 +141,11 @@ function HttpServer:on_http_request(handlers, socket, url, ...)
                 handler = target[handler]
             end
             if type(handler) == "function" then
-                local ok, response = pcall(handler, target, url, ...)
+                local ok, response, headers = pcall(handler, target, url, ...)
                 if not ok then
                     response = { code = 1, msg = response }
                 end
-                self:response(socket, 200, response)
+                self:response(socket, 200, response, headers)
                 return
             end
         end
@@ -157,28 +154,29 @@ function HttpServer:on_http_request(handlers, socket, url, ...)
     self:response(socket, 404, "this http request hasn't process!")
 end
 
-function HttpServer:response(socket, status, response)
+function HttpServer:response(socket, status, response, headers)
     local token = socket:get_token()
     if not token or not response then
         return
     end
-    self.requests[token] = nil
-    if response.serialize then
-        socket:send(response.serialize())
-        socket:close()
-        return
-    end
     local new_resp = lhttp.create_response()
+    for key, value in pairs(headers or {}) do
+        new_resp.set_header(key, value)
+    end
     if type(response) == "table" then
         new_resp.set_header("Content-Type", "application/json")
         new_resp.content = json_encode(response)
+    elseif type(response) == "string" then
+        new_resp.content = response
+        local html = response:find("<html")
+        new_resp.set_header("Content-Type", html and "text/html" or "text/plain")
     else
         new_resp.set_header("Content-Type", "text/plain")
-        new_resp.content = (type(response) == "string") and response or tostring(response)
+        new_resp.content = tostring(response)
     end
     new_resp.status = status
     socket:send(new_resp.serialize())
-    socket:close()
+    self:close(token, socket)
 end
 
 return HttpServer

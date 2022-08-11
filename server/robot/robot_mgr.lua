@@ -5,6 +5,7 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local sformat       = string.format
 local signalquit    = signal.quit
+local env_addr      = environ.addr
 local env_number    = environ.number
 local guid_string   = lcrypt.guid_string
 
@@ -40,6 +41,7 @@ function RobotMgr:setup()
         return
     end
     log_debug("[RobotMgr][setup] robot config(%s) is loading!", index)
+    local ip, port = env_addr("QUANTA_ROBOT_ADDR")
     local robot_count = env_number("QUANTA_COUNT", conf.count)
     --指定账号模式，只能一个机器人
     if conf.openid_type == RPLAYER then
@@ -53,13 +55,13 @@ function RobotMgr:setup()
         node_factory:load()
         -- 创建机器人
         for i = 1, robot_count do
-            self:create_robot(conf, i)
+            self:create_robot(ip, port, conf, i)
         end
     end)
 end
 
 -- setup
-function RobotMgr:create_robot(conf, index)
+function RobotMgr:create_robot(ip, port, conf, index)
     log_debug("[RobotMgr][create_robot]: %d", index)
     local robot = Robot(conf, index)
     if conf.openid_type == RRANDOM then
@@ -69,8 +71,8 @@ function RobotMgr:create_robot(conf, index)
     else
         robot:set_open_id(conf.open_id)
     end
-    robot:set_ip(conf.ip)
-    robot:set_port(conf.port)
+    robot:set_ip(ip)
+    robot:set_port(port)
     robot:set_access_token(conf.access_token)
 
     thread_mgr:fork(function()

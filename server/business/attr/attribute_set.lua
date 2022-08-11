@@ -25,15 +25,10 @@ function AttributeSet:__delegate()
         end
         if attr.increase then
             AttributeSet["add_" .. attr.nick] = function(this, value)
-                local old = this:get_attr(attr.id)
-                return this:set_attr(attr.id, old + value)
+                return this:add_attr(attr.id, value)
             end
             AttributeSet["cost_" .. attr.nick] = function(this, value)
-                local old = this:get_attr(attr.id)
-                if old >= value then
-                    return this:set_attr(attr.id, old - value)
-                end
-                return false
+                return this:cost_attr(attr.id, value)
             end
         end
     end
@@ -90,6 +85,33 @@ function AttributeSet:get_attr(attr_id)
         return
     end
     return attr.value
+end
+
+--检查属性
+function AttributeSet:check_attr(attr_id, value)
+    local ovalue = self:get_attr(attr_id)
+    if ovalue and ovalue >= value then
+        return true
+    end
+    return false
+end
+
+--增加属性
+function AttributeSet:add_attr(attr_id, value)
+    local ovalue = self:get_attr(attr_id)
+    if ovalue then
+        return self:set_attr(attr_id, ovalue + value)
+    end
+    return false
+end
+
+--消耗属性
+function AttributeSet:cost_attr(attr_id, value)
+    local ovalue = self:get_attr(attr_id)
+    if ovalue and ovalue >= value then
+        return self:set_attr(attr_id, ovalue - value)
+    end
+    return false
 end
 
 --加载db数据

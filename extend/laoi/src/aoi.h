@@ -133,7 +133,7 @@ public:
     bool attach(aoi_obj* obj, long x, long z){
         long nxgrid = convert_x(x);
         long nzgrid = convert_z(z);
-        if ((nxgrid < 0) || (nxgrid > xgrid_num) || (nzgrid < 0) || (nzgrid > zgrid_num)) {
+        if ((nxgrid < 0) || (nxgrid >= xgrid_num) || (nzgrid < 0) || (nzgrid >= zgrid_num)) {
             return false;
         }
         //查询节点
@@ -163,7 +163,7 @@ public:
     long move(aoi_obj* obj, long x, long y, long z) {
         long nxgrid = convert_x(x);
         long nzgrid = convert_z(z);
-        if ((nxgrid < 0) || (nxgrid > xgrid_num) || (nzgrid < 0) || (nzgrid > zgrid_num)) {
+        if ((nxgrid < 0) || (nxgrid >= xgrid_num) || (nzgrid < 0) || (nzgrid >= zgrid_num)) {
             return -1;
         }
         if (nxgrid == obj->grid_x && nzgrid == obj->grid_z){

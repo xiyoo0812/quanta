@@ -107,8 +107,7 @@ end
 
 --gm_page
 function MonitorMgr:on_log_page(url, body, request)
-    local ret_headers = {["Access-Control-Allow-Origin"] = "*"}
-    return self.http_server:build_response(200, log_page, ret_headers)
+    return log_page, {["Access-Control-Allow-Origin"] = "*"}
 end
 
 -- status查询
