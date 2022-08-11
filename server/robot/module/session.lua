@@ -48,17 +48,22 @@ function SessionModule:register_doer(cmdid, module, handler)
     self.cmd_doers[cmdid] = { module, handler }
 end
 
+function SessionModule:conv_type(cmdid)
+    if cmdid < 10000 then
+        return 0
+    end
+    return (cmdid // 1000) % 10
+end
+
 function SessionModule:send(cmdid, data)
     if self.client then
-        local type = (cmdid // 10000) %10
-        return self.client:send(cmdid, data, type)
+        return self.client:send(cmdid, data, self:conv_type(cmdid))
     end
 end
 
 function SessionModule:call(cmdid, data)
     if self.client then
-        local type = (cmdid // 10000) %10
-        local ok, resp = self.client:call(cmdid, data, type)
+        local ok, resp = self.client:call(cmdid, data, self:conv_type(cmdid))
         return ok, resp
     end
     return false
