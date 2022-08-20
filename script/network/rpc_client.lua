@@ -160,11 +160,11 @@ end
 
 --错误处理
 function RpcClient:on_socket_error(token, err)
-    log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
     thread_mgr:fork(function()
         self.socket = nil
         self.alive = false
         self.holder:on_socket_error(self, token, err)
+        log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
     end)
 end
 

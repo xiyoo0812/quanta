@@ -1,17 +1,15 @@
 -- http_test.lua
 import("network/http_client.lua")
-local ljson = require("lcjson")
 local ltimer = require("ltimer")
 
 local ltime         = ltimer.time
 local log_debug     = logger.debug
-local json_encode   = ljson.encode
-
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")
 
+local data = {aaa = 123}
+
 if quanta.index == 1 then
-    local data = {aaa = 123}
     local on_post = function(path, body, request)
         log_debug("on_post: %s, %s, %s", path, body, request.get_headers())
         return data
@@ -26,24 +24,20 @@ if quanta.index == 1 then
     server:register_post("*", on_post)
     quanta.server = server
 elseif quanta.index == 2 then
-    thread_mgr:fork(function()
-        local post_data = json_encode({title = "test", text = "http test"})
-        local ROBOT_URL = "https://open.feishu.cn/open-apis/bot/hook/56b34b9e1c0b4fc0acadef8ebc3894ad"
-        local ok, status, res = http_client:call_post(ROBOT_URL, post_data)
-        log_debug("feishu test : %s, %s, %s", ok, status, res)
-    end)
     for i = 1, 1 do
         thread_mgr:fork(function()
-            local data = {aaa = 123}
-            local tk = ltime()
+            local tk1 = ltime()
             local ok, status, res = http_client:call_post("http://127.0.0.1:8888/node_status1", data)
-            log_debug("node_status1 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
+            log_debug("node_status1 : %s, %s, %s, %s", ltime() - tk1, ok, status, res)
+            local tk2 = ltime()
             ok, status, res = http_client:call_get("http://127.0.0.1:8888/node_status2", data)
-            log_debug("node_status2 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
+            log_debug("node_status2 : %s, %s, %s, %s", ltime() - tk2, ok, status, res)
+            local tk3 = ltime()
             ok, status, res = http_client:call_put("http://127.0.0.1:8888/node_status3", data)
-            log_debug("node_status3 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
+            log_debug("node_status3 : %s, %s, %s, %s", ltime() - tk3, ok, status, res)
+            local tk4 = ltime()
             ok, status, res = http_client:call_del("http://127.0.0.1:8888/node_status4", data)
-            log_debug("node_status4 : %s, %s, %s, %s", ltime() - tk, ok, status, res)
+            log_debug("node_status4 : %s, %s, %s, %s", ltime() - tk4, ok, status, res)
         end)
     end
 end

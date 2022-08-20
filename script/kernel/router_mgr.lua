@@ -22,15 +22,11 @@ local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
 local prop = property(RouterMgr)
-prop:accessor("master", nil)
-prop:accessor("routers", {})
-prop:accessor("candidates", {})
-function RouterMgr:__init()
-    self:setup()
-end
+prop:reader("master", nil)
+prop:reader("routers", {})
+prop:reader("candidates", {})
 
---初始化
-function RouterMgr:setup()
+function RouterMgr:__init()
     --router接口
     self:build_service()
     --加入更新
@@ -45,8 +41,24 @@ function RouterMgr:setup()
     monitor:watch_service_ready(self, "router")
     monitor:watch_service_close(self, "router")
     event_mgr:add_listener(self, "on_client_kickout")
+    --日志上报
+    if environ.status("QUANTA_LOG_REPORT") then
+        logger.add_monitor(self)
+    end
 end
 
+--日志分发
+function RouterMgr:dispatch_log(content, lvl_name, lvl)
+    local sname = quanta.service_name
+    local title = sformat("%s | %s", sname, lvl_name)
+    if sname == "proxy" then
+        event_mgr:notify_listener("rpc_report_log", title, content, lvl)
+        return
+    end
+    self:send_proxy_hash(quanta.id, "rpc_report_log", title, content, lvl)
+end
+
+--服务关闭
 function RouterMgr:on_service_close(id, name)
     log_debug("[RouterMgr][on_service_close] node: %s-%s", name, id)
     local router = self.routers[id]
@@ -56,6 +68,7 @@ function RouterMgr:on_service_close(id, name)
     end
 end
 
+--服务上线
 function RouterMgr:on_service_ready(id, name, info)
     log_debug("[RouterMgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
     if info.region == quanta.region and info.group == quanta.group then

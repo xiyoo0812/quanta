@@ -95,8 +95,8 @@ function Listener:notify_listener(event, ...)
     local listener_ctx = self._listeners[event]
     if not listener_ctx then
         if not self._ignores[event] then
-            log_warn("[Listener][notify_listener] event %s handler is nil!", event)
             self._ignores[event] = true
+            log_warn("[Listener][notify_listener] event %s handler is nil!", event)
         end
         return tpack(false, "event handler is nil")
     end

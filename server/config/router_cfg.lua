@@ -22,10 +22,10 @@ router:upsert({
 
 router:upsert({
     cluster = 'local',
-    host = '10.98.8.155',
+    host = '127.0.0.1',
     count = 2,
     port = 9001,
 })
 
 --general md5 version
-router:set_version('3f5cafe47a12cc3b32accf54889755bf')
+router:set_version('f51c280fa8013a075c35ec8bb793385f')

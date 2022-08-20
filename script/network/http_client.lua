@@ -52,6 +52,7 @@ end
 function HttpClient:on_respond(curl_handle, result)
     local context = self.contexts[curl_handle]
     if context then
+        self.contexts[curl_handle] = nil
         local request = context.request
         local session_id = context.session_id
         local content, code, err = request.get_respond()
@@ -60,7 +61,6 @@ function HttpClient:on_respond(curl_handle, result)
         else
             thread_mgr:response(session_id, false, code, err)
         end
-        self.contexts[curl_handle] = nil
     end
 end
 
@@ -83,6 +83,9 @@ end
 
 --构建请求
 function HttpClient:send_request(url, timeout, querys, headers, method, datas)
+    if not url then
+        return false
+    end
     local to = timeout or HTTP_CALL_TIMEOUT
     local fmt_url = self:format_url(url, querys)
     local request, curl_handle = curlm_mgr.create_request(fmt_url, to)

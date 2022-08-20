@@ -1,25 +1,32 @@
 --monitor_agent.lua
 local RpcClient     = import("network/rpc_client.lua")
 
+local odate         = os.date
 local tunpack       = table.unpack
 local signal_quit   = signal.quit
 local env_addr      = environ.addr
 local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
+local log_debug     = logger.debug
 local qfailed       = quanta.failed
+local sfind         = string.find
+local sformat       = string.format
+local ssplit        = string_ext.split
 
 local event_mgr         = quanta.get("event_mgr")
-local timer_mgr         = quanta.get("timer_mgr")
+local update_mgr        = quanta.get("update_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 
+local PULL_CNT_MAX      = 10
+local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local RPC_FAILED        = quanta.enum("KernCode", "RPC_FAILED")
-local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local RECONNECT_TIME    = quanta.enum("NetwkTime", "RECONNECT_TIME")
-local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
 
 local MonitorAgent = singleton()
 local prop = property(MonitorAgent)
 prop:reader("client", nil)
+prop:reader("sessions", {})
 prop:reader("next_connect_time", 0)
 prop:reader("ready_watchers", {})
 prop:reader("close_watchers", {})
@@ -28,27 +35,34 @@ function MonitorAgent:__init()
     --创建连接
     local ip, port = env_addr("QUANTA_MONITOR_ADDR")
     self.client = RpcClient(self, ip, port)
-    --心跳定时器
-    timer_mgr:register(SECOND_MS, HEARTBEAT_TIME, -1, function()
-        self:on_timer()
-    end)
     --注册事件
+    event_mgr:add_listener(self, "rpc_remote_log")
     event_mgr:add_listener(self, "on_quanta_quit")
     event_mgr:add_listener(self, "on_remote_message")
     event_mgr:add_listener(self, "on_service_changed")
+    --心跳定时器
+    update_mgr:attach_second5(self)
+    update_mgr:attach_next(self, function()
+        self:on_second5()
+    end)
 end
 
-function MonitorAgent:on_timer()
+function MonitorAgent:on_second5()
     local now = quanta.now
-    local client = self.client
-    if not client:is_alive() then
+    if not self.client:is_alive() then
         if now >= self.next_connect_time then
             self.next_connect_time = now + RECONNECT_TIME
-            client:connect()
+            self.client:connect()
         end
     else
-        if not client:check_lost(now) then
-            client:heartbeat()
+        if not self.client:check_lost(now) then
+            self.client:heartbeat()
+        end
+    end
+    for session_id, session in pairs(self.sessions) do
+        if now - session.active_time > RECONNECT_TIME then
+            log_debug("[RemoteLog][on_timer]->overdue->session_id:%s", session_id)
+            self:close_session(session_id)
         end
     end
 end
@@ -86,7 +100,7 @@ function MonitorAgent:on_quanta_quit(reason)
     -- 发个退出通知
     event_mgr:notify_trigger("on_quanta_quit", reason)
     -- 关闭会话连接
-    timer_mgr:once(SECOND_MS, function()
+    update_mgr:attach_next(self, function()
         log_warn("[MonitorAgent][on_quanta_quit]->service:%s", quanta.name)
         self.client:close()
         signal_quit()
@@ -95,7 +109,7 @@ function MonitorAgent:on_quanta_quit(reason)
 end
 
 --执行远程rpc消息
-function MonitorAgent:on_remote_message(data, message)
+function MonitorAgent:on_remote_message(message, data)
     if not message then
         return {code = RPC_FAILED, msg = "message is nil !"}
     end
@@ -104,7 +118,7 @@ function MonitorAgent:on_remote_message(data, message)
         log_err("[MonitorAgent][on_remote_message] web_rpc faild: ok=%s, ec=%s", ok, code)
         return { code = ok and code or RPC_FAILED, msg = ok and "" or code}
     end
-    return { code = 0 , data = res}
+    return { code = 0, msg = res}
 end
 
 --服务改变
@@ -121,6 +135,80 @@ function MonitorAgent:on_service_changed(service_name, readys, closes)
             listener:on_service_close(id, service_name, info)
         end
     end
+end
+
+--日志监控
+----------------------------------------------
+function MonitorAgent:open_session(data)
+    local session_id = data.session_id
+    if not session_id then
+        session_id = thread_mgr:build_session_id()
+    end
+    local session = self.sessions[session_id]
+    if not session then
+        session = {
+            pull_index  = 0,
+            cache_logs  = {},
+            filters     = {},
+            session_id  = session_id,
+        }
+        self.sessions[session_id] = session
+    end
+    if data.filters then
+        session.filters = ssplit(data.filters, " ")
+    end
+    session.active_time = quanta.now
+    return session
+end
+
+function MonitorAgent:close_session(session_id)
+    self.sessions[session_id] = nil
+    if not next(self.sessions) then
+        logger.remove_monitor(self)
+    end
+end
+
+function MonitorAgent:dispatch_log(content, lvl_name)
+    for _, session in pairs(self.sessions) do
+        local cache = false
+        if #session.filters == 0 then
+            cache = true
+            goto docache
+        end
+        for _, filter in pairs(session.filters) do
+            if sfind(content, filter) then
+                cache = true
+                goto docache
+            end
+        end
+        :: docache ::
+        if cache then
+            local cache_logs = session.cache_logs
+            cache_logs[#cache_logs + 1] = sformat("[%s][%s]%s", odate("%Y-%m-%d %H:%M:%S"), lvl_name, content)
+        end
+    end
+end
+
+function MonitorAgent:rpc_remote_log(data)
+    if not next(self.sessions) then
+        logger.add_monitor(self)
+    end
+    local show_logs = {}
+    local session = self:open_session(data)
+    local log_size = #(session.cache_logs)
+    local log_cnt = log_size - session.pull_index
+    if log_cnt > 0 then
+        local count = log_cnt > PULL_CNT_MAX and PULL_CNT_MAX or log_cnt
+        for idx = 1, count do
+            show_logs[#show_logs + 1] = session.cache_logs[session.pull_index + idx]
+        end
+        session.pull_index = session.pull_index + count
+        if session.pull_index >= log_size then
+            session.cache_logs = {}
+            session.pull_index = 0
+        end
+    end
+    return SUCCESS, { logs = show_logs, session_id = session.session_id }
 end
 
 quanta.monitor = MonitorAgent()

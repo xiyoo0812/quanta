@@ -87,7 +87,7 @@ function NetServer:on_socket_accept(session)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(token, err)
-        qxpcall(self.on_socket_error, "on_socket_error: %s", self, token, err)
+        self:on_socket_error(token, err)
     end
     --初始化序号
     session.serial = 1
@@ -277,12 +277,12 @@ end
 
 -- 会话被关闭回调
 function NetServer:on_socket_error(token, err)
-    local session = self:remove_session(token)
-    if session then
-        thread_mgr:fork(function()
+    thread_mgr:fork(function()
+        local session = self:remove_session(token)
+        if session then
             event_mgr:notify_listener("on_session_error", session, token, err)
-        end)
-    end
+        end
+    end)
 end
 
 -- 添加会话

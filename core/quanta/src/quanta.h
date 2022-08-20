@@ -3,8 +3,6 @@
 
 #include "logger.h"
 
-using environ_map = std::map<std::string, std::string>;
-
 using namespace logger;
 class quanta_app final
 {

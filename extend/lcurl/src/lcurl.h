@@ -38,21 +38,21 @@ namespace lcurl {
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         }
 
-        bool call_get(string data) {
+        bool call_get(const char* data) {
             return request(data);
         }
 
-        bool call_post(string data) {
+        bool call_post(const char* data) {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
             return request(data, true);
         }
 
-        bool call_put(string data) {
+        bool call_put(const char* data) {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
             return request(data, true);
         }
 
-        bool call_del(string data) {
+        bool call_del(const char* data) {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
             return request(data);
         }
@@ -65,20 +65,18 @@ namespace lcurl {
             long code = 0;
             luakit::kit_state kit_state(L);
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-            if (error[0] == '\0') {
-                return kit_state.as_return(content, code);
-            }
-            return kit_state.as_return(nullptr, code, error);
+            return kit_state.as_return(content, code, error);
         }
 
     private:
-        bool request(const string& data, bool body_field = false) {
+        bool request(const char* data, bool body_field = false) {
             if (header) {
                 curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header);
             }
-            if (body_field || data.size() > 0) {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, data.size());
+            int len = data ? strlen(data) : 0;
+            if (body_field || len > 0) {
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
+                curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, len);
             }
             if (curl_multi_add_handle(curlm, curl) == CURLM_OK) {
                 return true;
@@ -125,6 +123,13 @@ namespace lcurl {
         }
 
         int update(lua_State* L) {
+            int running_handles;
+            CURLMcode result = curl_multi_perform(curlm, &running_handles);
+            if (result != CURLM_OK && result != CURLM_CALL_MULTI_PERFORM) {
+                lua_pushboolean(L, false);
+                lua_pushstring(L, "curl_multi_perform failed");
+                return 2;
+            }
             int msgs_in_queue;
             CURLMsg* curlmsg = nullptr;
             luakit::kit_state kit_state(L);
@@ -132,16 +137,6 @@ namespace lcurl {
                 if (curlmsg->msg == CURLMSG_DONE){
                     kit_state.object_call(this, "on_respond", nullptr, tie(), curlmsg->easy_handle, curlmsg->data.result);
                     curl_multi_remove_handle(curlm, curlmsg->easy_handle);
-                }
-            }
-            while (true) {
-                int running_handles;
-                CURLMcode result = curl_multi_perform(curlm, &running_handles);
-                if (running_handles == 0) break;
-                if (result != CURLM_OK && result != CURLM_CALL_MULTI_PERFORM) {
-                    lua_pushboolean(L, false);
-                    lua_pushstring(L, "curl_multi_perform failed");
-                    return 2;
                 }
             }
             lua_pushboolean(L, true);

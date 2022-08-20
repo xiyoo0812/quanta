@@ -121,16 +121,16 @@ function MonitorMgr:call(token, rpc, ...)
     if not client then
         return {code = 1, msg = "node not connect!"}
     end
-    local ok, code, res = self.rpc_server:call(client, rpc, ...)
+    local ok, res = self.rpc_server:call(client, "on_remote_message", rpc, ...)
     if not ok then
         return {code = 1, msg = "call moniotor node failed!"}
     end
-    return {code = code, msg = res }
+    return res
 end
 
 --broadcast
 function MonitorMgr:broadcast(service_id, rpc, ...)
-    self.rpc_server:servicecast(service_id, rpc, ...)
+    self.rpc_server:servicecast(service_id, "on_remote_message", rpc, ...)
     return {code = 0, msg = "broadcast all nodes server!"}
 end
 

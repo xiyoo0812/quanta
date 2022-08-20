@@ -81,7 +81,7 @@ function MongoMgr:insert(db_name, coll_name, obj)
 end
 
 function MongoMgr:update(db_name, coll_name, obj, selector, upsert, multi)
-    log_debug("[MongoMgr][update]: %s, obj:%s", coll_name, obj)
+    log_debug("[MongoMgr][update]: %s, obj:%s, selector:%s", coll_name, obj, selector)
     local mongodb = self:get_db(db_name)
     if mongodb then
         local ok, res_oe = mongodb:update(coll_name, obj, selector, upsert, multi)

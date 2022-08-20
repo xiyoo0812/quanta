@@ -50,7 +50,6 @@ end
 --初始化路由
 local function init_router()
     import("kernel/router_mgr.lua")
-    import("driver/webhook.lua")
 end
 
 --初始化loop
@@ -77,10 +76,9 @@ function quanta.init()
         init_network()
     end
     if quanta.mode <= QuantaMode.ROUTER then
-        --加载monotor
+        --加载monitor
         if not environ.get("QUANTA_MONITOR_HOST") then
             import("agent/monitor_agent.lua")
-            import("kernel/netlog_mgr.lua")
         end
     end
     if quanta.mode == QuantaMode.SERVICE then

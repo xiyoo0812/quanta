@@ -26,6 +26,8 @@ namespace logger {
             "is_filter", &log_service::is_filter,
             "add_lvl_dest", &log_service::add_lvl_dest,
             "del_lvl_dest", &log_service::del_lvl_dest,
+            "set_max_line", &log_service::set_max_line,
+            "set_clean_time", &log_service::set_clean_time,
             "info", &log_service::output<log_level::LOG_LEVEL_INFO>,
             "warn", &log_service::output<log_level::LOG_LEVEL_WARN>,
             "dump", &log_service::output<log_level::LOG_LEVEL_DUMP>,

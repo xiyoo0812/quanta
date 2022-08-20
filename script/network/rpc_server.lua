@@ -94,7 +94,7 @@ function RpcServer:on_socket_accept(client)
     client.set_timeout(RPCLINK_TIMEOUT)
     self.clients[client.token] = client
     client.call_rpc = function(session_id, rpc_flag, rpc, ...)
-        local send_len = client.call(session_id, rpc_flag, lencode(quanta.id, rpc, ...))
+        local send_len = client.call(session_id, rpc_flag, lencode(0, rpc, ...))
         if send_len < 0 then
             event_mgr:notify_listener("on_rpc_send", rpc, send_len)
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)

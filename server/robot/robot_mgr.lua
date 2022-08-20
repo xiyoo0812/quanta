@@ -62,7 +62,7 @@ end
 
 -- setup
 function RobotMgr:create_robot(ip, port, conf, index)
-    log_debug("[RobotMgr][create_robot]: %d", index)
+    log_debug("[RobotMgr][create_robot]: %s:%s %s(%s)", ip, port, index, conf)
     local robot = Robot(conf, index)
     if conf.openid_type == RRANDOM then
         robot:set_open_id(guid_string())

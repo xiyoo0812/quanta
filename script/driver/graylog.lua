@@ -16,19 +16,23 @@ local http_client   = quanta.get("http_client")
 
 local Socket        = import("driver/socket.lua")
 
-local GrayLog = class()
+local GrayLog = singleton()
 local prop = property(GrayLog)
 prop:reader("ip", nil)          --地址
 prop:reader("tcp", nil)         --网络连接对象
 prop:reader("udp", nil)         --网络连接对象
 prop:reader("port", 12021)      --端口
 prop:reader("addr", nil)        --http addr
-prop:reader("proto", "http")    --proto
+prop:reader("proto", "http")       --proto
 prop:reader("host", nil)        --host
 
-function GrayLog:__init(addr)
-    self.host = environ.get("QUANTA_HOST_IP")
+function GrayLog:__init()
+    local addr = environ.get("QUANTA_GRAYLOG_ADDR")
+    if not addr then
+        return
+    end
     local ip, port, proto = protoaddr(addr)
+    self.host = environ.get("QUANTA_HOST_IP")
     self.proto = proto
     if proto == "http" then
         self.addr = sformat("http://%s:%s/gelf", ip, port)
@@ -45,9 +49,6 @@ function GrayLog:__init(addr)
     end
     self.udp = lkcp.udp()
     log_info("[GrayLog][setup] setup udp (%s:%s) success!", self.ip, self.port)
-end
-
-function GrayLog:http(ip, port)
 end
 
 function GrayLog:close()
@@ -88,12 +89,12 @@ function GrayLog:build(message, level, optional)
 end
 
 function GrayLog:write(message, level, optional)
+    if not self.proto then
+        return
+    end
     local gelf = self:build(message, level, optional)
-    if self.proto == "http" then
-        local ok, status, res = http_client:call_post(self.addr, gelf)
-        if not ok then
-            log_err("[GrayLog][write] post failed! code: %s, err: %s", status, res)
-        end
+    if self.proto == "http" and self.addr then
+        http_client:call_post(self.addr, gelf)
         return
     end
     if self.proto == "tcp" then
@@ -102,8 +103,12 @@ function GrayLog:write(message, level, optional)
         end
         return
     end
-    local udpmsg = json_encode(gelf)
-    self.udp:send(udpmsg, #udpmsg, self.ip, self.port)
+    if self.udp then
+        local udpmsg = json_encode(gelf)
+        self.udp:send(udpmsg, #udpmsg, self.ip, self.port)
+    end
 end
+
+quanta.graylog = GrayLog()
 
 return GrayLog

@@ -47,15 +47,15 @@ function UpdateMgr:update(now_ms, clock_ms)
             obj:on_frame(clock_ms, frame)
         end)
     end
+    quanta.frame = frame
+    quanta.now_ms = now_ms
+    quanta.clock_ms = clock_ms
     for _, handler in pairs(self.next_handlers) do
         thread_mgr:fork(function()
             handler(clock_ms)
         end)
     end
     self.next_handlers = {}
-    quanta.frame = frame
-    quanta.now_ms = now_ms
-    quanta.clock_ms = clock_ms
     --秒更新
     local now = now_ms // 1000
     if now == quanta.now then

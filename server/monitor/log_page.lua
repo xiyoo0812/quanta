@@ -24,23 +24,23 @@ return [[
     .logDumpContainer {
         float: left;
         border: 1px solid black;
-        height: 640px;
+        height: 800px;
         width: 30%;
-        margin-top:50px;
+        margin-top:30px;
         overflow: auto;
     }
     .logContainer {
         padding: 2px;
         border: 1px solid black;
-        margin-top:50px;
-        height: 640px;
+        margin-top:30px;
+        height: 800px;
         width: 70%;
         overflow: auto;
     }
     .historyMsg{
         top: 5px;
         border: 1px solid black;
-        height: 554px;
+        height: 730px;
         padding: 3px;
         overflow: auto;
     }
@@ -56,17 +56,17 @@ return [[
     }
     .control{
         border: 1px solid black;
-        height: 80px;
+        height: 60px;
     }
     .control-row{
-        margin-top: 20px;
+        margin-top: 10px;
     }
     .inputMsg{
-        height: 30px !important;
+        height: 40px !important;
         resize: none;
     }
     .logBtn{
-        height: 30px;
+        height: 40px;
     }
     footer{
         text-align: center;
@@ -185,7 +185,7 @@ return [[
                 contentType: "utf-8",
                 data: JSON.stringify({ 
                     token : node.token,
-                    rpc : "rpc_show_log",
+                    rpc : "rpc_remote_log",
                     data : {
                         filters : filters,
                         session_id : that.session_id

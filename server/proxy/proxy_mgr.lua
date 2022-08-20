@@ -1,7 +1,12 @@
 --proxy_mgr.lua
+import("driver/webhook.lua")
+import("driver/webhook.lua")
+import("driver/graylog.lua")
 import("network/http_client.lua")
-local log_err       = logger.err
 
+
+local webhook       = quanta.get("webhook")
+local graylog       = quanta.get("graylog")
 local event_mgr     = quanta.get("event_mgr")
 local http_client   = quanta.get("http_client")
 
@@ -9,46 +14,39 @@ local ProxyMgr = singleton()
 
 function ProxyMgr:__init()
     -- 注册事件
+    event_mgr:add_listener(self, "rpc_report_log")
+    -- 通用http请求
     event_mgr:add_listener(self, "rpc_http_post")
     event_mgr:add_listener(self, "rpc_http_get")
     event_mgr:add_listener(self, "rpc_http_put")
     event_mgr:add_listener(self, "rpc_http_del")
 end
 
+--日志上报
+function ProxyMgr:rpc_report_log(title, content, lvl)
+    webhook:notify(title, content, lvl)
+    graylog:write(content, lvl)
+end
+
+--通用http请求
 function ProxyMgr:rpc_http_get(url, querys, headers)
     local ok, status, res = http_client:call_get(url, querys, headers)
-    if not ok then
-        log_err("ProxyMgr:rpc_http_get ok=%s, status=%s", ok, status)
-        return 404
-    end
-    return status, res
+    return ok and status or 404, res
 end
 
 function ProxyMgr:rpc_http_post(url, post_data, headers, querys)
     local ok, status, res = http_client:call_post(url, post_data, headers, querys)
-    if not ok then
-        log_err("ProxyMgr:rpc_http_post ok=%s, status=%s", ok, status)
-        return 404
-    end
-    return status, res
+    return ok and status or 404, res
 end
 
 function ProxyMgr:rpc_http_put(url, put_data, headers, querys)
     local ok, status, res = http_client:call_put(url, put_data, headers, querys)
-    if not ok then
-        log_err("ProxyMgr:rpc_http_put ok=%s, status=%s", ok, status)
-        return 404
-    end
-    return status, res
+    return ok and status or 404, res
 end
 
 function ProxyMgr:rpc_http_del(url, querys, headers)
     local ok, status, res = http_client:call_del(url, querys, headers)
-    if not ok then
-        log_err("ProxyMgr:rpc_http_del ok=%s, status=%s", ok, status)
-        return 404
-    end
-    return status, res
+    return ok and status or 404, res
 end
 
 quanta.proxy_mgr = ProxyMgr()

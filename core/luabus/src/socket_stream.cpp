@@ -86,7 +86,7 @@ bool socket_stream::update(int64_t now) {
                 m_link_status = elink_status::link_closed;
             }
             return true;
-        } 
+        }
         case elink_status::link_init: {
             if (now > m_connecting_time) {
                 on_connect(false, "timeout");
@@ -466,7 +466,7 @@ void socket_stream::dispatch_package() {
     while (m_link_status == elink_status::link_connected) {
         size_t data_len = 0, package_size = 0;
         auto* data = m_recv_buffer->data(&data_len);
-		if (eproto_type::proto_rpc == m_proto_type) {
+        if (eproto_type::proto_rpc == m_proto_type) {
             size_t header_len = sizeof(router_header);
             auto data = m_recv_buffer->peek_data(header_len);
             if (!data) {
@@ -475,10 +475,10 @@ void socket_stream::dispatch_package() {
             router_header* header = (router_header*)data;
             // 当前包长小于headlen，当前包头标识的数据超过最大长度,关闭连接
             if (header->len < header_len || header->len > USHRT_MAX) {
-				on_error("package-length-err");
-				break;
-			}
-			package_size = header->len;
+                on_error("package-length-err");
+                break;
+            }
+            package_size = header->len;
         }
         else if (eproto_type::proto_pack == m_proto_type) {
             // pack模式获取socket_header
@@ -504,8 +504,8 @@ void socket_stream::dispatch_package() {
         }
 
         // 数据包还没有收完整
-		if (data_len < package_size) break;
-		m_package_cb(m_recv_buffer->get_slice(package_size));
+        if (data_len < package_size) break;
+        m_package_cb(m_recv_buffer->get_slice(package_size));
         // 接收缓冲读游标调整
         m_recv_buffer->pop_size(package_size);
         m_last_recv_time = ltimer::steady_ms();

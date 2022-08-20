@@ -5,22 +5,20 @@ local lstdfs        = require("lstdfs")
 
 local pcall         = pcall
 local pairs         = pairs
-local sformat       = string.format
-local dgetinfo      = debug.getinfo
 local tpack         = table.pack
 local tunpack       = table.unpack
-local fsstem        = lstdfs.stem
+local dgetinfo      = debug.getinfo
+local sformat       = string.format
 local serialize     = quanta.serialize
+local fsstem        = lstdfs.stem
 
 local LOG_LEVEL     = llog.LOG_LEVEL
 
-local webhook       = _ENV.webhook
-local monitor       = _ENV.monitor
-local graydriver    = _ENV.graydriver
-local driver        = quanta.get_logger()
-
 logger              = {}
-logfeature          = _ENV.logfeature or {}
+local driver        = quanta.get_logger()
+local monitors      = _ENV.monitors or {}
+local logfeature    = _ENV.logfeature or {}
+local dispatching   = false
 
 function logger.init()
     --配置日志信息
@@ -28,7 +26,8 @@ function logger.init()
     local path = environ.get("QUANTA_LOG_PATH", "./logs/")
     local rolltype = environ.number("QUANTA_LOG_ROLL", 0)
     local maxline = environ.number("QUANTA_LOG_LINE", 100000)
-    driver.option(path, service_name, index, rolltype, maxline);
+    driver.option(path, service_name, index, rolltype);
+    driver.set_max_line(maxline);
     --设置日志过滤
     logger.filter(environ.number("QUANTA_LOG_LVL"))
     --添加输出目标
@@ -36,12 +35,6 @@ function logger.init()
     driver.add_lvl_dest(LOG_LEVEL.ERROR)
     --设置daemon
     driver.daemon(environ.status("QUANTA_DAEMON"))
-    --graylog
-    local logaddr = environ.get("QUANTA_GRAYLOG_ADDR")
-    if logaddr then
-        local GrayLog = import("driver/graylog.lua")
-        graydriver = GrayLog(logaddr)
-    end
 end
 
 function logger.daemon(daemon)
@@ -58,12 +51,12 @@ function logger.feature(name)
     end
 end
 
-function logger.set_webhook(_webhook)
-    webhook = _webhook
+function logger.add_monitor(monitor)
+    monitors[monitor] = true
 end
 
-function logger.set_monitor(_monitor)
-    monitor = _monitor
+function logger.remove_monitor(monitor)
+    monitors[monitor] = nil
 end
 
 function logger.filter(level)
@@ -78,7 +71,7 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
         return false
     end
     local content
-    local lvl_func, extend, notify, swline, graylog = tunpack(log_conf)
+    local lvl_func, extend, swline = tunpack(log_conf)
     if extend then
         local args = tpack(...)
         for i, arg in pairs(args) do
@@ -90,25 +83,24 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
     else
         content = sformat(fmt, ...)
     end
-    if notify and webhook then
-        webhook:notify(lvl_name, content)
-    end
-    if monitor then
-        monitor:notify(lvl_name, content)
-    end
-    if graylog and graydriver then
-        graydriver:write(content, lvl)
+    if not dispatching then
+        --防止重入
+        dispatching = true
+        for monitor in pairs(monitors) do
+            monitor:dispatch_log(content, lvl_name, lvl)
+        end
+        dispatching = false
     end
     return lvl_func(content, feature)
 end
 
 local LOG_LEVEL_OPTIONS = {
-    [LOG_LEVEL.INFO]    = { "info",  { driver.info,  false, false, false, true } },
-    [LOG_LEVEL.WARN]    = { "warn",  { driver.warn,  true,  false, false, true } },
-    [LOG_LEVEL.DUMP]    = { "dump",  { driver.dump,  true,  false, true,  true } },
-    [LOG_LEVEL.DEBUG]   = { "debug", { driver.debug, true,  false, false, false} },
-    [LOG_LEVEL.ERROR]   = { "err",   { driver.error, true,  true,  false, true } },
-    [LOG_LEVEL.FATAL]   = { "fatal", { driver.fatal, true,  true,  false, true } }
+    [LOG_LEVEL.INFO]    = { "info",  { driver.info,  false, false } },
+    [LOG_LEVEL.WARN]    = { "warn",  { driver.warn,  true,  false } },
+    [LOG_LEVEL.DUMP]    = { "dump",  { driver.dump,  true,  true  } },
+    [LOG_LEVEL.DEBUG]   = { "debug", { driver.debug, true,  false } },
+    [LOG_LEVEL.ERROR]   = { "err",   { driver.error, true,  false } },
+    [LOG_LEVEL.FATAL]   = { "fatal", { driver.fatal, true,  false } }
 }
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
