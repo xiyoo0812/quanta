@@ -14,7 +14,7 @@ local log_debug     = logger.debug
 local tunpack       = table.unpack
 local signalquit    = signal.quit
 local json_encode   = ljson.encode
-local saddr         = string_ext.addr
+local saddr         = qstring.addr
 
 local thread_mgr    = quanta.get("thread_mgr")
 

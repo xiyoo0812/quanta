@@ -4,11 +4,15 @@ local lcrypt        = require("lcrypt")
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
+local signalquit        = signal.quit
+local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
 local env_number        = environ.number
-local signalquit        = signal.quit
-local qeval             = quanta.eval
+local b64_encode        = lcrypt.b64_encode
+local b64_decode        = lcrypt.b64_decode
+local lz4_encode        = lcrypt.lz4_encode
+local lz4_decode        = lcrypt.lz4_decode
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -37,11 +41,11 @@ prop:reader("session_type", "default")  --会话类型
 prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
 prop:reader("command_cds", {})          --CMD定制CD
-prop:accessor("decoder", nil)           --解码函数
-prop:accessor("encoder", nil)           --编码函数
+prop:accessor("codec", nil)             --编解码器
 
 function NetServer:__init(session_type)
     self.session_type = session_type
+    self.codec =  protobuf_mgr
 end
 
 --induce：根据index推导port
@@ -98,17 +102,22 @@ function NetServer:on_socket_accept(session)
 end
 
 function NetServer:write(session, cmd_id, data, session_id, flag)
-    local body, pflag = self:encode(cmd_id, data, flag)
+    local msg_id, msg_name = self.codec:location(cmd_id)
+    if not msg_id or not msg_name then
+        log_err("[NetServer][write] find proto failed! cmd_id:%s", cmd_id)
+        return
+    end
+    local body, pflag = self:encode(msg_name, data, flag)
     if not body then
         log_err("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd_id, data)
         return false
     end
     session.serial = session.serial + 1
-    -- call lbus
     if session_id > 0 then
         session_id = session_id & 0xffff
     end
-    local send_len = session.call_pack(cmd_id, pflag, 0, session_id, body, #body)
+    -- call lbus
+    local send_len = session.call_pack(msg_id, pflag, 0, session_id, body, #body)
     if send_len > 0 then
         event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         return true
@@ -119,13 +128,18 @@ end
 
 -- 广播数据
 function NetServer:broadcast(cmd_id, data)
-    local body, pflag = self:encode(cmd_id, data, FLAG_REQ)
+    local msg_id, msg_name = self.codec:location(cmd_id)
+    if not msg_id or not msg_name then
+        log_err("[NetServer][broadcast] find proto failed! cmd_id:%s", cmd_id)
+        return
+    end
+    local body, pflag = self:encode(msg_name, data, FLAG_REQ)
     if not body then
         log_err("[NetServer][broadcast] encode failed! cmd_id:%s-(%s)", cmd_id, data)
         return false
     end
     for _, session in pairs(self.sessions) do
-        local send_len = session.call_pack(cmd_id, pflag, 0, 0, body, #body)
+        local send_len = session.call_pack(msg_id, pflag, 0, 0, body, #body)
         if send_len > 0 then
             event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         end
@@ -156,21 +170,19 @@ function NetServer:callback_errcode(session, cmd_id, code, session_id)
     return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
 end
 
-function NetServer:encode(cmd_id, data, flag)
-    local encode_data
-    if self.encoder then
-        encode_data = self.encoder(cmd_id, data)
-    else
-        encode_data = protobuf_mgr:encode(cmd_id, data)
+function NetServer:encode(msg_name, data, flag)
+    local encode_data = self.codec:encode(msg_name, data)
+    if not encode_data then
+        return encode_data
     end
     -- 加密处理
     if out_encrypt then
-        encode_data = lcrypt.b64_encode(encode_data)
+        encode_data = b64_encode(encode_data)
         flag = flag | FLAG_ENCRYPT
     end
     -- 压缩处理
     if out_press then
-        encode_data = lcrypt.lz4_encode(encode_data)
+        encode_data = lz4_encode(encode_data)
         flag = flag | FLAG_ZIP
     end
     return encode_data, flag
@@ -180,17 +192,13 @@ function NetServer:decode(cmd_id, slice, flag)
     local de_data = slice.string()
     if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
-        de_data = lcrypt.lz4_decode(de_data)
+        de_data = lz4_decode(de_data)
     end
     if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
         --解密处理
-        de_data = lcrypt.b64_decode(de_data)
+        de_data = b64_decode(de_data)
     end
-    if self.decoder then
-        return self.decoder(cmd_id, de_data)
-    else
-        return protobuf_mgr:decode(cmd_id, de_data)
-    end
+    return self.codec:decode(cmd_id, de_data)
 end
 
 -- 配置指定cmd的cd

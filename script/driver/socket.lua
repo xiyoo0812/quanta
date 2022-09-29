@@ -76,6 +76,10 @@ function Socket:connect(ip, port)
     session.on_connect = function(res)
         local success = res == "ok"
         self.alive = success
+        if not success then
+            self.token = nil
+            self.session = nil
+        end
         self.alive_time = quanta.now
         thread_mgr:response(block_id, success, res)
     end

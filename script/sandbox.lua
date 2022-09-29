@@ -89,12 +89,20 @@ end
 function quanta.reload()
     for _, node in pairs(load_files) do
         if node.time then
-            local filetime = file_time(node.fullpath)
+            local filetime, err = file_time(node.fullpath)
+            if filetime == 0 then
+                logger.error(sformat("[quanta][reload] %s get_time failed(%s)", node.fullpath, err))
+                return
+            end
             if mabs(node.time - filetime) > 1 then
                 try_load(node)
             end
         end
     end
+end
+
+function quanta.load(name)
+    return quanta[name]
 end
 
 function quanta.get(name)

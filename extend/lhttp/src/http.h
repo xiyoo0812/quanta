@@ -121,7 +121,7 @@ namespace lhttp {
             } else {
                 url = str;
             }
-            if (url.back() == '/') {
+            if (url.size() > 1 && url.back() == '/') {
                 url.pop_back();
             }
         }

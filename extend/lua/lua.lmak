@@ -7,6 +7,9 @@ TARGET_NAME = "lua"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "exe"
 
+--是否启用mimalloc库
+MIMALLOC = false
+
 --需要的include目录
 INCLUDES = {
 	"./lua"

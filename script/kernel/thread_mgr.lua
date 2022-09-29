@@ -6,8 +6,8 @@ local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running
-local mrandom       = math_ext.random
-local tsize         = table_ext.size
+local mrandom       = qmath.random
+local tsize         = qtable.size
 local qxpcall       = quanta.xpcall
 local log_err       = logger.err
 

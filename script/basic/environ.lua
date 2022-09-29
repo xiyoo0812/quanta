@@ -2,9 +2,9 @@
 local tonumber  = tonumber
 local qgetenv   = quanta.getenv
 local tunpack   = table.unpack
-local saddr     = string_ext.addr
-local ssplit    = string_ext.split
-local protoaddr = string_ext.protoaddr
+local saddr     = qstring.addr
+local ssplit    = qstring.split
+local protoaddr = qstring.protoaddr
 
 environ = {}
 

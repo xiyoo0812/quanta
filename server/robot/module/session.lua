@@ -3,6 +3,9 @@ local log_warn      = logger.warn
 local log_debug     = logger.debug
 local tunpack       = table.unpack
 
+local event_mgr     = quanta.get("event_mgr")
+local protobuf_mgr  = quanta.get("protobuf_mgr")
+
 local NetClient     = import("network/net_client.lua")
 
 local SessionModule = mixin()
@@ -11,6 +14,12 @@ prop:reader("client", nil)
 prop:reader("cmd_doers", {})
 
 function SessionModule:__init()
+end
+
+function SessionModule:disconnect()
+    if self.client then
+        self.client:close()
+    end
 end
 
 function SessionModule:connect(ip, port, block)
@@ -39,12 +48,14 @@ function SessionModule:on_socket_rpc(client, cmd_id, body)
         log_warn("[SessionModule][on_socket_rpc] cmd %s hasn't register doer!, msg=%s", cmd_id, body)
         return
     end
+    event_mgr:notify_listener("on_server_message", cmd_id, body)
     local module, handler = tunpack(doer)
     module[handler](self, body)
 end
 
 -- 注册NTF消息处理
-function SessionModule:register_doer(cmdid, module, handler)
+function SessionModule:register_doer(pb_name, module, handler)
+    local cmdid = protobuf_mgr:enum("NCmdId", pb_name)
     self.cmd_doers[cmdid] = { module, handler }
 end
 

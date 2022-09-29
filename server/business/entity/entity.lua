@@ -18,8 +18,8 @@ function Entity:__init(id)
 end
 
 -- 初始化
-function Entity:setup()
-    if not self:load() then
+function Entity:setup(conf)
+    if not self:load(conf) then
         log_warn("[Entity][setup] entity %s load faild!", self.id)
         return false
     end
@@ -28,12 +28,11 @@ function Entity:setup()
         log_warn("[Entity][setup] entity %s setup faild!", self.id)
         return setup_ok
     end
-    log_info("[Entity][setup] entity %s setup success!", self.id)
     return setup_ok
 end
 
 --load
-function Entity:load()
+function Entity:load(conf)
     return true
 end
 

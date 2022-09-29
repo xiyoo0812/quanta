@@ -5,11 +5,12 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
 local tpack         = table.pack
+local tinsert       = table.insert
 local smatch        = string.match
 local sgmatch       = string.gmatch
 local sformat       = string.format
-local conv_number   = math_ext.conv_number
-local conv_integer  = math_ext.conv_integer
+local conv_number   = qmath.conv_number
+local conv_integer  = qmath.conv_integer
 
 --空白模式定义
 local blank = "[%s]+"
@@ -53,8 +54,8 @@ local function convert_args(args, cmd_define)
     local fmtargs, fmtinfos = { args[1] }, { "cmd" }
     for i = 2, #args do
         local def_arg = define_args[i - 1]
-        fmtinfos[#fmtinfos + 1] = def_arg.name
-        fmtargs[#fmtargs + 1] = convert_arg(def_arg.type, args[i])
+        tinsert(fmtinfos, def_arg.name)
+        tinsert(fmtargs, convert_arg(def_arg.type, args[i]))
     end
     return {
         args = fmtargs,
@@ -67,9 +68,26 @@ end
 
 local Cmdline = singleton()
 local prop = property(Cmdline)
-prop:reader("command_defines", {})
+prop:reader("commands", {})
+prop:reader("displays", {})
 
 function Cmdline:__init()
+end
+
+--find_group
+function Cmdline:find_group(group)
+    local nodes = self.displays
+    if group then
+        for _, node in pairs(nodes) do
+            if node.text == group then
+                return node.nodes
+            end
+        end
+        local gnode = { text = group, nodes = {} }
+        tinsert(nodes, gnode)
+        return gnode.nodes
+    end
+    return nodes
 end
 
 --选项解析器
@@ -77,18 +95,21 @@ end
 --command : command command定义
 --command 示例
 --command = "player_id|integer aa|table bb|string dd|number"
-function Cmdline:register_command(name, command, desc, cmd_type, service)
-    if self.command_defines[name] then
+function Cmdline:register_command(name, command, desc, cmd_type, group, service)
+    if self.commands[name] then
         log_warn("[Cmdline][register_command] command (%s) repeat registered!", name)
         return false
     end
     local def_args = {}
     local cmd_define = {type = cmd_type, desc = desc, command = command, service = service }
     for arg_name, arg_type in sgmatch(command, "([%a%d%_]+)|([%a%d%_]+)") do
-        def_args[#def_args + 1] = {name = arg_name, type = arg_type}
+        tinsert(def_args, {name = arg_name, type = arg_type})
     end
     cmd_define.args = def_args
-    self.command_defines[name] = cmd_define
+    self.commands[name] = cmd_define
+    --组织显示结构
+    local nodes = self:find_group(group)
+    tinsert(nodes, { text = desc, name = name, command = command, tag = "gm" })
     log_info("[Cmdline][register_command] command (%s) registered!", name)
     return true
 end
@@ -98,7 +119,7 @@ end
 --cmd_data : table参数
 function Cmdline:parser_data(cmd_data)
     local cmd_name = cmd_data.name
-    local cmd_define = self.command_defines[cmd_name]
+    local cmd_define = self.commands[cmd_name]
     if not cmd_define then
         log_err("[Cmdline][parser_data] invalid command (%s): isn't registered!", cmd_name)
         return nil, "invalid command: isn't registered"
@@ -112,8 +133,8 @@ function Cmdline:parser_data(cmd_data)
             log_err("[Cmdline][parser_data] (%s) %s!", cmd_name, err)
             return nil, err
         end
-        fmtinfos[#fmtinfos + 1] = def_arg.name
-        fmtargs[#fmtargs + 1] = convert_arg(def_arg.type, arg)
+        tinsert(fmtinfos, def_arg.name)
+        tinsert(fmtargs, convert_arg(def_arg.type, arg))
     end
     return {
         args = fmtargs,
@@ -134,7 +155,7 @@ function Cmdline:parser_command(argument)
         log_err("[Cmdline][parser_command] invalid command (%s): name parse error!", argument)
         return nil, "invalid command: name parse error"
     end
-    local cmd_define = self.command_defines[cmd_name]
+    local cmd_define = self.commands[cmd_name]
     if not cmd_define then
         log_err("[Cmdline][parser_command] invalid command (%s): isn't registered!", argument)
         return nil, "invalid command: isn't registered"

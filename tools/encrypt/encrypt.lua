@@ -26,7 +26,7 @@ local function encrypt(lua_dir, encrypt_dir)
         if lextension(fname) ~= ".lua" then
             goto continue
         end
-        local luac = lappend(lcurdir(), "../bin/luac")
+        local luac = lappend(lcurdir(), "luac")
         local outfile = lappend(encrypt_dir, fname)
         local luacmd = sformat("%s -o %s %s", luac, outfile, fullname)
         oexec(luacmd)

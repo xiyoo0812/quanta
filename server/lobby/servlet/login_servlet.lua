@@ -3,6 +3,7 @@ import("agent/online_agent.lua")
 
 local log_err           = logger.err
 local log_info          = logger.info
+local log_warn          = logger.warn
 local log_debug         = logger.debug
 local tunpack           = table.unpack
 local qfailed           = quanta.failed
@@ -43,7 +44,7 @@ end
 function LoginServlet:rpc_player_disconnect(player_id)
     local player = player_mgr:get_entity(player_id)
     if player then
-        log_err("[LoginServlet][rpc_player_disconnect] player(%s) offline", player_id)
+        log_warn("[LoginServlet][rpc_player_disconnect] player(%s) offline", player_id)
         player:offline()
     end
 end
@@ -63,7 +64,7 @@ function LoginServlet:rpc_player_command(player_id, cmd_id, message)
 end
 
 function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
-    log_debug("[LoginServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login start!", user_id, player_id, token, gateway)
+    log_debug("[LoginServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login req!", user_id, player_id, token, gateway)
     local ok, adata = login_dao:load_account_status(user_id)
     if not ok then
         return FRAME_FAILED
@@ -89,15 +90,13 @@ function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
         return FRAME_FAILED
     end
     --通知登陆成功
-    update_mgr:attach_next(self, function()
-        event_mgr:notify_trigger("on_login_success", player, player_id)
-    end)
+    update_mgr:attach_event(player_id, "on_login_success", player)
     log_info("[LoginServlet][rpc_player_login] player(%s) login success!", player_id)
     return FRAME_SUCCESS, passkey
 end
 
 function LoginServlet:rpc_player_logout(player_id)
-    log_debug("[LoginServlet][rpc_player_logout] player(%s) logout start!", player_id)
+    log_debug("[LoginServlet][rpc_player_logout] player(%s) logout req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
         return ROLE_NOT_EXIST
@@ -110,7 +109,7 @@ function LoginServlet:rpc_player_logout(player_id)
 end
 
 function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token)
-    log_debug("[LoginServlet][rpc_player_reload] user(%s) player(%s) reload start!", user_id, player_id)
+    log_debug("[LoginServlet][rpc_player_reload] user(%s) player(%s) reload req!", user_id, player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
         return ROLE_NOT_EXIST

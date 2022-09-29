@@ -10,8 +10,10 @@ end
 
 --加载配置表并生成枚举
 function ConfigMgr:init_enum_table(name, ename, main_key, ...)
-    local conf_tab = self:init_table(name, main_key, ...)
-    if conf_tab then
+    local conf_tab = self.table_list[name]
+    if not conf_tab then
+        conf_tab = self:create_table(name)
+        conf_tab:setup(name, main_key, ...)
         local enum_obj = enum(ename, 0)
         for _, conf in conf_tab:iterator() do
             enum_obj[conf["enum_key"]] = conf[main_key]
@@ -20,14 +22,30 @@ function ConfigMgr:init_enum_table(name, ename, main_key, ...)
     return conf_tab
 end
 
+--加载配置表并分组
+function ConfigMgr:init_group_table(name, ...)
+    local conf_tab = self.table_list[name]
+    if not conf_tab then
+        conf_tab = self:create_table(name)
+        conf_tab:set_groups({})
+        conf_tab:setup(name, ...)
+    end
+    return conf_tab
+end
+
 -- 初始化配置表
 function ConfigMgr:init_table(name, ...)
     local conf_tab = self.table_list[name]
     if not conf_tab then
-        conf_tab = ConfigTable()
-        self.table_list[name] = conf_tab
+        conf_tab = self:create_table(name)
         conf_tab:setup(name, ...)
     end
+    return conf_tab
+end
+
+function ConfigMgr:create_table(name)
+    local conf_tab = ConfigTable()
+    self.table_list[name] = conf_tab
     return conf_tab
 end
 
@@ -46,6 +64,30 @@ function ConfigMgr:find_one(name, ...)
     local conf_tab = self.table_list[name]
     if conf_tab then
         return conf_tab:find_one(...)
+    end
+end
+
+-- 获取配置表一条记录的key值
+function ConfigMgr:find_value(name, key, ...)
+    local conf_tab = self.table_list[name]
+    if conf_tab then
+        return conf_tab:find_value(key, ...)
+    end
+end
+
+-- 获取配置表一条记录的key值
+function ConfigMgr:find_number(name, key, ...)
+    local conf_tab = self.table_list[name]
+    if conf_tab then
+        return conf_tab:find_number(key, ...)
+    end
+end
+
+-- 获取配置表一条记录的key值
+function ConfigMgr:find_integer(name, key, ...)
+    local conf_tab = self.table_list[name]
+    if conf_tab then
+        return conf_tab:find_integer(key, ...)
     end
 end
 

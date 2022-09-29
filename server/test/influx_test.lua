@@ -5,7 +5,7 @@ local log_debug = logger.debug
 
 local timer_mgr = quanta.get("timer_mgr")
 
-local ip = "9.134.163.87"
+local ip = "10.96.8.100"
 local port = 8086
 local org = "xiyoo0812"
 local bucket = "testdb"

@@ -43,7 +43,6 @@ function Nacos:__init()
         self.enable = true
         self.namespace = namespace
         self.cluster = quanta.cluster
-        self.host = environ.get("QUANTA_HOST_IP")
         self.config_url = sformat("http://%s:%s/nacos/v1/cs/configs", ip, port)
         self.service_url = sformat("http://%s:%s/nacos/v1/ns/service", ip, port)
         self.instance_url = sformat("http://%s:%s/nacos/v1/ns/instance", ip, port)
@@ -227,6 +226,7 @@ end
 
 -- 查询实例详情
 --ip            string/服务实例IP/必选
+--host          string/服务实例host/必选
 --port          int/服务实例port/必选
 --serviceName   string/服务名/必选
 --namespaceId   string/命名空间ID
@@ -234,13 +234,13 @@ end
 --groupName     string/分组名
 --healthyOnly   boolean/是否只返回健康实例
 --ephemeral     boolean/是否临时实例
-function Nacos:query_instance(service_name, port, group_name)
+function Nacos:query_instance(service_name, host, port, group_name)
     local query = {
         cluster = self.cluster,
         namespaceId = self.namespace,
         serviceName = service_name,
         groupName = group_name or "",
-        ip = self.host, port = port
+        ip = host, port = port
     }
     local ok, status, res = http_client:call_get(self.instance_url, query)
     if not ok or status ~= 200 then
@@ -252,6 +252,7 @@ end
 
 --注册实例
 --ip            string/服务实例IP/必选
+--host          string/服务实例host/必选
 --port          int/服务实例port/必选
 --namespaceId   string/命名空间ID
 --weight        double/权重
@@ -262,14 +263,14 @@ end
 --serviceName   string/服务名/必选
 --groupName     string/分组名
 --ephemeral     boolean/是否临时实例
-function Nacos:regi_instance(service_name, port, group_name, metadata)
+function Nacos:regi_instance(service_name, host, port, group_name, metadata)
     local query = {
         weight = 1,
+        ip = host, port = port,
         serviceName = service_name,
         clusterName = self.cluster,
         namespaceId = self.namespace,
         groupName = group_name or "",
-        ip = self.host, port = port,
         ephemeral = false, enabled = false, healthy = true
     }
     if metadata then
@@ -286,11 +287,13 @@ end
 --发送实例心跳
 --serviceName   string/服务名
 --groupName     string/分组名
+--host          string/服务实例host/必选
+--port          int/服务实例port/必选
 --beat          JSON格式字符串/实例心跳内容
 --beat          {serviceName:x, cluster:x,ip:x,port:x}
-function Nacos:sent_beat(service_name, port, group_name)
+function Nacos:sent_beat(service_name, host, port, group_name)
     local beat_info = {
-        ip = self.host, port = port,
+        ip = host, port = port,
         serviceName = service_name,
         groupName = group_name
     }
@@ -310,6 +313,7 @@ end
 
 --修改实例
 --ip            string/服务实例IP/必选
+--host          string/服务实例host/必选
 --port          int/服务实例port/必选
 --namespaceId   string/命名空间ID
 --weight        double/权重
@@ -320,11 +324,11 @@ end
 --serviceName   string/服务名/必选
 --groupName     string/分组名
 --ephemeral     boolean/是否临时实例
-function Nacos:modify_instance(service_name, port, group_name)
+function Nacos:modify_instance(service_name, host, port, group_name)
     local query = {
+        ip = host, port = port,
         clusterName = self.cluster,
         namespaceId = self.namespace,
-        ip = self.host, port = port,
         serviceName = service_name,
         groupName = group_name or "",
     }
@@ -337,11 +341,11 @@ function Nacos:modify_instance(service_name, port, group_name)
 end
 
 --删除实例
-function Nacos:del_instance(service_name, port, group_name)
+function Nacos:del_instance(service_name, host, port, group_name)
     local query = {
+        ip = host, port = port,
         clusterName = self.cluster,
         namespaceId = self.namespace,
-        ip = self.host, port = port,
         serviceName = service_name,
         groupName = group_name or "",
     }

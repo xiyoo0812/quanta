@@ -6,8 +6,8 @@ local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
 local utility_db    = config_mgr:init_table("utility", "key")
-local DAY_FLUSH     = utility_db:find_value("value", "flush_day_hour")
-local WEEK_FLUSH    = utility_db:find_value("value", "flush_week_day")
+local DAY_FLUSH     = utility_db:find_integer("value", "flush_day_hour")
+local WEEK_FLUSH    = utility_db:find_integer("value", "flush_week_day")
 
 local EntityMgr     = import("business/entity/entity_mgr.lua")
 

@@ -1,6 +1,5 @@
 --proxy_mgr.lua
 import("driver/webhook.lua")
-import("driver/webhook.lua")
 import("driver/graylog.lua")
 import("network/http_client.lua")
 

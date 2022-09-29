@@ -140,25 +140,25 @@ local function tmap(src)
     return dst
 end
 
-local function tmapsort(src)
+local function tmapsort(src, func)
     local dst = tkvarray(src)
-    tsort(dst, function(a, b) return a[1] < b[1] end)
+    tsort(dst, func or function(a, b) return a[1] < b[1] end)
     return dst
 end
 
-table_ext               = _ENV.table_ext or {}
-table_ext.random        = trandom
-table_ext.random_array  = trandom_array
-table_ext.indexof       = tindexof
-table_ext.is_array      = tis_array
-table_ext.size          = tsize
-table_ext.copy          = tcopy
-table_ext.deep_copy     = tdeep_copy
-table_ext.delete        = tdelete
-table_ext.join          = tjoin
-table_ext.map           = tmap
-table_ext.diff          = tdiff
-table_ext.array         = tarray
-table_ext.kvarray       = tkvarray
-table_ext.mapsort       = tmapsort
+qtable               = _ENV.qtable or {}
+qtable.random        = trandom
+qtable.random_array  = trandom_array
+qtable.indexof       = tindexof
+qtable.is_array      = tis_array
+qtable.size          = tsize
+qtable.copy          = tcopy
+qtable.deep_copy     = tdeep_copy
+qtable.delete        = tdelete
+qtable.join          = tjoin
+qtable.map           = tmap
+qtable.diff          = tdiff
+qtable.array         = tarray
+qtable.kvarray       = tkvarray
+qtable.mapsort       = tmapsort
 

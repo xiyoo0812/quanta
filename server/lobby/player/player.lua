@@ -1,13 +1,12 @@
 --player.lua
 local log_warn      = logger.warn
-local mrandom       = math_ext.random
+local mrandom       = qmath.random
 
 local online        = quanta.get("online")
 local login_dao     = quanta.get("login_dao")
 local router_mgr    = quanta.get("router_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
-local NETTIMEOUT    = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local OFFTIMEOUT    = quanta.enum("NetwkTime", "OFFLINE_TIMEOUT")
 local SECOND_5_MS   = quanta.enum("PeriodTime", "SECOND_5_MS")
 
@@ -44,8 +43,13 @@ function Player:add_passkey(key, id)
     self.passkey[key] = id
 end
 
+--添加钥匙
+function Player:find_passkey(key)
+    return self.passkey[key]
+end
+
 --load
-function Player:load()
+function Player:load(conf)
     self:init_attrset(attr_db)
     self.active_time = quanta.now_ms
     local ok, data = login_dao:load_player(self.id)
@@ -55,6 +59,7 @@ function Player:load()
         self.model = data.model
         self.user_id = data.user_id
         self.login_time = data.login_time
+        self:set_relayable(true)
         self:update_token()
     end
     return ok
@@ -106,11 +111,6 @@ function Player:check(now)
         end
         return false
     end
-    --掉线检查
-    if now_ms - self.active_time > NETTIMEOUT then
-        self:offline()
-        return false
-    end
     return true
 end
 
@@ -128,7 +128,6 @@ function Player:online()
         return call_ok
     end
     self.release = false
-    self.attr_sync = true
     self.load_success = true
     self.status = ONL_INLINE
     self.login_time = quanta.now
@@ -140,7 +139,6 @@ end
 --掉线
 function Player:offline()
     self.gateway = nil
-    self.attr_sync = false
     self.status = ONL_OFFLINE
     self.active_time = quanta.now_ms
     online:logout_player(self.id)

@@ -9,6 +9,7 @@ local ldecode           = quanta.decode
 local qeval             = quanta.eval
 
 local event_mgr         = quanta.get("event_mgr")
+local update_mgr        = quanta.get("update_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
@@ -31,6 +32,26 @@ function RpcClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
     self.holder = holder
+    update_mgr:attach_second5(self)
+    update_mgr:attach_next(self, function()
+        self:on_second5()
+    end)
+end
+
+function RpcClient:on_second5()
+    if self.alive then
+        self:heartbeat()
+        return
+    end
+    self:connect()
+end
+
+--发送心跳
+function RpcClient:heartbeat(initial)
+    if initial then
+        return self:send("rpc_heartbeat", quanta.node_info)
+    end
+    self:send("rpc_heartbeat")
 end
 
 --调用rpc后续处理
@@ -41,24 +62,6 @@ function RpcClient:on_call_router(rpc, send_len)
     end
     log_err("[RpcClient][on_call_router] rpc %s call failed! code:%s", rpc, send_len)
     return false
-end
-
---检测存活
-function RpcClient:check_lost(now)
-    --log_err("[RpcClient][check_lost] time(%s-%s-%s)!", self.port, self.alive_time, now)
-    if now - self.alive_time > RPCLINK_TIMEOUT / 1000 then
-        log_err("[RpcClient][check_lost] connect lost")
-        self:close()
-        return true
-    end
-end
-
---发送心跳
-function RpcClient:heartbeat(initial)
-    if initial then
-        return self:send("rpc_heartbeat", quanta.node_info)
-    end
-    self:send("rpc_heartbeat")
 end
 
 --连接服务器
@@ -125,6 +128,7 @@ function RpcClient:connect()
             self:on_socket_error(socket.token, res)
         end
     end
+    socket.set_timeout(RPCLINK_TIMEOUT)
     self.socket = socket
 end
 
@@ -165,6 +169,9 @@ function RpcClient:on_socket_error(token, err)
         self.alive = false
         self.holder:on_socket_error(self, token, err)
         log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
+        update_mgr:attach_next(self, function()
+            self:on_second5()
+        end)
     end)
 end
 

@@ -9,6 +9,7 @@ local database = config_mgr:get_table("database")
 database:upsert({
     cluster = 'publish',
     driver = 'mongo',
+    id = 1,
     db = 'quanta',
     default = true,
     host = '127.0.0.1',
@@ -20,7 +21,8 @@ database:upsert({
 database:upsert({
     cluster = 'publish',
     driver = 'mongo',
-    db = 'quanta_rmsg',
+    id = 2,
+    db = 'quanta_msg',
     default = false,
     host = '127.0.0.1',
     user = 'root',
@@ -31,6 +33,7 @@ database:upsert({
 database:upsert({
     cluster = 'develop',
     driver = 'mongo',
+    id = 1,
     db = 'quanta',
     default = true,
     host = '127.0.0.1',
@@ -42,7 +45,8 @@ database:upsert({
 database:upsert({
     cluster = 'develop',
     driver = 'mongo',
-    db = 'quanta_rmsg',
+    id = 2,
+    db = 'quanta_msg',
     default = false,
     host = '127.0.0.1',
     user = 'root',
@@ -53,6 +57,7 @@ database:upsert({
 database:upsert({
     cluster = 'local',
     driver = 'mongo',
+    id = 1,
     db = 'quanta',
     default = true,
     host = '127.0.0.1',
@@ -64,7 +69,8 @@ database:upsert({
 database:upsert({
     cluster = 'local',
     driver = 'mongo',
-    db = 'quanta_rmsg',
+    id = 2,
+    db = 'quanta_msg',
     default = false,
     host = '127.0.0.1',
     user = 'root',
@@ -75,6 +81,7 @@ database:upsert({
 database:upsert({
     cluster = 'local',
     driver = 'mysql',
+    id = 3,
     db = 'quanta',
     default = true,
     host = '127.0.0.1',
@@ -86,6 +93,7 @@ database:upsert({
 database:upsert({
     cluster = 'local',
     driver = 'redis',
+    id = 4,
     db = '0',
     default = true,
     host = '127.0.0.1',
@@ -95,4 +103,4 @@ database:upsert({
 })
 
 --general md5 version
-database:set_version('975c5e73e34f4a5d95d0bb71ddfa33be')
+database:set_version('9cabf6f3680d9068e99ccc51f4c368fc')

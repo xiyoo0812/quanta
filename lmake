@@ -5,6 +5,3 @@ SOLUTION = "quanta"
 
 --lmake目录
 LMAKE_DIR = "extend/lmake"
-
---mimalloc
-USE_MIMALLOC = true

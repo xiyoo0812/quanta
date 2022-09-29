@@ -2,13 +2,13 @@
 local log_err       = logger.err
 local log_info      = logger.info
 local signalquit    = signal.quit
-local env_get       = environ.get
 local sformat       = string.format
 local lencode       = quanta.encode
 local qhash_code    = quanta.hash_code
 
 local socket_mgr    = quanta.get("socket_mgr")
 local config_mgr    = quanta.get("config_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
 local RpcServer     = import("network/rpc_server.lua")
 
@@ -22,7 +22,7 @@ prop:accessor("rpc_server", nil)
 prop:accessor("service_masters", {})
 
 function RouterServer:__init()
-    local host = env_get("QUANTA_HOST_IP")
+    local host = quanta.host
     local router = config_mgr:init_table("router", "host")
     local config = router:find_one(host)
     if not config then
@@ -55,13 +55,17 @@ end
 function RouterServer:on_client_accept(client)
     log_info("[RouterServer][on_client_accept] new connection, token=%s", client.token)
     client.on_forward_error = function(session_id)
-        log_err("[RouterServer][on_client_accept] on_forward_error, session_id=%s", session_id)
-        local slice = lencode(false, UNREACHABLE, "router con't find target!")
-        client.call(session_id, FLAG_RES, slice)
+        thread_mgr:fork(function()
+            log_err("[RouterServer][on_client_accept] on_forward_error, session_id=%s", session_id)
+            local slice = lencode(false, UNREACHABLE, "router con't find target!")
+            client.call(session_id, FLAG_RES, slice)
+        end)
     end
     client.on_forward_broadcast = function(session_id, broadcast_num)
-        local slice = lencode(true, SUCCESS, broadcast_num)
-        client.call(session_id, FLAG_RES, slice)
+        thread_mgr:fork(function()
+            local slice = lencode(true, SUCCESS, broadcast_num)
+            client.call(session_id, FLAG_RES, slice)
+        end)
     end
 end
 

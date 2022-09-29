@@ -632,7 +632,9 @@ function MysqlDB:close()
 end
 
 function MysqlDB:on_hour()
-    self:ping()
+    if self.sock:is_alive() then
+        self:ping()
+    end
 end
 
 function MysqlDB:on_second()
@@ -688,7 +690,10 @@ function MysqlDB:auth()
     end
     --1 byte 挑战数结束(服务器认证报文结束)(skip)
     --n byte plugin
-    local plugin =  _from_cstring(packet, pos + 13)
+    local plugin = "mysql_native_password"
+    if #packet > pos + 12 then
+        plugin =  _from_cstring(packet, pos + 13)
+    end
     --客户端认证报文
     --2 byte 客户端权能标志
     --2 byte 客户端权能标志扩展

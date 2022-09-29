@@ -9,13 +9,14 @@ local MYSQL_FAILED  = quanta.enum("KernCode", "MYSQL_FAILED")
 
 local ClickHouseMgr = singleton()
 local prop = property(ClickHouseMgr)
-prop:accessor("clickhouse_dbs", {})     -- clickhouse_dbs
-prop:accessor("default_db", nil)        -- default_db
+prop:reader("clickhouse_dbs", {})   -- clickhouse_dbs
+prop:reader("default_db", nil)      -- default_db
+prop:reader("default_id", nil)      -- default_id
 
 function ClickHouseMgr:__init()
     self:setup()
     -- 注册事件
-    event_mgr:add_listener(self, "clickhouse_execute", "execute")
+    event_mgr:add_listener(self, "rpc_clickhouse_execute", "execute")
 end
 
 --初始化
@@ -25,24 +26,26 @@ function ClickHouseMgr:setup()
     for _, conf in database:iterator() do
         if conf.driver == "clickhouse" then
             local clickhouse_db = MysqlDB(conf)
-            self.clickhouse_dbs[conf.db] = clickhouse_db
+            self.clickhouse_dbs[conf.id] = clickhouse_db
             if conf.default then
+                self.default_id = conf.id
                 self.default_db = clickhouse_db
             end
         end
     end
+    config_mgr:close_table("database")
 end
 
 --查找clickhouse db
-function ClickHouseMgr:get_db(db_name)
-    if not db_name or db_name == "default" then
+function ClickHouseMgr:get_db(db_id)
+    if not db_id or db_id == self.default_id then
         return self.default_db
     end
-    return self.clickhouse_dbs[db_name]
+    return self.clickhouse_dbs[db_id]
 end
 
-function ClickHouseMgr:execute(db_name, sql)
-    local clickhousedb = self:get_db(db_name)
+function ClickHouseMgr:execute(db_id, sql)
+    local clickhousedb = self:get_db(db_id)
     if clickhousedb then
         local ok, res_oe = clickhousedb:query(sql)
         if not ok then

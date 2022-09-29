@@ -1,9 +1,14 @@
 --net_client.lua
 local lcrypt            = require("lcrypt")
+
 local log_err           = logger.err
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
+local b64_encode        = lcrypt.b64_encode
+local b64_decode        = lcrypt.b64_decode
+local lz4_encode        = lcrypt.lz4_encode
+local lz4_decode        = lcrypt.lz4_decode
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
@@ -16,9 +21,9 @@ local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
 local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
+local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
-
 
 local NetClient = class()
 local prop = property(NetClient)
@@ -29,13 +34,13 @@ prop:reader("alive_time", 0)
 prop:reader("socket", nil)          --连接成功对象
 prop:reader("holder", nil)          --持有者
 prop:reader("wait_list", {})        --等待协议列表
-prop:accessor("decoder", nil)       --解码函数
-prop:accessor("encoder", nil)       --编码函数
+prop:accessor("codec", nil)         --编解码器
 
 function NetClient:__init(holder, ip, port)
-    self.holder = holder
-    self.port = port
     self.ip = ip
+    self.port = port
+    self.holder = holder
+    self.codec = protobuf_mgr
 end
 
 -- 发起连接
@@ -53,9 +58,9 @@ function NetClient:connect(block)
     local block_id = block and thread_mgr:build_session_id()
     -- 调用成功，开始安装回调函数
     socket.on_connect = function(res)
-        local succes = (res == "ok")
+        local success = (res == "ok")
         thread_mgr:fork(function()
-            if not succes then
+            if not success then
                 self:on_socket_error(socket.token, res)
             else
                 self:on_socket_connect(socket)
@@ -63,7 +68,7 @@ function NetClient:connect(block)
         end)
         if block_id then
             --阻塞回调
-            thread_mgr:response(block_id, succes, res)
+            thread_mgr:response(block_id, success, res)
         end
     end
     socket.on_call_pack = function(recv_len, cmd_id, flag, type, session_id, slice)
@@ -75,6 +80,7 @@ function NetClient:connect(block)
             self:on_socket_error(token, err)
         end)
     end
+    socket.set_timeout(NETWORK_TIMEOUT)
     self.socket = socket
     --阻塞模式挂起
     if block_id then
@@ -87,21 +93,19 @@ function NetClient:get_token()
     return self.socket and self.socket.token
 end
 
-function NetClient:encode(cmd_id, data, flag)
-    local encode_data
-    if self.encoder then
-        encode_data = self.encoder(cmd_id, data)
-    else
-        encode_data = protobuf_mgr:encode(cmd_id, data)
+function NetClient:encode(msg_name, data, flag)
+    local encode_data = self.codec:encode(msg_name, data)
+    if not encode_data then
+        return encode_data
     end
     -- 加密处理
     if out_encrypt then
-        encode_data = lcrypt.b64_encode(encode_data)
+        encode_data = b64_encode(encode_data)
         flag = flag | FLAG_ENCRYPT
     end
     -- 压缩处理
     if out_press then
-        encode_data = lcrypt.lz4_encode(encode_data)
+        encode_data = lz4_encode(encode_data)
         flag = flag | FLAG_ZIP
     end
     return encode_data, flag
@@ -111,17 +115,13 @@ function NetClient:decode(cmd_id, slice, flag)
     local decode_data = slice.string()
     if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
-        decode_data = lcrypt.lz4_decode(decode_data)
+        decode_data = lz4_decode(decode_data)
     end
     if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
         --解密处理
-        decode_data = lcrypt.b64_decode(decode_data)
+        decode_data = b64_decode(decode_data)
     end
-    if self.decoder then
-        return self.decoder(cmd_id, decode_data)
-    else
-        return protobuf_mgr:decode(cmd_id, decode_data)
-    end
+    return self.codec:decode(cmd_id, decode_data)
 end
 
 function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
@@ -163,13 +163,18 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
     if not self.alive then
         return false
     end
-    local body, pflag = self:encode(cmd_id, data, flag)
+    local msg_id, msg_name = self.codec:location(cmd_id)
+    if not msg_id or not msg_name then
+        log_err("[NetClient][write] find proto failed! cmd_id:%s", cmd_id)
+        return
+    end
+    local body, pflag = self:encode(msg_name, data, flag)
     if not body then
-        log_err("[NetClient][write] encode failed! cmd_id:%s", cmd_id)
+        log_err("[NetClient][write] encode failed! data (%s-%s)", cmd_id, body)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_pack(cmd_id, pflag, type or 0, session_id or 0, body, #body)
+    local send_len = self.socket.call_pack(msg_id, pflag, type or 0, session_id or 0, body, #body)
     if send_len < 0 then
         log_err("[NetClient][write] call_pack failed! code:%s", send_len)
         return false

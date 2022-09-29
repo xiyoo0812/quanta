@@ -360,6 +360,26 @@ do
 end
 
 
+do
+  -- bug in 5.4.4: 'break' may generate wrong 'close' instruction when
+  -- leaving a loop block.
+
+  local closed = false
+
+  local o1 = setmetatable({}, {__close=function() closed = true end})
+
+  local function test()
+    for k, v in next, {}, nil, o1 do
+      local function f() return k end   -- create an upvalue
+      break
+    end
+    assert(closed)
+  end
+
+  test()
+end
+
+
 do print("testing errors in __close")
 
   -- original error is in __close
@@ -591,6 +611,28 @@ end
 
 
 if rawget(_G, "T") then
+
+  do
+    -- bug in 5.4.3
+    -- 'lua_settop' may use a pointer to stack invalidated by 'luaF_close'
+
+    -- reduce stack size
+    collectgarbage(); collectgarbage(); collectgarbage()
+
+    -- force a stack reallocation
+    local function loop (n)
+      if n < 400 then loop(n + 1) end
+    end
+
+    -- close metamethod will reallocate the stack
+    local o = setmetatable({}, {__close = function () loop(0) end})
+
+    local script = [[toclose 2; settop 1; return 1]]
+
+    assert(T.testC(script, o) == script)
+
+  end
+
 
   -- memory error inside closing function
   local function foo ()

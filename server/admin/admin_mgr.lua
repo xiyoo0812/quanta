@@ -4,22 +4,23 @@ import("agent/online_agent.lua")
 
 local ljson         = require("lcjson")
 local lcrypt        = require("lcrypt")
-local gm_page       = import("admin/gm_page.lua")
 local HttpServer    = import("network/http_server.lua")
 
-local jdecode       = ljson.decode
-local guid_index    = lcrypt.guid_index
-local tunpack       = table.unpack
-local sformat       = string.format
-local env_get       = environ.get
-local make_sid      = service.make_sid
 local log_err       = logger.err
 local log_debug     = logger.debug
+local env_get       = environ.get
+local sformat       = string.format
+local tunpack       = table.unpack
+local tinsert       = table.insert
+local make_sid      = service.make_sid
+local jdecode       = ljson.decode
+local guid_index    = lcrypt.guid_index
 
 local online        = quanta.get("online")
 local cmdline       = quanta.get("cmdline")
 local monitor       = quanta.get("monitor")
 local event_mgr     = quanta.get("event_mgr")
+local update_mgr    = quanta.get("update_mgr")
 local router_mgr    = quanta.get("router_mgr")
 
 local GLOBAL        = quanta.enum("GMType", "GLOBAL")
@@ -33,6 +34,7 @@ prop:reader("http_server", nil)
 prop:reader("cluster", "local")
 prop:reader("services", {})
 prop:reader("monitors", {})
+prop:reader("gm_page", "")
 
 function AdminMgr:__init()
     --监听事件
@@ -46,14 +48,20 @@ function AdminMgr:__init()
     server:register_get("/gmlist", "on_gmlist", self)
     server:register_get("/monitors", "on_monitors", self)
     server:register_post("/command", "on_command", self)
-    server:register_post("/monitor", "on_monitor", self)
     server:register_post("/message", "on_message", self)
     service.make_node(server:get_port())
     self.http_server = server
-
     --关注monitor
     monitor:watch_service_ready(self, "monitor")
     monitor:watch_service_close(self, "monitor")
+    --定时更新
+    update_mgr:attach_minute(self)
+    self:on_minute()
+end
+
+--定时更新
+function AdminMgr:on_minute()
+    self.gm_page = import("admin/gm_page.lua")
 end
 
 --rpc请求
@@ -65,7 +73,7 @@ function AdminMgr:rpc_register_command(command_list, service_id)
         return
     end
     for _, cmd in pairs(command_list) do
-        cmdline:register_command(cmd.name, cmd.args, cmd.desc, cmd.gm_type, service_id)
+        cmdline:register_command(cmd.name, cmd.args, cmd.desc, cmd.gm_type, cmd.group, service_id)
     end
     self.services[service_id] = true
     return SUCCESS
@@ -97,12 +105,22 @@ end
 ----------------------------------------------------------------------
 --gm_page
 function AdminMgr:on_gm_page(url, body, request)
-    return gm_page, {["Access-Control-Allow-Origin"] = "*"}
+    return self.gm_page, {["Access-Control-Allow-Origin"] = "*"}
 end
 
 --gm列表
 function AdminMgr:on_gmlist(url, body, request)
-    return cmdline:get_command_defines()
+    return { text = "GM指令", nodes = cmdline:get_displays() }
+end
+
+--monitor拉取
+function AdminMgr:on_monitors(url, body, request)
+    log_debug("[AdminMgr][on_monitors] body: %s", body)
+    local nodes = {}
+    for _, addr in pairs(self.monitors) do
+        tinsert(nodes, { text = addr, tag = "log" })
+    end
+    return { text = "在线日志", nodes = nodes }
 end
 
 --后台GM调用，字符串格式
@@ -117,16 +135,6 @@ function AdminMgr:on_message(url, body, request)
     log_debug("[AdminMgr][on_message] body: %s", body)
     local cmd_req = jdecode(body)
     return self:exec_message(cmd_req.data)
-end
-
---monitor拉取
-function AdminMgr:on_monitors(url, body, request)
-    log_debug("[AdminMgr][on_monitors] body: %s", body)
-    local monitors = {}
-    for _, addr in pairs(self.monitors) do
-        monitors[#monitors + 1] = addr
-    end
-    return monitors
 end
 
 -------------------------------------------------------------------------

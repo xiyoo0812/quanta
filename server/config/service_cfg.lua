@@ -82,11 +82,6 @@ service:upsert({
 })
 
 service:upsert({
-    id = 24,
-    name = 'robot',
-})
-
-service:upsert({
     id = 25,
     name = 'test',
 })
@@ -98,7 +93,7 @@ service:upsert({
 
 service:upsert({
     id = 27,
-    name = 'cachesvr',
+    name = 'cache',
 })
 
 service:upsert({
@@ -122,4 +117,4 @@ service:upsert({
 })
 
 --general md5 version
-service:set_version('0145090987c497c7a46216f6620bd465')
+service:set_version('69696128641e595d3c580589ffab10a1')

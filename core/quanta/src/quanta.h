@@ -21,8 +21,8 @@ protected:
 
 private:
     uint64_t m_signal = 0;
-	std::shared_ptr<log_service> m_logger;
-	std::map<std::string, std::string> m_environs;
+    std::shared_ptr<log_service> m_logger;
+    std::map<std::string, std::string> m_environs;
 };
 
 extern quanta_app* g_app;

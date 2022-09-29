@@ -8,8 +8,8 @@ local log_info      = logger.info
 local json_encode   = ljson.encode
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
-local tcopy         = table_ext.copy
-local protoaddr     = string_ext.protoaddr
+local tcopy         = qtable.copy
+local protoaddr     = qstring.protoaddr
 
 local update_mgr    = quanta.get("update_mgr")
 local http_client   = quanta.get("http_client")
@@ -23,8 +23,7 @@ prop:reader("tcp", nil)         --网络连接对象
 prop:reader("udp", nil)         --网络连接对象
 prop:reader("port", 12021)      --端口
 prop:reader("addr", nil)        --http addr
-prop:reader("proto", "http")       --proto
-prop:reader("host", nil)        --host
+prop:reader("proto", nil)       --proto
 
 function GrayLog:__init()
     local addr = environ.get("QUANTA_GRAYLOG_ADDR")
@@ -32,7 +31,6 @@ function GrayLog:__init()
         return
     end
     local ip, port, proto = protoaddr(addr)
-    self.host = environ.get("QUANTA_HOST_IP")
     self.proto = proto
     if proto == "http" then
         self.addr = sformat("http://%s:%s/gelf", ip, port)
@@ -72,7 +70,7 @@ function GrayLog:build(message, level, optional)
     local gelf = {
         level = level,
         version = "1.1",
-        host = self.host,
+        host = quanta.host,
         timestamp = quanta.now,
         short_message = message,
         file = debug_info.short_src,

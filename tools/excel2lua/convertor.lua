@@ -17,8 +17,12 @@ local lmd5          = lcrypt.md5
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
+local sgmatch       = string.gmatch
+local tsort         = table.sort
 local tconcat       = table.concat
 local tunpack       = table.unpack
+local tinsert       = table.insert
+local mfloor         = math.floor
 local mtointeger    = math.tointeger
 local slower        = string.lower
 local ogetenv       = os.getenv
@@ -57,15 +61,13 @@ end
 --根据fmt_code和fmt_id解析自定义格式
 local function cell_value_fmt_parse(cell)
     if cell.type == "date" then
-        if cell.fmt_id == 14 then
-            return 86400 * (cell.value - 25569) - 28800
-        end
+        return mfloor(86400 * (cell.value - 25569) - 28800)
     elseif cell.type == "custom" then
         if sfind(cell.fmt_code, "yy") then
-            return 86400 * (cell.value - 25569) - 28800
+            return mfloor(86400 * (cell.value - 25569) - 28800)
         end
         if sfind(cell.fmt_code, "mm:ss") then
-            return 86400 * cell.value
+            return mfloor(86400 * cell.value)
         end
     end
 end
@@ -77,8 +79,11 @@ local value_func = {
     ["bool"] = function(value)
         return value == "1"
     end,
+    ["string"] = function(value)
+        value = "'" .. value .. "'"
+        return sgsub(value, "\n", "\\n")
+    end,
     ["array"] = function(value)
-        value = slower(value)
         if sfind(value, '[(]') then
             -- 替换'('&')' 为 '{' & '}'
             return sgsub(value, '[(.*)]', function (s)
@@ -89,6 +94,21 @@ local value_func = {
             return value
         end
         return '{' .. value .. '}'
+    end,
+    ["sarray"] = function(value)
+        value = sgsub(value, ',', "','")
+        if sfind(value, '[(]') then
+            -- 替换'('&')' 为 '{' & '}'
+            return sgsub(value, '[(.*)]', function (s)
+                return s == '(' and "{'" or "'}"
+            end)
+        end
+        if sfind(value, '[{]') then
+            return sgsub(value, '[{.*}]', function (s)
+                return s == '{' and "{'" or "'}"
+            end)
+        end
+        return "{'" .. value .. "'}"
     end,
 }
 
@@ -111,6 +131,75 @@ local function get_sheet_value(sheet, row, col, field_type, header)
     end
 end
 
+local function mapsort(src)
+    local dst = {}
+    for key, value in pairs(src or {}) do
+        tinsert(dst, { key, value })
+    end
+    tsort(dst, function(a, b) return a[1] < b[1] end)
+    return dst
+end
+
+--格式化Table
+local function serialize(tab, prefix)
+    local function table2str(t, lines, tprefix)
+        local tt = mapsort(t)
+        for _, info in pairs(tt) do
+            local k, v = tunpack(info)
+            if type(v) == "table" then
+                tinsert(lines, sformat("%s[%s] = {\n", tprefix, k))
+                table2str(v, lines, tprefix .. "    ")
+                tinsert(lines, sformat("%s},\n", tprefix))
+            else
+                local key = mtointeger(k)
+                if key then
+                    tinsert(lines, sformat("%s[%s] = %s,\n", tprefix, key, v))
+                else
+                    tinsert(lines, sformat("%s%s = %s,\n", tprefix, k, v))
+                end
+            end
+        end
+    end
+    local lines = {"{\n"}
+    table2str(tab, lines, prefix .. "    ")
+    tinsert(lines, prefix .. "}")
+    return tconcat(lines)
+end
+
+-- 合并记录
+local function merge_record(record, prefix)
+    local rec, merge = {}, {}
+    for _, info in ipairs(record) do
+        local key, value = tunpack(info)
+        local func = sgmatch(key, "([%a%d_]+)%[([%d]+)%].([%a%d_]+)")
+        local field, index, sfield = func()
+        if not field or not index then
+            local func2 = sgmatch(key, "([%a%d_]+)%[([%d]+)%]")
+            field, index, sfield = func2()
+        end
+        if not field or not index then
+            tinsert(rec, info)
+            goto continue
+        end
+        if not merge[field] then
+            merge[field] = {}
+        end
+        if sfield then
+            if not merge[field][index] then
+                merge[field][index] = {}
+            end
+            merge[field][index][sfield] = value
+        else
+            merge[field][index] = value
+        end
+        :: continue ::
+    end
+    for key, value in pairs(merge) do
+        tinsert(rec, { key, serialize(value, prefix), "struct" })
+    end
+    return rec
+end
+
 --导出到lua
 --使用configmgr结构
 local function export_records_to_struct(output, title, records)
@@ -122,25 +211,22 @@ local function export_records_to_struct(output, title, records)
         return
     end
     local lines = {}
-    lines[#lines + 1] = sformat("--%s.lua", table_name)
-    lines[#lines + 1] = "--luacheck: ignore 631\n"
-    lines[#lines + 1] = '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")'
-    lines[#lines + 1] = sformat('local %s = config_mgr:get_table("%s")\n', title, title)
+    tinsert(lines, sformat("--%s.lua", table_name))
+    tinsert(lines, "--luacheck: ignore 631\n")
+    tinsert(lines, '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")')
+    tinsert(lines, sformat('local %s = config_mgr:get_table("%s")\n', title, title))
 
-    lines[#lines + 1] = "--导出配置内容"
-    for _, record in pairs(records) do
+    tinsert(lines, "--导出配置内容")
+    for _, rec in pairs(records) do
+        local record = merge_record(rec, "    ")
         for index, info in ipairs(record) do
-            local key, value, ftype = tunpack(info)
+            local key, value = tunpack(info)
             if index == 1 then
-                lines[#lines + 1] = sformat("%s:upsert({", title)
+                tinsert(lines, sformat("%s:upsert({", title))
             end
-            if type(value) == "string" and ftype ~= "array" and ftype ~= "struct" then
-                value = "'" .. value .. "'"
-                value = sgsub(value, "\n", "\\n")
-            end
-            lines[#lines + 1] = sformat("    %s = %s,", key, tostring(value))
+            tinsert(lines, sformat("    %s = %s,", key, tostring(value)))
         end
-        lines[#lines + 1] = "})\n"
+        tinsert(lines, "})\n")
     end
 
     local output_data = tconcat(lines, "\n")
@@ -161,26 +247,23 @@ local function export_records_to_table(output, title, records)
         return
     end
     local lines = {}
-    lines[#lines + 1] = sformat("--%s.lua", table_name)
-    lines[#lines + 1] = "--luacheck: ignore 631\n"
+    tinsert(lines, sformat("--%s.lua", table_name))
+    tinsert(lines, "--luacheck: ignore 631\n")
 
-    lines[#lines + 1] = "--导出配置内容"
-    lines[#lines + 1] = sformat('local %s = {', title)
-    for _, record in pairs(records) do
+    tinsert(lines, "--导出配置内容")
+    tinsert(lines, sformat('local %s = {', title))
+    for _, rec in pairs(records) do
+        local record = merge_record(rec, "        ")
         for index, info in ipairs(record) do
-            local key, value, ftype = tunpack(info)
+            local key, value = tunpack(info)
             if index == 1 then
-                lines[#lines + 1] =  "    {"
+                tinsert(lines,  "    {")
             end
-            if type(value) == "string" and ftype ~= "array" and ftype ~= "struct" then
-                value = "'" .. value .. "'"
-                value = sgsub(value, "\n", "\\n")
-            end
-            lines[#lines + 1] = sformat("        %s = %s,", key, tostring(value))
+            tinsert(lines, sformat("        %s = %s,", key, tostring(value)))
         end
-        lines[#lines + 1] = "    },"
+        tinsert(lines, "    },")
     end
-    lines[#lines + 1] = sformat('}\n\nreturn %s\n', title)
+    tinsert(lines, sformat('}\n\nreturn %s\n', title))
 
     local output_data = tconcat(lines, "\n")
     export_file:write(output_data)
@@ -227,12 +310,12 @@ local function export_sheet_to_table(sheet, output, title)
             if ftype then
                 local value = get_sheet_value(sheet, row, col, ftype, header[col])
                 if value ~= nil then
-                    record[#record + 1] = {header[col], value, ftype}
+                    tinsert(record, {header[col], value, ftype})
                 end
             end
         end
         if #record > 0 then
-            records[#records + 1] = record
+            tinsert(records, record)
         end
     end
     export_method(output, title, records)
@@ -279,7 +362,7 @@ local function export_excel(input, output)
             for _, sheet in pairs(sheets) do
                 local sheet_name = sheet.name
                 if sheet.last_row < 4 or sheet.last_col <= 0 then
-                    print(sformat("export excel %s sheet %s empty!", file, sheet_name))
+                    print(sformat("export excel %s sheet %s empty!", fullname, sheet_name))
                 else
                     local title = slower(sheet_name)
                     export_sheet_to_table(sheet, output, title)

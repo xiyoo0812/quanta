@@ -8,7 +8,7 @@ local json_decode   = ljson.decode
 local tconcat       = table.concat
 local sgsub         = string.gsub
 local sformat       = string.format
-local ssplit        = string_ext.split
+local ssplit        = qstring.split
 local serialize     = quanta.serialize
 
 local http_client   = quanta.get("http_client")

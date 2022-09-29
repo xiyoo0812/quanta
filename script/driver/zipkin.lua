@@ -14,7 +14,6 @@ local http_client   = quanta.get("http_client")
 local Zipkin = singleton()
 local prop = property(Zipkin)
 prop:reader("addr", nil)        --http addr
-prop:reader("host", nil)        --host
 prop:reader("enable", false)    --enable
 prop:reader("spans", {})        --spans
 prop:reader("span_indexs", {})  --span_indexs
@@ -23,7 +22,6 @@ function Zipkin:__init()
     local ip, port =  environ.addr("QUANTA_OPENTRACE_ADDR")
     if ip and port then
         self.enable = true
-        self.host = environ.get("QUANTA_HOST_IP")
         self.addr = sformat("http://%s:%s/api/v2/spans", ip, port)
         log_info("[Zipkin][setup] setup (%s) success!", self.addr)
     end
@@ -43,7 +41,7 @@ function Zipkin:general(name, trace_id, parent_id)
         annotations = {},
         localEndpoint = {
             serviceName = quanta.name,
-            ipv4 = self.host
+            ipv4 = quanta.host
         }
     }
     local trace_span = self.spans[trace_id]

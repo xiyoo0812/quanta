@@ -84,6 +84,11 @@ OnlineStatus.INLINE         = 2
 OnlineStatus.OFFLINE        = 3
 OnlineStatus.CLOSE          = 4
 
+-- 随机类型
+local RandType              = enum("RandType", 0)
+RandType.ALONE              = 1       -- 独立随机
+RandType.WHEEL              = 2       -- 轮盘随机
+
 -- GM命令类型
 local GMType                = enum("GMType", 0)
 GMType.GLOBAL               = 0       -- 全局相关
@@ -96,12 +101,6 @@ local RobotType             = enum("RobotType", 0)
 RobotType.RANDOM            = 0       -- 随机账号
 RobotType.COMPOSE           = 1       -- 组合账号
 RobotType.PLAYER            = 2       -- 指定账号
-
---Cache错误码
-local CacheType = enum("CacheType", 0)
-CacheType.READ              = 1     -- 读
-CacheType.WRITE             = 2     -- 写
-CacheType.BOTH              = 3     -- 读写
 
 
 --Cache错误码

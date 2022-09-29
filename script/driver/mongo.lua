@@ -56,6 +56,7 @@ function MongoDB:__init(conf)
     self.db_cmd = conf.db .. "." .. "$cmd"
     self.sock = Socket(self)
     --attach_second
+    update_mgr:attach_hour(self)
     update_mgr:attach_second(self)
 end
 
@@ -69,16 +70,23 @@ function MongoDB:close()
     end
 end
 
+function MongoDB:on_hour()
+    if self.sock:is_alive() then
+        self:runCommand("ping")
+    end
+end
+
 function MongoDB:on_second()
     if not self.sock:is_alive() then
-        if not self.sock:connect(self.ip, self.port) then
-            log_err("[MongoDB][on_second] connect db(%s:%s:%s) failed!", self.ip, self.port, self.name)
+        local ok, err = self.sock:connect(self.ip, self.port)
+        if not ok then
+            log_err("[MongoDB][on_second] connect db(%s:%s:%s) failed: %s!", self.ip, self.port, self.name, err)
             return
         end
         if self.user and self.passwd then
-            local ok, err = self:auth(self.user, self.passwd)
-            if not ok then
-                log_err("[MongoDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, err)
+            local aok, aerr = self:auth(self.user, self.passwd)
+            if not aok then
+                log_err("[MongoDB][on_second] auth db(%s:%s) failed! because: %s", self.ip, self.port, aerr)
                 return
             end
         end

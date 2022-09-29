@@ -1,10 +1,12 @@
 --report_mgr.lua
-local ltimer            = require("ltimer")
-local lnow_ms           = ltimer.now_ms
-local mhuge             = math.huge
-local tunpack           = table.unpack
-local sformat           = string.format
-local log_info          = logger.info
+local ltimer        = require("ltimer")
+local lnow_ms       = ltimer.now_ms
+local mhuge         = math.huge
+local tunpack       = table.unpack
+local sformat       = string.format
+local log_info      = logger.info
+
+local robot_mgr     = quanta.get("robot_mgr")
 
 --关键事件配置
 local key_report_config = {
@@ -20,16 +22,11 @@ local key_report_config = {
 
 local ReportMgr = singleton()
 function ReportMgr:__init()
-end
-
-function ReportMgr:setup(count)
-    -- 需要统计的总数量
-    self.count        = count
     -- 汇总数据
     self.robot_datas  = {}
     self.report_datas = {}
-    -- 加入dump
-    --update_mgr:attach_frame(self)
+    -- 需要统计的总数量
+    self.count = robot_mgr:get_count()
 end
 
 --机器人上报

@@ -11,13 +11,9 @@ local qhash_code        = quanta.hash_code
 local signal_quit       = signal.quit
 
 local monitor           = quanta.get("monitor")
-local timer_mgr         = quanta.get("timer_mgr")
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
-local update_mgr        = quanta.get("update_mgr")
 
-local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
-local RECONNECT_TIME    = quanta.enum("NetwkTime", "RECONNECT_TIME")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
@@ -29,18 +25,10 @@ prop:reader("candidates", {})
 function RouterMgr:__init()
     --router接口
     self:build_service()
-    --加入更新
-    update_mgr:attach_second(self)
-    --心跳定时器
-    timer_mgr:loop(HEARTBEAT_TIME, function()
-        for _, node in pairs(self.routers) do
-            node.client:heartbeat()
-        end
-    end)
     --监听路由信息
     monitor:watch_service_ready(self, "router")
     monitor:watch_service_close(self, "router")
-    event_mgr:add_listener(self, "on_client_kickout")
+    event_mgr:add_listener(self, "rpc_client_kickout")
     --日志上报
     if environ.status("QUANTA_LOG_REPORT") then
         logger.add_monitor(self)
@@ -77,8 +65,8 @@ function RouterMgr:on_service_ready(id, name, info)
 end
 
 --服务被踢下线
-function RouterMgr:on_client_kickout(router_id, reason)
-    log_err("[RouterMgr][on_client_kickout] reason:%s router_id:%s", reason, router_id)
+function RouterMgr:rpc_client_kickout(router_id, reason)
+    log_err("[RouterMgr][rpc_client_kickout] reason:%s router_id:%s", reason, router_id)
     signal_quit()
 end
 
@@ -89,7 +77,6 @@ function RouterMgr:add_router(router_id, host, port)
         self.routers[router_id] = {
             addr = host,
             router_id = router_id,
-            next_connect_time = 0,
             client = RpcClient(self, host, port)
         }
     end
@@ -98,6 +85,8 @@ end
 --错误处理
 function RouterMgr:on_socket_error(client, token, err)
     log_err("[RouterMgr][on_socket_error] router lost %s:%s, err=%s", client.ip, client.port, err)
+    --switch master
+    self:switch_master()
 end
 
 --连接成功
@@ -119,27 +108,6 @@ function RouterMgr:switch_master()
     if node then
         self.master = node
         log_info("[RouterMgr][switch_master] switch router addr: %s", node.addr)
-    end
-end
-
---更新
-function RouterMgr:on_second()
-    local now_tick = quanta.now
-    for _, node in pairs(self.routers) do
-        local client = node.client
-        if not client:is_alive() then
-            if now_tick > node.next_connect_time then
-                node.next_connect_time = now_tick + RECONNECT_TIME
-                client:connect()
-            end
-        else
-            if client:check_lost(now_tick) then
-                log_info("[RouterMgr][on_second] router lost: %s:%s", client.ip, client.port)
-                if node == self.master then
-                    self:switch_master()
-                end
-            end
-        end
     end
 end
 

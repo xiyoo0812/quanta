@@ -7,12 +7,11 @@ local sformat       = string.format
 local signalquit    = signal.quit
 local env_addr      = environ.addr
 local env_number    = environ.number
+local tunpack       = table.unpack
 local guid_string   = lcrypt.guid_string
 
 local timer_mgr     = quanta.get("timer_mgr")
-local report_mgr    = quanta.get("report_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-local node_factory  = quanta.get("node_factory")
 
 local RRANDOM       = quanta.enum("RobotType", "RANDOM")
 local RCOMPOSE      = quanta.enum("RobotType", "COMPOSE")
@@ -23,14 +22,14 @@ local Robot         = import("robot/robot.lua")
 
 local RobotMgr = singleton()
 local prop = property(RobotMgr)
-prop:accessor("robot_list", {})    --robot_list
+prop:reader("count", 0)         --count
+prop:reader("robot_list", {})   --robot_list
 
 function RobotMgr:__init()
-    self:setup()
 end
 
 -- setup
-function RobotMgr:setup()
+function RobotMgr:load_robot()
     local index = quanta.index
     local config_mgr = quanta.get("config_mgr")
     local robot_db = config_mgr:init_table("robot", "index")
@@ -47,23 +46,21 @@ function RobotMgr:setup()
     if conf.openid_type == RPLAYER then
         robot_count = 1
     end
-    -- 配置上报管理器
-    report_mgr:setup(robot_count)
+    self.count = robot_count
     --启动定时器
     timer_mgr:once(SECOND_MS, function()
-        -- 节点工厂初始化
-        node_factory:load()
         -- 创建机器人
         for i = 1, robot_count do
-            self:create_robot(ip, port, conf, i)
+            self:create_robot_bt(ip, port, conf, i)
         end
     end)
 end
 
 -- setup
-function RobotMgr:create_robot(ip, port, conf, index)
-    log_debug("[RobotMgr][create_robot]: %s:%s %s(%s)", ip, port, index, conf)
-    local robot = Robot(conf, index)
+function RobotMgr:create_robot_bt(ip, port, conf, index)
+    log_debug("[RobotMgr][create_robot_bt]: %s:%s %s(%s)", ip, port, index, conf)
+    local RobotBT = import("robot/robot_bt.lua")
+    local robot = RobotBT(conf, index)
     if conf.openid_type == RRANDOM then
         robot:set_open_id(guid_string())
     elseif conf.openid_type == RCOMPOSE then
@@ -86,7 +83,77 @@ function RobotMgr:create_robot(ip, port, conf, index)
     self.robot_list[index] = robot
 end
 
-function RobotMgr:get_robot(index)
+-- setup
+function RobotMgr:create_robot(ip, port, open_id, passwd)
+    log_debug("[RobotMgr][create_robot]: %s:%s %s(%s)", ip, port, open_id, passwd)
+    local robot = Robot()
+    robot:set_ip(ip)
+    robot:set_port(port)
+    robot:set_open_id(open_id)
+    robot:set_access_token(passwd)
+    self.robot_list[open_id] = robot
+    local ok, res = robot:login_server()
+    return { code = ok and 0 or -1, msg = res }
+end
+
+function RobotMgr:get_robot(open_id)
+    return self.robot_list[open_id]
+end
+
+function RobotMgr:destory_robot(open_id)
+    local robot = self.robot_list[open_id]
+    if robot then
+        local ok, res = robot:logout_server()
+        return { code = ok and 0 or -1, msg = res }
+    end
+    return { code = -1, msg = "robot not exist" }
+end
+
+function RobotMgr:destory_robot(open_id)
+    local robot = self.robot_list[open_id]
+    if robot then
+        robot:logout_server()
+        self.robot_list[open_id] = nil
+        return { code = 0, msg = "success" }
+    end
+    return { code = -1, msg = "robot not exist" }
+end
+
+function RobotMgr:get_accord_message(open_id)
+    local robot = self.robot_list[open_id]
+    if robot then
+        local res = { code = 0, msg = robot:get_messages() }
+        robot:set_messages({})
+        return res
+    end
+    return { code = -1, msg = "robot not exist" }
+end
+
+function RobotMgr:run_accord_message(open_id, cmd_id, data)
+    local robot = self.robot_list[open_id]
+    if robot then
+        local ok, res = robot:call(cmd_id, data)
+        return { code = ok and 0 or -1, msg = res }
+    end
+    return { code = -1, msg = "robot not exist" }
+end
+
+function RobotMgr:run_accord_messages(open_id, cmd_datas)
+    local robot = self.robot_list[open_id]
+    if robot then
+        for _, info in ipairs(cmd_datas) do
+            local cmd_id, data = tunpack(info)
+            local ok, res = robot:call(cmd_id, data)
+            if not ok then
+                return { code = -1, msg = res }
+            end
+        end
+        return { code = 0, msg = "success" }
+    end
+    return { code = -1, msg = "robot not exist" }
+end
+
+function RobotMgr:get_index_robot(index)
     return self.robot_list[index]
 end
 

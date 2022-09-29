@@ -11,10 +11,10 @@ local slower    = string.lower
 local sformat   = string.format
 local sbyte     = string.byte
 
-string_ext = _ENV.string_ext or {}
+qstring = _ENV.qstring or {}
 
 --------------------------------------------------------------------------------
-function string_ext.parse(str)
+function qstring.parse(str)
     if str == nil then
         str = tostring(str)
     elseif type(str) ~= "string" then
@@ -27,15 +27,15 @@ function string_ext.parse(str)
 end
 
 
-function string_ext.title(value)
+function qstring.title(value)
     return supper(ssub(value, 1, 1)) .. ssub(value, 2, #value)
 end
 
-function string_ext.untitle(value)
+function qstring.untitle(value)
     return slower(ssub(value, 1, 1)) .. ssub(value, 2, #value)
 end
 
-function string_ext.split(str, token)
+function qstring.split(str, token)
     local t = {}
     while #str > 0 do
         local pos = sfind(str, token)
@@ -51,11 +51,11 @@ function string_ext.split(str, token)
     return t
 end
 
-function string_ext.ends_with(str, ending)
+function qstring.ends_with(str, ending)
     return str:sub(-#ending) == ending
 end
 
-function string_ext.chars(src)
+function qstring.chars(src)
     local chars = {}
     if not src then
         return chars
@@ -83,13 +83,13 @@ end
 
 --辅助接口
 --------------------------------------------------------------------------------
-local ssplit = string_ext.split
-function string_ext.addr(value)
+local ssplit = qstring.split
+function qstring.addr(value)
     local ip, port = tunpack(ssplit(value, ":"))
     return ip, tonumber(port)
 end
 
-function string_ext.protoaddr(value)
+function qstring.protoaddr(value)
     local addr, proto = tunpack(ssplit(value, "/"))
     if addr then
         local ip, port = tunpack(ssplit(addr, ":"))

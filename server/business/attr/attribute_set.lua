@@ -2,16 +2,22 @@
 local tostring      = tostring
 local qenum         = quanta.enum
 local log_warn      = logger.warn
+local tinsert       = table.insert
 local mtointeger    = math.tointeger
 
 local event_mgr     = quanta.get("event_mgr")
+local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
 local AttributeSet = mixin()
 local prop = property(AttributeSet)
-prop:reader("attr_set", {})             --属性集合
-prop:accessor("store_attrs", {})        --需要存储属性
-prop:accessor("attr_sync", false)       --属性是否同步
+prop:reader("attr_set", {})         --属性集合
+prop:reader("sync_attrs", {})       --需要同步属性
+prop:accessor("store_attrs", {})    --需要存储属性
+prop:accessor("relay_attrs", {})    --需要转发属性
+prop:accessor("write_attrs", {})    --需要回写属性
+prop:accessor("relayable", false)   --是否转发属性
+prop:accessor("wbackable", false)   --是否回写属性
 
 --委托回调
 function AttributeSet:__delegate()
@@ -38,7 +44,7 @@ end
 function AttributeSet:init_attrset(attr_db)
     for _, attr in attr_db:iterator() do
         local attr_id = qenum("AttrID", attr.key)
-        local attr_def = { save = attr.save, range = attr.range }
+        local attr_def = { save = attr.save, back = attr.back, range = attr.range }
         if attr.limit then
             attr_def.limit_id = qenum("AttrID", attr.limit)
         end
@@ -69,8 +75,23 @@ function AttributeSet:set_attr(attr_id, value, source_id)
             self.store_attrs[tostring(attr_id)] = value
         end
         if self:is_load_success() then
+            --回写判定
+            if self.wbackable and attr.back and (not source_id) then
+                self.write_attrs[attr_id] = attr.value
+                update_mgr:attach_event(self.id, "on_attr_writeback", self)
+            end
+            --转发判定
+            if self.relayable then
+                self.relay_attrs[attr_id] = { value, source_id }
+                update_mgr:attach_event(self.id, "on_attr_relay", self)
+            end
+            --同步属性
+            if attr.range > 0 then
+                self.sync_attrs[attr_id] = attr
+                update_mgr:attach_event(self.id, "on_attr_sync", self)
+            end
             --通知改变
-            event_mgr:notify_trigger("on_attr_changed", self, attr, attr_id, source_id)
+            event_mgr:notify_trigger("on_attr_changed", self, self.id, attr_id, value)
         end
         return true
     end
@@ -117,7 +138,12 @@ end
 --加载db数据
 function AttributeSet:load_db_attrs(attrs)
     for attr_id, value in pairs(attrs) do
-        self:set_attr(mtointeger(attr_id), value)
+        local attr = self.attr_set[mtointeger(attr_id)]
+        if not attr then
+            log_warn("[AttributeSet][load_db_attrs] attr(%s) not define", attr_id)
+            return false
+        end
+        attr.value = value
     end
 end
 
@@ -128,15 +154,26 @@ function AttributeSet:encode_attr(attr_id, value)
     return { attr_id = attr_id, attr_i = value }
 end
 
---query
+--package_attrs
 function AttributeSet:package_attrs(range)
     local attrs = {}
     for attr_id, attr in pairs(self.attr_set) do
         if attr.range == range and attr.value then
-            local eattr = self:encode_attr(attr_id, attr.value)
-            attrs[#attrs + 1] = eattr
+            tinsert(attrs, self:encode_attr(attr_id, attr.value))
         end
     end
+    return attrs
+end
+
+--packet_sync_attrs
+function AttributeSet:packet_sync_attrs(range)
+    local attrs = {}
+    for attr_id, attr in pairs(self.sync_attrs) do
+        if attr.range == range and attr.value then
+            tinsert(attrs, self:encode_attr(attr_id, attr.value))
+        end
+    end
+    self.sync_attrs = {}
     return attrs
 end
 

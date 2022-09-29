@@ -13,7 +13,6 @@
 --node_id:      节点服务id  32位数字
 --name:         服务名      lobby.1
 
-import("kernel/config_mgr.lua")
 
 local sformat       = string.format
 
@@ -26,6 +25,7 @@ service = {}
 function service.make_node(port)
     quanta.node_info = {
         id = quanta.id,
+        host = quanta.host,
         name = quanta.name,
         index = quanta.index,
         group = quanta.group,
@@ -56,6 +56,7 @@ function service.init()
     quanta.region = region
     quanta.service = service_type
     quanta.service_name = service_name
+    quanta.host = environ.get("QUANTA_HOST_IP")
     quanta.id = service.make_sid(service_type, index)
     quanta.name = sformat("%s_%s", service_name, index)
     quanta.cluster = environ.get("QUANTA_CLUSTER", "develop")

@@ -1,7 +1,6 @@
 --monitor_mgr.lua
 import("driver/nacos.lua")
 local ljson         = require("lcjson")
-local log_page      = import("monitor/log_page.lua")
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
 
@@ -11,7 +10,7 @@ local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
 local jdecode       = ljson.decode
-local tdiff         = table_ext.diff
+local tdiff         = qtable.diff
 
 local nacos         = quanta.get("nacos")
 local update_mgr    = quanta.get("update_mgr")
@@ -19,11 +18,13 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
+prop:reader("host", nil)
 prop:reader("port", 0)
 prop:reader("rpc_server", nil)
 prop:reader("http_server", nil)
 prop:reader("monitor_nodes", {})
 prop:reader("services", {})
+prop:reader("log_page", "")
 
 function MonitorMgr:__init()
     --创建rpc服务器
@@ -36,15 +37,23 @@ function MonitorMgr:__init()
     server:register_post("/command", "on_monitor_command", self)
     self.port = server:get_port()
     self.http_server = server
+    self.host = ip
     --初始化定时器
+    update_mgr:attach_minute(self)
     update_mgr:attach_second5(self)
+    self:on_minute()
     --注册自己
     thread_mgr:fork(function()
         nacos:modify_switchs("healthCheckEnabled", "false")
         nacos:modify_switchs("autoChangeHealthCheckEnabled", "false")
         local metadata = { region = quanta.region, group = quanta.group, id = quanta.id, name = quanta.name }
-        nacos:regi_instance(quanta.service_name, self.port, nil, metadata)
+        nacos:regi_instance(quanta.service_name, ip, self.port, nil, metadata)
     end)
+end
+
+--定时更新
+function MonitorMgr:on_minute()
+    self.log_page = import("monitor/log_page.lua")
 end
 
 function MonitorMgr:on_second5()
@@ -55,13 +64,13 @@ function MonitorMgr:on_second5()
             local sadd, sdel = tdiff(old or {}, curr)
             if next(sadd) or next(sdel) then
                 log_debug("[MonitorMgr][on_second5] sadd:%s, sdel: %s", sadd, sdel)
-                self.rpc_server:broadcast("on_service_changed", service_name, sadd, sdel)
+                self.rpc_server:broadcast("rpc_service_changed", service_name, sadd, sdel)
                 self.services[service_name] = curr
             end
         end
     end
     --发送心跳
-    nacos:sent_beat(quanta.service_name, self.port)
+    nacos:sent_beat(quanta.service_name, self.host, self.port)
 end
 
 function MonitorMgr:on_client_accept(client)
@@ -73,9 +82,9 @@ function MonitorMgr:on_client_beat(client)
     if node then
         if not node.status then
             local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
-            node.status = nacos:regi_instance(node.service_name, node.port, nil, metadata)
+            node.status = nacos:regi_instance(node.service_name, node.host, node.port, nil, metadata)
         end
-        nacos:sent_beat(node.service_name, node.port)
+        nacos:sent_beat(node.service_name, node.host, node.port)
     end
 end
 
@@ -83,14 +92,14 @@ function MonitorMgr:on_client_register(client, node)
     local token = client.token
     log_debug("[MonitorMgr][on_service_register] node:%s, token: %s", node.name, token)
     local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
-    local status = nacos:regi_instance(node.service_name, node.port, nil, metadata)
+    local status = nacos:regi_instance(node.service_name, node.host, node.port, nil, metadata)
     self.monitor_nodes[token] = node
     node.status = status
     node.token = token
     --返回所有服务
     for service_name, curr_services in pairs(self.services) do
         if next(curr_services) then
-            self.rpc_server:send(client, "on_service_changed", service_name, curr_services, {})
+            self.rpc_server:send(client, "rpc_service_changed", service_name, curr_services, {})
         end
     end
 end
@@ -100,14 +109,14 @@ function MonitorMgr:on_client_error(client, token, err)
     log_info("[MonitorMgr][on_client_error] node:%s, token:%s", client.name, token)
     local node = self.monitor_nodes[token]
     if node then
-        nacos:del_instance(node.service_name, node.port)
+        nacos:del_instance(node.service_name, node.host, node.port)
         self.monitor_nodes[token] = nil
     end
 end
 
 --gm_page
 function MonitorMgr:on_log_page(url, body, request)
-    return log_page, {["Access-Control-Allow-Origin"] = "*"}
+    return self.log_page, {["Access-Control-Allow-Origin"] = "*"}
 end
 
 -- status查询
@@ -121,7 +130,7 @@ function MonitorMgr:call(token, rpc, ...)
     if not client then
         return {code = 1, msg = "node not connect!"}
     end
-    local ok, res = self.rpc_server:call(client, "on_remote_message", rpc, ...)
+    local ok, res = self.rpc_server:call(client, "rpc_remote_message", rpc, ...)
     if not ok then
         return {code = 1, msg = "call moniotor node failed!"}
     end
@@ -130,7 +139,7 @@ end
 
 --broadcast
 function MonitorMgr:broadcast(service_id, rpc, ...)
-    self.rpc_server:servicecast(service_id, "on_remote_message", rpc, ...)
+    self.rpc_server:servicecast(service_id, "rpc_remote_message", rpc, ...)
     return {code = 0, msg = "broadcast all nodes server!"}
 end
 

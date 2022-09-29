@@ -12,7 +12,7 @@ local log_debug     = logger.debug
 local qfailed       = quanta.failed
 local sfind         = string.find
 local sformat       = string.format
-local ssplit        = string_ext.split
+local ssplit        = qstring.split
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
@@ -27,7 +27,6 @@ local MonitorAgent = singleton()
 local prop = property(MonitorAgent)
 prop:reader("client", nil)
 prop:reader("sessions", {})
-prop:reader("next_connect_time", 0)
 prop:reader("ready_watchers", {})
 prop:reader("close_watchers", {})
 
@@ -36,29 +35,16 @@ function MonitorAgent:__init()
     local ip, port = env_addr("QUANTA_MONITOR_ADDR")
     self.client = RpcClient(self, ip, port)
     --注册事件
-    event_mgr:add_listener(self, "rpc_remote_log")
     event_mgr:add_listener(self, "on_quanta_quit")
-    event_mgr:add_listener(self, "on_remote_message")
-    event_mgr:add_listener(self, "on_service_changed")
+    event_mgr:add_listener(self, "rpc_remote_log")
+    event_mgr:add_listener(self, "rpc_remote_message")
+    event_mgr:add_listener(self, "rpc_service_changed")
     --心跳定时器
     update_mgr:attach_second5(self)
-    update_mgr:attach_next(self, function()
-        self:on_second5()
-    end)
 end
 
 function MonitorAgent:on_second5()
     local now = quanta.now
-    if not self.client:is_alive() then
-        if now >= self.next_connect_time then
-            self.next_connect_time = now + RECONNECT_TIME
-            self.client:connect()
-        end
-    else
-        if not self.client:check_lost(now) then
-            self.client:heartbeat()
-        end
-    end
     for session_id, session in pairs(self.sessions) do
         if now - session.active_time > RECONNECT_TIME then
             log_debug("[RemoteLog][on_timer]->overdue->session_id:%s", session_id)
@@ -86,8 +72,6 @@ end
 -- 连接关闭回调
 function MonitorAgent:on_socket_error(client, token, err)
     log_info("[MonitorAgent][on_socket_error]: connect lost!")
-    -- 设置重连时间
-    self.next_connect_time = quanta.now
 end
 
 -- 连接成回调
@@ -109,20 +93,20 @@ function MonitorAgent:on_quanta_quit(reason)
 end
 
 --执行远程rpc消息
-function MonitorAgent:on_remote_message(message, data)
+function MonitorAgent:rpc_remote_message(message, data)
     if not message then
         return {code = RPC_FAILED, msg = "message is nil !"}
     end
     local ok, code, res = tunpack(event_mgr:notify_listener(message, data))
     if not ok or qfailed(code) then
-        log_err("[MonitorAgent][on_remote_message] web_rpc faild: ok=%s, ec=%s", ok, code)
+        log_err("[MonitorAgent][rpc_remote_message] web_rpc faild: ok=%s, ec=%s", ok, code)
         return { code = ok and code or RPC_FAILED, msg = ok and "" or code}
     end
     return { code = 0, msg = res}
 end
 
 --服务改变
-function MonitorAgent:on_service_changed(service_name, readys, closes)
+function MonitorAgent:rpc_service_changed(service_name, readys, closes)
     local ready_watchers = self.ready_watchers[service_name]
     for listener in pairs(ready_watchers or {}) do
         for id, info in pairs(readys) do

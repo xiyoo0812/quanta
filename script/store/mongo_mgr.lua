@@ -9,22 +9,23 @@ local MONGO_FAILED  = quanta.enum("KernCode", "MONGO_FAILED")
 
 local MongoMgr = singleton()
 local prop = property(MongoMgr)
-prop:accessor("mongo_dbs", {})      -- mongo_dbs
-prop:accessor("default_db", nil)    -- default_db
+prop:reader("mongo_dbs", {})    -- mongo_dbs
+prop:reader("default_db", nil)  -- default_db
+prop:reader("default_id", nil)  -- default_id
 
 function MongoMgr:__init()
     self:setup()
     -- 注册事件
-    event_mgr:add_listener(self, "mongo_find", "find")
-    event_mgr:add_listener(self, "mongo_count", "count")
-    event_mgr:add_listener(self, "mongo_insert", "insert")
-    event_mgr:add_listener(self, "mongo_delete", "delete")
-    event_mgr:add_listener(self, "mongo_update", "update")
-    event_mgr:add_listener(self, "mongo_execute", "execute")
-    event_mgr:add_listener(self, "mongo_find_one", "find_one")
-    event_mgr:add_listener(self, "mongo_drop_indexes", "drop_indexes")
-    event_mgr:add_listener(self, "mongo_create_indexes", "create_indexes")
-    event_mgr:add_listener(self, "mongo_find_and_modify", "find_and_modify")
+    event_mgr:add_listener(self, "rpc_mongo_find", "find")
+    event_mgr:add_listener(self, "rpc_mongo_count", "count")
+    event_mgr:add_listener(self, "rpc_mongo_insert", "insert")
+    event_mgr:add_listener(self, "rpc_mongo_delete", "delete")
+    event_mgr:add_listener(self, "rpc_mongo_update", "update")
+    event_mgr:add_listener(self, "rpc_mongo_execute", "execute")
+    event_mgr:add_listener(self, "rpc_mongo_find_one", "find_one")
+    event_mgr:add_listener(self, "rpc_mongo_drop_indexes", "drop_indexes")
+    event_mgr:add_listener(self, "rpc_mongo_create_indexes", "create_indexes")
+    event_mgr:add_listener(self, "rpc_mongo_find_and_modify", "find_and_modify")
 end
 
 --初始化
@@ -34,25 +35,27 @@ function MongoMgr:setup()
     for _, conf in database:iterator() do
         if conf.driver == "mongo" then
             local mongo_db = MongoDB(conf)
-            self.mongo_dbs[conf.db] = mongo_db
+            self.mongo_dbs[conf.id] = mongo_db
             if conf.default then
+                self.default_id = conf.id
                 self.default_db = mongo_db
             end
         end
     end
+    config_mgr:close_table("database")
 end
 
 --查找mongo db
-function MongoMgr:get_db(db_name)
-    if not db_name or db_name == "default" then
+function MongoMgr:get_db(db_id)
+    if not db_id or db_id == self.default_id then
         return self.default_db
     end
-    return self.mongo_dbs[db_name]
+    return self.mongo_dbs[db_id]
 end
 
-function MongoMgr:find(db_name, coll_name, selector, fields, sortor, limit)
+function MongoMgr:find(db_id, coll_name, selector, fields, sortor, limit)
     log_debug("[MongoMgr][find]: %s, selector:%s", coll_name, selector)
-    local mongodb = self:get_db(db_name)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:find(coll_name, selector, fields or {_id = 0}, sortor, limit)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -60,9 +63,9 @@ function MongoMgr:find(db_name, coll_name, selector, fields, sortor, limit)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:find_one(db_name, coll_name, selector, fields)
+function MongoMgr:find_one(db_id, coll_name, selector, fields)
     log_debug("[MongoMgr][find_one]: %s, selector:%s", coll_name, selector)
-    local mongodb = self:get_db(db_name)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:find_one(coll_name, selector, fields or {_id = 0})
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -70,9 +73,9 @@ function MongoMgr:find_one(db_name, coll_name, selector, fields)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:insert(db_name, coll_name, obj)
+function MongoMgr:insert(db_id, coll_name, obj)
     log_debug("[MongoMgr][insert]: %s, obj:%s", coll_name, obj)
-    local mongodb = self:get_db(db_name)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:insert(coll_name, obj)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -80,9 +83,9 @@ function MongoMgr:insert(db_name, coll_name, obj)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:update(db_name, coll_name, obj, selector, upsert, multi)
+function MongoMgr:update(db_id, coll_name, obj, selector, upsert, multi)
     log_debug("[MongoMgr][update]: %s, obj:%s, selector:%s", coll_name, obj, selector)
-    local mongodb = self:get_db(db_name)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:update(coll_name, obj, selector, upsert, multi)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -90,9 +93,9 @@ function MongoMgr:update(db_name, coll_name, obj, selector, upsert, multi)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:delete(db_name, coll_name, selector, onlyone)
+function MongoMgr:delete(db_id, coll_name, selector, onlyone)
     log_debug("[MongoMgr][delete]: %s, selector:%s", coll_name, selector)
-    local mongodb = self:get_db(db_name)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:delete(coll_name, selector, onlyone)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -100,8 +103,8 @@ function MongoMgr:delete(db_name, coll_name, selector, onlyone)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:count(db_name, coll_name, selector, limit, skip)
-    local mongodb = self:get_db(db_name)
+function MongoMgr:count(db_id, coll_name, selector, limit, skip)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:count(coll_name, selector, limit, skip)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -109,8 +112,8 @@ function MongoMgr:count(db_name, coll_name, selector, limit, skip)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:create_indexes(db_name, coll_name, indexes)
-    local mongodb = self:get_db(db_name)
+function MongoMgr:create_indexes(db_id, coll_name, indexes)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe =  mongodb:create_indexes(coll_name, indexes)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -118,8 +121,8 @@ function MongoMgr:create_indexes(db_name, coll_name, indexes)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:drop_indexes(db_name, coll_name, index_name)
-    local mongodb = self:get_db(db_name)
+function MongoMgr:drop_indexes(db_id, coll_name, index_name)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe =  mongodb:drop_indexes(coll_name, index_name)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -127,8 +130,8 @@ function MongoMgr:drop_indexes(db_name, coll_name, index_name)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:find_and_modify(db_name, coll_name, obj, selector, upsert, fields, new)
-    local mongodb = self:get_db(db_name)
+function MongoMgr:find_and_modify(db_id, coll_name, obj, selector, upsert, fields, new)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:find_and_modify(coll_name, obj, selector, upsert, fields, new)
         return ok and SUCCESS or MONGO_FAILED, res_oe
@@ -136,8 +139,8 @@ function MongoMgr:find_and_modify(db_name, coll_name, obj, selector, upsert, fie
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:execute(db_name, cmd, ...)
-    local mongodb = self:get_db(db_name)
+function MongoMgr:execute(db_id, cmd, ...)
+    local mongodb = self:get_db(db_id)
     if mongodb then
         local ok, res_oe = mongodb:runCommand(cmd, ...)
         return ok and SUCCESS or MONGO_FAILED, res_oe

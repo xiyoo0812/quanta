@@ -178,7 +178,7 @@ function RpcServer:rpc_heartbeat(client, node)
         local eclient = self:get_client_by_id(client_id)
         if eclient then
             self.kick_clients[eclient.token] = client_id
-            self:send(eclient, "on_client_kickout", quanta.id, "service replace")
+            self:send(eclient, "rpc_client_kickout", quanta.id, "service replace")
             log_warn("[RpcServer][rpc_heartbeat] client(%s) be kickout, service replace!", eclient.name)
             return
         end

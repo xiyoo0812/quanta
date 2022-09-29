@@ -9,8 +9,7 @@ return [[
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>Log Console</title>
-    <link rel="icon" href="http://kyrieliu.cn/kyrie.ico">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css">
 </head>
 <style>
     html,body,div,h1,h2,h3,h4,h5,h6,p,span{
@@ -98,8 +97,8 @@ return [[
     <small>Designed and built by <a href="https://github.com/xiyoo0812/quanta" target="_blank">quanta</a></small>
 </footer>
 </body>
-<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-<script src="http://jonmiles.github.io/bootstrap-treeview/js/bootstrap-treeview.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js"></script>
 <script type="text/javascript">
     window.onload = function(){
         var gmlog = new LogConsole();

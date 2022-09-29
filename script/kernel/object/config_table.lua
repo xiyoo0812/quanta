@@ -3,9 +3,11 @@ local next          = next
 local pairs         = pairs
 local ipairs        = ipairs
 local select        = select
+local tonumber      = tonumber
 local log_err       = logger.err
 local log_warn      = logger.warn
 local tconcat       = table.concat
+local tinsert       = table.insert
 local tunpack       = table.unpack
 local sformat       = string.format
 local tointeger     = math.tointeger
@@ -18,6 +20,7 @@ prop:reader("name", nil)
 prop:reader("rows", {})
 prop:reader("indexs", {})
 prop:reader("count", 0)
+prop:accessor("groups", nil)
 prop:accessor("version", "")
 
 -- 初始化一个配置表，indexs最多支持三个
@@ -47,7 +50,7 @@ function ConfigTable:upsert(row)
     end
     local row_indexs = {}
     for _, index in ipairs(self.indexs) do
-        row_indexs[#row_indexs + 1] = row[index]
+        tinsert(row_indexs, row[index])
     end
     if #row_indexs ~= #self.indexs then
         log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", row, self.indexs)
@@ -60,6 +63,14 @@ function ConfigTable:upsert(row)
             self.count = self.count + 1
         end
         self.rows[row_index] = row
+        if self.groups then
+            local group = self.groups[row.group]
+            if not group then
+                self.groups[row.group] = { row }
+            else
+                tinsert(group, row)
+            end
+        end
     end
 end
 
@@ -116,6 +127,13 @@ function ConfigTable:find_integer(key, ...)
     end
 end
 
+--查询分组数据
+function ConfigTable:find_group(key)
+    if self.groups then
+        return self.groups[key]
+    end
+end
+
 -- 获取所有项，参数{field1=val1,field2=val2,field3=val3}，与初始化index无关
 function ConfigTable:select(query, key)
     local rows = {}
@@ -126,9 +144,9 @@ function ConfigTable:select(query, key)
             end
         end
         if key then
-            rows[#rows + 1] = row[key]
+            tinsert(rows, row[key])
         else
-            rows[#rows + 1] = row
+            tinsert(rows, row)
         end
         ::continue::
     end

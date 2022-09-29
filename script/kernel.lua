@@ -1,5 +1,6 @@
 --kernel.lua
 import("basic/basic.lua")
+import("kernel/config_mgr.lua")
 local ltimer        = require("ltimer")
 
 local tpack         = table.pack
@@ -8,10 +9,11 @@ local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
 local ltime         = ltimer.time
 
-local co_hookor     = nil
-local socket_mgr    = nil
-local update_mgr    = nil
 local QuantaMode    = enum("QuantaMode")
+
+local co_hookor     = quanta.load("co_hookor")
+local socket_mgr    = quanta.load("socket_mgr")
+local update_mgr    = quanta.load("update_mgr")
 
 --初始化网络
 local function init_network()
@@ -91,6 +93,7 @@ end
 
 function quanta.hook_coroutine(hooker)
     co_hookor = hooker
+    quanta.co_hookor = hooker
 end
 
 --启动

@@ -11,8 +11,8 @@
 #include <conio.h>
 #include <windows.h>
 int setenv(const char* k, const char* v, int o) {
-	if (!o && getenv(k)) return 0;
-	return _putenv_s(k, v);
+    if (!o && getenv(k)) return 0;
+    return _putenv_s(k, v);
 }
 #else
 #include <fcntl.h>
@@ -115,11 +115,11 @@ const char* quanta_app::get_env(const char* key) {
 
 void quanta_app::setup(int argc, const char* argv[]) {
     srand((unsigned)time(nullptr));
-	//初始化日志
+    //初始化日志
     m_logger = std::make_shared<log_service>();
     m_logger->start();
     //加载配置
-	load(argc, argv);
+    load(argc, argv);
     //运行
     run();
 }
@@ -137,31 +137,31 @@ void quanta_app::load(int argc, const char* argv[]) {
     //设置默认参数
     setenv("QUANTA_SANDBOX", "sandbox", 1);
     //将启动参数转负责覆盖环境变量
-	for (int i = 1; i < argc; ++i) {
-		std::string argvi = argv[i];
-		auto pos = argvi.find("=");
-		if (pos != std::string::npos) {
-			auto evalue = argvi.substr(pos + 1);
-			auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
-			std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
-			setenv(ekey.c_str(), evalue.c_str(), 1);
-			continue;
-		}
+    for (int i = 1; i < argc; ++i) {
+        std::string argvi = argv[i];
+        auto pos = argvi.find("=");
+        if (pos != std::string::npos) {
+            auto evalue = argvi.substr(pos + 1);
+            auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
+            std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
+            setenv(ekey.c_str(), evalue.c_str(), 1);
+            continue;
+        }
         if (i == 1)
         {
-			//加载LUA配置
-			luakit::kit_state lua;
-			lua.set("platform", get_platform());
-			lua.set_function("set_osenv", lset_env);
+            //加载LUA配置
+            luakit::kit_state lua;
+            lua.set("platform", get_platform());
+            lua.set_function("set_osenv", lset_env);
             lua.set_function("set_env", [&](const char* k, const char* v) {
                 m_environs[k] = v;
             });
-			lua.run_file(argv[i], [&](std::string err) {
-				exception_handler("load lua config err: ", err);
-		    });
-			lua.close();
+            lua.run_file(argv[i], [&](std::string err) {
+                exception_handler("load lua config err: ", err);
+            });
+            lua.close();
         }
-	}
+    }
 }
 
 void quanta_app::run() {
@@ -169,18 +169,18 @@ void quanta_app::run() {
     luakit::kit_state lua;
     lua.set("platform", get_platform());
     auto quanta = lua.new_table("quanta");
-	quanta.set("pid", ::getpid());
-	quanta.set("environs", m_environs);
-	quanta.set("platform", get_platform());
+    quanta.set("pid", ::getpid());
+    quanta.set("environs", m_environs);
+    quanta.set("platform", get_platform());
     quanta.set_function("hash_code", hash_code);
-	quanta.set_function("daemon", [&]() { daemon(); });
+    quanta.set_function("daemon", [&]() { daemon(); });
     quanta.set_function("get_signal", [&]() { return m_signal; });
     quanta.set_function("set_signal", [&](int n) { set_signal(n); });
     quanta.set_function("get_logger", [&]() { return m_logger.get(); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
-	quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
-	quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
+    quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
+    quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
 
     lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string err) {
         exception_handler("load sandbox err: ", err);
@@ -199,8 +199,8 @@ void quanta_app::run() {
             LOG_FATAL(m_logger) << "quanta run err: " << err;
         });
         check_input(lua);
-	}
-	//通知logger
-	m_logger->stop();
+    }
+    //通知logger
+    m_logger->stop();
     lua.close();
 }

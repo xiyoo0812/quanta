@@ -4,12 +4,15 @@
 #include "aoi.h"
 
 namespace laoi {
-    static aoi_obj* create_object(uint64_t id, long typ) {
+
+    grid_list aoi::grid_pools = {};
+
+    static aoi_obj* create_object(uint64_t id, uint8_t typ) {
         return new aoi_obj(id, (aoi_type)typ);
     }
 
-    static aoi* create_aoi(lua_State* L, long w, long h, long grid, long aoi_len, bool offset) {
-        return new aoi(L, w, h, grid, aoi_len, offset);
+    static aoi* create_aoi(lua_State* L, uint32_t w, uint32_t h, uint16_t grid, uint16_t aoi_len, bool offset, bool dynamic) {
+        return new aoi(L, w, h, grid, aoi_len, offset, dynamic);
     }
 
     luakit::lua_table open_laoi(lua_State* L) {

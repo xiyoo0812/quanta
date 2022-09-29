@@ -1,8 +1,10 @@
 --node_factory.lua
 
-local log_err           = logger.err
-local log_info          = logger.info
-local tinsert           = table.insert
+local log_err       = logger.err
+local log_info      = logger.info
+local tinsert       = table.insert
+
+local update_mgr    = quanta.get("update_mgr")
 
 local NodeFactory = singleton()
 local prop = property(NodeFactory)
@@ -10,13 +12,12 @@ prop:accessor("nodes", {})      --nodes
 prop:accessor("factorys", {})   --factorys
 
 function NodeFactory:__init()
-end
-
-function NodeFactory:load()
-    log_info("[NodeFactory][load]")
-    for _, factory in ipairs(self.factorys) do
-        factory:load()
-    end
+    update_mgr:attach_next(self, function()
+        log_info("[NodeFactory] load factorys")
+        for _, factory in ipairs(self.factorys) do
+            factory:load()
+        end
+    end)
 end
 
 function NodeFactory:register(id, func)

@@ -1,6 +1,7 @@
 --player.lua
 local log_err           = logger.err
 local log_info          = logger.info
+local log_debug         = logger.debug
 local qfailed           = quanta.failed
 
 local router_mgr        = quanta.get("router_mgr")
@@ -60,6 +61,9 @@ end
 --发送消息
 function GatePlayer:send_message(cmd_id, data)
     client_mgr:send(self.session, cmd_id, data)
+    if cmd_id ~= 12105 then
+        log_debug("[Gateway][send_message] player(%s) send message(%s-%s) !", self.player_id, cmd_id, data)
+    end
 end
 
 --转发消息
@@ -72,9 +76,12 @@ function GatePlayer:notify_command(service_type, cmd_id, body, session_id)
     end
     local codeoe, res = self:trans_message(server_id, "rpc_player_command", self.player_id, cmd_id, body)
     if qfailed(codeoe) then
-        log_err("[GatePlayer][notify_command] call rpc_player_command(%s) code %s, failed: %s", cmd_id, codeoe, res)
+        log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", self.player_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
         return
+    end
+    if cmd_id ~= 12103 then
+        log_debug("[GatePlayer][notify_command] player(%s) response message(%s-%s) !", self.player_id, cmd_id, res)
     end
     client_mgr:callback_by_id(self.session, cmd_id, res, session_id)
 end

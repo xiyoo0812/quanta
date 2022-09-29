@@ -7,6 +7,7 @@ local log_warn      = logger.warn
 local sig_check     = signal.check
 local collectgarbage= collectgarbage
 
+local event_mgr     = quanta.get("event_mgr")
 local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -24,6 +25,7 @@ prop:reader("frame_objs", {})
 prop:reader("minute_objs", {})
 prop:reader("second_objs", {})
 prop:reader("second5_objs", {})
+prop:reader("next_events", {})
 prop:reader("next_handlers", {})
 
 function UpdateMgr:__init()
@@ -32,6 +34,21 @@ function UpdateMgr:__init()
     self:attach_frame(timer_mgr)
     self:attach_second(thread_mgr)
     self:attach_minute(thread_mgr)
+end
+
+function UpdateMgr:update_next()
+    for _, handler in pairs(self.next_handlers) do
+        thread_mgr:fork(handler)
+    end
+    self.next_handlers = {}
+    for key, events in pairs(self.next_events) do
+        for event, arg in pairs(events) do
+            thread_mgr:fork(function()
+                event_mgr:notify_trigger(event, key, arg)
+            end)
+        end
+    end
+    self.next_events = {}
 end
 
 function UpdateMgr:update(now_ms, clock_ms)
@@ -50,12 +67,8 @@ function UpdateMgr:update(now_ms, clock_ms)
     quanta.frame = frame
     quanta.now_ms = now_ms
     quanta.clock_ms = clock_ms
-    for _, handler in pairs(self.next_handlers) do
-        thread_mgr:fork(function()
-            handler(clock_ms)
-        end)
-    end
-    self.next_handlers = {}
+    --更新帧逻辑
+    self:update_next()
     --秒更新
     local now = now_ms // 1000
     if now == quanta.now then
@@ -107,6 +120,7 @@ function UpdateMgr:update(now_ms, clock_ms)
     end
     --gc
     collectgarbage("collect")
+    log_info("[UpdateMgr][update]now lua mem: %s!", collectgarbage("count"))
 end
 
 function UpdateMgr:sig_check()
@@ -185,8 +199,18 @@ function UpdateMgr:detach_frame(obj)
 end
 
 --下一帧执行一个函数
-function UpdateMgr:attach_next(obj, func)
-    self.next_handlers[obj] = func
+function UpdateMgr:attach_next(key, func)
+    self.next_handlers[key] = func
+end
+
+--下一帧执行一个事件
+function UpdateMgr:attach_event(key, event, arg)
+    local events = self.next_events[key]
+    if not events then
+        self.next_events[key] = {[event] = arg}
+        return
+    end
+    events[event] = arg
 end
 
 --添加对象到程序退出通知列表

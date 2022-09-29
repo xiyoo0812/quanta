@@ -9,8 +9,7 @@ return [[
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <title>GM Console</title>
-    <link rel="icon" href="http://kyrieliu.cn/kyrie.ico">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css">
 </head>
 <style>
     html,body,div,h1,h2,h3,h4,h5,h6,p,span{
@@ -98,8 +97,8 @@ return [[
     <small>Designed and built by <a href="https://github.com/xiyoo0812/quanta" target="_blank">quanta</a></small>
 </footer>
 </body>
-<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-<script src="http://jonmiles.github.io/bootstrap-treeview/js/bootstrap-treeview.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js"></script>
 <script type="text/javascript">
     window.onload = function(){
         var gmconsole = new GMConsole();
@@ -110,17 +109,9 @@ return [[
     GMConsole.prototype = {
         init: function(){
             var that = this;
-            var treeNodes = [
-                {
-                    text : "GM指令",
-                    nodes : [],
-                },
-                {
-                    text : "在线日志",
-                    nodes : [],
-                }
-            ];
-
+            var cmd_index = 0;
+            var historyCmds = [];
+            var treeNodes = [ {}, {} ];
             // 加载命令列表
             $.ajax({
                 url:"/gmlist",
@@ -128,12 +119,7 @@ return [[
                 dataType: "json",
                 contentType: "utf-8",
                 success: function (res) {
-                    var nodes = [];
-                    that.cmdlist = res;
-                    for (var cmd_name in res) {
-                        nodes.push({ text : res[cmd_name].desc, name : cmd_name,  tag : "gm" });
-                    };
-                    treeNodes[0].nodes = nodes;
+                    treeNodes[0] = res;
                     that._showConsole(treeNodes);
                 },
                 error: function(status) {
@@ -148,12 +134,7 @@ return [[
                 dataType: "json",
                 contentType: "utf-8",
                 success: function (res) {
-                    var nodes = [];
-                    for (var i in res) {
-                        var addr = res[i]
-                        nodes.push({ text : addr, tag : "log" });
-                    }
-                    treeNodes[1].nodes = nodes;
+                    treeNodes[1] = res;
                     that._showConsole(treeNodes);
                 },
                 error: function(status) {
@@ -163,14 +144,28 @@ return [[
 
             //sendBtn事件
             document.getElementById('sendBtn').addEventListener('click', function(){
-                that._sendCommand();
+                that._sendCommand(historyCmds);
+                cmd_index = historyCmds.length
             }, false);
             //inputMsg事件
             document.getElementById('inputMsg').addEventListener('keyup', function(e){
                 if (e.keyCode == 13){
-                    that._sendCommand();
+                    that._sendCommand(historyCmds);
+                    cmd_index = historyCmds.length
+                } else if (e.keyCode == 38){
+                    if (cmd_index > 0) cmd_index = cmd_index - 1
+                    that._showCommand(historyCmds[cmd_index])
+                } else if (e.keyCode == 40){
+                    if (cmd_index < historyCmds.length - 1) cmd_index = cmd_index + 1
+                    that._showCommand(historyCmds[cmd_index])
                 }
             }, false);
+        },
+
+        _showCommand: function(cmd) {
+            var inputMsg = document.getElementById('inputMsg');
+            inputMsg.value = cmd;
+            inputMsg.focus();
         },
 
         _showConsole: function(treeNodes) {
@@ -179,22 +174,16 @@ return [[
             //consoleTree事件
             $('#consoleTree').on('nodeSelected', function(event, data) {
                 if (data.tag == "gm") {
-                    var cmd_name = data.name;
-                    var cmd_data = that.cmdlist[cmd_name];
-                    if (cmd_data) {
-                        var msg = "<pre>命令: " + cmd_data.desc + "  参数: " + cmd_data.command + "</pre>";
-                        that._displayNewMsg("historyMsg", msg, "myMsg");
-                        var inputMsg = document.getElementById('inputMsg');
-                        inputMsg.value = cmd_name + " ";
-                        inputMsg.focus();
-                    }
+                    var msg = "<pre>命令: " + data.text + "  参数: " + data.command + "</pre>";
+                    that._displayNewMsg("historyMsg", msg, "myMsg");
+                    that._showCommand(data.name + " ")
                 } else if (data.tag == "log") {
                     window.open("http://" + data.text);
                 }
             });
         },
 
-        _sendCommand: function() {
+        _sendCommand: function(historyCmds) {
             var that = this;
             var inputMsg = document.getElementById('inputMsg');
             var msg = inputMsg.value.replace('\n','');
@@ -202,6 +191,7 @@ return [[
                 inputMsg.focus();
                 return;
             }
+            historyCmds.push(msg)
             that._displayNewMsg("historyMsg", msg, "myMsg");
             $.ajax({
                 url:"/command",

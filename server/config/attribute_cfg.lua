@@ -147,100 +147,44 @@ attribute:upsert({
 })
 
 attribute:upsert({
-    id = 55,
+    id = 53,
     enum_key = 'ATTR_CLOTH',
     nick = 'cloth',
     increase = false,
 })
 
 attribute:upsert({
-    id = 56,
+    id = 54,
     enum_key = 'ATTR_TROUSERS',
     nick = 'trousers',
     increase = false,
 })
 
 attribute:upsert({
-    id = 57,
+    id = 55,
     enum_key = 'ATTR_SHOES',
     nick = 'shoes',
     increase = false,
 })
 
 attribute:upsert({
-    id = 58,
+    id = 56,
     enum_key = 'ATTR_WEAPON',
     nick = 'weapon',
     increase = false,
 })
 
 attribute:upsert({
-    id = 53,
+    id = 57,
     enum_key = 'ATTR_NECK',
     nick = 'neck',
     increase = false,
 })
 
 attribute:upsert({
-    id = 54,
+    id = 58,
     enum_key = 'ATTR_RING',
     nick = 'ring',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 61,
-    enum_key = 'ATTR_SHUT_KEY1',
-    nick = 'shut_key1',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 62,
-    enum_key = 'ATTR_SHUT_KEY2',
-    nick = 'shut_key2',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 63,
-    enum_key = 'ATTR_SHUT_KEY3',
-    nick = 'shut_key3',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 64,
-    enum_key = 'ATTR_SHUT_KEY4',
-    nick = 'shut_key4',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 65,
-    enum_key = 'ATTR_SHUT_KEY5',
-    nick = 'shut_key5',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 66,
-    enum_key = 'ATTR_SHUT_KEY6',
-    nick = 'shut_key6',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 67,
-    enum_key = 'ATTR_SHUT_KEY7',
-    nick = 'shut_key7',
-    increase = false,
-})
-
-attribute:upsert({
-    id = 68,
-    enum_key = 'ATTR_SHUT_KEY8',
-    nick = 'shut_key8',
     increase = false,
 })
 
@@ -272,5 +216,12 @@ attribute:upsert({
     increase = false,
 })
 
+attribute:upsert({
+    id = 105,
+    enum_key = 'ATTR_LINE',
+    nick = 'line',
+    increase = false,
+})
+
 --general md5 version
-attribute:set_version('ac8bf910a6d4598d4819f2137604548e')
+attribute:set_version('fff099e00d147f2860e6329441ef0266')

@@ -33,7 +33,7 @@ utility:upsert({
 utility:upsert({
     ID = 5,
     key = 'born_pox_y',
-    value = '12',
+    value = '1200',
 })
 
 utility:upsert({
@@ -43,4 +43,4 @@ utility:upsert({
 })
 
 --general md5 version
-utility:set_version('736112f2341c15ee3d364a514931e55d')
+utility:set_version('01e3660460b4545fe18137445ab133ba')
