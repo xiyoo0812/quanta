@@ -298,6 +298,11 @@ local function export_sheet_to_table(sheet, output, title)
             end_line = row
             break
         end
+        local fkey = get_sheet_value(sheet, row, 2)
+        if not fkey or fkey == "" then
+            end_line = row
+            break
+        end
     end
     -- 开始处理
     local records = {}

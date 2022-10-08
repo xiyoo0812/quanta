@@ -1,6 +1,5 @@
 --entity.lua
 local log_warn      = logger.warn
-local log_info      = logger.info
 
 local AttributeSet  = import("business/attr/attribute_set.lua")
 
