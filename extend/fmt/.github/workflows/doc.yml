@@ -2,13 +2,16 @@ name: doc
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     # Use Ubuntu 20.04 because doxygen 1.8.13 from Ubuntu 18.04 is broken.
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Create Build Environment
       run: |

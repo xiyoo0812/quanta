@@ -59,6 +59,8 @@ TEST(uint128_test, shift) {
   EXPECT_EQ(static_cast<uint64_t>(n), 0x8000000000000000);
   n = n >> 62;
   EXPECT_EQ(static_cast<uint64_t>(n), 42);
+  EXPECT_EQ(uint128_fallback(1) << 112, uint128_fallback(0x1000000000000, 0));
+  EXPECT_EQ(uint128_fallback(0x1000000000000, 0) >> 112, uint128_fallback(1));
 }
 
 TEST(uint128_test, minus) {
@@ -89,6 +91,8 @@ template <typename Float> void check_isfinite() {
   EXPECT_TRUE(isfinite(Float(fmt::detail::max_value<double>())));
   // Use double because std::numeric_limits is broken for __float128.
   using limits = std::numeric_limits<double>;
+  FMT_CONSTEXPR20 auto result = isfinite(Float(limits::infinity()));
+  EXPECT_FALSE(result);
   EXPECT_FALSE(isfinite(Float(limits::infinity())));
   EXPECT_FALSE(isfinite(Float(-limits::infinity())));
   EXPECT_FALSE(isfinite(Float(limits::quiet_NaN())));
@@ -97,7 +101,7 @@ template <typename Float> void check_isfinite() {
 
 TEST(float_test, isfinite) {
   check_isfinite<double>();
-#ifdef __SIZEOF_FLOAT128__
+#if FMT_USE_FLOAT128
   check_isfinite<fmt::detail::float128>();
 #endif
 }
@@ -118,7 +122,7 @@ template <typename Float> void check_isnan() {
 
 TEST(float_test, isnan) {
   check_isnan<double>();
-#ifdef __SIZEOF_FLOAT128__
+#if FMT_USE_FLOAT128
   check_isnan<fmt::detail::float128>();
 #endif
 }
@@ -232,7 +236,7 @@ TEST(util_test, format_system_error) {
     throws_on_alloc = true;
   }
   if (!throws_on_alloc) {
-    fmt::print("warning: std::allocator allocates {} chars", max_size);
+    fmt::print("warning: std::allocator allocates {} chars\n", max_size);
     return;
   }
 }
@@ -891,6 +895,7 @@ TEST(format_test, runtime_width) {
             fmt::format("{0:{1}}", reinterpret_cast<void*>(0xcafe), 10));
   EXPECT_EQ("x          ", fmt::format("{0:{1}}", 'x', 11));
   EXPECT_EQ("str         ", fmt::format("{0:{1}}", "str", 12));
+  EXPECT_EQ(fmt::format("{:{}}", 42, short(4)), "  42");
 }
 
 TEST(format_test, precision) {
@@ -1035,6 +1040,7 @@ TEST(format_test, precision) {
       format_error, "number is too big");
 
   EXPECT_EQ("st", fmt::format("{0:.2}", "str"));
+  EXPECT_EQ("вожык", fmt::format("{0:.5}", "вожыкі"));
 }
 
 TEST(format_test, runtime_precision) {
@@ -1199,6 +1205,7 @@ constexpr auto uint128_max = ~static_cast<__uint128_t>(0);
 TEST(format_test, format_dec) {
   EXPECT_EQ("0", fmt::format("{0}", 0));
   EXPECT_EQ("42", fmt::format("{0}", 42));
+  EXPECT_EQ("42>", fmt::format("{:}>", 42));
   EXPECT_EQ("42", fmt::format("{0:d}", 42));
   EXPECT_EQ("42", fmt::format("{0}", 42u));
   EXPECT_EQ("-42", fmt::format("{0}", -42));
@@ -1490,7 +1497,11 @@ TEST(format_test, format_pointer) {
   EXPECT_EQ("0x0", fmt::format("{0}", static_cast<void*>(nullptr)));
   EXPECT_EQ("0x1234", fmt::format("{0}", reinterpret_cast<void*>(0x1234)));
   EXPECT_EQ("0x1234", fmt::format("{0:p}", reinterpret_cast<void*>(0x1234)));
-  EXPECT_EQ("0x" + std::string(sizeof(void*) * CHAR_BIT / 4, 'f'),
+  // On CHERI (or other fat-pointer) systems, the size of a pointer is greater
+  // than the size an integer that can hold a virtual address.  There is no
+  // portable address-as-an-integer type (yet) in C++, so we use `size_t` as
+  // the closest equivalent for now.
+  EXPECT_EQ("0x" + std::string(sizeof(size_t) * CHAR_BIT / 4, 'f'),
             fmt::format("{0}", reinterpret_cast<void*>(~uintptr_t())));
   EXPECT_EQ("0x1234",
             fmt::format("{}", fmt::ptr(reinterpret_cast<int*>(0x1234))));
@@ -1749,6 +1760,7 @@ TEST(format_test, group_digits_view) {
 }
 
 enum test_enum { foo, bar };
+auto format_as(test_enum e) -> int { return e; }
 
 TEST(format_test, join) {
   using fmt::join;
@@ -1826,15 +1838,15 @@ fmt::string_view to_string_view(string_like) { return "foo"; }
 
 constexpr char with_null[3] = {'{', '}', '\0'};
 constexpr char no_null[2] = {'{', '}'};
-static FMT_CONSTEXPR_DECL const char static_with_null[3] = {'{', '}', '\0'};
-static FMT_CONSTEXPR_DECL const char static_no_null[2] = {'{', '}'};
+static constexpr const char static_with_null[3] = {'{', '}', '\0'};
+static constexpr const char static_no_null[2] = {'{', '}'};
 
 TEST(format_test, compile_time_string) {
   EXPECT_EQ("foo", fmt::format(FMT_STRING("foo")));
   EXPECT_EQ("42", fmt::format(FMT_STRING("{}"), 42));
   EXPECT_EQ("foo", fmt::format(FMT_STRING("{}"), string_like()));
 
-#if FMT_USE_NONTYPE_TEMPLATE_PARAMETERS
+#if FMT_USE_NONTYPE_TEMPLATE_ARGS
   using namespace fmt::literals;
   EXPECT_EQ("foobar", fmt::format(FMT_STRING("{foo}{bar}"), "bar"_a = "bar",
                                   "foo"_a = "foo"));
@@ -1852,11 +1864,11 @@ TEST(format_test, compile_time_string) {
 
   (void)with_null;
   (void)no_null;
-#if __cplusplus >= 201703L
+#if FMT_CPLUSPLUS >= 201703L
   EXPECT_EQ("42", fmt::format(FMT_STRING(with_null), 42));
   EXPECT_EQ("42", fmt::format(FMT_STRING(no_null), 42));
 #endif
-#if defined(FMT_USE_STRING_VIEW) && __cplusplus >= 201703L
+#if defined(FMT_USE_STRING_VIEW) && FMT_CPLUSPLUS >= 201703L
   EXPECT_EQ("42", fmt::format(FMT_STRING(std::string_view("{}")), 42));
 #endif
 }
@@ -1872,38 +1884,8 @@ TEST(format_test, custom_format_compile_time_string) {
 }
 
 #if FMT_USE_USER_DEFINED_LITERALS
-// Passing user-defined literals directly to EXPECT_EQ causes problems
-// with macro argument stringification (#) on some versions of GCC.
-// Workaround: Assing the UDL result to a variable before the macro.
-
-using namespace fmt::literals;
-
-#  if FMT_GCC_VERSION
-#    define FMT_CHECK_DEPRECATED_UDL_FORMAT 1
-#  elif FMT_CLANG_VERSION && defined(__has_warning)
-#    if __has_warning("-Wdeprecated-declarations")
-#      define FMT_CHECK_DEPRECATED_UDL_FORMAT 1
-#    endif
-#  endif
-#  ifndef FMT_CHECK_DEPRECATED_UDL_FORMAT
-#    define FMT_CHECK_DEPRECATED_UDL_FORMAT 0
-#  endif
-
-#  if FMT_CHECK_DEPRECATED_UDL_FORMAT
-#    pragma GCC diagnostic push
-#    pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-
-TEST(format_test, format_udl) {
-  EXPECT_EQ("{}c{}"_format("ab", 1), fmt::format("{}c{}", "ab", 1));
-  EXPECT_EQ("foo"_format(), "foo");
-  EXPECT_EQ("{0:10}"_format(42), "        42");
-  EXPECT_EQ("{}"_format(date(2015, 10, 21)), "2015-10-21");
-}
-
-#    pragma GCC diagnostic pop
-#  endif
-
 TEST(format_test, named_arg_udl) {
+  using namespace fmt::literals;
   auto udl_a = fmt::format("{first}{second}{first}{third}", "first"_a = "abra",
                            "second"_a = "cad", "third"_a = 99);
   EXPECT_EQ(
@@ -1925,6 +1907,7 @@ TEST(format_test, formatter_not_specialized) {
 
 #if FMT_HAS_FEATURE(cxx_strong_enums)
 enum big_enum : unsigned long long { big_enum_value = 5000000000ULL };
+auto format_as(big_enum e) -> unsigned long long { return e; }
 
 TEST(format_test, strong_enum) {
   EXPECT_EQ("5000000000", fmt::format("{}", big_enum_value));
@@ -1987,8 +1970,7 @@ template <typename, typename OutputIt> void write(OutputIt, foo) = delete;
 FMT_BEGIN_NAMESPACE
 template <>
 struct formatter<adl_test::fmt::detail::foo> : formatter<std::string> {
-  template <typename FormatContext>
-  auto format(adl_test::fmt::detail::foo, FormatContext& ctx)
+  auto format(adl_test::fmt::detail::foo, format_context& ctx)
       -> decltype(ctx.out()) {
     return formatter<std::string>::format("foo", ctx);
   }
@@ -1996,9 +1978,7 @@ struct formatter<adl_test::fmt::detail::foo> : formatter<std::string> {
 FMT_END_NAMESPACE
 
 struct convertible_to_int {
-  operator int() const { return value; }
-
-  int value = 42;
+  operator int() const { return 42; }
 };
 
 TEST(format_test, to_string) {
@@ -2006,9 +1986,11 @@ TEST(format_test, to_string) {
   EXPECT_EQ(fmt::to_string(reinterpret_cast<void*>(0x1234)), "0x1234");
   EXPECT_EQ(fmt::to_string(adl_test::fmt::detail::foo()), "foo");
   EXPECT_EQ(fmt::to_string(convertible_to_int()), "42");
+  EXPECT_EQ(fmt::to_string(foo), "0");
 
-  enum foo : unsigned char { zero };
-  EXPECT_EQ(fmt::to_string(zero), "0");
+#if FMT_USE_FLOAT128
+  EXPECT_EQ(fmt::to_string(__float128(0.5)), "0.5");
+#endif
 }
 
 TEST(format_test, output_iterators) {
@@ -2022,6 +2004,7 @@ TEST(format_test, output_iterators) {
 
 TEST(format_test, formatted_size) {
   EXPECT_EQ(2u, fmt::formatted_size("{}", 42));
+  EXPECT_EQ(2u, fmt::formatted_size(std::locale(), "{}", 42));
 }
 
 TEST(format_test, format_to_no_args) {
@@ -2173,7 +2156,7 @@ TEST(format_test, format_string_errors) {
   EXPECT_ERROR_NOARGS("foo", nullptr);
   EXPECT_ERROR_NOARGS("}", "unmatched '}' in format string");
   EXPECT_ERROR("{0:s", "unknown format specifier", date);
-#  if !FMT_MSC_VER || FMT_MSC_VER >= 1916
+#  if !FMT_MSC_VERSION || FMT_MSC_VERSION >= 1916
   // This causes an detail compiler error in MSVC2017.
   EXPECT_ERROR("{:{<}", "invalid fill character '{'", int);
   EXPECT_ERROR("{:10000000000}", "number is too big", int);
@@ -2194,6 +2177,9 @@ TEST(format_test, format_string_errors) {
   EXPECT_ERROR("{: }", "format specifier requires signed argument", unsigned);
   EXPECT_ERROR("{:{}}", "argument not found", int);
   EXPECT_ERROR("{:.{}}", "argument not found", double);
+#    if defined(__cpp_lib_is_constant_evaluated) && !defined(__LCC__)
+  EXPECT_ERROR("{:{}}", "width/precision is not integer", int, double);
+#    endif
   EXPECT_ERROR("{:.2}", "precision not allowed for this argument type", int);
   EXPECT_ERROR("{:s}", "invalid type specifier", int);
   EXPECT_ERROR("{:s}", "invalid type specifier", char);
@@ -2205,7 +2191,8 @@ TEST(format_test, format_string_errors) {
 #  else
   fmt::print("warning: constexpr is broken in this version of MSVC\n");
 #  endif
-#  if FMT_USE_NONTYPE_TEMPLATE_PARAMETERS
+#  if FMT_USE_NONTYPE_TEMPLATE_ARGS
+  using namespace fmt::literals;
   EXPECT_ERROR("{foo}", "named argument is not found", decltype("bar"_a = 42));
   EXPECT_ERROR("{foo}", "named argument is not found",
                decltype(fmt::arg("foo", 42)));
@@ -2251,7 +2238,7 @@ TEST(format_test, char_traits_is_not_ambiguous) {
   using namespace std;
   auto c = char_traits<char>::char_type();
   (void)c;
-#if __cplusplus >= 201103L
+#if FMT_CPLUSPLUS >= 201103L
   auto s = std::string();
   auto lval = begin(s);
   (void)lval;
@@ -2323,3 +2310,57 @@ TEST(format_int_test, format_int) {
   os << max_value<int64_t>();
   EXPECT_EQ(os.str(), fmt::format_int(max_value<int64_t>()).str());
 }
+
+#ifndef FMT_STATIC_THOUSANDS_SEPARATOR
+
+#  include <locale>
+
+class format_facet : public fmt::format_facet<std::locale> {
+ protected:
+  struct int_formatter {
+    fmt::appender out;
+
+    template <typename T, FMT_ENABLE_IF(fmt::detail::is_integer<T>::value)>
+    auto operator()(T value) -> bool {
+      fmt::format_to(out, "[{}]", value);
+      return true;
+    }
+
+    template <typename T, FMT_ENABLE_IF(!fmt::detail::is_integer<T>::value)>
+    auto operator()(T) -> bool {
+      return false;
+    }
+  };
+
+  auto do_put(fmt::appender out, fmt::loc_value val,
+              const fmt::format_specs&) const -> bool override;
+};
+
+auto format_facet::do_put(fmt::appender out, fmt::loc_value val,
+                          const fmt::format_specs&) const -> bool {
+  return val.visit(int_formatter{out});
+}
+
+TEST(format_test, format_facet) {
+  auto loc = std::locale(std::locale(), new format_facet());
+  EXPECT_EQ(fmt::format(loc, "{:L}", 42), "[42]");
+  EXPECT_EQ(fmt::format(loc, "{:L}", -42), "[-42]");
+}
+
+TEST(format_test, format_facet_separator) {
+  // U+2019 RIGHT SINGLE QUOTATION MARK is a digit separator in the de_CH
+  // locale.
+  auto loc =
+      std::locale({}, new fmt::format_facet<std::locale>("\xe2\x80\x99"));
+  EXPECT_EQ(fmt::format(loc, "{:L}", 1000),
+            "1\xe2\x80\x99"
+            "000");
+}
+
+TEST(format_test, format_facet_grouping) {
+  auto loc =
+      std::locale({}, new fmt::format_facet<std::locale>(",", {1, 2, 3}));
+  EXPECT_EQ(fmt::format(loc, "{:L}", 1234567890), "1,234,567,89,0");
+}
+
+#endif  // FMT_STATIC_THOUSANDS_SEPARATOR
