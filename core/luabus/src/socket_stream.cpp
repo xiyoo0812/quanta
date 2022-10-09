@@ -481,7 +481,7 @@ void socket_stream::dispatch_package() {
             }
             package_size = header->len;
         }
-        else if (eproto_type::proto_pack == m_proto_type) {
+        else if (eproto_type::proto_head == m_proto_type) {
             // pack模式获取socket_header
             size_t header_len = sizeof(socket_header);
             auto data = m_recv_buffer->peek_data(header_len);
@@ -496,8 +496,20 @@ void socket_stream::dispatch_package() {
             }
             package_size = header->len;
         }
+        else if (eproto_type::proto_common == m_proto_type) {
+            uint32_t* length = (uint32_t*)m_recv_buffer->peek_data(sizeof(uint32_t));
+            if (!length) {
+                break;
+            }
+            //头长度只包含内容，不包括长度
+            package_size = *length;
+            auto data = m_recv_buffer->peek_data(package_size);
+            if (!data) {
+                break;
+            }
+        }
         else if (eproto_type::proto_text == m_proto_type) {
-            package_size = data_len = m_recv_buffer->size();
+            package_size = m_recv_buffer->size();
             if (data_len == 0) break;
         } else {
             on_error("proto-type-not-suppert!");

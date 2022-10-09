@@ -7,16 +7,24 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\buffer.h" />
+    <ClInclude Include="src\bufpool.h" />
+    <ClInclude Include="src\bufqueue.h" />
+    <ClInclude Include="src\lcodec.h" />
+    <ClInclude Include="src\serializer.h" />
+    <ClInclude Include="src\shm.h" />
+    <ClInclude Include="src\shmpool.h" />
+    <ClInclude Include="src\slice.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\bson.c" />
+    <ClCompile Include="src\lcodec.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{0B6879B1-86BF-B2B1-EC65-D2460E4ECCD4}</ProjectGuid>
-    <RootNamespace>bson</RootNamespace>
+    <ProjectGuid>{E24CB1AD-193A-E647-45BE-564E7264711B}</ProjectGuid>
+    <RootNamespace>lcodec</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>bson</ProjectName>
+    <ProjectName>lcodec</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
@@ -35,14 +43,14 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
-    <TargetName>bson</TargetName>
+    <TargetName>lcodec</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\lua\lua;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lua\lua;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -60,7 +68,7 @@
       <SubSystem>Console</SubSystem>
       <ImportLibrary>$(SolutionDir)library\$(Platform)\$(TargetName).lib</ImportLibrary>
       <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>lua.lib;ws2_32.lib;mimalloc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua.lib;mimalloc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>
       </ForceFileOutput>
     </Link>

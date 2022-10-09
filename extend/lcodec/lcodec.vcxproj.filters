@@ -10,7 +10,7 @@
     <ClInclude Include="src\bufqueue.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\lbuffer.h">
+    <ClInclude Include="src\lcodec.h">
       <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="src\serializer.h">
@@ -27,7 +27,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lbuffer.cpp">
+    <ClCompile Include="src\lcodec.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

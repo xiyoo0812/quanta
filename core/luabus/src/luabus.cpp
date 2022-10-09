@@ -16,6 +16,12 @@ namespace luabus {
         luakit::kit_state kit_state(L);
         auto lluabus = kit_state.new_table();
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
+        lluabus.new_enum("eproto_type",
+            "rpc", eproto_type::proto_rpc,
+            "head", eproto_type::proto_head,
+            "text", eproto_type::proto_text,
+            "common", eproto_type::proto_common
+        );
         kit_state.new_class<lua_socket_mgr>(
             "wait", &lua_socket_mgr::wait,
             "listen", &lua_socket_mgr::listen,
@@ -28,8 +34,9 @@ namespace luabus {
             "token", &lua_socket_node::m_token,
             "call", &lua_socket_node::call,
             "close", &lua_socket_node::close,
-            "call_pack", &lua_socket_node::call_pack,
+            "call_head", &lua_socket_node::call_head,
             "call_text", &lua_socket_node::call_text,
+            "call_slice", &lua_socket_node::call_slice,
             "set_nodelay", &lua_socket_node::set_nodelay,
             "set_timeout", &lua_socket_node::set_timeout,
             "forward_hash", &lua_socket_node::forward_hash,

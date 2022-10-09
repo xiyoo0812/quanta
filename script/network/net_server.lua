@@ -83,7 +83,7 @@ function NetServer:on_socket_accept(session)
     -- 设置超时(心跳)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 绑定call回调
-    session.on_call_pack = function(recv_len, cmd_id, flag, type, session_id, slice)
+    session.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
         event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
@@ -117,12 +117,12 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
         session_id = session_id & 0xffff
     end
     -- call lbus
-    local send_len = session.call_pack(msg_id, pflag, 0, session_id, body, #body)
+    local send_len = session.call_head(msg_id, pflag, 0, session_id, body, #body)
     if send_len > 0 then
         event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         return true
     end
-    log_err("[NetServer][write] call_pack failed! code:%s", send_len)
+    log_err("[NetServer][write] call_head failed! code:%s", send_len)
     return false
 end
 
@@ -139,7 +139,7 @@ function NetServer:broadcast(cmd_id, data)
         return false
     end
     for _, session in pairs(self.sessions) do
-        local send_len = session.call_pack(msg_id, pflag, 0, 0, body, #body)
+        local send_len = session.call_head(msg_id, pflag, 0, 0, body, #body)
         if send_len > 0 then
             event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         end

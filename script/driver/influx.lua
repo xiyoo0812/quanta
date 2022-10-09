@@ -1,6 +1,7 @@
 --influx.lua
 import("network/http_client.lua")
 local ljson         = require("lcjson")
+local lcodec        = require("lcodec")
 
 local log_err       = logger.err
 local log_info      = logger.info
@@ -9,7 +10,7 @@ local tconcat       = table.concat
 local sgsub         = string.gsub
 local sformat       = string.format
 local ssplit        = qstring.split
-local serialize     = quanta.serialize
+local serialize     = lcodec.serialize
 
 local http_client   = quanta.get("http_client")
 local WEEK_S        = quanta.enum("PeriodTime", "WEEK_S")

@@ -98,6 +98,15 @@ local function tjoin(src, dst)
     return ndst
 end
 
+local function tpush(dst, ...)
+    local args = {...}
+    local n = select("#", ...)
+    for i = 1, n do
+        dst[#dst + 1] = args[i]
+    end
+    return dst
+end
+
 local function tdiff(src, dst)
     local add, del = {}, {}
     for k, v in pairs(src) do
@@ -157,6 +166,7 @@ qtable.deep_copy     = tdeep_copy
 qtable.delete        = tdelete
 qtable.join          = tjoin
 qtable.map           = tmap
+qtable.push          = tpush
 qtable.diff          = tdiff
 qtable.array         = tarray
 qtable.kvarray       = tkvarray

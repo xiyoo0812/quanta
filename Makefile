@@ -24,19 +24,18 @@ lua:
 	cd extend/lua; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 
 luaext:
-	cd extend/bson; make -j4 SOLUTION_DIR=$(CUR_DIR) -f bson.mak;
 	cd extend/laoi; make -j4 SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
-	cd extend/lbuffer; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lbuffer.mak;
 	cd extend/lcjson; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
+	cd extend/lcodec; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcodec.mak;
 	cd extend/lcrypt; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
 	cd extend/lcurl; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
 	cd extend/lhttp; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
 	cd extend/lkcp; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lkcp.mak;
+	cd extend/lmongo; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lmongo.mak;
 	cd extend/lstdfs; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make -j4 SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/lualog; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
 	cd extend/luaxlsx; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
-	cd extend/mongo; make -j4 SOLUTION_DIR=$(CUR_DIR) -f mongo.mak;
 	cd extend/protobuf; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lua-protobuf.mak;
 
 share:

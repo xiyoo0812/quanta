@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = lbuffer
+PROJECT_NAME = lcodec
 
 #目标名字
-TARGET_NAME = lbuffer
+TARGET_NAME = lcodec
 
 #系统环境
 UNAME_S = $(shell uname -s)

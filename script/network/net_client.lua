@@ -71,7 +71,7 @@ function NetClient:connect(block)
             thread_mgr:response(block_id, success, res)
         end
     end
-    socket.on_call_pack = function(recv_len, cmd_id, flag, type, session_id, slice)
+    socket.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
         event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, type, session_id, slice)
     end
@@ -174,9 +174,9 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_pack(msg_id, pflag, type or 0, session_id or 0, body, #body)
+    local send_len = self.socket.call_head(msg_id, pflag, type or 0, session_id or 0, body, #body)
     if send_len < 0 then
-        log_err("[NetClient][write] call_pack failed! code:%s", send_len)
+        log_err("[NetClient][write] call_head failed! code:%s", send_len)
         return false
     end
     return true

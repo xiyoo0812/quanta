@@ -34,12 +34,16 @@ lua_socket_node::~lua_socket_node() {
     close();
 }
 
+int lua_socket_node::call_slice(slice* slice){
+    return call_text((const char*)slice->head(), slice->size());
+}
+
 int lua_socket_node::call_text(const char* data, uint32_t data_len) {
     m_mgr->send(m_token, data, data_len);
     return data_len;
 }
 
-int lua_socket_node::call_pack(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len){
+int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len){
     socket_header header;
     header.flag = flag;
     header.type = type;
@@ -102,8 +106,12 @@ void lua_socket_node::close() {
 }
 
 void lua_socket_node::on_recv(slice* slice) {
-    if (eproto_type::proto_pack == m_proto_type) {
-        on_call_pack(slice);
+    if (eproto_type::proto_head == m_proto_type) {
+        on_call_head(slice);
+        return;
+    }
+    if (eproto_type::proto_common == m_proto_type) {
+        on_call_common(slice);
         return;
     }
     if (eproto_type::proto_text == m_proto_type) {
@@ -173,7 +181,7 @@ void lua_socket_node::on_call(router_header* header, slice* slice) {
     kit_state.object_call(this, "on_call", nullptr, std::tie(), header->len, session_id, flag, slice);
 }
 
-void lua_socket_node::on_call_pack(slice* slice) {
+void lua_socket_node::on_call_head(slice* slice) {
     size_t header_len = sizeof(socket_header);
     auto data = slice->peek(header_len);
     socket_header* header = (socket_header*)data;
@@ -184,10 +192,16 @@ void lua_socket_node::on_call_pack(slice* slice) {
     if (session_id > 0) session_id |= m_stoken;
     slice->erase(header_len);
     luakit::kit_state kit_state(m_lvm);
-    kit_state.object_call(this, "on_call_pack", nullptr, std::tie(), header->len, cmd_id, flag, type, session_id, slice);
+    kit_state.object_call(this, "on_call_head", nullptr, std::tie(), header->len, cmd_id, flag, type, session_id, slice);
 }
 
 void lua_socket_node::on_call_text(slice* slice) {
     luakit::kit_state kit_state(m_lvm);
     kit_state.object_call(this, "on_call_text", nullptr, std::tie(), slice->size(), slice);
 }
+
+void lua_socket_node::on_call_common(slice* slice) {
+    luakit::kit_state kit_state(m_lvm);
+    kit_state.object_call(this, "on_call_common", nullptr, std::tie(), slice->size(), slice);
+}
+

@@ -273,7 +273,7 @@ end
 
 --导出到lua table
 local function export_sheet_to_table(sheet, output, title)
-    local header     = {}
+    local header = {}
     local field_type = {}
     local head_line = start_line - 1
     for col = sheet.first_col, sheet.last_col do
@@ -287,14 +287,14 @@ local function export_sheet_to_table(sheet, output, title)
     local end_line = sheet.last_row
     for row = read_len, end_line do
         local start_tag = get_sheet_value(sheet, row, 1)
-        if start_tag and start_tag == "Start" then
+        if start_tag == "Start" then
             read_len = row
             break
         end
     end
     for row = read_len, end_line do
         local end_tag = get_sheet_value(sheet, row, 1)
-        if end_tag and end_tag == "End" then
+        if end_tag == "End" then
             end_line = row
             break
         end
@@ -314,7 +314,7 @@ local function export_sheet_to_table(sheet, output, title)
             local ftype = field_type[col]
             if ftype then
                 local value = get_sheet_value(sheet, row, col, ftype, header[col])
-                if value ~= nil then
+                if value then
                     tinsert(record, {header[col], value, ftype})
                 end
             end

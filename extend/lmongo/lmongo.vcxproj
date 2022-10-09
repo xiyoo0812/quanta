@@ -7,24 +7,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\buffer.h" />
-    <ClInclude Include="src\bufpool.h" />
-    <ClInclude Include="src\bufqueue.h" />
-    <ClInclude Include="src\lbuffer.h" />
-    <ClInclude Include="src\serializer.h" />
-    <ClInclude Include="src\shm.h" />
-    <ClInclude Include="src\shmpool.h" />
-    <ClInclude Include="src\slice.h" />
+    <ClInclude Include="src\bson.h" />
+    <ClInclude Include="src\mongo.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lbuffer.cpp" />
+    <ClCompile Include="src\lmongo.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{177A2178-1E93-A220-C618-9BAE709912F2}</ProjectGuid>
-    <RootNamespace>lbuffer</RootNamespace>
+    <ProjectGuid>{E019DA7E-EC0A-AA36-71A6-A73542E75A70}</ProjectGuid>
+    <RootNamespace>lmongo</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>lbuffer</ProjectName>
+    <ProjectName>lmongo</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
@@ -43,14 +37,14 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
-    <TargetName>lbuffer</TargetName>
+    <TargetName>lmongo</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\lua\lua;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lua\lua;..\lcodec\src;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

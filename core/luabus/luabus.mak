@@ -29,7 +29,7 @@ STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../../extend/lua/lua
-MYCFLAGS += -I../../extend/lbuffer/src
+MYCFLAGS += -I../../extend/lcodec/src
 MYCFLAGS += -I../../extend/ltimer/ltimer
 MYCFLAGS += -I../../extend/luakit/include
 

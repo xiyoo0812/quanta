@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = bson
+PROJECT_NAME = lmongo
 
 #目标名字
-TARGET_NAME = bson
+TARGET_NAME = lmongo
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -15,7 +15,6 @@ all : pre_build target post_build
 MYCFLAGS =
 
 #需要定义的FLAG
-MYCFLAGS += -Wno-sign-compare
 
 #c标准库版本
 #gnu99/gnu11/gnu17
@@ -27,6 +26,8 @@ STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../lua/lua
+MYCFLAGS += -I../lcodec/src
+MYCFLAGS += -I../luakit/include
 
 #需要定义的选项
 

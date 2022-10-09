@@ -1,9 +1,13 @@
 --socket.lua
+local lbus          = require("luabus")
+
 local ssub          = string.sub
 local sfind         = string.find
 local log_err       = logger.err
 local log_info      = logger.info
 local qxpcall       = quanta.xpcall
+
+local eproto_type   = lbus.eproto_type
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -18,6 +22,7 @@ prop:reader("host", nil)
 prop:reader("token", nil)
 prop:reader("alive", false)
 prop:reader("alive_time", 0)
+prop:reader("proto_type", eproto_type.text)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
 prop:reader("recvbuf", "")
@@ -40,35 +45,39 @@ function Socket:close()
     end
 end
 
-function Socket:listen(ip, port)
+function Socket:listen(ip, port, ptype)
     if self.listener then
         return true
     end
-    local proto_type = 2
-    self.listener = socket_mgr.listen(ip, port, proto_type)
+    if ptype then
+        self.proto_type = ptype
+    end
+    self.listener = socket_mgr.listen(ip, port, self.proto_type)
     if not self.listener then
-        log_err("[Socket][listen] failed to listen: %s:%d type=%d", ip, port, proto_type)
+        log_err("[Socket][listen] failed to listen: %s:%d type=%d", ip, port, self.proto_type)
         return false
     end
     self.ip, self.port = ip, port
-    log_info("[Socket][listen] start listen at: %s:%d type=%d", ip, port, proto_type)
+    log_info("[Socket][listen] start listen at: %s:%d type=%d", ip, port, self.proto_type)
     self.listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session, ip, port)
     end
     return true
 end
 
-function Socket:connect(ip, port)
+function Socket:connect(ip, port, ptype)
     if self.session then
         if self.alive then
             return true
         end
         return false, "socket in connecting"
     end
-    local proto_type = 2
-    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_type)
+    if ptype then
+        self.proto_type = ptype
+    end
+    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, self.proto_type)
     if not session then
-        log_err("[Socket][connect] failed to connect: %s:%d type=%d, err=%s", ip, port, proto_type, cerr)
+        log_err("[Socket][connect] failed to connect: %s:%d type=%d, err=%s", ip, port, self.proto_type, cerr)
         return false, cerr
     end
     --设置阻塞id
@@ -84,6 +93,9 @@ function Socket:connect(ip, port)
         thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, slice)
+    end
+    session.on_call_common = function(recv_len, slice)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, slice)
     end
     session.on_error = function(token, err)
@@ -104,9 +116,13 @@ function Socket:on_socket_accept(session)
 end
 
 function Socket:on_socket_recv(session, slice)
-    self.recvbuf = self.recvbuf .. slice.string()
     self.alive_time = quanta.now
-    self.host:on_socket_recv(self, self.token)
+    if self.proto_type == eproto_type.text then
+        self.recvbuf = self.recvbuf .. slice.string()
+        self.host:on_socket_recv(self, self.token)
+    else
+        self.host:on_slice_recv(slice, self.token)
+    end
 end
 
 function Socket:on_socket_error(token, err)
@@ -164,6 +180,14 @@ end
 function Socket:send(data)
     if self.alive and data then
         local send_len = self.session.call_text(data, #data)
+        return send_len > 0
+    end
+    return false, "socket not alive"
+end
+
+function Socket:send_slice(slice)
+    if self.alive and slice then
+        local send_len = self.session.call_slice(slice)
         return send_len > 0
     end
     return false, "socket not alive"

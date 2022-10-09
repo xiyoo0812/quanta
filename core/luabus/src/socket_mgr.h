@@ -10,7 +10,7 @@
 #include "socket_helper.h"
 #include "buffer.h"
 
-using namespace lbuffer;
+using namespace lcodec;
 
 enum class elink_status : int
 {
@@ -23,10 +23,11 @@ enum class elink_status : int
 // 协议类型
 enum class eproto_type : int
 {
-    proto_rpc = 0,  // rpc协议
-    proto_pack = 1,  // pack协议
-    proto_text = 2,  // text协议
-    proto_max = 3,  // max 
+    proto_rpc = 0,      // rpc协议
+    proto_head = 1,     // head协议，根据协议头解析
+    proto_text = 2,     // text协议，根据文本协议
+    proto_common = 3,   // 通用协议，协议前4个字节为长度
+    proto_max = 4,      // max 
 };
 
 struct sendv_item

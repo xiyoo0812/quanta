@@ -18,9 +18,10 @@ public:
 	void set_timeout(int ms) { m_mgr->set_timeout(m_token, ms); }
 	void set_nodelay(bool flag) { m_mgr->set_nodelay(m_token, flag); }
 
+	int call_slice(slice* slice);
 	int call_text(const char* data, uint32_t data_len);
 	int call(uint32_t session_id, uint8_t flag, slice* slice);
-	int call_pack(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len);
+	int call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len);
     int forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, slice* slice);
 
     int forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, slice* slice);
@@ -49,8 +50,9 @@ public:
 
 private:
 	void on_recv(slice* slice);
-    void on_call_pack(slice* slice);
+    void on_call_head(slice* slice);
     void on_call_text(slice* slice);
+    void on_call_common(slice* slice);
     void on_call(router_header* header, slice* slice);
 	void on_forward_broadcast(router_header* header, size_t target_size);
 	void on_forward_error(router_header* header);

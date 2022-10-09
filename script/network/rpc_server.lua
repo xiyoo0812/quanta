@@ -1,16 +1,17 @@
 --rpc_server.lua
+local lcodec            = require("lcodec")
 
 local pairs             = pairs
 local tpack             = table.pack
 local tunpack           = table.unpack
+local signalquit        = signal.quit
 local log_err           = logger.err
 local log_warn          = logger.warn
 local log_info          = logger.info
-local qxpcall           = quanta.xpcall
-local signalquit        = signal.quit
-local lencode           = quanta.encode
-local ldecode           = quanta.decode
 local qeval             = quanta.eval
+local qxpcall           = quanta.xpcall
+local lencode           = lcodec.encode_slice
+local ldecode           = lcodec.decode_slice
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")

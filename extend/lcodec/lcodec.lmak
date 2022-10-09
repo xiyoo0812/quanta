@@ -1,15 +1,21 @@
 --工程名字
-PROJECT_NAME = "mongo"
+PROJECT_NAME = "lcodec"
 
 --目标名字
-TARGET_NAME = "mongo"
+TARGET_NAME = "lcodec"
 
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
+--需要的FLAGS
+FLAGS = {
+	"Wno-sign-compare"
+}
+
 --需要的include目录
 INCLUDES = {
-	"../lua/lua"
+	"../lua/lua",
+	"../luakit/include"
 }
 
 --需要连接的库文件
@@ -29,3 +35,4 @@ DEPS = {
 
 --分组定义
 GROUP = "luaext"
+

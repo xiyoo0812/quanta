@@ -7,7 +7,7 @@
 #include <vector>
 #include "buffer.h"
 
-namespace lbuffer {
+namespace lcodec {
     const uint8_t type_nil          = 0;
     const uint8_t type_true         = 1;
     const uint8_t type_false        = 2;
@@ -36,7 +36,7 @@ namespace lbuffer {
             delete m_buffer;
         }
 
-        slice* encode(lua_State* L) {
+        slice* encode_slice(lua_State* L) {
             m_buffer->reset();
             m_sshares.clear();
             int n = lua_gettop(L);
@@ -46,16 +46,16 @@ namespace lbuffer {
             return m_buffer->get_slice();
         }
 
-        int encode_string(lua_State* L) {
+        int encode(lua_State* L) {
             size_t data_len = 0;
-            slice* buf = encode(L);
+            slice* buf = encode_slice(L);
             const char* data = (const char*)buf->data(&data_len);
             lua_pushlstring(L, data, data_len);
             lua_pushinteger(L, data_len);
             return 2;
         }
 
-        int decode(lua_State* L, slice* buf){
+        int decode_slice(lua_State* L, slice* buf){
             m_sshares.clear();
             lua_settop(L, 0);
             while (1) {
@@ -67,10 +67,10 @@ namespace lbuffer {
             return lua_gettop(L);
         }
 
-        int decode_string(lua_State* L, const char* buf, size_t len) {
+        int decode(lua_State* L, const char* buf, size_t len) {
             m_buffer->reset();
             m_buffer->push_data((uint8_t*)buf, len);
-            return decode(L, m_buffer->get_slice());
+            return decode_slice(L, m_buffer->get_slice());
         }
 
         int serialize(lua_State* L) {

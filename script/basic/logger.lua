@@ -2,6 +2,7 @@
 --logger功能支持
 local llog          = require("lualog")
 local lstdfs        = require("lstdfs")
+local lcodec        = require("lcodec")
 
 local pcall         = pcall
 local pairs         = pairs
@@ -9,7 +10,7 @@ local tpack         = table.pack
 local tunpack       = table.unpack
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
-local serialize     = quanta.serialize
+local serialize     = lcodec.serialize
 local fsstem        = lstdfs.stem
 
 local LOG_LEVEL     = llog.LOG_LEVEL

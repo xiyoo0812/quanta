@@ -1,10 +1,12 @@
 --router_server.lua
+local lcodec        = require("lcodec")
+
 local log_err       = logger.err
 local log_info      = logger.info
 local signalquit    = signal.quit
 local sformat       = string.format
-local lencode       = quanta.encode
 local qhash_code    = quanta.hash_code
+local lencode       = lcodec.encode_slice
 
 local socket_mgr    = quanta.get("socket_mgr")
 local config_mgr    = quanta.get("config_mgr")
