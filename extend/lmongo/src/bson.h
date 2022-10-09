@@ -107,8 +107,8 @@ namespace lmongo {
                     }
                     lua_pushvalue(L, i + 2);
                     pack_one(L, key, sz, 0);
+                    lua_pop(L, 1);
                 }
-                lua_pop(L, 1);
             }
             m_buffer->write<uint8_t>(0);
             uint32_t size = m_buffer->size() - offset;
