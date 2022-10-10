@@ -67,7 +67,7 @@ function Queue:build_index(value)
             log_warn("[Queue][build_index] dupkey is hold")
             return false
         end
-        self.duplicates[dupkey] = true
+        self.duplicates[dupkey] = value
     end
     if self.indexs then
         local idxkey = value[self.index]

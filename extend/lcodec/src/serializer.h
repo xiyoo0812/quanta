@@ -20,7 +20,8 @@ namespace lcodec {
     const uint8_t type_str_shrt     = 9;
     const uint8_t type_str_long     = 10;
     const uint8_t type_index        = 11;
-    const uint8_t type_max          = 12;
+    const uint8_t type_undefine     = 13;
+    const uint8_t type_max          = 14;
 
     const uint8_t max_encode_depth  = 16;
     const uint8_t max_share_string  = 255;
@@ -189,6 +190,7 @@ namespace lcodec {
                 lua_isinteger(L, idx) ? integer_encode(lua_tointeger(L, idx)) : number_encode(lua_tonumber(L, idx));
                 break;
             default:
+                value_encode(type_undefine);
                 break;
             }
         }
@@ -273,6 +275,9 @@ namespace lcodec {
                 break;
             case type_int64:
                 lua_pushinteger(L, value_decode<int64_t>(L, buf));
+                break;
+            case type_undefine:
+                lua_pushstring(L, "undefine");
                 break;
             default:
                 lua_pushinteger(L, type - type_max);
