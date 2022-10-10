@@ -20,8 +20,8 @@ namespace lcodec {
     const uint8_t type_str_shrt     = 9;
     const uint8_t type_str_long     = 10;
     const uint8_t type_index        = 11;
-    const uint8_t type_undefine     = 13;
-    const uint8_t type_max          = 14;
+    const uint8_t type_undefine     = 12;
+    const uint8_t type_max          = 13;
 
     const uint8_t max_encode_depth  = 16;
     const uint8_t max_share_string  = 255;
