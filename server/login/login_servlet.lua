@@ -1,10 +1,11 @@
 --login_servlet.lua
-local lcrypt                = require("lcrypt")
+local lcodec                = require("lcodec")
+
 local log_err               = logger.err
 local log_info              = logger.info
 local log_debug             = logger.debug
 local qfailed               = quanta.failed
-local guid_new              = lcrypt.guid_new
+local guid_new              = lcodec.guid_new
 local trandom               = qtable.random
 local mrandom               = qmath.random
 local tremove               = table.remove

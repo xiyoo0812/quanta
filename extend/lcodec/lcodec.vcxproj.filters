@@ -10,6 +10,9 @@
     <ClInclude Include="src\bufqueue.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\guid.h">
+      <Filter>inc</Filter>
+    </ClInclude>
     <ClInclude Include="src\lcodec.h">
       <Filter>inc</Filter>
     </ClInclude>

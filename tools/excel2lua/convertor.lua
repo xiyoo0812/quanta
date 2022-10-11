@@ -314,7 +314,7 @@ local function export_sheet_to_table(sheet, output, title)
             local ftype = field_type[col]
             if ftype then
                 local value = get_sheet_value(sheet, row, col, ftype, header[col])
-                if value then
+                if value ~= nil then
                     tinsert(record, {header[col], value, ftype})
                 end
             end

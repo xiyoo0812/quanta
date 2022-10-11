@@ -52,20 +52,12 @@ namespace lmongo {
 
     class bson {
     public:
-        bson() {
-            m_buffer = new var_buffer();
-        }
-
-        ~bson() {
-            delete m_buffer;
-        }
-
         slice* encode_slice(lua_State* L) {
             lua_settop(L, 1);
             luaL_checktype(L, 1, LUA_TTABLE);
-            m_buffer->reset();
+            m_buffer.reset();
             pack_dict(L, 0);
-            return m_buffer->get_slice();
+            return m_buffer.get_slice();
         }
 
          int encode(lua_State* L) {
@@ -84,9 +76,9 @@ namespace lmongo {
         }
 
         int decode(lua_State* L, const char* buf, size_t len) {
-            m_buffer->reset();
-            m_buffer->push_data((uint8_t*)buf, len);
-            return decode_slice(L, m_buffer->get_slice());
+            m_buffer.reset();
+            m_buffer.push_data((uint8_t*)buf, len);
+            return decode_slice(L, m_buffer.get_slice());
         }
 
         slice* encode_order_slice(lua_State* L) {
@@ -95,9 +87,9 @@ namespace lmongo {
                 luaL_error(L, "Invalid ordered dict");
             }
             size_t sz;
-            m_buffer->reset();
-            size_t offset = m_buffer->size();
-            m_buffer->write<uint32_t>(0);
+            m_buffer.reset();
+            size_t offset = m_buffer.size();
+            m_buffer.write<uint32_t>(0);
             for (int i = 0; i < n; i += 2) {
                 int vt = lua_type(L, i + 2);
                 if (vt != LUA_TNIL && vt != LUA_TNONE) {
@@ -110,10 +102,10 @@ namespace lmongo {
                     lua_pop(L, 1);
                 }
             }
-            m_buffer->write<uint8_t>(0);
-            uint32_t size = m_buffer->size() - offset;
-            m_buffer->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
-            return m_buffer->get_slice();
+            m_buffer.write<uint8_t>(0);
+            uint32_t size = m_buffer.size() - offset;
+            m_buffer.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+            return m_buffer.get_slice();
         }
         
         int encode_order(lua_State* L) {            
@@ -135,30 +127,30 @@ namespace lmongo {
         }
 
         void write_binary(bson_value* value) {
-            m_buffer->write<uint32_t>(value->str.size() + 1);
-            m_buffer->write<uint8_t>(value->stype);
-            m_buffer->write(value->str.c_str(), value->str.size());
+            m_buffer.write<uint32_t>(value->str.size() + 1);
+            m_buffer.write<uint8_t>(value->stype);
+            m_buffer.write(value->str.c_str(), value->str.size());
         }
 
         void write_cstring(const char* buf, size_t len) {
-            m_buffer->write(buf, len);
-            m_buffer->write<char>('\0');
+            m_buffer.write(buf, len);
+            m_buffer.write<char>('\0');
         }
 
         void write_string(const char* buf, size_t len) {
-            m_buffer->write<uint32_t>(len + 1);
+            m_buffer.write<uint32_t>(len + 1);
             write_cstring(buf, len);
         }
 
         void write_key(bson_type type, const char* key, size_t len) {
-            m_buffer->write<uint8_t>((uint8_t)type);
+            m_buffer.write<uint8_t>((uint8_t)type);
             write_cstring(key, len);
         }
 
         template<typename T>
         void write_pair(bson_type type, const char* key, size_t len, T value) {
             write_key(type, key, len);
-            m_buffer->write(value);
+            m_buffer.write(value);
         }
 
         void write_number(lua_State *L, const char* key, size_t len) {
@@ -176,8 +168,8 @@ namespace lmongo {
 
         void pack_array(lua_State *L, int depth, size_t len) {
             // length占位
-            size_t offset = m_buffer->size();
-            m_buffer->write<uint32_t>(0);
+            size_t offset = m_buffer.size();
+            m_buffer.write<uint32_t>(0);
             for (size_t i = 1; i <= len; i++) {
                 char numkey[32];
                 lua_geti(L, -1, i);
@@ -185,9 +177,9 @@ namespace lmongo {
                 pack_one(L, numkey, len, depth);
                 lua_pop(L, 1);
             }
-            m_buffer->write<uint8_t>(0);
-            uint32_t size = m_buffer->size() - offset;
-            m_buffer->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+            m_buffer.write<uint8_t>(0);
+            uint32_t size = m_buffer.size() - offset;
+            m_buffer.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
         bson_type check_doctype(lua_State *L) {
@@ -223,16 +215,16 @@ namespace lmongo {
                 write_binary(value);
                 break;
             case bson_type::BSON_INT32:
-                m_buffer->write<int32_t>(value->val);
+                m_buffer.write<int32_t>(value->val);
                 break;
             case bson_type::BSON_DATE:
             case bson_type::BSON_INT64:
             case bson_type::BSON_TIMESTAMP:
-                m_buffer->write<int64_t>(value->val);
+                m_buffer.write<int64_t>(value->val);
                 break;
             case bson_type::BSON_OBJECTID:
             case bson_type::BSON_JSCODE:
-                m_buffer->write(value->str.c_str(), value->str.size());
+                m_buffer.write(value->str.c_str(), value->str.size());
                 break;
             case bson_type::BSON_REGEX:
                 write_cstring(value->str.c_str(), value->str.size());
@@ -290,16 +282,16 @@ namespace lmongo {
 
         void pack_dict(lua_State *L, int depth) {
             // length占位
-            size_t offset = m_buffer->size();
-            m_buffer->write<uint32_t>(0);
+            size_t offset = m_buffer.size();
+            m_buffer.write<uint32_t>(0);
             lua_pushnil(L);
             while(lua_next(L, -2) != 0) {
                 pack_dict_data(L, depth, lua_type(L, -2));
                 lua_pop(L, 1);
             }
-            m_buffer->write<uint8_t>(0);
-            uint32_t size = m_buffer->size() - offset;
-            m_buffer->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+            m_buffer.write<uint8_t>(0);
+            uint32_t size = m_buffer.size() - offset;
+            m_buffer.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
         template<typename T>
@@ -422,6 +414,6 @@ namespace lmongo {
             }
         }
     private:
-        var_buffer* m_buffer;
+        var_buffer m_buffer;
     };
 }

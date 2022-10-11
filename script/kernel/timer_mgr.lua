@@ -1,17 +1,18 @@
 --timer_mgr.lua
 local ltimer    = require("ltimer")
-local lcrypt    = require("lcrypt")
+local lcodec    = require("lcodec")
 
 local ipairs    = ipairs
 local tpack     = table.pack
 local tunpack   = table.unpack
-local new_guid  = lcrypt.guid_new
+local new_guid  = lcodec.guid_new
 local lclock_ms = ltimer.clock_ms
+local ltinsert  = ltimer.insert
+local ltupdate  = ltimer.update
 
 --定时器精度，20ms
 local TIMER_ACCURYACY = 20
 
-local driver        = ltimer.new()
 local thread_mgr    = quanta.get("thread_mgr")
 
 local TimerMgr = singleton()
@@ -40,21 +41,19 @@ function TimerMgr:trigger(handle, clock_ms)
         return
     end
     --继续注册
-    driver.insert(handle.timer_id, handle.period)
+    ltinsert(handle.timer_id, handle.period)
 end
 
 function TimerMgr:on_frame(clock_ms)
-    if driver then
-        local escape_ms = clock_ms - self.last_ms + self.escape_ms
-        self.escape_ms = escape_ms % TIMER_ACCURYACY
-        self.last_ms = clock_ms
-        if escape_ms >= TIMER_ACCURYACY then
-            local timers = driver.update(escape_ms // TIMER_ACCURYACY)
-            for _, timer_id in ipairs(timers or {}) do
-                local handle = self.timers[timer_id]
-                if handle then
-                    self:trigger(handle, clock_ms)
-                end
+    local escape_ms = clock_ms - self.last_ms + self.escape_ms
+    self.escape_ms = escape_ms % TIMER_ACCURYACY
+    self.last_ms = clock_ms
+    if escape_ms >= TIMER_ACCURYACY then
+        local timers = ltupdate(escape_ms // TIMER_ACCURYACY)
+        for _, timer_id in ipairs(timers or {}) do
+            local handle = self.timers[timer_id]
+            if handle then
+                self:trigger(handle, clock_ms)
             end
         end
     end
@@ -74,7 +73,7 @@ function TimerMgr:register(interval, period, times, cb, ...)
     local timer_id = new_guid(period, interval)
     --矫正时间误差
     interval = interval + (reg_ms - self.last_ms)
-    driver.insert(timer_id, interval // TIMER_ACCURYACY)
+    ltinsert(timer_id, interval // TIMER_ACCURYACY)
     --包装回调参数
     local params = tpack(...)
     params[#params + 1] = 0
@@ -96,7 +95,6 @@ end
 
 function TimerMgr:on_quit()
     self.timers = {}
-    driver = nil
 end
 
 quanta.timer_mgr = TimerMgr()

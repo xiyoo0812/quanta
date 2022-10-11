@@ -1,5 +1,5 @@
 -- robot_mgr.lua
-local lcrypt        = require("lcrypt")
+local lcodec        = require("lcodec")
 
 local log_err       = logger.err
 local log_debug     = logger.debug
@@ -8,7 +8,7 @@ local signalquit    = signal.quit
 local env_addr      = environ.addr
 local env_number    = environ.number
 local tunpack       = table.unpack
-local guid_string   = lcrypt.guid_string
+local guid_string   = lcodec.guid_string
 
 local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")

@@ -1,4 +1,4 @@
---buffer_test.lua
+--codec_test.lua
 local lcrypt        = require("lcrypt")
 local lcodec        = require("lcodec")
 
@@ -12,6 +12,23 @@ local encode_slice  = lcodec.encode_slice
 local decode_slice  = lcodec.decode_slice
 local serialize     = lcodec.serialize
 local unserialize   = lcodec.unserialize
+
+--guid
+----------------------------------------------------------------
+local guid = lcodec.guid_new(5, 512)
+local sguid = lcodec.guid_tostring(guid)
+log_debug("newguid-> guid: %s, n2s: %s", guid, sguid)
+local nguid = lcodec.guid_number(sguid)
+local s2guid = lcodec.guid_tostring(nguid)
+log_debug("convert-> guid: %s, n2s: %s", nguid, s2guid)
+local nsguid = lcodec.guid_string(5, 512)
+log_debug("newguid: %s", nsguid)
+local group = lcodec.guid_group(nsguid)
+local index = lcodec.guid_index(guid)
+local time = lcodec.guid_time(guid)
+log_debug("ssource-> group: %s, index: %s, time:%s", group, index, time)
+local group2, index2, time2 = lcodec.guid_source(guid)
+log_debug("nsource-> group: %s, index: %s, time:%s", group2, index2, time2)
 
 --serialize
 ----------------------------------------------------------------

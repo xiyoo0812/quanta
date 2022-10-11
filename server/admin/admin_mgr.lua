@@ -3,7 +3,7 @@ import("basic/cmdline.lua")
 import("agent/online_agent.lua")
 
 local ljson         = require("lcjson")
-local lcrypt        = require("lcrypt")
+local lcodec        = require("lcodec")
 local HttpServer    = import("network/http_server.lua")
 
 local log_err       = logger.err
@@ -14,7 +14,7 @@ local tunpack       = table.unpack
 local tinsert       = table.insert
 local make_sid      = service.make_sid
 local jdecode       = ljson.decode
-local guid_index    = lcrypt.guid_index
+local guid_index    = lcodec.guid_index
 
 local online        = quanta.get("online")
 local cmdline       = quanta.get("cmdline")

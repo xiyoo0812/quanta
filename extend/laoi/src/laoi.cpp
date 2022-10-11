@@ -5,8 +5,6 @@
 
 namespace laoi {
 
-    grid_list aoi::grid_pools = {};
-
     static aoi_obj* create_object(uint64_t id, uint8_t typ) {
         return new aoi_obj(id, (aoi_type)typ);
     }

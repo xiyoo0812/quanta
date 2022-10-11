@@ -1,10 +1,10 @@
 --json_test.lua
-local ljson = require("lcjson")
-local lcrypt = require("lcrypt")
+local ljson     = require("lcjson")
+local lcodec    = require("lcodec")
 
 local json_encode   = ljson.encode
 local json_decode   = ljson.decode
-local new_guid      = lcrypt.guid_new
+local new_guid      = lcodec.guid_new
 
 local test  = {
     tid = 3.1415926,

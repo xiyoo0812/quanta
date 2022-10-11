@@ -10,6 +10,7 @@
     <ClInclude Include="src\buffer.h" />
     <ClInclude Include="src\bufpool.h" />
     <ClInclude Include="src\bufqueue.h" />
+    <ClInclude Include="src\guid.h" />
     <ClInclude Include="src\lcodec.h" />
     <ClInclude Include="src\serializer.h" />
     <ClInclude Include="src\shm.h" />

@@ -3,7 +3,7 @@ import("kernel.lua")
 
 quanta.startup(function()--初始化test
     --[[
-    import("test/buffer_test.lua")
+    import("test/codec_test.lua")
     import("test/etcd_test.lua")
     import("test/json_test.lua")
     import("test/pack_test.lua")
@@ -29,5 +29,5 @@ quanta.startup(function()--初始化test
     import("test/nacos_test.lua")
     import("test/url_test.lua")
     ]]
-    import("test/mongo_test.lua")
+    import("test/codec_test.lua")
 end)

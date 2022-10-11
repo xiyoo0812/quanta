@@ -7,9 +7,6 @@
     <ClInclude Include="src\des56.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\guid.h">
-      <Filter>inc</Filter>
-    </ClInclude>
     <ClInclude Include="src\lcrypt.h">
       <Filter>inc</Filter>
     </ClInclude>
@@ -34,9 +31,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\des56.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\guid.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\lcrypt.c">
