@@ -60,7 +60,19 @@ database:upsert({
     id = 1,
     db = 'quanta',
     default = true,
-    host = '123.207.26.113',
+    host = '127.0.0.1',
+    user = 'root',
+    passwd = '123456',
+    port = 27017,
+})
+
+database:upsert({
+    cluster = 'local',
+    driver = 'mongo',
+    id = 2,
+    db = 'quanta_msg',
+    default = false,
+    host = '127.0.0.1',
     user = 'root',
     passwd = '123456',
     port = 27017,

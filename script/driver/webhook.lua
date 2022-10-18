@@ -17,9 +17,11 @@ prop:reader("notify_limit", {})     --控制同样消息的发送频率
 
 function Webhook:__init()
     self.lvl = environ.number("QUANTA_WEBHOOK_LVL")
-    self.hooks.lark_log = environ.get("QUANTA_LARK_URL")
-    self.hooks.ding_log = environ.get("QUANTA_DING_URL")
-    self.hooks.wechat_log = environ.get("QUANTA_WECHAT_URL")
+    if self.lvl then
+        self.hooks.lark_log = environ.get("QUANTA_LARK_URL")
+        self.hooks.ding_log = environ.get("QUANTA_DING_URL")
+        self.hooks.wechat_log = environ.get("QUANTA_WECHAT_URL")
+    end
 end
 
 --飞书

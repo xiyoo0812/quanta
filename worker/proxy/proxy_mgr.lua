@@ -3,7 +3,6 @@ import("driver/webhook.lua")
 import("driver/graylog.lua")
 import("network/http_client.lua")
 
-
 local webhook       = quanta.get("webhook")
 local graylog       = quanta.get("graylog")
 local event_mgr     = quanta.get("event_mgr")
@@ -13,7 +12,7 @@ local ProxyMgr = singleton()
 
 function ProxyMgr:__init()
     -- 注册事件
-    event_mgr:add_listener(self, "rpc_report_log")
+    event_mgr:add_listener(self, "rpc_dispatch_log")
     -- 通用http请求
     event_mgr:add_listener(self, "rpc_http_post")
     event_mgr:add_listener(self, "rpc_http_get")
@@ -22,7 +21,7 @@ function ProxyMgr:__init()
 end
 
 --日志上报
-function ProxyMgr:rpc_report_log(title, content, lvl)
+function ProxyMgr:rpc_dispatch_log(title, content, lvl)
     webhook:notify(title, content, lvl)
     graylog:write(content, lvl)
 end
@@ -49,5 +48,3 @@ function ProxyMgr:rpc_http_del(url, querys, headers)
 end
 
 quanta.proxy_mgr = ProxyMgr()
-
-return ProxyMgr

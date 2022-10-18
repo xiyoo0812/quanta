@@ -47,6 +47,11 @@ function Scheduler:call(name, rpc, ...)
     return thread_mgr:yield(session_id, "worker_call", RPC_TIMEOUT)
 end
 
+--访问其他线程任务
+function Scheduler:send(name, rpc, ...)
+    lworker.call(name, lencode(0, rpc, ...))
+end
+
 function quanta.on_scheduler(slice)
     local rpc_res = tpack(pcall(ldecode, slice))
     if not rpc_res[1] then

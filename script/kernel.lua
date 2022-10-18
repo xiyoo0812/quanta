@@ -49,17 +49,19 @@ local function init_coroutine()
     end
 end
 
---初始化路由
-local function init_router()
-    import("kernel/router_mgr.lua")
-end
-
 --初始化loop
 local function init_mainloop()
     import("kernel/thread_mgr.lua")
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
     update_mgr = quanta.get("update_mgr")
+end
+
+--初始化调度器
+local function init_scheduler()
+    import("driver/scheduler.lua")
+    quanta.scheduler:setup("quanta")
+    import("agent/proxy_agent.lua")
 end
 
 function quanta.init()
@@ -71,13 +73,15 @@ function quanta.init()
     --主循环
     init_coroutine()
     init_mainloop()
-    --网络
     if quanta.mode <= QuantaMode.TOOL then
         --加载统计
         import("kernel/statis_mgr.lua")
+        --加载网络
         init_network()
     end
     if quanta.mode <= QuantaMode.ROUTER then
+        --加载调度器
+        init_scheduler()
         --加载monitor
         if not environ.get("QUANTA_MONITOR_HOST") then
             import("agent/monitor_agent.lua")
@@ -85,7 +89,7 @@ function quanta.init()
     end
     if quanta.mode == QuantaMode.SERVICE then
         --加载路由
-        init_router()
+        import("kernel/router_mgr.lua")
         --加载协议
         import("kernel/protobuf_mgr.lua")
     end

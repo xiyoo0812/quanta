@@ -31,21 +31,6 @@ function RouterMgr:__init()
     monitor:watch_service_ready(self, "router")
     monitor:watch_service_close(self, "router")
     event_mgr:add_listener(self, "rpc_client_kickout")
-    --日志上报
-    if environ.status("QUANTA_LOG_REPORT") then
-        logger.add_monitor(self)
-    end
-end
-
---日志分发
-function RouterMgr:dispatch_log(content, lvl_name, lvl)
-    local sname = quanta.service_name
-    local title = sformat("%s | %s", sname, lvl_name)
-    if sname == "proxy" then
-        event_mgr:notify_listener("rpc_report_log", title, content, lvl)
-        return
-    end
-    self:send_proxy_hash(quanta.id, "rpc_report_log", title, content, lvl)
 end
 
 --服务关闭

@@ -6,10 +6,14 @@ local pairs     = pairs
 local loadfile  = loadfile
 local iopen     = io.open
 local mabs      = math.abs
-local log_err   = logger.error
 local sformat   = string.format
 local dtraceback= debug.traceback
 local file_time = lstdfs.last_write_time
+
+local logtag    = quanta.logtag
+local log_output= function(lvl, ctx)
+    logger[lvl](logtag .. ctx)
+end
 
 local load_files    = {}
 local search_path   = {}
@@ -57,15 +61,15 @@ end
 local function try_load(node)
     local trunk_func, err = search_load(node)
     if not trunk_func then
-        log_err(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
+        log_output("error", sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
     local ok, res = xpcall(trunk_func, dtraceback)
     if not ok then
-        log_err(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
+        log_output("error", sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
         return
     end
-    logger.info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
+    log_output("info", sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
     return res
 end
 
@@ -89,7 +93,7 @@ function quanta.reload()
         if node.time then
             local filetime, err = file_time(node.fullpath)
             if filetime == 0 then
-                log_err(sformat("[quanta][reload] %s get_time failed(%s)", node.fullpath, err))
+                log_output("error", sformat("[quanta][reload] %s get_time failed(%s)", node.fullpath, err))
                 return
             end
             if mabs(node.time - filetime) > 1 then

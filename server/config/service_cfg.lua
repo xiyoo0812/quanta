@@ -8,52 +8,52 @@ local service = config_mgr:get_table("service")
 --导出配置内容
 service:upsert({
     id = 1,
-    name = 'lobby',
-})
-
-service:upsert({
-    id = 2,
-    name = 'scene',
-})
-
-service:upsert({
-    id = 3,
-    name = 'chat',
-})
-
-service:upsert({
-    id = 4,
-    name = 'friend',
-})
-
-service:upsert({
-    id = 5,
-    name = 'team',
-})
-
-service:upsert({
-    id = 6,
-    name = 'room',
-})
-
-service:upsert({
-    id = 7,
-    name = 'match',
-})
-
-service:upsert({
-    id = 8,
     name = 'login',
 })
 
 service:upsert({
-    id = 9,
+    id = 2,
+    name = 'lobby',
+})
+
+service:upsert({
+    id = 3,
+    name = 'scene',
+})
+
+service:upsert({
+    id = 4,
     name = 'gateway',
 })
 
 service:upsert({
-    id = 10,
+    id = 5,
     name = 'online',
+})
+
+service:upsert({
+    id = 6,
+    name = 'team',
+})
+
+service:upsert({
+    id = 7,
+    name = 'room',
+})
+
+service:upsert({
+    id = 8,
+    name = 'match',
+})
+
+service:upsert({
+    id = 9,
+    name = 'friend',
+})
+
+service:upsert({
+    id = 10,
+    name = 'chat',
 })
 
 service:upsert({
@@ -67,28 +67,23 @@ service:upsert({
 })
 
 service:upsert({
-    id = 21,
+    id = 23,
     name = 'router',
 })
 
 service:upsert({
-    id = 22,
+    id = 24,
     name = 'tool',
 })
 
 service:upsert({
-    id = 23,
+    id = 25,
     name = 'monitor',
 })
 
 service:upsert({
-    id = 25,
-    name = 'test',
-})
-
-service:upsert({
     id = 26,
-    name = 'proxy',
+    name = 'test',
 })
 
 service:upsert({
@@ -117,4 +112,4 @@ service:upsert({
 })
 
 --general md5 version
-service:set_version('69696128641e595d3c580589ffab10a1')
+service:set_version('1bdb779de194249552f192903f948bc1')

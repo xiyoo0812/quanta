@@ -116,7 +116,7 @@ void quanta_app::load(int argc, const char* argv[]) {
     //设置默认参数
     setenv("QUANTA_SANDBOX", "sandbox", 1);
     //将启动参数转负责覆盖环境变量
-    for (int i = 2; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         std::string argvi = argv[i];
         auto pos = argvi.find("=");
         if (pos != std::string::npos) {
@@ -124,17 +124,18 @@ void quanta_app::load(int argc, const char* argv[]) {
             auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
             std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
             setenv(ekey.c_str(), evalue.c_str(), 1);
+            continue;
         }
-    }
-    if (argc > 0) {
-        //加载LUA配置
-        luakit::kit_state lua;
-        lua.set("platform", get_platform());
-        lua.set_function("set_env", [&](lua_State* L) { return set_env(L); });
-        lua.run_file(argv[1], [&](std::string err) {
-            exception_handler("load lua config err: ", err);
-        });
-        lua.close();
+        if (i == 1){
+            //加载LUA配置
+            luakit::kit_state lua;
+            lua.set("platform", get_platform());
+            lua.set_function("set_env", [&](lua_State* L) { return set_env(L); });
+            lua.run_file(argv[1], [&](std::string err) {
+                exception_handler("load lua config err: ", err);
+            });
+            lua.close();
+        }
     }
 }
 
@@ -143,6 +144,7 @@ void quanta_app::run() {
     luakit::kit_state lua;
     auto quanta = lua.new_table("quanta");
     quanta.set("pid", ::getpid());
+    quanta.set("logtag", "[quanta]");
     quanta.set("environs", m_environs);
     quanta.set("platform", get_platform());
     quanta.set_function("daemon", [&]() { daemon(); });

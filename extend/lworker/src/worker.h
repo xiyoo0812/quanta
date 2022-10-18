@@ -85,6 +85,7 @@ namespace lworker {
 
         void startup(lua_State* L){
             auto quanta = m_lua.new_table(m_service.c_str());
+            quanta.set("logtag", fmt::format("[{}]", m_name));
             quanta.set_function("stop", [&]() { stop(); });
             quanta.set_function("update", [&]() { update(); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
