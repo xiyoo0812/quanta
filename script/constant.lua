@@ -40,7 +40,7 @@ NetwkTime.DB_CALL_TIMEOUT   = 5000      --DB调用超时时间
 NetwkTime.RPCLINK_TIMEOUT   = 10000     --RPC连接超时时间
 NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间（s）
 NetwkTime.HEARTBEAT_TIME    = 5000      --RPC连接心跳时间
-NetwkTime.NETWORK_TIMEOUT   = 15000     --心跳断线时间
+NetwkTime.NETWORK_TIMEOUT   = 30000     --心跳断线时间
 NetwkTime.OFFLINE_TIMEOUT   = 30000     --掉线清理时间
 NetwkTime.KICKOUT_TIMEOUT   = 60000     --强制清理时间
 

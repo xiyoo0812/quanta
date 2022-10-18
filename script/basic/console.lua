@@ -1,5 +1,4 @@
 --trace.lua
-
 local load          = load
 local pcall         = pcall
 local stdout        = io.stdout
@@ -7,7 +6,6 @@ local ssub          = string.sub
 local schar         = string.char
 local tpack         = table.pack
 local tconcat       = table.concat
-local logger        = quanta.get_logger()
 
 --
 local console_buf    = ""

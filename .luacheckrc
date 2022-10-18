@@ -26,6 +26,7 @@ exclude_files = {
 include_files = {
     "script/*",
     "server/*",
+    "worker/*",
     "bin/proto/*.lua",
     "tools/encrypt/*",
     "tools/excel2lua/*",

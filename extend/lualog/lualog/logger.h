@@ -25,6 +25,7 @@
 #endif
 
 using namespace std::chrono;
+using namespace std::filesystem;
 
 namespace logger {
     enum class log_level {
@@ -41,6 +42,7 @@ namespace logger {
         DAYLY = 1,
     }; //rolling_type
 
+    const size_t QUEUE_MINI = 10;
     const size_t QUEUE_SIZE = 3000;
     const size_t MAX_LINE   = 100000;
     const size_t CLEAN_TIME = 7 * 24 * 3600;
@@ -190,7 +192,7 @@ namespace logger {
             }
             if (read_messages_->empty()) {
                 std::unique_lock<std::mutex> lock(mutex_);
-                condv_.wait_for(lock, std::chrono::milliseconds(5));
+                condv_.wait_for(lock, milliseconds(5));
             }
             return read_messages_;
         }
@@ -206,24 +208,15 @@ namespace logger {
     class log_service;
     class log_dest {
     public:
-        log_dest(std::shared_ptr<log_service>service) : log_service_(service) {}
-        virtual ~log_dest() { }
-
         virtual void flush() {};
-        virtual void raw_write(std::string msg, log_level lvl) = 0;
+        virtual void raw_write(std::string& msg, log_level lvl) = 0;
         virtual void write(std::shared_ptr<log_message> logmsg);
         virtual std::string build_postfix(std::shared_ptr<log_message> logmsg);
-
-    protected:
-        std::shared_ptr<log_service>    log_service_ = nullptr;
     }; // class log_dest
 
     class stdio_dest : public log_dest {
     public:
-        stdio_dest(std::shared_ptr<log_service> service) : log_dest(service) {}
-        virtual ~stdio_dest() { }
-
-        virtual void raw_write(std::string msg, log_level lvl) {
+        virtual void raw_write(std::string& msg, log_level lvl) {
 #ifdef WIN32
             auto colors = level_colors<log_level>()();
             std::cout << colors[(int)lvl];
@@ -234,16 +227,14 @@ namespace logger {
 
     class log_file_base : public log_dest {
     public:
-        log_file_base(std::shared_ptr<log_service> service, size_t max_line, size_t pid)
-            : log_dest(service), pid_(pid), line_(0), max_line_(max_line){ }
-
+        log_file_base(size_t max_line, size_t pid) : pid_(pid), line_(0), max_line_(max_line) {}
         virtual ~log_file_base() {
             if (file_) {
                 file_->flush();
                 file_->close();
             }
         }
-        virtual void raw_write(std::string msg, log_level lvl) {
+        virtual void raw_write(std::string& msg, log_level lvl) {
             if (file_) file_->write(msg.c_str(), msg.size());
         }
         virtual void flush() {
@@ -252,7 +243,7 @@ namespace logger {
         const log_time& file_time() const { return file_time_; }
 
     protected:
-        virtual void create(std::filesystem::path file_path, std::string file_name, const log_time& file_time) {
+        virtual void create(path file_path, std::string& file_name, const log_time& file_time) {
             if (file_) {
                 file_->flush();
                 file_->close();
@@ -290,10 +281,8 @@ namespace logger {
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(std::shared_ptr<log_service> logservice, size_t pid, size_t max_line = 10000)
-            : log_file_base(logservice, max_line, pid) {}
-
-        void setup(std::filesystem::path& log_path, const std::string& service, const std::string& feature, size_t clean_time = CLEAN_TIME) {
+        log_rollingfile(size_t pid, size_t max_line = 10000) : log_file_base(max_line, pid) {}
+        void setup(path& log_path, const std::string& service, const std::string& feature, size_t clean_time = CLEAN_TIME) {
             feature_ = feature;
             log_path_ = log_path;
             clean_time_ = clean_time;
@@ -305,12 +294,12 @@ namespace logger {
         virtual void write(std::shared_ptr<log_message> logmsg) {
             line_++;
             if (file_ == nullptr || rolling_evaler_.eval(this, logmsg) || line_ >= max_line_) {
-                std::filesystem::create_directories(log_path_);
-                for (auto entry : std::filesystem::recursive_directory_iterator(log_path_)) {
+                try { create_directories(log_path_); } catch (...) {}
+                for (auto entry : recursive_directory_iterator(log_path_)) {
                     if (!entry.is_directory() && entry.path().extension().string() == ".log") {
-                        auto ftime = std::filesystem::last_write_time(entry.path());
-                        if ((size_t)duration_cast<seconds>(std::filesystem::file_time_type::clock::now() - ftime).count() > clean_time_) {
-                            try { std::filesystem::remove(entry.path()); } catch (...) {}
+                        auto ftime = last_write_time(entry.path());
+                        if ((size_t)duration_cast<seconds>(file_time_type::clock::now() - ftime).count() > clean_time_) {
+                            try { remove(entry.path()); } catch (...) {}
                         }
                     }
                 }
@@ -328,8 +317,8 @@ namespace logger {
             return fmt::format("{}-{:4d}{:02d}{:02d}-{:02d}{:02d}{:02d}.{:03d}.p{}.log", feature_, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, t.tm_usec, pid_);
         }
 
+        path                    log_path_;
         std::string             feature_;
-        std::filesystem::path   log_path_;
         rolling_evaler          rolling_evaler_;
         size_t                  clean_time_ = CLEAN_TIME;
     }; // class log_rollingfile
@@ -337,29 +326,30 @@ namespace logger {
     typedef log_rollingfile<rolling_hourly> log_hourlyrollingfile;
     typedef log_rollingfile<rolling_daily> log_dailyrollingfile;
 
-    class log_service : public std::enable_shared_from_this<log_service> {
+    class log_service {
     public:
+        ~log_service() { stop(); }
         void daemon(bool status) { log_daemon_ = status; }
-        void option(std::string log_path, std::string service, std::string index, rolling_type type) {
+        void option(std::string& log_path, std::string& service, std::string& index, rolling_type type) {
             log_path_ = log_path, service_ = service; rolling_type_ = type;
             log_path_.append(fmt::format("{}-{}", service, index));
         }
-        std::shared_ptr<log_filter> get_filter() { return log_filter_; }
-        std::shared_ptr<log_message_pool> message_pool() { return message_pool_; }
+        log_filter* get_filter() { return &log_filter_; }
+        log_message_pool* message_pool() { return message_pool_.get(); }
 
         void set_max_line(size_t max_line) { max_line_ = max_line; }
         void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
 
-        bool add_dest(std::string feature) {
+        bool add_dest(std::string& feature) {
             std::unique_lock<spin_mutex> lock(mutex_);
             if (dest_features_.find(feature) == dest_features_.end()) {
                 std::shared_ptr<log_dest> logfile = nullptr;
                 if (rolling_type_ == rolling_type::DAYLY) {
-                    auto dlogfile = std::make_shared<log_dailyrollingfile>(shared_from_this(), log_pid_, max_line_);
+                    auto dlogfile = std::make_shared<log_dailyrollingfile>(log_pid_, max_line_);
                     dlogfile->setup(log_path_, service_, feature, clean_time_);
                     logfile = dlogfile;
                 } else {
-                    auto hlogfile = std::make_shared<log_hourlyrollingfile>(shared_from_this(), log_pid_, max_line_);
+                    auto hlogfile = std::make_shared<log_hourlyrollingfile>(log_pid_, max_line_);
                     hlogfile->setup(log_path_, service_, feature, clean_time_);
                     logfile = hlogfile;
                 }
@@ -379,19 +369,19 @@ namespace logger {
             std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
             std::unique_lock<spin_mutex> lock(mutex_);
             if (rolling_type_ == rolling_type::DAYLY) {
-                auto logfile = std::make_shared<log_dailyrollingfile>(shared_from_this(), log_pid_, max_line_);
+                auto logfile = std::make_shared<log_dailyrollingfile>(log_pid_, max_line_);
                 logfile->setup(log_path_, service_, feature, clean_time_);
                 dest_lvls_.insert(std::make_pair(log_lvl, logfile));
             }
             else {
-                auto logfile = std::make_shared<log_hourlyrollingfile>(shared_from_this(), log_pid_, max_line_);
+                auto logfile = std::make_shared<log_hourlyrollingfile>(log_pid_, max_line_);
                 logfile->setup(log_path_, service_, feature, clean_time_);
                 dest_lvls_.insert(std::make_pair(log_lvl, logfile));
             }
             return true;
         }
 
-        void del_dest(std::string feature) {
+        void del_dest(std::string& feature) {
             std::unique_lock<spin_mutex> lock(mutex_);
             auto it = dest_features_.find(feature);
             if (it != dest_features_.end()) {
@@ -408,24 +398,40 @@ namespace logger {
         }
 
         void start() {
-            if (stop_msg_ == nullptr) {
+            if (!stop_msg_ && !std_dest_) {
                 log_pid_ = ::getpid();
+                logmsgque_ = std::make_shared<log_message_queue>();
+                message_pool_ = std::make_shared<log_message_pool>(QUEUE_SIZE);
+                std_dest_ = std::make_shared<stdio_dest>();
                 stop_msg_ = message_pool_->allocate();
-                log_filter_ = std::make_shared<log_filter>();
-                std_dest_ = std::make_shared<stdio_dest>(shared_from_this());
                 std::thread(&log_service::run, this).swap(thread_);
             }
         }
 
+        void terminal() {
+            if (!std_dest_) {
+                std_dest_ = std::make_shared<stdio_dest>();
+                message_pool_ = std::make_shared<log_message_pool>(QUEUE_MINI);
+            }
+        }
+
         void stop() {
-            logmsgque_->put(stop_msg_);
+            if (stop_msg_) {
+                logmsgque_->put(stop_msg_);
+            }
             if (thread_.joinable()) {
                 thread_.join();
             }
         }
 
         void submit(std::shared_ptr<log_message> logmsg) {
-            logmsgque_->put(logmsg);
+            if (stop_msg_) {
+                logmsgque_->put(logmsg);
+                return;
+            }
+            if (std_dest_) {
+                std_dest_->write(logmsg);
+            }
         }
 
         void flush() {
@@ -443,20 +449,30 @@ namespace logger {
         void ignore_postfix() { ignore_postfix_ = true; }
 
         bool is_filter(log_level lv) {
-            return log_filter_->is_filter(lv); 
+            return log_filter_.is_filter(lv); 
         }
 
         void filter(log_level lv, bool on) {
-            log_filter_->filter(lv, on);
+            log_filter_.filter(lv, on);
+        }
+
+        static log_service* instance() {
+            static log_service service;
+            return &service;
         }
 
         template<log_level level>
         log_stream<level> hold(std::string feature, std::string source = "", int line = 0) {
-            return log_stream<level>(shared_from_this(), feature, source, line);
+            return log_stream<level>(feature, source, line);
         }
 
         template<log_level level>
-        void output(std::string msg, std::string feature) {
+        log_stream<level> print(std::string feature, std::string source = "", int line = 0) {
+            return log_stream<level>(feature, source, line);
+        }
+
+        template<log_level level>
+        void output(std::string& msg, std::string& feature) {
             hold<level>(feature, __FILE__, __LINE__) << msg;
         }
 
@@ -490,19 +506,19 @@ namespace logger {
             }
         }
 
-        spin_mutex              mutex_;
-        std::thread             thread_;
-        rolling_type            rolling_type_;
-        std::string             service_;
-        std::filesystem::path   log_path_;
-        std::shared_ptr<log_dest>       std_dest_ = nullptr;
-        std::shared_ptr<log_dest>       def_dest_ = nullptr;
-        std::shared_ptr<log_message>    stop_msg_ = nullptr;
-        std::shared_ptr<log_filter>     log_filter_ = nullptr;
-        std::unordered_map<log_level,       std::shared_ptr<log_dest>> dest_lvls_;
-        std::unordered_map<std::string,     std::shared_ptr<log_dest>> dest_features_;
-        std::shared_ptr<log_message_queue>  logmsgque_ = std::make_shared<log_message_queue>();
-        std::shared_ptr<log_message_pool>   message_pool_ = std::make_shared<log_message_pool>(QUEUE_SIZE);
+        path            log_path_;
+        spin_mutex      mutex_;
+        log_filter      log_filter_;
+        rolling_type    rolling_type_;
+        std::thread     thread_;
+        std::string     service_;
+        std::shared_ptr<log_dest> std_dest_ = nullptr;
+        std::shared_ptr<log_dest> def_dest_ = nullptr;
+        std::shared_ptr<log_message> stop_msg_ = nullptr;
+        std::shared_ptr<log_message_queue> logmsgque_ = nullptr;
+        std::shared_ptr<log_message_pool> message_pool_ = nullptr;
+        std::unordered_map<log_level, std::shared_ptr<log_dest>> dest_lvls_;
+        std::unordered_map<std::string, std::shared_ptr<log_dest>> dest_features_;
         size_t log_pid_ = 0, max_line_ = MAX_LINE, clean_time_ = CLEAN_TIME;
         bool log_daemon_ = false, ignore_postfix_ = true;
     }; // class log_service
@@ -510,8 +526,8 @@ namespace logger {
     template<log_level level>
     class log_stream {
     public:
-        log_stream(std::shared_ptr<log_service> service, std::string feature, std::string source = "", int line = 0)
-            : service_(service) {
+        log_stream(std::string& feature, std::string& source = "", int line = 0) {
+            auto service = log_service::instance();
             if (!service->is_filter(level)) {
                 logmsg_ = service->message_pool()->allocate();
                 logmsg_->log_time_ = log_time::now();
@@ -523,7 +539,8 @@ namespace logger {
         }
         ~log_stream() {
             if (nullptr != logmsg_) {
-                service_->submit(logmsg_);
+                log_service::instance()->submit(logmsg_);
+                logmsg_ = nullptr;
             }
         }
 
@@ -537,7 +554,6 @@ namespace logger {
 
     private:
         std::shared_ptr<log_message> logmsg_ = nullptr;
-        std::shared_ptr<log_service> service_ = nullptr;
     };
 
     inline void log_dest::write(std::shared_ptr<log_message> logmsg) {
@@ -550,22 +566,28 @@ namespace logger {
     }
 
     inline std::string log_dest::build_postfix(std::shared_ptr<log_message> logmsg) {
-        if (!log_service_->is_ignore_postfix()) {
+        if (!log_service::instance()->is_ignore_postfix()) {
             return fmt::format("[{}:{}]", logmsg->source().c_str(), logmsg->line());
         }
         return "";
     }
 }
 
-#define LOG_WARN(service) service->hold<logger::log_level::LOG_LEVEL_WARN>("", __FILE__, __LINE__)
-#define LOG_INFO(service) service->hold<logger::log_level::LOG_LEVEL_INFO>("", __FILE__, __LINE__)
-#define LOG_DUMP(service) service->hold<logger::log_level::LOG_LEVEL_DUMP>("", __FILE__, __LINE__)
-#define LOG_DEBUG(service) service->hold<logger::log_level::LOG_LEVEL_DEBUG>("", __FILE__, __LINE__)
-#define LOG_ERROR(service) service->hold<logger::log_level::LOG_LEVEL_ERROR>("", __FILE__, __LINE__)
-#define LOG_FATAL(service) service->hold<logger::log_level::LOG_LEVEL_FATAL>("", __FILE__, __LINE__)
-#define LOGF_WARN(service, feature) service->hold<logger::log_level::LOG_LEVEL_WARN>(feature, __FILE__, __LINE__)
-#define LOGF_INFO(service, feature) service->hold<logger::log_level::LOG_LEVEL_INFO>(feature, __FILE__, __LINE__)
-#define LOGF_DUMP(service, feature) service->hold<logger::log_level::LOG_LEVEL_DUMP>(feature, __FILE__, __LINE__)
-#define LOGF_DEBUG(service, feature) service->hold<logger::log_level::LOG_LEVEL_DEBUG>(feature, __FILE__, __LINE__)
-#define LOGF_ERROR(service, feature) service->hold<logger::log_level::LOG_LEVEL_ERROR>(feature, __FILE__, __LINE__)
-#define LOGF_FATAL(service, feature) service->hold<logger::log_level::LOG_LEVEL_FATAL>(feature, __FILE__, __LINE__)
+#define LOG_WARN logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_WARN>("", __FILE__, __LINE__)
+#define LOG_INFO logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_INFO>("", __FILE__, __LINE__)
+#define LOG_DUMP logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_DUMP>("", __FILE__, __LINE__)
+#define LOG_DEBUG logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_DEBUG>("", __FILE__, __LINE__)
+#define LOG_ERROR logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_ERROR>("", __FILE__, __LINE__)
+#define LOG_FATAL logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_FATAL>("", __FILE__, __LINE__)
+#define PRINT_WARN logger::log_service::instance()->print<logger::log_level::LOG_LEVEL_WARN>("", __FILE__, __LINE__)
+#define PRINT_INFO logger::log_service::instance()->print<logger::log_level::LOG_LEVEL_INFO>("", __FILE__, __LINE__)
+#define PRINTLOG_DUMP logger::log_service::instance()->print<logger::log_level::LOG_LEVEL_DUMP>("", __FILE__, __LINE__)
+#define PRINT_DEBUG logger::log_service::instance()->print<logger::log_level::LOG_LEVEL_DEBUG>("", __FILE__, __LINE__)
+#define PRINT_ERROR logger::log_service::instance()->print<logger::log_level::LOG_LEVEL_ERROR>("", __FILE__, __LINE__)
+#define PRINT_FATAL logger::log_service::instance()->print<logger::log_level::LOG_LEVEL_FATAL>("", __FILE__, __LINE__)
+#define LOGF_WARN(feature) logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_WARN>(feature, __FILE__, __LINE__)
+#define LOGF_INFO(feature) logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_INFO>(feature, __FILE__, __LINE__)
+#define LOGF_DUMP(feature) logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_DUMP>(feature, __FILE__, __LINE__)
+#define LOGF_DEBUG(feature) logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_DEBUG>(feature, __FILE__, __LINE__)
+#define LOGF_ERROR(feature) logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_ERROR>(feature, __FILE__, __LINE__)
+#define LOGF_FATAL(feature) logger::log_service::instance()->hold<logger::log_level::LOG_LEVEL_FATAL>(feature, __FILE__, __LINE__)

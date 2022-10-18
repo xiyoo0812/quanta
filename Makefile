@@ -30,12 +30,12 @@ luaext:
 	cd extend/lcrypt; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
 	cd extend/lcurl; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
 	cd extend/lhttp; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
-	cd extend/lkcp; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lkcp.mak;
 	cd extend/lmongo; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lmongo.mak;
 	cd extend/lstdfs; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make -j4 SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/lualog; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
 	cd extend/luaxlsx; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
+	cd extend/lworker; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
 	cd extend/protobuf; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lua-protobuf.mak;
 
 share:

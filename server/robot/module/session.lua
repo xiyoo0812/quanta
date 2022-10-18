@@ -60,6 +60,9 @@ function SessionModule:register_doer(pb_name, module, handler)
 end
 
 function SessionModule:conv_type(cmdid)
+    if type(cmdid) == "string" then
+        cmdid = protobuf_mgr:msg_id(cmdid)
+    end
     if cmdid < 10000 then
         return 0
     end

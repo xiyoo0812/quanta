@@ -1,8 +1,8 @@
 --reliable_msg.lua
 import("agent/mongo_agent.lua")
-local bson          = require("bson")
+local lmongo        = require("lmongo")
 
-local bdate         = bson.date
+local mdate         = lmongo.date
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
@@ -63,7 +63,7 @@ function ReliabledMsg:send_message(target_id, event, args)
     local doc = { args = args, deal_time = 0, event = event, target_id = target_id, time = "$$CLUSTER_TIME" }
     if self.ttl then
         --设置过期ttl字段
-        doc.ttl = bdate(quanta.now + self.ttl)
+        doc.ttl = mdate(quanta.now + self.ttl)
     end
     doc.source = quanta.service_name
     local ok = mongo_agent:insert({ self.coll_name, doc }, target_id, MSG_DBID)

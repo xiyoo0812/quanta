@@ -31,7 +31,7 @@ namespace lmongo {
         BSON_SYMBOL     = 14,   //Deprecated
         BSON_CODEWS     = 15,   //Deprecated
         BSON_INT32      = 16,
-        BSON_TIMESTAMP  = 17,
+        BSON_TIMESTAMP  = 17,   //special timestamp type only for internal MongoDB use
         BSON_INT64      = 18,
         BSON_INT128     = 19,
         BSON_MINKEY     = 255,
@@ -369,15 +369,27 @@ namespace lmongo {
                 case bson_type::BSON_INT32:
                     lua_pushinteger(L, read_val<int32_t>(L, buf));
                     break;
+                case bson_type::BSON_DATE:
                 case bson_type::BSON_INT64:
+                case bson_type::BSON_TIMESTAMP:
                     lua_pushinteger(L, read_val<int64_t>(L, buf));
                     break;
-                case bson_type::BSON_JSCODE:
-                    lua_push_object(L, new bson_value(bt, read_string(L, buf, klen)));
+                case bson_type::BSON_OBJECTID:{
+                        const char* s = read_bytes(L, buf, 12);
+                        lua_pushlstring(L, s, 12);
+                    }
                     break;
+                case bson_type::BSON_JSCODE:
                 case bson_type::BSON_STRING:{
                         const char* s = read_string(L, buf, klen);
                         lua_pushlstring(L, s, klen);
+                    }
+                    break;
+                case bson_type::BSON_BINARY: {
+                        uint32_t sz = read_val<uint32_t>(L, buf);
+                        uint8_t subtype = read_val<uint8_t>(L, buf);
+                        const char* s = read_bytes(L, buf, sz);
+                        lua_pushlstring(L, s, sz);
                     }
                     break;
                 case bson_type::BSON_REGEX:
@@ -389,23 +401,10 @@ namespace lmongo {
                 case bson_type::BSON_ARRAY:
                     unpack_dict(L, buf, true);
                     break;
-                case bson_type::BSON_OBJECTID:
-                    lua_push_object(L, new bson_value(bt, read_bytes(L, buf, 12)));
-                    break;
-                case bson_type::BSON_DATE:
-                case bson_type::BSON_TIMESTAMP:
-                    lua_push_object(L, new bson_value(bt, read_val<int64_t>(L, buf)));
-                    break;
                 case bson_type::BSON_MINKEY:
                 case bson_type::BSON_MAXKEY:
                 case bson_type::BSON_NULL:
                     lua_push_object(L, new bson_value(bt, 0));
-                    break;
-                case bson_type::BSON_BINARY: {
-                        uint32_t sz = read_val<uint32_t>(L, buf);
-                        uint8_t subtype = read_val<uint8_t>(L, buf);
-                        lua_push_object(L, new bson_value(bt, read_bytes(L, buf, sz), subtype));
-                    }
                     break;
                 default:
                     luaL_error(L, "Invalid bson type : %d", bt);

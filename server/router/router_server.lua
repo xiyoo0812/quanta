@@ -5,7 +5,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local signalquit    = signal.quit
 local sformat       = string.format
-local qhash_code    = quanta.hash_code
+local hash_code     = lcodec.hash_code
 local lencode       = lcodec.encode_slice
 
 local socket_mgr    = quanta.get("socket_mgr")
@@ -43,7 +43,7 @@ function RouterServer:__init()
 
     --因为按host简化配置，可以重复index, 需要重定义routerid
     quanta.name = sformat("router_%s-%s", host, index)
-    quanta.id = service.make_sid(qhash_code(host, 65536), index)
+    quanta.id = service.make_sid(hash_code(host, 65536), index)
     service.make_node(self.rpc_server:get_port())
 end
 

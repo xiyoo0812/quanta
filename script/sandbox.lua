@@ -1,17 +1,15 @@
 --sandbox.lua
-require("lualog")
+local logger    = require("lualog")
 local lstdfs    = require("lstdfs")
 
 local pairs     = pairs
 local loadfile  = loadfile
 local iopen     = io.open
 local mabs      = math.abs
+local log_err   = logger.error
 local sformat   = string.format
-local dgetinfo  = debug.getinfo
 local dtraceback= debug.traceback
 local file_time = lstdfs.last_write_time
-
-local logger    = quanta.get_logger()
 
 local load_files    = {}
 local search_path   = {}
@@ -59,12 +57,12 @@ end
 local function try_load(node)
     local trunk_func, err = search_load(node)
     if not trunk_func then
-        logger.error(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
+        log_err(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
     local ok, res = xpcall(trunk_func, dtraceback)
     if not ok then
-        logger.error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
+        log_err(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
         return
     end
     logger.info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
@@ -91,7 +89,7 @@ function quanta.reload()
         if node.time then
             local filetime, err = file_time(node.fullpath)
             if filetime == 0 then
-                logger.error(sformat("[quanta][reload] %s get_time failed(%s)", node.fullpath, err))
+                log_err(sformat("[quanta][reload] %s get_time failed(%s)", node.fullpath, err))
                 return
             end
             if mabs(node.time - filetime) > 1 then
@@ -101,16 +99,3 @@ function quanta.reload()
     end
 end
 
-function quanta.load(name)
-    return quanta[name]
-end
-
-function quanta.get(name)
-    local global_obj = quanta[name]
-    if not global_obj then
-        local info = dgetinfo(2, "S")
-        logger.error(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
-        return
-    end
-    return global_obj
-end

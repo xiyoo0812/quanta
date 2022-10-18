@@ -30,6 +30,19 @@ local encode_slice  = lcodec.encode_slice
 local decode_slice  = lcodec.decode_slice
 local serialize     = lcodec.serialize
 local unserialize   = lcodec.unserialize
+local hash_code     = lcodec.hash_code
+
+--hash
+----------------------------------------------------------------
+local hash_n1 = hash_code(12345)
+local hash_n2 = hash_code(123346456545464, 1000)
+log_debug("hash_code number: %s, %s", hash_n1, hash_n2)
+-- -1792800413050876852
+
+local hash_s1 = hash_code("12345")
+local hash_s2 = hash_code("a0b0c0d0a0b0c0d0", 1000)
+log_debug("hash_code string: %s, %s", hash_s1, hash_s2)
+-- -1912366794928059912
 
 --guid
 ----------------------------------------------------------------

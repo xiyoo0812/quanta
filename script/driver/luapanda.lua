@@ -1,4 +1,6 @@
 --redis.lua
+--luacheck: ignore
+
 local lbus          = require("luabus")
 local ljson         = require("lcjson")
 local lcrypt        = require("lcrypt")
@@ -169,14 +171,14 @@ function LuaPanda:proc_response(response)
 
             -- 如果新值是基础类型，则不需遍历
             if panda_data.info.stackId ~= nil and tonumber(panda_data.info.stackId) ~= nil and tonumber(panda_data.info.stackId) > 1 then
-                self:curStackId = tonumber(panda_data.info.stackId)
+                self.curStackId = tonumber(panda_data.info.stackId)
             else
-                self:printToVSCode("未能获取到堆栈层级，默认使用 self:curStackId")
+                self:printToVSCode("未能获取到堆栈层级，默认使用 self.curStackId")
             end
 
             if varRefNum < 10000 then
                 -- 如果修改的是一个 引用变量，那么可直接赋值。但还是要走变量查询过程。查找和赋值过程都需要steakId。 目前给引用变量赋值Object，steak可能有问题
-                resmsg.info = self:createSetValueRetTable(varName, newValue, needFindVariable, self:curStackId, variableRefTab[varRefNum])
+                resmsg.info = self:createSetValueRetTable(varName, newValue, needFindVariable, self.curStackId, variableRefTab[varRefNum])
             else
                 -- 如果修改的是一个基础类型
                 local setLimit --设置检索变量的限定区域
@@ -184,7 +186,7 @@ function LuaPanda:proc_response(response)
                 elseif varRefNum >= 20000 and varRefNum < 30000 then setLimit = "global"
                 elseif varRefNum >= 30000 then setLimit = "upvalue"
                 end
-                resmsg.info = self:createSetValueRetTable(varName, newValue, needFindVariable, self:curStackId, nil, setLimit)
+                resmsg.info = self:createSetValueRetTable(varName, newValue, needFindVariable, self.curStackId, nil, setLimit)
             end
 
             self:send_msg(resmsg)
@@ -207,13 +209,13 @@ function LuaPanda:proc_response(response)
             elseif varRefNum >= 10000 and varRefNum < 20000 then
                 --局部变量
                 if panda_data.info.stackId ~= nil and tonumber(panda_data.info.stackId) > 1 then
-                    self:curStackId = tonumber(panda_data.info.stackId)
-                    if type(currentCallStack[self:curStackId - 1]) ~= "table" or  type(currentCallStack[self:curStackId - 1].func) ~= "function" then
-                        local str = "getVariable getLocal currentCallStack " .. self:curStackId - 1   .. " Error\n" .. self:serializeTable(currentCallStack, "currentCallStack")
+                    self.curStackId = tonumber(panda_data.info.stackId)
+                    if type(currentCallStack[self.curStackId - 1]) ~= "table" or  type(currentCallStack[self.curStackId - 1].func) ~= "function" then
+                        local str = "getVariable getLocal currentCallStack " .. self.curStackId - 1   .. " Error\n" .. self:serializeTable(currentCallStack, "currentCallStack")
                         self:printToVSCode(str, 2)
                         msgTab.info = {}
                     else
-                        local stackId = self:getSpecificFunctionStackLevel(currentCallStack[self:curStackId - 1].func) --去除偏移量
+                        local stackId = self:getSpecificFunctionStackLevel(currentCallStack[self.curStackId - 1].func) --去除偏移量
                         local varTable = self:getVariable(stackId, true)
                         msgTab.info = varTable
                     end
@@ -226,13 +228,13 @@ function LuaPanda:proc_response(response)
             elseif varRefNum >= 30000 then
                 --upValue
                 if panda_data.info.stackId ~= nil and tonumber(panda_data.info.stackId) > 1 then
-                    self:curStackId = tonumber(panda_data.info.stackId)
-                    if type(currentCallStack[self:curStackId - 1]) ~= "table" or  type(currentCallStack[self:curStackId - 1].func) ~= "function" then
-                        local str = "getVariable getUpvalue currentCallStack " .. self:curStackId - 1   .. " Error\n" .. self:serializeTable(currentCallStack, "currentCallStack")
+                    self.curStackId = tonumber(panda_data.info.stackId)
+                    if type(currentCallStack[self.curStackId - 1]) ~= "table" or  type(currentCallStack[self.curStackId - 1].func) ~= "function" then
+                        local str = "getVariable getUpvalue currentCallStack " .. self.curStackId - 1   .. " Error\n" .. self:serializeTable(currentCallStack, "currentCallStack")
                         self:printToVSCode(str, 2)
                         msgTab.info = {}
                     else
-                        local varTable = self:getUpValueVariable(currentCallStack[self:curStackId - 1 ].func, true)
+                        local varTable = self:getUpValueVariable(currentCallStack[self.curStackId - 1 ].func, true)
                         msgTab.info = varTable
                     end
                 end
@@ -327,7 +329,7 @@ function LuaPanda:proc_response(response)
         --loadstring系统函数, watch插件加载
         if isUseLoadstring == 1 then
             --使用loadstring
-            self:curStackId = stackId
+            self.curStackId = stackId
             local retValue = self:processWatchedExp(panda_data.info)
             msgTab.info = retValue
             self:sendMsg(msgTab)
@@ -356,7 +358,7 @@ function LuaPanda:proc_response(response)
         self:sendLuaMemory()
         self:debugger_wait_msg()
     elseif "runREPLExpression" == panda_data.cmd then
-        self:curStackId = tonumber(panda_data.info.stackId)
+        self.curStackId = tonumber(panda_data.info.stackId)
         local retValue = self:processExp(panda_data.info)
         local msgTab = self:getMsgTable("runREPLExpression", self:getCallbackId())
         msgTab.info = retValue

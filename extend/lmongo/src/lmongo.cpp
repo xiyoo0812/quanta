@@ -47,7 +47,7 @@ namespace lmongo {
         return new bson_value(bson_type::BSON_INT64, value);
     }
     static bson_value* date(int64_t value) {
-        return new bson_value(bson_type::BSON_DATE, value);
+        return new bson_value(bson_type::BSON_DATE, value * 1000);
     }
     static bson_value* timestamp(int64_t value) {
         return new bson_value(bson_type::BSON_TIMESTAMP, value);

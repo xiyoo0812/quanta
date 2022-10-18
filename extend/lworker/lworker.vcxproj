@@ -7,35 +7,18 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\lua_socket_mgr.h" />
-    <ClInclude Include="src\lua_socket_node.h" />
-    <ClInclude Include="src\socket_dns.h" />
-    <ClInclude Include="src\socket_helper.h" />
-    <ClInclude Include="src\socket_listener.h" />
-    <ClInclude Include="src\socket_mgr.h" />
-    <ClInclude Include="src\socket_router.h" />
-    <ClInclude Include="src\socket_stream.h" />
-    <ClInclude Include="src\stdafx.h" />
+    <ClInclude Include="src\scheduler.h" />
+    <ClInclude Include="src\worker.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lua_socket_mgr.cpp" />
-    <ClCompile Include="src\lua_socket_node.cpp" />
-    <ClCompile Include="src\luabus.cpp" />
-    <ClCompile Include="src\socket_helper.cpp" />
-    <ClCompile Include="src\socket_listener.cpp" />
-    <ClCompile Include="src\socket_mgr.cpp" />
-    <ClCompile Include="src\socket_router.cpp" />
-    <ClCompile Include="src\socket_stream.cpp" />
-    <ClCompile Include="src\stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Create</PrecompiledHeader>
-    </ClCompile>
+    <ClCompile Include="src\lworker.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{EC8C4743-6D5F-E10D-3D10-98330150B2C9}</ProjectGuid>
-    <RootNamespace>luabus</RootNamespace>
+    <ProjectGuid>{7186BCD3-4393-85B5-963F-880AC8A6F795}</ProjectGuid>
+    <RootNamespace>lworker</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>luabus</ProjectName>
+    <ProjectName>lworker</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
@@ -54,18 +37,18 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
-    <TargetName>luabus</TargetName>
+    <TargetName>lworker</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\..\extend\lua\lua;..\..\extend\lcodec\src;..\..\extend\ltimer\ltimer;..\..\extend\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\lua\lua;..\lcodec\src;..\fmt\include;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;FMT_HEADER_ONLY;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader></PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>

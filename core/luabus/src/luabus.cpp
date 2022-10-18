@@ -1,4 +1,5 @@
 ﻿#include "stdafx.h"
+#include "socket_dns.h"
 #include "lua_socket_mgr.h"
 #include "lua_socket_node.h"
 
@@ -15,6 +16,8 @@ namespace luabus {
     luakit::lua_table open_luabus(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto lluabus = kit_state.new_table();
+        
+        lluabus.set_function("dns", gethostbydomain);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
             "rpc", eproto_type::proto_rpc,

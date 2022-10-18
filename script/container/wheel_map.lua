@@ -1,5 +1,6 @@
 -- wheel_map.lua
-local qhash_code    = quanta.hash_code
+local lcodec        = require("lcodec")
+local hash_code     = lcodec.hash_code
 
 local WheelMap = class()
 local prop = property(WheelMap)
@@ -17,7 +18,7 @@ end
 
 -- 设置指定key的值
 function WheelMap:set(key, value)
-    local wheel_no = qhash_code(key, self.wheel_cnt)
+    local wheel_no = hash_code(key, self.wheel_cnt)
     local host_map = self.host_maps[wheel_no]
     if not host_map[key] and value then
         self.count = self.count + 1
@@ -29,7 +30,7 @@ end
 
 -- 获取指定key的值
 function WheelMap:get(key)
-    local wheel_no = qhash_code(key, self.wheel_cnt)
+    local wheel_no = hash_code(key, self.wheel_cnt)
     local host_map = self.host_maps[wheel_no]
     return host_map[key]
 end

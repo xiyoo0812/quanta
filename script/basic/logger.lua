@@ -1,8 +1,8 @@
 --logger.lua
 --logger功能支持
-local llog          = require("lualog")
 local lstdfs        = require("lstdfs")
 local lcodec        = require("lcodec")
+local llogger       = require("lualog")
 
 local pcall         = pcall
 local pairs         = pairs
@@ -10,13 +10,15 @@ local tpack         = table.pack
 local tunpack       = table.unpack
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
-local serialize     = lcodec.serialize
 local fsstem        = lstdfs.stem
+local serialize     = lcodec.serialize
+local lwarn         = llogger.warn
+local lfilter       = llogger.filter
+local lis_filter    = llogger.is_filter
 
-local LOG_LEVEL     = llog.LOG_LEVEL
+local LOG_LEVEL     = llogger.LOG_LEVEL
 
 logger              = {}
-local driver        = quanta.get_logger()
 local monitors      = _ENV.monitors or {}
 local logfeature    = _ENV.logfeature or {}
 local dispatching   = false
@@ -27,19 +29,19 @@ function logger.init()
     local path = environ.get("QUANTA_LOG_PATH", "./logs/")
     local rolltype = environ.number("QUANTA_LOG_ROLL", 0)
     local maxline = environ.number("QUANTA_LOG_LINE", 100000)
-    driver.option(path, service_name, index, rolltype);
-    driver.set_max_line(maxline);
+    llogger.option(path, service_name, index, rolltype);
+    llogger.set_max_line(maxline);
     --设置日志过滤
     logger.filter(environ.number("QUANTA_LOG_LVL"))
     --添加输出目标
-    driver.add_dest(service_name);
-    driver.add_lvl_dest(LOG_LEVEL.ERROR)
+    llogger.add_dest(service_name);
+    llogger.add_lvl_dest(LOG_LEVEL.ERROR)
     --设置daemon
-    driver.daemon(environ.status("QUANTA_DAEMON"))
+    llogger.daemon(environ.status("QUANTA_DAEMON"))
 end
 
 function logger.daemon(daemon)
-    driver.daemon(daemon)
+    llogger.daemon(daemon)
 end
 
 function logger.feature(name)
@@ -48,7 +50,7 @@ function logger.feature(name)
     end
     if not logfeature.features[name] then
         logfeature.features[name] = true
-        driver.add_dest(name)
+        llogger.add_dest(name)
     end
 end
 
@@ -62,13 +64,13 @@ end
 
 function logger.filter(level)
     for lvl = LOG_LEVEL.DEBUG, LOG_LEVEL.FATAL do
-        --driver.filter(level, on/off)
-        driver.filter(lvl, lvl >= level)
+        --lfilter(level, on/off)
+        lfilter(lvl, lvl >= level)
     end
 end
 
 local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
-    if driver.is_filter(lvl) then
+    if lis_filter(lvl) then
         return false
     end
     local content
@@ -96,12 +98,12 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
 end
 
 local LOG_LEVEL_OPTIONS = {
-    [LOG_LEVEL.INFO]    = { "info",  { driver.info,  false, false } },
-    [LOG_LEVEL.WARN]    = { "warn",  { driver.warn,  true,  false } },
-    [LOG_LEVEL.DUMP]    = { "dump",  { driver.dump,  true,  true  } },
-    [LOG_LEVEL.DEBUG]   = { "debug", { driver.debug, true,  false } },
-    [LOG_LEVEL.ERROR]   = { "err",   { driver.error, true,  false } },
-    [LOG_LEVEL.FATAL]   = { "fatal", { driver.fatal, true,  false } }
+    [LOG_LEVEL.INFO]    = { "info",  { llogger.info,  false, false } },
+    [LOG_LEVEL.WARN]    = { "warn",  { llogger.warn,  true,  false } },
+    [LOG_LEVEL.DUMP]    = { "dump",  { llogger.dump,  true,  true  } },
+    [LOG_LEVEL.DEBUG]   = { "debug", { llogger.debug, true,  false } },
+    [LOG_LEVEL.ERROR]   = { "err",   { llogger.error, true,  false } },
+    [LOG_LEVEL.FATAL]   = { "fatal", { llogger.fatal, true,  false } }
 }
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
@@ -109,7 +111,7 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
         local ok, res = pcall(logger_output, "", lvl, lvl_name, fmt, log_conf, ...)
         if not ok then
             local info = dgetinfo(2, "S")
-            driver.warn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
+            lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
             return false
         end
         return res
@@ -128,7 +130,7 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
             local ok, res = pcall(logger_output, feature, lvl, lvl_name, fmt, log_conf, ...)
             if not ok then
                 local info = dgetinfo(2, "S")
-                driver.warn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
+                lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
                 return false
             end
             return res

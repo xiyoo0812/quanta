@@ -1,4 +1,5 @@
 --codec_test.lua
+local luabus        = require("luabus")
 local lcrypt        = require("lcrypt")
 local lcodec        = require("lcodec")
 
@@ -12,6 +13,19 @@ local encode_slice  = lcodec.encode_slice
 local decode_slice  = lcodec.decode_slice
 local serialize     = lcodec.serialize
 local unserialize   = lcodec.unserialize
+local hash_code     = lcodec.hash_code
+
+--hash
+----------------------------------------------------------------
+local hash_n1 = hash_code(12345)
+local hash_n2 = hash_code(123346456545464, 1000)
+log_debug("hash_code number: %s, %s", hash_n1, hash_n2)
+-- -1792800413050876852
+
+local hash_s1 = hash_code("12345")
+local hash_s2 = hash_code("a0b0c0d0a0b0c0d0", 1000)
+log_debug("hash_code string: %s, %s", hash_s1, hash_s2)
+-- -1912366794928059912
 
 --guid
 ----------------------------------------------------------------
@@ -21,6 +35,14 @@ log_debug("newguid-> guid: %s, n2s: %s", guid, sguid)
 local nguid = lcodec.guid_number(sguid)
 local s2guid = lcodec.guid_tostring(nguid)
 log_debug("convert-> guid: %s, n2s: %s", nguid, s2guid)
+local eguid = lcodec.guid_encode(9223372036854775807)
+local eguid1 = lcodec.guid_encode(0x7fffffffffffffff)
+log_debug("encode-> eguid: %s", eguid)
+log_debug("encode-> eguid: %s", eguid1)
+local dguid = lcodec.guid_decode(eguid)
+local dguid1 = lcodec.guid_decode(eguid1)
+log_debug("encode-> dguid: %s", dguid)
+log_debug("encode-> dguid: %s", dguid1)
 local nsguid = lcodec.guid_string(5, 512)
 log_debug("newguid: %s", nsguid)
 local group = lcodec.guid_group(nsguid)
@@ -71,6 +93,10 @@ local ess = es.string()
 log_debug("encode-> aa: %d, %s", #ess, lhex_encode(ess))
 local da, db, dc, dd = decode_slice(es)
 log_debug("decode-> %s, %s, %s, %s", da, db, dc, dd)
+
+
+local ip = luabus.dns("mtae-global-test-outer-zone-a-2-89e65514de3445cc.elb.us-east-1.amazonaws.com")
+log_debug("luabus dns-> %s", ip)
 
 --dump
 log_dump("dump-> a: %s", t)

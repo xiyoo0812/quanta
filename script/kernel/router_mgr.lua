@@ -1,4 +1,6 @@
 -- router_mgr.lua
+local lcodec            = require("lcodec")
+
 local pairs             = pairs
 local log_err           = logger.err
 local log_info          = logger.info
@@ -7,7 +9,7 @@ local mrandom           = math.random
 local tunpack           = table.unpack
 local sformat           = string.format
 local qsuccess          = quanta.success
-local qhash_code        = quanta.hash_code
+local hash_code         = lcodec.hash_code
 local signal_quit       = signal.quit
 
 local monitor           = quanta.get("monitor")
@@ -128,7 +130,7 @@ end
 function RouterMgr:hash_router(hash_key)
     local count = #self.candidates
     if count > 0 then
-        local index = qhash_code(hash_key, count)
+        local index = hash_code(hash_key, count)
         return self.candidates[index]
     end
 end

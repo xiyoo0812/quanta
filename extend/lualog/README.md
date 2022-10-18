@@ -29,17 +29,23 @@ c++和lua通用的多线程日志库
 ```lua
 local llog = require("lualog")
 
-local logger = llog.logger.new()
-logger:option("./logs/", "service", 1, 1, 100000)
-logger:start()
+local LOG_LEVEL     = llog.LOG_LEVEL
 
-logger:debug("aaaaaaaaaa")
-logger:info("bbbb")
-logger:warn("cccccc")
-logger:dump("dddddddddd")
-logger:error("eeeeeeeeeeee")
+llog.option("./newlog/", "qtest", 1, 1);
+llog.set_max_line(500000);
+llog.daemon(true)
 
-logger:stop()
+llog.is_filter(LOG_LEVEL.DEBUG)
+llog.filter(LOG_LEVEL.DEBUG)
+
+llog.add_dest("qtest");
+llog.add_lvl_dest(LOG_LEVEL.ERROR)
+
+llog.debug("aaaaaaaaaa")
+llog.info("bbbb")
+llog.warn("cccccc")
+llog.dump("dddddddddd")
+llog.error("eeeeeeeeeeee")
 
 ```
 
@@ -47,17 +53,30 @@ logger:stop()
 ```c++
 #include "logger.h"
 
-auto logger = std::make_shared<log_service>();
-logger->option(logname, rolltype, maxline)
-logger->add_dest(logpath);
+auto logger = logger::log_service::instance();
+logger->option("./newlog/", "qtest", 1, logger::rolling_type::DAYLY)
+logger->set_max_line(500000);
+
+logger->is_filter(logger::log_level::DEBUG)
+logger->filter(logger::log_level::DEBUG)
+
+logger->add_dest("qtest");
+logger->add_lvl_dest(logger::log_level::DEBUG);
+
+//异步多线程
 logger->start();
+LOG_DEBUG << "aaaaaaaaaa";
+LOG_WARN << "bbbb";
+LOG_INFO << "cccccc";
+LOG_ERROR << "dddddddddd";
+LOG_FETAL << "eeeeeeeeeeee";
 
-LOG_DEBUG(logger) << "aaaaaaaaaa";
-LOG_WARN(logger) << "bbbb";
-LOG_INFO(logger) << "cccccc";
-LOG_ERROR(logger) << "dddddddddd";
-LOG_FETAL(logger) << "eeeeeeeeeeee";
-
-logger->stop()
+//同步日志输出
+logger->terminal();
+PRINT_DEBUG << "aaaaaaaaaa";
+PRINT_WARN << "bbbb";
+PRINT_INFO << "cccccc";
+PRINT_ERROR << "dddddddddd";
+PRINT_FETAL << "eeeeeeeeeeee";
 
 ```

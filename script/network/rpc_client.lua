@@ -6,7 +6,7 @@ local tunpack           = table.unpack
 local log_err           = logger.err
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
-local qhash_code        = quanta.hash_code
+local hash_code         = lcodec.hash_code
 local lencode           = lcodec.encode_slice
 local ldecode           = lcodec.decode_slice
 
@@ -34,13 +34,10 @@ function RpcClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
     self.holder = holder
-    update_mgr:attach_second5(self)
-    update_mgr:attach_next(self, function()
-        self:on_second5()
-    end)
+    update_mgr:attach_second(self)
 end
 
-function RpcClient:on_second5()
+function RpcClient:on_second()
     if self.alive then
         self:heartbeat()
         return
@@ -104,7 +101,7 @@ function RpcClient:connect()
         end
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
-        local hash_value = qhash_code(hash_key, 0xffff)
+        local hash_value = hash_code(hash_key, 0xffff)
         local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, send_len)
     end
@@ -171,9 +168,6 @@ function RpcClient:on_socket_error(token, err)
         self.alive = false
         self.holder:on_socket_error(self, token, err)
         log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
-        update_mgr:attach_next(self, function()
-            self:on_second5()
-        end)
     end)
 end
 

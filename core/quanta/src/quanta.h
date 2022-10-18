@@ -1,9 +1,8 @@
 ﻿#pragma once
 #include <map>
 
-#include "logger.h"
+#include "lua_kit.h"
 
-using namespace logger;
 class quanta_app final
 {
 public:
@@ -17,11 +16,11 @@ public:
 
 protected:
     void exception_handler(std::string msg, std::string& err);
-    const char* quanta_app::get_env(const char* key);
+    const char* get_env(const char* key);
+    int set_env(lua_State* L);
 
 private:
     uint64_t m_signal = 0;
-    std::shared_ptr<log_service> m_logger;
     std::map<std::string, std::string> m_environs;
 };
 

@@ -4,14 +4,13 @@
 #include <functional>
 #include "quanta.h"
 
-#include "lua_kit.h"
+#include "logger.h"
 #include <fmt/core.h>
 
 #if WIN32
 #include <conio.h>
 #include <windows.h>
 int setenv(const char* k, const char* v, int o) {
-    if (!o && getenv(k)) return 0;
     return _putenv_s(k, v);
 }
 #else
@@ -19,6 +18,8 @@ int setenv(const char* k, const char* v, int o) {
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
+
+using namespace logger;
 
 quanta_app* g_app = nullptr;
 static void on_signal(int signo) {
@@ -69,55 +70,34 @@ static void check_input(luakit::kit_state& lua) {
 #endif
 }
 
-static int hash_code(lua_State* L) {
-    size_t hcode = 0;
-    int type = lua_type(L, 1);
-    if (type == LUA_TNUMBER) {
-        hcode = std::hash<int64_t>{}(lua_tointeger(L, 1));
-    } else if (type == LUA_TSTRING) {
-        hcode = std::hash<std::string>{}(lua_tostring(L, 1));
-    } else {
-        luaL_error(L, "hashkey only support number or string!");
-    }
-    size_t mod = luaL_optinteger(L, 2, 0);
-    if (mod > 0) {
-        hcode = (hcode % mod) + 1;
-    }
-    lua_pushinteger(L, hcode);
-    return 1;
-}
-
-static int lset_env(lua_State* L) {
-    const char* key = lua_tostring(L, 1);
-    const char* value = lua_tostring(L, 2);
-    int overwrite = luaL_optinteger(L, 3, 1);
-    setenv(key, value, overwrite);
-    return 0;
-}
-
 void quanta_app::set_signal(uint32_t n) {
     uint32_t mask = 1 << n;
     m_signal |= mask;
 }
 
-
 const char* quanta_app::get_env(const char* key) {
-    auto v = getenv(key);
-    if (v == nullptr) {
-        auto it = m_environs.find(key);
-        if (it != m_environs.end()){
-            return it->second.c_str();
+    return getenv(key);
+}
+
+int quanta_app::set_env(lua_State* L) {
+    const char* key = lua_tostring(L, 1);
+    const char* value = lua_tostring(L, 2);
+    if (getenv(key)){
+        int overwrite = luaL_optinteger(L, 3, 0);
+        if (overwrite || m_environs.find(key) != m_environs.end()) {
+            setenv(key, value, 1);
         }
-        return nullptr;
+        return 0;
     }
-    return v;
+    m_environs[key] = value;
+    setenv(key, value, 1);
+    return 0;
 }
 
 void quanta_app::setup(int argc, const char* argv[]) {
     srand((unsigned)time(nullptr));
     //初始化日志
-    m_logger = std::make_shared<log_service>();
-    m_logger->start();
+    log_service::instance()->terminal();
     //加载配置
     load(argc, argv);
     //运行
@@ -125,8 +105,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
 }
 
 void quanta_app::exception_handler(std::string msg, std::string& err) {
-    LOG_FATAL(m_logger) << msg << err;
-    m_logger->stop();
+    PRINT_FATAL << msg << err;
 #if WIN32
     _getch();
 #endif
@@ -137,7 +116,7 @@ void quanta_app::load(int argc, const char* argv[]) {
     //设置默认参数
     setenv("QUANTA_SANDBOX", "sandbox", 1);
     //将启动参数转负责覆盖环境变量
-    for (int i = 1; i < argc; ++i) {
+    for (int i = 2; i < argc; ++i) {
         std::string argvi = argv[i];
         auto pos = argvi.find("=");
         if (pos != std::string::npos) {
@@ -145,38 +124,30 @@ void quanta_app::load(int argc, const char* argv[]) {
             auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
             std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
             setenv(ekey.c_str(), evalue.c_str(), 1);
-            continue;
         }
-        if (i == 1)
-        {
-            //加载LUA配置
-            luakit::kit_state lua;
-            lua.set("platform", get_platform());
-            lua.set_function("set_osenv", lset_env);
-            lua.set_function("set_env", [&](const char* k, const char* v) {
-                m_environs[k] = v;
-            });
-            lua.run_file(argv[i], [&](std::string err) {
-                exception_handler("load lua config err: ", err);
-            });
-            lua.close();
-        }
+    }
+    if (argc > 0) {
+        //加载LUA配置
+        luakit::kit_state lua;
+        lua.set("platform", get_platform());
+        lua.set_function("set_env", [&](lua_State* L) { return set_env(L); });
+        lua.run_file(argv[1], [&](std::string err) {
+            exception_handler("load lua config err: ", err);
+        });
+        lua.close();
     }
 }
 
 void quanta_app::run() {
     //初始化lua
     luakit::kit_state lua;
-    lua.set("platform", get_platform());
     auto quanta = lua.new_table("quanta");
     quanta.set("pid", ::getpid());
     quanta.set("environs", m_environs);
     quanta.set("platform", get_platform());
-    quanta.set_function("hash_code", hash_code);
     quanta.set_function("daemon", [&]() { daemon(); });
     quanta.set_function("get_signal", [&]() { return m_signal; });
     quanta.set_function("set_signal", [&](int n) { set_signal(n); });
-    quanta.set_function("get_logger", [&]() { return m_logger.get(); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
@@ -196,11 +167,9 @@ void quanta_app::run() {
     }
     while (quanta.get_function("run")) {
         quanta.call([&](std::string err) {
-            LOG_FATAL(m_logger) << "quanta run err: " << err;
+            PRINT_FATAL << "quanta run err: " << err;
         });
         check_input(lua);
     }
-    //通知logger
-    m_logger->stop();
     lua.close();
 }
