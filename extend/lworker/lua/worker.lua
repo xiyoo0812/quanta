@@ -15,6 +15,7 @@ local ltime         = ltimer.time
 local event_mgr     = quanta.get("event_mgr")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
+local thread_mgr    = quanta.load("thread_mgr")
 
 --初始化网络
 local function init_network()
@@ -29,6 +30,7 @@ local function init_mainloop()
     import("kernel/thread_mgr.lua")
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
+    thread_mgr = quanta.get("thread_mgr")
     update_mgr = quanta.get("update_mgr")
 end
 
@@ -83,7 +85,9 @@ quanta.on_worker = function(slice)
         log_err("[quanta][on_worker] decode failed %s!", rpc_res[2])
         return
     end
-    worker_rpc(tunpack(rpc_res, 2))
+    thread_mgr:fork(function()
+        worker_rpc(tunpack(rpc_res, 2))
+    end)
 end
 
 --唤醒主线程

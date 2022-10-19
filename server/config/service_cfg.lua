@@ -8,37 +8,37 @@ local service = config_mgr:get_table("service")
 --导出配置内容
 service:upsert({
     id = 1,
-    name = 'login',
-})
-
-service:upsert({
-    id = 2,
     name = 'lobby',
 })
 
 service:upsert({
-    id = 3,
+    id = 2,
     name = 'scene',
 })
 
 service:upsert({
-    id = 4,
-    name = 'gateway',
-})
-
-service:upsert({
-    id = 5,
-    name = 'online',
-})
-
-service:upsert({
-    id = 6,
+    id = 3,
     name = 'team',
 })
 
 service:upsert({
-    id = 7,
+    id = 4,
+    name = 'friend',
+})
+
+service:upsert({
+    id = 5,
+    name = 'chat',
+})
+
+service:upsert({
+    id = 6,
     name = 'room',
+})
+
+service:upsert({
+    id = 7,
+    name = 'task',
 })
 
 service:upsert({
@@ -48,22 +48,22 @@ service:upsert({
 
 service:upsert({
     id = 9,
-    name = 'friend',
-})
-
-service:upsert({
-    id = 10,
-    name = 'chat',
-})
-
-service:upsert({
-    id = 11,
-    name = 'task',
-})
-
-service:upsert({
-    id = 12,
     name = 'activity',
+})
+
+service:upsert({
+    id = 18,
+    name = 'login',
+})
+
+service:upsert({
+    id = 19,
+    name = 'gateway',
+})
+
+service:upsert({
+    id = 20,
+    name = 'online',
 })
 
 service:upsert({
@@ -112,4 +112,4 @@ service:upsert({
 })
 
 --general md5 version
-service:set_version('1bdb779de194249552f192903f948bc1')
+service:set_version('89b857c52f45bfa461850c8d732ea02c')

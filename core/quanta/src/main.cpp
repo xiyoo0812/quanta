@@ -11,6 +11,7 @@ int main(int argc, const char* argv[])
     tzset();
     setlocale(LC_ALL, "");
 
+    system("echo quanta engine init.");
     quanta_app* g_app = new quanta_app();
     g_app->setup(argc, argv);
 

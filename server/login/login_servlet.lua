@@ -6,6 +6,7 @@ local log_info              = logger.info
 local log_debug             = logger.debug
 local qfailed               = quanta.failed
 local guid_new              = lcodec.guid_new
+local guid_encode           = lcodec.guid_encode
 local trandom               = qtable.random
 local mrandom               = qmath.random
 local tremove               = table.remove
@@ -207,7 +208,7 @@ end
 
 --随机名字
 function LoginServlet:on_random_name_req(session, cmd_id, body, session_id)
-    local rname = login_dao:random_name()
+    local rname = guid_encode()
     log_debug("[LoginServlet][on_random_name_req] open_id(%s) randname: %s!",session.open_id, rname)
     local callback_data = { error_code = 0, name = rname }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)

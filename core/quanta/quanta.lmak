@@ -41,6 +41,7 @@ LINUX_LIBS = {
 
 --依赖项目
 DEPS = {
+    "lualog",
     "luabus"
 }
 

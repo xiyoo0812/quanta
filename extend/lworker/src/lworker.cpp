@@ -15,9 +15,8 @@ namespace lworker {
             schedulor.setup(L, service, sandbox);
             return 0;
         });
-        llworker.set_function("startup", [](lua_State* L, std::string name, std::string entry) {
-            schedulor.startup(L, name, entry);
-            return 0;
+        llworker.set_function("startup", [](std::string name, std::string entry) {
+            schedulor.startup(name, entry);
         });
         llworker.set_function("call", [](std::string name, slice* buf, size_t hash) {
             schedulor.call(name, buf, hash);

@@ -22,16 +22,16 @@ local SERVICE_NAMES = _ENV.SERVICE_NAMES or {}
 
 service = {}
 
-function service.make_node(port)
+function service.make_node(port, domain)
     quanta.node_info = {
         id = quanta.id,
-        host = quanta.host,
         name = quanta.name,
         index = quanta.index,
         group = quanta.group,
         region = quanta.region,
         service = quanta.service,
         port = port or quanta.index,
+        host = domain or quanta.host,
         service_name = quanta.service_name,
     }
 end

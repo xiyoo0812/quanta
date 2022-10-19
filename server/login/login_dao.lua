@@ -2,17 +2,9 @@
 import("agent/mongo_agent.lua")
 
 local log_err           = logger.err
-local mrandom           = math.random
-local tconcat           = table.concat
 local qfailed           = quanta.failed
 
-local config_mgr        = quanta.get("config_mgr")
 local mongo_agent       = quanta.get("mongo_agent")
-local name_db           = config_mgr:init_table("name", "id")
-
-local name_frist        = name_db:select({ type = 1 }, "name")
-local name_second       = name_db:select({ type = 2 }, "name")
-local name_three        = name_db:select({ type = 3 }, "name")
 
 local MINUTE_5_S        = quanta.enum("PeriodTime", "MINUTE_5_S")
 
@@ -115,15 +107,6 @@ function LoginDao:check_name_exist(name)
         return true
     end
     return udata
-end
-
-function LoginDao:random_name()
-    local names = {
-        name_frist[mrandom(#name_frist)], name_second[mrandom(#name_second)], "_",
-        name_three[mrandom(#name_three)], name_three[mrandom(#name_three)],
-        name_three[mrandom(#name_three)], name_three[mrandom(#name_three)]
-    }
-    return tconcat(names)
 end
 
 quanta.login_dao = LoginDao()
