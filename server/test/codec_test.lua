@@ -14,18 +14,30 @@ local decode_slice  = lcodec.decode_slice
 local serialize     = lcodec.serialize
 local unserialize   = lcodec.unserialize
 local hash_code     = lcodec.hash_code
+local fnv_32a       = lcodec.fnv_32a
+local fnv_32        = lcodec.fnv_32
 
 --hash
 ----------------------------------------------------------------
 local hash_n1 = hash_code(12345)
 local hash_n2 = hash_code(123346456545464, 1000)
 log_debug("hash_code number: %s, %s", hash_n1, hash_n2)
--- -1792800413050876852
 
 local hash_s1 = hash_code("12345")
 local hash_s2 = hash_code("a0b0c0d0a0b0c0d0", 1000)
 log_debug("hash_code string: %s, %s", hash_s1, hash_s2)
--- -1912366794928059912
+
+local fnv_s1 = fnv_32("12345")
+local fnv_s2 = fnv_32("12345", fnv_s1)
+local fnv_s3 = fnv_32("12345", fnv_s2)
+log_debug("fnv_32 string: %s, %s, %s", fnv_s1, fnv_s2, fnv_s3)
+
+local fnv_as1 = fnv_32a("12345")
+local fnv_as2 = fnv_32a("12345", fnv_as1)
+local fnv_as3 = fnv_32a("12345", fnv_as2)
+log_debug("fnv_32a string: %s, %s, %s", fnv_as1, fnv_as2, fnv_as3)
+--fnv_32 string: 2930711257, 991336454, 3269464323
+--fnv_32a string: 3601286043, 177295730, 3384461241
 
 --guid
 ----------------------------------------------------------------
