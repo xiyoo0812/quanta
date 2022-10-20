@@ -19,7 +19,10 @@ namespace laoi {
         llaoi.set_function("create_aoi", create_aoi);
         llaoi.set_function("create_object", create_object);
         llaoi.new_enum("aoi_type", "watcher", aoi_type::watcher, "marker", aoi_type::marker);
-        kit_state.new_class<aoi_obj>();
+        kit_state.new_class<aoi_obj>(
+            "x", &aoi_obj::grid_x,
+            "z", &aoi_obj::grid_z
+        );
         kit_state.new_class<aoi>(
             "move", &aoi::move,
             "attach", &aoi::attach,
