@@ -15,6 +15,7 @@ clean:
 	rm -rf temp;
 
 core:
+	cd core/luabus; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
 	cd core/quanta; make -j4 SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 
 lua:
