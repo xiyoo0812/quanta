@@ -67,29 +67,29 @@ function LoginModule:guest_login_req()
     }
     local ok, res = self:call("NID_LOGIN_ACCOUNT_LOGIN_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][guest_login_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][guest_login_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
     self.roles = res.roles
     self.user_id = res.user_id
-    log_debug("[LoginModule][guest_login_req] robot:%s success", self.index)
+    log_debug("[LoginModule][guest_login_req] robot:%s success", self:get_title())
     return true
 end
 
 function LoginModule:account_login_req()
     local req_data = {
         openid = self.open_id,
-        token = self.access_token,
+        session = self.access_token,
         platform = PLATFORM_PASSWORD
     }
     local ok, res = self:call("NID_LOGIN_ACCOUNT_LOGIN_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][account_login_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][account_login_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
     self.roles = res.roles
     self.user_id = res.user_id
-    log_debug("[LoginModule][account_login_req] robot:%s success", self.index)
+    log_debug("[LoginModule][account_login_req] robot:%s success", self:get_title())
     return true
 end
 
@@ -118,7 +118,7 @@ function LoginModule:login_server()
     if not self:connect_gateway() then
         return false, "gateway connect failed!"
     end
-    if not self:role_login_req()() then
+    if not self:role_login_req() then
         return false, "role login failed!"
     end
     return true
@@ -135,10 +135,10 @@ end
 function LoginModule:random_name_req()
     local ok, res = self:call("NID_LOGIN_RANDOM_NAME_REQ", {})
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][random_name_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][random_name_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return
     end
-    log_debug("[LoginModule][random_name_req] robot:%s success", self.index)
+    log_debug("[LoginModule][random_name_req] robot:%s success", self:get_title())
     return res.name
 end
 
@@ -151,18 +151,18 @@ function LoginModule:create_role_req(name)
     }
     local ok, res = self:call("NID_LOGIN_ROLE_CREATE_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][create_role_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][create_role_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
     tinsert(self.roles, res.role)
-    log_debug("[LoginModule][create_role_req] robot:%s success", self.index)
+    log_debug("[LoginModule][create_role_req] robot:%s success", self:get_title())
     return true
 end
 
 function LoginModule:choose_role_req()
     local role = trandarray(self.roles)
     if not role then
-        log_warn("[LoginModule][choose_role_req] robot:%s roles is empty", self.index)
+        log_warn("[LoginModule][choose_role_req] robot:%s roles is empty", self:get_title())
         return false
     end
     local req_data = {
@@ -171,7 +171,7 @@ function LoginModule:choose_role_req()
     }
     local ok, res = self:call("NID_LOGIN_ROLE_CHOOSE_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][choose_role_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][choose_role_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
     self.lobby = res.lobby
@@ -179,14 +179,14 @@ function LoginModule:choose_role_req()
     self.gate_port = res.port
     self.lobby_token = res.token
     self.player_id = role.role_id
-    log_debug("[LoginModule][choose_role_req] robot:%s success", self.index)
+    log_debug("[LoginModule][choose_role_req] robot:%s success", self:get_title())
     return true
 end
 
 function LoginModule:delete_role_req()
     local role = trandarray(self.roles)
     if not role then
-        log_warn("[LoginModule][delete_role_req] robot:%s roles is empty", self.index)
+        log_warn("[LoginModule][delete_role_req] robot:%s roles is empty", self:get_title())
         return false
     end
     local req_data = {
@@ -195,11 +195,11 @@ function LoginModule:delete_role_req()
     }
     local ok, res = self:call("NID_LOGIN_ROLE_DELETE_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][delete_role_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][delete_role_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
     tdelete(self.roles, role)
-    log_debug("[LoginModule][delete_role_req] robot:%s success", self.index)
+    log_debug("[LoginModule][delete_role_req] robot:%s success", self:get_title())
     return true
 end
 
@@ -210,12 +210,12 @@ function LoginModule:account_reload_req()
     }
     local ok, res = self:call("NID_LOGIN_ACCOUNT_RELOAD_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][account_reload_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][account_reload_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
     self.roles = res.roles
     self.user_id = res.user_id
-    log_debug("[LoginModule][account_reload_req] robot:%s success", self.index)
+    log_debug("[LoginModule][account_reload_req] robot:%s success", self:get_title())
     return true
 end
 
@@ -228,10 +228,10 @@ function LoginModule:role_login_req()
     }
     local ok, res = self:call("NID_LOGIN_ROLE_LOGIN_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][role_login_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][role_login_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
-    log_debug("[LoginModule][role_login_req] robot:%s success", self.index)
+    log_debug("[LoginModule][role_login_req] robot:%s success", self:get_title())
     return true
 end
 
@@ -239,12 +239,12 @@ function LoginModule:role_logout_req()
     local req_data = { role_id = self.player_id }
     local ok, res = self:call("NID_LOGIN_ROLE_LOGOUT_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][role_logout_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][role_logout_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
     self.account_token = res.account_token
     self.player_id = nil
-    log_debug("[LoginModule][role_logout_req] robot:%s success", self.index)
+    log_debug("[LoginModule][role_logout_req] robot:%s success", self:get_title())
     return true
 end
 
@@ -257,10 +257,10 @@ function LoginModule:role_reload_req()
     }
     local ok, res = self:call("NID_LOGIN_ROLE_RELOAD_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][role_reload_req] robot:%s, ok=%s, res=%s", self.index, ok, res)
+        log_warn("[LoginModule][role_reload_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
-    log_debug("[LoginModule][role_reload_req] robot:%s success", self.index)
+    log_debug("[LoginModule][role_reload_req] robot:%s success", self:get_title())
     return true
 end
 

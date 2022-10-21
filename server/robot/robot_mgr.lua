@@ -7,7 +7,6 @@ local sformat       = string.format
 local signalquit    = signal.quit
 local env_addr      = environ.addr
 local env_number    = environ.number
-local tunpack       = table.unpack
 local guid_string   = lcodec.guid_string
 
 local timer_mgr     = quanta.get("timer_mgr")
@@ -123,7 +122,6 @@ function RobotMgr:get_accord_message(open_id)
     local robot = self.robot_list[open_id]
     if robot then
         local res = { code = 0, msg = robot:get_messages() }
-        robot:set_messages({})
         return res
     end
     return { code = -1, msg = "robot not exist" }
@@ -142,8 +140,7 @@ function RobotMgr:run_accord_messages(open_id, cmd_datas)
     local robot = self.robot_list[open_id]
     if robot then
         for _, info in ipairs(cmd_datas) do
-            local cmd_id, data = tunpack(info)
-            local ok, res = robot:call(cmd_id, data)
+            local ok, res = robot:call(info.id, info.args)
             if not ok then
                 return { code = -1, msg = res }
             end

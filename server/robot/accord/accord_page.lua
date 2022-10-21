@@ -1,8 +1,15 @@
---luacheck: ignore 631
+-- luacheck: ignore 631
 return [[<html>
 <head>
     <title>协议测试</title>
     <style type="text/css">
+        pre {outline: 1px solid #ccc; }
+        .string { color: green; }
+        .number { color: darkorange; }
+        .boolean { color: blue; }
+        .null { color: magenta; }
+        .key { color: red; }
+
         ul,
         li {
             margin: 0;
@@ -85,7 +92,7 @@ return [[<html>
             font-size: 14px;
             align-items: center;
             position: relative;
-            margin: 0 0 16px 0;
+            margin: 30px 0 30px 0;
             width: 240px;
             z-index: 3
         }
@@ -153,7 +160,8 @@ return [[<html>
         }
         .container-atom-list {
             position: relative;
-            z-index: 3
+            z-index: 3;
+            margin-top: 5
         }
         .container-atom-list .atom-item {
             position: relative;
@@ -414,6 +422,7 @@ return [[<html>
             border: 1px solid rgb(15, 44, 56);
             padding-bottom: 20px;
             box-sizing: border-box;
+            white-space: pre-line;
         }
         .log-item {
             width: 95%;
@@ -621,7 +630,7 @@ return [[<html>
         }
         .bk-sideslider-title {
             height: 60px;
-            line-height: 60px;
+            line-height: 30px;
             border-bottom: 1px solid #dcdee5;
             font-size: 16px;
             font-weight: 700;
@@ -799,8 +808,8 @@ return [[<html>
         <div ng-show="showOperator" class="list-item pipeline-drag show-stage-area pipeline-stage">
             <button type="button" class="bk-button-normal bk-button pipeline-stage-entry light-gray">
                 <div class="stage-container">
-                    <div class="stage-content">未启动</div>
-                    <div id="heartbeat-light" class="heartbeat-icon light-green"></div>
+                    <div class="stage-content">{{robotStatus}}</div>
+                    <div id="heartbeat-light" class="heartbeat-icon light-gray"></div>
                 </div>
             </button>
             <ul class="soda-process-stage">
@@ -808,10 +817,10 @@ return [[<html>
                     <h3 class="container-title first-ctitle">
                         <span id="start-btn" class="stage-status container blue" ng-click="startRobot()">启动</span>
                         <p class="container-name" ng-click="startRobot()"><span id="start-text">启动Robot</span></p>
-                        <p class="add-plus-icon close" ng-click="cleanLogs()"></p>
                     </h3>
-                    <section>
-                        <div class="container-atom-list" ng-repeat="cmd in curProtocols">
+                    <span class="add-atom-entry" ng-show="caseNew"><i class="add-plus-icon" ng-click="addItem(cmd)"></i></span>
+                    <section style="overflow-y: auto;height:250">
+                        <div class="container-atom-list" ng-repeat="cmd in curProtocols" id="case_protocols">
                             <li class="atom-item">
                                 <section class="atom-item atom-section normal-atom">
                                     <svg width="18" height="18" viewBox="0 0 32 32" class="atom-icon" ng-click="showProtocol(false, cmd)">
@@ -832,11 +841,12 @@ return [[<html>
                 </div>
             </ul>
             <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="runAll()">Run All</button><br>
-            <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="saveCaseData()">保存</button>
+            <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="saveCaseData()">保存</button><br>
+            <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="cleanLogs()">清空控制台</button>
         </div>
     </div>
-    <div class="log-half">
-        {{messages}}
+    <div class="log-half" id="message_content">
+       <pre id="jsonShow">  {{messages}}</pre>
     </div>
     <article id="side-protocol" class="bk-sideslider bkci-property-panel" style="z-index: 2021;" ng-show="protoShow">
         <section class="bk-sideslider-wrapper right" style="width: 600px;">
@@ -846,7 +856,7 @@ return [[<html>
                 </i>
                 <div class="bk-sideslider-title" style="padding: 0px 0px 0px 50px;">
                     <header class="property-panel-header">
-                        <div><p>{{curProtocolName}}</p></div>
+                        <div><p>{{curProtocolName.name}}</p></div>
                     </header>
                 </div>
             </div>
@@ -858,14 +868,15 @@ return [[<html>
                                 <section class="bk-form bk-form-vertical atom-content" atom="[object Object]">
                                     <div class="form-field bk-form-item is-required">
                                         <label ng-show="protoNew" class="bk-label atom-form-label">选择协议:</label>
-                                        <select ng-show="protoNew" class="bk-form-input" ng-model="curProtocolName" ng-options="k for (k, v) in protocols"></select>
+                                        <select ng-show="protoNew" class="bk-form-input" ng-model="curProtocolName" ng-change="addProtoChange(curProtocolName)" ng-options="k for (k, v) in protocols"></select>
                                         <label class="bk-label atom-form-label">协议参数：</label>
                                         <div class="bk-form-content">
-                                            <textarea id="parameter" name="parameter"
+                                            <textarea id="parameter" name="parameter" ng-model="curProtocolArgs"
                                                 class="input-textarea">{{curProtocolArgs}}</textarea>
                                         </div><br>
                                         <div class="center-box">
-                                            <button class="add-plus-icon login-button" ng-click="saveCaseData()">保存</button>
+                                            <button class="add-plus-icon login-button" ng-click="modifyProtoData()" ng-hide="protoNew">保存</button>
+                                            <button class="add-plus-icon login-button" ng-click="insertProtoData()" ng-show="protoNew">确定</button>
                                         </div>
                                     </div>
                                 </section>
@@ -910,7 +921,11 @@ return [[<html>
                                     <label class="bk-label atom-form-label">输入密码:</label>
                                     <input type="text" class="bk-form-input" ng-model="passwd"></input>
                                     <div class="center-box" style="width: 100%;height: 80px;">
-                                        <button class="add-plus-icon login-button" ng-click="saveCaseData()">保存</button>
+                                        <button class="add-plus-icon login-button" ng-click="showCase(false)" ng-hide="caseNew">确定</button>
+                                        <button class="add-plus-icon login-button" ng-click="insertCase()" ng-show="caseNew">确定</button>
+                                    </div>
+                                    <div class="center-box" style="width: 100%;height: 80px;">
+                                        <button class="add-plus-icon login-button" ng-click="uploadLocal()" ng-show="upload">上传</button>
                                     </div>
                                 </section>
                             </div>
@@ -923,6 +938,7 @@ return [[<html>
 </div>
 </body>
 <script>
+    var heartSerial = 1
     var app = angular.module('robot', [])
     app.controller('protocol', function($scope, $http, $interval) {
         $scope.openid = null
@@ -931,9 +947,12 @@ return [[<html>
         $scope.caseShow = false
         $scope.protoShow = false
         $scope.serverAddr = null
+        $scope.robotStatus ="未启动"
         $scope.showOperator = false
         $scope.protoNew = false
         $scope.caseNew = false
+        $scope.upload = false
+        $scope.uploadConfig = {}
         //测试用例
         $scope.curCase = null
         $scope.curCaseName = "请配置测试用例"
@@ -945,40 +964,239 @@ return [[<html>
         $scope.protocols = []
         $scope.tescases = []
         $scope.servers = []
+        //当前插入新协议的索引
+        $scope.newProtoIndex = 0;
+        //新增协议选中
+        $scope.addProtoChange = function(protoIndex){
+            $scope.curProtocolArgs = JSON.stringify(protoIndex.fields,null,2)
+        }
         //初始化
         $http.get('/config').then(function(response) {
             console.log("config", response.data)
             $scope.servers = response.data.servers
             $scope.protocols = response.data.accord
             $scope.tescases = response.data.cases
+            //初始化协议序号
+            for(var usecase in $scope.tescases) {
+                for(var index=0; index< $scope.tescases[usecase].protocols.length;index++) {
+                    var proto = $scope.tescases[usecase].protocols[index]
+                    proto.index = index
+                }
+            }
         });
+        $scope.prettyFormat = function(str) {
+            try {
+                // 去除JSON.stringify带来的hashkey
+                str.$$hashKey = undefined
+                // 设置缩进为2个空格
+                str = JSON.stringify(str, null, 2);
+                str = str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+                return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                    var cls = 'number';
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) {
+                            cls = 'key';
+                        } else {
+                            cls = 'string';
+                        }
+                    } else if (/true|false/.test(match)) {
+                        cls = 'boolean';
+                    } else if (/null/.test(match)) {
+                        cls = 'null';
+                    }
+                    return '<span class="' + cls + '">' + match + '</span>';
+                });
+            } catch (e) {
+                alert("异常信息:" + e);
+            }
+        }
         //定时器
         $interval(function(){
             if ($scope.logined) {
-                $http.get('/message').then(function(response) {
+                //处理滚动条
+                var divscll = document.getElementById('message_content');
+                divscll.scrollTop = divscll.scrollHeight;
+                //发送心跳
+                $scope.runHeartBeat()
+                //获取服务器推送消息
+                $http.get('/message',{
+                    params:{
+                    "open_id":  $scope.openid
+                    }
+            }).then(function(response) {
                     console.log("message", response.data)
+                    if(response.data.hasOwnProperty("msg") &&  Object.keys(response.data.msg).length != 0){
+                        $scope.messages += "\n\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]服务器通知:\n"+$scope.prettyFormat(response.data)
+                        document.getElementById('jsonShow').innerHTML = $scope.messages
+                    }
                 });
             }
-        }, 1000);
+        }, 1000*1);
         //成员函数
         $scope.showProtocol=function(isNew, cmd){
             $scope.protoNew = isNew
             $scope.protoShow = cmd ? true : false;
-            $scope.curProtocolName = cmd.name
-            $scope.curProtocolArgs = JSON.stringify(cmd.args, null, "    ")
+            if(cmd){
+                $scope.curProtocolName = cmd
+                $scope.curProtocolArgs = JSON.stringify(cmd.args, null, "    ")
+            }
+        }
+        $scope.uploadLocal= function(){
+            $http.post('/upload',{
+                "data": $scope.uploadConfig
+            }).then(function(response) {
+                if(response){
+                    alert("上传成功")
+                    console.log("config", response.data)
+                    $scope.servers = response.data.servers
+                    $scope.protocols = response.data.accord
+                    $scope.tescases = response.data.cases
+                    //初始化协议序号
+                    for(var usecase in $scope.tescases) {
+                        for(var index=0; index< $scope.tescases[usecase].protocols.length;index++) {
+                            var proto = $scope.tescases[usecase].protocols[index]
+                            proto.index = index
+                        }
+                    }
+                }
+            },function(response){
+                alert("上传失败")
+            });
         }
         $scope.showCase=function(isShow){
             $scope.caseShow = isShow
+            if(!isShow && $scope.logined){
+                //暂停机器人
+                $scope.stopRobot()
+            }
         }
         $scope.uploadFile=function(files) {
             console.log("uploadFile", files)
+            var reader = new FileReader();
+            reader.onload = function(){
+                if(reader.result){
+                    try {
+                        $scope.uploadConfig = reader.result
+                        $scope.showOperator = true
+                        $scope.upload = true
+                    } catch(err) {
+                        alert("加载文件失败 "+ err)
+                    }
+                }
+            }
+            reader.readAsText(files[0])
         }
+
+        //保存测试用例
         $scope.saveCaseData=function(){
-            download('这是文件的内容', "newcase.lua", "text/plain");
+            var protocols = "{\n";
+            var curProtoIndex = 1
+            for(var protoIndex in $scope.curProtocols) {
+                var proto = $scope.curProtocols[protoIndex]
+                if(!proto){
+                    continue
+                }
+                protocols += "        {\n"
+                protocols += "            id = "
+                protocols += proto.id
+                protocols += ",\n"
+
+                protocols += "            name = "
+                protocols += "'"
+                protocols += proto.name
+                protocols += "',\n"
+
+                protocols += "            args = {"
+                //组装参数
+                //keys
+                var curArgIndex = 1
+                for(var key in proto.args){
+                    protocols += key
+                    protocols += " = "
+                    //TODO value为字符串的时候需要处理与否
+                    if((typeof proto.args[key]) == "string") {
+                        protocols += "'"
+                    }
+                    protocols += proto.args[key]
+                    if((typeof proto.args[key]) == "string") {
+                        protocols += "'"
+                    }
+                    if(curArgIndex != Object.keys(proto.args).length){
+                        protocols += ","
+                    }
+                    curArgIndex++
+                }
+                protocols += "}\n"
+                protocols += "        }"
+                if(curProtoIndex != Object.keys($scope.curProtocols).length)
+                {
+                    protocols += ",\n"
+                }
+                curProtoIndex++
+            }
+        protocols+="\n    }"
+        var content = "return {\n\
+        name = '"+$scope.curCaseName+"',\n\
+        openid = '"+$scope.openid+"',\n\
+        password = '"+$scope.passwd+"',\n\
+        server = '"+$scope.serverAddr+"',\n\
+        protocols = "+ protocols + "\n}";
+            download(content, $scope.curCaseName+".lua", "text/plain");
         }
-        $scope.saveTestCase=function(){
-            console.log("saveTestCase")
+        //修改协议参数
+        $scope.modifyProtoData=function(){
+            var newProtocol = $scope.curProtocols[$scope.newProtoIndex]
+            if($scope.curProtocolArgs){
+                try {
+                    newProtocol.args= JSON.parse($scope.curProtocolArgs)
+                }catch(err) {
+                   alert("参数错误"+err)
+                   return
+                }
+            }else{
+                newProtocol.args= {}
+            }
+            $scope.protoShow = false;
+            console.log(JSON.stringify(newProtocol,null,2))
         }
+        //新增协议
+        $scope.insertProtoData=function(){
+            //读取输入
+            var newProtocol = new Object()
+            newProtocol.id = $scope.curProtocolName.msg_id
+            newProtocol.name= $scope.curProtocolName.name
+            if($scope.curProtocolArgs){
+                try {
+                    newProtocol.args= JSON.parse($scope.curProtocolArgs)
+                }catch(err) {
+                   alert("参数错误"+err)
+                   return
+                }
+            }else{
+                newProtocol.args= {}
+            }
+            if($scope.curProtocols){
+                $scope.curProtocols.splice($scope.newProtoIndex +1,0,newProtocol)
+            }else{
+                $scope.curProtocols = new Array(newProtocol)
+            }
+            //默认添加下一个
+            $scope.newProtoIndex +=2
+            //重新排序计算序号
+            for(var index=0; index< $scope.curProtocols.length;index++)
+            {
+                var proto = $scope.curProtocols[index]
+                proto.index = index
+            }
+        }
+        //添加测试用例
+        $scope.insertCase=function(){
+            $scope.showOperator = true
+        }
+        //新建测试用例
         $scope.newCase=function(){
             $scope.openid = null
             $scope.passwd = null
@@ -994,31 +1212,173 @@ return [[<html>
             $scope.curCaseName = $scope.curCase.name
             $scope.curProtocols = $scope.curCase.protocols
         }
+        //控制台日志日期格式
+        Date.prototype.Format = function (fmt) {
+            var o = {
+                "M+": this.getMonth() + 1, // 月份
+                "d+": this.getDate(), // 日
+                "h+": this.getHours(), // 小时
+                "m+": this.getMinutes(), // 分
+                "s+": this.getSeconds(), // 秒
+                "q+": Math.floor((this.getMonth() + 3) / 3), // 季度
+                "S": this.getMilliseconds() // 毫秒
+            };
+            if (/(y+)/.test(fmt))
+                fmt = fmt.replace(RegExp.$1, (this.getFullYear() + "").substr(4 - RegExp.$1.length));
+            for (var k in o)
+                if (new RegExp("(" + k + ")").test(fmt)) fmt = fmt.replace(RegExp.$1, (RegExp.$1.length == 1) ? (o[k]) : (("00" + o[k]).substr(("" + o[k]).length)));
+                    return fmt;
+        }
+        //心跳
+        $scope.runHeartBeat=function(){
+            var cmd={}
+            var heartArgs={}
+            heartArgs.time = 0
+            heartArgs.serial = heartSerial
+            cmd.id=1001;
+            cmd.args=heartArgs;
+            $http.post('/run',{
+                "open_id":  $scope.openid,
+                "cmd_id":cmd.id,
+                "data": cmd.args
+            }).then(function(response) {
+                if(response.data.code != 0)
+                {
+                    return
+                }
+                //使用服务器序列号重置
+                heartSerial = response.data.msg.serial
+            },function(response){
+                console.log("请求处理失败",response.data)
+            });
+        }
+        //运行单条协议
         $scope.runProtocol=function(cmd){
-            console.log("runProtocol", cmd)
+            if(!$scope.logined){
+                alert("尚未启动")
+                return;
+            }
+            $scope.messages+= "\n\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]发送:\n"+ $scope.prettyFormat(cmd)
+            document.getElementById('jsonShow').innerHTML = $scope.messages
+            $http.post('/run',{
+                "open_id":  $scope.openid,
+                "cmd_id":cmd.id,
+                "data": cmd.args
+            }).then(function(response) {
+                $scope.messages +=  "\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]应答:\n"+ $scope.prettyFormat(response.data)
+                document.getElementById('jsonShow').innerHTML = $scope.messages
+                if(response.data.code != 0) {
+                    return
+                }
+            },function(response){
+                $scope.messages += "\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]应答:\n"+ $scope.prettyFormat(response.data)
+            });
         }
         $scope.runAll=function(cmd){
-            console.log("runAll")
+            if(!$scope.logined){
+                alert("尚未启动")
+                return;
+            }
+            $scope.messages +=  "\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]请求:\n"+  $scope.prettyFormat($scope.curProtocols)
+            document.getElementById('jsonShow').innerHTML = $scope.messages
+            $http.post('/runall',{
+                "data": $scope.curProtocols,
+                "open_id":  $scope.openid
+            }).then(function(response) {
+                console.log("请求发送成功 应答", response.data)
+                $scope.messages +=  "\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]应答:\n"+  $scope.prettyFormat(response.data)
+                document.getElementById('jsonShow').innerHTML = $scope.messages
+                if(response.data.code != 0){
+                    //alert("请求处理失败"+ response.data.msg)
+                    //回显
+                    return
+                }
+            },function(response){
+                console.log("请求处理失败",response.data)
+                $scope.messages += "\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]应答:"+  $scope.prettyFormat(response.data)
+            });
         }
         $scope.startRobot=function(cmd){
-            console.log("startRobot")
+            if($scope.logined){
+                alert("已启动");
+                return;
+            }
+            $scope.messages += "\n开始启动机器人"
+            //解析ip和port
+            var ipInfo = $scope.serverAddr.split(":");
+            $http.post('/create',{
+                    "ip":ipInfo[0],
+                    "port":Number(ipInfo[1]) ,
+                    "open_id":  $scope.openid,
+                    "passwd":$scope.passwd
+            }).then(function(response) {
+                if(response.data.code != 0)
+                {
+                    alert("启动失败"+ response.data.msg)
+                    $scope.messages += "\n启动失败"+ response.data.msg
+                    return
+                }
+                console.log("启动成功")
+                $scope.logined = true
+                $scope.toggleStatus()
+            },function(response){
+                alert("启动失败"+response.data)
+            });
         }
         $scope.stopRobot=function(cmd){
-            console.log("stopRobot")
+            if(!$scope.logined){
+                alert("尚未启动");
+                return;
+            }
+            //发送请求
+            $http.post('/destory',{
+                "open_id":  $scope.openid
+            }).then(function(response) {
+                if(response.data.code != 0){
+                    alert("停止失败"+ response.data.msg)
+                    $scope.messages += "\n停止失败"+ response.data.msg
+                    document.getElementById('jsonShow').innerHTML = $scope.messages
+                    return
+                }
+                $scope.logined = false
+                $scope.toggleStatus()
+            },function(response){
+                alert("停止失败"+response.data)
+            });
         }
         $scope.addItem=function(cmd){
             $scope.curProtocolName = null
             $scope.curProtocolArgs = "{\n\}"
             $scope.showProtocol(true, {})
+            if(cmd){
+                $scope.newProtoIndex = cmd.index
+            }else{
+                $scope.newProtoIndex = 0
+            }
         }
         $scope.removeItem=function(cmd){
             console.log("removeItem", cmd)
+            $scope.curProtocols.splice(cmd.index,1)
         }
         $scope.cleanLogs=function(cmd){
-            console.log("cleanLogs")
+            $scope.messages = ""
+            document.getElementById('jsonShow').innerHTML = $scope.messages
         }
         $scope.setupTestCase=function(){
             $scope.caseShow = true
+        }
+        $scope.toggleStatus=function(){
+            if($scope.logined){
+                $scope.messages +="\n启动成功"
+                $scope.robotStatus = "运行中"
+                document.getElementById("heartbeat-light").className = "heartbeat-icon light-green"
+                document.getElementById('jsonShow').innerHTML = $scope.messages
+            }else{
+                $scope.messages +="\n停止成功"
+                $scope.robotStatus = "已停止"
+                document.getElementById("heartbeat-light").className = "heartbeat-icon light-gray"
+                document.getElementById('jsonShow').innerHTML = $scope.messages
+            }
         }
     });
 </script>

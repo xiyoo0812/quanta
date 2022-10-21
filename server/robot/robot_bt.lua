@@ -42,6 +42,10 @@ function RobotBT:__init(conf, index)
     end
 end
 
+function RobotBT:get_title()
+    return self.robot_id
+end
+
 function RobotBT:get_board()
     return self.lua_tree.blackboard
 end
