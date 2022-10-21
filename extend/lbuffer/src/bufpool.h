@@ -1,39 +1,65 @@
-#ifndef __BUF_POOL_H_
-#define __BUF_POOL_H_
+#pragma once
+#include <list>
+#include <mutex>
 
-#include "lbuffer.h"
+namespace lbuffer {
+    class buf_pool {
+        virtual uint8_t* alloc() = 0;
+        virtual void erase(uint8_t* data) = 0;
+    };
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    template<int BLOCK_SIZE = 512, int GROW_STEP = 16>
+    class mem_pool : public buf_pool {
+    public:
+        ~mem_pool() { clear(); }
 
-typedef struct fixblock {
-    uint8_t* data;
-    struct fixblock* next;
-    struct fixblock* next_free;
-} fix_block;
+        static mem_pool* instance() {
+            static mem_pool<BLOCK_SIZE, GROW_STEP> pool;
+            return &pool;
+        }
 
-typedef struct bufpool {
-    uint32_t used;
-    uint32_t capacity;
-    uint32_t fix_size;
-    uint16_t graw_size;
-    fix_block* head;
-    fix_block* tail;
-    fix_block* first_free;
-} buffer_pool;
+        void clear() {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            for (auto block : m_blocks) {
+                if (block) delete block;
+            }
+            m_used = 0;
+        }
 
-LBUFF_API buffer_pool* bufpool_alloc(uint32_t fixsize, uint16_t graw_size);
+        uint8_t* alloc() {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            if (!m_first_free) {
+                auto phead = new fix_block[GROW_STEP];
+                if (!phead) {
+                    return nullptr;
+                }
+                for (size_t i = 0; i < GROW_STEP; ++i) {
+                    phead[i].next_free = (i < (GROW_STEP - 1)) ? &(phead[i + 1]) : nullptr;
+                    m_blocks.push_front(&phead[i]);
+                }
+                m_first_free = phead;
+            }
+            fix_block* block = m_first_free;
+            m_first_free = block->next_free;
+            return block->data;
+        }
 
-LBUFF_API void bufpool_close(buffer_pool* pool);
+        void erase(uint8_t* data) {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            fix_block* block = (fix_block*)(data);
+            block->next_free = m_first_free;
+            m_first_free = block;
+        }
 
-LBUFF_API uint8_t* bufpool_malloc(buffer_pool* pool);
+    protected:
+        struct fix_block {
+            uint8_t data[BLOCK_SIZE];
+            struct fix_block* next_free;
+        };
+        mem_pool() {}
 
-LBUFF_API void bufpool_free(buffer_pool* pool, uint8_t* data);
-
-
-#ifdef __cplusplus
+        fix_block* m_first_free = nullptr;
+        std::mutex m_mutex;
+        std::list<fix_block*> m_blocks;
+    };
 }
-#endif
-
-#endif

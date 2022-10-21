@@ -1,20 +1,16 @@
-﻿/*
-** repository: https://github.com/trumanzhao/luna
-** trumanzhao, 2016-11-01, trumanzhao@foxmail.com
-*/
-
-#pragma once
+﻿#pragma once
 #include "ltimer.h"
 
-#define NET_PACKET_MAX_LEN (64*1024-1)
+const int SOCKET_RECV_LEN = 4096;
 
+#pragma pack(1)
 struct socket_header {
     uint16_t    len;            // 整个包的长度
     uint8_t     flag;           // 标志位
-    uint8_t     seq_id;         // cli->svr 客户端请求序列号，递增，可用于防止包回放; svr->cli 服务端发给客户端的包序列号，客户端收到的包序号不连续，则主动断开
-    uint32_t    cmd_id;         // 协议ID
-    uint32_t    session_id;     // sessionId
+    uint16_t    cmd_id;         // 协议ID
+    uint16_t    session_id;     // sessionId
 };
+#pragma pack()
 
 #if defined(__linux) || defined(__APPLE__)
 #include <errno.h>

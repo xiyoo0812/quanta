@@ -5,9 +5,6 @@
 local config_mgr = quanta.get("config_mgr")
 local cache_row = config_mgr:get_table("cache_row")
 
---导出版本号
-cache_row:set_version(10000)
-
 --导出配置内容
 cache_row:upsert({
     cache_name = 'account',
@@ -98,3 +95,6 @@ cache_row:upsert({
     cache_table = 'player_battlepass',
     cache_key = 'player_id',
 })
+
+--general md5 version
+cache_row:set_version('e57d6cf9e2b4176136a0043351abdb00')

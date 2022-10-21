@@ -3,6 +3,8 @@ local mfloor        = math.floor
 local mrandom       = math.random
 local mtointeger    = math.tointeger
 
+math_ext = _ENV.math_ext or {}
+
 function math_ext.round(n)
     return mfloor(0.5 + n)
 end

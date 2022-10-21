@@ -1,10 +1,8 @@
 ﻿#include "stdafx.h"
-#include <algorithm>
-#include <assert.h>
-#include "var_int.h"
 #include "socket_mgr.h"
 #include "socket_helper.h"
 #include "socket_stream.h"
+#include "socket_router.h"
 
 #ifdef _MSC_VER
 socket_stream::socket_stream(socket_mgr* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type) :
@@ -52,14 +50,14 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
 
     m_socket = fd;
     m_link_status = elink_status::link_connected;
-    m_last_recv_time = ltimer::now_ms();
+    m_last_recv_time = ltimer::steady_ms();
     return true;
 }
 
 void socket_stream::connect(const char node_name[], const char service_name[], int timeout) {
     m_node_name = node_name;
     m_service_name = service_name;
-    m_connecting_time = ltimer::now_ms() + timeout;
+    m_connecting_time = ltimer::steady_ms() + timeout;
 }
 
 void socket_stream::close() {
@@ -245,12 +243,6 @@ void socket_stream::send(const void* data, size_t data_len)
     if (m_link_status != elink_status::link_connected)
         return;
 
-    // rpc模式需要发送特殊的head
-    if (eproto_type::proto_rpc == m_proto_type){
-        BYTE header[MAX_VARINT_SIZE];
-        size_t header_len = encode_u64(header, sizeof(header), data_len);
-        stream_send((char*)header, header_len);
-    }
     stream_send((char*)data, data_len);
 }
 
@@ -259,16 +251,6 @@ void socket_stream::sendv(const sendv_item items[], int count)
     if (m_link_status != elink_status::link_connected)
         return;
 
-    size_t data_len = 0;
-    for (int i = 0; i < count; i++) {
-        data_len += items[i].len;
-    }
-    // rpc模式需要发送特殊的head
-    if (eproto_type::proto_rpc == m_proto_type) {
-        BYTE  header[MAX_VARINT_SIZE];
-        size_t header_len = encode_u64(header, sizeof(header), data_len);
-        stream_send((char*)header, header_len);
-    }
     for (int i = 0; i < count; i++) {
         auto item = items[i];
         stream_send((char*)item.data, item.len);
@@ -297,20 +279,9 @@ void socket_stream::stream_send(const char* data, size_t data_len)
             return;
         }
     }
-    while (data_len > 0) {
-        size_t space_len;
-        m_send_buffer->peek_space(&space_len);
-        if (space_len == 0) {
-            on_error("send-buffer-full");
-            return;
-        }
-        size_t try_len = std::min<size_t>(space_len, data_len);
-        if (!m_send_buffer->push_data(data, try_len)) {
-            on_error("send-failed");
-            return;
-        }
-        data_len -= try_len;
-        data += try_len;
+    if (0 == m_send_buffer->push_data((const uint8_t*)data, data_len)) {
+        on_error("send-failed");
+        return;
     }
 #if _MSC_VER
     if (!wsa_send_empty(m_socket, m_send_ovl)) {
@@ -399,7 +370,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
     size_t total_send = 0;
     while (total_send < max_len && (m_link_status != elink_status::link_closed)) {
         size_t data_len = 0;
-        auto* data = m_send_buffer->peek_data(&data_len);
+        auto data = m_send_buffer->data(&data_len);
         if (data_len == 0) {
             if (!m_mgr->watch_send(m_socket, this, false)) {
                 on_error("watch-error");
@@ -438,7 +409,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
             return;
         }
         total_send += send_len;
-        m_send_buffer->pop_data((size_t)send_len);
+        m_send_buffer->pop_space((size_t)send_len);
     }
     if (is_eof || max_len == 0) {
         on_error("connection-lost");
@@ -449,15 +420,12 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
 {
     size_t total_recv = 0;
     while (total_recv < max_len && m_link_status == elink_status::link_connected) {
-        size_t space_len = 0;
-        auto* space = m_recv_buffer->peek_space(&space_len);
-        if (space_len == 0) {
+        auto* space = m_recv_buffer->peek_space(SOCKET_RECV_LEN);
+        if (space == nullptr) {
             on_error("recv-buffer-full");
             return;
         }
-
-        size_t try_len = std::min<size_t>(space_len, max_len - total_recv);
-        int recv_len = recv(m_socket, (char*)space, (int)try_len, 0);
+        int recv_len = recv(m_socket, (char*)space, SOCKET_RECV_LEN, 0);
         if (recv_len < 0) {
             int err = get_socket_error();
 #ifdef _MSC_VER
@@ -494,54 +462,53 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
 }
 
 void socket_stream::dispatch_package() {
-    int64_t now = ltimer::now_ms();
+    int64_t now = ltimer::steady_ms();
     while (m_link_status == elink_status::link_connected) {
-        uint64_t package_size = 0;
-        size_t data_len = 0, header_len = 0;
-        auto* data = m_recv_buffer->peek_data(&data_len);
-        if (eproto_type::proto_rpc == m_proto_type) {
-            // rpc模式使用decode_u64获取head
-            header_len = decode_u64(&package_size, data, data_len);
-            if (header_len == 0) break;
+        size_t data_len = 0, package_size = 0;
+        auto* data = m_recv_buffer->data(&data_len);
+		if (eproto_type::proto_rpc == m_proto_type) {
+            size_t header_len = sizeof(router_header);
+            auto data = m_recv_buffer->peek_data(header_len);
+            if (!data) {
+                break;
+            }
+            router_header* header = (router_header*)data;
+            // 当前包长小于headlen，当前包头标识的数据超过最大长度,关闭连接
+            if (header->len < header_len || header->len > USHRT_MAX) {
+				on_error("package-length-err");
+				break;
+			}
+			package_size = header->len;
         }
         else if (eproto_type::proto_pack == m_proto_type) {
             // pack模式获取socket_header
-            header_len = sizeof(socket_header);
-            if (data_len < header_len)
+            size_t header_len = sizeof(socket_header);
+            auto data = m_recv_buffer->peek_data(header_len);
+            if (!data) {
                 break;
+            }
             socket_header* header = (socket_header*)data;
-            // 当前包长小于headlen，关闭连接
-            if (header->len < header_len) {
+            // 当前包长小于headlen，当前包头标识的数据超过最大长度,关闭连接
+            if (header->len < header_len || header->len > USHRT_MAX) {
                 on_error("package-length-err");
                 break;
             }
-            // 当前包头标识的数据超过最大长度
-            if (header->len > NET_PACKET_MAX_LEN) {
-                on_error("package-parse-large");
-                break;
-            }
-            package_size = header->len - header_len;
+            package_size = header->len;
         }
         else if (eproto_type::proto_text == m_proto_type) {
+            package_size = data_len = m_recv_buffer->size();
             if (data_len == 0) break;
-            package_size = data_len;
         } else {
             on_error("proto-type-not-suppert!");
             break;
         }
 
         // 数据包还没有收完整
-        if (data_len < header_len + package_size) break;
-        if (eproto_type::proto_pack == m_proto_type) {
-            m_package_cb((char*)data, header_len + (size_t)package_size);
-        } else {
-            m_package_cb((char*)data + header_len, (size_t)package_size);
-        }
-
+		if (data_len < package_size) break;
+		m_package_cb(m_recv_buffer->slice());
         // 接收缓冲读游标调整
-        m_recv_buffer->pop_data(header_len + (size_t)package_size);
-        m_last_recv_time = ltimer::now_ms();
-
+        m_recv_buffer->pop_size(package_size);
+        m_last_recv_time = ltimer::steady_ms();
         // 防止单个连接处理太久，不能大于20ms
         if (m_last_recv_time - now > 20) break;
     }
@@ -574,7 +541,7 @@ void socket_stream::on_connect(bool ok, const char reason[]) {
             m_link_status = elink_status::link_closed;
         } else {
             m_link_status = elink_status::link_connected;
-            m_last_recv_time = ltimer::now_ms();
+            m_last_recv_time = ltimer::steady_ms();
         }
         m_connect_cb(ok, reason);
     }

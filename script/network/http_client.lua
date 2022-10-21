@@ -54,9 +54,9 @@ function HttpClient:on_frame()
         curl_handle, result = lquery()
     end
     --清除超时请求
-    local now_ms = quanta.now_ms
+    local clock_ms = quanta.clock_ms
     for handle, context in pairs(self.contexts) do
-        if now_ms >= context.time then
+        if clock_ms >= context.time then
             self.contexts[handle] = nil
         end
     end
@@ -104,7 +104,7 @@ function HttpClient:build_request(url, timeout, session_id, headers, method, ...
     self.contexts[curl_handle] = {
         request = request,
         session_id = session_id,
-        time = quanta.now_ms + timeout,
+        time = quanta.clock_ms + timeout,
     }
     return true
 end

@@ -14,17 +14,18 @@ FLAGS = {
 
 --需要的include目录
 INCLUDES = {
-	"../lua/lua"
-}
-
---需要定义的选项
-DEFINES = {
-	"LBUFF_EXPORT"
+	"../lua/lua",
+	"../luakit/include"
 }
 
 --需要连接的库文件
 LIBS = {
 	"lua"
+}
+
+--WINDOWS需要定义的选项
+WINDOWS_DEFINES = {
+	"LUA_BUILD_AS_DLL"
 }
 
 --依赖项目

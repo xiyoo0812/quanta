@@ -69,9 +69,9 @@ function NetClient:connect(block)
             thread_mgr:response(block_id, succes, res)
         end
     end
-    socket.on_call_pack = function(recv_len, cmd_id, flag, session_id, data)
+    socket.on_call_pack = function(recv_len, cmd_id, flag, session_id, slice)
         event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, data)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, session_id, slice)
     end
     socket.on_error = function(token, err)
         thread_mgr:fork(function()
@@ -110,8 +110,8 @@ function NetClient:encode(cmd_id, data, flag)
     return encode_data, flag
 end
 
-function NetClient:decode(cmd_id, data, flag)
-    local decode_data = data
+function NetClient:decode(cmd_id, slice, flag)
+    local decode_data = slice.string()
     if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
         decode_data = lcrypt.lz4_decode(decode_data)
@@ -127,11 +127,11 @@ function NetClient:decode(cmd_id, data, flag)
     end
 end
 
-function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, data)
+function NetClient:on_socket_rpc(socket, cmd_id, flag, session_id, slice)
     self.alive_time = quanta.now
-    local body, cmd_name = self:decode(cmd_id, data, flag)
+    local body, cmd_name = self:decode(cmd_id, slice, flag)
     if not body  then
-        log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s，data:%s", cmd_id, data)
+        log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
         return
     end
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
@@ -172,7 +172,7 @@ function NetClient:write(cmd_id, data, session_id, flag)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_pack(cmd_id, pflag, session_id or 0, body)
+    local send_len = self.socket.call_pack(cmd_id, pflag, session_id or 0, body, #body)
     if send_len < 0 then
         log_err("[NetClient][write] call_pack failed! code:%s", send_len)
         return false
@@ -181,8 +181,8 @@ function NetClient:write(cmd_id, data, session_id, flag)
 end
 
 -- 发送数据
-function NetClient:send_pack(cmd_id, data, session_id)
-    return self:write(cmd_id, data, session_id, FLAG_REQ)
+function NetClient:send_pack(cmd_id, data)
+    return self:write(cmd_id, data, 0, FLAG_REQ)
 end
 
 -- 回调数据
@@ -192,7 +192,7 @@ end
 
 -- 发起远程调用
 function NetClient:call_pack(cmd_id, data)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = self.socket.build_session_id()
     if not self:write(cmd_id, data, session_id, FLAG_REQ) then
         return false
     end

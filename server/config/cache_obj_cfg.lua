@@ -5,9 +5,6 @@
 local config_mgr = quanta.get("config_mgr")
 local cache_obj = config_mgr:get_table("cache_obj")
 
---导出版本号
-cache_obj:set_version(10000)
-
 --导出配置内容
 cache_obj:upsert({
     cache_name = 'account',
@@ -44,3 +41,6 @@ cache_obj:upsert({
     store_time = 120,
     store_count = 200,
 })
+
+--general md5 version
+cache_obj:set_version('a7998fa4cb9f79707159da6da0fae8c1')

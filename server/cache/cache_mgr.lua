@@ -7,7 +7,7 @@ local log_info      = logger.info
 local qget          = quanta.get
 local qenum         = quanta.enum
 local tunpack       = table.unpack
-local check_failed  = utility.check_failed
+local qfailed       = quanta.failed
 
 local event_mgr         = qget("event_mgr")
 local timer_mgr         = qget("timer_mgr")
@@ -103,7 +103,7 @@ function CacheMgr:load_cache_impl(cache_list, conf, primary_key)
     local cache_obj = CacheObj(conf, primary_key)
     cache_list[primary_key] = cache_obj
     local code = cache_obj:load()
-    if check_failed(code) then
+    if qfailed(code) then
         cache_list[primary_key] = nil
         return code
     end
@@ -136,7 +136,7 @@ function CacheMgr:get_cache_obj(quanta_id, cache_name, primary_key, cache_type)
     if cache_type & CREAD == CREAD then
         local conf = self.cache_confs[cache_name]
         local code, cobj = self:load_cache_impl(cache_list, conf, primary_key)
-        if check_failed(code) then
+        if qfailed(code) then
             return code
         end
         if cache_type & CWRITE == CWRITE then

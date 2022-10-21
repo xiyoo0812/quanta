@@ -1,6 +1,5 @@
 ﻿#include "stdafx.h"
 #include "socket_helper.h"
-#include "io_buffer.h"
 #include "socket_mgr.h"
 #include "socket_stream.h"
 #include "socket_listener.h"
@@ -110,7 +109,7 @@ Exit0:
 #endif
 
 int socket_mgr::wait(int timeout) {
-    int64_t now = ltimer::now_ms();
+    int64_t now = ltimer::steady_ms();
     auto it = m_objects.begin(), end = m_objects.end();
     while (it != end) {
         socket_object* object = it->second;
@@ -121,7 +120,7 @@ int socket_mgr::wait(int timeout) {
         }
         ++it;
     }
-    int escape = ltimer::now_ms() - now;
+    int escape = ltimer::steady_ms() - now;
     timeout = escape >= timeout ? 0 : timeout - escape;
 #ifdef _MSC_VER
     ULONG event_count = 0;
@@ -232,20 +231,6 @@ int socket_mgr::connect(std::string& err, const char node_name[], const char ser
     return token;
 }
 
-void socket_mgr::set_send_buffer_size(uint32_t token, size_t size) {
-    auto node = get_object(token);
-    if (node && size > 0) {
-        node->set_send_buffer_size(size);
-    }
-}
-
-void socket_mgr::set_recv_buffer_size(uint32_t token, size_t size) {
-    auto node = get_object(token);
-    if (node && size > 0) {
-        node->set_recv_buffer_size(size);
-    }
-}
-
 void socket_mgr::set_timeout(uint32_t token, int duration) {
     auto node = get_object(token);
     if (node) {
@@ -303,7 +288,7 @@ void socket_mgr::set_connect_callback(uint32_t token, const std::function<void(b
     }
 }
 
-void socket_mgr::set_package_callback(uint32_t token, const std::function<void(char *, size_t)>& cb) {
+void socket_mgr::set_package_callback(uint32_t token, const std::function<void(slice*)>& cb) {
     auto node = get_object(token);
     if (node) {
         node->set_package_callback(cb);

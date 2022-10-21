@@ -98,7 +98,7 @@ return [[
     <small>Designed and built by <a href="https://github.com/xiyoo0812/quanta" target="_blank">quanta</a></small>
 </footer>
 </body>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 <script src="http://jonmiles.github.io/bootstrap-treeview/js/bootstrap-treeview.js"></script>
 <script type="text/javascript">
     window.onload = function(){

@@ -1,11 +1,12 @@
 --gm_agent.lua
 
-local tunpack       = table.unpack
-local log_info      = logger.info
-local qget          = quanta.get
-local qenum         = quanta.enum
-local check_success = utility.check_success
+local tunpack   = table.unpack
+local log_info  = logger.info
+local qget      = quanta.get
+local qenum     = quanta.enum
+local qsuccess  = quanta.success
 
+local monitor       = qget("monitor")
 local router_mgr    = qget("router_mgr")
 local event_mgr     = qget("event_mgr")
 
@@ -20,7 +21,7 @@ function GMAgent:__init()
     --注册gm事件分发
     event_mgr:add_listener(self, "rpc_command_execute")
     -- 关注 gm服务 事件
-    router_mgr:watch_service_ready(self, "admin")
+    monitor:watch_service_ready(self, "admin")
 end
 
 --插入一条command
@@ -35,7 +36,7 @@ end
 --command：字符串格式
 function GMAgent:execute_command(command)
     local ok, codeoe, res = router_mgr:call_admin_master("rpc_execute_command", command)
-    if ok and check_success(codeoe) then
+    if ok and qsuccess(codeoe) then
         return ok, res
     end
     return false, ok and res or codeoe
@@ -46,7 +47,7 @@ end
 --message：lua table格式
 function GMAgent:execute_message(message)
     local ok, codeoe, res = router_mgr:call_admin_master("rpc_execute_message", message)
-    if ok and check_success(codeoe) then
+    if ok and qsuccess(codeoe) then
         return ok, res
     end
     return false, ok and res or codeoe
@@ -58,7 +59,7 @@ function GMAgent:report_command()
         command_list[#command_list + 1] = cmd
     end
     local ok, code = router_mgr:call_admin_master("rpc_register_command", command_list, quanta.service_id)
-    if ok and check_success(code) then
+    if ok and qsuccess(code) then
         log_info("[GMAgent][report_command] success!")
         return true
     end

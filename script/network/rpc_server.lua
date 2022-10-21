@@ -1,13 +1,17 @@
 --rpc_server.lua
-local next              = next
+
 local pairs             = pairs
+local tpack             = table.pack
 local tunpack           = table.unpack
 local log_err           = logger.err
+local log_warn          = logger.warn
 local log_info          = logger.info
 local qget              = quanta.get
 local qenum             = quanta.enum
 local qxpcall           = quanta.xpcall
 local signalquit        = signal.quit
+local lencode           = quanta.encode
+local ldecode           = quanta.decode
 
 local event_mgr         = qget("event_mgr")
 local thread_mgr        = qget("thread_mgr")
@@ -17,7 +21,7 @@ local perfeval_mgr      = qget("perfeval_mgr")
 local FLAG_REQ          = qenum("FlagMask", "REQ")
 local FLAG_RES          = qenum("FlagMask", "RES")
 local SUCCESS           = qenum("KernCode", "SUCCESS")
-local ROUTER_TIMEOUT    = qenum("NetwkTime", "ROUTER_TIMEOUT")
+local RPCLINK_TIMEOUT   = qenum("NetwkTime", "RPCLINK_TIMEOUT")
 local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RpcServer = singleton()
@@ -26,13 +30,12 @@ local prop = property(RpcServer)
 prop:reader("ip", "")                     --监听ip
 prop:reader("port", 0)                    --监听端口
 prop:reader("clients", {})
+prop:reader("kick_clients", {})
 prop:reader("listener", nil)
-function RpcServer:__init()
-end
+prop:reader("holder", nil)                  --持有者
 
---初始化
 --induce：根据index推导port
-function RpcServer:setup(ip, port, induce)
+function RpcServer:__init(holder, ip, port, induce)
     if not ip or not port then
         log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)
         signalquit()
@@ -43,6 +46,7 @@ function RpcServer:setup(ip, port, induce)
         log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)
         signalquit()
     end
+    self.holder = holder
     self.ip, self.port = ip, real_port
     log_info("[RpcServer][setup] now listen %s:%s success!", ip, real_port)
     self.listener.on_accept = function(client)
@@ -52,8 +56,9 @@ function RpcServer:setup(ip, port, induce)
 end
 
 --rpc事件
-function RpcServer:on_socket_rpc(client, rpc, session_id, rpc_flag, source, ...)
+function RpcServer:on_socket_rpc(client, session_id, rpc_flag, recv_len, source, rpc, ...)
     client.alive_time = quanta.now
+    event_mgr:notify_listener("on_rpc_recv", rpc, recv_len)
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
             local _<close> = perfeval_mgr:eval(rpc)
@@ -73,17 +78,23 @@ function RpcServer:on_socket_error(token, err)
     local client = self.clients[token]
     if client then
         self.clients[token] = nil
-        event_mgr:notify_listener("on_socket_error", client, token, err)
+        if self.kick_clients[token] then
+            log_warn("[RpcServer][on_socket_error] kick client close! name:%s, ip:%s", client.name, client.ip)
+            self.kick_clients[token] = nil
+            return
+        end
+        thread_mgr:fork(function()
+            self.holder:on_client_error(client, token, err)
+        end)
     end
 end
 
 --accept事件
 function RpcServer:on_socket_accept(client)
-    client.set_timeout(ROUTER_TIMEOUT)
+    client.set_timeout(RPCLINK_TIMEOUT)
     self.clients[client.token] = client
-
     client.call_rpc = function(session_id, rpc_flag, rpc, ...)
-        local send_len = client.call(session_id, rpc_flag, 0, rpc, ...)
+        local send_len = client.call(session_id, rpc_flag, lencode(quanta.id, rpc, ...))
         if send_len < 0 then
             event_mgr:notify_listener("on_rpc_send", rpc, send_len)
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
@@ -91,15 +102,19 @@ function RpcServer:on_socket_accept(client)
         end
         return true, SUCCESS
     end
-    client.on_call = function(recv_len, session_id, rpc_flag, source, rpc, ...)
-        event_mgr:notify_listener("on_rpc_recv", rpc, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, rpc, session_id, rpc_flag, source, ...)
+    client.on_call = function(recv_len, session_id, rpc_flag, slice)
+        local rpc_res = tpack(pcall(ldecode, slice))
+        if not rpc_res[1] then
+            log_err("[RpcServer][on_socket_accept] on_call decode failed %s!", rpc_res[2])
+            return
+        end
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
     end
     client.on_error = function(token, err)
         qxpcall(self.on_socket_error, "on_socket_error: %s", self, token, err)
     end
     --通知收到新client
-    event_mgr:notify_listener("on_socket_accept", client)
+    self.holder:on_client_accept(client)
 end
 
 --send接口
@@ -123,6 +138,15 @@ function RpcServer:broadcast(rpc, ...)
     end
 end
 
+--servicecast接口
+function RpcServer:servicecast(service_id, rpc, ...)
+    for _, client in pairs(self.clients) do
+        if service_id == 0 or client.service_id == service_id then
+            client.call_rpc(0, FLAG_REQ, rpc, ...)
+        end
+    end
+end
+
 --获取client
 function RpcServer:get_client(token)
     return self.clients[token]
@@ -130,35 +154,40 @@ end
 
 --获取client
 function RpcServer:get_client_by_id(quanta_id)
-    for token, client in pairs(self.client) do
+    for token, client in pairs(self.clients) do
         if client.id == quanta_id then
             return client
         end
     end
 end
 
---迭代器
-function RpcServer:iterator()
-    local token = nil
-    local clients = self.clients
-    local function iter()
-        token = next(clients, token)
-        if token then
-            return token, clients[token]
-        end
-    end
-    return iter
-end
-
 --rpc回执
 -----------------------------------------------------------------------------
 --服务器心跳协议
-function RpcServer:rpc_heartbeat(client, node_info)
+function RpcServer:rpc_heartbeat(client, node)
+    --回复心跳
     self:send(client, "on_heartbeat", quanta.id)
-    if node_info then
-        client.id = node_info.id
-        client.service_id = node_info.service_id
-        event_mgr:notify_listener("on_socket_info", client, node_info)
+    if not node then
+        --正常心跳
+        self.holder:on_client_beat(client)
+        return
+    end
+    if not client.id then
+        -- 检查重复注册
+        local client_id = node.id
+        local eclient = self:get_client_by_id(client_id)
+        if eclient then
+            self.kick_clients[eclient.token] = client_id
+            self:send(eclient, "on_client_kickout", quanta.id, "service replace")
+            log_warn("[RpcServer][rpc_heartbeat] client(%s) be kickout, service replace!", eclient.name)
+            return
+        end
+        -- 通知注册
+        client.id = client_id
+        client.name = node.name
+        client.service = node.service
+        client.service_name = node.service_name
+        self.holder:on_client_register(client, node)
     end
 end
 

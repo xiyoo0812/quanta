@@ -16,6 +16,14 @@ KernCode.MYSQL_FAILED       = 102   --MYSQL执行失败
 KernCode.MONGO_FAILED       = 103   --MONGO执行失败
 KernCode.REDIS_FAILED       = 104   --REDIS执行失败
 
+--服务模式
+local QuantaMode = enum("QuantaMode", 0)
+QuantaMode.STANDLONE        = 0     --独立模式(不加载lua框架,此处仅列举,配置无效)
+QuantaMode.SERVICE          = 1     --服务模式(加载全量)
+QuantaMode.ROUTER           = 2     --路由模式(加载路由)
+QuantaMode.TOOL             = 3     --工具模式(加载基础和网络)
+QuantaMode.TINY             = 4     --精简模式(加载基础)
+
 --协议投flag掩码
 local FlagMask              = enum("FlagMask", 0)
 FlagMask.REQ                = 0x01  -- 请求
@@ -29,10 +37,10 @@ NetwkTime.CONNECT_TIMEOUT   = 3000      --连接等待时间
 NetwkTime.RPC_CALL_TIMEOUT  = 5000      --RPC调用超时时间
 NetwkTime.HTTP_CALL_TIMEOUT = 5000      --HTTP调用超时时间
 NetwkTime.DB_CALL_TIMEOUT   = 5000      --DB调用超时时间
-NetwkTime.ROUTER_TIMEOUT    = 10000     --router连接超时时间
+NetwkTime.RPCLINK_TIMEOUT   = 10000     --RPC连接超时时间
 NetwkTime.NETWORK_TIMEOUT   = 35000     --其他网络连接超时时间
 NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间（s）
-NetwkTime.HEARTBEAT_TIME    = 2000      --RPC连接心跳时间
+NetwkTime.HEARTBEAT_TIME    = 5000      --RPC连接心跳时间
 
 --常用时间周期
 local PeriodTime = enum("PeriodTime", 0)

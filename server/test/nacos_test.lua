@@ -29,7 +29,6 @@ thread_mgr:fork(function()
     local nss4 = nacos:query_namespaces()
     log_debug("query_namespaces4: %s", nss4)
     ]]
-    nacos:set_namespace("1234567")
 
     local value = lhex_encode(lrandomkey())
     local pfres = nacos:modify_config("test2", value)
@@ -68,7 +67,6 @@ thread_mgr:fork(function()
 end)
 
 timer_mgr:loop(3000, function()
-    nacos:set_namespace("1234567")
     --[[
     local value = lhex_encode(lrandomkey())
     local pfres = nacos:modify_config("test", value)

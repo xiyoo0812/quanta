@@ -1,48 +1,172 @@
-#ifndef __BUFFER_H__
-#define __BUFFER_H__
+#pragma once
+#include "slice.h"
 
-#include "lbuffer.h"
+namespace lbuffer {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+    const size_t BUFFER_DEF = 64 * 1024;        //64K
+    const size_t BUFFER_MAX = 16 * 1024 * 1024; //16M
 
-typedef struct varbuffer {
-    uint8_t* head;
-    uint8_t* tail;
-    uint8_t* end;
-    uint8_t* data;
-    size_t ori_size;
-    size_t size;
-} var_buffer;
+    class var_buffer {
+    public:
+        var_buffer() { _alloc(); }
+        ~var_buffer() { free(m_data); }
 
-//分配buffer
-LBUFF_API var_buffer* buffer_alloc(size_t size);
-//释放buffer
-LBUFF_API void buffer_close(var_buffer* buf);
-//重置
-LBUFF_API void buffer_reset(var_buffer* buf);
-//获取buffsize
-LBUFF_API size_t buffer_size(var_buffer* buf);
-//复制
-LBUFF_API size_t buffer_copy(var_buffer* buf, size_t offset, const uint8_t* src, size_t src_len);
-//写入
-LBUFF_API size_t buffer_apend(var_buffer* buf, const uint8_t* src, size_t src_len);
-//移动头指针
-LBUFF_API size_t buffer_erase(var_buffer* buf, size_t erase_len);
-//全部数据
-LBUFF_API uint8_t* buffer_data(var_buffer* buf, size_t* len);
-//尝试读出
-LBUFF_API uint8_t* buffer_peek(var_buffer* buf, size_t peek_len);
-//读出
-LBUFF_API size_t buffer_read(var_buffer* buf, uint8_t* dest, size_t read_len);
-//返回可写指针
-LBUFF_API uint8_t* buffer_attach(var_buffer* buf, size_t len);
-//移动尾指针
-LBUFF_API size_t buffer_grow(var_buffer* buf, size_t graw_len);
+        void reset() {
+            if (m_size != BUFFER_DEF) {
+                m_data = (uint8_t*)realloc(m_data, BUFFER_DEF);
+            }
+            memset(m_data, 0, BUFFER_DEF);
+            m_end = m_data + BUFFER_DEF;
+            m_head = m_tail = m_data;
+            m_size = BUFFER_DEF;
+        }
 
-#ifdef __cplusplus
+        size_t size() {
+            return m_tail - m_head;
+        }
+
+        size_t capacity() {
+            return m_size;
+        }
+
+        size_t empty() {
+            return m_tail == m_head;
+        }
+
+        size_t copy(size_t offset, const uint8_t* src, size_t src_len) {
+            size_t data_len = m_tail - m_head;
+            if (offset + src_len <= data_len) {
+                memcpy(m_head + offset, src, src_len);
+                return src_len;
+            }
+            return 0;
+        }
+
+        size_t push_data(const uint8_t* src, size_t push_len) {
+            uint8_t* target = peek_space(push_len);
+            if (target) {
+                memcpy(target, src, push_len);
+                m_tail += push_len;
+                return push_len;
+            }
+            return 0;
+        }
+
+        size_t pop_data(uint8_t* dest, size_t pop_len) {
+            size_t data_len = m_tail - m_head;
+            if (pop_len > 0 && data_len >= pop_len) {
+                memcpy(dest, m_head, pop_len);
+                m_head += pop_len;
+                return pop_len;
+            }
+            return 0;
+        }
+
+        size_t pop_size(size_t erase_len) {
+            if (m_head + erase_len <= m_tail) {
+                m_head += erase_len;
+                size_t data_len = (size_t)(m_tail - m_head);
+                if (m_size > BUFFER_DEF && data_len < m_size / 4) {
+                    _regularize();
+                    _resize(m_size / 2);
+                }
+                return erase_len;
+            }
+            return 0;
+        }
+
+        uint8_t* peek_data(size_t peek_len) {
+            size_t data_len = m_tail - m_head;
+            if (peek_len > 0 && data_len >= peek_len) {
+                return m_head;
+            }
+            return nullptr;
+        }
+
+        size_t pop_space(size_t space_len) {
+            if (m_tail + space_len <= m_end) {
+                m_tail += space_len;
+                return space_len;
+            }
+            return 0;
+        }
+
+        slice* slice(size_t len = 0) {
+            size_t data_len = m_tail - m_head;
+            m_slice.attach(m_head, len == 0 ? data_len : len);
+            return &m_slice;
+        }
+
+        uint8_t* peek_space(size_t len) {
+            size_t space_len = m_end - m_tail;
+            if (space_len < len) {
+                space_len = _regularize();
+                if (space_len < len) {
+                    size_t nsize = m_size * 2;
+                    size_t data_len = m_tail - m_head;
+                    while (nsize - data_len < len) {
+                        nsize *= 2;
+                    }
+                    space_len = _resize(nsize);
+                    if (space_len < len) {
+                        return nullptr;
+                    }
+                }
+            }
+            return m_tail;
+        }
+
+        uint8_t* data(size_t* len) {
+            *len = (size_t)(m_tail - m_head);
+            return m_head;
+        }
+
+        std::string string() {
+            size_t len = (size_t)(m_tail - m_head);
+            return std::string((const char*)m_head, len);
+        }
+
+    protected:
+        //整理内存
+        size_t _regularize() {
+            size_t data_len = (size_t)(m_tail - m_head);
+            if (m_head > m_data) {
+                if (data_len > 0) {
+                    memmove(m_data, m_head, data_len);
+                }
+                m_tail = m_data + data_len;
+                m_head = m_data;
+            }
+            return m_size - data_len;
+        }
+
+        //重新设置长度
+        size_t _resize(size_t size) {
+            size_t data_len = (size_t)(m_tail - m_head);
+            if (m_size == size || size < data_len || size > BUFFER_MAX) {
+                return m_end - m_tail;
+            }
+            m_data = (uint8_t*)realloc(m_data, size);
+            m_tail = m_data + data_len;
+            m_end = m_data + size;
+            m_head = m_data;
+            m_size = size;
+            return size - data_len;
+        }
+
+        void _alloc() {
+            m_data = (uint8_t*)malloc(BUFFER_DEF);
+            m_head = m_tail = m_data;
+            m_end = m_data + BUFFER_DEF;
+            m_size = BUFFER_DEF;
+        }
+
+    private:
+        size_t m_size;
+        uint8_t* m_head;
+        uint8_t* m_tail;
+        uint8_t* m_end;
+        uint8_t* m_data;
+        lbuffer::slice m_slice;
+    };
 }
-#endif
-
-#endif

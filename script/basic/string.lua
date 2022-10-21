@@ -11,6 +11,8 @@ local slower    = string.lower
 local sformat   = string.format
 local sbyte     = string.byte
 
+string_ext = _ENV.string_ext or {}
+
 --------------------------------------------------------------------------------
 function string_ext.parse(str)
     if str == nil then

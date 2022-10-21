@@ -7,7 +7,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\io_buffer.h" />
     <ClInclude Include="src\lua_socket_mgr.h" />
     <ClInclude Include="src\lua_socket_node.h" />
     <ClInclude Include="src\socket_helper.h" />
@@ -20,7 +19,7 @@
   <ItemGroup>
     <ClCompile Include="src\lua_socket_mgr.cpp" />
     <ClCompile Include="src\lua_socket_node.cpp" />
-    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\luabus.cpp" />
     <ClCompile Include="src\socket_helper.cpp" />
     <ClCompile Include="src\socket_listener.cpp" />
     <ClCompile Include="src\socket_mgr.cpp" />
@@ -61,7 +60,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\luna\src;..\..\extend\lua\lua;..\..\extend\ltimer\ltimer;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\extend\lua\lua;..\..\extend\lbuffer\src;..\..\extend\ltimer\ltimer;..\..\extend\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -79,7 +78,7 @@
       <SubSystem>Console</SubSystem>
       <ImportLibrary>$(SolutionDir)library\$(Platform)\$(TargetName).lib</ImportLibrary>
       <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>lua.lib;luna.lib;mimalloc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>lua.lib;mimalloc.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>
       </ForceFileOutput>
     </Link>

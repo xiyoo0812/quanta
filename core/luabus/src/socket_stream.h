@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "socket_helper.h"
-#include "io_buffer.h"
 #include "socket_mgr.h"
+#include "buffer.h"
 
 struct socket_stream : public socket_object
 {
@@ -20,11 +20,9 @@ struct socket_stream : public socket_object
     void try_connect();
     void close() override;
     void set_accept_callback(const std::function<void(int, eproto_type)>& cb) override { m_accept_cb = cb; }
-    void set_package_callback(const std::function<void(char*, size_t)>& cb) override { m_package_cb = cb; }
+    void set_package_callback(const std::function<void(slice*)>& cb) override { m_package_cb = cb; }
     void set_error_callback(const std::function<void(const char*)>& cb) override { m_error_cb = cb; }
     void set_connect_callback(const std::function<void(bool, const char*)>& cb) override { m_connect_cb = cb; }
-    void set_send_buffer_size(size_t size) override { m_send_buffer->resize(size); }
-    void set_recv_buffer_size(size_t size) override { m_recv_buffer->resize(size); }
     void set_timeout(int duration) override { m_timeout = duration; }
     void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
 
@@ -50,10 +48,10 @@ struct socket_stream : public socket_object
 
     int token = 0;
     socket_mgr* m_mgr = nullptr;
-    eproto_type     m_proto_type = eproto_type::proto_rpc;
     socket_t m_socket = INVALID_SOCKET;
-    std::shared_ptr<io_buffer> m_recv_buffer = std::make_shared<io_buffer>();
-    std::shared_ptr<io_buffer> m_send_buffer = std::make_shared<io_buffer>();
+    eproto_type m_proto_type = eproto_type::proto_rpc;
+    std::shared_ptr<var_buffer> m_recv_buffer = std::make_shared<var_buffer>();
+    std::shared_ptr<var_buffer> m_send_buffer = std::make_shared<var_buffer>();
 
     std::string m_node_name;
     std::string m_service_name;
@@ -74,6 +72,6 @@ struct socket_stream : public socket_object
 
     std::function<void(int, eproto_type)> m_accept_cb = nullptr;
     std::function<void(const char*)> m_error_cb = nullptr;
-    std::function<void(char*, size_t)> m_package_cb = nullptr;
+    std::function<void(lbuffer::slice*)> m_package_cb = nullptr;
     std::function<void(bool, const char*)> m_connect_cb = nullptr;
 };

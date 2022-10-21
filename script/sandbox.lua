@@ -1,18 +1,19 @@
 --sandbox.lua
 require("lualog")
 local lstdfs    = require("lstdfs")
+local lbuffer   = require("lbuffer")
 
 local pairs     = pairs
 local loadfile  = loadfile
 local iopen     = io.open
 local mabs      = math.abs
-local tpack     = table.pack
-local tunpack   = table.unpack
 local sformat   = string.format
 local dgetinfo  = debug.getinfo
+local dtraceback= debug.traceback
 local file_time = lstdfs.last_write_time
 
 local logger    = quanta.get_logger()
+local serializer= lbuffer.new_serializer()
 
 local load_files    = {}
 local search_path   = {}
@@ -63,13 +64,13 @@ local function try_load(node)
         logger.error(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
         return
     end
-    local res = tpack(pcall(trunk_func))
-    if not res[1] then
-        logger.error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res[2]))
+    local ok, res = xpcall(trunk_func, dtraceback)
+    if not ok then
+        logger.error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
         return
     end
     logger.info(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
-    return tunpack(res, 2)
+    return res
 end
 
 function import(filename)
@@ -105,3 +106,28 @@ function quanta.get(name)
     end
     return global_obj
 end
+
+function quanta.encode(...)
+    return serializer.encode(...)
+end
+
+function quanta.decode(slice)
+    return serializer.decode(slice)
+end
+
+function quanta.encode_string(...)
+    return serializer.encode_string(...)
+end
+
+function quanta.decode_string(data, len)
+    return serializer.decode_string(data, len)
+end
+
+function quanta.serialize(tab, line)
+    return serializer.serialize(tab, line)
+end
+
+function quanta.unserialize(str)
+    return serializer.unserialize(str)
+end
+

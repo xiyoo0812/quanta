@@ -5,12 +5,9 @@
 local config_mgr = quanta.get("config_mgr")
 local database = config_mgr:get_table("database")
 
---导出版本号
-database:set_version(10000)
-
 --导出配置内容
 database:upsert({
-    quanta_deploy = 'publish',
+    cluster = 'publish',
     driver = 'mongo',
     db = 'quanta',
     default = true,
@@ -21,7 +18,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'publish',
+    cluster = 'publish',
     driver = 'mongo',
     db = 'quanta_rmsg',
     default = false,
@@ -32,7 +29,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'develop',
+    cluster = 'develop',
     driver = 'mongo',
     db = 'quanta',
     default = true,
@@ -43,7 +40,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'develop',
+    cluster = 'develop',
     driver = 'mongo',
     db = 'quanta_rmsg',
     default = false,
@@ -54,7 +51,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'local',
+    cluster = 'local',
     driver = 'mongo',
     db = 'quanta',
     default = true,
@@ -65,7 +62,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'local',
+    cluster = 'local',
     driver = 'mysql',
     db = 'quanta',
     default = true,
@@ -76,7 +73,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'local',
+    cluster = 'local',
     driver = 'redis',
     db = '0',
     default = true,
@@ -87,7 +84,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'local',
+    cluster = 'local',
     driver = 'mongo',
     db = 'quanta_rmsg',
     default = false,
@@ -98,7 +95,7 @@ database:upsert({
 })
 
 database:upsert({
-    quanta_deploy = 'local',
+    cluster = 'local',
     driver = 'clickhouse',
     db = 'quanta',
     default = true,
@@ -107,3 +104,6 @@ database:upsert({
     passwd = '123456',
     port = 9004,
 })
+
+--general md5 version
+database:set_version('5ffa83097c734c46fe80235e83465ef1')

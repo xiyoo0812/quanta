@@ -8,6 +8,9 @@
 #include <functional>
 #include <unordered_map>
 #include "socket_helper.h"
+#include "buffer.h"
+
+using namespace lbuffer;
 
 enum class elink_status : int
 {
@@ -39,16 +42,14 @@ struct socket_object
     virtual void close() { m_link_status = elink_status::link_closed; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char node_name[], const char service_name[]) { }
-    virtual void set_send_buffer_size(size_t size) { }
-    virtual void set_recv_buffer_size(size_t size) { }
     virtual void set_timeout(int duration) { }
     virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }
     virtual void sendv(const sendv_item items[], int count) { };
     virtual void set_accept_callback(const std::function<void(int, eproto_type)>& cb) { }
     virtual void set_connect_callback(const std::function<void(bool, const char*)>& cb) { }
-    virtual void set_package_callback(const std::function<void(char*, size_t)>& cb) { }
 	virtual void set_error_callback(const std::function<void(const char*)>& cb) { }
+    virtual void set_package_callback(const std::function<void(slice*)>& cb) { }
 
 #ifdef _MSC_VER
     virtual void on_complete(WSAOVERLAPPED* ovl) = 0;
@@ -91,7 +92,7 @@ public:
 
     void set_accept_callback(uint32_t token, const std::function<void(uint32_t, eproto_type eproto_type)>& cb);
     void set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb);
-    void set_package_callback(uint32_t token, const std::function<void(char*, size_t)>& cb);
+    void set_package_callback(uint32_t token, const std::function<void(slice*)>& cb);
     void set_error_callback(uint32_t token, const std::function<void(const char*)>& cb);
 
     bool watch_listen(socket_t fd, socket_object* object);

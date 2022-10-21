@@ -1,4 +1,5 @@
 --convertor.lua
+local lcrypt    = require('lcrypt')
 local lstdfs    = require('lstdfs')
 local lexcel    = require('luaxlsx')
 
@@ -12,7 +13,7 @@ local lappend       = lstdfs.append
 local lconcat       = lstdfs.concat
 local lfilename     = lstdfs.filename
 local lcurdir       = lstdfs.current_path
-local qgetenv       = quanta.getenv
+local lmd5          = lcrypt.md5
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -20,8 +21,14 @@ local tconcat       = table.concat
 local tunpack       = table.unpack
 local mtointeger    = math.tointeger
 local slower        = string.lower
+local ogetenv       = os.getenv
 
-local version       = 10000
+--指定导出函数
+local export_method = nil
+--类型定义行，默认2
+local type_line     = 2
+--配置起始行，默认5
+local start_line    = 5
 
 --设置utf8
 if quanta.platform == "linux" then
@@ -103,7 +110,8 @@ local function get_sheet_value(sheet, row, col, field_type, header)
 end
 
 --导出到lua
-local function export_records_to_lua(output, title, records)
+--使用configmgr结构
+local function export_records_to_struct(output, title, records)
     local table_name = sformat("%s_cfg", title)
     local filename = lappend(output, lconcat(table_name, ".lua"))
     local export_file = iopen(filename, "w")
@@ -116,7 +124,6 @@ local function export_records_to_lua(output, title, records)
     lines[#lines + 1] = "--luacheck: ignore 631\n"
     lines[#lines + 1] = '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")'
     lines[#lines + 1] = sformat('local %s = config_mgr:get_table("%s")\n', title, title)
-    lines[#lines + 1] = sformat("--导出版本号\n%s:set_version(%s)\n", title, version)
 
     lines[#lines + 1] = "--导出配置内容"
     for _, record in pairs(records) do
@@ -135,37 +142,80 @@ local function export_records_to_lua(output, title, records)
     end
 
     local output_data = tconcat(lines, "\n")
-    export_file:write(output_data)
+    export_file:write(sformat("%s\n--general md5 version\n", output_data))
+    export_file:write(sformat("%s:set_version('%s')", title, lmd5(output_data, 1)))
     export_file:close()
     print(sformat("export %s success!", filename))
 end
 
---指定导出函数
-local export_method = export_records_to_lua
+--导出到lua
+--使用luatable
+local function export_records_to_table(output, title, records)
+    local table_name = sformat("%s_cfg", title)
+    local filename = lappend(output, lconcat(table_name, ".lua"))
+    local export_file = iopen(filename, "w")
+    if not export_file then
+        print(sformat("open output file %s failed!", filename))
+        return
+    end
+    local lines = {}
+    lines[#lines + 1] = sformat("--%s.lua", table_name)
+    lines[#lines + 1] = "--luacheck: ignore 631\n"
+
+    lines[#lines + 1] = "--导出配置内容"
+    lines[#lines + 1] = sformat('local %s = {', title)
+    for _, record in pairs(records) do
+        for index, info in ipairs(record) do
+            local key, value, ftype = tunpack(info)
+            if index == 1 then
+                lines[#lines + 1] =  "    {"
+            end
+            if type(value) == "string" and ftype ~= "array" then
+                value = "'" .. value .. "'"
+                value = sgsub(value, "\n", "\\n")
+            end
+            lines[#lines + 1] = sformat("        %s = %s,", key, tostring(value))
+        end
+        lines[#lines + 1] = "    },"
+    end
+    lines[#lines + 1] = sformat('}\n\nreturn %s\n', title)
+
+    local output_data = tconcat(lines, "\n")
+    export_file:write(output_data)
+    export_file:close()
+    print(sformat("export %s success!", filename))
+end
 
 --导出到lua table
 local function export_sheet_to_table(sheet, output, title, dim)
     local header     = {}
     local field_type = {}
     for col = dim.firstCol, dim.lastCol do
-        -- 读取第二行服务器类型列，作为服务器筛选条件
-        field_type[col] = get_sheet_value(sheet, 2, col)
+        -- 读取类型行，作为筛选条件
+        field_type[col] = get_sheet_value(sheet, type_line, col)
         -- 读取第四行作为表头
         header[col] = get_sheet_value(sheet, 4, col)
     end
-    local records = {}
-    local search_tag = true
-    -- 从第五行开始处理
-    for row = 5, dim.lastRow do
-        local record = {}
-        -- 搜索开始标记
-        if search_tag then
-            local start_tag = get_sheet_value(sheet, row, 1)
-            if not start_tag or start_tag ~= "Start" then
-                goto continue
-            end
-            search_tag = false
+    --定位起始行
+    local end_line = dim.lastRow
+    for row = start_line, end_line do
+        local start_tag = get_sheet_value(sheet, row, 1)
+        if start_tag and start_tag == "Start" then
+            start_line = row
+            break
         end
+    end
+    for row = start_line, end_line do
+        local end_tag = get_sheet_value(sheet, row, 1)
+        if end_tag and end_tag == "End" then
+            end_line = row
+            break
+        end
+    end
+    -- 开始处理
+    local records = {}
+    for row = start_line, end_line do
+        local record = {}
         -- 遍历每一列
         for col = 2, dim.lastCol do
             -- 过滤掉没有配置的行
@@ -180,11 +230,6 @@ local function export_sheet_to_table(sheet, output, title, dim)
         if #record > 0 then
             records[#records + 1] = record
         end
-        local end_tag = get_sheet_value(sheet, row, 1)
-        if end_tag and end_tag == "End" then
-            break
-        end
-        :: continue ::
     end
     export_method(output, title, records)
 end
@@ -210,6 +255,9 @@ local function export_excel(input, output)
     for _, file in pairs(files) do
         local fullname = file.name
         if file.type == "directory" then
+            if fullname == output then
+                goto continue
+            end
             local fname = lfilename(fullname)
             local soutput = lappend(output, fname)
             lmkdir(soutput)
@@ -224,19 +272,16 @@ local function export_excel(input, output)
             end
             --只导出sheet1
             local sheets = workbook:sheets()
-            local sheet = sheets and sheets[1]
-            if not sheet then
-                print(sformat("export excel %s open sheet %d failed!", file, 0))
-                break
+            for _, sheet in pairs(sheets) do
+                local dim = sheet:dimension()
+                local sheet_name = sheet:name()
+                if dim.lastRow < 4 or dim.lastCol <= 0 then
+                    print(sformat("export excel %s sheet %s empty!", file, sheet_name))
+                else
+                    local title = slower(sheet_name)
+                    export_sheet_to_table(sheet, output, title, dim)
+                end
             end
-            local dim = sheet:dimension()
-            local sheet_name = sheet:name()
-            if dim.lastRow < 4 or dim.lastCol <= 0 then
-                print(sformat("export excel %s sheet %s empty!", file, sheet_name))
-                break
-            end
-            local title = slower(sheet_name)
-            export_sheet_to_table(sheet, output, title, dim)
         end
         :: continue ::
     end
@@ -246,14 +291,14 @@ end
 local function export_config()
     local input = lcurdir()
     local output = lcurdir()
-    local env_input = qgetenv("QUANTA_INPUT")
+    local env_input = ogetenv("QUANTA_INPUT")
     if not env_input or #env_input == 0 then
         print("input dir not config!")
         input = input
     else
         input = lappend(input, env_input)
     end
-    local env_output = qgetenv("QUANTA_OUTPUT")
+    local env_output = ogetenv("QUANTA_OUTPUT")
     if not env_output or #env_output == 0 then
         print("output dir not config!")
         output = output
@@ -261,14 +306,23 @@ local function export_config()
         output = lappend(output, env_output)
         lmkdir(output)
     end
-    local env_version = qgetenv("QUANTA_VERSION")
-    if env_version then
-        version = conv_integer(env_version)
+    local env_typline = ogetenv("QUANTA_TYPLINE")
+    if env_typline then
+        type_line = mtointeger(env_typline)
+    end
+    local env_staline = ogetenv("QUANTA_STALINE")
+    if env_staline then
+        start_line = mtointeger(env_staline)
+    end
+    local env_format = ogetenv("QUANTA_FORMAT")
+    export_method = export_records_to_struct
+    if env_format and env_format == "table" then
+        export_method = export_records_to_table
     end
     return input, output
 end
 
-print("useage: quanta.exe [--input=xxx] [--output=xxx]")
+print("useage: quanta.exe [--entry=convertor] [--input=xxx] [--output=xxx]")
 print("begin export excels to lua!")
 local input, output = export_config()
 local ok, err = pcall(export_excel, input, output)

@@ -21,7 +21,6 @@ local FLAG_RES          = qenum("FlagMask", "RES")
 local FLAG_ZIP          = qenum("FlagMask", "ZIP")
 local FLAG_ENCRYPT      = qenum("FlagMask", "ENCRYPT")
 local NETWORK_TIMEOUT   = qenum("NetwkTime", "NETWORK_TIMEOUT")
-local RPC_CALL_TIMEOUT  = qenum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local out_press         = env_status("QUANTA_OUT_PRESS")
 local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
@@ -76,15 +75,15 @@ function NetServer:on_socket_accept(session)
     -- 流控配置
     session.fc_packet = 0
     session.fc_bytes  = 0
-    session.last_fc_time = quanta.now_ms
+    session.last_fc_time = quanta.clock_ms
     -- 设置超时(心跳)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 绑定call回调
-    session.on_call_pack = function(recv_len, cmd_id, flag, session_id, data)
+    session.on_call_pack = function(recv_len, cmd_id, flag, session_id, slice)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
         event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, session_id, data)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, session_id, slice)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(token, err)
@@ -106,7 +105,10 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     end
     session.serial = session.serial + 1
     -- call lbus
-    local send_len = session.call_pack(cmd_id, pflag, session_id or 0, body)
+    if session_id > 0 then
+        session_id = session_id & 0xffff
+    end
+    local send_len = session.call_pack(cmd_id, pflag, session_id, body, #body)
     if send_len > 0 then
         event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         return true
@@ -123,7 +125,7 @@ function NetServer:broadcast(cmd_id, data)
         return false
     end
     for _, session in pairs(self.sessions) do
-        local send_len = session.call_pack(cmd_id, pflag, 0, body)
+        local send_len = session.call_pack(cmd_id, pflag, 0, body, #body)
         if send_len > 0 then
             event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
         end
@@ -132,22 +134,13 @@ function NetServer:broadcast(cmd_id, data)
 end
 
 -- 发送数据
-function NetServer:send_pack(session, cmd_id, data, session_id)
-    return self:write(session, cmd_id, data, session_id, FLAG_REQ)
+function NetServer:send_pack(session, cmd_id, data)
+    return self:write(session, cmd_id, data, 0, FLAG_REQ)
 end
 
 -- 回调数据
 function NetServer:callback_pack(session, cmd_id, data, session_id)
     return self:write(session, cmd_id, data, session_id, FLAG_RES)
-end
-
--- 发起远程调用
-function NetServer:call_pack(session, cmd_id, data)
-    local session_id = thread_mgr:build_session_id()
-    if not self:write(session, cmd_id, data, session_id, FLAG_REQ) then
-        return false
-    end
-    return thread_mgr:yield(session_id, cmd_id, RPC_CALL_TIMEOUT)
 end
 
 function NetServer:encode(cmd_id, data, flag)
@@ -170,8 +163,8 @@ function NetServer:encode(cmd_id, data, flag)
     return encode_data, flag
 end
 
-function NetServer:decode(cmd_id, data, flag)
-    local de_data = data
+function NetServer:decode(cmd_id, slice, flag)
+    local de_data = slice.string()
     if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
         de_data = lcrypt.lz4_decode(de_data)
@@ -198,21 +191,21 @@ function NetServer:get_cmd_cd(cmd_id)
 end
 
 -- 收到远程调用回调
-function NetServer:on_socket_recv(session, cmd_id, flag, session_id, data)
-    local now_ms = quanta.now_ms
+function NetServer:on_socket_recv(session, cmd_id, flag, session_id, slice)
+    local clock_ms = quanta.clock_ms
     local cmd_cd_time = self:get_cmd_cd(cmd_id)
     local command_times = session.command_times
-    if command_times[cmd_id] and now_ms - command_times[cmd_id] < cmd_cd_time then
+    if command_times[cmd_id] and clock_ms - command_times[cmd_id] < cmd_cd_time then
         log_warn("[NetServer][on_socket_recv] session trigger cmd(%s) cd ctrl, will be drop.", cmd_id)
         --协议CD
         return
     end
-    command_times[cmd_id] = now_ms
+    command_times[cmd_id] = clock_ms
     session.alive_time = quanta.now
     -- 解码
-    local body, cmd_name = self:decode(cmd_id, data, flag)
+    local body, cmd_name = self:decode(cmd_id, slice, flag)
     if not body then
-        log_warn("[NetServer][on_socket_recv] cmd(%s) parse failed.", cmd_id)
+        log_warn("[NetServer][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
         return
     end
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
@@ -241,7 +234,7 @@ function NetServer:check_serial(session, cserial)
     -- 流量控制检测
     if flow_ctrl then
         -- 达到检测周期
-        local cur_time = quanta.now_ms
+        local cur_time = quanta.clock_ms
         local escape_time = cur_time - session.last_fc_time
         -- 检查是否超过配置
         if session.fc_packet / escape_time > fc_package or session.fc_bytes / escape_time > fc_bytes then

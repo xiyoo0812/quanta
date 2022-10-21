@@ -11,21 +11,11 @@ int main(int argc, const char* argv[])
     tzset();
     setlocale(LC_ALL, "");
 
-    if (argc < 2)
-    {
-        const char* notice = R"--(quanta https://github.com/xiyoo0812/quanta
-usage: quanta program_entry.lua ...
-)--";
-        printf(notice);
-        return 0;
-    }
-
-    g_app = new quanta_app();
+	quanta_app* g_app = new quanta_app();
     g_app->setup(argc, argv);
-    delete g_app;
+
     return 0;
 }
-
 
 #ifdef WIN32
 #pragma once

@@ -98,6 +98,21 @@ local function tjoin(src, dst)
     return ndst
 end
 
+local function tdiff(src, dst)
+    local add, del = {}, {}
+    for k, v in pairs(src) do
+        if not dst[k] then
+            del[k] = v
+        end
+    end
+    for k, v in pairs(dst) do
+        if not src[k] then
+            add[k] = v
+        end
+    end
+    return add, del
+end
+
 -- map中的value抽出来变成array (会丢失key信息)
 local function tarray(src)
     local dst = {}
@@ -131,6 +146,7 @@ local function tmapsort(src)
     return dst
 end
 
+table_ext               = _ENV.table_ext or {}
 table_ext.random        = trandom
 table_ext.random_array  = trandom_array
 table_ext.indexof       = tindexof
@@ -141,6 +157,8 @@ table_ext.deep_copy     = tdeep_copy
 table_ext.delete        = tdelete
 table_ext.join          = tjoin
 table_ext.map           = tmap
+table_ext.diff          = tdiff
 table_ext.array         = tarray
 table_ext.kvarray       = tkvarray
 table_ext.mapsort       = tmapsort
+

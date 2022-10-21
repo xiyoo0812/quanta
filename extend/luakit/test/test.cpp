@@ -107,6 +107,9 @@ int main()
     tab.call("lua_tcall", nullptr, std::tie(ar, br), 1, 2, "lua string");
     printf("call lua_tcall: %d, %d\n", ar, br);
 
+    bool r = kit_state.table_call("testtb", "lua_tcall2", nullptr, std::tie(ar, br), 3, 4, "lua string");
+    printf("call lua_tcall2: %d, %d\n", ar, br);
+
     kit_state.run_script("print(test_value)", [](std::string err) {
         printf("run_script failed: %s\n", err.c_str());
         });

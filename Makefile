@@ -15,7 +15,6 @@ clean:
 	rm -rf temp;
 
 core:
-	cd core/luna; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luna.mak;
 	cd core/luabus; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
 	cd core/quanta; make -j4 SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 

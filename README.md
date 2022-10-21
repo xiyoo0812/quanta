@@ -54,7 +54,6 @@ cd bin
 # 依赖
 - lua
 - bson
-- luna
 - mongo
 - luabt
 - lhttp

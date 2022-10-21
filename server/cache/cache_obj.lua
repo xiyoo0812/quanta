@@ -4,8 +4,8 @@ local lcrypt = require("lcrypt")
 local log_err       = logger.err
 local qenum         = quanta.enum
 local new_guid      = lcrypt.guid_new
-local check_failed  = utility.check_failed
-local check_success = utility.check_success
+local qsuccess      = quanta.success
+local qfailed       = quanta.failed
 
 local mongo_mgr     = quanta.get("mongo_mgr")
 local CacheRow      = import("cache/cache_row.lua")
@@ -57,7 +57,7 @@ function CacheObj:load()
         --合并加载模式
         local query = { [self.cache_key] = self.primary_value }
         local code, res = mongo_mgr:find_one(self.db_name, self.cache_table, query, {_id = 0})
-        if check_failed(code) then
+        if qfailed(code) then
             log_err("[CacheObj][load] failed: cache_table=%s,res=%s", self.cache_table, res)
             return code
         end
@@ -75,7 +75,7 @@ function CacheObj:load()
             local record = CacheRow(row_conf, self.primary_value)
             self.records[tab_name] = record
             local code = record:load(self.db_name)
-            if check_failed(code) then
+            if qfailed(code) then
                 log_err("[CacheObj][load] load row failed: tab_name=%s", tab_name)
                 return code
             end
@@ -129,7 +129,7 @@ function CacheObj:save()
         self.update_count = 0
         self.update_time = quanta.now
         for record in pairs(self.dirty_records) do
-            if check_success(record:save()) then
+            if qsuccess(record:save()) then
                 self.dirty_records[record] = nil
             end
         end

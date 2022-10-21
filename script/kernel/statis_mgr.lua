@@ -27,13 +27,6 @@ function StatisMgr:__init()
         local bucket = env_get("QUANTA_INFLUX_BUCKET")
         local ip, port = env_addr("QUANTA_INFLUX_ADDR")
         self.influx = InfluxDB(ip, port, org, bucket, token)
-        --事件监听
-        event_mgr:add_listener(self, "on_rpc_send")
-        event_mgr:add_listener(self, "on_rpc_recv")
-        event_mgr:add_listener(self, "on_perfeval")
-        event_mgr:add_listener(self, "on_proto_recv")
-        event_mgr:add_listener(self, "on_proto_send")
-        event_mgr:add_listener(self, "on_conn_update")
         --定时处理
         update_mgr:attach_minute(self)
         --系统监控
@@ -41,6 +34,13 @@ function StatisMgr:__init()
             linux_statis:setup()
         end
     end
+    --事件监听
+    event_mgr:add_listener(self, "on_rpc_send")
+    event_mgr:add_listener(self, "on_rpc_recv")
+    event_mgr:add_listener(self, "on_perfeval")
+    event_mgr:add_listener(self, "on_proto_recv")
+    event_mgr:add_listener(self, "on_proto_send")
+    event_mgr:add_listener(self, "on_conn_update")
 end
 
 -- 发送给influx
@@ -109,9 +109,9 @@ function StatisMgr:on_conn_update(conn_type, conn_count)
 end
 
 -- 统计性能
-function StatisMgr:on_perfeval(eval_data, now_ms)
+function StatisMgr:on_perfeval(eval_data, clock_ms)
     if self.statis_status then
-        local tital_time = now_ms - eval_data.begin_time
+        local tital_time = clock_ms - eval_data.begin_time
         local fields = {
             tital_time = tital_time,
             yield_time = eval_data.yield_time,

@@ -1,5 +1,4 @@
 --signal.lua
-local log_info      = logger.info
 local get_signal    = quanta.get_signal
 local set_signal    = quanta.set_signal
 
@@ -64,7 +63,6 @@ signal.check = function()
     local signalv = get_signal()
     for sig, sig_name in pairs(EXIT_SIGNAL) do
         if signalv & (1 << sig) ~= 0 then
-            log_info("[signal][check] ->signal: %d, name:%s", sig, sig_name)
             return true
         end
     end

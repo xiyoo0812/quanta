@@ -8,6 +8,7 @@ local qget              = quanta.get
 local qenum             = quanta.enum
 local log_info          = logger.info
 
+local monitor           = qget("monitor")
 local event_mgr         = qget("event_mgr")
 local router_mgr        = qget("router_mgr")
 
@@ -30,7 +31,7 @@ function OnlineMgr:__init()
     event_mgr:add_listener(self, "rpc_send_forward_message")
     event_mgr:add_listener(self, "rpc_send_transfer_message")
 
-    router_mgr:watch_service_close(self, "lobby")
+    monitor:watch_service_close(self, "lobby")
 end
 
 --rpc协议处理

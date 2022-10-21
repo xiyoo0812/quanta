@@ -8,14 +8,16 @@ local HttpServer    = import("network/http_server.lua")
 local jdecode       = ljson.decode
 local guid_index    = lcrypt.guid_index
 local tunpack       = table.unpack
+local sformat       = string.format
 local env_get       = environ.get
-local smake_id      = service.make_id
+local make_sid      = service.make_sid
 local log_err       = logger.err
 local log_debug     = logger.debug
 local qget          = quanta.get
 local qenum         = quanta.enum
 
 local cmdline       = qget("cmdline")
+local monitor       = qget("monitor")
 local event_mgr     = qget("event_mgr")
 local router_mgr    = qget("router_mgr")
 
@@ -27,7 +29,7 @@ local SUCCESS       = qenum("KernCode", "SUCCESS")
 local AdminMgr = singleton()
 local prop = property(AdminMgr)
 prop:reader("http_server", nil)
-prop:reader("deploy", "local")
+prop:reader("cluster", "local")
 prop:reader("services", {})
 prop:reader("monitors", {})
 
@@ -45,7 +47,12 @@ function AdminMgr:__init()
     server:register_post("/command", "on_command", self)
     server:register_post("/monitor", "on_monitor", self)
     server:register_post("/message", "on_message", self)
+    service.make_node(server:get_port())
     self.http_server = server
+
+    --关注monitor
+    monitor:watch_service_ready(self, "monitor")
+    monitor:watch_service_close(self, "monitor")
 end
 
 --rpc请求
@@ -75,6 +82,16 @@ function AdminMgr:rpc_execute_message(message)
     return SUCCESS, res
 end
 
+function AdminMgr:on_service_close(id, name)
+    log_debug("[AdminMgr][on_service_close] name: %s", name)
+    self.monitors[id] = nil
+end
+
+function AdminMgr:on_service_ready(id, name, info)
+    log_debug("[AdminMgr][on_service_ready] id: %s, info: %s", id, info)
+    self.monitors[id] = sformat("%s:%s", info.ip, info.port)
+end
+
 --http 回调
 ----------------------------------------------------------------------
 --gm_page
@@ -102,19 +119,11 @@ function AdminMgr:on_message(url, body, headers)
     return self:exec_message(cmd_req.data)
 end
 
---monitor上报
-function AdminMgr:on_monitor(url, body, headers)
-    log_debug("[AdminMgr][on_monitor] body: %s", body)
-    local cmd_req = jdecode(body)
-    self.monitors[cmd_req.addr] = true
-    return { code = 0 }
-end
-
 --monitor拉取
 function AdminMgr:on_monitors(url, body, headers)
     log_debug("[AdminMgr][on_monitors] body: %s", body)
-    local monitors = {  }
-    for addr in pairs(self.monitors) do
+    local monitors = {}
+    for _, addr in pairs(self.monitors) do
         monitors[#monitors + 1] = addr
     end
     return monitors
@@ -154,9 +163,9 @@ end
 
 --GLOBAL command
 function AdminMgr:exec_global_cmd(service_id, cmd_name, ...)
-    local ok, codeoe, res = router_mgr:call_random(service_id, "rpc_command_execute" , cmd_name, ...)
+    local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[AdminMgr][exec_global_cmd] call_random(rpc_command_execute) failed! service_id=%s", service_id)
+        log_err("[AdminMgr][exec_global_cmd] call_master(rpc_command_execute) failed! service_id=%s", service_id)
         return {code = 1, msg = codeoe }
     end
     return {code = codeoe, msg = res}
@@ -165,7 +174,7 @@ end
 --system command
 function AdminMgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
     local index = guid_index(target_id)
-    local quanta_id = smake_id(service_id, index)
+    local quanta_id = make_sid(service_id, index)
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_command_execute" , cmd_name, target_id, ...)
     if not ok then
         log_err("[AdminMgr][exec_system_cmd] call_target(rpc_command_execute) failed! target_id=%s", target_id)

@@ -1,7 +1,6 @@
 --influx.lua
 import("network/http_client.lua")
 local ljson         = require("lcjson")
-local lbuffer       = require("lbuffer")
 
 local log_err       = logger.err
 local log_info      = logger.info
@@ -10,7 +9,7 @@ local tconcat       = table.concat
 local sgsub         = string.gsub
 local sformat       = string.format
 local ssplit        = string_ext.split
-local lserialize    = lbuffer.serialize
+local serialize     = quanta.serialize
 
 local http_client   = quanta.get("http_client")
 local WEEK_S        = quanta.enum("PeriodTime", "WEEK_S")
@@ -45,7 +44,7 @@ function Influx:quote_value(value)
         return value
     end
     if vtype ~= "string" then
-        value = lserialize(value)
+        value = serialize(value)
     end
     for i = 1, 10 do
         if value == BOOL_STR[i] then

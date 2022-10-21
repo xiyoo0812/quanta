@@ -1,76 +1,53 @@
 --environ.lua
-local pairs     = pairs
 local tonumber  = tonumber
-local log_info  = logger.info
-local tunpack   = table.unpack
 local qgetenv   = quanta.getenv
-local tmapsort  = table_ext.mapsort
+local tunpack   = table.unpack
 local saddr     = string_ext.addr
 local ssplit    = string_ext.split
 local protoaddr = string_ext.protoaddr
 
 environ = {}
 
---环境变量表
-local QUANTA_ENV = quanta.environs
-
 function environ.init()
-    local env_file = qgetenv("QUANTA_ENV")
-    if env_file then
-        --exp: --env=env/router
-        local custom = require(env_file)
-        local index = environ.number("QUANTA_INDEX", 1)
-        local custom_env = custom and custom[index]
-        for key, value in pairs(custom_env or {}) do
-            QUANTA_ENV[key] = value
-        end
+    if environ.status("QUANTA_DAEMON") then
+        quanta.daemon()
     end
-    if quanta.platform == "windows" then
-        QUANTA_ENV.QUANTA_DAEMON = 0
-        QUANTA_ENV.QUANTA_STATIS = 1
-        QUANTA_ENV.QUANTA_PERFEVAL = 1
-    end
-    log_info("---------------------environ value dump-------------------")
-    local sort_envs = tmapsort(QUANTA_ENV)
-    for _, env_pair in pairs(sort_envs) do
-        log_info("%s ----> %s", env_pair[1], env_pair[2])
-    end
-    log_info("----------------------------------------------------------")
+    quanta.mode = environ.number("QUANTA_MODE", 1)
 end
 
 function environ.get(key, def)
-    return QUANTA_ENV[key] or qgetenv(key) or def
+    return qgetenv(key) or def
 end
 
 function environ.number(key, def)
-    return tonumber(QUANTA_ENV[key] or qgetenv(key) or def)
+    return tonumber(qgetenv(key) or def)
 end
 
 function environ.status(key)
-    return (tonumber(QUANTA_ENV[key] or qgetenv(key) or 0) > 0)
+    return (tonumber(qgetenv(key) or 0) > 0)
 end
 
 function environ.addr(key)
-    local value = QUANTA_ENV[key] or qgetenv(key)
+    local value = qgetenv(key)
     if value then
         return saddr(value)
     end
 end
 
 function environ.protoaddr(key)
-    local value = QUANTA_ENV[key] or qgetenv(key)
+    local value = qgetenv(key)
     if value then
         return protoaddr(value)
     end
 end
 
 function environ.split(key, val)
-    local value = QUANTA_ENV[key] or qgetenv(key)
+    local value = qgetenv(key)
     if value then
         return tunpack(ssplit(value, val))
     end
 end
 
 function environ.table(key, str)
-    return ssplit(QUANTA_ENV[key] or qgetenv(key) or "", str or ",")
+    return ssplit(qgetenv(key)  or "", str or ",")
 end

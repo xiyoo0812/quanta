@@ -6,10 +6,10 @@ local lcrypt        = require("lcrypt")
 local bdate         = bson.date
 local log_err       = logger.err
 local log_info      = logger.info
+local qsuccess      = quanta.success
 local new_guid      = lcrypt.guid_new
 
 local mongo_agent   = quanta.get("mongo_agent")
-local check_success = utility.check_success
 
 local RmsgMgr = class()
 local prop = property(RmsgMgr)
@@ -31,7 +31,7 @@ function RmsgMgr:build_ttl(table_name)
     log_info("[RmsgMgr][build_ttl] rmsg table:%s", table_name)
     local query = { table_name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
     local ok, code = mongo_agent:create_indexes(query, nil, self.db_name)
-    if ok and check_success(code) then
+    if ok and qsuccess(code) then
         log_info("[RmsgMgr][build_ttl] rmsg table %s build due index success")
     end
 end
@@ -40,7 +40,7 @@ end
 function RmsgMgr:list_message(target)
     local query = { self.table_name, {target = target, deal_time = 0}, {_id = 0}, {time = 1} }
     local ok, code, result = mongo_agent:find(query, self.db_name)
-    if ok and check_success(code) then
+    if ok and qsuccess(code) then
         return result
     end
 end

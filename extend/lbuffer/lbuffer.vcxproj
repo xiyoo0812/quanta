@@ -11,16 +11,13 @@
     <ClInclude Include="src\bufpool.h" />
     <ClInclude Include="src\bufqueue.h" />
     <ClInclude Include="src\lbuffer.h" />
-    <ClInclude Include="src\serialize.h" />
+    <ClInclude Include="src\serializer.h" />
+    <ClInclude Include="src\shm.h" />
     <ClInclude Include="src\shmpool.h" />
+    <ClInclude Include="src\slice.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\buffer.c" />
-    <ClCompile Include="src\bufpool.c" />
-    <ClCompile Include="src\bufqueue.c" />
-    <ClCompile Include="src\lbuffer.c" />
-    <ClCompile Include="src\serialize.c" />
-    <ClCompile Include="src\shmpool.c" />
+    <ClCompile Include="src\lbuffer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{177A2178-1E93-A220-C618-9BAE709912F2}</ProjectGuid>
@@ -53,8 +50,8 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\lua\lua;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LBUFF_EXPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\lua\lua;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader></PrecompiledHeader>

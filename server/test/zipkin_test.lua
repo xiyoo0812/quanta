@@ -29,7 +29,7 @@ local function zipkin_func2(span)
     zipkin:set_tag(nspan, "key2", key2)
     zipkin:set_annotation(nspan, "call zipkin_func2!")
     local rspan = zipkin:inject_span(nspan)
-    local target = service.make_id("test", 2)
+    local target = service.make_sid("test", 2)
     local ok, res =  router_mgr:call_target(target, "rpc_zipkin_test", rspan)
     if ok and res then
         local fspan = zipkin:sub_span("zipkin_finish", nspan.id)

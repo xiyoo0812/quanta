@@ -10,10 +10,6 @@ local json_encode   = ljson.encode
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local tcopy         = table_ext.copy
-local sid2sid       = service.id2sid
-local sid2nick      = service.id2nick
-local sid2name      = service.id2name
-local sid2index     = service.id2index
 local protoaddr     = string_ext.protoaddr
 
 local update_mgr    = qget("update_mgr")
@@ -72,21 +68,19 @@ function GrayLog:on_second()
 end
 
 function GrayLog:build(message, level, optional)
-    local quanta_id = quanta.id
     local debug_info = dgetinfo(6, "S")
     local gelf = {
         level = level,
         version = "1.1",
         host = self.host,
-        _node_id = quanta_id,
         timestamp = quanta.now,
         short_message = message,
         file = debug_info.short_src,
         line = debug_info.linedefined,
-        _name = sid2name(quanta_id),
-        _nick = sid2nick(quanta_id),
-        _index = sid2index(quanta_id),
-        _service = sid2sid(quanta_id)
+        _service = quanta.service,
+        _index = quanta.index,
+        _name = quanta.name,
+        _id = quanta.id,
     }
     if optional then
         tcopy(optional, gelf)

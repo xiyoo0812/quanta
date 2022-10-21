@@ -3,9 +3,11 @@
 
 # 依赖
 - [lua](https://github.com/xiyoo0812/lua.git)5.2以上
+- [luakit](https://github.com/xiyoo0812/luakit.git)
 - 项目路径如下<br>
   |--proj <br>
   &emsp;|--lua <br>
+  &emsp;|--luakit <br>
   &emsp;|--lbuffer
 
 # 编译
@@ -18,10 +20,12 @@
 local lbuffer       = require("lbuffer")
 
 local log_debug     = logger.debug
-local lencode       = lbuffer.encode
-local ldecode       = lbuffer.decode
-local lserialize    = lbuffer.serialize
-local lunserialize  = lbuffer.unserialize
+local serializer    = lbuffer.new_serializer()
+
+local encode        = serializer.encode
+local decode        = serializer.decode
+local serialize     = serializer.serialize
+local unserialize   = serializer.unserialize
 
 --serialize
 ----------------------------------------------------------------
@@ -36,9 +40,9 @@ local t = {
     g = m,
 }
 
-local ss = lserialize(t)
+local ss = serialize(t)
 log_debug("serialize-> aaa: %s", ss)
-local tt = lunserialize(ss)
+local tt = unserialize(ss)
 for k, v in pairs(tt) do
     log_debug("unserialize k=%s, v=%s", k, v)
 end
@@ -48,8 +52,8 @@ end
 local a = 1
 local b = 2
 local c = 4
-local es = lencode(a, b, c, 5)
+local es = encode(a, b, c, 5)
 log_debug("encode-> aa: %d, %s", #es, es)
-local da, db, dc, dd = ldecode(es)
+local da, db, dc, dd = decode(es)
 log_debug("decode-> %s, %s, %s, %s", da, db, dc, dd)
 ```

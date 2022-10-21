@@ -3,7 +3,7 @@ local odate         = os.date
 local qget          = quanta.get
 local qenum         = quanta.enum
 local log_debug     = logger.debug
-local setup_monitor = logger.setup_monitor
+local set_monitor   = logger.set_monitor
 local sfind         = string.find
 local sformat       = string.format
 local ssplit        = string_ext.split
@@ -53,7 +53,7 @@ end
 function NetlogMgr:close_session(session_id)
     self.sessions[session_id] = nil
     if not next(self.sessions) then
-        setup_monitor(nil)
+        set_monitor(nil)
     end
 end
 
@@ -80,7 +80,7 @@ end
 
 function NetlogMgr:rpc_show_log(data)
     if not next(self.sessions) then
-        setup_monitor(self)
+        set_monitor(self)
     end
     local show_logs = {}
     local session = self:open_session(data)

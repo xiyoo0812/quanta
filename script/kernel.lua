@@ -1,108 +1,90 @@
 --kernel.lua
+import("basic/basic.lua")
 local ltimer = require("ltimer")
 
-import("basic/basic.lua")
-import("basic/utility.lua")
-import("kernel/config_mgr.lua")
-import("kernel/perfeval_mgr.lua")
-import("kernel/update_mgr.lua")
-
-local ltime         = ltimer.time
-local log_info      = logger.info
-local env_get       = environ.get
-local env_number    = environ.number
-local qxpcall       = quanta.xpcall
-local qxpcall_quit  = quanta.xpcall_quit
-
 local socket_mgr    = nil
-local update_mgr    = quanta.get("update_mgr")
+local update_mgr    = nil
+local ltime         = ltimer.time
 
---quanta启动
-function quanta.ready()
-    quanta.frame = 0
-    quanta.now_ms, quanta.now = ltime()
-    quanta.index = env_number("QUANTA_INDEX", 1)
-    quanta.deploy = env_get("QUANTA_DEPLOY", "develop")
-    local service_name = env_get("QUANTA_SERVICE")
-    local service_id = service.init(service_name)
-    assert(service_id, "service_id not exist, quanta startup failed!")
-    quanta.service = service_name
-    quanta.service_id = service_id
-    quanta.id = service.make_id(service_name, quanta.index)
-    quanta.name = service.make_nick(service_name, quanta.index)
+local QuantaMode    = enum("QuantaMode")
+
+--初始化网络
+local function init_network()
+    local lbus = require("luabus")
+    local max_conn = environ.number("QUANTA_MAX_CONN", 64)
+    socket_mgr = lbus.create_socket_mgr(max_conn)
+    quanta.socket_mgr = socket_mgr
+end
+
+--初始化路由
+local function init_router()
+    import("kernel/router_mgr.lua")
+    import("driver/webhook.lua")
+end
+
+--初始化loop
+local function init_mainloop()
+    import("kernel/thread_mgr.lua")
+    import("kernel/timer_mgr.lua")
+    import("kernel/update_mgr.lua")
+    update_mgr = quanta.get("update_mgr")
 end
 
 function quanta.init()
-    import("basic/service.lua")
-    --启动quanta
-    quanta.ready()
-    --初始化环境变量
-    environ.init()
-    --注册信号
+    --初始化基础模块
     signal.init()
-    --初始化日志
+    environ.init()
+    service.init()
     logger.init()
-    --初始化随机种子
-    math.randomseed(quanta.now_ms)
-
-    -- 网络模块初始化
-    local lbus = require("luabus")
-    local max_conn = env_number("QUANTA_MAX_CONN", 64)
-    socket_mgr = lbus.create_socket_mgr(max_conn)
-    quanta.socket_mgr = socket_mgr
-
-    --初始化路由管理器
-    if service.router(quanta.service_id) then
-        --加载router配置
-        import("kernel/router_mgr.lua")
-        import("driver/oanotify.lua")
+    --主循环
+    init_mainloop()
+    --网络
+    if quanta.mode <= QuantaMode.TOOL then
+        --加载统计
+        import("kernel/perfeval_mgr.lua")
+        import("kernel/statis_mgr.lua")
+        init_network()
     end
-    -- 初始化统计管理器
-    quanta.perfeval_mgr:setup()
-    import("kernel/statis_mgr.lua")
-    import("kernel/protobuf_mgr.lua")
-
-    if not env_get("QUANTA_MONITOR_HOST") then
+    if quanta.mode <= QuantaMode.ROUTER then
         --加载monotor
-        import("agent/monitor_agent.lua")
-        import("kernel/netlog_mgr.lua")
+        if not environ.get("QUANTA_MONITOR_HOST") then
+            import("agent/monitor_agent.lua")
+            import("kernel/netlog_mgr.lua")
+        end
     end
-    --graylog
-    logger.setup_graylog()
+    if quanta.mode == QuantaMode.SERVICE then
+        --加载路由
+        init_router()
+        --加载协议
+        import("kernel/protobuf_mgr.lua")
+    end
 end
 
---初始化gm
 function quanta.init_gm()
     import("agent/gm_agent.lua")
 end
 
-local function startup(startup_func)
+--启动
+function quanta.startup(entry)
+    quanta.now = 0
+    quanta.frame = 0
+    quanta.yield = coroutine.yield
+    quanta.resume = coroutine.resume
+    quanta.running = coroutine.running
+    quanta.now_ms, quanta.clock_ms = ltime()
+    --初始化随机种子
+    math.randomseed(quanta.now_ms)
     --初始化quanta
     quanta.init()
     --启动服务器
-    startup_func()
-    log_info("%s %d now startup!", quanta.service, quanta.id)
-end
-
---启动
-function quanta.startup(startup_func)
-    if not quanta.init_flag then
-        qxpcall_quit(startup, "quanta startup error: %s", startup_func)
-        quanta.init_flag = true
-    end
-end
-
---日常更新
-local function update()
-    local count = socket_mgr.wait(10)
-    local now_ms, now_s = ltime()
-    quanta.now = now_s
-    quanta.now_ms = now_ms
-    --系统更新
-    update_mgr:update(now_ms, count)
+    entry()
 end
 
 --底层驱动
 quanta.run = function()
-    qxpcall(update, "quanta.run error: %s")
+    if socket_mgr then
+        socket_mgr.wait(10)
+    end
+    --系统更新
+    update_mgr:update(ltime())
 end

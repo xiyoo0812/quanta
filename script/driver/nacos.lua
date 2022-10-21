@@ -11,6 +11,7 @@ local tconcat       = table.concat
 local sformat       = string.format
 local json_decode   = ljson.decode
 local json_encode   = ljson.encode
+local mtointeger    = math.tointeger
 
 local http_client   = qget("http_client")
 local thread_mgr    = qget("thread_mgr")
@@ -24,6 +25,7 @@ local prop = property(Nacos)
 prop:reader("host", nil)            --host
 prop:reader("enable", false)        --enable
 prop:reader("config_url", nil)      --config url
+prop:reader("switches_url", nil)      --switch url
 prop:reader("listen_url", nil)      --listen url
 prop:reader("service_url", nil)     --services url
 prop:reader("instance_url", nil)    --instance url
@@ -31,19 +33,23 @@ prop:reader("namespace_url", nil)   --namespace url
 prop:reader("inst_beat_url", nil)   --instance beat url
 prop:reader("instances_url", nil)   --instance list url
 prop:reader("services_url", nil)    --services list url
-prop:accessor("cluster", "")        --service cluster name
-prop:accessor("namespace", "")      --service namespace id
-prop:accessor("listen_configs", {}) --service namespace id
+prop:reader("cluster", "")          --service cluster name
+prop:reader("namespace", "")        --service namespace id
+prop:reader("listen_configs", {})   --service namespace id
 
 function Nacos:__init()
     local ip, port =  environ.addr("QUANTA_NACOS_ADDR")
-    if ip and port then
+    local namespace = environ.get("QUANTA_NACOS_NAMESPACE")
+    if ip and port and namespace then
         self.enable = true
+        self.namespace = namespace
+        self.cluster = quanta.cluster
         self.host = environ.get("QUANTA_HOST_IP")
         self.config_url = sformat("http://%s:%s/nacos/v1/cs/configs", ip, port)
         self.service_url = sformat("http://%s:%s/nacos/v1/ns/service", ip, port)
         self.instance_url = sformat("http://%s:%s/nacos/v1/ns/instance", ip, port)
         self.listen_url = sformat("http://%s:%s/nacos/v1/cs/configs/listener", ip, port)
+        self.switches_url = sformat("http://%s:%s/nacos/v1/ns/operator/switches", ip, port)
         self.services_url = sformat("http://%s:%s/nacos/v1/ns/service/list", ip, port)
         self.instances_url = sformat("http://%s:%s/nacos/v1/ns/instance/list", ip, port)
         self.inst_beat_url = sformat("http://%s:%s/nacos/v1/ns/instance/beat", ip, port)
@@ -105,7 +111,7 @@ function Nacos:listen_config(data_id, group, on_changed)
             if res and #res > 0 then
                 local value = self:get_config(data_id, rgroup)
                 if value then
-                    md5 = lmd5(value, true)
+                    md5 = lmd5(value, 1)
                     on_changed(data_id, rgroup, value)
                 end
             end
@@ -209,8 +215,15 @@ function Nacos:query_instances(service_name, group_name)
         log_err("[Nacos][query_instances] failed! service_name:%s, code: %s, err: %s", service_name, status, res)
         return nil, res
     end
+    local insts = {}
     local jsondata = json_decode(res)
-    return jsondata.hosts
+    for _, inst in pairs(jsondata.hosts) do
+        local id = tonumber(inst.metadata.id)
+        local group = mtointeger(inst.metadata.group)
+        local region = mtointeger(inst.metadata.region)
+        insts[id] = {id = id, group = group, region = region, ip = inst.ip, port = inst.port }
+    end
+    return insts
 end
 
 -- 查询实例详情
@@ -250,7 +263,7 @@ end
 --serviceName   string/服务名/必选
 --groupName     string/分组名
 --ephemeral     boolean/是否临时实例
-function Nacos:regi_instance(service_name, port, group_name)
+function Nacos:regi_instance(service_name, port, group_name, metadata)
     local query = {
         weight = 1,
         serviceName = service_name,
@@ -258,14 +271,17 @@ function Nacos:regi_instance(service_name, port, group_name)
         namespaceId = self.namespace,
         groupName = group_name or "",
         ip = self.host, port = port,
-        ephemeral = true, enabled = false, healthy = true
+        ephemeral = false, enabled = false, healthy = true
     }
+    if metadata then
+        query.metadata = json_encode(metadata)
+    end
     local ok, status, res = http_client:call_post(self.instance_url, nil, nil, query)
     if not ok or status ~= 200 then
         log_err("[Nacos][regi_instance] failed! service_name:%s, code: %s, err: %s", service_name, status, res)
         return false, res
     end
-    return res
+    return true
 end
 
 --发送实例心跳
@@ -421,9 +437,9 @@ end
 --namespaceId   string/命名空间ID
 function Nacos:query_services(page, size, group_name)
     local query = {
-        pageNo = page,
-        pageSize = size,
-        groupName = group_name or "",
+        pageNo = page or 1,
+        pageSize = size or 50,
+        group_name = group_name or "",
         namespaceId = self.namespace,
     }
     local ok, status, res = http_client:call_get(self.services_url, query)
@@ -431,7 +447,29 @@ function Nacos:query_services(page, size, group_name)
         log_err("[Nacos][query_services] failed! group_name: %s, code: %s, err: %s", group_name, status, res)
         return nil, res
     end
+    local jdata = json_decode(res)
+    return jdata.doms
+end
+
+-- 查询系统开关
+function Nacos:query_switchs()
+    local ok, status, res = http_client:call_get(self.switches_url, {})
+    if not ok or status ~= 200 then
+        log_err("[Nacos][query_switchs] failed! code: %s, err: %s", status, res)
+        return nil, res
+    end
     return json_decode(res)
+end
+
+-- 修改系统开关
+function Nacos:modify_switchs(entry, value)
+    local query = { entry = entry, value = value }
+    local ok, status, res = http_client:call_put(self.switches_url, nil, nil, query)
+    if not ok or status ~= 200 then
+        log_err("[Nacos][modify_switchs] failed! entry: %s, code: %s, err: %s", entry, status, res)
+        return false, res
+    end
+    return true
 end
 
 quanta.nacos = Nacos()

@@ -62,7 +62,10 @@ end
 
 function Socket:connect(ip, port)
     if self.session then
-        return true
+        if self.alive then
+            return true
+        end
+        return false, "socket in connecting"
     end
     local proto_type = 2
     local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_type)
@@ -74,9 +77,6 @@ function Socket:connect(ip, port)
     local block_id = thread_mgr:build_session_id()
     session.on_connect = function(res)
         local success = res == "ok"
-        if not success then
-            self:on_socket_error(session.token, res)
-        end
         self.alive = success
         self.alive_time = quanta.now
         thread_mgr:response(block_id, success, res)
@@ -164,8 +164,7 @@ function Socket:send(data)
         local send_len = self.session.call_text(data)
         return send_len > 0
     end
-    log_err("[Socket][send] the socket not alive, can't send")
-    return false
+    return false, "socket not alive"
 end
 
 return Socket

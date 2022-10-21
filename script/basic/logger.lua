@@ -1,7 +1,6 @@
 --logger.lua
 --logger功能支持
 local llog          = require("lualog")
-local lbuffer       = require("lbuffer")
 local lstdfs        = require("lstdfs")
 
 local pcall         = pcall
@@ -11,29 +10,42 @@ local dgetinfo      = debug.getinfo
 local tpack         = table.pack
 local tunpack       = table.unpack
 local fsstem        = lstdfs.stem
-local lserialize    = lbuffer.serialize
+local serialize     = quanta.serialize
 
 local LOG_LEVEL     = llog.LOG_LEVEL
+
+local webhook       = _ENV.webhook
+local monitor       = _ENV.monitor
+local graydriver    = _ENV.graydriver
 local driver        = quanta.get_logger()
 
-logger = {}
-logfeature = {}
+logger              = {}
+logfeature          = _ENV.logfeature or {}
 
 function logger.init()
-    driver.add_lvl_dest(LOG_LEVEL.ERROR)
+    --配置日志信息
+    local service_name, index = quanta.service_name, quanta.index
+    local path = environ.get("QUANTA_LOG_PATH", "./logs/")
+    local rolltype = environ.number("QUANTA_LOG_ROLL", 0)
+    local maxline = environ.number("QUANTA_LOG_LINE", 100000)
+    driver.option(path, service_name, index, rolltype, maxline);
+    --设置日志过滤
     logger.filter(environ.number("QUANTA_LOG_LVL"))
+    --添加输出目标
+    driver.add_dest(service_name);
+    driver.add_lvl_dest(LOG_LEVEL.ERROR)
+    --设置daemon
+    driver.daemon(environ.status("QUANTA_DAEMON"))
+    --graylog
+    local logaddr = environ.get("QUANTA_GRAYLOG_ADDR")
+    if logaddr then
+        local GrayLog = import("driver/graylog.lua")
+        graydriver = GrayLog(logaddr)
+    end
 end
 
 function logger.daemon(daemon)
     driver.daemon(daemon)
-end
-
-function logger.setup_graylog()
-    local logaddr = environ.get("QUANTA_GRAYLOG_ADDR")
-    if logaddr then
-        local GrayLog = import("driver/graylog.lua")
-        logger.graydriver = GrayLog(logaddr)
-    end
 end
 
 function logger.feature(name)
@@ -46,12 +58,12 @@ function logger.feature(name)
     end
 end
 
-function logger.setup_notifier(notifier)
-    logger.notifier = notifier
+function logger.set_webhook(_webhook)
+    webhook = _webhook
 end
 
-function logger.setup_monitor(monitor)
-    logger.monitor = monitor
+function logger.set_monitor(_monitor)
+    monitor = _monitor
 end
 
 function logger.filter(level)
@@ -71,22 +83,19 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
         local args = tpack(...)
         for i, arg in pairs(args) do
             if type(arg) == "table" then
-                args[i] = lserialize(arg, swline and 1 or 0)
+                args[i] = serialize(arg, swline and 1 or 0)
             end
         end
         content = sformat(fmt, tunpack(args, 1, args.n))
     else
         content = sformat(fmt, ...)
     end
-    local notifier = logger.notifier
-    if notify and notifier then
-        notifier:notify(lvl_name, content)
+    if notify and webhook then
+        webhook:notify(lvl_name, content)
     end
-    local monitor = logger.monitor
     if monitor then
         monitor:notify(lvl_name, content)
     end
-    local graydriver = logger.graydriver
     if graylog and graydriver then
         graydriver:write(content, lvl)
     end

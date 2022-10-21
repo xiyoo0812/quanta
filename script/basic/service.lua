@@ -1,104 +1,102 @@
---每个服务进程都有一个唯一的服务标识,由服务(servcie)和服务索引(index)两部分构成
---有三种形式:
---servcie: lobby
---service_id: 131073
---service_nick: lobby.1
---在上面的示例中,服务id 2.1中的2表明服务分(servcie)为2(lobby),实例编号(index)为1
-local tonumber      = tonumber
-local ssub          = string.sub
-local sfind         = string.find
-local sformat       = string.format
+--service.lua
+--每个服务进程都有一个唯一的进程id，由4部分组成
+--1、分组信息 0-63
+--2、分区信息 0-1023
+--3、服务类型 0-63
+--4、实例编号 0-1023
+--变量说明
+--id：          进程id      32位数字
+--group：       分组信息    0-63
+--index：       实例编号    0-1023
+--region:       分区信息    0-1023
+--servcie:      服务类型    0-63
+--node_id:      节点服务id  32位数字
+--name:         服务名      lobby.1
 
-local config_mgr    = quanta.get("config_mgr")
-local service_db    = config_mgr:init_table("service", "id")
+import("kernel/config_mgr.lua")
+
+local sformat       = string.format
 
 --服务组常量
 local SERVICES      = _ENV.SERVICES or {}
+local SERVICE_NAMES = _ENV.SERVICE_NAMES or {}
 
 service = {}
 
---定义服务器组
-function service.init(name)
+function service.make_node(port)
+    quanta.node_info = {
+        id = quanta.id,
+        name = quanta.name,
+        index = quanta.index,
+        group = quanta.group,
+        region = quanta.region,
+        service = quanta.service,
+        port = port or quanta.index,
+        service_name = quanta.service_name,
+    }
+end
+
+function service.init()
+    --加载服务配置
+    local config_mgr = quanta.get("config_mgr")
+    local service_db = config_mgr:init_table("service", "id")
     for _, conf in service_db:iterator() do
         SERVICES[conf.name] = conf.id
+        SERVICE_NAMES[conf.id] = conf.name
     end
-    return SERVICES[name]
+    config_mgr:close_table("service")
+    --初始化服务信息
+    local index = environ.number("QUANTA_INDEX", 1)
+    local group = environ.number("QUANTA_GROUP", 1)
+    local region = environ.number("QUANTA_REGION", 1)
+    local service_name = environ.get("QUANTA_SERVICE")
+    local service_type = SERVICES[service_name]
+    quanta.index = index
+    quanta.group = group
+    quanta.region = region
+    quanta.service = service_type
+    quanta.service_name = service_name
+    quanta.id = service.make_sid(service_type, index)
+    quanta.name = sformat("%s_%s", service_name, index)
+    quanta.cluster = environ.get("QUANTA_CLUSTER", "develop")
+    service.make_node()
 end
 
 --生成节点id
-function service.make_id(service, index)
-    if type(service) == "string" then
-        service = SERVICES[service]
-    end
+function service.make_id(group, region, service, index)
+    return (group << 26) | (region << 16) | (service << 10) | index
+end
+
+--生成服务id
+function service.make_sid(service, index)
     return (service << 16) | index
 end
 
---生成节点nick
-function service.make_nick(service, index)
-    return sformat("%s_%s", service, index)
+function service.services()
+    return SERVICES
 end
 
 --节点id获取服务id
-function service.id2sid(quanta_id)
-    return (quanta_id >> 16) & 0xff
+function service.get_service(service_id)
+    return (service_id >> 16) & 0xff
 end
 
 --节点id获取服务index
-function service.id2index(quanta_id)
-    return quanta_id & 0x3ff
+function service.get_index(service_id)
+    return service_id & 0x3ff
 end
 
 --节点id转服务名
 function service.id2name(quanta_id)
-    return service_db:find_value("name", quanta_id >> 16)
+    return SERVICE_NAMES[quanta_id >> 16]
 end
 
 --服务id转服务名
 function service.sid2name(service_id)
-    return service_db:find_value("name", service_id)
+    return SERVICE_NAMES[service_id]
 end
 
 --服务名转服务id
 function service.name2sid(name)
     return SERVICES[name]
-end
-
---节点id转服务昵称
-function service.id2nick(quanta_id)
-    if quanta_id == nil or quanta_id == 0 then
-        return "nil"
-    end
-    local index = quanta_id & 0x3ff
-    local service_id = quanta_id >> 16
-    local sname = service.sid2name(service_id)
-    return sformat("%s_%s", sname, index)
-end
-
---服务昵称转节点id
-function service.nick2id(nick)
-    local pos = sfind(nick, "_")
-    local sname = ssub(nick, 1, pos - 1)
-    local index = ssub(nick, pos + 1, #nick)
-    return service.make_id(SERVICES[sname], tonumber(index))
-end
-
---服务是否启动路由
-function service.router(service_id)
-    return service_db:find_value("router", service_id)
-end
-
---服务固定hash
-function service.hash(service_id)
-    return service_db:find_value("hash", service_id)
-end
-
---生成router_id
-function service.router_id(host_id, index)
-    local router_index = host_id << 8 | index
-    return service.make_id("router", router_index)
-end
-
---生成router_name
-function service.router_name(host_id, index)
-    return sformat("router_%s_%s", host_id, index)
 end

@@ -13,30 +13,21 @@
     <ClInclude Include="src\lbuffer.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\serialize.h">
+    <ClInclude Include="src\serializer.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\shm.h">
       <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="src\shmpool.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\slice.h">
+      <Filter>inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\buffer.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\bufpool.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\bufqueue.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\lbuffer.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\serialize.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\shmpool.c">
+    <ClCompile Include="src\lbuffer.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

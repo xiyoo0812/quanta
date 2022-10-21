@@ -64,6 +64,10 @@
 #include <netinet/tcp.h>
 #endif
 
+
 #define LUA_LIB
 
+#include "lua_kit.h"
 #include <iostream>
+
+

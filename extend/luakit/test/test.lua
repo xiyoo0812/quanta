@@ -42,3 +42,8 @@ function testtb.lua_tcall(a, b, c)
 	print("exec lua table func", a, b, c)
 	return a, b
 end
+
+function testtb.lua_tcall2(a, b, c)
+	print("exec lua table func2", a, b, c)
+	return a, b
+end
