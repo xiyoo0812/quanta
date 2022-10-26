@@ -27,5 +27,5 @@ quanta.startup(function()--初始化test
     import("test/nacos_test.lua")
     import("test/url_test.lua")
     ]]
-    import("test/worker_test.lua")
+    import("test/codec_test.lua")
 end)

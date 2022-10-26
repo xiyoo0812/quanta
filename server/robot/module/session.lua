@@ -1,5 +1,6 @@
 -- session.lua
 local log_warn      = logger.warn
+local log_debug     = logger.debug
 local tunpack       = table.unpack
 local event_mgr     = quanta.get("event_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")

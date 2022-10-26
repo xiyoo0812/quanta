@@ -21,7 +21,6 @@ local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
 local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
-local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
@@ -80,7 +79,6 @@ function NetClient:connect(block)
             self:on_socket_error(token, err)
         end)
     end
-    socket.set_timeout(NETWORK_TIMEOUT)
     self.socket = socket
     --阻塞模式挂起
     if block_id then

@@ -14,8 +14,27 @@ local decode_slice  = lcodec.decode_slice
 local serialize     = lcodec.serialize
 local unserialize   = lcodec.unserialize
 local hash_code     = lcodec.hash_code
-local fnv_32a       = lcodec.fnv_32a
-local fnv_32        = lcodec.fnv_32
+local fnv_32a       = lcodec.fnv_1a_32
+local fnv_32        = lcodec.fnv_1_32
+
+--ketama
+lcodec.ketama_insert("test1", quanta.id)
+lcodec.ketama_insert("test2", quanta.id + 1)
+lcodec.ketama_insert("test3", quanta.id + 2)
+lcodec.ketama_insert("test4", quanta.id + 3)
+lcodec.ketama_insert("test5", quanta.id + 4)
+lcodec.ketama_insert("test6", quanta.id + 5)
+lcodec.ketama_insert("test7", quanta.id + 6)
+lcodec.ketama_insert("test8", quanta.id + 7)
+lcodec.ketama_insert("test9", quanta.id + 8)
+lcodec.ketama_insert("test10", quanta.id + 9)
+
+local map = lcodec.ketama_map()
+local qmap = qtable.mapsort(map)
+for _, value in pairs(qmap) do
+    log_debug("ketama_map: %s, %s", value[1], value[2])
+end
+log_debug("ketama_insert number: %s", qtable.size(map))
 
 --hash
 ----------------------------------------------------------------

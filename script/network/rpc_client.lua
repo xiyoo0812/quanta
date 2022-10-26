@@ -18,7 +18,6 @@ local thread_mgr        = quanta.get("thread_mgr")
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
-local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
@@ -127,7 +126,6 @@ function RpcClient:connect()
             self:on_socket_error(socket.token, res)
         end
     end
-    socket.set_timeout(RPCLINK_TIMEOUT)
     self.socket = socket
 end
 

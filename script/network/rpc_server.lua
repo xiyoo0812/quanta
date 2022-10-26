@@ -188,7 +188,7 @@ function RpcServer:rpc_heartbeat(client, node)
         client.name = node.name
         client.service = node.service
         client.service_name = node.service_name
-        self.holder:on_client_register(client, node)
+        self.holder:on_client_register(client, node, client_id)
     end
 end
 

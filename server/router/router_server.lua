@@ -20,8 +20,8 @@ local UNREACHABLE   = quanta.enum("KernCode", "RPC_UNREACHABLE")
 
 local RouterServer = singleton()
 local prop = property(RouterServer)
-prop:accessor("rpc_server", nil)
-prop:accessor("service_masters", {})
+prop:reader("rpc_server", nil)
+prop:reader("service_masters", {})
 
 function RouterServer:__init()
     local host = quanta.host
@@ -51,6 +51,20 @@ end
 function RouterServer:on_client_error(client, client_token, err)
     log_info("[RouterServer][on_client_error] %s lost: %s", client.name, err)
     socket_mgr.map_token(client.id)
+    local service = client.service
+    if client.id == self.service_masters[service] then
+        local new_master = nil
+        for _, eclient in self.rpc_server:iterator() do
+            if not new_master or eclient.id < new_master.id then
+                new_master = eclient
+            end
+        end
+        if new_master then
+            socket_mgr.set_master(service, new_master.id)
+            self.service_masters[service] = new_master.id
+            log_info("[RouterServer][on_socket_error] switch master --> %s", new_master.name)
+        end
+    end
 end
 
 --accept事件
@@ -74,9 +88,16 @@ end
 --rpc事件处理
 ------------------------------------------------------------------
 --注册服务器
-function RouterServer:on_client_register(client, node)
-    socket_mgr.map_token(client.id, client.token)
+function RouterServer:on_client_register(client, node, client_id)
     log_info("[RouterServer][on_client_register] service: %s", client.name)
+    local service = client.service
+    local old_master = self.service_masters[service]
+    socket_mgr.map_token(client_id, client.token)
+    if not old_master or client_id < old_master then
+        socket_mgr.set_master(service, client_id)
+        self.service_masters[service] = client_id
+        log_info("[RouterServer][on_socket_error] switch master --> %s", client.name)
+    end
 end
 
 -- 会话信息
