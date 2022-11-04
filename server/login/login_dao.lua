@@ -14,7 +14,7 @@ end
 
 function LoginDao:load_account(open_id)
     local ok, code, udata = mongo_agent:find_one({ "account", { open_id = open_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][load_account] open_id: %s find failed! code: %s, res: %s", open_id, code, udata)
         return false
     end
@@ -30,7 +30,7 @@ function LoginDao:create_account(open_id, user_id, session_token)
         time = quanta.now,
     }
     local ok, code, res = mongo_agent:insert({ "account", udata })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][create_account] open_id: %s insert failed! code: %s, res: %s", open_id, code, res)
         return
     end
@@ -48,7 +48,7 @@ function LoginDao:create_player(user_id, role_info)
         role_id = role_info.role_id
     }
     local ok, code, res = mongo_agent:insert({ "player", udata })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][create_player] user_id: %s insert failed! code: %s, res: %s", user_id, code, res)
         return false
     end
@@ -57,7 +57,7 @@ end
 
 function LoginDao:delete_player(role_id)
     local ok, code, res = mongo_agent:delete({ "player", { role_id = role_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][delete_player] role_id:%s delete failed! code: %s, res: %s", role_id, code, res)
         return false
     end
@@ -67,7 +67,7 @@ end
 function LoginDao:update_account_roles(user_id, new_roles)
     local udata = { ["$set"] = { roles = new_roles }}
     local ok, code, res = mongo_agent:update({ "account", udata, { user_id = user_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][update_account] user_id(%s) update failed!: code: %s, res: %s!", user_id, code, res)
         return false
     end
@@ -76,7 +76,7 @@ end
 
 function LoginDao:load_account_status(open_id)
     local ok, code, adata = mongo_agent:find_one({ "account_status", { open_id = open_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][load_account_status] open_id:%s find failed! code: %s, res: %s", open_id, code, adata)
         return false
     end
@@ -93,7 +93,7 @@ function LoginDao:update_account_status(session, info)
         login_time = quanta.now + MINUTE_5_S
     }
     local ok, code, res = mongo_agent:update({ "account_status", udata, { open_id = open_id }, true })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][update_account_status] user_id(%s) update failed!: code: %s, res: %s!", open_id, code, res)
         return false
     end
@@ -102,7 +102,7 @@ end
 
 function LoginDao:check_name_exist(name)
     local ok, code, udata = mongo_agent:find_one({ "player", { name = name } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][check_name_exist] name: %s find failed! code: %s, res: %s", name, code, udata)
         return true
     end

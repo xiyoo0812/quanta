@@ -218,15 +218,17 @@ local function export_records_to_struct(output, title, records)
 
     tinsert(lines, "--导出配置内容")
     for _, rec in pairs(records) do
-        local record = merge_record(rec, "    ")
-        for index, info in ipairs(record) do
-            local key, value = tunpack(info)
-            if index == 1 then
-                tinsert(lines, sformat("%s:upsert({", title))
+        if #rec > 0 then
+            local record = merge_record(rec, "    ")
+            for index, info in ipairs(record) do
+                local key, value = tunpack(info)
+                if index == 1 then
+                    tinsert(lines, sformat("%s:upsert({", title))
+                end
+                tinsert(lines, sformat("    %s = %s,", key, tostring(value)))
             end
-            tinsert(lines, sformat("    %s = %s,", key, tostring(value)))
+            tinsert(lines, "})\n")
         end
-        tinsert(lines, "})\n")
     end
 
     local output_data = tconcat(lines, "\n")
@@ -253,15 +255,17 @@ local function export_records_to_table(output, title, records)
     tinsert(lines, "--导出配置内容")
     tinsert(lines, sformat('local %s = {', title))
     for _, rec in pairs(records) do
-        local record = merge_record(rec, "        ")
-        for index, info in ipairs(record) do
-            local key, value = tunpack(info)
-            if index == 1 then
-                tinsert(lines,  "    {")
+        if #rec > 0 then
+            local record = merge_record(rec, "        ")
+            for index, info in ipairs(record) do
+                local key, value = tunpack(info)
+                if index == 1 then
+                    tinsert(lines,  "    {")
+                end
+                tinsert(lines, sformat("        %s = %s,", key, tostring(value)))
             end
-            tinsert(lines, sformat("        %s = %s,", key, tostring(value)))
+            tinsert(lines, "    },")
         end
-        tinsert(lines, "    },")
     end
     tinsert(lines, sformat('}\n\nreturn %s\n', title))
 
@@ -294,12 +298,8 @@ local function export_sheet_to_table(sheet, output, title)
     end
     for row = read_len, end_line do
         local end_tag = get_sheet_value(sheet, row, 1)
-        if end_tag == "End" then
-            end_line = row
-            break
-        end
         local fkey = get_sheet_value(sheet, row, 2)
-        if not fkey or fkey == "" then
+        if end_tag == "End" or not fkey or fkey == "" then
             end_line = row
             break
         end
@@ -311,17 +311,14 @@ local function export_sheet_to_table(sheet, output, title)
         -- 遍历每一列
         for col = 2, sheet.last_col do
             -- 过滤掉没有配置的行
-            local ftype = field_type[col]
-            if ftype then
-                local value = get_sheet_value(sheet, row, col, ftype, header[col])
+            if field_type[col] and header[col] then
+                local value = get_sheet_value(sheet, row, col, field_type[col], header[col])
                 if value ~= nil then
-                    tinsert(record, {header[col], value, ftype})
+                    tinsert(record, {header[col], value, field_type[col]})
                 end
             end
         end
-        if #record > 0 then
-            tinsert(records, record)
-        end
+        tinsert(records, record)
     end
     export_method(output, title, records)
 end

@@ -98,7 +98,7 @@ function MonitorAgent:rpc_remote_message(message, data)
         return {code = RPC_FAILED, msg = "message is nil !"}
     end
     local ok, code, res = tunpack(event_mgr:notify_listener(message, data))
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[MonitorAgent][rpc_remote_message] web_rpc faild: ok=%s, ec=%s", ok, code)
         return { code = ok and code or RPC_FAILED, msg = ok and "" or code}
     end

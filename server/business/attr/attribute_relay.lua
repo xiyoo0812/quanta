@@ -60,7 +60,7 @@ function AttributeRelay:open_relay_attr(player, player_id, target_id)
     end
     --初始化属性同步
     local ok, code = router_mgr:call_target(target_id, "rpc_attr_setup", player_id, attrs)
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[AttributeRelay][open_relay_attr] setup failed attrs=%s, player_id=%s, code=%s", attrs, player_id, code)
         return false
     end
@@ -107,7 +107,7 @@ function AttributeRelay:on_attr_relay(player_id, player)
         end
         if next(attrs) then
             local ok, code =  router_mgr:call_target(target_id, "rpc_attr_relay", player_id, attrs, quanta_id)
-            if not ok or qfailed(code) then
+            if qfailed(code, ok) then
                 log_err("[AttributeRelay][on_attr_relay] sync failed attrs=%s, player_id=%s, code=%s", attrs, player_id, code)
             end
         end

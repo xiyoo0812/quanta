@@ -22,12 +22,18 @@ local SUCCESS   = qenum("KernCode", "SUCCESS")
 local DAY_S     = qenum("PeriodTime", "DAY_S")
 local HOUR_S    = qenum("PeriodTime", "HOUR_S")
 
-function quanta.success(code)
-    return code == SUCCESS
+function quanta.success(code, ok)
+    if ok == nil then
+        return code == SUCCESS
+    end
+    return ok and code == SUCCESS
 end
 
-function quanta.failed(code)
-    return code ~= SUCCESS
+function quanta.failed(code, ok)
+    if ok == nil then
+        return code ~= SUCCESS
+    end
+    return not ok or code ~= SUCCESS
 end
 
 --获取utc时间戳

@@ -7,7 +7,7 @@ local env_number    = environ.number
 local LuaBT         = import("luabt/luabt.lua")
 local Robot         = import("robot/robot.lua")
 
-local report_mgr    = quanta.get("report_mgr")
+local event_mgr     = quanta.get("event_mgr")
 local node_factory  = quanta.get("node_factory")
 
 local RobotBT = class(Robot)
@@ -51,7 +51,7 @@ function RobotBT:get_board()
 end
 
 function RobotBT:report(event, ...)
-    report_mgr:robot_report(self.robot_id, event, ...)
+    event_mgr:notify_listener("on_robot_report", self.robot_id, event, ...)
 end
 
 function RobotBT:update()

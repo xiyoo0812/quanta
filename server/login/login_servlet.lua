@@ -66,7 +66,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     end
     if platform > PLATFORM_PASSWORD then
         local ok, code = event_mgr:notify_listener("on_platform_login", open_id, token, platform)
-        if not ok or qfailed(code) then
+        if qfailed(code, ok) then
             login_mgr:send_errcode(session, cmd_id, ok and code or FRAME_FAILED, session_id)
         end
     end

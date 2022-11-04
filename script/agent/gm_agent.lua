@@ -37,7 +37,7 @@ end
 --command：字符串格式
 function GMAgent:execute_command(command)
     local ok, codeoe, res = router_mgr:call_admin_master("rpc_execute_command", command)
-    if ok and qsuccess(codeoe) then
+    if qsuccess(codeoe, ok) then
         return ok, res
     end
     return false, ok and res or codeoe
@@ -48,7 +48,7 @@ end
 --message：lua table格式
 function GMAgent:execute_message(message)
     local ok, codeoe, res = router_mgr:call_admin_master("rpc_execute_message", message)
-    if ok and qsuccess(codeoe) then
+    if qsuccess(codeoe, ok) then
         return ok, res
     end
     return false, ok and res or codeoe
@@ -61,7 +61,7 @@ function GMAgent:report_command(id)
         command_list[#command_list + 1] = cmd
     end
     local ok, code = router_mgr:call_target(id, "rpc_register_command", command_list, quanta.id)
-    if ok and qsuccess(code) then
+    if qsuccess(code, ok) then
         log_info("[GMAgent][report_command] success!")
         return true
     end

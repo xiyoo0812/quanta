@@ -118,11 +118,11 @@ function RouterMgr:collect(service_id, rpc, ...)
     local session_id = thread_mgr:build_session_id()
     local router = self:hash_router(session_id)
     local ok, code, target_cnt = self:forward_client(router, "call_broadcast", session_id, service_id, rpc, ...)
-    if ok and qsuccess(code) then
+    if qsuccess(code, ok) then
         while target_cnt > 0 do
             target_cnt = target_cnt - 1
             local ok_c, code_c, res = thread_mgr:yield(session_id, "collect", RPC_CALL_TIMEOUT)
-            if ok_c and qsuccess(code_c) then
+            if qsuccess(code_c, ok_c) then
                 collect_res[#collect_res + 1] = res
             end
         end

@@ -7,8 +7,8 @@ TARGET_NAME = "luakit"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "exe"
 
---禁用，不会生成到项目
-DISABLE = false
+--是否生效
+ENABLE = false
 
 --需要的FLAGS
 FLAGS = {

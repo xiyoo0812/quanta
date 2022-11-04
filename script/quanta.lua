@@ -12,10 +12,10 @@ local dtraceback    = debug.traceback
 --函数装饰器: 保护性的调用指定函数,如果出错则写日志
 --主要用于一些C回调函数,它们本身不写错误日志
 --通过这个装饰器,方便查错
-function quanta.xpcall(func, format, ...)
+function quanta.xpcall(func, fmt, ...)
     local ok, err = xpcall(func, dtraceback, ...)
     if not ok then
-        log_err(format, err)
+        log_err(sformat(fmt, err))
     end
 end
 
@@ -34,7 +34,7 @@ function quanta.check_endless_loop()
     local debug_hook = function()
         local now = otime()
         if now - quanta.now >= 10 then
-            log_err("check_endless_loop:%s", dtraceback())
+            log_err(sformat("check_endless_loop:%s", dtraceback()))
         end
     end
     dsethook(debug_hook, "l")
@@ -59,13 +59,13 @@ function quanta.enum(ename, ekey)
     local eobj = enum(ename)
     if not eobj then
         local info = dgetinfo(2, "S")
-        log_err("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined)
+        log_err(sformat("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined))
         return
     end
     local eval = eobj[ekey]
     if not eval then
         local info = dgetinfo(2, "S")
-        log_err("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined)
+        log_err(sformat("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined))
         return
     end
     return eval

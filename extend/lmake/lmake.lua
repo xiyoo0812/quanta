@@ -221,10 +221,17 @@ local function build_projfile(solution_dir, project_dir, lmake_dir)
                 error("load share lmake file failed")
                 return
             end
+            if not load_env_file(fullname, env) then
+                error(sformat("load env %s failed", fullname))
+                return
+            end
+            if not env.ENABLE then
+                return
+            end
             local mak_dir = path_cut(project_dir, solution_dir)
-            ltmpl.render_file(lappend(lmake_dir, "tmpl/make.tpl"),  lrepextension(fullname, ".mak"), env, fullname)
-            ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxproj.tpl"),  lrepextension(fullname, ".vcxproj"), env, fullname)
-            ltmpl.render_file(lappend(lmake_dir, "tmpl/filters.tpl"),  lrepextension(fullname, ".vcxproj.filters"), env, fullname)
+            ltmpl.render_file(lappend(lmake_dir, "tmpl/make.tpl"),  lrepextension(fullname, ".mak"), env)
+            ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxproj.tpl"),  lrepextension(fullname, ".vcxproj"), env)
+            ltmpl.render_file(lappend(lmake_dir, "tmpl/filters.tpl"),  lrepextension(fullname, ".vcxproj.filters"), env)
             projects[env.PROJECT_NAME] = {
                 DIR = mak_dir,
                 DEPS = env.DEPS,

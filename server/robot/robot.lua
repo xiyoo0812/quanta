@@ -27,7 +27,7 @@ end
 
 --检查错误码
 function Robot:check_callback(ok, res)
-    if not ok or qfailed(res.error_code) then
+    if qfailed(res.error_code, ok) then
         return true
     end
     return false

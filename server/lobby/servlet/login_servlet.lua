@@ -86,7 +86,7 @@ function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
     --通知online
     local passkey = player:get_passkey()
     local lok, code = online:login_player(player, passkey)
-    if not lok or qfailed(code) then
+    if qfailed(code, lok) then
         return FRAME_FAILED
     end
     --通知登陆成功

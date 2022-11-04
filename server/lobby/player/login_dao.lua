@@ -15,7 +15,7 @@ end
 
 function LoginDao:load_player(role_id)
     local ok, code, udata = mongo_agent:find_one({ "player", { role_id = role_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][load_player] role_id:%s find failed! code: %s, res: %s", role_id, code, udata)
         return false
     end
@@ -25,7 +25,7 @@ end
 function LoginDao:update_player(role_id, data)
     local udata = { ["$set"] = data }
     local ok, code, res = mongo_agent:update({ "player", udata, { role_id = role_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][update_player] role_id:%s find failed! code: %s, res: %s", role_id, code, res)
         return false
     end
@@ -38,7 +38,7 @@ end
 
 function LoginDao:load_account_status(user_id)
     local ok, code, adata = mongo_agent:find_one({ "account_status", { user_id = user_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][load_account_status] user_id: %s find failed! code: %s, res: %s", user_id, code, adata)
         return false
     end
@@ -54,7 +54,7 @@ function LoginDao:update_account_status(user_id, token)
         }
     }
     local ok, code, res = mongo_agent:update({ "account_status", udata, { user_id = user_id } })
-    if not ok or qfailed(code) then
+    if qfailed(code, ok) then
         log_err("[LoginDao][update_account_status] user_id(%s) update failed!: code: %s, res: %s!", user_id, code, res)
         return false
     end

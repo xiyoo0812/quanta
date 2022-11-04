@@ -17,7 +17,6 @@ public:
     luakit::variadic_results connect(lua_State* L, const char* ip, const char* port, int timeout);
 
 private:
-    lua_State* m_lvm;
     std::shared_ptr<socket_mgr> m_mgr;
     std::shared_ptr<socket_router> m_router;
 };

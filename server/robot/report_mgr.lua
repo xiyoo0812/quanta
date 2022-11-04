@@ -6,6 +6,7 @@ local tunpack       = table.unpack
 local sformat       = string.format
 local log_info      = logger.info
 
+local event_mgr     = quanta.get("event_mgr")
 local robot_mgr     = quanta.get("robot_mgr")
 
 --关键事件配置
@@ -27,14 +28,15 @@ function ReportMgr:__init()
     self.report_datas = {}
     -- 需要统计的总数量
     self.count = robot_mgr:get_count()
+    event_mgr:add_listener(self, "on_robot_report")
 end
 
 --机器人上报
-function ReportMgr:robot_report(index, event, ...)
-    local robot_data = self.robot_datas[index]
+function ReportMgr:on_robot_report(robot_id, event, ...)
+    local robot_data = self.robot_datas[robot_id]
     if not robot_data then
         robot_data              = {}
-        self.robot_datas[index] = robot_data
+        self.robot_datas[robot_id] = robot_data
     end
     if robot_data[event] then
         --防止重复上报
@@ -93,12 +95,12 @@ function ReportMgr:dump(whole)
     if whole then
         log_info("hive robots details dump:")
         log_info("----------------------------------------------------")
-        for index, robot_data in pairs(self.robot_datas) do
+        for robot_id, robot_data in pairs(self.robot_datas) do
             local output = ""
             for event, data in pairs(robot_data) do
                 output = sformat("%s %s=%.3f", output, event, data.tick / 1000)
             end
-            log_info("robot-%s=>%s", index, output)
+            log_info("robot-%s=>%s", robot_id, output)
         end
         log_info("----------------------------------------------------")
     end

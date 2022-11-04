@@ -18,6 +18,7 @@ local RPLAYER       = quanta.enum("RobotType", "PLAYER")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 
 local Robot         = import("robot/robot.lua")
+local RobotBT       = import("robot/robot_bt.lua")
 
 local RobotMgr = singleton()
 local prop = property(RobotMgr)
@@ -58,7 +59,6 @@ end
 -- setup
 function RobotMgr:create_robot_bt(ip, port, conf, index)
     log_debug("[RobotMgr][create_robot_bt]: %s:%s %s(%s)", ip, port, index, conf)
-    local RobotBT = import("robot/robot_bt.lua")
     local robot = RobotBT(conf, index)
     if conf.openid_type == RRANDOM then
         robot:set_open_id(guid_string())

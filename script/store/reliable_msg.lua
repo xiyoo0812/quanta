@@ -26,7 +26,7 @@ function ReliabledMsg:setup(coll_name, ttl)
         self.ttl = ttl
         local query = { coll_name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
         local ok, code = mongo_agent:create_indexes(query, nil, MSG_DBID)
-        if ok and qsuccess(code) then
+        if qsuccess(code, ok) then
             log_info("[ReliabledMsg][setup] rmsg table %s build due index success")
         end
     end
@@ -38,7 +38,7 @@ end
 function ReliabledMsg:list_message(coll_name, target_id)
     local query = { coll_name, { target_id = target_id, deal_time = 0 }, nil, { time = 1 } }
     local ok, code, result = mongo_agent:find(query, target_id, MSG_DBID)
-    if ok and qsuccess(code) then
+    if qsuccess(code, ok) then
         return result
     end
 end
