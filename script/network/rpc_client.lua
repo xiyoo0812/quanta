@@ -41,7 +41,7 @@ function RpcClient:on_second()
         self:heartbeat()
         return
     end
---    self:connect()
+    self:connect()
 end
 
 --发送心跳
