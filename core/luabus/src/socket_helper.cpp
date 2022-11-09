@@ -12,6 +12,15 @@ void set_no_delay(socket_t fd, int enable) {
 #endif
 }
 
+void set_reuseaddr(socket_t fd) {
+    int one = 1;
+#ifdef _MSC_VER
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&one, sizeof(one));
+#else
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+#endif
+}
+
 #if defined(__linux) || defined(__APPLE__)
 void set_no_block(socket_t fd) {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);

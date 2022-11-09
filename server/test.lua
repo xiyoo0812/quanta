@@ -26,6 +26,8 @@ quanta.startup(function()--初始化test
     import("test/clickhouse_test.lua")
     import("test/nacos_test.lua")
     import("test/url_test.lua")
+    import("test/udp_test.lua")
+    import("test/tcp_test.lua")
     ]]
-    import("test/codec_test.lua")
+    import("test/tcp_test.lua")
 end)

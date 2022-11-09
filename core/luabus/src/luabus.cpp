@@ -1,5 +1,7 @@
 ﻿#include "stdafx.h"
 #include "socket_dns.h"
+#include "socket_udp.h"
+#include "socket_tcp.h"
 #include "lua_socket_mgr.h"
 #include "lua_socket_node.h"
 
@@ -13,10 +15,30 @@ namespace luabus {
         return mgr;
     }
 
+    static socket_udp* create_udp() {
+        socket_udp* udp = new socket_udp();
+        if (!udp->setup()) {
+            delete udp;
+            return nullptr;
+        }
+        return udp;
+    }
+
+    static socket_tcp* create_tcp() {
+        socket_tcp* tcp = new socket_tcp();
+        if (!tcp->setup()) {
+            delete tcp;
+            return nullptr;
+        }
+        return tcp;
+    }
+
     luakit::lua_table open_luabus(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto lluabus = kit_state.new_table();
         
+        lluabus.set_function("udp", create_udp);
+        lluabus.set_function("tcp", create_tcp);
         lluabus.set_function("dns", gethostbydomain);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
@@ -25,6 +47,21 @@ namespace luabus {
             "text", eproto_type::proto_text,
             "common", eproto_type::proto_common
         );
+        kit_state.new_class<socket_udp>(
+            "send", &socket_udp::send,
+            "recv", &socket_udp::recv,
+            "close", &socket_udp::close,
+            "listen", &socket_udp::listen
+            );
+        kit_state.new_class<socket_tcp>(
+            "send", &socket_tcp::send,
+            "recv", &socket_tcp::recv,
+            "close", &socket_tcp::close,
+            "accept", &socket_tcp::accept,
+            "listen", &socket_tcp::listen,
+            "invalid", &socket_tcp::invalid,
+            "connect", &socket_tcp::connect
+            );
         kit_state.new_class<lua_socket_mgr>(
             "wait", &lua_socket_mgr::wait,
             "listen", &lua_socket_mgr::listen,

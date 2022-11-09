@@ -93,10 +93,6 @@ function TimerMgr:unregister(timer_id)
     self.timers[timer_id] = nil
 end
 
-function TimerMgr:on_quit()
-    self.timers = {}
-end
-
 quanta.timer_mgr = TimerMgr()
 
 return TimerMgr

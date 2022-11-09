@@ -16,6 +16,7 @@ local unserialize   = lcodec.unserialize
 local hash_code     = lcodec.hash_code
 local fnv_32a       = lcodec.fnv_1a_32
 local fnv_32        = lcodec.fnv_1_32
+local jumphash      = lcodec.jumphash
 
 --ketama
 lcodec.ketama_insert("test1", quanta.id)
@@ -46,7 +47,7 @@ local hash_s1 = hash_code("12345")
 local hash_s2 = hash_code("a0b0c0d0a0b0c0d0", 1000)
 log_debug("hash_code string: %s, %s", hash_s1, hash_s2)
 
-local fnv_s1 = fnv_32("12345")
+local fnv_s1 = fnv_32("")
 local fnv_s2 = fnv_32("12345", fnv_s1)
 local fnv_s3 = fnv_32("12345", fnv_s2)
 log_debug("fnv_32 string: %s, %s, %s", fnv_s1, fnv_s2, fnv_s3)
@@ -57,6 +58,9 @@ local fnv_as3 = fnv_32a("12345", fnv_as2)
 log_debug("fnv_32a string: %s, %s, %s", fnv_as1, fnv_as2, fnv_as3)
 --fnv_32 string: 2930711257, 991336454, 3269464323
 --fnv_32a string: 3601286043, 177295730, 3384461241
+
+local jmpv = jumphash("", 3)
+log_debug("jumphash value: %s", jmpv)
 
 --guid
 ----------------------------------------------------------------

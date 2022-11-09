@@ -20,6 +20,7 @@ struct socket_header {
 #include <netdb.h>
 #include <cstring>
 #include <sys/stat.h>
+#include <netinet/udp.h>
 using socket_t = int;
 using BYTE = unsigned char;
 const socket_t INVALID_SOCKET = -1;
@@ -29,6 +30,8 @@ inline void closesocket(socket_t fd) { close(fd); }
 template <typename T, int N>
 constexpr int _countof(T(&_array)[N]) { return N; }
 #define SD_RECEIVE SHUT_RD
+#define WSAEWOULDBLOCK EWOULDBLOCK
+#define WSAEINPROGRESS EINPROGRESS
 #endif
 
 #ifdef _MSC_VER
@@ -48,6 +51,7 @@ bool check_can_write(socket_t fd, int timeout);
 void set_no_block(socket_t fd);
 void set_no_delay(socket_t fd, int enable);
 void set_close_on_exec(socket_t fd);
+void set_reuseaddr(socket_t fd);
 
 #define MAX_ERROR_TXT 128
 
