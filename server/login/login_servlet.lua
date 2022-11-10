@@ -13,7 +13,6 @@ local tremove               = table.remove
 
 local monitor               = quanta.get("monitor")
 local login_dao             = quanta.get("login_dao")
-local login_mgr             = quanta.get("login_mgr")
 local event_mgr             = quanta.get("event_mgr")
 local thread_mgr            = quanta.get("thread_mgr")
 local client_mgr            = quanta.get("client_mgr")
@@ -64,11 +63,15 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     if not _lock then
         return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
-    if platform > PLATFORM_PASSWORD then
-        local ok, code = event_mgr:notify_listener("on_platform_login", open_id, token, platform)
-        if qfailed(code, ok) then
-            login_mgr:send_errcode(session, cmd_id, ok and code or FRAME_FAILED, session_id)
+    if platform >= PLATFORM_PASSWORD then
+        local ok = event_mgr:notify_listener("on_platform_login", open_id, token, platform)
+        if not ok or qfailed(ok[2]) then
+            log_err("[LoginServlet][on_account_login_req] verify failed! open_id: %s token:%s ok:%s", open_id, token, ok)
+            client_mgr:callback_errcode(session, cmd_id, ok[2], session_id)
+            return false
         end
+        -- 三方信息
+        open_id = ok[3].data.sdk_open_id
     end
     --加载账号信息
     local ok, udata = login_dao:load_account(open_id)
@@ -83,6 +86,17 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
      if platform == PLATFORM_PASSWORD and udata.token ~= token then
         log_err("[LoginServlet][on_password_login] verify failed! open_id: %s", open_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
+    end
+
+    --准入限制
+    if platform >= PLATFORM_PASSWORD  then
+        local limit_ok = event_mgr:notify_listener("on_platform_limit",  platform, open_id, token, body.channel_id,
+                                                    body.channel,body.region,body.language,body.pac_code)
+        if not limit_ok or qfailed(limit_ok[2]) then
+            log_err("[LoginServlet][on_account_login_req] limit failed! open_id: %s token:%s limit_ok:%s", open_id, token, limit_ok)
+            client_mgr:callback_errcode(session, cmd_id, limit_ok[2], session_id)
+            return false
+        end
     end
     --其他验证
     self:verify_account(session, udata, open_id, session_id, cmd_id)
