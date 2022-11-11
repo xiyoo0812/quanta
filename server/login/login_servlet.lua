@@ -10,6 +10,7 @@ local guid_encode           = lcodec.guid_encode
 local trandom               = qtable.random
 local mrandom               = qmath.random
 local tremove               = table.remove
+local tunpack               = table.unpack
 
 local monitor               = quanta.get("monitor")
 local login_dao             = quanta.get("login_dao")
@@ -64,14 +65,16 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
     if platform >= PLATFORM_PASSWORD then
-        local ok = event_mgr:notify_listener("on_platform_login", open_id, token, platform)
-        if not ok or qfailed(ok[2]) then
-            log_err("[LoginServlet][on_account_login_req] verify failed! open_id: %s token:%s ok:%s", open_id, token, ok)
-            client_mgr:callback_errcode(session, cmd_id, ok[2], session_id)
+        local result = event_mgr:notify_listener("on_platform_login", open_id, token, platform)
+        local ok, code, sdk_open_id = tunpack(result)
+        if not ok or qfailed(code) then
+            local rcode = ok and code or FRAME_FAILED
+            log_err("[LoginServlet][on_account_login_req] verify failed! open_id: %s token:%s code:%s", open_id, token, rcode)
+            client_mgr:callback_errcode(session, cmd_id, rcode, session_id)
             return false
         end
         -- 三方信息
-        open_id = ok[3].data.sdk_open_id
+        open_id = sdk_open_id
     end
     --加载账号信息
     local ok, udata = login_dao:load_account(open_id)
@@ -90,11 +93,13 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
 
     --准入限制
     if platform >= PLATFORM_PASSWORD  then
-        local limit_ok = event_mgr:notify_listener("on_platform_limit",  platform, open_id, token, body.channel_id,
-                                                    body.channel,body.region,body.language,body.pac_code)
-        if not limit_ok or qfailed(limit_ok[2]) then
-            log_err("[LoginServlet][on_account_login_req] limit failed! open_id: %s token:%s limit_ok:%s", open_id, token, limit_ok)
-            client_mgr:callback_errcode(session, cmd_id, limit_ok[2], session_id)
+        local channel_id, channel, region, language, pac_code = body.channel_id, body.channel, body.region, body.language, body.pac_code
+        local result = event_mgr:notify_listener("on_platform_limit",  platform, open_id, token, channel_id, channel, region, language, pac_code)
+        local lok, code = tunpack(result)
+        if qfailed(code, lok) then
+            local rcode = lok and code or FRAME_FAILED
+            log_err("[LoginServlet][on_account_login_req] limit failed! open_id: %s token:%s rcode:%s", open_id, token, rcode)
+            client_mgr:callback_errcode(session, cmd_id, rcode, session_id)
             return false
         end
     end
