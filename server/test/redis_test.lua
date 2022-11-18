@@ -6,7 +6,7 @@ local timer_mgr = quanta.get("timer_mgr")
 local RedisMgr  = import("store/redis_mgr.lua")
 local redis_mgr = RedisMgr()
 
-local MAIN_DBID = environ.number("QUANTA_REDIS_MAIN_ID")
+local MAIN_DBID = environ.number("QUANTA_DB_MAIN_ID")
 
 timer_mgr:once(3000, function()
     local code, res = redis_mgr:execute(MAIN_DBID, "get", "aaa")

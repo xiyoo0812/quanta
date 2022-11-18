@@ -29,11 +29,11 @@ function quanta.success(code, ok)
     return ok and code == SUCCESS
 end
 
-function quanta.failed(code, ok)
+function quanta.failed(code, ok, def_code)
     if ok == nil then
         return code ~= SUCCESS
     end
-    return not ok or code ~= SUCCESS
+    return not ok or code ~= SUCCESS, ok and code or def_code
 end
 
 --获取utc时间戳

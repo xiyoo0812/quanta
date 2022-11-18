@@ -7,7 +7,7 @@ local router_mgr    = quanta.get("router_mgr")
 
 local PARAM_ERROR   = quanta.enum("KernCode", "PARAM_ERROR")
 
-local MAIN_DBID     = environ.number("QUANTA_MYSQL_MAIN_ID")
+local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
 
 local MysqlAgent = singleton()
 function MysqlAgent:__init()

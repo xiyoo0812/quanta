@@ -3,13 +3,10 @@ local lcodec        = require("lcodec")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local signalquit    = signal.quit
-local sformat       = string.format
-local hash_code     = lcodec.hash_code
+local env_addr      = environ.addr
 local lencode       = lcodec.encode_slice
 
 local socket_mgr    = quanta.get("socket_mgr")
-local config_mgr    = quanta.get("config_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local RpcServer     = import("network/rpc_server.lua")
@@ -24,27 +21,10 @@ prop:reader("rpc_server", nil)
 prop:reader("service_masters", {})
 
 function RouterServer:__init()
-    local host = quanta.host
-    local router = config_mgr:init_table("router", "host")
-    local config = router:find_one(host)
-    if not config then
-        log_err("[RouterServer][setup] config is nil, host:%s", host)
-        signalquit()
-        return
-    end
-    local index = quanta.index
-    if index > config.count then
-        log_err("[RouterServer][setup] index(%s) outof range, host:%s", index, host)
-        signalquit()
-        return
-    end
-    --启动server
-    self.rpc_server = RpcServer(self, "0.0.0.0", config.port, true)
-
-    --因为按host简化配置，可以重复index, 需要重定义routerid
-    quanta.name = sformat("router_%s-%s", host, index)
-    quanta.id = service.make_sid(hash_code(host, 65536), index)
-    service.make_node(self.rpc_server:get_port())
+    local ip, port = env_addr("QUANTA_ROUTER_ADDR")
+    local rserver = RpcServer(self, ip, port, true)
+    service.make_node(rserver:get_port())
+    self.rpc_server = rserver
 end
 
 --其他服务器节点关闭

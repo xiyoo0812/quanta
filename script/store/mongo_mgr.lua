@@ -2,16 +2,15 @@
 local log_debug     = logger.debug
 
 local event_mgr     = quanta.get("event_mgr")
-local config_mgr    = quanta.get("config_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local MONGO_FAILED  = quanta.enum("KernCode", "MONGO_FAILED")
 
+local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
+
 local MongoMgr = singleton()
 local prop = property(MongoMgr)
 prop:reader("mongo_dbs", {})    -- mongo_dbs
-prop:reader("default_db", nil)  -- default_db
-prop:reader("default_id", nil)  -- default_id
 
 function MongoMgr:__init()
     self:setup()
@@ -31,26 +30,18 @@ end
 --初始化
 function MongoMgr:setup()
     local MongoDB = import("driver/mongo.lua")
-    local database = config_mgr:init_table("database", "db", "driver")
-    for _, conf in database:iterator() do
-        if conf.driver == "mongo" then
+    local drivers = environ.driver("QUANTA_DB_URLS")
+    for i, conf in ipairs(drivers) do
+        if conf.driver == "mongodb" then
             local mongo_db = MongoDB(conf)
-            self.mongo_dbs[conf.id] = mongo_db
-            if conf.default then
-                self.default_id = conf.id
-                self.default_db = mongo_db
-            end
+            self.mongo_dbs[i] = mongo_db
         end
     end
-    config_mgr:close_table("database")
 end
 
 --查找mongo db
 function MongoMgr:get_db(db_id)
-    if not db_id or db_id == self.default_id then
-        return self.default_db
-    end
-    return self.mongo_dbs[db_id]
+    return self.mongo_dbs[db_id or MAIN_DBID]
 end
 
 function MongoMgr:find(db_id, coll_name, selector, fields, sortor, limit)

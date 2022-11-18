@@ -96,3 +96,7 @@ function qstring.protoaddr(value)
         return ip, tonumber(port), proto
     end
 end
+
+function qstring.usplit(str, token)
+    return tunpack(ssplit(str, token))
+end

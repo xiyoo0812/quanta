@@ -131,6 +131,15 @@ local function tarray(src)
     return dst
 end
 
+-- map中的KEY抽出来变成array (会丢失VALUE信息)
+local function tkarray(src)
+    local dst = {}
+    for key in pairs(src or {}) do
+        dst[#dst + 1] = key
+    end
+    return dst
+end
+
 -- map转为{key,value}类型的array
 local function tkvarray(src)
     local dst = {}
@@ -169,6 +178,7 @@ qtable.map           = tmap
 qtable.push          = tpush
 qtable.diff          = tdiff
 qtable.array         = tarray
+qtable.tkarray       = tkarray
 qtable.kvarray       = tkvarray
 qtable.mapsort       = tmapsort
 

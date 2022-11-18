@@ -6,7 +6,7 @@ local timer_mgr = quanta.get("timer_mgr")
 local ClickMgr  = import("store/clickhouse_mgr.lua")
 local ck_mgr    = ClickMgr()
 
-local MAIN_DBID = environ.number("QUANTA_CLICK_MAIN_ID")
+local MAIN_DBID = environ.number("QUANTA_DB_MAIN_ID")
 
 timer_mgr:once(2000, function()
     local code, res_oe = ck_mgr:execute(MAIN_DBID, "drop table if exists test_ck")

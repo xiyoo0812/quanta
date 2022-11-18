@@ -3,16 +3,15 @@ local tpack         = table.pack
 local log_err       = logger.err
 
 local event_mgr     = quanta.get("event_mgr")
-local config_mgr    = quanta.get("config_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local REDIS_FAILED  = quanta.enum("KernCode", "REDIS_FAILED")
 
+local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
+
 local RedisMgr = singleton()
 local prop = property(RedisMgr)
 prop:reader("redis_dbs", {})    -- redis_dbs
-prop:reader("default_db", nil)  -- default_db
-prop:reader("default_id", nil)  -- default_id
 
 function RedisMgr:__init()
     self:setup()
@@ -23,26 +22,18 @@ end
 --初始化
 function RedisMgr:setup()
     local RedisDB = import("driver/redis.lua")
-    local database = config_mgr:init_table("database", "db", "driver")
-    for _, conf in database:iterator() do
+    local drivers = environ.driver("QUANTA_DB_URLS")
+    for i, conf in ipairs(drivers) do
         if conf.driver == "redis" then
             local redis_db = RedisDB(conf)
-            self.redis_dbs[conf.id] = redis_db
-            if conf.default then
-                self.default_id = conf.id
-                self.default_db = redis_db
-            end
+            self.redis_dbs[i] = redis_db
         end
     end
-    config_mgr:close_table("database")
 end
 
 --查找redis db
 function RedisMgr:get_db(db_id)
-    if not db_id or db_id == self.default_id then
-        return self.default_db
-    end
-    return self.redis_dbs[db_id]
+    return self.redis_dbs[db_id or MAIN_DBID]
 end
 
 function RedisMgr:execute(db_id, cmd, ...)

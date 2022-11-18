@@ -6,7 +6,7 @@ local timer_mgr = quanta.get("timer_mgr")
 local MysqlMgr  = import("store/mysql_mgr.lua")
 local mysql_mgr = MysqlMgr()
 
-local MAIN_DBID = environ.number("QUANTA_MYSQL_MAIN_ID")
+local MAIN_DBID = environ.number("QUANTA_DB_MAIN_ID")
 
 timer_mgr:once(3000, function()
     local code, res_oe = mysql_mgr:execute(MAIN_DBID, "drop table test_mysql")

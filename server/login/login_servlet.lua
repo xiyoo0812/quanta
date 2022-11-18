@@ -65,12 +65,23 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
     if platform >= PLATFORM_PASSWORD then
+        --登录验证
         local result = event_mgr:notify_listener("on_platform_login", open_id, token, platform)
         local ok, code, sdk_open_id = tunpack(result)
-        if not ok or qfailed(code) then
-            local rcode = ok and code or FRAME_FAILED
-            log_err("[LoginServlet][on_account_login_req] verify failed! open_id: %s token:%s code:%s", open_id, token, rcode)
-            client_mgr:callback_errcode(session, cmd_id, rcode, session_id)
+        local login_failed, login_code = qfailed(code, ok, FRAME_FAILED)
+        if login_failed then
+            log_err("[LoginServlet][on_account_login_req] verify failed! open_id: %s token:%s code:%s", open_id, token, login_code)
+            client_mgr:callback_errcode(session, cmd_id, login_code, session_id)
+            return false
+        end
+        --准入限制
+        local channel_id, channel, region, language, pac_code = body.channel_id, body.channel, body.region, body.language, body.pac_code
+        local lresult = event_mgr:notify_listener("on_platform_limit",  platform, open_id, token, channel_id, channel, region, language, pac_code)
+        local lok, lcode = tunpack(lresult)
+        local limit_failed, limit_code = qfailed(lcode, lok, FRAME_FAILED)
+        if limit_failed then
+            log_err("[LoginServlet][on_account_login_req] limit failed! open_id: %s token:%s rcode:%s", open_id, token, limit_code)
+            client_mgr:callback_errcode(session, cmd_id, limit_code, session_id)
             return false
         end
         -- 三方信息
@@ -85,23 +96,10 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     if not udata then
         return self:create_account(session, open_id, token, session_id, cmd_id)
      end
-     --密码验证
-     if platform == PLATFORM_PASSWORD and udata.token ~= token then
+    --密码验证
+    if platform == PLATFORM_PASSWORD and udata.token ~= token then
         log_err("[LoginServlet][on_password_login] verify failed! open_id: %s", open_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
-    end
-
-    --准入限制
-    if platform >= PLATFORM_PASSWORD  then
-        local channel_id, channel, region, language, pac_code = body.channel_id, body.channel, body.region, body.language, body.pac_code
-        local result = event_mgr:notify_listener("on_platform_limit",  platform, open_id, token, channel_id, channel, region, language, pac_code)
-        local lok, code = tunpack(result)
-        if qfailed(code, lok) then
-            local rcode = lok and code or FRAME_FAILED
-            log_err("[LoginServlet][on_account_login_req] limit failed! open_id: %s token:%s rcode:%s", open_id, token, rcode)
-            client_mgr:callback_errcode(session, cmd_id, rcode, session_id)
-            return false
-        end
     end
     --其他验证
     self:verify_account(session, udata, open_id, session_id, cmd_id)

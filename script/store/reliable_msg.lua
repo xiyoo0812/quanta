@@ -10,7 +10,7 @@ local qsuccess      = quanta.success
 
 local mongo_agent   = quanta.get("mongo_agent")
 
-local MSG_DBID      = environ.number("QUANTA_MONGO_MSG_ID")
+local MSG_DBID      = environ.number("QUANTA_DB_MSG_ID")
 
 local ReliabledMsg = class()
 local prop = property(ReliabledMsg)

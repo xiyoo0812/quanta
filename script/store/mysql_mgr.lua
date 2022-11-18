@@ -2,16 +2,15 @@
 local log_err       = logger.err
 
 local event_mgr     = quanta.get("event_mgr")
-local config_mgr    = quanta.get("config_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local MYSQL_FAILED  = quanta.enum("KernCode", "MYSQL_FAILED")
 
+local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
+
 local MysqlMgr = singleton()
 local prop = property(MysqlMgr)
 prop:reader("mysql_dbs", {})    -- mysql_dbs
-prop:reader("default_db", nil)  -- default_db
-prop:reader("default_id", nil)  -- default_id
 
 function MysqlMgr:__init()
     self:setup()
@@ -22,26 +21,18 @@ end
 --初始化
 function MysqlMgr:setup()
     local MysqlDB = import("driver/mysql.lua")
-    local database = config_mgr:init_table("database", "db", "driver")
-    for _, conf in database:iterator() do
+    local drivers = environ.driver("QUANTA_DB_URLS")
+    for i, conf in ipairs(drivers) do
         if conf.driver == "mysql" then
             local mysql_db = MysqlDB(conf)
             self.mysql_dbs[conf.id] = mysql_db
-            if conf.default then
-                self.default_id = conf.id
-                self.default_db = mysql_db
-            end
         end
     end
-    config_mgr:close_table("database")
 end
 
 --查找mysql db
 function MysqlMgr:get_db(db_id)
-    if not db_id or db_id == self.default_id then
-        return self.default_db
-    end
-    return self.mysql_dbs[db_id]
+    return self.mysql_dbs[db_id or MAIN_DBID]
 end
 
 function MysqlMgr:execute(db_id, sql)

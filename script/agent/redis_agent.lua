@@ -4,7 +4,7 @@ local mrandom       = qmath.random
 
 local router_mgr    = quanta.get("router_mgr")
 
-local MAIN_DBID     = environ.number("QUANTA_REDIS_MAIN_ID")
+local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
 
 local RedisAgent = singleton()
 function RedisAgent:__init()

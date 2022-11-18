@@ -3,7 +3,7 @@
 --核心基础错误(1-1000)
 local KernCode = enum("KernCode", 0)
 KernCode.SUCCESS            = 0     --成功
-KernCode.NETWORK_ERROR      = 1     --网络错误
+KernCode.FAILED             = 1     --系统错误，请重试
 KernCode.PARAM_ERROR        = 2     --业务参数错误
 KernCode.RPC_FAILED         = 3     --RPC调用失败
 KernCode.OPERATOR_SELF      = 4     --不能对自己操作

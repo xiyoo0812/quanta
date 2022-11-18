@@ -6,7 +6,7 @@ local timer_mgr     = quanta.get("timer_mgr")
 local MongoMgr      = import("store/mongo_mgr.lua")
 local mongo_mgr     = MongoMgr()
 
-local MAIN_DBID     = environ.number("QUANTA_MONGO_MAIN_ID")
+local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
 
 timer_mgr:once(2000, function()
     local code, count = mongo_mgr:count(MAIN_DBID, "test_mongo_1", {pid = 123456})

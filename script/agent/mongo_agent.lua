@@ -4,7 +4,7 @@ local mrandom       = qmath.random
 
 local router_mgr    = quanta.get("router_mgr")
 
-local MAIN_DBID     = environ.number("QUANTA_MONGO_MAIN_ID")
+local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
 
 local MongoAgent = singleton()
 function MongoAgent:__init()
