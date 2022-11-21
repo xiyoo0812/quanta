@@ -10,6 +10,7 @@
     <ClInclude Include="lualog\logger.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="lualog\logger.cpp" />
     <ClCompile Include="lualog\lualog.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

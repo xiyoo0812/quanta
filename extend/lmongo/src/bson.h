@@ -48,6 +48,7 @@ namespace lmongo {
         bson_value(bson_type t, string s, uint8_t st = 0) : type(t), str(s), stype(st) {}
         bson_value(bson_type t, int64_t i, uint8_t st = 0) : type(t), val(i), stype(st) {}
         bson_value(bson_type t, string s, string o, uint8_t st = 0) : type(t), str(s), opt(s), stype(st) {}
+        bson_value(bson_type t, const char* p, size_t l, uint8_t st = 0) : type(t), str(p, l), stype(st) {}
     };
 
     class bson {
@@ -60,7 +61,16 @@ namespace lmongo {
             return m_buffer.get_slice();
         }
 
-         int encode(lua_State* L) {
+        bson_value* encode_sparse(lua_State* L) {
+            size_t data_len = 0;
+            m_sparse_mode = true;
+            slice* buf = encode_slice(L);
+            m_sparse_mode = false;
+            const char* data = (const char*)buf->data(&data_len);
+            return new bson_value(bson_type::BSON_DOCUMENT, data, data_len);
+        }
+
+        int encode(lua_State* L) {
             size_t data_len = 0;
             slice* buf = encode_slice(L);
             const char* data = (const char*)buf->data(&data_len);
@@ -168,10 +178,10 @@ namespace lmongo {
 
         void pack_array(lua_State *L, int depth, size_t len) {
             // length占位
+            char numkey[32];
             size_t offset = m_buffer.size();
             m_buffer.write<uint32_t>(0);
             for (size_t i = 1; i <= len; i++) {
-                char numkey[32];
                 lua_geti(L, -1, i);
                 size_t len = bson_index(numkey, i - 1);
                 pack_one(L, numkey, len, depth);
@@ -182,26 +192,37 @@ namespace lmongo {
             m_buffer.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
-        bson_type check_doctype(lua_State *L) {
-            lua_pushnil(L);
-            if (lua_next(L, -2) == 0) {
+        bson_type check_doctype(lua_State *L, size_t raw_len) {
+            if (m_sparse_mode) {
                 return bson_type::BSON_DOCUMENT;
             }
-            auto t = lua_isinteger(L, -2) ? bson_type::BSON_ARRAY : bson_type::BSON_DOCUMENT;;
-            lua_pop(L, 2);
-            return t;
+            lua_guard g(L);
+            lua_pushnil(L);
+            size_t cur_len = 0;
+            while(lua_next(L, -2) != 0) {
+                if (!lua_isinteger(L, -2)) {
+                    return bson_type::BSON_DOCUMENT;
+                }
+                cur_len++;
+                lua_pop(L, 1);
+            }
+            if (cur_len > 0 && cur_len == raw_len) {
+                return bson_type::BSON_ARRAY;
+            }
+            return bson_type::BSON_DOCUMENT;
         }
 
         void pack_table(lua_State *L, const char* key, size_t len, int depth) {
             if (depth > max_bson_depth) {
                 luaL_error(L, "Too depth while encoding bson");
             }
-            bson_type type = check_doctype(L);
+            size_t raw_len = lua_rawlen(L, -1);
+            bson_type type = check_doctype(L, raw_len);
             write_key(type, key, len);
-            if (type == bson_type::BSON_ARRAY) {
-                pack_array(L, depth, lua_rawlen(L, -1));
-            } else {
+            if (type == bson_type::BSON_DOCUMENT) {
                 pack_dict(L, depth);
+            } else {
+                pack_array(L, depth, raw_len);
             }
         }
 
@@ -222,8 +243,10 @@ namespace lmongo {
             case bson_type::BSON_TIMESTAMP:
                 m_buffer.write<int64_t>(value->val);
                 break;
-            case bson_type::BSON_OBJECTID:
+            case bson_type::BSON_ARRAY:
             case bson_type::BSON_JSCODE:
+            case bson_type::BSON_DOCUMENT:
+            case bson_type::BSON_OBJECTID:
                 m_buffer.write(value->str.c_str(), value->str.size());
                 break;
             case bson_type::BSON_REGEX:
@@ -269,15 +292,19 @@ namespace lmongo {
         }
 
         void pack_dict_data(lua_State *L, int depth, int kt) {
-            if (kt == LUA_TNUMBER) {
-                luaL_error(L, "Bson dictionary's key can't be number");
+            if (kt == LUA_TSTRING) {
+                size_t sz;
+                const char* buf = lua_tolstring(L, -2, &sz);
+                pack_one(L, buf, sz, depth);
+                return;
             }
-            if (kt != LUA_TSTRING) {
-                luaL_error(L, "Invalid key type : %s", lua_typename(L, kt));
+            if (m_sparse_mode && lua_isinteger(L, -2)){
+                char numkey[32];
+                size_t len = bson_index(numkey, lua_tointeger(L, -2));
+                pack_one(L, numkey, len, depth);
+                return;
             }
-            size_t sz;
-            const char* buf = lua_tolstring(L, -2, &sz);
-            pack_one(L, buf, sz, depth);
+            luaL_error(L, "Invalid key type : %s", lua_typename(L, kt));
         }
 
         void pack_dict(lua_State *L, int depth) {
@@ -342,6 +369,18 @@ namespace lmongo {
             return "";
         }
 
+        void unpack_key(lua_State* L, slice* buf, bool isarray) {
+            size_t klen = 0;
+            const char* key = read_cstring(L, buf, klen);
+            if (isarray) {
+                lua_pushinteger(L, std::stoll(key, nullptr, 10) + 1);
+                return;
+            }
+            if (lua_stringtonumber(L, key) == 0) {
+                lua_pushlstring(L, key, klen);
+            }
+        }
+
         void unpack_dict(lua_State* L, slice* buf, bool isarray) {
             uint32_t sz = read_val<uint32_t>(L, buf);
             if (buf->size() < sz - 4) {
@@ -352,13 +391,7 @@ namespace lmongo {
                 size_t klen = 0;
                 bson_type bt = (bson_type)read_val<uint8_t>(L, buf);
                 if (bt == bson_type::BSON_EOO) break;
-                const char* key = read_cstring(L, buf, klen);
-                if (isarray) {
-                    lua_pushinteger(L, strtol(key, nullptr, 10) + 1);
-                }
-                else {
-                    lua_pushlstring(L, key, klen);
-                }
+                unpack_key(L, buf, isarray);
                 switch (bt) {
                 case bson_type::BSON_REAL:
                     lua_pushnumber(L, read_val<double>(L, buf));
@@ -413,6 +446,7 @@ namespace lmongo {
             }
         }
     private:
+        bool m_sparse_mode = false;
         var_buffer m_buffer;
     };
 }

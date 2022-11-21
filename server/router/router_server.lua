@@ -3,7 +3,6 @@ local lcodec        = require("lcodec")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local env_addr      = environ.addr
 local lencode       = lcodec.encode_slice
 
 local socket_mgr    = quanta.get("socket_mgr")
@@ -21,9 +20,10 @@ prop:reader("rpc_server", nil)
 prop:reader("service_masters", {})
 
 function RouterServer:__init()
-    local ip, port = env_addr("QUANTA_ROUTER_ADDR")
+    local inner = environ.get("QUANTA_INNER_IP")
+    local ip, port = environ.addr("QUANTA_ROUTER_ADDR")
     local rserver = RpcServer(self, ip, port, true)
-    service.make_node(rserver:get_port())
+    service.make_node(rserver:get_port(), inner)
     self.rpc_server = rserver
 end
 

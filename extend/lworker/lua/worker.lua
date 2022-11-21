@@ -89,8 +89,3 @@ quanta.on_worker = function(slice)
         worker_rpc(tunpack(rpc_res, 2))
     end)
 end
-
---唤醒主线程
-function quanta.wakeup_main(...)
-    quanta.wakeup(lencode(...))
-end

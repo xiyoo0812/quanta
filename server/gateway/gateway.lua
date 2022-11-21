@@ -40,7 +40,7 @@ function Gateway:__init()
     protobuf_mgr:register(self, "NID_LOGIN_ROLE_RELOAD_REQ", "on_role_reload_req")
     -- 重新设置
     local nport = client_mgr:get_port()
-    local domain = environ.get("QUANTA_DOMAIN")
+    local domain = environ.get("QUANTA_DOMAIN_ADDR")
     service.make_node(nport, domain)
 end
 

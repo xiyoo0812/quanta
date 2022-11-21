@@ -43,7 +43,6 @@ namespace lworker {
     class worker;
     class ischeduler {
     public:
-        virtual void wakeup(slice* buf) = 0;
         virtual bool callback(slice* buf) = 0;
         virtual void destory(std::string& name, std::shared_ptr<worker> workor) = 0;
     };
@@ -93,8 +92,8 @@ namespace lworker {
             }
         }
 
-        void startup(){            
-            std::thread(&worker::run, this).swap(m_thread);            
+        void startup(){
+            std::thread(&worker::run, this).swap(m_thread);
         }
 
         void run(){
@@ -103,7 +102,6 @@ namespace lworker {
             quanta.set_function("stop", [&]() { stop(); });
             quanta.set_function("update", [&]() { update(); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
-            quanta.set_function("wakeup", [&](slice* buf) { m_schedulor->wakeup(buf); });
             quanta.set_function("callback", [&](slice* buf) { return m_schedulor->callback(buf); });
             m_lua->run_script(fmt::format("require '{}'", m_sandbox), [&](std::string err) {
                 printf("worker load %s failed, because: %s", m_sandbox.c_str(), err.c_str());

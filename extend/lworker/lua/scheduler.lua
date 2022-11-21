@@ -24,10 +24,6 @@ function Scheduler:on_frame()
     lworker.update()
 end
 
-function Scheduler:suspend(timeout)
-    return lworker.suspend(timeout)
-end
-
 function Scheduler:setup(service)
     lworker.setup(service, environ.get("QUANTA_SANDBOX"))
 end

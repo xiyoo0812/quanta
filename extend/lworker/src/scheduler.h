@@ -43,22 +43,6 @@ namespace lworker {
             }
             workor->startup();
         }
-        
-        slice* suspend(size_t timeout) {
-            //enum class cv_status { no_timeout, timeout };
-            std::unique_lock<std::mutex> lock(m_cvmutex);
-            if (m_condv.wait_for(lock, milliseconds(timeout)) == std::cv_status::no_timeout) {
-                return m_slice->get_slice();
-            }
-            return nullptr;
-        }
-
-        void wakeup(slice* buf) {
-            std::unique_lock<std::mutex> lock(m_cvmutex);
-            m_slice->reset();
-            m_slice->push_data(buf->head(), buf->size());
-            m_condv.notify_all();
-        }
 
         bool call(std::string& name, slice* buf, size_t hash) {
             auto workor = find_worker(name, hash);
@@ -85,7 +69,7 @@ namespace lworker {
                 }
                 std::unique_lock<spin_mutex> lock(m_mutex);
                 m_read_buf.swap(m_write_buf);
-            }            
+            }
             size_t plen = 0;
             const char* service = m_service.c_str();
             slice* slice = read_slice(m_read_buf, &plen);
@@ -111,8 +95,6 @@ namespace lworker {
 
     private:
         spin_mutex m_mutex;
-        std::mutex m_cvmutex;
-        std::condition_variable m_condv;
         std::string m_service, m_sandbox;
         std::shared_ptr<kit_state> m_lua = nullptr;
         std::map<std::string, worker_list> m_worker_map;

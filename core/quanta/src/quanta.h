@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <map>
 
-#include "lua_kit.h"
+#include "logger.h"
 
 class quanta_app final
 {

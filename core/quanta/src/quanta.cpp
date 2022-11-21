@@ -4,9 +4,6 @@
 #include <functional>
 #include "quanta.h"
 
-#include "logger.h"
-#include <fmt/core.h>
-
 #if WIN32
 #include <conio.h>
 #include <windows.h>
@@ -18,8 +15,6 @@ int setenv(const char* k, const char* v, int o) {
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
-
-using namespace logger;
 
 quanta_app* g_app = nullptr;
 static void on_signal(int signo) {
@@ -97,7 +92,7 @@ int quanta_app::set_env(lua_State* L) {
 void quanta_app::setup(int argc, const char* argv[]) {
     srand((unsigned)time(nullptr));
     //初始化日志
-    log_service::instance()->terminal();
+    logger::get_logger();
     //加载配置
     load(argc, argv);
     //运行
@@ -105,7 +100,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
 }
 
 void quanta_app::exception_handler(std::string msg, std::string& err) {
-    PRINT_FATAL << msg << err;
+    LOG_FATAL(fmt::format(msg, err));
 #if WIN32
     _getch();
 #endif
@@ -132,7 +127,7 @@ void quanta_app::load(int argc, const char* argv[]) {
             lua.set("platform", get_platform());
             lua.set_function("set_env", [&](lua_State* L) { return set_env(L); });
             lua.run_file(argv[1], [&](std::string err) {
-                exception_handler("load lua config err: ", err);
+                exception_handler("load lua config err: {}", err);
             });
             lua.close();
         }
@@ -156,22 +151,23 @@ void quanta_app::run() {
     quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
 
     lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string err) {
-        exception_handler("load sandbox err: ", err);
+        exception_handler("load sandbox err: {}", err);
     });
     lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string err) {
-        exception_handler("load entry err: ", err);
+        exception_handler("load entry err: {}", err);
     });
     const char* env_include = get_env("QUANTA_INCLUDE");
     if (env_include) {
         lua.run_script(fmt::format("require '{}'", env_include), [&](std::string err) {
-            exception_handler("load includes err: ", err);
+            exception_handler("load includes err: {}", err);
         });
     }
     while (quanta.get_function("run")) {
         quanta.call([&](std::string err) {
-            PRINT_FATAL << "quanta run err: " << err;
+            LOG_FATAL(fmt::format("quanta run err: {} ", err));
         });
         check_input(lua);
     }
+    logger::get_logger()->stop();
     lua.close();
 }

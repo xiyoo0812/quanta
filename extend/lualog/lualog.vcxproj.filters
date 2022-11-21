@@ -6,6 +6,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="lualog\logger.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="lualog\lualog.cpp">
       <Filter>src</Filter>
     </ClCompile>

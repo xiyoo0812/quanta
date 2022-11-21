@@ -25,6 +25,9 @@ namespace lmongo {
     static int encode_order(lua_State* L) {
         return thread_bson.encode_order(L);
     }    
+    static bson_value* encode_sparse(lua_State* L) {
+        return thread_bson.encode_sparse(L);
+    }
     static slice* encode_order_slice(lua_State* L) {
         return thread_bson.encode_order_slice(L);
     }
@@ -56,7 +59,7 @@ namespace lmongo {
     static void init_static_mongo() {
         for (int i = 0; i < max_bson_index; ++i) {
             char tmp[8];
-            bson_numstr_len[i] = sprintf(tmp,"%d",i);
+            bson_numstr_len[i] = sprintf(tmp, "%d", i);
             memcpy(bson_numstrs[i], tmp, bson_numstr_len[i]);
         }
     }
@@ -73,6 +76,7 @@ namespace lmongo {
         llmongo.set_function("encode_slice", encode_slice);
         llmongo.set_function("decode_slice", decode_slice);
         llmongo.set_function("encode_order", encode_order);
+        llmongo.set_function("encode_sparse", encode_sparse);
         llmongo.set_function("encode_order_slice", encode_order_slice);
         llmongo.set_function("timestamp", timestamp);
         llmongo.set_function("int32", int32);

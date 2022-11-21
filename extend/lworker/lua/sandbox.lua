@@ -12,7 +12,7 @@ local file_time = lstdfs.last_write_time
 
 local logtag    = quanta.logtag
 local log_output= function(lvl, ctx)
-    logger[lvl](ctx, logtag)
+    logger[lvl](logtag .. ctx)
 end
 
 local load_files    = {}

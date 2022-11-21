@@ -4,6 +4,7 @@ local ltimer    = require("ltimer")
 local lnow_ms   = ltimer.now_ms
 local log_info  = logger.info
 local log_debug = logfeature.debug("lualog")
+local log_dump  = logfeature.dump("bilogs", "./bilogs/", true)
 
 local function logger_test(cycle)
     local t1 = lnow_ms()
@@ -18,6 +19,12 @@ local params = { 1, 2, }
 for _, cycle in ipairs(params) do
     local time = logger_test(cycle)
     log_debug(string.format("logger_test: cycle %d use time %s ms!", cycle, time))
+end
+
+local params2 = { 1, 2, }
+for _, cycle in ipairs(params2) do
+    local time = logger_test(cycle)
+    log_dump(string.format("logger_test: cycle %d use time %s ms!", cycle, time))
 end
 
 log_info("logger test end")

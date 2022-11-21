@@ -1,6 +1,5 @@
 --logger.lua
 --logger功能支持
-local lstdfs        = require("lstdfs")
 local lcodec        = require("lcodec")
 local llogger       = require("lualog")
 
@@ -10,7 +9,6 @@ local tpack         = table.pack
 local tunpack       = table.unpack
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
-local fsstem        = lstdfs.stem
 local serialize     = lcodec.serialize
 local lwarn         = llogger.warn
 local lfilter       = llogger.filter
@@ -18,11 +16,12 @@ local lis_filter    = llogger.is_filter
 
 local LOG_LEVEL     = llogger.LOG_LEVEL
 
-logger              = {}
+local dispatching   = false
 local logtag        = quanta.logtag
 local monitors      = _ENV.monitors or {}
-local logfeature    = _ENV.logfeature or {}
-local dispatching   = false
+
+logger = {}
+logfeature = {}
 
 function logger.init()
     --配置日志信息
@@ -45,16 +44,6 @@ function logger.daemon(daemon)
     llogger.daemon(daemon)
 end
 
-function logger.feature(name)
-    if not logfeature.features then
-        logfeature.features = {}
-    end
-    if not logfeature.features[name] then
-        logfeature.features[name] = true
-        llogger.add_dest(name)
-    end
-end
-
 function logger.add_monitor(monitor)
     monitors[monitor] = true
 end
@@ -72,7 +61,7 @@ end
 
 local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
     if lis_filter(lvl) then
-        return false
+        return
     end
     local content
     local lvl_func, extend, swline = tunpack(log_conf)
@@ -87,6 +76,7 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
     else
         content = sformat(fmt, ...)
     end
+    lvl_func(content, logtag, feature)
     if not dispatching then
         --防止重入
         dispatching = true
@@ -95,7 +85,6 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
         end
         dispatching = false
     end
-    return lvl_func(logtag .. content, feature)
 end
 
 local LOG_LEVEL_OPTIONS = {
@@ -121,17 +110,14 @@ end
 
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
-    logfeature[lvl_name] = function(feature)
-        if not feature then
-            local info = dgetinfo(2, "S")
-            feature = fsstem(info.short_src)
-        end
-        logger.feature(feature)
+    logfeature[lvl_name] = function(feature, path, prefix)
+        llogger.add_dest(feature, path)
+        llogger.ignore_prefix(feature, prefix)
         return function(fmt, ...)
             local ok, res = pcall(logger_output, feature, lvl, lvl_name, fmt, log_conf, ...)
             if not ok then
                 local info = dgetinfo(2, "S")
-                lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
+                lwarn(sformat("[logfeature][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
                 return false
             end
             return res

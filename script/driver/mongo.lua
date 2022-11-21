@@ -23,6 +23,7 @@ local lxor_byte     = lcrypt.xor_byte
 local mreply        = lmongo.reply_slice
 local mopmsg        = lmongo.opmsg_slice
 local mdecode       = lmongo.decode_slice
+local mencode_s     = lmongo.encode_sparse
 local mencode_o     = lmongo.encode_order_slice
 
 local eproto_type   = lbus.eproto_type
@@ -262,11 +263,11 @@ function MongoDB:drop_indexes(co_name, index_name)
 end
 
 function MongoDB:insert(co_name, doc)
-    return self:runCommand("insert", co_name, "documents", { doc })
+    return self:runCommand("insert", co_name, "documents", { mencode_s(doc) })
 end
 
 function MongoDB:update(co_name, update, selector, upsert, multi)
-    local cmd_data = { q = selector, u = update, upsert = upsert, multi = multi }
+    local cmd_data = { q = selector, u = mencode_s(update), upsert = upsert, multi = multi }
     return self:runCommand("update", co_name, "updates", { cmd_data })
 end
 

@@ -1,9 +1,7 @@
 --attribute_set.lua
-local tostring      = tostring
 local qenum         = quanta.enum
 local log_warn      = logger.warn
 local tinsert       = table.insert
-local mtointeger    = math.tointeger
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -72,7 +70,7 @@ function AttributeSet:set_attr(attr_id, value, source_id)
         attr.value = value
         if attr.save then
             --缓存修改
-            self.store_attrs[tostring(attr_id)] = value
+            self.store_attrs[attr_id] = value
         end
         if self:is_load_success() then
             --回写判定
@@ -138,7 +136,7 @@ end
 --加载db数据
 function AttributeSet:load_db_attrs(attrs)
     for attr_id, value in pairs(attrs) do
-        local attr = self.attr_set[mtointeger(attr_id)]
+        local attr = self.attr_set[attr_id]
         if not attr then
             log_warn("[AttributeSet][load_db_attrs] attr(%s) not define", attr_id)
             return false
