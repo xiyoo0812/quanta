@@ -76,9 +76,13 @@ PROJECT_PREFIX =
 MYCFLAGS += -fPIC
 TARGET_DIR = $(SOLUTION_DIR)bin
 TARGET_DYNAMIC =  $(TARGET_DIR)/$(PROJECT_PREFIX)$(TARGET_NAME).so
+
+ifeq ($(UNAME_S), Linux)
+LDFLAGS += -Wl,-soname,$(PROJECT_PREFIX)$(TARGET_NAME).so
+endif
 #macos系统so链接问题
 ifeq ($(UNAME_S), Darwin)
-LDFLAGS += -install_name $(PROJECT_PREFIX)$(TARGET_NAME).so
+LDFLAGS += -Wl,-install_name,$(PROJECT_PREFIX)$(TARGET_NAME).so
 endif
 
 #link添加.so目录

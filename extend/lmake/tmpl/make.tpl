@@ -139,8 +139,12 @@ endif
 LIBS += -lm -ldl -lstdc++ -lpthread
 
 #定义基础的编译选项
+ifndef CC
 CC = gcc
+endif
+ifndef CX
 CX = c++
+endif
 CFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra -Wno-unknown-pragmas $(STDC) $(MYCFLAGS)
 CXXFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra -Wno-unknown-pragmas $(STDCPP) $(MYCFLAGS)
 
@@ -170,9 +174,13 @@ MYCFLAGS += -fPIC
 MYCFLAGS += -fPIC
 TARGET_DIR = $(SOLUTION_DIR){{%= DST_DIR %}}
 TARGET_DYNAMIC =  $(TARGET_DIR)/$(PROJECT_PREFIX)$(TARGET_NAME).so
-#macos系统so链接问题
+#soname
+ifeq ($(UNAME_S), Linux)
+LDFLAGS += -Wl,-soname,$(PROJECT_PREFIX)$(TARGET_NAME).so
+endif
+#install_name
 ifeq ($(UNAME_S), Darwin)
-LDFLAGS += -install_name $(PROJECT_PREFIX)$(TARGET_NAME).so
+LDFLAGS += -Wl,-install_name,$(PROJECT_PREFIX)$(TARGET_NAME).so
 endif
 {{% else %}}
 TARGET_DIR = $(SOLUTION_DIR){{%= DST_DIR %}}
@@ -254,11 +262,11 @@ pre_build:
 	mkdir -p $(INT_DIR)/{{%= fmtsub_dir %}}
 {{% end %}}
 {{% for _, pre_cmd in ipairs(NWINDOWS_PREBUILDS) do %}}
-	{{%= pre_cmd[1] %}} {{%= pre_cmd[2] %}}
+	{{%= pre_cmd %}}
 {{% end %}}
 
 #后编译
 post_build:
 {{% for _, post_cmd in ipairs(NWINDOWS_POSTBUILDS) do %}}
-	{{%= post_cmd[1] %}} {{%= post_cmd[2] %}}
+	{{%= post_cmd %}}
 {{% end %}}

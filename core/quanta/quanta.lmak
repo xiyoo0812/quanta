@@ -40,6 +40,20 @@ LINUX_LIBS = {
     "stdc++fs"
 }
 
+--非WINDOWS预编译命令
+--格式: cmd
+--"cp -r bin/libcurl-x64.dll $(SolutionDir)bin"
+NWINDOWS_PREBUILDS = {
+    "ln -s $(TARGET_DIR)/lualog.so $(TARGET_DIR)/liblualog.so"
+}
+
+--非WINDOWS编译后命令
+--格式: cmd
+--"cp -r bin/libcurl-x64.dll $(SolutionDir)bin"
+NWINDOWS_POSTBUILDS = {
+    "rm -fr $(TARGET_DIR)/liblualog.so"
+}
+
 --依赖项目
 DEPS = {
     "lualog"

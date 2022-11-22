@@ -9,29 +9,29 @@ PROJECT_TYPE = "dynamic"
 
 --需要的FLAGS
 FLAGS = {
-	"Wno-sign-compare"
+    "Wno-sign-compare"
 }
 
 --需要定义的选项
 DEFINES = {
-	"FMT_HEADER_ONLY"
+    "FMT_HEADER_ONLY"
 }
 
 --WINDOWS需要定义的选项
 WINDOWS_DEFINES = {
-	"LUA_BUILD_AS_DLL"
+    "LUA_BUILD_AS_DLL"
 }
 
 --需要的include目录
 INCLUDES = {
-	"../lua/lua",
-	"../fmt/include",
-	"../luakit/include"
+    "../lua/lua",
+    "../fmt/include",
+    "../luakit/include"
 }
 
 --需要连接的库文件
 LIBS = {
-	"lua"
+    "lua"
 }
 
 --源文件路径
@@ -40,12 +40,12 @@ SRC_DIR = "lualog"
 --LINUX需要连接的库文件
 --gcc9.1前filesystem需要链接stdc++fs
 LINUX_LIBS = {
-	"stdc++fs"
+    "stdc++fs"
 }
 
 --依赖项目
 DEPS = {
-	"lualib"
+    "lualib"
 }
 
 --分组定义

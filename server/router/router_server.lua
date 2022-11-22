@@ -76,7 +76,7 @@ function RouterServer:on_client_register(client, node, client_id)
     if not old_master or client_id < old_master then
         socket_mgr.set_master(service, client_id)
         self.service_masters[service] = client_id
-        log_info("[RouterServer][on_socket_error] switch master --> %s", client.name)
+        log_info("[RouterServer][on_client_register] switch master --> %s", client.name)
     end
 end
 

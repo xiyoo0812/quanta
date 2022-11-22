@@ -23,7 +23,7 @@ clean:
 {{%= GROUP.NAME %}}:
 {{% for _, PROJECT in ipairs(GROUP.PROJECTS or {}) do %}}
 	{{% local fmtname = string.gsub(PROJECT.DIR, '\\', '/') %}}
-	cd {{%= fmtname %}}; make -j4 SOLUTION_DIR=$(CUR_DIR) -f {{%= PROJECT.FILE %}}.mak;
+	cd {{%= fmtname %}}; make SOLUTION_DIR=$(CUR_DIR) -f {{%= PROJECT.FILE %}}.mak;
 {{% end %}}
 
 {{% end %}}

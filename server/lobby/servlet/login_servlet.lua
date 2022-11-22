@@ -114,7 +114,7 @@ function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token)
     if not player then
         return ROLE_NOT_EXIST
     end
-    return FRAME_SUCCESS
+    return FRAME_SUCCESS, player:get_passkey()
 end
 
 quanta.login_servlet = LoginServlet()

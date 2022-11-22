@@ -26,7 +26,7 @@ SOLUTION = "quanta"
 --lmake目录
 LMAKE_DIR = "extend/lmake"
 --mimalloc
-USE_MIMALLOC = false
+MIMALLOC = false
 ```
 - 子项目配置*.lmake
 - 执行以下指令自动生成项目文件(makefile/vcxproj)

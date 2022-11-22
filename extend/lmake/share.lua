@@ -114,8 +114,8 @@ WINDOWS_PREBUILDS = {
 }
 
 --非WINDOWS预编译命令
---格式: { cmd, args }
---{ "cp -r", "bin/libcurl-x64.dll $(SolutionDir)bin" }
+--格式: cmd
+--"cp -r bin/libcurl-x64.dll $(SolutionDir)bin"
 NWINDOWS_PREBUILDS = {
 }
 
@@ -126,8 +126,8 @@ WINDOWS_POSTBUILDS = {
 }
 
 --非WINDOWS编译后命令
---格式: { cmd, args }
---{ "cp -r", "bin/libcurl-x64.dll $(SolutionDir)bin" }
+--格式: cmd
+--"cp -r bin/libcurl-x64.dll $(SolutionDir)bin"
 NWINDOWS_POSTBUILDS = {
 }
 

@@ -26,7 +26,7 @@ namespace logger {
 
     // class log_message
     // --------------------------------------------------------------------------------
-    void log_message::option(log_level level, std::string& msg, std::string& tag, std::string& feature, std::string& source, int line) {
+    void log_message::option(log_level level, const cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
         log_time_ = log_time::now();
         feature_ = feature;
         source_ = source;
@@ -47,7 +47,7 @@ namespace logger {
         alloc_messages_->clear();
         free_messages_->clear();
     }
-    std::shared_ptr<log_message> log_message_pool::allocate() {
+    sptr<log_message> log_message_pool::allocate() {
         if (alloc_messages_->empty()) {
             std::unique_lock<spin_mutex> lock(mutex_);
             alloc_messages_.swap(free_messages_);
@@ -61,7 +61,7 @@ namespace logger {
         alloc_messages_->pop_front();
         return logmsg;
     }
-    void log_message_pool::release(std::shared_ptr<log_message> logmsg) {
+    void log_message_pool::release(sptr<log_message> logmsg) {
         if (!logmsg->is_grow()) {
             std::unique_lock<spin_mutex> lock(mutex_);
             free_messages_->push_back(logmsg);
@@ -70,12 +70,12 @@ namespace logger {
 
     // class log_message_queue
     // --------------------------------------------------------------------------------
-    void log_message_queue::put(std::shared_ptr<log_message> logmsg) {
+    void log_message_queue::put(sptr<log_message> logmsg) {
         std::unique_lock<spin_mutex> lock(spin_);
         write_messages_->push_back(logmsg);
     }
 
-    std::shared_ptr<log_message_list> log_message_queue::timed_getv() {
+    sptr<log_message_list> log_message_queue::timed_getv() {
         {
             read_messages_->clear();
             std::unique_lock<spin_mutex> lock(spin_);
@@ -90,12 +90,12 @@ namespace logger {
 
     // class log_dest
     // --------------------------------------------------------------------------------
-    inline void log_dest::write(std::shared_ptr<log_message> logmsg) {
+    inline void log_dest::write(sptr<log_message> logmsg) {
         auto logtxt = fmt::format("{} {}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
         raw_write(logtxt, logmsg->level());
     }
 
-    inline std::string log_dest::build_prefix(std::shared_ptr<log_message> logmsg) {
+    inline cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
             auto names = level_names<log_level>()();
             const log_time& t = logmsg->get_log_time();
@@ -105,7 +105,7 @@ namespace logger {
         return "";
     }
 
-    inline std::string log_dest::build_suffix(std::shared_ptr<log_message> logmsg) {
+    inline cstring log_dest::build_suffix(sptr<log_message> logmsg) {
         if (!ignore_suffix_) {
             return fmt::format("[{}:{}]", logmsg->source().c_str(), logmsg->line());
         }
@@ -114,7 +114,7 @@ namespace logger {
 
     // class stdio_dest
     // --------------------------------------------------------------------------------
-    void stdio_dest::raw_write(std::string& msg, log_level lvl) {
+    void stdio_dest::raw_write(cstring& msg, log_level lvl) {
 #ifdef WIN32
         auto colors = level_colors<log_level>()();
         std::cout << colors[(int)lvl];
@@ -130,7 +130,7 @@ namespace logger {
             file_->close();
         }
     }
-    void log_file_base::raw_write(std::string& msg, log_level lvl) {
+    void log_file_base::raw_write(cstring& msg, log_level lvl) {
         if (file_) file_->write(msg.c_str(), msg.size());
     }
     void log_file_base::flush() {
@@ -138,7 +138,7 @@ namespace logger {
     }
     const log_time& log_file_base::file_time() const { return file_time_; }
 
-    void log_file_base::create(path file_path, std::string& file_name, const log_time& file_time) {
+    void log_file_base::create(path file_path, cstring& file_name, const log_time& file_time) {
         if (file_) {
             file_->flush();
             file_->close();
@@ -150,7 +150,7 @@ namespace logger {
 
     // class rolling_hourly
     // --------------------------------------------------------------------------------
-    bool rolling_hourly::eval(const log_file_base* log_file, const std::shared_ptr<log_message> logmsg) const {
+    bool rolling_hourly::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
         const log_time& ftime = log_file->file_time();
         const log_time& ltime = logmsg->get_log_time();
         return ltime.tm_year != ftime.tm_year || ltime.tm_mon != ftime.tm_mon ||
@@ -159,7 +159,7 @@ namespace logger {
 
     // class rolling_daily
     // --------------------------------------------------------------------------------
-    bool rolling_daily::eval(const log_file_base* log_file, const std::shared_ptr<log_message> logmsg) const {
+    bool rolling_daily::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
         const log_time& ftime = log_file->file_time();
         const log_time& ltime = logmsg->get_log_time();
         return ltime.tm_year != ftime.tm_year || ltime.tm_mon != ftime.tm_mon || ltime.tm_mday != ftime.tm_mday;
@@ -168,12 +168,12 @@ namespace logger {
     // class log_rollingfile
     // --------------------------------------------------------------------------------
     template<class rolling_evaler>
-    log_rollingfile<rolling_evaler>::log_rollingfile(path& log_path, std::string& feature, size_t max_line, size_t clean_time)
+    log_rollingfile<rolling_evaler>::log_rollingfile(path& log_path, cstring& feature, size_t max_line, size_t clean_time)
         : log_file_base(max_line), log_path_(log_path), feature_(feature), clean_time_(clean_time){
     }
 
     template<class rolling_evaler>
-    void log_rollingfile<rolling_evaler>::write(std::shared_ptr<log_message> logmsg) {
+    void log_rollingfile<rolling_evaler>::write(sptr<log_message> logmsg) {
             line_++;
             if (file_ == nullptr || rolling_evaler_.eval(this, logmsg) || line_ >= max_line_) {
                 try { create_directories(log_path_); } catch (...) {}
@@ -185,8 +185,7 @@ namespace logger {
                         }
                     }
                 }
-                std::string file_name = new_log_file_path(logmsg);
-                create(log_path_, file_name, logmsg->get_log_time());
+                create(log_path_, new_log_file_path(logmsg), logmsg->get_log_time());
                 assert(file_);
                 line_ = 0;
             }
@@ -194,7 +193,7 @@ namespace logger {
         }
 
     template<class rolling_evaler>
-    std::string log_rollingfile<rolling_evaler>::new_log_file_path(const std::shared_ptr<log_message> logmsg) {
+    cstring log_rollingfile<rolling_evaler>::new_log_file_path(const sptr<log_message> logmsg) {
         const log_time& t = logmsg->get_log_time();
         return fmt::format("{}-{:4d}{:02d}{:02d}-{:02d}{:02d}{:02d}.{:03d}.p{}.log", 
             feature_, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, t.tm_usec, ::getpid());
@@ -202,12 +201,12 @@ namespace logger {
 
     // class log_service
     // --------------------------------------------------------------------------------
-    void log_service::option(std::string& log_path, std::string& service, std::string& index, rolling_type type) {
+    void log_service::option(cstring& log_path, cstring& service, cstring& index, rolling_type type) {
         log_path_ = log_path, service_ = service; rolling_type_ = type;
         log_path_.append(fmt::format("{}-{}", service, index));
     }
 
-    path log_service::build_path(std::string feature, std::string lpath) {
+    path log_service::build_path(cstring& feature, cstring& lpath) {
         if (lpath.empty()) {
             path log_path = log_path_;
             if (feature != service_) {
@@ -218,10 +217,10 @@ namespace logger {
         return lpath;
     }
 
-    bool log_service::add_dest(std::string& feature, std::string& log_path) {
+    bool log_service::add_dest(cstring& feature, cstring& log_path) {
         std::unique_lock<spin_mutex> lock(mutex_);
         if (dest_features_.find(feature) == dest_features_.end()) {
-            std::shared_ptr<log_dest> logfile = nullptr;
+            sptr<log_dest> logfile = nullptr;
             path logger_path = build_path(feature, log_path);
             if (rolling_type_ == rolling_type::DAYLY) {
                 logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature, max_line_, clean_time_);
@@ -240,7 +239,7 @@ namespace logger {
 
     bool log_service::add_lvl_dest(log_level log_lvl) {
         auto names = level_names<log_level>()();
-        std::string feature = names[(int)log_lvl];
+        sstring feature = names[(int)log_lvl];
         std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
         path logger_path = build_path(feature, "");
         std::unique_lock<spin_mutex> lock(mutex_);
@@ -255,7 +254,7 @@ namespace logger {
         return true;
     }
 
-    void log_service::del_dest(std::string& feature) {
+    void log_service::del_dest(cstring& feature) {
         std::unique_lock<spin_mutex> lock(mutex_);
         auto it = dest_features_.find(feature);
         if (it != dest_features_.end()) {
@@ -271,7 +270,7 @@ namespace logger {
         }
     }
 
-    void log_service::ignore_prefix(std::string& feature, bool prefix) {
+    void log_service::ignore_prefix(cstring& feature, bool prefix) {
         auto iter = dest_features_.find(feature);
         if (iter != dest_features_.end()) {
             iter->second->ignore_prefix(prefix);
@@ -282,7 +281,7 @@ namespace logger {
         for (auto dest : dest_lvls_) dest.second->ignore_prefix(prefix);
     }
 
-    void log_service::ignore_suffix(std::string& feature, bool suffix) {
+    void log_service::ignore_suffix(cstring& feature, bool suffix) {
         auto iter = dest_features_.find(feature);
         if (iter != dest_features_.end()) {
             iter->second->ignore_suffix(suffix);
@@ -351,7 +350,7 @@ namespace logger {
         }
     }
 
-    void log_service::output(log_level level, std::string& msg, std::string tag, std::string feature, std::string source, int line) {
+    void log_service::output(log_level level, const cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
         if (!log_filter_.is_filter(level)) {
             auto logmsg_ = message_pool_->allocate();
             logmsg_->option(level, msg, tag, feature, source, line);

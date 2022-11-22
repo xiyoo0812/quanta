@@ -178,9 +178,9 @@ WINDOWS_PREBUILDS = {
 ```
 - NWINDOWS预编译命令
 ```lua
---格式: { cmd, args }
+--格式: cmd
 NWINDOWS_PREBUILDS = {
-	{ "copy /y", "bin/libcurl-x64.dll $(SolutionDir)bin" }
+	"cp bin/libcurl-x64.dll $(SolutionDir)bin"
 }
 ```
 - WINDOWS编译后命令
@@ -192,9 +192,9 @@ WINDOWS_POSTBUILDS = {
 ```
 - 非WINDOWS编译后命令
 ```lua
---格式: { cmd, args }
+--格式: cmd
 NWINDOWS_POSTBUILDS = {
-    { "cp -r", "bin/libcurl-x64.dll $(SolutionDir)bin" }
+	"cp bin/libcurl-x64.dll $(SolutionDir)bin"
 }
 ```
 - 依赖项目

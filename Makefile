@@ -15,28 +15,28 @@ clean:
 	rm -rf temp;
 
 core:
-	cd core/quanta; make -j4 SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
+	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
 
 lua:
-	cd extend/lua; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
-	cd extend/lua; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
-	cd extend/lua; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
+	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
+	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
+	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
 
 luaext:
-	cd extend/laoi; make -j4 SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
-	cd extend/lcjson; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
-	cd extend/lcodec; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcodec.mak;
-	cd extend/lcrypt; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
-	cd extend/lcurl; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
-	cd extend/lhttp; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
-	cd extend/lmongo; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lmongo.mak;
-	cd extend/lstdfs; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
-	cd extend/ltimer; make -j4 SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
-	cd extend/lualog; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
-	cd extend/luaxlsx; make -j4 SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
-	cd extend/lworker; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
-	cd extend/protobuf; make -j4 SOLUTION_DIR=$(CUR_DIR) -f lua-protobuf.mak;
+	cd extend/laoi; make SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
+	cd extend/lcjson; make SOLUTION_DIR=$(CUR_DIR) -f lcjson.mak;
+	cd extend/lcodec; make SOLUTION_DIR=$(CUR_DIR) -f lcodec.mak;
+	cd extend/lcrypt; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
+	cd extend/lcurl; make SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
+	cd extend/lhttp; make SOLUTION_DIR=$(CUR_DIR) -f lhttp.mak;
+	cd extend/lmongo; make SOLUTION_DIR=$(CUR_DIR) -f lmongo.mak;
+	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
+	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
+	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
+	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
+	cd extend/lworker; make SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
+	cd extend/protobuf; make SOLUTION_DIR=$(CUR_DIR) -f lua-protobuf.mak;
 
 share:
-	cd extend/mimalloc; make -j4 SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
+	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
 

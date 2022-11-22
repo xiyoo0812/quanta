@@ -12,10 +12,10 @@ ENABLE = false
 
 --需要的FLAGS
 FLAGS = {
-	"fpermissive",
-	"Wno-unused-variable",
-	"Wno-unused-parameter",
-	"Wno-unused-but-set-parameter"
+    "fpermissive",
+    "Wno-unused-variable",
+    "Wno-unused-parameter",
+    "Wno-unused-but-set-parameter"
 }
 
 --源文件路径
@@ -23,18 +23,18 @@ SRC_DIR = "test"
 
 --需要的include目录
 INCLUDES = {
-	"include",
-	"../../extend/lua/lua"
+    "include",
+    "../../extend/lua/lua"
 }
 
 --需要连接的库文件
 LIBS = {
-	"lua"
+    "lua"
 }
 
 --依赖项目
 DEPS = {
-	"lualib"
+    "lualib"
 }
 
 --分组定义
