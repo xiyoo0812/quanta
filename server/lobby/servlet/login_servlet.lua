@@ -25,6 +25,7 @@ function LoginServlet:__init()
     -- 事件监听
     event_mgr:add_listener(self, "rpc_player_sync")
     event_mgr:add_listener(self, "rpc_player_command")
+    event_mgr:add_listener(self, "rpc_player_heatbeat")
     event_mgr:add_listener(self, "rpc_player_disconnect")
 
     event_mgr:add_listener(self, "rpc_player_login")
@@ -46,6 +47,14 @@ function LoginServlet:rpc_player_disconnect(player_id)
     if player then
         log_warn("[LoginServlet][rpc_player_disconnect] player(%s) offline", player_id)
         player:offline()
+    end
+end
+
+--心跳
+function LoginServlet:rpc_player_heatbeat(player_id)
+    local player = player_mgr:get_entity(player_id)
+    if player then
+        return player:get_token()
     end
 end
 
@@ -103,17 +112,21 @@ function LoginServlet:rpc_player_logout(player_id)
     end
     local token = player:update_token()
     player_mgr:remove_entity(player, player_id)
-    event_mgr:notify_trigger("on_logout_success", player, player_id)
     log_info("[LoginServlet][rpc_player_logout] player(%s) logout success!", player_id)
     return FRAME_SUCCESS, token
 end
 
-function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token)
+function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token, gateway)
     log_debug("[LoginServlet][rpc_player_reload] user(%s) player(%s) reload req!", user_id, player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
         return ROLE_NOT_EXIST
     end
+    if player:get_token() ~= token then
+        return ROLE_TOKEN_ERR
+    end
+    player:set_gateway(gateway)
+    update_mgr:attach_event(player_id, "on_reload_success", player)
     return FRAME_SUCCESS, player:get_passkey()
 end
 

@@ -40,6 +40,8 @@ end
 function LoginDao:create_player(user_id, role_info)
     local udata = {
         login_time = 0,
+        online_time = 0,
+        upgrade_time = 0,
         user_id = user_id,
         name = role_info.name,
         model = role_info.model,

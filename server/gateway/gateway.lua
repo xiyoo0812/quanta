@@ -96,13 +96,9 @@ end
 
 --心跳协议
 function Gateway:on_heartbeat_req(session, cmd_id, body, session_id)
-    local sserial  = client_mgr:check_serial(session, body.serial)
-    local data_res = { serial = sserial, time = quanta.now }
-    client_mgr:callback_by_id(session, cmd_id, data_res, session_id)
-    --通知其他服务器
     local player = self:get_player(session.player_id)
     if player then
-        player:notify_heartbeat()
+        player:notify_heartbeat(session, cmd_id, body, session_id)
     end
 end
 
@@ -157,7 +153,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
     local player = GatePlayer(session, user_id, player_id)
-    local codeoe, res = player:trans_message(lobby, "rpc_player_reload", user_id, player_id, lobby, token)
+    local codeoe, res = player:trans_message(lobby, "rpc_player_reload", user_id, player_id, lobby, token, quanta.id)
     if qfailed(codeoe) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", codeoe, res)
         return client_mgr:callback_errcode(session, cmd_id, codeoe, session_id)

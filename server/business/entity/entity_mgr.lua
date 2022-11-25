@@ -29,6 +29,10 @@ function EntityMgr:on_second()
     end
 end
 
+--实体被消耗
+function EntityMgr:on_destory(entity, entity_id)
+end
+
 -- 设置实体
 function EntityMgr:add_entity(entity_id, entity)
     log_info("[EntityMgr][add_entity] entity_id=%s", entity_id)
@@ -38,8 +42,9 @@ end
 -- 移除实体
 function EntityMgr:remove_entity(entity, entity_id)
     log_info("[EntityMgr][remove_entity] entity_id=%s", entity_id)
-    entity:destory()
+    self:on_destory(entity, entity_id)
     self.entity_map:set(entity_id, nil)
+    entity:destory()
 end
 
 --查找实体

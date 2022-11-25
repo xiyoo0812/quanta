@@ -22,13 +22,16 @@ local Entity        = import("business/entity/entity.lua")
 local Player = class(Entity)
 
 local prop = property(Player)
-prop:reader("sex")                          --sex
-prop:reader("user_id")                      --user_id
+prop:reader("sex")                  --sex
+prop:reader("user_id")              --user_id
 prop:reader("passkey", {})          --passkey
 prop:reader("status", ONL_LOADING)
+prop:reader("create_time", 0)       --create_time
+prop:reader("online_time", 0)     --online_time
 prop:accessor("token", "")          --token
 prop:accessor("gateway", nil)       --gateway
 prop:accessor("login_time", 0)      --login_time
+prop:accessor("upgrade_time", 0)    --upgrade_time
 
 function Player:__init(id)
 end
@@ -59,20 +62,13 @@ function Player:load(conf)
         self.model = data.model
         self.user_id = data.user_id
         self.login_time = data.login_time
+        self.create_time = data.create_time
+        self.online_time = data.online_time
+        self.upgrade_time = data.upgrade_time
         self:set_relayable(true)
         self:update_token()
     end
     return ok
-end
-
---unload
-function Player:unload()
-    if self.status == ONL_LOADING then
-        online:logout_player(self.id)
-        return true
-    end
-    login_dao:update_account_status(self.user_id, self.token)
-    return true
 end
 
 --update_token
@@ -119,6 +115,12 @@ function Player:sync_data()
     self:invoke("_sync_data")
 end
 
+--update_time
+function Player:update_time(time_key, time)
+    self[time_key] = time
+    login_dao:update_time(self.id, time_key, time)
+end
+
 --online
 function Player:online()
     --invoke
@@ -130,10 +132,10 @@ function Player:online()
     self.release = false
     self.load_success = true
     self.status = ONL_INLINE
-    self.login_time = quanta.now
     self.active_time = quanta.now_ms
     self:add_passkey("lobby", quanta.id)
-    return login_dao:update_login_time(self.id)
+    self:update_time("login_time", quanta.now)
+    return true
 end
 
 --掉线
@@ -141,16 +143,33 @@ function Player:offline()
     self.gateway = nil
     self.status = ONL_OFFLINE
     self.active_time = quanta.now_ms
-    online:logout_player(self.id)
     --invoke
     self:invoke("_offline")
     log_warn("[Player][offline] player(%s) is offline!", self.id)
 end
 
+function Player:relive()
+    self.status = ONL_INLINE
+    self.active_time = quanta.now_ms
+    --invoke
+    self:invoke("_relive")
+    log_warn("[Player][relive] player(%s) is relive!", self.id)
+end
+
+--unload
+function Player:unload()
+    online:logout_player(self.id)
+    login_dao:update_account_status(self.user_id, self.token)
+    --计算在线时间
+    local online_time = self.online_time + quanta.now - self.login_time
+    self:update_time("online_time", online_time)
+    return true
+end
+
 --send
 function Player:send(cmd_id, data)
     if not self.gateway then
-        log_warn("[Player][send] player(%s) gateway is nil!", self.id)
+        log_warn("[Player][send] player(%s-%s) gateway is nil!", self.id, cmd_id)
         return
     end
     router_mgr:send_target(self.gateway, "rpc_forward_client", self.id, cmd_id, data)

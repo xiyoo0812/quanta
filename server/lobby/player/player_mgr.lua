@@ -44,6 +44,11 @@ function PlayerMgr:load_player(player_id)
     return player
 end
 
+--实体被消耗
+function PlayerMgr:on_destory(player, player_id)
+    update_mgr:attach_event(player_id, "on_logout_success", player)
+end
+
 -- 广播消息
 function PlayerMgr:broadcast_message(cmd_id, data)
     for _, player in self:iterator() do

@@ -15,9 +15,10 @@ import("basic/console.lua")
 import("basic/service.lua")
 import("basic/listener.lua")
 
-local odate         = os.date
-local qenum         = quanta.enum
+local odate     = os.date
+local qenum     = quanta.enum
 
+local FAILED    = qenum("KernCode", "FAILED")
 local SUCCESS   = qenum("KernCode", "SUCCESS")
 local DAY_S     = qenum("PeriodTime", "DAY_S")
 local HOUR_S    = qenum("PeriodTime", "HOUR_S")
@@ -33,7 +34,7 @@ function quanta.failed(code, ok, def_code)
     if ok == nil then
         return code ~= SUCCESS
     end
-    return not ok or code ~= SUCCESS, ok and code or def_code
+    return not ok or code ~= SUCCESS, ok and code or (def_code or FAILED)
 end
 
 --获取utc时间戳

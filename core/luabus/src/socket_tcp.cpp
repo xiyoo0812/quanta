@@ -55,13 +55,15 @@ int socket_tcp::socket_waitfd(socket_t fd, int sw, size_t tm) {
 }
 
 int socket_tcp::listen(lua_State* L, const char* ip, int port) {
+    //set status
+    set_no_block(m_fd);
+    set_reuseaddr(m_fd);
+    set_close_on_exec(m_fd);
+    //bind && listen
     size_t addr_len = 0;
     sockaddr_storage addr;
     make_ip_addr(&addr, &addr_len, ip, port);
     if (::bind(m_fd, (sockaddr*)&addr, (int)addr_len) != SOCKET_ERROR) {
-        set_no_block(m_fd);
-        set_reuseaddr(m_fd);
-        set_close_on_exec(m_fd);
         if (::listen(m_fd, 200) != SOCKET_ERROR) {
             lua_pushboolean(L, true);
             return 1;

@@ -32,8 +32,8 @@ function LoginDao:update_player(role_id, data)
     return true
 end
 
-function LoginDao:update_login_time(role_id)
-    return self:update_player(role_id, { login_time = quanta.now })
+function LoginDao:update_time(role_id, time_key, time)
+    return self:update_player(role_id, { [time_key] = time })
 end
 
 function LoginDao:load_account_status(user_id)

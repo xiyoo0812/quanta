@@ -24,7 +24,6 @@ local FRAME_TOOFAST         = protobuf_mgr:error_code("FRAME_TOOFAST")
 local FRAME_SUCCESS         = protobuf_mgr:error_code("FRAME_SUCCESS")
 local SERVER_UPHOLD         = protobuf_mgr:error_code("LOGIN_SERVER_UPHOLD")
 local ACCOUTN_INLINE        = protobuf_mgr:error_code("LOGIN_ACCOUTN_INLINE")
-local ACCOUTN_BANS          = protobuf_mgr:error_code("LOGIN_ACCOUTN_BANS")
 local VERIFY_FAILED         = protobuf_mgr:error_code("LOGIN_VERIFY_FAILED")
 local ROLE_NOT_EXIST        = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
 local ROLE_NUM_LIMIT        = protobuf_mgr:error_code("LOGIN_ROLE_NUM_LIMIT")
@@ -64,28 +63,20 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     if not _lock then
         return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
+    local device_id = "defeult"
     if platform >= PLATFORM_PASSWORD then
         --登录验证
-        local result = event_mgr:notify_listener("on_platform_login", open_id, token, platform)
-        local ok, code, sdk_open_id = tunpack(result)
-        local login_failed, login_code = qfailed(code, ok, FRAME_FAILED)
+        local channel_id, channel, region, language, pac_code = body.channel_id, body.channel, body.region, body.language, body.pac_code
+        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, token, channel_id, channel, region, language, pac_code)
+        local ok, code, sdk_open_id, sdk_device_id = tunpack(result)
+        local login_failed, login_code = qfailed(code, ok)
         if login_failed then
             log_err("[LoginServlet][on_account_login_req] verify failed! open_id: %s token:%s code:%s", open_id, token, login_code)
             client_mgr:callback_errcode(session, cmd_id, login_code, session_id)
             return false
         end
-        --准入限制
-        local channel_id, channel, region, language, pac_code = body.channel_id, body.channel, body.region, body.language, body.pac_code
-        local lresult = event_mgr:notify_listener("on_platform_limit",  platform, open_id, token, channel_id, channel, region, language, pac_code)
-        local lok, lcode = tunpack(lresult)
-        local limit_failed, limit_code = qfailed(lcode, lok, FRAME_FAILED)
-        if limit_failed then
-            log_err("[LoginServlet][on_account_login_req] limit failed! open_id: %s token:%s rcode:%s", open_id, token, limit_code)
-            client_mgr:callback_errcode(session, cmd_id, limit_code, session_id)
-            return false
-        end
         -- 三方信息
-        open_id = sdk_open_id
+        open_id, device_id = sdk_open_id, sdk_device_id
     end
     --加载账号信息
     local ok, udata = login_dao:load_account(open_id)
@@ -94,15 +85,17 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     end
     --创建账号
     if not udata then
-        return self:create_account(session, open_id, token, session_id, cmd_id)
+        return self:create_account(session, open_id, token, session_id, cmd_id, device_id)
      end
     --密码验证
     if platform == PLATFORM_PASSWORD and udata.token ~= token then
         log_err("[LoginServlet][on_password_login] verify failed! open_id: %s", open_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
-    --其他验证
-    self:verify_account(session, udata, open_id, session_id, cmd_id)
+    self:save_account(session, udata)
+    local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
+    client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
+    log_info("[LoginServlet][on_account_login_req] success! open_id: %s", open_id)
 end
 
 --创建角色
@@ -136,6 +129,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
         self:delete_role(session, role_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
+    event_mgr:notify_listener("on_role_create", user_id, add_role)
     log_info("[LoginServlet][on_role_create_req] user_id(%s) create role %s success!", user_id, name)
     local callback_data = {error_code = 0, role = add_role }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
@@ -219,8 +213,10 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
     if not lok then
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    --其他验证
-    self:verify_account(session, udata, open_id, session_id, cmd_id)
+    self:save_account(session, udata)
+    local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
+    client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
+    log_info("[LoginServlet][on_account_reload_req] success! open_id: %s", open_id)
 end
 
 --随机名字
@@ -233,20 +229,8 @@ end
 
 --内部接口
 -----------------------------------------------------
---验证账户
-function LoginServlet:verify_account(session, udata, open_id, session_id, cmd_id)
-    if udata.bantime and quanta.now < udata.bantime then
-        log_err("[LoginServlet][verify_account] account is ban! open_id: %s", open_id)
-        return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_BANS, session_id)
-    end
-    self:save_account(session, udata)
-    local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
-    client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
-    log_info("[LoginServlet][verify_account] success! open_id: %s", open_id)
-end
-
 --创建账号
-function LoginServlet:create_account(session, open_id, token, session_id, cmd_id)
+function LoginServlet:create_account(session, open_id, token, session_id, cmd_id, device_id)
     local user_id = guid_new(quanta.service, quanta.index)
     local udata = login_dao:create_account(open_id, user_id, token)
     if not udata then
@@ -254,6 +238,7 @@ function LoginServlet:create_account(session, open_id, token, session_id, cmd_id
         return
     end
     self:save_account(session, udata)
+    event_mgr:notify_listener("on_account_create", udata)
     local callback_data = { error_code = 0, roles = {}, user_id = user_id }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
     log_info("[LoginServlet][create_account] success! open_id: %s", open_id)
