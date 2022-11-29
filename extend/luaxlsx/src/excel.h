@@ -30,6 +30,15 @@ namespace lxlsx
         string value = "";
         string fmt_code = "";
         uint32_t fmt_id = 0;
+
+        cell* clone() {
+            cell* cl = new cell();
+            cl->type = type;
+            cl->value = value;
+            cl->fmt_code = fmt_code;
+            cl->fmt_id = fmt_id;
+            return cl;
+        }
     };
 
     class sheet
@@ -120,9 +129,9 @@ namespace lxlsx
             if (!open_xml(sh->path.c_str(), doc)) return;
 
             XMLElement* root = doc.FirstChildElement("worksheet");
-            XMLElement* d = root->FirstChildElement("dimension");
-            if (d) {
-                parse_range(d->Attribute("ref"), sh);
+            XMLElement* dim = root->FirstChildElement("dimension");
+            if (dim) {
+                parse_range(dim->Attribute("ref"), sh);
             }
             sh->cells.resize(sh->last_col * sh->last_row);
 
@@ -141,8 +150,15 @@ namespace lxlsx
                 }
                 row = row->NextSiblingElement("row");
             }
+            XMLElement* mcell = root->FirstChildElement("mergeCells");
+            if (mcell) {
+                mcell = mcell->FirstChildElement("mergeCell");
+                while (mcell) {
+                    merge_cells(sh, mcell->Attribute("ref"));
+                    mcell = mcell->NextSiblingElement("mergeCell");
+                }
+            }
         }
-
         
         void read_styles(const char* filename){
             XMLDocument doc;
@@ -292,6 +308,25 @@ namespace lxlsx
                 col += (arr[i] * pow(26, index - i - 1));
             }
             row = atol(value.c_str() + index);
+        }
+
+        void merge_cells(sheet* sh, const string& value) {
+            size_t index = value.find_first_of(':');
+            if (index != string::npos) {
+                uint32_t first_row = 0, first_col = 0, last_row = 0, last_col = 0;
+                parse_cell(value.substr(0, index), first_row, first_col);
+                parse_cell(value.substr(index + 1), last_row, last_col);
+                cell* valc = sh->get_cell(first_row, first_col);
+                if (valc) {
+                    for (uint32_t i = first_row;  i <= last_row; ++i) {
+                        for (uint32_t j = first_col; j <= last_col; ++j) {
+                            if (i != first_row || j != first_col) {
+                                sh->add_cell(i, j, valc->clone());
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         void parse_range(const string& value, sheet* sh) {

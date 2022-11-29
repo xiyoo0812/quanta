@@ -359,16 +359,19 @@ local function export_excel(input, output)
                 print(sformat("open excel %s failed!", fullname))
                 goto continue
             end
-            --只导出sheet1
             local sheets = workbook.sheets()
             for _, sheet in pairs(sheets) do
-                local sheet_name = sheet.name
-                if sheet.last_row < 4 or sheet.last_col <= 0 then
-                    print(sformat("export excel %s sheet %s empty!", fullname, sheet_name))
-                else
-                    local title = slower(sheet_name)
-                    export_sheet_to_table(sheet, output, title)
+                local title = slower(sheet.name)
+                if title == "remarks" then
+                    print(sformat("export excel %s sheet %s is remarks!", fullname, title))
+                    goto next
                 end
+                if sheet.last_row < 4 or sheet.last_col <= 0 then
+                    print(sformat("export excel %s sheet %s empty!", fullname, title))
+                    goto next
+                end
+                export_sheet_to_table(sheet, output, title)
+                :: next ::
             end
         end
         :: continue ::

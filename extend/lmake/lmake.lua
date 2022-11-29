@@ -268,6 +268,10 @@ local function build_lmak(solution_dir)
         end
     end
     init_solution_env(env)
+    if not load_env_file(lappend(lmake_dir, "share.lua"), env) then
+        error("load share lmake file failed")
+        return
+    end
     local ltmpl = require("ltemplate.ltemplate")
     ltmpl.render_file(lappend(lmake_dir, "tmpl/makefile.tpl"), lappend(solution_dir, "Makefile"), env)
     ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)

@@ -76,6 +76,11 @@ DST_DIR = "bin"
 --.a/.lib
 DST_LIB_DIR = "library"
 
+--VS版本
+MS_VERSION = "143"
+VS_SHR_VERSION = "17"
+VS_FUL_VERSION = "17.4.33103.184"
+
 --子目录路径
 SUB_DIR = {
 }
