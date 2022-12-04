@@ -6,30 +6,31 @@ local lmkdir        = lstdfs.mkdir
 local lappend       = lstdfs.append
 local lfilename     = lstdfs.filename
 local lextension    = lstdfs.extension
+local labsolute     = lstdfs.absolute
 local lcurdir       = lstdfs.current_path
 local sformat       = string.format
 local ogetenv       = os.getenv
 local oexec         = os.execute
 
 -- 加密lua
-local function encrypt(lua_dir, encrypt_dir)
-    local dir_files = ldir(lua_dir)
+local function encrypt(input_dir, output_dir)
+    local dir_files = ldir(input_dir)
     for _, file in pairs(dir_files) do
         local fullname = file.name
         local fname = lfilename(fullname)
         if file.type == "directory" then
-            local new_dir = lappend(encrypt_dir, fname)
-            lmkdir(new_dir)
-            encrypt(fullname, new_dir)
+            local chind_dir = lappend(output_dir, fname)
+            lmkdir(chind_dir)
+            encrypt(fullname, chind_dir)
             goto continue
         end
         if lextension(fname) ~= ".lua" then
             goto continue
         end
         local luac = lappend(lcurdir(), "luac")
-        local outfile = lappend(encrypt_dir, fname)
-        local luacmd = sformat("%s -o %s %s", luac, outfile, fullname)
-        oexec(luacmd)
+        local outfile = lappend(output_dir, fname)
+        oexec(sformat("%s -o %s %s", luac, outfile, fullname))
+        print("encrypt:", fullname)
         :: continue ::
     end
 end
@@ -50,6 +51,10 @@ else
     lmkdir(output)
 end
 
-encrypt(input, output)
+print("start encrypt!")
+local input_path = labsolute(input)
+local output_path = labsolute(output)
+encrypt(input_path, output_path)
+print("encrypt success!")
 
 os.exit()

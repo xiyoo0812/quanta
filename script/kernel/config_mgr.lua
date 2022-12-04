@@ -1,4 +1,5 @@
---cfg_mgr.lua
+--config_mgr.lua
+local log_warn  = logger.warn
 
 -- 配置管理器
 local ConfigTable = import("kernel/object/config_table.lua")
@@ -22,15 +23,19 @@ function ConfigMgr:init_enum_table(name, ename, main_key, ...)
     return conf_tab
 end
 
---加载配置表并分组
-function ConfigMgr:init_group_table(name, ...)
+--加载配置表并合并
+function ConfigMgr:init_merge_table(name, merge_name, ...)
     local conf_tab = self.table_list[name]
-    if not conf_tab then
-        conf_tab = self:create_table(name)
-        conf_tab:set_groups({})
-        conf_tab:setup(name, ...)
+    if conf_tab then
+        return conf_tab
     end
-    return conf_tab
+    local merge_tab = self.table_list[merge_name]
+    if not merge_tab then
+        merge_tab = self:create_table(merge_name)
+    end
+    self.table_list[name] = merge_tab
+    merge_tab:setup(name, ...)
+    return merge_tab
 end
 
 -- 初始化配置表
@@ -46,12 +51,17 @@ end
 function ConfigMgr:create_table(name)
     local conf_tab = ConfigTable()
     self.table_list[name] = conf_tab
+    conf_tab:set_name(name)
     return conf_tab
 end
 
 -- 获取配置表
 function ConfigMgr:get_table(name)
-    return self.table_list[name]
+    local conf_tab = self.table_list[name]
+    if not conf_tab then
+        log_warn("[ConfigMgr][get_table] table %s not init.", name)
+    end
+    return conf_tab
 end
 
 -- 关闭配置表

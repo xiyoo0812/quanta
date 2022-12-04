@@ -26,5 +26,4 @@ robot:upsert({
     tree_id = 1002,
 })
 
---general md5 version
-robot:set_version('66744fd792e04a0493ee7b5b132df5b0')
+robot:update()

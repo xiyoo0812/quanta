@@ -111,5 +111,4 @@ service:upsert({
     name = 'redis',
 })
 
---general md5 version
-service:set_version('89b857c52f45bfa461850c8d732ea02c')
+service:update()

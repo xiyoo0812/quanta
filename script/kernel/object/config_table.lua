@@ -16,12 +16,12 @@ local TABLE_MAX_INDEX = 3
 
 local ConfigTable = class()
 local prop = property(ConfigTable)
-prop:reader("name", nil)
 prop:reader("rows", {})
-prop:reader("indexs", {})
+prop:reader("groups", {})
 prop:reader("count", 0)
-prop:accessor("groups", nil)
-prop:accessor("version", "")
+prop:reader("indexs", nil)
+prop:reader("group_key", nil)
+prop:accessor("name", nil)
 
 -- 初始化一个配置表，indexs最多支持三个
 function ConfigTable:__init()
@@ -30,7 +30,6 @@ end
 function ConfigTable:setup(name, ...)
     local size = select("#", ...)
     if size > 0 and size <= TABLE_MAX_INDEX then
-        self.name = name
         self.indexs = {...}
         import(sformat("config/%s_cfg.lua", name))
     else
@@ -40,12 +39,7 @@ end
 
 -- 更新一行配置表
 function ConfigTable:upsert(row)
-    if not self.name then
-        return
-    end
-    local cluster = row.cluster
-    if cluster and cluster ~= quanta.cluster then
-        --部署环境不一样，不加载配置
+    if not self.indexs then
         return
     end
     local row_indexs = {}
@@ -53,7 +47,7 @@ function ConfigTable:upsert(row)
         tinsert(row_indexs, row[index])
     end
     if #row_indexs ~= #self.indexs then
-        log_err("[ConfigTable][upsert] row data index lost. row=%s, indexs=%s", row, self.indexs)
+        log_err("[ConfigTable][upsert] table %s row index lost. row=%s, indexs=%s", self.name, row, self.indexs)
         return
     end
     local row_index = self:build_index(tunpack(row_indexs))
@@ -63,14 +57,6 @@ function ConfigTable:upsert(row)
             self.count = self.count + 1
         end
         self.rows[row_index] = row
-        if self.groups then
-            local group = self.groups[row.group]
-            if not group then
-                self.groups[row.group] = { row }
-            else
-                tinsert(group, row)
-            end
-        end
     end
 end
 
@@ -90,12 +76,12 @@ end
 function ConfigTable:find_one(...)
     local row_index = self:build_index(...)
     if not row_index then
-        log_warn("[ConfigTable][find_one] row index is nil.")
+        log_warn("[ConfigTable][find_one] table %s row index is nil.", self.name)
         return
     end
     local row = self.rows[row_index]
     if not row then
-        log_warn("[ConfigTable][find_one] row data not found. index=%s", row_index)
+        log_warn("[ConfigTable][find_one] table %s row data not found. index=%s", self.name, row_index)
     end
     return row
 end
@@ -127,10 +113,43 @@ function ConfigTable:find_integer(key, ...)
     end
 end
 
+--设置分组数据
+function ConfigTable:add_group(group_key, force)
+    if self.groups[group_key] and (not force) then
+        return
+    end
+    local group = {}
+    for _, row in pairs(self.rows) do
+        local row_key = row[group_key]
+        if row_key then
+            local datas = group[row_key]
+            if not datas then
+                group[row_key] = { row }
+            else
+                tinsert(datas, row)
+            end
+        end
+    end
+    if not self.group_key then
+        self.group_key = group_key
+    end
+    self.groups[group_key] = group
+end
+
 --查询分组数据
-function ConfigTable:find_group(key)
-    if self.groups then
-        return self.groups[key]
+function ConfigTable:find_group(key, gkey)
+    local group_key = gkey or self.group_key
+    local dgroup = self.groups[group_key]
+    if not dgroup then
+        log_warn("[ConfigTable][find_group] table %s group %s data empty.", self.name, group_key)
+    end
+    return dgroup[key]
+end
+
+--更新分组
+function ConfigTable:update()
+    for key in pairs(self.groups) do
+        self:add_group(key, true)
     end
 end
 

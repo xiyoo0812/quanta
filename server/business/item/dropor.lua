@@ -3,7 +3,7 @@
 local pairs         = pairs
 
 local config_mgr    = quanta.get("config_mgr")
-local drop_db       = config_mgr:init_group_table("drop", "id")
+local drop_db       = config_mgr:init_table("drop", "id")
 
 local Random        = import("basic/random.lua")
 
@@ -11,6 +11,7 @@ local ALONE         = quanta.enum("RandType", "ALONE")
 
 local Dropor = singleton()
 function Dropor:__init()
+    drop_db:add_group("group")
 end
 
 --执行掉落

@@ -220,5 +220,4 @@ player_attr:upsert({
     back = false,
 })
 
---general md5 version
-player_attr:set_version('4b36c687198fa0954a69474aa3ef6f26')
+player_attr:update()

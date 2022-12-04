@@ -1,5 +1,4 @@
 --convertor.lua
-local lcrypt    = require('lcrypt')
 local lstdfs    = require('lstdfs')
 local lexcel    = require('luaxlsx')
 
@@ -13,7 +12,6 @@ local lappend       = lstdfs.append
 local lconcat       = lstdfs.concat
 local lfilename     = lstdfs.filename
 local lcurdir       = lstdfs.current_path
-local lmd5          = lcrypt.md5
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -230,10 +228,8 @@ local function export_records_to_struct(output, title, records)
             tinsert(lines, "})\n")
         end
     end
-
-    local output_data = tconcat(lines, "\n")
-    export_file:write(sformat("%s\n--general md5 version\n", output_data))
-    export_file:write(sformat("%s:set_version('%s')", title, lmd5(output_data, 1)))
+    tinsert(lines, sformat("%s:update()\n", title))
+    export_file:write(tconcat(lines, "\n"))
     export_file:close()
     print(sformat("export %s success!", filename))
 end

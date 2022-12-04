@@ -47,7 +47,7 @@ end
 
 --通知心跳
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
-    local ok, token = router_mgr:send_target(self.lobby_id, "rpc_player_heatbeat", self.player_id)
+    local ok, token = router_mgr:call_target(self.lobby_id, "rpc_player_heatbeat", self.player_id)
     if ok and token then
         for _, server_id in pairs(self.gate_services) do
             if server_id ~= self.lobby_id then

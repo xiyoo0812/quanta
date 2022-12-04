@@ -1,5 +1,6 @@
 --player.lua
 local log_warn      = logger.warn
+local log_info      = logger.info
 local mrandom       = qmath.random
 
 local online        = quanta.get("online")
@@ -24,6 +25,7 @@ local Player = class(Entity)
 local prop = property(Player)
 prop:reader("sex")                  --sex
 prop:reader("user_id")              --user_id
+prop:reader("open_id")              --open_id
 prop:reader("passkey", {})          --passkey
 prop:reader("status", ONL_LOADING)
 prop:reader("create_time", 0)       --create_time
@@ -61,6 +63,7 @@ function Player:load(conf)
         self.sex = data.gender
         self.model = data.model
         self.user_id = data.user_id
+        self.open_id = data.open_id
         self.login_time = data.login_time
         self.create_time = data.create_time
         self.online_time = data.online_time
@@ -135,6 +138,7 @@ function Player:online()
     self.active_time = quanta.now_ms
     self:add_passkey("lobby", quanta.id)
     self:update_time("login_time", quanta.now)
+    log_info("[Player][online] player(%s) is online!", self.id)
     return true
 end
 

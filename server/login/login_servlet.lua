@@ -93,6 +93,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     self:save_account(session, udata)
+    event_mgr:notify_listener("on_account_login", udata.user_id, open_id, device_id)
     local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
     log_info("[LoginServlet][on_account_login_req] success! open_id: %s", open_id)
@@ -118,7 +119,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     --创建角色
     local role_id = guid_new(quanta.service, quanta.index)
     local add_role = { gender = gender, name = name, role_id = role_id, model = model }
-    if not login_dao:create_player(user_id, add_role) then
+    if not login_dao:create_player(user_id, session.open_id, add_role) then
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     --更新数据库
@@ -238,7 +239,7 @@ function LoginServlet:create_account(session, open_id, token, session_id, cmd_id
         return
     end
     self:save_account(session, udata)
-    event_mgr:notify_listener("on_account_create", udata)
+    event_mgr:notify_listener("on_account_create", udata, device_id)
     local callback_data = { error_code = 0, roles = {}, user_id = user_id }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
     log_info("[LoginServlet][create_account] success! open_id: %s", open_id)

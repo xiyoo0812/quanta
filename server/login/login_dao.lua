@@ -37,12 +37,13 @@ function LoginDao:create_account(open_id, user_id, session_token)
     return udata
 end
 
-function LoginDao:create_player(user_id, role_info)
+function LoginDao:create_player(user_id, open_id, role_info)
     local udata = {
         login_time = 0,
         online_time = 0,
         upgrade_time = 0,
         user_id = user_id,
+        open_id = open_id,
         name = role_info.name,
         model = role_info.model,
         create_time = quanta.now,

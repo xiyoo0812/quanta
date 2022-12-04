@@ -223,5 +223,4 @@ attribute:upsert({
     increase = false,
 })
 
---general md5 version
-attribute:set_version('fff099e00d147f2860e6329441ef0266')
+attribute:update()

@@ -18,29 +18,4 @@ utility:upsert({
     value = '1',
 })
 
-utility:upsert({
-    ID = 3,
-    key = 'born_map_id',
-    value = '1',
-})
-
-utility:upsert({
-    ID = 4,
-    key = 'born_pox_x',
-    value = '0',
-})
-
-utility:upsert({
-    ID = 5,
-    key = 'born_pox_y',
-    value = '1200',
-})
-
-utility:upsert({
-    ID = 6,
-    key = 'born_pox_z',
-    value = '0',
-})
-
---general md5 version
-utility:set_version('01e3660460b4545fe18137445ab133ba')
+utility:update()

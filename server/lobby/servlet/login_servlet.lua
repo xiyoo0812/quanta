@@ -117,15 +117,17 @@ function LoginServlet:rpc_player_logout(player_id)
 end
 
 function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token, gateway)
-    log_debug("[LoginServlet][rpc_player_reload] user(%s) player(%s) reload req!", user_id, player_id)
+    log_debug("[LoginServlet][rpc_player_reload] player(%s) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
         return ROLE_NOT_EXIST
     end
     if player:get_token() ~= token then
+        log_err("[LoginServlet][rpc_player_reload] player(%s) token(%s, %s) not match!", player_id, token, player:get_token())
         return ROLE_TOKEN_ERR
     end
     player:set_gateway(gateway)
+    log_debug("[LoginServlet][rpc_player_reload] player(%s) reload success!", player_id)
     update_mgr:attach_event(player_id, "on_reload_success", player)
     return FRAME_SUCCESS, player:get_passkey()
 end
