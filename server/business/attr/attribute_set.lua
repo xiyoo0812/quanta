@@ -7,9 +7,12 @@ local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
+local attr_db       = config_mgr:get_table("attribute")
+
 local AttributeSet = mixin()
 local prop = property(AttributeSet)
 prop:reader("attr_set", {})         --属性集合
+prop:reader("attr_types", {})       --属性类型
 prop:reader("sync_attrs", {})       --需要同步属性
 prop:accessor("store_attrs", {})    --需要存储属性
 prop:accessor("relay_attrs", {})    --需要转发属性
@@ -19,7 +22,6 @@ prop:accessor("wbackable", false)   --是否回写属性
 
 --委托回调
 function AttributeSet:__delegate()
-    local attr_db = config_mgr:get_table("attribute")
     for _, attr in attr_db:iterator() do
         AttributeSet["get_" .. attr.nick] = function(this)
             return this:get_attr(attr.id)
@@ -39,13 +41,14 @@ function AttributeSet:__delegate()
 end
 
 --初始化属性
-function AttributeSet:init_attrset(attr_db)
-    for _, attr in attr_db:iterator() do
+function AttributeSet:init_attrset(type_attr_db)
+    for _, attr in type_attr_db:iterator() do
         local attr_id = qenum("AttrID", attr.key)
         local attr_def = { save = attr.save, back = attr.back, range = attr.range }
         if attr.limit then
             attr_def.limit_id = qenum("AttrID", attr.limit)
         end
+        attr_def.type = attr_db:find_value("type", attr_id)
         self.attr_set[attr_id] = attr_def
     end
 end
@@ -145,11 +148,14 @@ function AttributeSet:load_db_attrs(attrs)
     end
 end
 
-function AttributeSet:encode_attr(attr_id, value)
-    if type(value) == "string" then
-        return { attr_id = attr_id, attr_s = value }
+function AttributeSet:encode_attr(attr_id, attr)
+    if attr.type == "int" then
+        return { attr_id = attr_id, attr_i = attr.value }
     end
-    return { attr_id = attr_id, attr_i = value }
+    if attr.type == "string" then
+        return { attr_id = attr_id, attr_s = attr.value }
+    end
+    return { attr_id = attr_id, attr_b = attr.value }
 end
 
 --package_attrs
@@ -157,7 +163,7 @@ function AttributeSet:package_attrs(range)
     local attrs = {}
     for attr_id, attr in pairs(self.attr_set) do
         if attr.range == range and attr.value then
-            tinsert(attrs, self:encode_attr(attr_id, attr.value))
+            tinsert(attrs, self:encode_attr(attr_id, attr))
         end
     end
     return attrs
@@ -168,7 +174,7 @@ function AttributeSet:packet_sync_attrs(range)
     local attrs = {}
     for attr_id, attr in pairs(self.sync_attrs) do
         if attr.range == range and attr.value then
-            tinsert(attrs, self:encode_attr(attr_id, attr.value))
+            tinsert(attrs, self:encode_attr(attr_id, attr))
         end
     end
     self.sync_attrs = {}

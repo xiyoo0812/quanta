@@ -55,6 +55,7 @@ function ThreadMgr:lock(key, waiting)
         if waiting then
             --等待则挂起
             local lock = SyncLock(self, key)
+            lock:set_yield(true)
             queue:push(lock)
             co_yield()
             return lock
@@ -65,12 +66,16 @@ end
 function ThreadMgr:unlock(key)
     local queue = self.syncqueue_map[key]
     if queue then
-        queue:pop()
-        if queue:empty() then
-            return
+        while true do
+            local lock = queue:pop()
+            if not lock then
+                break
+            end
+            if lock:is_yield() then
+                co_resume(lock.co)
+                return
+            end
         end
-        local lock = queue:pop()
-        co_resume(lock.co)
     end
 end
 

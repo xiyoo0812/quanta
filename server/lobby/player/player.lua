@@ -5,7 +5,6 @@ local mrandom       = qmath.random
 
 local online        = quanta.get("online")
 local login_dao     = quanta.get("login_dao")
-local router_mgr    = quanta.get("router_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
 local OFFTIMEOUT    = quanta.enum("NetwkTime", "OFFLINE_TIMEOUT")
@@ -19,11 +18,11 @@ local ONL_CLOSE     = quanta.enum("OnlineStatus", "CLOSE")
 local attr_db       = config_mgr:init_table("player_attr", "key")
 
 local Entity        = import("business/entity/entity.lua")
+local EventSet      = import("business/event/event_set.lua")
 
-local Player = class(Entity)
+local Player = class(Entity, EventSet)
 
 local prop = property(Player)
-prop:reader("sex")                  --sex
 prop:reader("user_id")              --user_id
 prop:reader("open_id")              --open_id
 prop:reader("passkey", {})          --passkey
@@ -60,14 +59,14 @@ function Player:load(conf)
     local ok, data = login_dao:load_player(self.id)
     if ok then
         self.name = data.name
-        self.sex = data.gender
-        self.model = data.model
         self.user_id = data.user_id
         self.open_id = data.open_id
         self.login_time = data.login_time
         self.create_time = data.create_time
         self.online_time = data.online_time
         self.upgrade_time = data.upgrade_time
+        self:set_gender(data.gender)
+        self:set_custom(data.custom)
         self:set_relayable(true)
         self:update_token()
     end
@@ -168,15 +167,6 @@ function Player:unload()
     local online_time = self.online_time + quanta.now - self.login_time
     self:update_time("online_time", online_time)
     return true
-end
-
---send
-function Player:send(cmd_id, data)
-    if not self.gateway then
-        log_warn("[Player][send] player(%s-%s) gateway is nil!", self.id, cmd_id)
-        return
-    end
-    router_mgr:send_target(self.gateway, "rpc_forward_client", self.id, cmd_id, data)
 end
 
 return Player

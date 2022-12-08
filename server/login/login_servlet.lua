@@ -101,7 +101,7 @@ end
 
 --创建角色
 function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
-    local user_id, name, gender, model = body.user_id, body.name, body.gender, body.model
+    local user_id, name, gender, custom = body.user_id, body.name, body.gender, body.custom
     log_debug("[LoginServlet][on_role_create_req] user(%s) name(%s) create role req!", user_id, name)
     if not session.open_id then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) need login!", user_id)
@@ -118,7 +118,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     end
     --创建角色
     local role_id = guid_new(quanta.service, quanta.index)
-    local add_role = { gender = gender, name = name, role_id = role_id, model = model }
+    local add_role = { gender = gender, name = name, role_id = role_id, custom = custom }
     if not login_dao:create_player(user_id, session.open_id, add_role) then
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
