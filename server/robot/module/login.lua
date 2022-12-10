@@ -143,11 +143,12 @@ function LoginModule:random_name_req()
 end
 
 function LoginModule:create_role_req(name)
+    local custom = { model = 101, color = 0, head = 0 }
     local req_data = {
         name = name,
         user_id = self.user_id,
-        model = mrandom(1, 2),
-        gender = mrandom(1, 2)
+        gender = mrandom(1, 2),
+        custom = protobuf_mgr:encode("ncmd_cs.rolemodel", custom)
     }
     local ok, res = self:call("NID_LOGIN_ROLE_CREATE_REQ", req_data)
     if self:check_callback(ok, res) then

@@ -102,6 +102,20 @@ player_attr:upsert({
 })
 
 player_attr:upsert({
+    key = 'ATTR_GENDER',
+    range = 1,
+    save = false,
+    back = false,
+})
+
+player_attr:upsert({
+    key = 'ATTR_CUSTOM',
+    range = 16,
+    save = false,
+    back = false,
+})
+
+player_attr:upsert({
     key = 'ATTR_ATTACK',
     range = 1,
     save = false,

@@ -868,7 +868,7 @@ return [[<html>
                                 <section class="bk-form bk-form-vertical atom-content" atom="[object Object]">
                                     <div class="form-field bk-form-item is-required">
                                         <label ng-show="protoNew" class="bk-label atom-form-label">选择协议:</label>
-                                        <select ng-show="protoNew" class="bk-form-input" ng-model="curProtocolName" ng-change="addProtoChange(curProtocolName)" ng-options="k for (k, v) in protocols"></select>
+                                        <select ng-show="protoNew" class="bk-form-input" ng-model="curProtocolName" ng-change="addProtoChange(curProtocolName)" ng-options="v.name for (k, v) in protocols | orderBy:'name' " ></select>
                                         <label class="bk-label atom-form-label">协议参数：</label>
                                         <div class="bk-form-content">
                                             <textarea id="parameter" name="parameter" ng-model="curProtocolArgs"
@@ -974,7 +974,9 @@ return [[<html>
         $http.get('/config').then(function(response) {
             console.log("config", response.data)
             $scope.servers = response.data.servers
-            $scope.protocols = response.data.accord
+            //对象转数组
+            $scope.protocols = Object.values(response.data.accord)
+            //$scope.protocols = response.data.accord
             $scope.tescases = response.data.cases
             //初始化协议序号
             for(var usecase in $scope.tescases) {

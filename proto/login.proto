@@ -61,13 +61,20 @@ message login_random_name_res
     string name                 = 2;        // 随机名字
 }
 
+//捏脸数据定义
+message rolemodel {
+    uint32 model                = 1;        // 模型ID
+    uint32 color                = 2;        // 肤色
+    uint32 head                 = 3;        // 头模ID
+}
+
 //NID_LOGIN_ROLE_CREATE_REQ
 message login_role_create_req
 {
     uint64 user_id              = 1;        // 账号id
     string name                 = 2;        // 名字
     uint32 gender               = 3;        // 性别
-    uint32 model                = 4;        // 模型ID
+    bytes custom                = 4;        // 捏脸数据，rolemodel
 }
 
 //NID_LOGIN_ROLE_CREATE_RES

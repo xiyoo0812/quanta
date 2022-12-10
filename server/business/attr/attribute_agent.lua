@@ -21,7 +21,6 @@ prop:reader("agents", {})
 function AttributeAgent:__init()
     --注册消息
     event_mgr:add_trigger(self, "on_attr_writeback")
-    event_mgr:add_trigger(self, "on_scene_changed")
     --注册rpc
     event_mgr:add_listener(self, "rpc_attr_relay")
     event_mgr:add_listener(self, "rpc_attr_setup")
@@ -40,20 +39,6 @@ function AttributeAgent:on_attr_writeback(player_id, player)
         log_err("[AttributeAgent][on_attr_writeback] writeback failed attrs=%s, player=%s, code=%s", write_attrs, player_id, code)
     end
     player:set_write_attrs({})
-end
-
---属性回写
-function AttributeAgent:on_scene_changed(player, player_id)
-    local write_attrs = {}
-    local AttrID = enum("AttrID")
-    for attr_id = AttrID.ATTR_MAP_ID, AttrID.ATTR_POS_Z do
-        write_attrs[attr_id] = player:get_attr(attr_id)
-    end
-    local lobby_id = player:find_passkey("lobby")
-    local ok, code = router_mgr:call_target(lobby_id, "rpc_attr_writeback", player_id, write_attrs, quanta.id)
-    if qfailed(code, ok) then
-        log_err("[AttributeAgent][on_scene_changed] writeback failed attr=%s, player=%s, code=%s", write_attrs, player_id, code)
-    end
 end
 
 --rpc协议

@@ -99,7 +99,7 @@ function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
         return FRAME_FAILED
     end
     --通知登陆成功
-    update_mgr:attach_event(player_id, "on_login_success", player)
+    update_mgr:attach_event(player_id, "on_login_success", player_id, player)
     log_info("[LoginServlet][rpc_player_login] player(%s) login success!", player_id)
     return FRAME_SUCCESS, passkey
 end
@@ -128,7 +128,7 @@ function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token, gatewa
     end
     player:set_gateway(gateway)
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload success!", player_id)
-    update_mgr:attach_event(player_id, "on_reload_success", player)
+    update_mgr:attach_event(player_id, "on_reload_success", player_id, player)
     return FRAME_SUCCESS, player:get_passkey()
 end
 

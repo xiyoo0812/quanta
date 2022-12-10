@@ -119,6 +119,22 @@ attribute:upsert({
 })
 
 attribute:upsert({
+    id = 15,
+    enum_key = 'ATTR_GENDER',
+    nick = 'gender',
+    type = 'int',
+    increase = false,
+})
+
+attribute:upsert({
+    id = 16,
+    enum_key = 'ATTR_CUSTOM',
+    nick = 'custom',
+    type = 'bytes',
+    increase = false,
+})
+
+attribute:upsert({
     id = 21,
     enum_key = 'ATTR_ATTACK',
     nick = 'attack',

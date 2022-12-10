@@ -60,7 +60,7 @@ end
 
 -- 发送消息
 function ReliableMsg:send_message(target_id, event, args)
-    local doc = { args = args, deal_time = 0, event = event, target_id = target_id, time = "$$CLUSTER_TIME" }
+    local doc = { args = args, deal_time = 0, event = event, target_id = target_id, time = quanta.now }
     if self.ttl then
         --设置过期ttl字段
         doc.ttl = mdate(quanta.now + self.ttl)

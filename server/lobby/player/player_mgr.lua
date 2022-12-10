@@ -58,7 +58,7 @@ end
 
 --实体被销毁
 function PlayerMgr:on_destory(player, player_id)
-    update_mgr:attach_event(player_id, "on_logout_success", player)
+    update_mgr:attach_event(player_id, "on_logout_success", player_id, player)
     self:calc_player_min()
 end
 

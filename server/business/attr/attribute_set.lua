@@ -75,24 +75,25 @@ function AttributeSet:set_attr(attr_id, value, source_id)
             --缓存修改
             self.store_attrs[attr_id] = value
         end
+        local eid = self.id
         if self:is_load_success() then
             --回写判定
             if self.wbackable and attr.back and (not source_id) then
                 self.write_attrs[attr_id] = attr.value
-                update_mgr:attach_event(self.id, "on_attr_writeback", self)
+                update_mgr:attach_event(eid, "on_attr_writeback", eid, self)
             end
             --转发判定
             if self.relayable then
                 self.relay_attrs[attr_id] = { value, source_id }
-                update_mgr:attach_event(self.id, "on_attr_relay", self)
+                update_mgr:attach_event(eid, "on_attr_relay", eid, self)
             end
             --同步属性
             if attr.range > 0 then
                 self.sync_attrs[attr_id] = attr
-                update_mgr:attach_event(self.id, "on_attr_sync", self)
+                update_mgr:attach_event(eid, "on_attr_sync", eid, self)
             end
             --通知改变
-            event_mgr:notify_trigger("on_attr_changed", self, self.id, attr_id, value)
+            event_mgr:notify_trigger("on_attr_changed", self, eid, attr_id, value)
         end
         return true
     end

@@ -5,6 +5,7 @@ local odate         = os.date
 local log_info      = logger.info
 local log_warn      = logger.warn
 local sig_check     = signal.check
+local tunpack       = table.unpack
 local collectgarbage= collectgarbage
 
 local event_mgr     = quanta.get("event_mgr")
@@ -29,6 +30,7 @@ prop:reader("minute_objs", {})
 prop:reader("second_objs", {})
 prop:reader("second5_objs", {})
 prop:reader("next_events", {})
+prop:reader("next_seconds", {})
 prop:reader("next_handlers", {})
 
 function UpdateMgr:__init()
@@ -44,13 +46,24 @@ function UpdateMgr:update_next()
     end
     self.next_handlers = {}
     for key, events in pairs(self.next_events) do
-        for event, arg in pairs(events) do
+        for event, args in pairs(events) do
             thread_mgr:fork(function()
-                event_mgr:notify_trigger(event, key, arg)
+                event_mgr:notify_trigger(event, tunpack(args))
             end)
         end
     end
     self.next_events = {}
+end
+
+function UpdateMgr:update_second()
+    for key, events in pairs(self.next_seconds) do
+        for event, args in pairs(events) do
+            thread_mgr:fork(function()
+                event_mgr:notify_trigger(event, tunpack(args))
+            end)
+        end
+    end
+    self.next_seconds = {}
 end
 
 function UpdateMgr:update(now_ms, clock_ms)
@@ -92,6 +105,7 @@ function UpdateMgr:update(now_ms, clock_ms)
             obj:on_second(clock_ms)
         end)
     end
+    self:update_second()
     --检查信号
     self:sig_check()
     --5秒更新
@@ -229,13 +243,23 @@ function UpdateMgr:attach_next(key, func)
 end
 
 --下一帧执行一个事件
-function UpdateMgr:attach_event(key, event, arg)
+function UpdateMgr:attach_event(key, event, ...)
     local events = self.next_events[key]
     if not events then
-        self.next_events[key] = {[event] = arg}
+        self.next_events[key] = { [event] = { ... } }
         return
     end
-    events[event] = arg
+    events[event] = { ... }
+end
+
+--下一秒执行一个事件
+function UpdateMgr:attach_second_event(key, event, ...)
+    local events = self.next_seconds[key]
+    if not events then
+        self.next_seconds[key] = { [event] = { ... } }
+        return
+    end
+    events[event] = { ... }
 end
 
 --添加对象到程序退出通知列表
