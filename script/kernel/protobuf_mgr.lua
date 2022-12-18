@@ -126,8 +126,11 @@ end
 function ProtobufMgr:decode(cmd_id, pb_str)
     local proto_name = self.pb_indexs[cmd_id]
     if not proto_name then
-        log_err("[ProtobufMgr][decode] find proto name failed! cmd_id:%s", cmd_id)
-        return nil
+        if type(cmd_id) ~= "string" then
+            log_err("[ProtobufMgr][decode] find proto name failed! cmd_id:%s", cmd_id)
+            return
+        end
+        proto_name = cmd_id
     end
     local ok, pb_data = pcall(pb_decode, proto_name, pb_str)
     if ok then

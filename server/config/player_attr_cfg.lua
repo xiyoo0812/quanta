@@ -116,6 +116,13 @@ player_attr:upsert({
 })
 
 player_attr:upsert({
+    key = 'ATTR_VERSION',
+    range = 0,
+    save = true,
+    back = false,
+})
+
+player_attr:upsert({
     key = 'ATTR_ATTACK',
     range = 1,
     save = false,

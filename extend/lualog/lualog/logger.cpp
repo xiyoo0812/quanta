@@ -57,6 +57,7 @@ namespace logger {
             logmsg->set_grow(true);
             return logmsg;
         }
+        std::unique_lock<spin_mutex> lock(mutex_);
         auto logmsg = alloc_messages_->front();
         alloc_messages_->pop_front();
         return logmsg;
@@ -176,15 +177,17 @@ namespace logger {
     void log_rollingfile<rolling_evaler>::write(sptr<log_message> logmsg) {
             line_++;
             if (file_ == nullptr || rolling_evaler_.eval(this, logmsg) || line_ >= max_line_) {
-                try { create_directories(log_path_); } catch (...) {}
-                for (auto entry : recursive_directory_iterator(log_path_)) {
-                    if (!entry.is_directory() && entry.path().extension().string() == ".log") {
-                        auto ftime = last_write_time(entry.path());
-                        if ((size_t)duration_cast<seconds>(file_time_type::clock::now() - ftime).count() > clean_time_) {
-                            try { remove(entry.path()); } catch (...) {}
+                create_directories(log_path_);
+                try {
+                    for (auto entry : recursive_directory_iterator(log_path_)) {
+                        if (!entry.is_directory() && entry.path().extension().string() == ".log") {
+                            auto ftime = last_write_time(entry.path());
+                            if ((size_t)duration_cast<seconds>(file_time_type::clock::now() - ftime).count() > clean_time_) {
+                                remove(entry.path());
+                            }
                         }
                     }
-                }
+                } catch (...) {}
                 create(log_path_, new_log_file_path(logmsg), logmsg->get_log_time());
                 assert(file_);
                 line_ = 0;

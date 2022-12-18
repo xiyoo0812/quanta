@@ -136,6 +136,14 @@ attribute:upsert({
 
 attribute:upsert({
     id = 21,
+    enum_key = 'ATTR_VERSION',
+    nick = 'version',
+    type = 'int',
+    increase = false,
+})
+
+attribute:upsert({
+    id = 21,
     enum_key = 'ATTR_ATTACK',
     nick = 'attack',
     type = 'int',

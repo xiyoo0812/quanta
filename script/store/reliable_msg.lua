@@ -47,7 +47,7 @@ end
 function ReliableMsg:deal_message(coll_name, target_id, timestamp)
     log_info("[ReliableMsg][deal_message] deal message: %s", target_id)
     local selecter = { ["$and"] = { { target_id = target_id }, { time = { ["$lt"] = timestamp } }}}
-    local query = { coll_name, {["$set"] = { deal_time = "$$CLUSTER_TIME" }}, selecter }
+    local query = { coll_name, {["$set"] = { deal_time = quanta.now }}, selecter }
     return mongo_agent:update(query, target_id, MSG_DBID)
 end
 
