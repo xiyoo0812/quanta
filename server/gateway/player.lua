@@ -69,7 +69,7 @@ end
 --发送消息
 function GatePlayer:send_message(cmd_id, data)
     client_mgr:send(self.session, cmd_id, data)
-    if cmd_id ~= 12105 then
+    if cmd_id ~= "NID_ENTITY_MOVE_PATH_NTF" then
         log_debug("[Gateway][send_message] player(%s) send message(%s-%s) !", self.player_id, cmd_id, data)
     end
 end

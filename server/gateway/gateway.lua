@@ -49,7 +49,6 @@ function Gateway:get_player(player_id)
     if player_id then
         return self.players[player_id]
     end
-    return nil
 end
 
 --更新网关信息
@@ -106,13 +105,17 @@ end
 function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
     log_debug("[Gateway][on_role_login_req] user(%s) player(%s) login start!", user_id, player_id)
-    if session.player_id or self:get_player(player_id) then
+    if session.player_id then
+        log_err("[Gateway][on_role_login_req] player (%s) call repeated login req",  player_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local player = GatePlayer(session, user_id, player_id)
+    local player = self:get_player(player_id)
+    if not player then
+        player = GatePlayer(session, user_id, player_id)
+    end
     local codeoe, res = player:trans_message(lobby, "rpc_player_login", user_id, player_id, token, quanta.id)
     if qfailed(codeoe) then
-        log_err("[Gateway][on_role_login_req] call rpc_player_login code %s failed: %s", codeoe, res)
+        log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, codeoe, res)
         return client_mgr:callback_errcode(session, cmd_id, codeoe, session_id)
     end
     for service_name, server_id in pairs(res) do
@@ -149,10 +152,13 @@ end
 function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
     log_debug("[Gateway][on_role_reload_req] user(%s) player(%s) reload start!", user_id, player_id)
-    if session.player_id or self:get_player(player_id) then
+    if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local player = GatePlayer(session, user_id, player_id)
+    local player = self:get_player(player_id)
+    if not player then
+        player = GatePlayer(session, user_id, player_id)
+    end
     local codeoe, res = player:trans_message(lobby, "rpc_player_reload", user_id, player_id, lobby, token, quanta.id)
     if qfailed(codeoe) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", codeoe, res)

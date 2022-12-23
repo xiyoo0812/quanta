@@ -125,6 +125,8 @@ namespace laoi {
             uint16_t minZ = max<uint16_t>(zero, lz);
             uint16_t maxX = min<uint16_t>(m_xgrid_num, rx);
             uint16_t maxZ = min<uint16_t>(m_zgrid_num, rz);
+            if (minX == maxX) maxX = minX + 1;
+            if (minZ == maxZ) maxZ = minZ + 1;
             for(uint16_t z = minZ; z < maxZ; z++) {
                 for(uint16_t x = minX; x < maxX; x++) {
                     copy(objs, m_grids[z][x]);
@@ -137,18 +139,18 @@ namespace laoi {
             int16_t offsetZ = nzgrid - ozgrid;
             if (offsetX < 0) {
                 get_rect_objects(enters, nxgrid - m_aoi_radius, oxgrid - m_aoi_radius, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
-                get_rect_objects(leaves, oxgrid + m_aoi_radius, oxgrid + m_aoi_radius + 1, ozgrid - m_aoi_radius, ozgrid + m_aoi_radius);
+                get_rect_objects(leaves, oxgrid + m_aoi_radius, oxgrid + m_aoi_radius, ozgrid - m_aoi_radius, ozgrid + m_aoi_radius);
             }
             else if (offsetX > 0){
-                get_rect_objects(enters, nxgrid + m_aoi_radius, nxgrid + m_aoi_radius + 1, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
+                get_rect_objects(enters, nxgrid + m_aoi_radius, nxgrid + m_aoi_radius, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
                 get_rect_objects(leaves, oxgrid - m_aoi_radius, nxgrid - m_aoi_radius, ozgrid - m_aoi_radius, ozgrid + m_aoi_radius);
             }
             if (offsetZ < 0) {
                 get_rect_objects(enters, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid - m_aoi_radius, ozgrid - m_aoi_radius);
-                get_rect_objects(leaves, oxgrid - m_aoi_radius, oxgrid + m_aoi_radius, ozgrid + m_aoi_radius, ozgrid + m_aoi_radius + 1);
+                get_rect_objects(leaves, oxgrid - m_aoi_radius, oxgrid + m_aoi_radius, ozgrid + m_aoi_radius, ozgrid + m_aoi_radius);
             }
             else if (offsetZ > 0){
-                get_rect_objects(enters, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid + m_aoi_radius, nzgrid + m_aoi_radius + 1);
+                get_rect_objects(enters, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid + m_aoi_radius, nzgrid + m_aoi_radius);
                 get_rect_objects(leaves, oxgrid - m_aoi_radius, oxgrid + m_aoi_radius, ozgrid - m_aoi_radius, nzgrid - m_aoi_radius);
             }
         }
