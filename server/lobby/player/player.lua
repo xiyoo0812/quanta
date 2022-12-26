@@ -161,7 +161,8 @@ function Player:offline()
     log_warn("[Player][offline] player(%s) is offline!", self.id)
 end
 
-function Player:relive()
+function Player:relive(gateway)
+    self.gateway = gateway
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
     --invoke

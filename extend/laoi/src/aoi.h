@@ -125,10 +125,8 @@ namespace laoi {
             uint16_t minZ = max<uint16_t>(zero, lz);
             uint16_t maxX = min<uint16_t>(m_xgrid_num, rx);
             uint16_t maxZ = min<uint16_t>(m_zgrid_num, rz);
-            if (minX == maxX) maxX = minX + 1;
-            if (minZ == maxZ) maxZ = minZ + 1;
-            for(uint16_t z = minZ; z < maxZ; z++) {
-                for(uint16_t x = minX; x < maxX; x++) {
+            for(uint16_t z = minZ; z <= maxZ; z++) {
+                for(uint16_t x = minX; x <= maxX; x++) {
                     copy(objs, m_grids[z][x]);
                 }
             }
@@ -138,20 +136,20 @@ namespace laoi {
             int16_t offsetX = nxgrid - oxgrid;
             int16_t offsetZ = nzgrid - ozgrid;
             if (offsetX < 0) {
-                get_rect_objects(enters, nxgrid - m_aoi_radius, oxgrid - m_aoi_radius, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
+                get_rect_objects(enters, nxgrid - m_aoi_radius, nxgrid - m_aoi_radius, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
                 get_rect_objects(leaves, oxgrid + m_aoi_radius, oxgrid + m_aoi_radius, ozgrid - m_aoi_radius, ozgrid + m_aoi_radius);
             }
             else if (offsetX > 0){
                 get_rect_objects(enters, nxgrid + m_aoi_radius, nxgrid + m_aoi_radius, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
-                get_rect_objects(leaves, oxgrid - m_aoi_radius, nxgrid - m_aoi_radius, ozgrid - m_aoi_radius, ozgrid + m_aoi_radius);
+                get_rect_objects(leaves, oxgrid - m_aoi_radius, oxgrid - m_aoi_radius, ozgrid - m_aoi_radius, ozgrid + m_aoi_radius);
             }
             if (offsetZ < 0) {
-                get_rect_objects(enters, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid - m_aoi_radius, ozgrid - m_aoi_radius);
+                get_rect_objects(enters, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid - m_aoi_radius, nzgrid - m_aoi_radius);
                 get_rect_objects(leaves, oxgrid - m_aoi_radius, oxgrid + m_aoi_radius, ozgrid + m_aoi_radius, ozgrid + m_aoi_radius);
             }
             else if (offsetZ > 0){
                 get_rect_objects(enters, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid + m_aoi_radius, nzgrid + m_aoi_radius);
-                get_rect_objects(leaves, oxgrid - m_aoi_radius, oxgrid + m_aoi_radius, ozgrid - m_aoi_radius, nzgrid - m_aoi_radius);
+                get_rect_objects(leaves, oxgrid - m_aoi_radius, oxgrid + m_aoi_radius, ozgrid - m_aoi_radius, ozgrid - m_aoi_radius);
             }
         }
 
@@ -212,7 +210,7 @@ namespace laoi {
             detach(obj);
             //消息通知
             object_set enters, leaves;
-            get_around_objects(enters, leaves, obj->grid_x,  obj->grid_z, nxgrid, nzgrid);
+            get_around_objects(enters, leaves, obj->grid_x, obj->grid_z, nxgrid, nzgrid);
             //进入视野
             for (auto cobj : enters) {
                 if (cobj->type == aoi_type::watcher) {

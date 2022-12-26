@@ -28,6 +28,7 @@ quanta.startup(function()--初始化test
     import("test/url_test.lua")
     import("test/udp_test.lua")
     import("test/tcp_test.lua")
+    import("test/worker_test.lua")
     ]]
-    import("test/log_test.lua")
+    import("test/worker_test.lua")
 end)

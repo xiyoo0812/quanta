@@ -17,6 +17,11 @@ local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
 local thread_mgr    = quanta.load("thread_mgr")
 
+local TITLE         = quanta.get_title()
+local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
+local FLAG_RES      = quanta.enum("FlagMask", "RES")
+local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+
 --初始化网络
 local function init_network()
     local lbus = require("luabus")
@@ -63,7 +68,7 @@ end
 --底层驱动
 quanta.run = function()
     if socket_mgr then
-        socket_mgr.wait(100)
+        socket_mgr.wait(50)
     end
     quanta.update()
     --系统更新
@@ -71,10 +76,19 @@ quanta.run = function()
 end
 
 --事件分发
-local function worker_rpc(session_id, rpc, ...)
+local function notify_rpc(session_id, rpc, ...)
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        quanta.callback(lencode(session_id, tunpack(rpc_datas)))
+        quanta.call(lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
+    end
+end
+
+--事件分发
+local function worker_rpc(session_id, flag, ...)
+    if flag == FLAG_REQ then
+        notify_rpc(session_id, ...)
+    else
+        thread_mgr:response(session_id, ...)
     end
 end
 
@@ -88,4 +102,16 @@ quanta.on_worker = function(slice)
     thread_mgr:fork(function()
         worker_rpc(tunpack(rpc_res, 2))
     end)
+end
+
+--访问主线程任务
+quanta.call_master = function(rpc, ...)
+    local session_id = thread_mgr:build_session_id()
+    quanta.call(lencode(session_id, FLAG_REQ, TITLE, rpc, ...))
+    return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+end
+
+--访问其他线程任务
+quanta.send_master = function(rpc, ...)
+    quanta.call(lencode(0, FLAG_REQ, "", rpc, ...))
 end

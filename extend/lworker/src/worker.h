@@ -43,7 +43,7 @@ namespace lworker {
     class worker;
     class ischeduler {
     public:
-        virtual bool callback(slice* buf) = 0;
+        virtual bool call(slice* buf) = 0;
         virtual void destory(std::string& name, std::shared_ptr<worker> workor) = 0;
     };
 
@@ -101,8 +101,9 @@ namespace lworker {
             quanta.set("logtag", fmt::format("[{}]", m_name));
             quanta.set_function("stop", [&]() { stop(); });
             quanta.set_function("update", [&]() { update(); });
+            quanta.set_function("get_title", [&]() { return m_name; });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
-            quanta.set_function("callback", [&](slice* buf) { return m_schedulor->callback(buf); });
+            quanta.set_function("call", [&](slice* buf) { return m_schedulor->call(buf); });
             m_lua->run_script(fmt::format("require '{}'", m_sandbox), [&](std::string err) {
                 printf("worker load %s failed, because: %s", m_sandbox.c_str(), err.c_str());
                 m_schedulor->destory(m_name, shared_from_this());

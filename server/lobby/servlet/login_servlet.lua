@@ -126,8 +126,7 @@ function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token, gatewa
         log_err("[LoginServlet][rpc_player_reload] player(%s) token(%s, %s) not match!", player_id, token, player:get_token())
         return ROLE_TOKEN_ERR
     end
-    player:relive()
-    player:set_gateway(gateway)
+    player:relive(gateway)
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload success!", player_id)
     update_mgr:attach_event(player_id, "on_reload_success", player_id, player)
     return FRAME_SUCCESS, player:get_passkey()

@@ -10,8 +10,11 @@ local tunpack       = table.unpack
 local lencode       = lcodec.encode_slice
 local ldecode       = lcodec.decode_slice
 
+local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
+local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
+local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -39,8 +42,30 @@ end
 --访问其他线程任务
 function Scheduler:call(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    lworker.call(name, lencode(session_id, rpc, ...))
+    lworker.call(name, lencode(session_id, FLAG_REQ, rpc, ...))
     return thread_mgr:yield(session_id, "worker_call", RPC_TIMEOUT)
+end
+
+--访问其他线程任务
+function Scheduler:send(name, rpc, ...)
+    lworker.call(name, lencode(0, FLAG_REQ, rpc, ...))
+end
+
+--事件分发
+local function notify_rpc(session_id, title, rpc, ...)
+    local rpc_datas = event_mgr:notify_listener(rpc, ...)
+    if session_id > 0 then
+        lworker.call(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
+    end
+end
+
+--事件分发
+local function scheduler_rpc(session_id, flag, ...)
+    if flag == FLAG_REQ then
+        notify_rpc(session_id, ...)
+    else
+        thread_mgr:response(session_id, ...)
+    end
 end
 
 function quanta.on_scheduler(slice)
@@ -49,7 +74,9 @@ function quanta.on_scheduler(slice)
         log_err("[Scheduler][on_scheduler] decode failed %s!", rpc_res[2])
         return
     end
-    thread_mgr:response(tunpack(rpc_res, 2))
+    thread_mgr:fork(function()
+        scheduler_rpc(tunpack(rpc_res, 2))
+    end)
 end
 
 quanta.scheduler = Scheduler()
