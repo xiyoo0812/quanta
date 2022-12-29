@@ -20,7 +20,12 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local Scheduler = singleton()
 function Scheduler:__init()
+    update_mgr:attach_quit(self)
     update_mgr:attach_frame(self)
+end
+
+function Scheduler:on_quit()
+    lworker.shutdown()
 end
 
 function Scheduler:on_frame()

@@ -51,7 +51,7 @@ function MongoDB:__init(conf)
     self.passwd = conf.passwd
     self.sock = Socket(self)
     self.cursor_id = lmongo.int64(0)
-    self:choose_mongos(conf.hosts)
+    self:choose_host(conf.hosts)
     self:set_options(conf.opts)
     --attach_second
     update_mgr:attach_hour(self)
@@ -68,7 +68,7 @@ function MongoDB:close()
     end
 end
 
-function MongoDB:choose_mongos(hosts)
+function MongoDB:choose_host(hosts)
     for host, port in pairs(hosts) do
         self.ip, self.port = host, port
         break

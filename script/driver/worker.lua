@@ -20,7 +20,7 @@ local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
 local thread_mgr    = quanta.load("thread_mgr")
 
-local TITLE         = quanta.get_title()
+local WTITLE        = quanta.worker_title
 local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
@@ -142,7 +142,7 @@ end
 --访问主线程任务
 quanta.call_master = function(rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    quanta.call(lencode(session_id, FLAG_REQ, TITLE, rpc, ...))
+    quanta.call(lencode(session_id, FLAG_REQ, WTITLE, rpc, ...))
     return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
 end
 

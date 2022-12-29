@@ -98,10 +98,10 @@ namespace lworker {
 
         void run(){
             auto quanta = m_lua->new_table(m_service.c_str());
+            quanta.set("worker_title", m_name);
             quanta.set("logtag", fmt::format("[{}]", m_name));
             quanta.set_function("stop", [&]() { stop(); });
             quanta.set_function("update", [&]() { update(); });
-            quanta.set_function("get_title", [&]() { return m_name; });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
             quanta.set_function("call", [&](slice* buf) { return m_schedulor->call(buf); });
             m_lua->run_script(fmt::format("require '{}'", m_sandbox), [&](std::string err) {

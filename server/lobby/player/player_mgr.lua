@@ -31,6 +31,7 @@ function PlayerMgr:on_hour(hour, time)
         for _, player in self.player_map:iterator() do
             player:day_update(week_flush)
         end
+        event_mgr:notify_trigger("on_day_update", week_flush)
     end
 end
 

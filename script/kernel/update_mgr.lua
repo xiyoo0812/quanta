@@ -12,9 +12,11 @@ local event_mgr     = quanta.get("event_mgr")
 local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
+local WTITLE        = quanta.worker_title
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 local SECOND_5_S    = quanta.enum("PeriodTime", "SECOND_5_S")
+local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
@@ -45,7 +47,7 @@ function UpdateMgr:update_next()
         thread_mgr:fork(handler)
     end
     self.next_handlers = {}
-    for key, events in pairs(self.next_events) do
+    for _, events in pairs(self.next_events) do
         for event, args in pairs(events) do
             thread_mgr:fork(function()
                 event_mgr:notify_trigger(event, tunpack(args))
@@ -56,7 +58,7 @@ function UpdateMgr:update_next()
 end
 
 function UpdateMgr:update_second()
-    for key, events in pairs(self.next_seconds) do
+    for _, events in pairs(self.next_seconds) do
         for event, args in pairs(events) do
             thread_mgr:fork(function()
                 event_mgr:notify_trigger(event, tunpack(args))
@@ -64,6 +66,14 @@ function UpdateMgr:update_second()
         end
     end
     self.next_seconds = {}
+    --检查文件更新
+    if HOTFIXABLE then
+        quanta.reload()
+    end
+    --检查信号
+    if not WTITLE then
+        self:check_signal()
+    end
 end
 
 function UpdateMgr:update(now_ms, clock_ms)
@@ -106,8 +116,6 @@ function UpdateMgr:update(now_ms, clock_ms)
         end)
     end
     self:update_second()
-    --检查信号
-    self:sig_check()
     --5秒更新
     if now < self.last_second then
         return
@@ -120,8 +128,6 @@ function UpdateMgr:update(now_ms, clock_ms)
     end
     --执行gc
     collectgarbage("step", 1)
-    --检查文件更新
-    quanta.reload()
     --分更新
     local time = odate("*t", now)
     if time.min == self.last_minute then
@@ -149,13 +155,13 @@ function UpdateMgr:update(now_ms, clock_ms)
     log_info("[UpdateMgr][update]now lua mem: %s!", collectgarbage("count"))
 end
 
-function UpdateMgr:sig_check()
+function UpdateMgr:check_signal()
     if sig_check() then
-        log_info("[UpdateMgr][sig_check]service quit for signal !")
+        quanta.run = nil
+        log_info("[UpdateMgr][check_signal]service quit for signal !")
         for obj in pairs(self.quit_objs) do
             obj:on_quit()
         end
-        quanta.run = nil
     end
 end
 
