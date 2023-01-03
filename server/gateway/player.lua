@@ -13,7 +13,7 @@ local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 --创建角色数据
 local GatePlayer = class()
 local prop = property(GatePlayer)
-prop:reader("session", nil)         --session
+prop:accessor("session", nil)       --session
 prop:accessor("user_id", 0)         --user_id
 prop:accessor("player_id", 0)       --player_id
 prop:accessor("lobby_id", 0)        --大厅id
