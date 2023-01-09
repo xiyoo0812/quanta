@@ -4,11 +4,15 @@ local log_debug     = logger.debug
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
+local router_mgr    = quanta.get("router_mgr")
 local config_mgr    = quanta.get("config_mgr")
+local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local utility_db    = config_mgr:init_table("utility", "key")
 local DAY_FLUSH     = utility_db:find_integer("value", "flush_day_hour")
 local WEEK_FLUSH    = utility_db:find_integer("value", "flush_week_day")
+
+local SERVER_UPHOLD = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 
 local EntityMgr     = import("business/entity/entity_mgr.lua")
 
@@ -40,6 +44,20 @@ function PlayerMgr:on_minute()
     event_mgr:notify_trigger("on_player_count", quanta.index, cur_count, self.max_count, self.min_count)
     self.min_count = cur_count
     self.max_count = cur_count
+end
+
+function PlayerMgr:kick_all()
+    for player_id, player in self:iterator() do
+        self:kick_out(player, player_id)
+    end
+end
+
+function PlayerMgr:kick_out(player, player_id)
+    local gateway = player:get_gateway()
+    if gateway then
+        router_mgr:call_target(player:get_gateway(), "rpc_kickout_client", player_id, SERVER_UPHOLD)
+    end
+    update_mgr:attach_event(player_id, "on_kickout_success", player_id, player)
 end
 
 --创建玩家

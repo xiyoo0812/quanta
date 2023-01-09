@@ -173,10 +173,10 @@ end
 function AdminMgr:exec_global_cmd(service_id, cmd_name, ...)
     local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[AdminMgr][exec_global_cmd] call_master(rpc_command_execute) failed! service_id=%s", service_id)
-        return {code = 1, msg = codeoe }
+        log_err("[AdminMgr][exec_global_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        return { code = 1, msg = codeoe }
     end
-    return {code = codeoe, msg = res}
+    return { code = codeoe, msg = res }
 end
 
 --system command
@@ -185,20 +185,20 @@ function AdminMgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
     local quanta_id = make_sid(service_id, index)
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_command_execute" , cmd_name, target_id, ...)
     if not ok then
-        log_err("[AdminMgr][exec_system_cmd] call_target(rpc_command_execute) failed! target_id=%s", target_id)
-        return {code = 1, msg = codeoe }
+        log_err("[AdminMgr][exec_system_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        return { code = 1, msg = codeoe }
     end
-    return {code = codeoe, msg = res}
+    return { code = codeoe, msg = res }
 end
 
 --service command
-function AdminMgr:exec_service_cmd(service_id, cmd_name, target_id, ...)
-    local ok, codeoe, res = router_mgr:call_hash(service_id, target_id, "rpc_command_execute" , cmd_name, target_id, ...)
+function AdminMgr:exec_service_cmd(service_id, cmd_name, ...)
+    local ok, codeoe = router_mgr:broadcast(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[AdminMgr][exec_service_cmd] call_target(rpc_command_execute) failed! target_id=%s", target_id)
-        return {code = 1, msg = codeoe }
+        log_err("[AdminMgr][exec_service_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        return { code = 1, msg = codeoe }
     end
-    return {code = codeoe, msg = res}
+    return { code = codeoe, msg = "success" }
 end
 
 --player command
@@ -206,17 +206,17 @@ function AdminMgr:exec_player_cmd(cmd_name, player_id, ...)
     if player_id == 0 then
         local ok, codeoe, res = router_mgr:call_lobby_random("rpc_command_execute", cmd_name, player_id, ...)
         if not ok then
-            log_err("[AdminMgr][exec_player_cmd] call_lobby_random(rpc_command_execute) failed! player_id=%s", player_id)
-            return {code = 1, msg = codeoe }
+            log_err("[AdminMgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+            return { code = 1, msg = codeoe }
         end
-        return {code = codeoe, msg = res}
+        return { code = codeoe, msg = res }
     end
     local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
-        log_err("[AdminMgr][exec_player_cmd] rpc_call_lobby(rpc_command_execute) failed! player_id=%s", player_id)
-        return {code = 1, msg = codeoe }
+        log_err("[AdminMgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+        return { code = 1, msg = codeoe }
     end
-    return {code = codeoe, msg = res}
+    return { code = codeoe, msg = res }
 end
 
 quanta.admin_mgr = AdminMgr()
