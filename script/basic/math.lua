@@ -32,9 +32,9 @@ function qmath.distance(x, z, nx, nz)
 end
 
 --判断距离
-function qmath.judg_dis(x, z, nx, nz, r)
+function qmath.judge_dis(x, z, nx, nz, r)
     local dx, dz = nx - x, nz - z
-    return dx * dx + dz * dz < r * r
+    return dx * dx + dz * dz <= r * r
 end
 
 --区间检查

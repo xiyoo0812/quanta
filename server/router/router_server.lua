@@ -33,12 +33,7 @@ function RouterServer:on_client_error(client, client_token, err)
     socket_mgr.map_token(client.id)
     local service = client.service
     if client.id == self.service_masters[service] then
-        local new_master = nil
-        for _, eclient in self.rpc_server:iterator() do
-            if not new_master or eclient.id < new_master.id then
-                new_master = eclient
-            end
-        end
+        local new_master = self.rpc_server:find_master()
         if new_master then
             socket_mgr.set_master(service, new_master.id)
             self.service_masters[service] = new_master.id

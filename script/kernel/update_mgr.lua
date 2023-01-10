@@ -57,7 +57,12 @@ function UpdateMgr:update_next()
     self.next_events = {}
 end
 
-function UpdateMgr:update_second()
+function UpdateMgr:update_second(clock_ms)
+    for obj in pairs(self.second_objs) do
+        thread_mgr:fork(function()
+            obj:on_second(clock_ms)
+        end)
+    end
     for _, events in pairs(self.next_seconds) do
         for event, args in pairs(events) do
             thread_mgr:fork(function()
@@ -94,7 +99,7 @@ function UpdateMgr:update(now_ms, clock_ms)
     quanta.clock_ms = clock_ms
     --更新帧逻辑
     self:update_next()
-    --快帧200ms更新
+    --快帧100ms更新
     if clock_ms < self.last_frame then
         return
     end
@@ -110,12 +115,7 @@ function UpdateMgr:update(now_ms, clock_ms)
         return
     end
     quanta.now = now
-    for obj in pairs(self.second_objs) do
-        thread_mgr:fork(function()
-            obj:on_second(clock_ms)
-        end)
-    end
-    self:update_second()
+    self:update_second(clock_ms)
     --5秒更新
     if now < self.last_second then
         return
@@ -127,7 +127,7 @@ function UpdateMgr:update(now_ms, clock_ms)
         end)
     end
     --执行gc
-    collectgarbage("step", 1)
+    collectgarbage("step", 10)
     --分更新
     local time = odate("*t", now)
     if time.min == self.last_minute then
@@ -150,8 +150,10 @@ function UpdateMgr:update(now_ms, clock_ms)
             obj:on_hour(clock_ms, cur_hour, time)
         end)
     end
-    --gc
-    collectgarbage("collect")
+    --每日4点执行一次全量更新
+    if cur_hour == 4 then
+        collectgarbage("collect")
+    end
     log_info("[UpdateMgr][update]now lua mem: %s!", collectgarbage("count"))
 end
 

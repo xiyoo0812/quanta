@@ -155,11 +155,22 @@ end
 
 --获取client
 function RpcServer:get_client_by_id(quanta_id)
-    for token, client in pairs(self.clients) do
+    for _, client in pairs(self.clients) do
         if client.id == quanta_id then
             return client
         end
     end
+end
+
+--选主
+function RpcServer:find_master()
+    local new_master = nil
+    for _, client in pairs(self.clients) do
+        if not new_master or client.id < new_master.id then
+            new_master = client
+        end
+    end
+    return new_master
 end
 
 --rpc回执
