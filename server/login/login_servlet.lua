@@ -81,6 +81,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     --加载账号信息
     local ok, udata = login_dao:load_account(open_id)
     if not ok then
+        log_err("[LoginServlet][on_account_login_req] load account failed! open_id: %s token:%s", open_id, token)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     --创建账号
@@ -120,6 +121,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     local role_id = guid_new(quanta.service, quanta.index)
     local add_role = { gender = gender, name = name, role_id = role_id, custom = custom }
     if not login_dao:create_player(user_id, session.open_id, add_role) then
+        log_err("[LoginServlet][on_role_create_req] user_id(%s) create player failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     --更新数据库
@@ -128,6 +130,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
         --失败删除角色
         login_dao:delete_player(role_id)
         self:delete_role(session, role_id)
+        log_err("[LoginServlet][on_role_create_req] user_id(%s) update account roles failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     event_mgr:notify_listener("on_role_create", user_id, add_role)
@@ -150,6 +153,7 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
     end
     local ok, adata = login_dao:load_account_status(open_id)
     if not ok then
+        log_err("[LoginServlet][on_role_choose_req] user_id(%s) load account status failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     local fok, gateway = self:find_gateway(adata)
@@ -159,6 +163,7 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
     end
     if not login_dao:update_account_status(session, gateway) then
+        log_err("[LoginServlet][on_role_choose_req] user_id(%s) update account status failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose success!", user_id, role_id)
@@ -180,9 +185,11 @@ function LoginServlet:on_role_delete_req(session, cmd_id, body, session_id)
     end
     if not login_dao:update_account_roles(user_id, session.roles) then
         session.roles[#session.roles + 1] = del_role
+        log_err("[LoginServlet][on_role_delete_req] user_id(%s) update account roles failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    if not login_dao:delete_player(role_id)  then
+    if not login_dao:delete_player(role_id) then
+        log_err("[LoginServlet][on_role_delete_req] user_id(%s) delete player failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     log_info("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete success!", user_id, role_id)
@@ -203,6 +210,7 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
     --验证token
     local ok, adata = login_dao:load_account_status(open_id)
     if not ok then
+        log_err("[LoginServlet][on_account_reload_req] open_id(%s) load account status failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     if not adata.reload_time or token ~= adata.reload_token or quanta.now > adata.reload_time then
@@ -212,6 +220,7 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
     --加载账号信息
     local lok, udata = login_dao:load_account(open_id)
     if not lok then
+        log_err("[LoginServlet][on_account_reload_req] open_id(%s) load account failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     self:save_account(session, udata)
@@ -235,6 +244,7 @@ function LoginServlet:create_account(session, open_id, token, session_id, cmd_id
     local user_id = guid_new(quanta.service, quanta.index)
     local udata = login_dao:create_account(open_id, user_id, token)
     if not udata then
+        log_err("[LoginServlet][create_account] open_id(%s) create account failed!", open_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         return
     end

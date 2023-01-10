@@ -39,6 +39,7 @@ function MonitorAgent:__init()
     event_mgr:add_listener(self, "rpc_remote_log")
     event_mgr:add_listener(self, "rpc_remote_message")
     event_mgr:add_listener(self, "rpc_service_changed")
+    event_mgr:add_listener(self, "rpc_service_hotfix")
     --心跳定时器
     update_mgr:attach_second5(self)
 end
@@ -119,6 +120,12 @@ function MonitorAgent:rpc_service_changed(service_name, readys, closes)
             listener:on_service_close(id, service_name, info)
         end
     end
+end
+
+--热更新
+function MonitorAgent:rpc_service_hotfix()
+    log_debug("[MonitorAgent][rpc_service_hotfix]")
+    quanta:reload()
 end
 
 --日志监控

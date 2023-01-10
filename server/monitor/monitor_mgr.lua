@@ -30,24 +30,25 @@ function MonitorMgr:__init()
     --创建rpc服务器
     local ip, port = env_addr("QUANTA_MONITOR_HOST")
     self.rpc_server = RpcServer(self, ip, port)
-    --创建HTTP服务器aaa
+    --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_MONITOR_HTTP"))
     server:register_get("/", "on_log_page", self)
     server:register_get("/status", "on_monitor_status", self)
     server:register_post("/command", "on_monitor_command", self)
-    self.port = server:get_port()
-    self.http_server = server
+    --初始化变量
     self.host = ip
+    self.http_server = server
+    self.port = server:get_port()
+    self.log_page = import("monitor/log_page.lua")
     --初始化定时器
     update_mgr:attach_minute(self)
     update_mgr:attach_second5(self)
-    self:on_minute()
     --注册自己
     thread_mgr:fork(function()
         nacos:modify_switchs("healthCheckEnabled", "false")
         nacos:modify_switchs("autoChangeHealthCheckEnabled", "false")
         local metadata = { region = quanta.region, group = quanta.group, id = quanta.id, name = quanta.name }
-        nacos:regi_instance(quanta.service_name, ip, self.port, nil, metadata)
+        nacos:regi_instance(quanta.service_name, self.host, self.port, nil, metadata)
     end)
 end
 
@@ -135,6 +136,11 @@ function MonitorMgr:call(token, rpc, ...)
         return {code = 1, msg = "call moniotor node failed!"}
     end
     return res
+end
+
+--broadcast_all
+function MonitorMgr:broadcast_all(rpc, ...)
+    self.rpc_server:broadcast("rpc_service_hotfix")
 end
 
 --broadcast

@@ -2,10 +2,9 @@
 import("driver/nacos.lua")
 local lcrypt        = require("lcrypt")
 
+local log_debug     = logger.debug
 local lhex_encode   = lcrypt.hex_encode
 local lrandomkey    = lcrypt.randomkey
-
-local log_debug     = logger.debug
 
 local nacos         = quanta.get("nacos")
 local timer_mgr     = quanta.get("timer_mgr")
@@ -60,7 +59,7 @@ thread_mgr:fork(function()
     local dires = nacos:del_instance("lobby2", quanta.host, 1, "quanta")
     log_debug("del_instance: lobby2-> %s", dires)
 
-    nacos:listen_config("test", nil, function(data_id, group, cvalue)
+    nacos:listen_config("test", nil, nil, function(data_id, group, md5, cvalue)
         log_debug("listen_config: test-> %s", cvalue)
     end)
 end)

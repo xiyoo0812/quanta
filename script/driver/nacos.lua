@@ -90,8 +90,8 @@ function Nacos:modify_config(data_id, content, group)
 end
 
 -- 监听配置
-function Nacos:listen_config(data_id, group, on_changed)
-    local md5 = ""
+function Nacos:listen_config(data_id, group, md5, on_changed)
+    md5 = md5 or ""
     local rgroup = group or "DEFAULT_GROUP"
     local lkey = sformat("%s_%s", data_id, rgroup)
     local headers = {["Long-Pulling-Timeout"] = LISTEN_TIMEOUT }
@@ -110,7 +110,7 @@ function Nacos:listen_config(data_id, group, on_changed)
                 local value = self:get_config(data_id, rgroup)
                 if value then
                     md5 = lmd5(value, 1)
-                    on_changed(data_id, rgroup, value)
+                    on_changed(data_id, rgroup, md5, value)
                 end
             end
             :: contione ::
