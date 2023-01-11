@@ -29,7 +29,6 @@ local prop = property(RpcServer)
 prop:reader("ip", "")                     --监听ip
 prop:reader("port", 0)                    --监听端口
 prop:reader("clients", {})
-prop:reader("kick_clients", {})
 prop:reader("listener", nil)
 prop:reader("holder", nil)                  --持有者
 
@@ -79,14 +78,11 @@ function RpcServer:on_socket_error(token, err)
     local client = self.clients[token]
     if client then
         self.clients[token] = nil
-        if self.kick_clients[token] then
-            log_warn("[RpcServer][on_socket_error] kick client close! name:%s, ip:%s", client.name, client.ip)
-            self.kick_clients[token] = nil
-            return
+        if client.id then
+            thread_mgr:fork(function()
+                self.holder:on_client_error(client, token, err)
+            end)
         end
-        thread_mgr:fork(function()
-            self.holder:on_client_error(client, token, err)
-        end)
     end
 end
 
@@ -166,8 +162,9 @@ end
 function RpcServer:find_master(service)
     local new_master = nil
     for _, client in pairs(self.clients) do
-        if service == client.service then
-            if not new_master or client.id < new_master.id then
+        local client_id = client.id
+        if service == client.service and client_id then
+            if not new_master or client_id < new_master.id then
                 new_master = client
             end
         end
@@ -191,10 +188,9 @@ function RpcServer:rpc_heartbeat(client, node)
         local client_id = node.id
         local eclient = self:get_client_by_id(client_id)
         if eclient then
-            self.kick_clients[eclient.token] = client_id
+            eclient.id = nil
             self:send(eclient, "rpc_client_kickout", quanta.id, "service replace")
             log_warn("[RpcServer][rpc_heartbeat] client(%s) be kickout, service replace!", eclient.name)
-            return
         end
         -- 通知注册
         client.id = client_id
