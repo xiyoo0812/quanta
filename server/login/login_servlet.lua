@@ -118,9 +118,9 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NAME_EXIST, session_id)
     end
     --创建角色
-    local role_id = guid_new(quanta.service, quanta.index)
-    local add_role = { gender = gender, name = name, role_id = role_id, custom = custom }
-    if not login_dao:create_player(user_id, session.open_id, add_role) then
+    local add_role = { gender = gender, name = name, custom = custom }
+    local ok, role_id = login_dao:create_player(user_id, session.open_id, add_role)
+    if not ok then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) create player failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end

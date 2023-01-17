@@ -1,4 +1,4 @@
--- mongo_test.lua
+-- rpc_test.lua
 local log_debug     = logger.debug
 
 local event_mgr     = quanta.get("event_mgr")

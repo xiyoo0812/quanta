@@ -104,6 +104,7 @@ end
 
 --心跳协议
 function Gateway:on_heartbeat_req(session, cmd_id, body, session_id)
+    log_debug("[Gateway][on_heartbeat_req] player(%s-%s)!", session.token, session.player_id)
     local player = self:get_player(session.player_id)
     if player then
         player:notify_heartbeat(session, cmd_id, body, session_id)

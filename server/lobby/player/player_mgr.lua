@@ -25,7 +25,7 @@ prop:reader("max_count", 0)
 
 function PlayerMgr:__init()
     update_mgr:attach_hour(self)
-    update_mgr:attach_minute(self)
+    update_mgr:attach_second30(self)
 end
 
 function PlayerMgr:on_hour(hour, time)
@@ -39,7 +39,7 @@ function PlayerMgr:on_hour(hour, time)
     end
 end
 
-function PlayerMgr:on_minute()
+function PlayerMgr:on_second30()
     local cur_count = self:size()
     event_mgr:notify_trigger("on_player_count", quanta.index, cur_count, self.max_count, self.min_count)
     self.min_count = cur_count

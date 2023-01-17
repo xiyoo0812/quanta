@@ -48,14 +48,20 @@ function LoginDao:create_player(user_id, open_id, role_info)
         custom = role_info.custom,
         create_time = quanta.now,
         gender = role_info.gender,
-        role_id = role_info.role_id
     }
+    local aok, acode, role_id = mongo_agent:get_autoinc_id("player")
+    if qfailed(acode, aok) then
+        log_err("[LoginDao][create_player] user_id: %s get_autoinc_id failed! code: %s, res: %s", user_id, acode, role_id)
+        return false
+    end
+    udata.role_id = role_id
+    role_info.role_id = role_id
     local ok, code, res = mongo_agent:insert({ "player", udata })
     if qfailed(code, ok) then
         log_err("[LoginDao][create_player] user_id: %s insert failed! code: %s, res: %s", user_id, code, res)
         return false
     end
-    return true
+    return true, role_id
 end
 
 function LoginDao:delete_player(role_id)

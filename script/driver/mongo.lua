@@ -199,11 +199,8 @@ end
 
 function MongoDB:on_slice_recv(slice, token)
     local reply, session_id = mreply(slice)
+    self.sessions[session_id] = nil
     local succ, doc = self:decode_reply(reply, slice)
-    if not succ then
-        thread_mgr:response(session_id, succ, doc)
-        return
-    end
     thread_mgr:response(session_id, succ, doc)
 end
 

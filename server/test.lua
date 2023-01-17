@@ -30,5 +30,5 @@ quanta.startup(function()--初始化test
     import("test/tcp_test.lua")
     import("test/worker_test.lua")
     ]]
-    import("test/worker_test.lua")
+    import("test/mongo_test.lua")
 end)

@@ -9,6 +9,8 @@ local mongo_mgr     = MongoMgr()
 local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
 
 timer_mgr:once(2000, function()
+    local acode, id = mongo_mgr:get_autoinc_id(MAIN_DBID, "player")
+    log_debug("db autoinc code: %s, id = %s", acode, id)
     local code, count = mongo_mgr:count(MAIN_DBID, "test_mongo_1", {pid = 123456})
     log_debug("db count code: %s, count = %s", code, count)
     local icode, ierr = mongo_mgr:insert(MAIN_DBID, "test_mongo_1", {pid = 123456, data = {a =1, b=2}})

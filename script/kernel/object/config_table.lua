@@ -9,6 +9,7 @@ local log_warn      = logger.warn
 local tconcat       = table.concat
 local tinsert       = table.insert
 local tunpack       = table.unpack
+local qtcopy        = qtable.copy
 local sformat       = string.format
 local tointeger     = math.tointeger
 
@@ -53,10 +54,13 @@ function ConfigTable:upsert(row)
     local row_index = self:build_index(tunpack(row_indexs))
     if row_index then
         row.version = self.version
-        if not self.rows[row_index] then
+        local raw_row = self.rows[row_index]
+        if raw_row then
+            qtcopy(row, raw_row)
+        else
             self.count = self.count + 1
+            self.rows[row_index] = row
         end
-        self.rows[row_index] = row
     end
 end
 

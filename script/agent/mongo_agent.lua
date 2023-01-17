@@ -55,6 +55,10 @@ function MongoAgent:find_and_modify(db_query, hash_key, db_id)
     return router_mgr:call_mongo_hash(hash_key or mrandom(), "rpc_mongo_find_and_modify", db_id or MAIN_DBID, tunpack(db_query))
 end
 
+function MongoAgent:get_autoinc_id(id_key, db_id)
+    return router_mgr:call_mongo_hash(mrandom(), "rpc_mongo_get_autoinc_id", db_id or MAIN_DBID, id_key)
+end
+
 --db_query: {cmd, ...}
 function MongoAgent:execute(db_query, hash_key, db_id)
     return router_mgr:call_mongo_hash(hash_key or mrandom(), "rpc_mongo_execute", db_id or MAIN_DBID, tunpack(db_query))

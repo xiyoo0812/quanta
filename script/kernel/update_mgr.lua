@@ -13,17 +13,20 @@ local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local WTITLE        = quanta.worker_title
+local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
+
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 local SECOND_5_S    = quanta.enum("PeriodTime", "SECOND_5_S")
-local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
+local SECOND_30_S   = quanta.enum("PeriodTime", "SECOND_30_S")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
 prop:reader("last_hour", 0)
 prop:reader("last_frame", 0)
 prop:reader("last_minute", 0)
-prop:reader("last_second", 0)
+prop:reader("last_second5", 0)
+prop:reader("last_second30", 0)
 prop:reader("quit_objs", {})
 prop:reader("hour_objs", {})
 prop:reader("frame_objs", {})
@@ -31,6 +34,7 @@ prop:reader("fast_objs", {})
 prop:reader("minute_objs", {})
 prop:reader("second_objs", {})
 prop:reader("second5_objs", {})
+prop:reader("second30_objs", {})
 prop:reader("next_events", {})
 prop:reader("next_seconds", {})
 prop:reader("next_handlers", {})
@@ -116,14 +120,28 @@ function UpdateMgr:update(now_ms, clock_ms)
     end
     quanta.now = now
     self:update_second(clock_ms)
+    self:update_by_time(now, clock_ms)
+end
+
+function UpdateMgr:update_by_time(now, clock_ms)
     --5秒更新
-    if now < self.last_second then
+    if now < self.last_second5 then
         return
     end
-    self.last_second = now + SECOND_5_S
+    self.last_second5 = now + SECOND_5_S
     for obj in pairs(self.second5_objs) do
         thread_mgr:fork(function()
             obj:on_second5(clock_ms)
+        end)
+    end
+    --30秒更新
+    if now < self.last_second30 then
+        return
+    end
+    self.last_second30 = now + SECOND_30_S
+    for obj in pairs(self.second30_objs) do
+        thread_mgr:fork(function()
+            obj:on_second30(clock_ms)
         end)
     end
     --执行gc
@@ -217,6 +235,19 @@ end
 
 function UpdateMgr:detach_second5(obj)
     self.second5_objs[obj] = nil
+end
+
+--添加对象到30秒更新循环
+function UpdateMgr:attach_second30(obj)
+    if not obj.on_second30 then
+        log_warn("[UpdateMgr][attach_second30] obj(%s) isn't on_second30 method!", obj)
+        return
+    end
+    self.second30_objs[obj] = true
+end
+
+function UpdateMgr:detach_second30(obj)
+    self.second30_objs[obj] = nil
 end
 
 --添加对象到帧更新循环

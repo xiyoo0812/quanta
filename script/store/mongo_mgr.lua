@@ -6,7 +6,9 @@ local event_mgr     = quanta.get("event_mgr")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local MONGO_FAILED  = quanta.enum("KernCode", "MONGO_FAILED")
 
+local AUTOINCCC     = environ.get("QUANTA_DB_AUTOINCTB")
 local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
+local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 
 local MongoMgr = singleton()
 local prop = property(MongoMgr)
@@ -25,6 +27,7 @@ function MongoMgr:__init()
     event_mgr:add_listener(self, "rpc_mongo_drop_indexes", "drop_indexes")
     event_mgr:add_listener(self, "rpc_mongo_create_indexes", "create_indexes")
     event_mgr:add_listener(self, "rpc_mongo_find_and_modify", "find_and_modify")
+    event_mgr:add_listener(self, "rpc_mongo_get_autoinc_id", "get_autoinc_id")
 end
 
 --初始化
@@ -128,6 +131,24 @@ function MongoMgr:find_and_modify(db_id, coll_name, obj, selector, upsert, field
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
+end
+
+function MongoMgr:get_autoinc_id(db_id, id_key)
+    local query = { key = id_key }
+    local fields = { autoinc_id = 1 }
+    local update = { ["$inc"] = { ["autoinc_id"] = 1 } }
+    local code, res = self:find_and_modify(db_id, AUTOINCCC, update, query, true, fields, true)
+    if code == MONGO_FAILED then
+        return MONGO_FAILED, res
+    end
+    local origin_id = res.value.autoinc_id
+    if BENCHMARK then
+        if origin_id % 2 == 0 then
+            return SUCCESS, BENCHMARK + origin_id // 2
+        end
+        return SUCCESS, BENCHMARK - origin_id // 2 - 1
+    end
+    return SUCCESS, origin_id
 end
 
 function MongoMgr:execute(db_id, cmd, ...)
