@@ -47,17 +47,12 @@ end
 
 --通知心跳
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
-    local ok, token = router_mgr:call_target(self.lobby_id, "rpc_player_heatbeat", self.player_id)
-    if ok and token then
-        for _, server_id in pairs(self.gate_services) do
-            if server_id ~= self.lobby_id then
-                router_mgr:send_target(server_id, "rpc_player_heatbeat", self.player_id)
-            end
-        end
-        local sserial = client_mgr:check_serial(session, body.serial)
-        local data_res = { serial = sserial, time = quanta.now, token = token }
-        client_mgr:callback_by_id(session, cmd_id, data_res, session_id)
+    for _, server_id in pairs(self.gate_services) do
+        router_mgr:send_target(server_id, "rpc_player_heatbeat", self.player_id)
     end
+    local sserial = client_mgr:check_serial(session, body.serial)
+    local data_res = { serial = sserial, time = quanta.now }
+    client_mgr:callback_by_id(session, cmd_id, data_res, session_id)
 end
 
 --转发消息

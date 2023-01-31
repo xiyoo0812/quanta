@@ -4,7 +4,7 @@
 uint32_t get_service_id(uint32_t node_id) { return  (node_id >> 16) & 0xff; }
 uint32_t build_node_id(uint16_t service_id, uint16_t index) { return (service_id & 0xff) << 16 | index; }
 
-void socket_router::map_token(uint32_t node_id, uint32_t token) {
+uint32_t socket_router::map_token(uint32_t node_id, uint32_t token) {
     uint32_t service_id = get_service_id(node_id);
     auto& services = m_services[service_id];
     auto& nodes = services.nodes;
@@ -12,15 +12,16 @@ void socket_router::map_token(uint32_t node_id, uint32_t token) {
     if (it != nodes.end() && it->id == node_id) {
         if (token > 0) {
             it->token = token;
-            return;
+        } else {
+            nodes.erase(it);
         }
-        nodes.erase(it);
-        return;
+        return choose_master(service_id);
     }
     service_node node;
     node.id = node_id;
     node.token = token;
     nodes.insert(it, node);
+    return choose_master(service_id);
 }
 
 void socket_router::erase(uint32_t node_id) {
@@ -30,13 +31,21 @@ void socket_router::erase(uint32_t node_id) {
     auto it = std::lower_bound(nodes.begin(), nodes.end(), node_id, [](service_node& node, uint32_t id) { return node.id < id; });
     if (it != nodes.end() && it->id == node_id) {
         nodes.erase(it);
+        choose_master(service_id);
     }
 }
 
-void socket_router::set_master(uint32_t service_id, uint32_t token) {
+uint32_t socket_router::choose_master(uint32_t service_id){
     if (service_id < m_services.size()) {
-        m_services[service_id].master = token;
+        auto& services = m_services[service_id];
+        if (services.nodes.empty()) {
+            services.master = 0;
+            return 0;
+        }
+        services.master = services.nodes.front().id;
+        return services.master;
     }
+    return 0;
 }
 
 bool socket_router::do_forward_target(router_header* header, char* data, size_t data_len) {

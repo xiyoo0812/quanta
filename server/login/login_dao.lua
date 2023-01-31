@@ -99,6 +99,8 @@ function LoginDao:update_account_status(session, info)
         lobby = info.lobby,
         login_token = info.token,
         user_id = session.user_id,
+        device_id = session.device_id,
+        reload_token = session.account_token,
         login_time = quanta.now + MINUTE_5_S
     }
     local ok, code, res = mongo_agent:update({ "account_status", udata, { open_id = open_id }, true })

@@ -17,7 +17,6 @@ local UNREACHABLE   = quanta.enum("KernCode", "RPC_UNREACHABLE")
 local RouterServer = singleton()
 local prop = property(RouterServer)
 prop:reader("rpc_server", nil)
-prop:reader("service_masters", {})
 
 function RouterServer:__init()
     local inner = environ.get("QUANTA_INNER_IP")
@@ -30,16 +29,8 @@ end
 --其他服务器节点关闭
 function RouterServer:on_client_error(client, client_token, err)
     log_info("[RouterServer][on_client_error] %s lost: %s", client.name, err)
-    socket_mgr.map_token(client.id)
-    local service = client.service
-    if client.id == self.service_masters[service] then
-        local new_master = self.rpc_server:find_master(service)
-        if new_master then
-            socket_mgr.set_master(service, new_master.id)
-            self.service_masters[service] = new_master.id
-            log_info("[RouterServer][on_socket_error] switch master --> %s", new_master.name)
-        end
-    end
+    local new_master = socket_mgr.map_token(client.id)
+    log_info("[RouterServer][on_socket_error] %s master --> %s", client.service_name, new_master)
 end
 
 --accept事件
@@ -65,14 +56,8 @@ end
 --注册服务器
 function RouterServer:on_client_register(client, node, client_id)
     log_info("[RouterServer][on_client_register] service: %s", client.name)
-    local service = client.service
-    local old_master = self.service_masters[service]
-    socket_mgr.map_token(client_id, client.token)
-    if not old_master or client_id < old_master then
-        socket_mgr.set_master(service, client_id)
-        self.service_masters[service] = client_id
-        log_info("[RouterServer][on_client_register] switch master --> %s", client.name)
-    end
+    local new_master = socket_mgr.map_token(client_id, client.token)
+    log_info("[RouterServer][on_client_register] %s master --> %s", client.service_name, new_master)
 end
 
 -- 会话信息

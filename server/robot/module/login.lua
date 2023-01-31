@@ -20,11 +20,10 @@ prop:reader("gate_ip", nil)         --gate_ip
 prop:reader("gate_port", nil)       --gate_port
 prop:reader("lobby", nil)           --lobby
 prop:reader("lobby_token", nil)     --lobby_token
-prop:reader("account_token", nil)   --account_token
-prop:reader("serial", 1)
 prop:reader("login_connect", false)
 prop:reader("lobby_connect", false)
 prop:reader("login_success", false)
+prop:reader("serial", 1)
 
 function LoginModule:__init()
 end
@@ -63,6 +62,7 @@ function LoginModule:guest_login_req()
     local req_data = {
         openid = self.open_id,
         token = self.access_token,
+        device_id = self.device_id,
         platform = PLATFORM_GUEST
     }
     local ok, res = self:call("NID_LOGIN_ACCOUNT_LOGIN_REQ", req_data)
@@ -80,7 +80,8 @@ function LoginModule:account_login_req()
     local req_data = {
         openid = self.open_id,
         session = self.access_token,
-        platform = PLATFORM_PASSWORD
+        device_id = self.device_id,
+        platform = PLATFORM_PASSWORD,
     }
     local ok, res = self:call("NID_LOGIN_ACCOUNT_LOGIN_REQ", req_data)
     if self:check_callback(ok, res) then
@@ -207,7 +208,8 @@ end
 function LoginModule:account_reload_req()
     local req_data = {
         openid = self.openid,
-        account_token = self.account_token
+        device_id = self.device_id,
+        account_token = self.access_token
     }
     local ok, res = self:call("NID_LOGIN_ACCOUNT_RELOAD_REQ", req_data)
     if self:check_callback(ok, res) then
@@ -232,6 +234,7 @@ function LoginModule:role_login_req()
         log_warn("[LoginModule][role_login_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
+    self.lobby_token = res.token
     log_debug("[LoginModule][role_login_req] robot:%s success", self:get_title())
     return true
 end
@@ -243,7 +246,6 @@ function LoginModule:role_logout_req()
         log_warn("[LoginModule][role_logout_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
-    self.account_token = res.account_token
     self.player_id = nil
     log_debug("[LoginModule][role_logout_req] robot:%s success", self:get_title())
     return true
@@ -261,6 +263,7 @@ function LoginModule:role_reload_req()
         log_warn("[LoginModule][role_reload_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false
     end
+    self.lobby_token = res.token
     log_debug("[LoginModule][role_reload_req] robot:%s success", self:get_title())
     return true
 end

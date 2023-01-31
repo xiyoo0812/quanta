@@ -66,8 +66,7 @@ namespace luabus {
             "wait", &lua_socket_mgr::wait,
             "listen", &lua_socket_mgr::listen,
             "connect", &lua_socket_mgr::connect,
-            "map_token", &lua_socket_mgr::map_token,
-            "set_master", &lua_socket_mgr::set_master
+            "map_token", &lua_socket_mgr::map_token
             );
         kit_state.new_class<lua_socket_node>(
             "ip", &lua_socket_node::m_ip,

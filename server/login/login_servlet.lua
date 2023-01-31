@@ -63,11 +63,10 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     if not _lock then
         return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
-    local device_id = "defeult"
+    local device_id = body.device_id
     if platform >= PLATFORM_PASSWORD then
         --登录验证
-        local channel_id, channel, region, language, pac_code = body.channel_id, body.channel, body.region, body.language, body.pac_code
-        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, token, channel_id, channel, region, language, pac_code)
+        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, token, body)
         local ok, code, sdk_open_id, sdk_device_id = tunpack(result)
         local login_failed, login_code = qfailed(code, ok)
         if login_failed then
@@ -93,7 +92,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_password_login] verify failed! open_id: %s", open_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
-    self:save_account(session, udata)
+    self:save_account(session, udata, device_id, token)
     event_mgr:notify_listener("on_account_login", udata.user_id, open_id, device_id)
     local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
@@ -198,7 +197,7 @@ end
 
 --账号重登
 function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
-    local open_id, token = body.openid, body.account_token
+    local open_id, token, device_id = body.openid, body.account_token, body.device_id
     log_debug("[LoginServlet][on_account_reload_req] openid(%s) token(%s) reload req!", open_id, token)
     if session.open_id then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
@@ -213,8 +212,8 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_account_reload_req] open_id(%s) load account status failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    if not adata.reload_time or token ~= adata.reload_token or quanta.now > adata.reload_time then
-        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: %s, time: %s, adata: %s", open_id, quanta.now, adata)
+    if token ~= adata.reload_token or device_id > adata.device_id then
+        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: %s, adata: %s", open_id, adata)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     --加载账号信息
@@ -223,7 +222,7 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_account_reload_req] open_id(%s) load account failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    self:save_account(session, udata)
+    self:save_account(session, udata, device_id, token)
     local callback_data = { error_code = 0, roles = udata.roles, user_id = udata.user_id }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
     log_info("[LoginServlet][on_account_reload_req] success! open_id: %s", open_id)
@@ -248,7 +247,7 @@ function LoginServlet:create_account(session, open_id, token, session_id, cmd_id
         client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         return
     end
-    self:save_account(session, udata)
+    self:save_account(session, udata, device_id, token)
     event_mgr:notify_listener("on_account_create", udata, device_id)
     local callback_data = { error_code = 0, roles = {}, user_id = user_id }
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
@@ -256,11 +255,13 @@ function LoginServlet:create_account(session, open_id, token, session_id, cmd_id
 end
 
 --保存账号
-function LoginServlet:save_account(session, udata)
+function LoginServlet:save_account(session, udata, device_id, token)
     log_debug("[LoginServlet][save_account] success! udata: %s", udata)
     session.roles = udata.roles or {}
     session.open_id = udata.open_id
     session.user_id = udata.user_id
+    session.device_id = device_id
+    session.account_token = token
 end
 
 --查询角色

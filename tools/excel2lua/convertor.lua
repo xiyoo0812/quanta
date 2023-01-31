@@ -20,7 +20,7 @@ local tsort         = table.sort
 local tconcat       = table.concat
 local tunpack       = table.unpack
 local tinsert       = table.insert
-local mfloor         = math.floor
+local mfloor        = math.floor
 local mtointeger    = math.tointeger
 local slower        = string.lower
 local ogetenv       = os.getenv
@@ -81,7 +81,17 @@ local value_func = {
         value = "'" .. value .. "'"
         return sgsub(value, "\n", "\\n")
     end,
+    ["map"] = function(value)
+        value = sgsub(value, '|', ']=')
+        value = sgsub(value, ',', ',[')
+        return '{[' .. value .. '}'
+    end,
+    ["smap"] = function(value)
+        value = sgsub(value, '|', '=')
+        return '{' .. value .. '}'
+    end,
     ["array"] = function(value)
+        value = sgsub(value, '|', ',')
         if sfind(value, '[(]') then
             -- 替换'('&')' 为 '{' & '}'
             return sgsub(value, '[(.*)]', function (s)
@@ -94,6 +104,7 @@ local value_func = {
         return '{' .. value .. '}'
     end,
     ["sarray"] = function(value)
+        value = sgsub(value, '|', ',')
         value = sgsub(value, ',', "','")
         if sfind(value, '[(]') then
             -- 替换'('&')' 为 '{' & '}'

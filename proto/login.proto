@@ -24,6 +24,7 @@ message login_account_login_req
     string openid               = 1;        // 第三方账号openid
     string session              = 2;        // 第三方账号登陆验证session
     platform_type platform      = 3;        // 平台类型
+    string device_id            = 9;        // 设备id
 }
 
 //NID_LOGIN_ACCOUNT_LOGIN_RES
@@ -39,6 +40,7 @@ message login_account_reload_req
 {
     string openid               = 1;        // 第三方账号openid
     uint32 account_token        = 2;        // account_token
+    string device_id            = 3;        // 设备id
 }
 
 //NID_LOGIN_ACCOUNT_RELOAD_RES
@@ -127,6 +129,7 @@ message login_role_login_req
 message login_role_login_res
 {
     uint32 error_code           = 1;        // 错误码
+    uint32 token                = 2;        // 重连token
 }
 
 //NID_LOGIN_ROLE_LOGOUT_REQ
@@ -139,7 +142,6 @@ message login_role_logout_req
 message login_role_logout_res
 {
     uint32 error_code           = 1;        // 错误码
-    uint32 account_token        = 2;        // 重登账号token
 }
 
 //NID_LOGIN_ROLE_RELOAD_REQ
@@ -155,6 +157,7 @@ message login_role_reload_req
 message login_role_reload_res
 {
     uint32 error_code           = 1;        // 错误码
+    uint32 token                = 2;        // 重连token
 }
 
 //NID_LOGIN_ROLE_KICKOUT_NTF

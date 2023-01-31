@@ -14,5 +14,4 @@ message heartbeat_res
 {
     uint32 serial           = 1;        // 心跳序列号
     uint32 time             = 2;        // 服务器时间
-    uint32 token            = 3;        // 重连token
 }

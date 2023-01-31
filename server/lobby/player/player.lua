@@ -1,7 +1,6 @@
 --player.lua
 local log_warn      = logger.warn
 local log_info      = logger.info
-local mrandom       = qmath.random
 local qedition      = quanta.edition
 
 local online        = quanta.get("online")
@@ -32,8 +31,7 @@ prop:reader("open_id")              --open_id
 prop:reader("passkey", {})          --passkey
 prop:reader("status", ONL_LOADING)
 prop:reader("create_time", 0)       --create_time
-prop:reader("online_time", 0)     --online_time
-prop:accessor("token", "")          --token
+prop:reader("online_time", 0)       --online_time
 prop:accessor("gateway", nil)       --gateway
 prop:accessor("login_time", 0)      --login_time
 prop:accessor("upgrade_time", 0)    --upgrade_time
@@ -72,16 +70,8 @@ function Player:load(conf)
         self:set_gender(data.gender)
         self:set_custom(data.custom)
         self:set_relayable(true)
-        self:update_token()
     end
     return ok
-end
-
---update_token
-function Player:update_token()
-    local token = mrandom()
-    self.token = token
-    return token
 end
 
 --day_update
@@ -173,7 +163,7 @@ end
 --unload
 function Player:unload()
     online:logout_player(self.id)
-    login_dao:update_account_status(self.user_id, self.token)
+    login_dao:clear_account_lobby_status(self.user_id, 0)
     --计算在线时间
     local online_time = self.online_time + quanta.now - self.login_time
     self:update_time("online_time", online_time)

@@ -143,10 +143,7 @@ function MongoMgr:get_autoinc_id(db_id, id_key)
     end
     local origin_id = res.value.autoinc_id
     if BENCHMARK then
-        if origin_id % 2 == 0 then
-            return SUCCESS, BENCHMARK + origin_id // 2
-        end
-        return SUCCESS, BENCHMARK - origin_id // 2 - 1
+        return SUCCESS, BENCHMARK + origin_id
     end
     return SUCCESS, origin_id
 end

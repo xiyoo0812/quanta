@@ -15,7 +15,6 @@ prop:reader("timeout", 0)
 prop:reader("count", 1)
 prop:reader("key", nil)
 prop:reader("co", nil)
-prop:accessor("yield", false)
 
 function SyncLock:__init(thread_mgr, key)
     self.thread_mgr = thread_mgr

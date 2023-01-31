@@ -54,7 +54,7 @@ end
 function LoginServlet:rpc_player_heatbeat(player_id)
     local player = player_mgr:get_entity(player_id)
     if player then
-        return player:get_token()
+        player:set_active_time(quanta.now_ms)
     end
 end
 
@@ -72,15 +72,15 @@ function LoginServlet:rpc_player_command(player_id, cmd_id, message)
     return tunpack(result, 2)
 end
 
-function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
+function LoginServlet:rpc_player_login(user_id, player_id, lobby, token, gateway)
     log_debug("[LoginServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login req!", user_id, player_id, token, gateway)
-    local ok, adata = login_dao:load_account_status(user_id)
+    local ok, adata, new_token = login_dao:fam_account_status(user_id)
     if not ok then
         return FRAME_FAILED
     end
     --验证token
-    if not adata or token ~= adata.login_token or quanta.now > adata.login_time then
-        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, time: %s, adata=%s", player_id, quanta.now, adata)
+    if not adata or token ~= adata.login_token or lobby ~= adata.lobby or quanta.now > adata.login_time then
+        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, token: %s, adata=%s", player_id, token, adata)
         return ROLE_TOKEN_ERR
     end
     local player = player_mgr:load_player(player_id)
@@ -101,7 +101,7 @@ function LoginServlet:rpc_player_login(user_id, player_id, token, gateway)
     --通知登陆成功
     update_mgr:attach_event(player_id, "on_login_success", player_id, player)
     log_info("[LoginServlet][rpc_player_login] player(%s) login success!", player_id)
-    return FRAME_SUCCESS, passkey
+    return FRAME_SUCCESS, passkey, new_token
 end
 
 function LoginServlet:rpc_player_logout(player_id)
@@ -110,10 +110,9 @@ function LoginServlet:rpc_player_logout(player_id)
     if not player then
         return ROLE_NOT_EXIST
     end
-    local token = player:update_token()
     player_mgr:remove_entity(player, player_id)
     log_info("[LoginServlet][rpc_player_logout] player(%s) logout success!", player_id)
-    return FRAME_SUCCESS, token
+    return FRAME_SUCCESS
 end
 
 function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token, gateway)
@@ -122,14 +121,19 @@ function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token, gatewa
     if not player then
         return ROLE_NOT_EXIST
     end
-    if player:get_token() ~= token then
-        log_err("[LoginServlet][rpc_player_reload] player(%s) token(%s, %s) not match!", player_id, token, player:get_token())
+    local ok, adata, new_token = login_dao:fam_account_status(user_id)
+    if not ok then
+        return FRAME_FAILED
+    end
+    --验证token
+    if not adata or token ~= adata.login_token or lobby ~= adata.lobby then
+        log_err("[LoginServlet][rpc_player_reload] token verify failed! player:%s, token: %s, adata=%s", player_id, token, adata)
         return ROLE_TOKEN_ERR
     end
     player:relive(gateway)
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload success!", player_id)
     update_mgr:attach_event(player_id, "on_reload_success", player_id, player)
-    return FRAME_SUCCESS, player:get_passkey()
+    return FRAME_SUCCESS, player:get_passkey(), new_token
 end
 
 quanta.login_servlet = LoginServlet()

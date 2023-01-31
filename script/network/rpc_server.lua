@@ -158,20 +158,6 @@ function RpcServer:get_client_by_id(quanta_id)
     end
 end
 
---选主
-function RpcServer:find_master(service)
-    local new_master = nil
-    for _, client in pairs(self.clients) do
-        local client_id = client.id
-        if service == client.service and client_id then
-            if not new_master or client_id < new_master.id then
-                new_master = client
-            end
-        end
-    end
-    return new_master
-end
-
 --rpc回执
 -----------------------------------------------------------------------------
 --服务器心跳协议

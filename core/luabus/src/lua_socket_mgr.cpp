@@ -42,10 +42,6 @@ luakit::variadic_results lua_socket_mgr::connect(lua_State* L, const char* ip, c
     return kit_state.as_return(stream, "ok");
 }
 
-void lua_socket_mgr::set_master(uint32_t service_id, uint32_t token) {
-    m_router->set_master(service_id, token);
-}
-
-void lua_socket_mgr::map_token(uint32_t node_id, uint32_t token) {
-    m_router->map_token(node_id, token);
+uint32_t lua_socket_mgr::map_token(uint32_t node_id, uint32_t token) {
+    return m_router->map_token(node_id, token);
 }

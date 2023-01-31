@@ -15,12 +15,14 @@ local QueueFIFO     = import("container/queue_fifo.lua")
 local SyncLock      = import("kernel/object/sync_lock.lua")
 
 local MINUTE_10_MS  = quanta.enum("PeriodTime", "MINUTE_10_MS")
+local SYNC_PERFRAME = 10
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
 prop:reader("session_id", 1)
-prop:reader("coroutine_map", {})
 prop:reader("syncqueue_map", {})
+prop:reader("coroutine_yields", {})
+prop:reader("coroutine_waitings", {})
 prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
@@ -29,57 +31,62 @@ function ThreadMgr:__init()
 end
 
 function ThreadMgr:size()
-    local co_cur_max = self.coroutine_pool:size()
-    local co_cur_size = tsize(self.coroutine_map) + 1
-    return co_cur_size, co_cur_max
+    local co_idle_size = self.coroutine_pool:size()
+    local co_yield_size = tsize(self.coroutine_yields)
+    local co_wait_size = tsize(self.coroutine_waitings)
+    return co_yield_size + co_wait_size + 1, co_idle_size
 end
 
 function ThreadMgr:lock(key, waiting)
     local queue = self.syncqueue_map[key]
     if not queue then
         queue = QueueFIFO()
+        queue.sync_num = 0
         self.syncqueue_map[key] = queue
     end
-    queue.ttl = quanta.clock_ms
+    queue.ttl = quanta.clock_ms + MINUTE_10_MS
     local head = queue:head()
     if not head then
         local lock = SyncLock(self, key)
         queue:push(lock)
         return lock
-    else
-        if head.co == co_running() then
-            --防止重入
-            head:increase()
-            return head
-        end
-        if waiting then
-            --等待则挂起
-            local lock = SyncLock(self, key)
-            lock:set_yield(true)
-            queue:push(lock)
-            co_yield()
-            return lock
-        end
+    end
+    if head.co == co_running() then
+        --防止重入
+        head:increase()
+        return head
+    end
+    if waiting then
+        --等待则挂起
+        local lock = SyncLock(self, key)
+        queue:push(lock)
+        co_yield()
+        return lock
     end
 end
 
-function ThreadMgr:unlock(key)
+function ThreadMgr:unlock(key, force)
     local queue = self.syncqueue_map[key]
     if queue then
-        while true do
-            local lock = queue:pop()
-            if not lock then
-                break
+        local head = queue:head()
+        if head.co == co_running() or force then
+            queue:pop()
+            local next = queue:head()
+            if next then
+                local sync_num = queue.sync_num
+                if sync_num < SYNC_PERFRAME then
+                    queue.sync_num = sync_num + 1
+                    co_resume(next.co)
+                    return
+                end
+                self.coroutine_waitings[next.co] = 0
             end
-            if lock:is_yield() then
-                co_resume(lock.co)
-                return
-            end
+            queue.sync_num = 0
         end
     end
 end
 
-function ThreadMgr:co_create(f)
+function ThreadMgr:create_co(f)
     local pool = self.coroutine_pool
     local co = pool:pop()
     if co == nil then
@@ -101,12 +108,12 @@ function ThreadMgr:co_create(f)
 end
 
 function ThreadMgr:response(session_id, ...)
-    local context = self.coroutine_map[session_id]
+    local context = self.coroutine_yields[session_id]
     if not context then
         log_err("[ThreadMgr][response] unknown session_id(%s) response!", session_id)
         return
     end
-    self.coroutine_map[session_id] = nil
+    self.coroutine_yields[session_id] = nil
     self:resume(context.co, ...)
 end
 
@@ -116,38 +123,54 @@ end
 
 function ThreadMgr:yield(session_id, title, ms_to, ...)
     local context = {co = co_running(), title = title, to = quanta.clock_ms + ms_to}
-    self.coroutine_map[session_id] = context
+    self.coroutine_yields[session_id] = context
     return co_yield(...)
 end
 
 function ThreadMgr:on_minute(clock_ms)
     for key, queue in pairs(self.syncqueue_map) do
-        if queue:empty() and clock_ms - queue.ttl > MINUTE_10_MS then
+        if queue:empty() and clock_ms > queue.ttl then
             self.syncqueue_map[key] = nil
         end
     end
 end
 
-function ThreadMgr:on_fast(clock_ms)
+function ThreadMgr:on_frame(clock_ms)
+    --检查协程超时
+    local timeout_coroutines = {}
+    for co, ms_to in pairs(self.coroutine_waitings) do
+        if ms_to <= clock_ms then
+            timeout_coroutines[#timeout_coroutines + 1] = co
+        end
+    end
+    --处理协程超时
+    if next(timeout_coroutines) then
+        for _, co in pairs(timeout_coroutines) do
+            self.coroutine_waitings[co] = nil
+            co_resume(co)
+        end
+    end
+end
+
+function ThreadMgr:on_second(clock_ms)
     --处理锁超时
-    for _, queue in pairs(self.syncqueue_map) do
+    for key, queue in pairs(self.syncqueue_map) do
         local head = queue:head()
         if head and head.timeout <= clock_ms then
-            head:unlock()
+            self:unlock(key, true)
         end
     end
     --检查协程超时
     local timeout_coroutines = {}
-    for session_id, context in pairs(self.coroutine_map) do
+    for session_id, context in pairs(self.coroutine_yields) do
         if context.to <= clock_ms then
-            timeout_coroutines[#timeout_coroutines + 1] = session_id
+            timeout_coroutines[session_id] = context
         end
     end
     --处理协程超时
-    for _, session_id in pairs(timeout_coroutines) do
-        local context = self.coroutine_map[session_id]
-        if context then
-            self.coroutine_map[session_id] = nil
+    if next(timeout_coroutines) then
+        for session_id, context in pairs(timeout_coroutines) do
+            self.coroutine_yields[session_id] = nil
             if context.title then
                 log_err("[ThreadMgr][on_fast] session_id(%s:%s) timeout!", session_id, context.title)
             end
@@ -160,18 +183,19 @@ function ThreadMgr:fork(f, ...)
     local n = select("#", ...)
     local co
     if n == 0 then
-        co = self:co_create(f)
+        co = self:create_co(f)
     else
         local args = { ... }
-        co = self:co_create(function() f(tunpack(args, 1, n)) end)
+        co = self:create_co(function() f(tunpack(args, 1, n)) end)
     end
     self:resume(co, ...)
     return co
 end
 
 function ThreadMgr:sleep(ms)
-    local session_id = self:build_session_id()
-    self:yield(session_id, nil, ms)
+    local co = co_running()
+    self.coroutine_waitings[co] = quanta.clock_ms + ms
+    co_yield()
 end
 
 function ThreadMgr:build_session_id()

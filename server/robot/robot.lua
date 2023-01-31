@@ -1,6 +1,7 @@
 -- robot.lua
 local qfailed       = quanta.failed
 local log_debug     = logger.debug
+local new_guid      = quanta.new_guid
 
 local QueueFIFO     = import("container/queue_fifo.lua")
 local LoginModule   = import("robot/module/login.lua")
@@ -16,9 +17,11 @@ prop:accessor("port", nil)          --port
 prop:accessor("open_id", nil)       --open_id
 prop:accessor("access_token", nil)  --open_id访问令牌
 prop:accessor("active_code", nil)   --激活码
+prop:reader("device_id", nil)       --device_id
 prop:reader("messages", nil)        --收到的消息回包
 
 function Robot:__init()
+    self.device_id = new_guid()
     self.messages = QueueFIFO()
     --注册心跳循环
     update_mgr:attach_second5(self)

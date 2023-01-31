@@ -41,9 +41,10 @@ prop:reader("next_handlers", {})
 
 function UpdateMgr:__init()
     --注册订阅
-    self:attach_fast(thread_mgr)
-    self:attach_minute(thread_mgr)
     self:attach_frame(timer_mgr)
+    self:attach_frame(thread_mgr)
+    self:attach_second(thread_mgr)
+    self:attach_minute(thread_mgr)
 end
 
 function UpdateMgr:update_next()
