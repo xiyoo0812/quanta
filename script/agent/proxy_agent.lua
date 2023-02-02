@@ -1,39 +1,83 @@
 --proxy_agent.lua
 local sformat       = string.format
+local tunpack       = table.unpack
+local send_worker   = quanta.send_worker
+local call_worker   = quanta.call_worker
 
-local scheduler     = quanta.get("scheduler")
+local WTITLE        = quanta.worker_title
+
+local event_mgr     = quanta.get("event_mgr")
+local scheduler     = quanta.load("scheduler")
 
 local ProxyAgent    = singleton()
+local prop = property(ProxyAgent)
+prop:reader("ignore_statistics", {})
 
 function ProxyAgent:__init()
-    --启动代理线程
-    scheduler:startup("proxy", "proxy")
+    if scheduler then
+        --启动代理线程
+        scheduler:startup("proxy", "worker.proxy")
+    end
+    --添加忽略的rpc统计事件
+    self:ignore_statis("rpc_heartbeat")
 end
 
 --webhook
 function ProxyAgent:fire_webhook(content, lvl_name, lvl)
     local title = sformat("%s | %s", quanta.service_name, lvl_name)
-    scheduler:send("proxy", "rpc_fire_webhook", title, content, lvl)
+    self:send("rpc_fire_webhook", title, content, lvl)
 end
 
 --http_get
 function ProxyAgent:http_get(url, querys, headers)
-    return scheduler:call("proxy", "rpc_http_get", url, querys, headers)
+    return self:call("rpc_http_get", url, querys, headers)
 end
 
 --http_post
 function ProxyAgent:http_post(url, post_data, headers, querys)
-    return scheduler:call("proxy", "rpc_http_post", url, post_data, headers, querys)
+    return self:call("rpc_http_post", url, post_data, headers, querys)
 end
 
 --http_put
 function ProxyAgent:http_put(url, put_data, headers, querys)
-    return scheduler:call("proxy", "rpc_http_put", url, put_data, headers, querys)
+    return self:call("rpc_http_put", url, put_data, headers, querys)
 end
 
 --http_del
 function ProxyAgent:http_del(url, querys, headers)
-    return scheduler:call("proxy", "rpc_http_del", url, querys, headers)
+    return self:call("rpc_http_del", url, querys, headers)
+end
+
+function ProxyAgent:ignore_statis(name)
+    self.ignore_statistics[name] = true
+end
+
+function ProxyAgent:statistics(event, name, ...)
+    if self.ignore_statistics[name] then
+        return
+    end
+    self:send(event, name, ...)
+end
+
+function ProxyAgent:send(rpc, ...)
+    if scheduler then
+        return scheduler:send("proxy", rpc, ...)
+    end
+    if WTITLE ~= "statis" then
+        return send_worker("proxy", rpc, ...)
+    end
+    event_mgr:notify_listener(rpc, ...)
+end
+
+function ProxyAgent:call(rpc, ...)
+    if scheduler then
+        return scheduler:call("proxy", rpc, ...)
+    end
+    if WTITLE ~= "statis" then
+        return call_worker("proxy", rpc, ...)
+    end
+    local rpc_datas = event_mgr:notify_listener(rpc, ...)
+    return tunpack(rpc_datas)
 end
 
 quanta.proxy_agent = ProxyAgent()

@@ -10,10 +10,10 @@ local b64_decode        = lcrypt.b64_decode
 local lz4_encode        = lcrypt.lz4_encode
 local lz4_decode        = lcrypt.lz4_decode
 
-local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
+local proxy_agent       = quanta.get("proxy_agent")
 
 local out_press         = env_status("QUANTA_OUT_PRESS")
 local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
@@ -71,7 +71,7 @@ function NetClient:connect(block)
         end
     end
     socket.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
-        event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
+        proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, type, session_id, slice)
     end
     socket.on_error = function(token, err)
@@ -177,6 +177,7 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
         log_err("[NetClient][write] call_head failed! code:%s", send_len)
         return false
     end
+    proxy_agent:statistics("on_proto_send", cmd_id, send_len)
     return true
 end
 

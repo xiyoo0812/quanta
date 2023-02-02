@@ -39,7 +39,7 @@ message login_account_login_res
 message login_account_reload_req
 {
     string openid               = 1;        // 第三方账号openid
-    uint32 account_token        = 2;        // account_token
+    string session              = 2;        // 第三方账号登陆验证session
     string device_id            = 3;        // 设备id
 }
 
@@ -47,7 +47,7 @@ message login_account_reload_req
 message login_account_reload_res
 {
     uint32 error_code           = 1;        // 错误码
-    uint64 user_id              = 2;        // 第三方账号openid
+    uint64 user_id              = 2;        // 角色账号ID
     repeated role_info roles    = 3;        // 账号角色列表
 }
 

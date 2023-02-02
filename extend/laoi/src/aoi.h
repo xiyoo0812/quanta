@@ -47,14 +47,13 @@ namespace laoi {
     class aoi
     {
     public:
-        aoi(lua_State* L, uint32_t w, uint32_t h, uint16_t glen, uint16_t aoi_len, bool offset, bool dynamic) {
+        aoi(uint32_t w, uint32_t h, uint16_t glen, uint16_t aoi_len, bool offset, bool dynamic) {
             m_grid_len = glen;
             m_dynamic = dynamic;
             m_aoi_radius = aoi_len;
             m_xgrid_num = w / glen;
             m_zgrid_num = h / glen;
             m_grids.resize(m_zgrid_num);
-            m_lua = make_shared<kit_state>(L);
             for (int i = 0; i < m_zgrid_num; ++i) {
                 m_grids[i].resize(m_xgrid_num);
                 for (int j = 0; j < m_zgrid_num; ++j) {
@@ -153,7 +152,7 @@ namespace laoi {
             }
         }
 
-        bool attach(aoi_obj* obj, int32_t x, int32_t z){
+        bool attach(lua_State* L, aoi_obj* obj, int32_t x, int32_t z){
             uint16_t nxgrid = convert_x(x, m_grid_len);
             uint16_t nzgrid = convert_z(z, m_grid_len);
             if ((nxgrid < 0) || (nxgrid >= m_xgrid_num) || (nzgrid < 0) || (nzgrid >= m_zgrid_num)) {
@@ -161,15 +160,16 @@ namespace laoi {
             }
             //查询节点
             object_set objs;
+            kit_state kit_state(L);
             get_rect_objects(objs, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
             //消息通知
             for (auto cobj : objs) {
                 if (obj == cobj) continue;
                 if (cobj->type == aoi_type::watcher) {
-                    m_lua->object_call(this, "on_enter", nullptr, std::tie(), cobj->eid, obj->eid);
+                    kit_state.object_call(this, "on_enter", nullptr, std::tie(), cobj->eid, obj->eid);
                 }
                 if (obj->type == aoi_type::watcher) {
-                    m_lua->object_call(this, "on_enter", nullptr, std::tie(), obj->eid, cobj->eid);
+                    kit_state.object_call(this, "on_enter", nullptr, std::tie(), obj->eid, cobj->eid);
                 }
             }
             //放入格子
@@ -198,7 +198,7 @@ namespace laoi {
             }
         }
 
-        uint32_t move(aoi_obj* obj, int32_t x, int32_t z) {
+        uint32_t move(lua_State* L, aoi_obj* obj, int32_t x, int32_t z) {
             uint16_t nxgrid = convert_x(x, m_grid_len);
             uint16_t nzgrid = convert_z(z, m_grid_len);
             if ((nxgrid < 0) || (nxgrid >= m_xgrid_num) || (nzgrid < 0) || (nzgrid >= m_zgrid_num)) {
@@ -209,24 +209,25 @@ namespace laoi {
             }
             detach(obj);
             //消息通知
+            kit_state kit_state(L);
             object_set enters, leaves;
             get_around_objects(enters, leaves, obj->grid_x, obj->grid_z, nxgrid, nzgrid);
             //进入视野
             for (auto cobj : enters) {
                 if (cobj->type == aoi_type::watcher) {
-                    m_lua->object_call(this, "on_enter", nullptr, std::tie(), cobj->eid, obj->eid);
+                    kit_state.object_call(this, "on_enter", nullptr, std::tie(), cobj->eid, obj->eid);
                 }
                 if (obj->type == aoi_type::watcher) {
-                    m_lua->object_call(this, "on_enter", nullptr, std::tie(), obj->eid, cobj->eid);
+                    kit_state.object_call(this, "on_enter", nullptr, std::tie(), obj->eid, cobj->eid);
                 }
             }
             //退出事视野
             for (auto cobj : leaves) {
-               if (cobj->type == aoi_type::watcher) {
-                    m_lua->object_call(this, "on_leave", nullptr, std::tie(), cobj->eid, obj->eid);
+                if (cobj->type == aoi_type::watcher) {
+                   kit_state.object_call(this, "on_leave", nullptr, std::tie(), cobj->eid, obj->eid);
                 }
                 if (obj->type == aoi_type::watcher) {
-                    m_lua->object_call(this, "on_leave", nullptr, std::tie(), obj->eid, cobj->eid);
+                    kit_state.object_call(this, "on_leave", nullptr, std::tie(), obj->eid, cobj->eid);
                 }
             }
             //插入
@@ -246,7 +247,6 @@ namespace laoi {
         //格子信息
         grid_map m_grids;           //二维数组保存将地图xy轴切割后的格子
         hotarea_map m_hotmaps = {};
-        shared_ptr<kit_state> m_lua = nullptr;
     };
 }
 

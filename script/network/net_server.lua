@@ -17,6 +17,7 @@ local lz4_decode        = lcrypt.lz4_decode
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
+local proxy_agent       = quanta.get("proxy_agent")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -86,7 +87,7 @@ function NetServer:on_socket_accept(session)
     session.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
         session.fc_packet = session.fc_packet + 1
         session.fc_bytes  = session.fc_bytes  + recv_len
-        event_mgr:notify_listener("on_proto_recv", cmd_id, recv_len)
+        proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, slice)
     end
     -- 绑定网络错误回调（断开）
@@ -118,12 +119,12 @@ function NetServer:write(session, cmd_id, data, session_id, flag)
     end
     -- call lbus
     local send_len = session.call_head(msg_id, pflag, 0, session_id, body, #body)
-    if send_len > 0 then
-        event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
-        return true
+    if send_len <= 0 then
+        log_err("[NetServer][write] call_head failed! code:%s", send_len)
+        return false
     end
-    log_err("[NetServer][write] call_head failed! code:%s", send_len)
-    return false
+    proxy_agent:statistics("on_proto_send", cmd_id, send_len)
+    return true
 end
 
 -- 广播数据
@@ -141,7 +142,7 @@ function NetServer:broadcast(cmd_id, data)
     for _, session in pairs(self.sessions) do
         local send_len = session.call_head(msg_id, pflag, 0, 0, body, #body)
         if send_len > 0 then
-            event_mgr:notify_listener("on_proto_send", cmd_id, send_len)
+            proxy_agent:statistics("on_proto_send", cmd_id, send_len)
         end
     end
     return true
@@ -299,7 +300,7 @@ function NetServer:add_session(session)
     if not self.sessions[token] then
         self.sessions[token] = session
         self.session_count = self.session_count + 1
-        event_mgr:notify_listener("on_conn_update", self.session_type, self.session_count)
+        proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
     end
 end
 
@@ -309,7 +310,7 @@ function NetServer:remove_session(token)
     if session then
         self.sessions[token] = nil
         self.session_count = self.session_count - 1
-        event_mgr:notify_listener("on_conn_update", self.session_type, self.session_count)
+        proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
         return session
     end
 end

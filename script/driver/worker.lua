@@ -33,6 +33,12 @@ local function init_network()
     quanta.socket_mgr = socket_mgr
 end
 
+--初始化统计
+local function init_statis()
+    import("agent/proxy_agent.lua")
+    import("kernel/perfeval_mgr.lua")
+end
+
 --协程改造
 local function init_coroutine()
     coroutine.yield = function(...)
@@ -74,8 +80,7 @@ function quanta.init()
     --主循环
     init_coroutine()
     init_mainloop()
-    --加载统计
-    import("kernel/statis_mgr.lua")
+    init_statis()
     --网络
     init_network()
     --加载协议
@@ -111,10 +116,10 @@ quanta.run = function()
 end
 
 --事件分发
-local function notify_rpc(session_id, rpc, ...)
+local function notify_rpc(session_id, title, rpc, ...)
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        quanta.call(lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
+        quanta.call(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
     end
 end
 
@@ -139,14 +144,26 @@ quanta.on_worker = function(slice)
     end)
 end
 
---访问主线程任务
+--访问主线程
 quanta.call_master = function(rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    quanta.call(lencode(session_id, FLAG_REQ, WTITLE, rpc, ...))
+    quanta.call("master", lencode(session_id, FLAG_REQ, WTITLE, rpc, ...))
     return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
 end
 
---访问其他线程任务
+--通知主线程
 quanta.send_master = function(rpc, ...)
-    quanta.call(lencode(0, FLAG_REQ, "", rpc, ...))
+    quanta.call("master", lencode(0, FLAG_REQ, WTITLE, rpc, ...))
+end
+
+--访问其他线程
+quanta.call_worker = function(name, rpc, ...)
+    local session_id = thread_mgr:build_session_id()
+    quanta.call(name, lencode(session_id, FLAG_REQ, WTITLE, rpc, ...))
+    return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+end
+
+--通知其他线程
+quanta.send_worker = function(name, rpc, ...)
+    quanta.call(name, lencode(0, FLAG_REQ, WTITLE, rpc, ...))
 end

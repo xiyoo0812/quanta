@@ -7,7 +7,7 @@ local env_status    = environ.status
 local lclock_ms     = ltimer.clock_ms
 
 local EvalSlot      = import("kernel/object/eval_slot.lua")
-local event_mgr     = quanta.get("event_mgr")
+local proxy_agent   = quanta.get("proxy_agent")
 
 local PerfevalMgr = singleton()
 local prop = property(PerfevalMgr)
@@ -74,7 +74,7 @@ end
 
 function PerfevalMgr:stop(eval_data)
     local clock_ms = lclock_ms()
-    event_mgr:notify_listener("on_perfeval", eval_data, clock_ms)
+    proxy_agent:statistics("on_perfeval", eval_data, clock_ms)
     self.eval_list[eval_data.co][eval_data.eval_id] = nil
 end
 

@@ -8,7 +8,6 @@ namespace lworker {
     luakit::lua_table open_lworker(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llworker = kit_state.new_table();
-
         llworker.set_function("update", []() { schedulor.update(); });
         llworker.set_function("shutdown", []() { schedulor.shutdown(); });
         llworker.set_function("setup", [](lua_State* L, std::string service, std::string sandbox) {
@@ -16,10 +15,10 @@ namespace lworker {
             return 0;
         });
         llworker.set_function("startup", [](std::string name, std::string entry) {
-            schedulor.startup(name, entry);
+            return schedulor.startup(name, entry);
         });
-        llworker.set_function("call", [](std::string name, slice* buf, size_t hash) {
-            schedulor.call(name, buf, hash);
+        llworker.set_function("call", [](std::string name, slice* buf) {
+            return schedulor.call(name, buf);
         });
         return llworker;
     }

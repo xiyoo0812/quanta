@@ -9,7 +9,7 @@ local event_mgr     = quanta.get("event_mgr")
 local timer_mgr     = quanta.get("timer_mgr")
 
 scheduler:setup("quanta")
-scheduler:startup("wtest", "wtest")
+scheduler:startup("wtest", "worker.wtest")
 
 local MaterTest = singleton()
 

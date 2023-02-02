@@ -67,22 +67,26 @@ end
 
 function ThreadMgr:unlock(key, force)
     local queue = self.syncqueue_map[key]
-    if queue then
-        local head = queue:head()
-        if head.co == co_running() or force then
-            queue:pop()
-            local next = queue:head()
-            if next then
-                local sync_num = queue.sync_num
-                if sync_num < SYNC_PERFRAME then
-                    queue.sync_num = sync_num + 1
-                    co_resume(next.co)
-                    return
-                end
-                self.coroutine_waitings[next.co] = 0
+    if not queue then
+        return
+    end
+    local head = queue:head()
+    if not head then
+        return
+    end
+    if head.co == co_running() or force then
+        queue:pop()
+        local next = queue:head()
+        if next then
+            local sync_num = queue.sync_num
+            if sync_num < SYNC_PERFRAME then
+                queue.sync_num = sync_num + 1
+                co_resume(next.co)
+                return
             end
-            queue.sync_num = 0
+            self.coroutine_waitings[next.co] = 0
         end
+        queue.sync_num = 0
     end
 end
 

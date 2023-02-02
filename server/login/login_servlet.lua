@@ -197,7 +197,7 @@ end
 
 --账号重登
 function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
-    local open_id, token, device_id = body.openid, body.account_token, body.device_id
+    local open_id, token, device_id = body.openid, body.session, body.device_id
     log_debug("[LoginServlet][on_account_reload_req] openid(%s) token(%s) reload req!", open_id, token)
     if session.open_id then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)

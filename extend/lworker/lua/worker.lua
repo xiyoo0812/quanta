@@ -44,8 +44,6 @@ function quanta.init()
     service.init()
     --主循环
     init_mainloop()
-    --加载统计
-    import("kernel/statis_mgr.lua")
     --网络
     init_network()
     --加载协议

@@ -9,8 +9,8 @@ namespace laoi {
         return new aoi_obj(id, (aoi_type)typ);
     }
 
-    static aoi* create_aoi(lua_State* L, uint32_t w, uint32_t h, uint16_t grid, uint16_t aoi_len, bool offset, bool dynamic) {
-        return new aoi(L, w, h, grid, aoi_len, offset, dynamic);
+    static aoi* create_aoi(uint32_t w, uint32_t h, uint16_t grid, uint16_t aoi_len, bool offset, bool dynamic) {
+        return new aoi(w, h, grid, aoi_len, offset, dynamic);
     }
 
     luakit::lua_table open_laoi(lua_State* L) {

@@ -60,7 +60,7 @@ function GMAgent:report_command(id)
     for _, cmd in pairs(self.command_list) do
         command_list[#command_list + 1] = cmd
     end
-    local ok, code = router_mgr:call_target(id, "rpc_register_command", command_list, quanta.id)
+    local ok, code = router_mgr:call_target(id, "rpc_register_command", command_list, quanta.service)
     if qsuccess(code, ok) then
         log_info("[GMAgent][report_command] success!")
         return true

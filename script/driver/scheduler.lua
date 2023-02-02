@@ -22,6 +22,10 @@ local Scheduler = singleton()
 function Scheduler:__init()
     update_mgr:attach_quit(self)
     update_mgr:attach_frame(self)
+    lworker.setup("quanta", environ.get("QUANTA_SANDBOX"))
+end
+
+function Scheduler:setup(service)
 end
 
 function Scheduler:on_quit()
@@ -30,10 +34,6 @@ end
 
 function Scheduler:on_frame()
     lworker.update()
-end
-
-function Scheduler:setup(service)
-    lworker.setup(service, environ.get("QUANTA_SANDBOX"))
 end
 
 function Scheduler:startup(name, entry)
@@ -47,13 +47,13 @@ end
 --访问其他线程任务
 function Scheduler:call(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    lworker.call(name, lencode(session_id, FLAG_REQ, rpc, ...))
+    lworker.call(name, lencode(session_id, FLAG_REQ, "matser", rpc, ...))
     return thread_mgr:yield(session_id, "worker_call", RPC_TIMEOUT)
 end
 
 --访问其他线程任务
 function Scheduler:send(name, rpc, ...)
-    lworker.call(name, lencode(0, FLAG_REQ, rpc, ...))
+    lworker.call(name, lencode(0, FLAG_REQ, "matser", rpc, ...))
 end
 
 --事件分发

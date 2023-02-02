@@ -60,8 +60,12 @@ end
 --初始化调度器
 local function init_scheduler()
     import("driver/scheduler.lua")
-    quanta.scheduler:setup("quanta")
+end
+
+--初始化统计
+local function init_statis()
     import("agent/proxy_agent.lua")
+    import("kernel/perfeval_mgr.lua")
 end
 
 function quanta.init()
@@ -73,15 +77,16 @@ function quanta.init()
     --主循环
     init_coroutine()
     init_mainloop()
+    if quanta.mode <= QuantaMode.TINY then
+        --加载调度器
+        init_scheduler()
+        init_statis()
+    end
     if quanta.mode <= QuantaMode.TOOL then
-        --加载统计
-        import("kernel/statis_mgr.lua")
         --加载网络
         init_network()
     end
     if quanta.mode <= QuantaMode.ROUTER then
-        --加载调度器
-        init_scheduler()
         --加载monitor
         if not environ.get("QUANTA_MONITOR_HOST") then
             import("agent/monitor_agent.lua")
