@@ -7,6 +7,7 @@ local qfailed           = quanta.failed
 local name2sid          =  service.name2sid
 
 local event_mgr         = quanta.get("event_mgr")
+local router_mgr        = quanta.get("router_mgr")
 local client_mgr        = quanta.get("client_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
@@ -129,8 +130,8 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     else
         player = GatePlayer(session, user_id, player_id)
     end
-    local codeoe, passkey, new_token = player:trans_message(lobby, "rpc_player_login", user_id, player_id, lobby, token, quanta.id)
-    if qfailed(codeoe) then
+    local ok, codeoe, passkey, new_token = router_mgr:call_target(lobby, "rpc_player_login", user_id, player_id, lobby, token, quanta.id)
+    if qfailed(codeoe, ok) then
         log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, codeoe, passkey)
         return client_mgr:callback_errcode(session, cmd_id, codeoe, session_id)
     end
@@ -141,7 +142,7 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     player:set_lobby_id(lobby)
     session.player_id = player_id
     self.players[player_id] = player
-    log_info("[Gateway][on_role_login_req] user(%s) player(%s) login success!", user_id, player_id)
+    log_info("[Gateway][on_role_login_req] user:%s player:%s, new_token:%s login success!", user_id, player_id, new_token)
     local callback_data = { error_code = codeoe, token = new_token}
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
 end
@@ -152,8 +153,8 @@ function Gateway:on_role_logout_req(session, cmd_id, body, session_id)
     log_debug("[Gateway][on_role_logout_req] player(%s) logout start!", player_id)
     local player = self:get_player(player_id)
     if player then
-        local codeoe, err = player:trans_message(player:get_lobby_id(), "rpc_player_logout", player_id)
-        if qfailed(codeoe) then
+        local ok, codeoe, err = router_mgr:call_target(player:get_lobby_id(), "rpc_player_logout", player_id)
+        if qfailed(codeoe, ok) then
             log_err("[Gateway][on_role_logout_req] call rpc_player_logout code %s failed: %s", codeoe, err)
             return client_mgr:callback_errcode(session, cmd_id, codeoe, session_id)
         end
@@ -165,8 +166,8 @@ end
 
 --玩家重登
 function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
-    local user_id, player_id, lobby, token, device_id = body.user_id, body.role_id, body.lobby, body.token, body.device_id
-    log_debug("[Gateway][on_role_reload_req] user(%s) player(%s) reload start!", user_id, player_id)
+    local user_id, player_id, lobby, token = body.user_id, body.role_id, body.lobby, body.token
+    log_debug("[Gateway][on_role_reload_req] user:%s player:%s token:%s reload start!", user_id, player_id, token)
     local player = self:get_player(player_id)
     if player then
         local osession = player:get_session()
@@ -184,8 +185,8 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local codeoe, passkey, new_token = player:trans_message(lobby, "rpc_player_reload", user_id, player_id, token, device_id, quanta.id)
-    if qfailed(codeoe) then
+    local ok, codeoe, passkey, new_token = router_mgr:call_target(lobby, "rpc_player_reload", user_id, player_id, lobby, token, quanta.id)
+    if qfailed(codeoe, ok) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", codeoe, passkey)
         return client_mgr:callback_errcode(session, cmd_id, codeoe, session_id)
     end
@@ -196,7 +197,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     player:set_lobby_id(lobby)
     session.player_id = player_id
     self.players[player_id] = player
-    log_info("[Gateway][on_role_reload_req] user(%s) player(%s) reload success!", user_id, player_id)
+    log_info("[Gateway][on_role_reload_req] user:%s player:%s new_token:%s reload success!", user_id, player_id, new_token)
     local callback_data = { error_code = codeoe, token = new_token}
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
 end

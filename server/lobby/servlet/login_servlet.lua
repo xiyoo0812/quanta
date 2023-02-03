@@ -25,7 +25,7 @@ function LoginServlet:__init()
     -- 事件监听
     event_mgr:add_listener(self, "rpc_player_sync")
     event_mgr:add_listener(self, "rpc_player_command")
-    event_mgr:add_listener(self, "rpc_player_heatbeat")
+    event_mgr:add_listener(self, "rpc_player_heartbeat")
     event_mgr:add_listener(self, "rpc_player_disconnect")
 
     event_mgr:add_listener(self, "rpc_player_login")
@@ -51,10 +51,10 @@ function LoginServlet:rpc_player_disconnect(player_id)
 end
 
 --心跳
-function LoginServlet:rpc_player_heatbeat(player_id)
+function LoginServlet:rpc_player_heartbeat(player_id)
     local player = player_mgr:get_entity(player_id)
     if player then
-        player:set_active_time(quanta.now_ms)
+        player:heartbeat()
     end
 end
 

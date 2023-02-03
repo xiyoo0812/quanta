@@ -170,4 +170,11 @@ function Player:unload()
     return true
 end
 
+--heartbeat
+function Player:heartbeat()
+    self.active_time = quanta.now_ms
+    --invoke
+    self:invoke("_heartbeat")
+end
+
 return Player

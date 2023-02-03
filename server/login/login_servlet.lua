@@ -86,7 +86,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     --创建账号
     if not udata then
         return self:create_account(session, open_id, token, session_id, cmd_id, device_id)
-     end
+    end
     --密码验证
     if platform == PLATFORM_PASSWORD and udata.token ~= token then
         log_err("[LoginServlet][on_password_login] verify failed! open_id: %s", open_id)
@@ -103,7 +103,7 @@ end
 function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     local user_id, name, gender, custom = body.user_id, body.name, body.gender, body.custom
     log_debug("[LoginServlet][on_role_create_req] user(%s) name(%s) create role req!", user_id, name)
-    if not session.open_id then
+    if not session.user_id or user_id ~= session.user_id then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) need login!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
     end
@@ -173,7 +173,7 @@ end
 function LoginServlet:on_role_delete_req(session, cmd_id, body, session_id)
     local user_id, role_id = body.user_id, body.role_id
     log_debug("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete req!", user_id, role_id)
-    if not session.open_id then
+    if not session.user_id or user_id ~= session.user_id then
         log_err("[LoginServlet][on_role_delete_req] user_id(%s) need login!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
     end
@@ -212,7 +212,7 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_account_reload_req] open_id(%s) load account status failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    if token ~= adata.reload_token or device_id > adata.device_id then
+    if token ~= adata.reload_token or device_id ~= adata.device_id then
         log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: %s, adata: %s", open_id, adata)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end

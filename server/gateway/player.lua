@@ -48,17 +48,11 @@ end
 --通知心跳
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
     for _, server_id in pairs(self.gate_services) do
-        router_mgr:send_target(server_id, "rpc_player_heatbeat", self.player_id)
+        router_mgr:send_target(server_id, "rpc_player_heartbeat", self.player_id)
     end
     local sserial = client_mgr:check_serial(session, body.serial)
     local data_res = { serial = sserial, time = quanta.now }
     client_mgr:callback_by_id(session, cmd_id, data_res, session_id)
-end
-
---转发消息
-function GatePlayer:trans_message(server_id, rpc, ...)
-    local ok, codeoe, res = router_mgr:call_target(server_id, rpc, ...)
-    return ok and codeoe or FRAME_FAILED, ok and res or codeoe
 end
 
 --发送消息
@@ -77,8 +71,8 @@ function GatePlayer:notify_command(service_type, cmd_id, body, session_id)
         client_mgr:callback_errcode(self.session, cmd_id, FRAME_FAILED, session_id)
         return
     end
-    local codeoe, res = self:trans_message(server_id, "rpc_player_command", self.player_id, cmd_id, body)
-    if qfailed(codeoe) then
+    local ok, codeoe, res = router_mgr:call_target(server_id, "rpc_player_command", self.player_id, cmd_id, body)
+    if qfailed(codeoe, ok) then
         log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", self.player_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
         return
