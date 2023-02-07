@@ -85,7 +85,7 @@ function MonitorAgent:on_quanta_quit(reason)
     -- 发个退出通知
     event_mgr:notify_trigger("on_quanta_quit", reason)
     -- 关闭会话连接
-    update_mgr:attach_next(self, function()
+    update_mgr:attach_next(function()
         log_warn("[MonitorAgent][on_quanta_quit]->service:%s", quanta.name)
         self.client:close()
         signal_quit()

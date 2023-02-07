@@ -63,7 +63,7 @@ function ProxyAgent:send(rpc, ...)
     if scheduler then
         return scheduler:send("proxy", rpc, ...)
     end
-    if WTITLE ~= "statis" then
+    if WTITLE ~= "proxy" then
         return send_worker("proxy", rpc, ...)
     end
     event_mgr:notify_listener(rpc, ...)
@@ -73,7 +73,7 @@ function ProxyAgent:call(rpc, ...)
     if scheduler then
         return scheduler:call("proxy", rpc, ...)
     end
-    if WTITLE ~= "statis" then
+    if WTITLE ~= "proxy" then
         return call_worker("proxy", rpc, ...)
     end
     local rpc_datas = event_mgr:notify_listener(rpc, ...)

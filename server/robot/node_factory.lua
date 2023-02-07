@@ -12,7 +12,7 @@ prop:accessor("nodes", {})      --nodes
 prop:accessor("factorys", {})   --factorys
 
 function NodeFactory:__init()
-    update_mgr:attach_next(self, function()
+    update_mgr:attach_next(function()
         log_info("[NodeFactory] load factorys")
         for _, factory in ipairs(self.factorys) do
             factory:load()

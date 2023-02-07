@@ -13,6 +13,8 @@ local qtcopy        = qtable.copy
 local sformat       = string.format
 local tointeger     = math.tointeger
 
+local event_mgr     = quanta.get("event_mgr")
+
 local TABLE_MAX_INDEX = 3
 
 local ConfigTable = class()
@@ -22,6 +24,7 @@ prop:reader("groups", {})
 prop:reader("count", 0)
 prop:reader("indexs", nil)
 prop:reader("group_key", nil)
+prop:reader("initial", false)
 prop:accessor("name", nil)
 
 -- 初始化一个配置表，indexs最多支持三个
@@ -152,9 +155,13 @@ end
 
 --更新分组
 function ConfigTable:update()
-    for key in pairs(self.groups) do
-        self:add_group(key, true)
+    if self.initial then
+        for key in pairs(self.groups) do
+            self:add_group(key, true)
+        end
+        event_mgr:notify_trigger(sformat("on_cfg_%s_changed", self.name))
     end
+    self.initial = true
 end
 
 -- 获取所有项，参数{field1=val1,field2=val2,field3=val3}，与初始化index无关

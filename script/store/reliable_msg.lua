@@ -46,7 +46,7 @@ end
 -- 设置信息为已处理
 function ReliableMsg:deal_message(coll_name, target_id, timestamp)
     log_info("[ReliableMsg][deal_message] deal message: %s", target_id)
-    local selecter = { ["$and"] = { { target_id = target_id }, { time = { ["$lt"] = timestamp } }}}
+    local selecter = { ["$and"] = { { target_id = target_id }, { time = { ["$lte"] = timestamp } }}}
     local query = { coll_name, {["$set"] = { deal_time = quanta.now }}, selecter }
     return mongo_agent:update(query, target_id, MSG_DBID)
 end
@@ -54,7 +54,7 @@ end
 -- 删除消息
 function ReliableMsg:delete_message(coll_name, target_id, timestamp)
     log_info("[ReliableMsg][delete_message] delete message: %s", target_id)
-    local selecter = { ["$and"] = { { target_id = target_id }, { time = {["$lt"] = timestamp } }}}
+    local selecter = { ["$and"] = { { target_id = target_id }, { time = {["$lte"] = timestamp } }}}
     return mongo_agent:delete({ coll_name, selecter }, target_id, MSG_DBID)
 end
 

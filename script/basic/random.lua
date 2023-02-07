@@ -13,6 +13,10 @@ prop:reader("stand_alone", false)   --是否独立随机
 function Random:__init()
 end
 
+function Random:size()
+    return #self.childs
+end
+
 --轮盘随机添加子对象
 --excl：命中后是否淘汰，可以用于控制保底策略
 function Random:add_alone(obj, rate)

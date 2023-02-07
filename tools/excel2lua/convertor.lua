@@ -53,6 +53,14 @@ local function conv_number(v)
     return mtointeger(v) or tonumber(v) or v
 end
 
+local function tsize(t)
+    local c = 0
+    for _ in pairs(t or {}) do
+        c = c + 1
+    end
+    return c
+end
+
 --28800 => 3600 * 8
 --86400 => 3600 * 24
 --25569 => 1970.1.1 0:0:0
@@ -282,8 +290,7 @@ local function export_records_to_table(output, title, records)
     print(sformat("export %s success!", filename))
 end
 
---导出到lua table
-local function export_sheet_to_table(sheet, output, title)
+local function find_sheet_data_struct(sheet)
     local header = {}
     local field_type = {}
     local head_line = start_line - 1
@@ -292,6 +299,17 @@ local function export_sheet_to_table(sheet, output, title)
         field_type[col] = get_sheet_value(sheet, type_line, col)
         -- 读取第四行作为表头
         header[col] = get_sheet_value(sheet, head_line, col)
+    end
+    return header, field_type
+end
+
+--导出到lua table
+local function export_sheet_to_table(sheet, output, fullname, title)
+    local header, field_type = find_sheet_data_struct(sheet)
+    if tsize(field_type) == 1 then
+        --未定义数据定义，不导出此sheet
+        print(sformat("export excel %s sheet %s not need export!", fullname, title))
+        return
     end
     --定位起始行
     local read_len = start_line
@@ -377,7 +395,7 @@ local function export_excel(input, output)
                     print(sformat("export excel %s sheet %s empty!", fullname, title))
                     goto next
                 end
-                export_sheet_to_table(sheet, output, title)
+                export_sheet_to_table(sheet, output, fullname, title)
                 :: next ::
             end
         end

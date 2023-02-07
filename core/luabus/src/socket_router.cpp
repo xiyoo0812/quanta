@@ -39,11 +39,11 @@ uint32_t socket_router::choose_master(uint32_t service_id){
     if (service_id < m_services.size()) {
         auto& services = m_services[service_id];
         if (services.nodes.empty()) {
-            services.master = 0;
+            memset(&services.master, 0, sizeof(service_node));
             return 0;
         }
-        services.master = services.nodes.front().id;
-        return services.master;
+        services.master = services.nodes.front();
+        return services.master.id;
     }
     return 0;
 }
@@ -67,7 +67,7 @@ bool socket_router::do_forward_target(router_header* header, char* data, size_t 
 
 bool socket_router::do_forward_master(router_header* header, char* data, size_t data_len) {
 	uint16_t service_id = (uint16_t)header->target_id;
-    auto token = m_services[service_id].master;
+    auto token = m_services[service_id].master.token;
     if (token == 0)
 		return false;
 

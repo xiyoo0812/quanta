@@ -47,13 +47,13 @@ end
 --访问其他线程任务
 function Scheduler:call(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    lworker.call(name, lencode(session_id, FLAG_REQ, "matser", rpc, ...))
+    lworker.call(name, lencode(session_id, FLAG_REQ, "master", rpc, ...))
     return thread_mgr:yield(session_id, "worker_call", RPC_TIMEOUT)
 end
 
 --访问其他线程任务
 function Scheduler:send(name, rpc, ...)
-    lworker.call(name, lencode(0, FLAG_REQ, "matser", rpc, ...))
+    lworker.call(name, lencode(0, FLAG_REQ, "master", rpc, ...))
 end
 
 --事件分发

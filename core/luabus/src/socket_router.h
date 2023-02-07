@@ -33,7 +33,7 @@ struct router_header {
 #pragma pack()
 
 struct service_list {
-    uint32_t master = 0;
+    service_node master;
     std::vector<service_node> nodes;
 };
 
