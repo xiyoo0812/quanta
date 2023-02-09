@@ -69,6 +69,7 @@ function RobotMgr:create_robot_bt(ip, port, conf, index)
     end
     robot:set_ip(ip)
     robot:set_port(port)
+    robot:set_device_id(guid_string())
     robot:set_access_token(conf.access_token)
 
     thread_mgr:fork(function()

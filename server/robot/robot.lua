@@ -1,13 +1,11 @@
 -- robot.lua
 local qfailed       = quanta.failed
 local log_debug     = logger.debug
-local new_guid      = quanta.new_guid
 
 local QueueFIFO     = import("container/queue_fifo.lua")
 local LoginModule   = import("robot/module/login.lua")
 local SessionModule = import("robot/module/session.lua")
 
-local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local Robot = class(nil, SessionModule, LoginModule)
@@ -21,15 +19,16 @@ prop:reader("device_id", nil)       --device_id
 prop:reader("messages", nil)        --收到的消息回包
 
 function Robot:__init()
-    self.device_id = new_guid()
     self.messages = QueueFIFO()
     --注册心跳循环
     update_mgr:attach_second5(self)
-    event_mgr:add_listener(self, "on_server_message")
 end
 
 --检查错误码
 function Robot:check_callback(ok, res)
+    if not res then
+        return ok
+    end
     if qfailed(res.error_code, ok) then
         return true
     end
@@ -45,7 +44,7 @@ function Robot:on_second5()
     self:send_heartbeat()
 end
 
-function Robot:on_server_message(cmd_id, msg)
+function Robot:push_message(cmd_id, msg)
     log_debug("recv server msg:%d %s",cmd_id, msg)
     msg.cmd_id = cmd_id
     self.messages:push(msg)

@@ -25,10 +25,11 @@ end
 --转发消息给gateway
 function EventSet:send(cmd_id, data)
     if not self.gateway then
-        log_warn("[EventSet][send] player(%s-%s) gateway is nil!", self.id, cmd_id)
         return
     end
-    router_mgr:send_target(self.gateway, "rpc_forward_client", self.id, cmd_id, data)
+    if self.load_success then
+        router_mgr:send_target(self.gateway, "rpc_forward_client", self.id, cmd_id, data)
+    end
 end
 
 --转发消息给target

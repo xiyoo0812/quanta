@@ -51,7 +51,7 @@ function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
         router_mgr:send_target(server_id, "rpc_player_heartbeat", self.player_id)
     end
     local sserial = client_mgr:check_serial(session, body.serial)
-    local data_res = { serial = sserial, time = quanta.now }
+    local data_res = { serial = sserial, time = quanta.now_ms }
     client_mgr:callback_by_id(session, cmd_id, data_res, session_id)
 end
 

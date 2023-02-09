@@ -2,31 +2,33 @@
 import("basic/cmdline.lua")
 import("agent/online_agent.lua")
 
-local ljson         = require("lcjson")
-local lcodec        = require("lcodec")
-local HttpServer    = import("network/http_server.lua")
+local ljson             = require("lcjson")
+local lcodec            = require("lcodec")
+local HttpServer        = import("network/http_server.lua")
 
-local log_err       = logger.err
-local log_debug     = logger.debug
-local env_get       = environ.get
-local sformat       = string.format
-local tunpack       = table.unpack
-local tinsert       = table.insert
-local make_sid      = service.make_sid
-local jdecode       = ljson.decode
-local guid_index    = lcodec.guid_index
+local log_err           = logger.err
+local log_debug         = logger.debug
+local env_get           = environ.get
+local sformat           = string.format
+local tunpack           = table.unpack
+local tinsert           = table.insert
+local make_sid          = service.make_sid
+local jdecode           = ljson.decode
+local guid_index        = lcodec.guid_index
 
-local online        = quanta.get("online")
-local cmdline       = quanta.get("cmdline")
-local monitor       = quanta.get("monitor")
-local event_mgr     = quanta.get("event_mgr")
-local update_mgr    = quanta.get("update_mgr")
-local router_mgr    = quanta.get("router_mgr")
+local online            = quanta.get("online")
+local cmdline           = quanta.get("cmdline")
+local monitor           = quanta.get("monitor")
+local event_mgr         = quanta.get("event_mgr")
+local update_mgr        = quanta.get("update_mgr")
+local router_mgr        = quanta.get("router_mgr")
 
-local GLOBAL        = quanta.enum("GMType", "GLOBAL")
-local SYSTEM        = quanta.enum("GMType", "SYSTEM")
-local SERVICE       = quanta.enum("GMType", "SERVICE")
-local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local GLOBAL            = quanta.enum("GMType", "GLOBAL")
+local SYSTEM            = quanta.enum("GMType", "SYSTEM")
+local SERVICE           = quanta.enum("GMType", "SERVICE")
+local OFFLINE           = quanta.enum("GMType", "OFFLINE")
+local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
+local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 
 local AdminMgr = singleton()
 local prop = property(AdminMgr)
@@ -49,6 +51,7 @@ function AdminMgr:__init()
     server:register_get("/monitors", "on_monitors", self)
     server:register_post("/command", "on_command", self)
     server:register_post("/message", "on_message", self)
+    server:register_get("/messagelist", "on_messagelist", self)
     service.make_node(server:get_port())
     self.http_server = server
     --关注monitor
@@ -57,6 +60,16 @@ function AdminMgr:__init()
     --定时更新
     update_mgr:attach_minute(self)
     self:on_minute()
+end
+
+--外部注册post请求
+function AdminMgr:register_post(url, handler, target)
+    self.http_server:register_post(url, handler, target)
+end
+
+--外部注册get请求
+function AdminMgr:register_get(url, handler, target)
+    self.http_server:register_get(url, handler, target)
 end
 
 --定时更新
@@ -113,6 +126,11 @@ function AdminMgr:on_gmlist(url, body, request)
     return { text = "GM指令", nodes = cmdline:get_displays() }
 end
 
+--JSON接口列表
+function AdminMgr:on_messagelist(url, body, request)
+    return { text = "JSON指令", nodes = cmdline:get_displays() }
+end
+
 --monitor拉取
 function AdminMgr:on_monitors(url, body, request)
     log_debug("[AdminMgr][on_monitors] body: %s", body)
@@ -138,13 +156,25 @@ function AdminMgr:on_message(url, body, request)
 end
 
 -------------------------------------------------------------------------
+--参数分发预处理
+function AdminMgr:dispatch_pre_command(fmtargs)
+    local result = event_mgr:notify_listener("on_admin_command", fmtargs.name, fmtargs.args)
+    local _, status_ok, args = tunpack(result)
+    --无额外处理
+    if not status_ok then
+        return self:dispatch_command(fmtargs.args, fmtargs.type, fmtargs.service)
+    end
+
+    return self:dispatch_command(args, fmtargs.type, fmtargs.service)
+end
+
 --后台GM执行，字符串格式
 function AdminMgr:exec_command(command)
     local fmtargs, err = cmdline:parser_command(command)
     if not fmtargs then
         return { code = 1, msg = err }
     end
-    return self:dispatch_command(fmtargs.args, fmtargs.type, fmtargs.service)
+    return self:dispatch_pre_command(fmtargs)
 end
 
 --后台GM执行，table格式
@@ -154,7 +184,7 @@ function AdminMgr:exec_message(message)
     if not fmtargs then
         return { code = 1, msg = err }
     end
-    return self:dispatch_command(fmtargs.args, fmtargs.type, fmtargs.service)
+    return self:dispatch_pre_command(fmtargs)
 end
 
 --分发command
@@ -165,6 +195,8 @@ function AdminMgr:dispatch_command(cmd_args, gm_type, service)
         return self:exec_system_cmd(service, tunpack(cmd_args))
     elseif gm_type == SERVICE then
         return self:exec_service_cmd(service, tunpack(cmd_args))
+    elseif gm_type == OFFLINE then
+        return self:exec_offline_cmd(tunpack(cmd_args))
     end
     return self:exec_player_cmd(tunpack(cmd_args))
 end
@@ -173,7 +205,7 @@ end
 function AdminMgr:exec_global_cmd(service_id, cmd_name, ...)
     local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[AdminMgr][exec_global_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        log_err("[AdminMgr][exec_global_cmd] rpc_command_execute failed! service_id:%s, cmd_name=%s", service_id, cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
@@ -199,6 +231,25 @@ function AdminMgr:exec_service_cmd(service_id, cmd_name, ...)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = "success" }
+end
+
+--兼容在线和离线的玩家指令
+function AdminMgr:exec_offline_cmd(cmd_name, player_id, ...)
+    log_debug("[AdminMgr][exec_offline_cmd] cmd_name:%s player_id:%s", cmd_name, player_id)
+    local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
+    if not ok then
+        log_err("[AdminMgr][exec_offline_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+        return { code = 1, msg = codeoe }
+    end
+    if codeoe == PLAYER_NOT_EXIST then
+        ok, codeoe, res = router_mgr:call_lobby_hash(player_id, "rpc_command_execute", cmd_name, player_id, ...)
+        if not ok then
+            log_err("[AdminMgr][exec_offline_cmd] rpc_command_execute failed! player_id:%s, cmd_name=%s", player_id, cmd_name)
+            return { code = 1, msg = codeoe }
+        end
+        return { code = codeoe, msg = res }
+    end
+    return { code = codeoe, msg = res }
 end
 
 --player command

@@ -2,7 +2,7 @@
 local log_warn      = logger.warn
 local log_debug     = logger.debug
 local tunpack       = table.unpack
-local event_mgr     = quanta.get("event_mgr")
+
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 local NetClient     = import("network/net_client.lua")
 
@@ -41,7 +41,7 @@ end
 
 -- ntf消息回调
 function SessionModule:on_socket_rpc(client, cmd_id, body)
-    event_mgr:notify_listener("on_server_message", cmd_id, body)
+    self:push_message(cmd_id, body)
     local doer = self.cmd_doers[cmd_id]
     if not doer then
         log_warn("[SessionModule][on_socket_rpc] cmd %s hasn't register doer!, msg=%s", cmd_id, body)

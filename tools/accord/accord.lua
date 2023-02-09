@@ -2,7 +2,7 @@
 local protobuf      = require('pb')
 local lstdfs        = require('lstdfs')
 local ljson         = require("lcjson")
-local lbuffer       = require("lbuffer")
+local lcodec        = require("lcodec")
 
 local ldir          = lstdfs.dir
 local lstem         = lstdfs.stem
@@ -11,14 +11,13 @@ local lappend       = lstdfs.append
 local lfilename     = lstdfs.filename
 local lextension    = lstdfs.extension
 local lcurdir       = lstdfs.current_path
+local serialize     = lcodec.serialize
 local pb_enum_id    = protobuf.enum
 local json_encode   = ljson.encode
 local tunpack       = table.unpack
 local sformat       = string.format
 local supper        = string.upper
 local ogetenv       = os.getenv
-
-local serializer    = lbuffer.new_serializer()
 
 local pb_indexs = {}
 
@@ -108,7 +107,7 @@ local function export_json(input, output)
     configs.cases = load_cases(input, "cases")
     --export
     local jdata = json_encode(configs)
-    local ldata = serializer.serialize(configs)
+    local ldata = serialize(configs)
     local jsonname = lappend(input, "accord_conf.json")
     local json_file = io.open(jsonname, "w")
     json_file:write(jdata)

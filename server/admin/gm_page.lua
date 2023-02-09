@@ -39,7 +39,7 @@ return [[
     .historyMsg{
         top: 5px;
         border: 1px solid black;
-        height: 730px;
+        height: 660px;
         padding: 3px;
         overflow: auto;
     }
@@ -55,13 +55,13 @@ return [[
     }
     .control{
         border: 1px solid black;
-        height: 60px;
+        height: 130px;
     }
     .control-row{
         margin-top: 10px;
     }
     .inputMsg{
-        height: 40px !important;
+        height: 110px !important;
         resize: none;
     }
     .sendBtn{
@@ -86,8 +86,11 @@ return [[
                 <div class="col-md-10 col-sm-10">
                     <textarea id="inputMsg" class="inputMsg form-control"></textarea>
                 </div>
-                <div class="col-md-2 col-sm-2">
-                    <button id="sendBtn" class="form-control sendBtn btn btn-primary">send</button>
+                <div class="col-md-2 col-sm-2" style="padding:5px">
+                    <button id="sendBtn" class="form-control sendBtn btn btn-primary">sendCmd</button>
+                </div>
+                <div class="col-md-2 col-sm-2" style="padding:5px">
+                    <button id="sendMsg" class="form-control sendBtn btn btn-primary">sendMsg</button>
                 </div>
             </div>
         </div>
@@ -111,7 +114,7 @@ return [[
             var that = this;
             var cmd_index = 0;
             var historyCmds = [];
-            var treeNodes = [ {}, {} ];
+            var treeNodes = [ {}, {}, {} ];
             // 加载命令列表
             $.ajax({
                 url:"/gmlist",
@@ -142,17 +145,35 @@ return [[
                 }
             });
 
+            // 加载JSON接口列表
+            $.ajax({
+                url:"/messagelist",
+                type: "GET",
+                dataType: "json",
+                contentType: "utf-8",
+                success: function (res) {
+                    treeNodes[2] = res;
+                    that._showConsole(treeNodes);
+                },
+                error: function(status) {
+                    document.write(JSON.stringify(status));
+                }
+            });
+
+            //sendMsg事件
+            document.getElementById('sendMsg').addEventListener('click', function(){
+                that._sendCommand("/message",historyCmds);
+                cmd_index = historyCmds.length
+            }, false);
+
             //sendBtn事件
             document.getElementById('sendBtn').addEventListener('click', function(){
-                that._sendCommand(historyCmds);
+                that._sendCommand("/command",historyCmds);
                 cmd_index = historyCmds.length
             }, false);
             //inputMsg事件
             document.getElementById('inputMsg').addEventListener('keyup', function(e){
-                if (e.keyCode == 13){
-                    that._sendCommand(historyCmds);
-                    cmd_index = historyCmds.length
-                } else if (e.keyCode == 38){
+                if (e.keyCode == 38){
                     if (cmd_index > 0) cmd_index = cmd_index - 1
                     that._showCommand(historyCmds[cmd_index])
                 } else if (e.keyCode == 40){
@@ -183,7 +204,7 @@ return [[
             });
         },
 
-        _sendCommand: function(historyCmds) {
+        _inputMsgTrim(url, historyCmds){
             var that = this;
             var inputMsg = document.getElementById('inputMsg');
             var msg = inputMsg.value.replace('\n','');
@@ -193,12 +214,21 @@ return [[
             }
             historyCmds.push(msg)
             that._displayNewMsg("historyMsg", msg, "myMsg");
+            if (url == "/command"){
+                return JSON.stringify({ data : msg })
+            }
+            return JSON.stringify({ data : JSON.parse(msg) })
+        },
+
+        _sendCommand: function(url, historyCmds) {
+            var that = this;
+            var msg = that._inputMsgTrim(url, historyCmds);
             $.ajax({
-                url:"/command",
+                url: url,
                 type: "POST",
                 dataType: "json",
                 contentType: "utf-8",
-                data: JSON.stringify({ data : msg }),
+                data: msg,
                 success: function (res) {
                     if (res.code != 0) {
                         that._displayNewMsg("historyMsg", res.msg, "newMsg");

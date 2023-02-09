@@ -21,7 +21,7 @@ end
 --心跳协议
 function LoginMgr:on_heartbeat_req(session, cmd_id, body, session_id)
     local sserial  = client_mgr:check_serial(session, body.serial)
-    local data_res = { serial = sserial, time = quanta.now }
+    local data_res = { serial = sserial, time = quanta.now_ms }
     client_mgr:callback_by_id(session, cmd_id, data_res, session_id)
 end
 

@@ -61,7 +61,7 @@ end
 function LoginModule:guest_login_req()
     local req_data = {
         openid = self.open_id,
-        token = self.access_token,
+        session = self.access_token,
         device_id = self.device_id,
         platform = PLATFORM_GUEST
     }
@@ -84,6 +84,7 @@ function LoginModule:account_login_req()
         platform = PLATFORM_PASSWORD,
     }
     local ok, res = self:call("NID_LOGIN_ACCOUNT_LOGIN_REQ", req_data)
+    log_warn("[LoginModule][account_login_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, req_data)
     if self:check_callback(ok, res) then
         log_warn("[LoginModule][account_login_req] robot:%s, ok=%s, res=%s", self:get_title(), ok, res)
         return false

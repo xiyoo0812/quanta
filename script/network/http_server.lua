@@ -64,7 +64,7 @@ function HttpServer:on_socket_error(socket, token, err)
 end
 
 function HttpServer:on_socket_accept(socket, token)
-    log_debug("[HttpServer][on_socket_accept] client(token:%s) connected!", token)
+    --log_debug("[HttpServer][on_socket_accept] client(token:%s) connected!", token)
     self.clients[token] = socket
 end
 

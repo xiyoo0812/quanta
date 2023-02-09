@@ -1,5 +1,6 @@
 --random.lua
 local mrandom       = math.random
+local tcopy         = qtable.copy
 local tinsert       = table.insert
 local tunpack       = table.unpack
 local tremove       = table.remove
@@ -15,6 +16,14 @@ end
 
 function Random:size()
     return #self.childs
+end
+
+function Random:clone()
+    local rand = Random()
+    rand.weight = self.weight
+    rand.stand_alone = self.stand_alone
+    rand.childs = tcopy(self.childs)
+    return rand
 end
 
 --轮盘随机添加子对象
@@ -60,8 +69,9 @@ function Random:rand_wheel()
         if wght > weight then
             if excl then
                 tremove(self.childs, i)
+                self.weight = self.weight - wght
             end
-            return { obj }
+            return obj
         end
         weight = weight - wght
     end
@@ -72,7 +82,10 @@ function Random:execute()
     if self.stand_alone then
         return self:rand_alone()
     end
-    return self:rand_wheel()
+    local val = self:rand_wheel()
+    if val then
+        return { val }
+    end
 end
 
 return Random
