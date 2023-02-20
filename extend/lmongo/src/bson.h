@@ -45,10 +45,10 @@ namespace lmongo {
         string opt = "";
         uint8_t stype = 0;
         bson_type type = bson_type::BSON_EOO;
-        bson_value(bson_type t, string s, uint8_t st = 0) : type(t), str(s), stype(st) {}
-        bson_value(bson_type t, int64_t i, uint8_t st = 0) : type(t), val(i), stype(st) {}
-        bson_value(bson_type t, string s, string o, uint8_t st = 0) : type(t), str(s), opt(s), stype(st) {}
-        bson_value(bson_type t, const char* p, size_t l, uint8_t st = 0) : type(t), str(p, l), stype(st) {}
+        bson_value(bson_type t, string s, uint8_t st = 0) : str(s), stype(st), type(t) {}
+        bson_value(bson_type t, int64_t i, uint8_t st = 0) : val(i), stype(st), type(t) {}
+        bson_value(bson_type t, string s, string o, uint8_t st = 0) : str(s), opt(s), stype(st), type(t) {}
+        bson_value(bson_type t, const char* p, size_t l, uint8_t st = 0) : str(p, l), stype(st), type(t) {}
     };
 
     class bson {
@@ -286,6 +286,7 @@ namespace lmongo {
                 break;
             case LUA_TNIL:
                 luaL_error(L, "Bson array has a hole (nil), Use bson.null instead");
+                break;
             default:
                 luaL_error(L, "Invalid value type : %s", lua_typename(L,vt));
             }
@@ -323,7 +324,7 @@ namespace lmongo {
 
         template<typename T>
         T read_val(lua_State* L, slice* buff) {
-            T value;
+            T value = T();
             if (buff->pop((uint8_t*)&value, sizeof(T)) == 0) {
                 luaL_error(L, "decode can't unpack one value");
             }

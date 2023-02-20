@@ -4,7 +4,7 @@ local lcodec        = require("lcodec")
 
 local xpcall        = xpcall
 local otime         = os.time
-local log_err       = logger.error
+local log_err       = logger.err
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook

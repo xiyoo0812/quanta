@@ -7,9 +7,8 @@ TARGET_NAME = "lcjson"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
---需要的FLAGS
-FLAGS = {
-    "Wno-sign-compare"
+EX_FLAGS = {
+    "Wno-implicit-fallthrough"
 }
 
 --需要的include目录

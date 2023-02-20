@@ -47,7 +47,7 @@ STDCPP = "c++14"
 - GCC编译选项
 ```lua
 FLAGS = {
-	"Wno-sign-compare"
+    "Wno-sign-compare"
 }
 ```
 - include目录(-I)
@@ -69,7 +69,7 @@ WINDOWS_INCLUDES = {
 ```lua
 --需要定义的选项
 DEFINES = {
-	"MAKE_LUA"
+    "MAKE_LUA"
 }
 --LINUX需要定义的选项
 LINUX_DEFINES = {
@@ -107,7 +107,7 @@ LIBS = {
 --windows可能会使用.a文件, 因此此处需要使用全名
 WINDOWS_LIBS = {
     "libcurl.a",
-	"ws2_32.lib"
+    "ws2_32.lib"
 }
 --LINUX需要连接的库文件
 LINUX_LIBS = {
@@ -139,9 +139,9 @@ DST_LIB_DIR = "library"
 --子目录路径，目录基于SRC_DIR
 --主要用于项目源文件分布在多个目录
 SUB_DIR = {
-	"zlib",
-	"minizip",
-	"tinyxml2",
+    "zlib",
+    "minizip",
+    "tinyxml2",
 }
 --自动搜索子目录
 AUTO_SUB_DIR = false
@@ -151,15 +151,15 @@ AUTO_SUB_DIR = false
 --用于指定目标文件，配置后不会自动扫描生成目标
 --目标文件基于SRC_DIR
 OBJS = {
-	"onelua.c"
+    "onelua.c"
 }
 ```
 - 需要排除编译的文件
 ```lua
 --需要排除的源文件, 目录基于SRC_DIR
 EXCLUDE_FILE = {
-	"minizip/minizip.c",
-	"minizip/miniunz.c",
+    "minizip/minizip.c",
+    "minizip/miniunz.c",
 }
 ```
 - 目标文件前缀
@@ -173,14 +173,14 @@ LIB_PREFIX = nil
 ```lua
 --格式: { cmd, args }
 WINDOWS_PREBUILDS = {
-	{ "copy /y", "bin/libcurl-x64.dll $(SolutionDir)bin" }
+    { "copy /y", "bin/libcurl-x64.dll $(SolutionDir)bin" }
 }
 ```
 - NWINDOWS预编译命令
 ```lua
 --格式: cmd
 NWINDOWS_PREBUILDS = {
-	"cp bin/libcurl-x64.dll $(SolutionDir)bin"
+    "cp bin/libcurl-x64.dll $(SolutionDir)bin"
 }
 ```
 - WINDOWS编译后命令
@@ -194,7 +194,7 @@ WINDOWS_POSTBUILDS = {
 ```lua
 --格式: cmd
 NWINDOWS_POSTBUILDS = {
-	"cp bin/libcurl-x64.dll $(SolutionDir)bin"
+    "cp bin/libcurl-x64.dll $(SolutionDir)bin"
 }
 ```
 - 依赖项目

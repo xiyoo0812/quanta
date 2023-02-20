@@ -64,14 +64,14 @@ namespace lcodec {
     static int guid_string(lua_State* L, uint32_t group, uint32_t index) {
         char sguid[32];
         size_t guid = guid_new(group, index);
-        snprintf(sguid, 32, "%llx", guid);
+        snprintf(sguid, 32, "%lu", guid);
         lua_pushstring(L, sguid);
         return 1;
     }
 
     static int guid_tostring(lua_State* L, uint64_t guid) {
         char sguid[32];
-        snprintf(sguid, 32, "%llx", guid);
+        snprintf(sguid, 32, "%lu", guid);
         lua_pushstring(L, sguid);
         return 1;
     }

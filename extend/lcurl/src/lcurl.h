@@ -12,7 +12,7 @@ namespace lcurl {
     class curl_request
     {
     public:
-        curl_request(CURLM* cm, CURL* c) : curlm(cm), curl(c) {}
+        curl_request(CURLM* cm, CURL* c) : curl(c), curlm(cm) {}
         ~curl_request() {
             if (curl) {
                 curl_multi_remove_handle(curlm, curl);
@@ -98,7 +98,7 @@ namespace lcurl {
     class curlm_mgr
     {
     public:
-        curlm_mgr(CURLM* cm, CURL* ce) : curlm(cm), curle(ce) {}
+        curlm_mgr(CURLM* cm, CURL* ce) : curle(ce), curlm(cm) {}
 
         void destory() {
             if (curle) {

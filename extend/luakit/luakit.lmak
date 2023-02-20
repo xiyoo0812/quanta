@@ -10,14 +10,6 @@ PROJECT_TYPE = "exe"
 --是否生效
 ENABLE = false
 
---需要的FLAGS
-FLAGS = {
-    "fpermissive",
-    "Wno-unused-variable",
-    "Wno-unused-parameter",
-    "Wno-unused-but-set-parameter"
-}
-
 --源文件路径
 SRC_DIR = "test"
 

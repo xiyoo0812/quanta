@@ -92,7 +92,7 @@ namespace lmongo {
     private:
         template<typename T>
         T read_val(lua_State* L, slice* buff) {
-            T value;
+            T value = T();
             if (buff->pop((uint8_t*)&value, sizeof(T)) == 0) {
                 luaL_error(L, "decode can't unpack one value");
             }

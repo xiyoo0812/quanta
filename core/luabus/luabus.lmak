@@ -10,13 +10,6 @@ PROJECT_TYPE = "dynamic"
 --是否生效
 ENABLE = false
 
---需要的FLAGS
-FLAGS = {
-    "Wno-unused-variable",
-    "Wno-unused-parameter",
-    "Wno-unused-but-set-parameter"
-}
-
 --需要的include目录
 INCLUDES = {
     "../../extend/lua/lua",

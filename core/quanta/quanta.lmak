@@ -7,14 +7,6 @@ TARGET_NAME = "quanta"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "exe"
 
---需要的FLAGS
-FLAGS = {
-    "fpermissive",
-    "Wno-unused-variable",
-    "Wno-unused-parameter",
-    "Wno-unused-but-set-parameter"
-}
-
 --需要定义的选项
 DEFINES = {
     "FMT_HEADER_ONLY"

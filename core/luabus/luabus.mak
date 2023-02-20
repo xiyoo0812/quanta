@@ -15,8 +15,11 @@ all : pre_build target post_build
 MYCFLAGS =
 
 #需要定义的FLAG
+MYCFLAGS += -Wsign-compare
+MYCFLAGS += -Wno-sign-compare
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
+MYCFLAGS += -Wno-unknown-pragmas
 MYCFLAGS += -Wno-unused-but-set-parameter
 
 #c标准库版本
@@ -56,10 +59,14 @@ LIBS += -llua
 LIBS += -lm -ldl -lstdc++ -lpthread
 
 #定义基础的编译选项
+ifndef CC
 CC = gcc
+endif
+ifndef CX
 CX = c++
-CFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra -Wno-unknown-pragmas $(STDC) $(MYCFLAGS)
-CXXFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra -Wno-unknown-pragmas $(STDCPP) $(MYCFLAGS)
+endif
+CFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra $(STDC) $(MYCFLAGS)
+CXXFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra $(STDCPP) $(MYCFLAGS)
 
 #项目目录
 ifndef SOLUTION_DIR
@@ -76,11 +83,11 @@ PROJECT_PREFIX =
 MYCFLAGS += -fPIC
 TARGET_DIR = $(SOLUTION_DIR)bin
 TARGET_DYNAMIC =  $(TARGET_DIR)/$(PROJECT_PREFIX)$(TARGET_NAME).so
-
+#soname
 ifeq ($(UNAME_S), Linux)
 LDFLAGS += -Wl,-soname,$(PROJECT_PREFIX)$(TARGET_NAME).so
 endif
-#macos系统so链接问题
+#install_name
 ifeq ($(UNAME_S), Darwin)
 LDFLAGS += -Wl,-install_name,$(PROJECT_PREFIX)$(TARGET_NAME).so
 endif

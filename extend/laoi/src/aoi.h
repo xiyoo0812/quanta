@@ -155,7 +155,7 @@ namespace laoi {
         bool attach(lua_State* L, aoi_obj* obj, int32_t x, int32_t z){
             uint16_t nxgrid = convert_x(x, m_grid_len);
             uint16_t nzgrid = convert_z(z, m_grid_len);
-            if ((nxgrid < 0) || (nxgrid >= m_xgrid_num) || (nzgrid < 0) || (nzgrid >= m_zgrid_num)) {
+            if ((nxgrid >= m_xgrid_num) || (nzgrid >= m_zgrid_num)) {
                 return false;
             }
             //查询节点
@@ -201,7 +201,7 @@ namespace laoi {
         uint32_t move(lua_State* L, aoi_obj* obj, int32_t x, int32_t z) {
             uint16_t nxgrid = convert_x(x, m_grid_len);
             uint16_t nzgrid = convert_z(z, m_grid_len);
-            if ((nxgrid < 0) || (nxgrid >= m_xgrid_num) || (nzgrid < 0) || (nzgrid >= m_zgrid_num)) {
+            if ((nxgrid >= m_xgrid_num) || (nzgrid >= m_zgrid_num)) {
                 return -1;
             }
             if (nxgrid == obj->grid_x && nzgrid == obj->grid_z){

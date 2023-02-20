@@ -39,7 +39,7 @@ uint32_t socket_router::choose_master(uint32_t service_id){
     if (service_id < m_services.size()) {
         auto& services = m_services[service_id];
         if (services.nodes.empty()) {
-            memset(&services.master, 0, sizeof(service_node));
+            services.master = service_node {};
             return 0;
         }
         services.master = services.nodes.front();
@@ -55,9 +55,9 @@ bool socket_router::do_forward_target(router_header* header, char* data, size_t 
     auto& services = m_services[service_id];
     auto& nodes = services.nodes;
     auto it = std::lower_bound(nodes.begin(), nodes.end(), target_id, [](service_node& node, uint32_t id) { return node.id < id; });
-    if (it == nodes.end() || it->id != target_id)
+    if (it == nodes.end() || it->id != target_id){
         return false;
-
+    }
 	uint8_t flag = header->context & 0xf;
 	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
     sendv_item items[] = {{header, sizeof(router_header)}, {data, data_len}};
@@ -104,9 +104,9 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
     auto& services = m_services[service_id];
     auto& nodes = services.nodes;
     int count = (int)nodes.size();
-    if (count == 0)
+    if (count == 0) {
         return false;
-
+    }
 	uint8_t flag = header->context & 0xf;
 	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
