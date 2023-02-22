@@ -28,10 +28,10 @@ public:
     }
 };
 
-luakit::variadic_results test_lua_func(lua_State* L, int a, int b) {
+int test_lua_func(lua_State* L, int a, int b) {
     auto kit_state = luakit::kit_state(L);
     printf("call test_lua_func: %d, %d\n", a, b);
-    return kit_state.as_return(true, a + b, "sssss");
+    return luakit::variadic_return(L, true, a + b, "sssss");
 }
 
 int main()

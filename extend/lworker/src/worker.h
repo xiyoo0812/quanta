@@ -4,10 +4,9 @@
 #include <atomic>
 #include <thread>
 
-#include "buffer.h"
+#include "lua_kit.h"
 #include "fmt/core.h"
 
-using namespace lcodec;
 using namespace luakit;
 
 namespace lworker {

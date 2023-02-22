@@ -2,7 +2,6 @@
 
 #include "socket_helper.h"
 #include "socket_mgr.h"
-#include "buffer.h"
 
 struct socket_stream : public socket_object
 {

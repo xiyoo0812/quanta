@@ -62,11 +62,11 @@ namespace lcurl {
             header = curl_slist_append(header, value.c_str());
         }
 
-        luakit::variadic_results get_respond(lua_State* L) {
+        int get_respond(lua_State* L) {
             long code = 0;
             luakit::kit_state kit_state(L);
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-            return kit_state.as_return(content, code, error);
+            return luakit::variadic_return(L, content, code, error);
         }
 
     private:
@@ -112,15 +112,14 @@ namespace lcurl {
             curl_global_cleanup();
         }
 
-        luakit::variadic_results create_request(lua_State* L, string url, size_t timeout_ms) {
+        int create_request(lua_State* L, string url, size_t timeout_ms) {
             CURL* curl = curl_easy_init();
             if (!curl) {
-                return luakit::variadic_results();
+                return 0;
             }
             curl_request* request = new curl_request(curlm, curl);
             request->create(url, timeout_ms);
-            luakit::kit_state kit_state(L);
-            return kit_state.as_return(request, curl);
+            return luakit::variadic_return(L, request, curl);
         }
 
         int update(lua_State* L) {

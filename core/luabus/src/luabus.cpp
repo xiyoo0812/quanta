@@ -6,9 +6,9 @@
 #include "lua_socket_node.h"
 
 namespace luabus {
-    static lua_socket_mgr* create_socket_mgr(int max_fd) {
+    static lua_socket_mgr* create_socket_mgr(lua_State* L, int max_fd) {
         lua_socket_mgr* mgr = new lua_socket_mgr();
-        if (!mgr->setup(max_fd)) {
+        if (!mgr->setup(L, max_fd)) {
             delete mgr;
             return nullptr;
         }

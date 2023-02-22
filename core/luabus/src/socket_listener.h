@@ -7,7 +7,6 @@
 
 #include "socket_helper.h"
 #include "socket_mgr.h"
-#include "buffer.h"
 
 struct socket_listener : public socket_object
 {

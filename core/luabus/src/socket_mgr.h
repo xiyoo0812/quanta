@@ -8,9 +8,8 @@
 #include <functional>
 #include <unordered_map>
 #include "socket_helper.h"
-#include "buffer.h"
 
-using namespace lcodec;
+using namespace luakit;
 
 enum class elink_status : int
 {

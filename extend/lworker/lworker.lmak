@@ -10,7 +10,6 @@ PROJECT_TYPE = "dynamic"
 --需要的include目录
 INCLUDES = {
     "../lua/lua",
-    "../lcodec/src",
     "../fmt/include",
     "../luakit/include"
 }

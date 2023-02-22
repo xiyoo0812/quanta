@@ -62,7 +62,7 @@ struct is_streamable<
 namespace {
 struct file_access_tag {};
 }  // namespace
-template <class Tag, class BufType, FILE* BufType::*FileMemberPtr>
+template <typename Tag, typename BufType, FILE* BufType::*FileMemberPtr>
 class file_access {
   friend auto get_file(BufType& obj) -> FILE* { return obj.*FileMemberPtr; }
 };
@@ -230,6 +230,19 @@ void print(std::wostream& os,
            basic_format_string<wchar_t, type_identity_t<Args>...> fmt,
            Args&&... args) {
   vprint(os, fmt, fmt::make_format_args<buffer_context<wchar_t>>(args...));
+}
+
+FMT_MODULE_EXPORT template <typename... T>
+void println(std::ostream& os, format_string<T...> fmt, T&&... args) {
+  print(os, "{}\n", fmt::format(fmt, std::forward<T>(args)...));
+}
+
+FMT_MODULE_EXPORT
+template <typename... Args>
+void println(std::wostream& os,
+             basic_format_string<wchar_t, type_identity_t<Args>...> fmt,
+             Args&&... args) {
+  print(os, L"{}\n", fmt::format(fmt, std::forward<Args>(args)...));
 }
 
 FMT_END_NAMESPACE

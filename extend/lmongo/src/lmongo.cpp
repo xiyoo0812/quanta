@@ -3,8 +3,6 @@
 #include "bson.h"
 #include "mongo.h"
 
-using namespace lcodec;
-
 namespace lmongo {
 
      thread_local bson thread_bson;

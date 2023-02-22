@@ -4,7 +4,6 @@ local log_debug         = logger.debug
 local qfailed           = quanta.failed
 
 local event_mgr         = quanta.get("event_mgr")
-local config_mgr        = quanta.get("config_mgr")
 local router_mgr        = quanta.get("router_mgr")
 local player_mgr        = quanta.get("player_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
@@ -24,8 +23,6 @@ function AttributeAgent:__init()
     --注册rpc
     event_mgr:add_listener(self, "rpc_attr_relay")
     event_mgr:add_listener(self, "rpc_attr_setup")
-    --初始化属性配置
-    config_mgr:init_enum_table("attribute", "AttrID", "id")
 end
 
 --本地消息

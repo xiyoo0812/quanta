@@ -1,8 +1,8 @@
 #pragma once
-#include "buffer.h"
+
+#include "lua_kit.h"
 
 using namespace std;
-using namespace lcodec;
 using namespace luakit;
 
 //https://bsonspec.org/spec.html

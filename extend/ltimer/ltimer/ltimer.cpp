@@ -116,9 +116,8 @@ namespace ltimer {
         return thread_timer.update(elapse);
     }
 
-    static luakit::variadic_results timer_time(lua_State* L) {
-        luakit::kit_state kit_state(L);
-        return kit_state.as_return(now_ms(), steady_ms());
+    static int timer_time(lua_State* L) {
+        return luakit::variadic_return(L, now_ms(), steady_ms());
     }
 
     luakit::lua_table open_ltimer(lua_State* L) {

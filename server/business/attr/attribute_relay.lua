@@ -10,7 +10,6 @@ local get_service       = service.get_service
 local event_mgr         = quanta.get("event_mgr")
 local router_mgr        = quanta.get("router_mgr")
 local player_mgr        = quanta.get("player_mgr")
-local config_mgr        = quanta.get("config_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
 local FRAME_SUCCESS     = protobuf_mgr:error_code("FRAME_SUCCESS")
@@ -27,8 +26,6 @@ function AttributeRelay:__init()
     event_mgr:add_trigger(self, "on_attr_relay")
     --注册rpc
     event_mgr:add_listener(self, "rpc_attr_writeback")
-    --初始化属性
-    config_mgr:init_enum_table("attribute", "AttrID", "id")
 end
 
 --初始化需要同步的属性

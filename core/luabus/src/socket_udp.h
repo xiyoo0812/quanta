@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include<string>
 
-#include "buffer.h"
 #include "socket_helper.h"
 
 class socket_udp {

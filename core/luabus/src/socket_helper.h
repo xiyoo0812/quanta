@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "ltimer.h"
+#include "lua_kit.h"
 
 const int SOCKET_RECV_LEN = 4096;
 

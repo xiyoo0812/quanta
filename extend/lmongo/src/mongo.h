@@ -1,7 +1,8 @@
 #pragma once
-#include "buffer.h"
 
-using namespace lcodec;
+#include "lua_kit.h"
+
+using namespace luakit;
 
 namespace lmongo {
 

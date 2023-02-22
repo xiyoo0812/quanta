@@ -44,7 +44,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\lua\lua;..\lcodec\src;..\fmt\include;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lua\lua;..\fmt\include;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;FMT_HEADER_ONLY;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -54,6 +54,7 @@
       <CompileAs>Default</CompileAs>
       <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>

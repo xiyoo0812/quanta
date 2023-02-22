@@ -1,7 +1,7 @@
 #pragma once
-#include "slice.h"
+#include "lua_slice.h"
 
-namespace lcodec {
+namespace luakit {
 
     const size_t BUFFER_DEF = 64 * 1024;        //64K
     const size_t BUFFER_MAX = 16 * 1024 * 1024; //16M
