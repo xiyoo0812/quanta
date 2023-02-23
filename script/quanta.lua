@@ -1,5 +1,4 @@
 --quanta.lua
-local logger        = require("lualog")
 local lcodec        = require("lcodec")
 
 local xpcall        = xpcall

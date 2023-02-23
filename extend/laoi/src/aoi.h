@@ -124,8 +124,8 @@ namespace laoi {
             uint16_t minZ = max<uint16_t>(zero, lz);
             uint16_t maxX = min<uint16_t>(m_xgrid_num, rx);
             uint16_t maxZ = min<uint16_t>(m_zgrid_num, rz);
-            for(uint16_t z = minZ; z <= maxZ; z++) {
-                for(uint16_t x = minX; x <= maxX; x++) {
+            for(uint16_t z = minZ; z < maxZ; z++) {
+                for(uint16_t x = minX; x < maxX; x++) {
                     copy(objs, m_grids[z][x]);
                 }
             }

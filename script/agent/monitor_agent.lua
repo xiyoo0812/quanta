@@ -125,7 +125,7 @@ end
 --热更新
 function MonitorAgent:rpc_service_hotfix()
     log_debug("[MonitorAgent][rpc_service_hotfix]")
-    quanta:reload()
+    event_mgr:notify_trigger("on_service_hotfix")
 end
 
 --日志监控

@@ -46,6 +46,12 @@ function UpdateMgr:__init()
     self:attach_frame(thread_mgr)
     self:attach_second(thread_mgr)
     self:attach_minute(thread_mgr)
+    --监听热更新
+    event_mgr:add_trigger(self, "on_service_hotfix")
+end
+
+function UpdateMgr:on_service_hotfix()
+    quanta.reload()
 end
 
 function UpdateMgr:update_next()
@@ -82,6 +88,7 @@ function UpdateMgr:update_second(clock_ms)
     end
     --检查文件更新
     if HOTFIXABLE then
+        --重新加载脚本
         quanta.reload()
     end
     --检查信号

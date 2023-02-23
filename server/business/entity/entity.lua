@@ -17,6 +17,22 @@ function Entity:__init(id)
     self.id = id
 end
 
+function Entity:is_player()
+    return false
+end
+
+function Entity:is_npc()
+    return false
+end
+
+function Entity:is_monster()
+    return false
+end
+
+function Entity:is_resource()
+    return false
+end
+
 -- 初始化
 function Entity:setup(conf)
     if not self:load(conf) then

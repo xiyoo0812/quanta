@@ -91,22 +91,22 @@ function NetClient:get_token()
     return self.socket and self.socket.token
 end
 
-function NetClient:encode(msg_name, data, flag)
-    local encode_data = self.codec:encode(msg_name, data)
-    if not encode_data then
-        return encode_data
+function NetClient:encode(cmd, data, flag)
+    local en_data, cmd_id = self.codec:encode(cmd, data)
+    if not en_data then
+        return
     end
     -- 加密处理
     if out_encrypt then
-        encode_data = b64_encode(encode_data)
+        en_data = b64_encode(en_data)
         flag = flag | FLAG_ENCRYPT
     end
     -- 压缩处理
     if out_press then
-        encode_data = lz4_encode(encode_data)
+        en_data = lz4_encode(en_data)
         flag = flag | FLAG_ZIP
     end
-    return encode_data, flag
+    return en_data, cmd_id, flag
 end
 
 function NetClient:decode(cmd_id, slice, flag)
@@ -157,22 +157,17 @@ function NetClient:close()
     end
 end
 
-function NetClient:write(cmd_id, data, type, session_id, flag)
+function NetClient:write(cmd, data, type, session_id, flag)
     if not self.alive then
         return false
     end
-    local msg_id, msg_name = self.codec:location(cmd_id)
-    if not msg_id or not msg_name then
-        log_err("[NetClient][write] find proto failed! cmd_id:%s", cmd_id)
-        return
-    end
-    local body, pflag = self:encode(msg_name, data, flag)
+    local body, cmd_id, pflag = self:encode(cmd, data, flag)
     if not body then
         log_err("[NetClient][write] encode failed! data (%s-%s)", cmd_id, body)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_head(msg_id, pflag, type or 0, session_id or 0, body, #body)
+    local send_len = self.socket.call_head(cmd_id, pflag, type or 0, session_id or 0, body, #body)
     if send_len < 0 then
         log_err("[NetClient][write] call_head failed! code:%s", send_len)
         return false

@@ -1,4 +1,13 @@
 --basic.lua
+----------------------------------------------
+---加载基础模块
+import("basic/math.lua")
+import("basic/table.lua")
+import("basic/string.lua")
+import("basic/logger.lua")
+import("basic/signal.lua")
+import("basic/environ.lua")
+--加载基础功能
 import("enum.lua")
 import("class.lua")
 import("mixin.lua")
@@ -8,9 +17,6 @@ import("constant.lua")
 import("basic/math.lua")
 import("basic/table.lua")
 import("basic/string.lua")
-import("basic/logger.lua")
-import("basic/signal.lua")
-import("basic/environ.lua")
 import("basic/console.lua")
 import("basic/service.lua")
 import("basic/listener.lua")
