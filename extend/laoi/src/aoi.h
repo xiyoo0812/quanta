@@ -122,10 +122,10 @@ namespace laoi {
         void get_rect_objects(object_set& objs, uint16_t lx, uint16_t rx, uint16_t lz, uint16_t rz) {
             uint16_t minX = max<uint16_t>(zero, lx);
             uint16_t minZ = max<uint16_t>(zero, lz);
-            uint16_t maxX = min<uint16_t>(m_xgrid_num, rx);
-            uint16_t maxZ = min<uint16_t>(m_zgrid_num, rz);
-            for(uint16_t z = minZ; z < maxZ; z++) {
-                for(uint16_t x = minX; x < maxX; x++) {
+            uint16_t maxX = min<uint16_t>(m_xgrid_num - 1, rx);
+            uint16_t maxZ = min<uint16_t>(m_zgrid_num - 1, rz);
+            for(uint16_t z = minZ; z <= maxZ; z++) {
+                for(uint16_t x = minX; x <= maxX; x++) {
                     copy(objs, m_grids[z][x]);
                 }
             }
