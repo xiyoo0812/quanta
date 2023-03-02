@@ -4,6 +4,7 @@ local lcodec        = require("lcodec")
 local xpcall        = xpcall
 local otime         = os.time
 local log_err       = logger.err
+local log_fatal     = logger.fatal
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
@@ -16,7 +17,7 @@ local guid_new      = lcodec.guid_new
 function quanta.xpcall(func, fmt, ...)
     local ok, err = xpcall(func, dtraceback, ...)
     if not ok then
-        log_err(sformat(fmt, err))
+        log_fatal(sformat(fmt, err))
     end
 end
 

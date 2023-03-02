@@ -44,8 +44,8 @@ function logger.daemon(daemon)
     llogger.daemon(daemon)
 end
 
-function logger.add_monitor(monitor)
-    monitors[monitor] = true
+function logger.add_monitor(monitor, lvl)
+    monitors[monitor] = lvl
 end
 
 function logger.remove_monitor(monitor)
@@ -59,7 +59,7 @@ function logger.filter(level)
     end
 end
 
-local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
+local function logger_output(feature, notify, lvl, lvl_name, fmt, log_conf, ...)
     if lis_filter(lvl) then
         return
     end
@@ -77,11 +77,13 @@ local function logger_output(feature, lvl, lvl_name, fmt, log_conf, ...)
         content = sformat(fmt, ...)
     end
     lvl_func(content, logtag, feature)
-    if not dispatching then
+    if notify and not dispatching then
         --防止重入
         dispatching = true
-        for monitor in pairs(monitors) do
-            monitor:dispatch_log(content, lvl_name, lvl)
+        for monitor, mlvl in pairs(monitors) do
+            if lvl >= mlvl then
+                monitor:dispatch_log(content, lvl_name)
+            end
         end
         dispatching = false
     end
@@ -98,7 +100,7 @@ local LOG_LEVEL_OPTIONS = {
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
     logger[lvl_name] = function(fmt, ...)
-        local ok, res = pcall(logger_output, "", lvl, lvl_name, fmt, log_conf, ...)
+        local ok, res = pcall(logger_output, true, "", lvl, lvl_name, fmt, log_conf, ...)
         if not ok then
             local info = dgetinfo(2, "S")
             lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
@@ -114,7 +116,7 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
         llogger.add_dest(feature, path)
         llogger.ignore_prefix(feature, prefix)
         return function(fmt, ...)
-            local ok, res = pcall(logger_output, feature, lvl, lvl_name, fmt, log_conf, ...)
+            local ok, res = pcall(logger_output, false, feature, lvl, lvl_name, fmt, log_conf, ...)
             if not ok then
                 local info = dgetinfo(2, "S")
                 lwarn(sformat("[logfeature][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))

@@ -20,12 +20,23 @@ function ProxyAgent:__init()
     end
     --添加忽略的rpc统计事件
     self:ignore_statis("rpc_heartbeat")
+
+    local wlvl = environ.number("QUANTA_WEBHOOK_LVL")
+    if wlvl then
+        --添加webhook功能
+        logger.add_monitor(self, wlvl)
+    end
+end
+
+--dispatch_log
+function ProxyAgent:dispatch_log(content, lvl_name)
+    self:fire_webhook(content, lvl_name)
 end
 
 --webhook
-function ProxyAgent:fire_webhook(content, lvl_name, lvl)
+function ProxyAgent:fire_webhook(content, lvl_name)
     local title = sformat("%s | %s", quanta.service_name, lvl_name)
-    self:send("rpc_fire_webhook", title, content, lvl)
+    self:send("rpc_fire_webhook", title, content)
 end
 
 --http_get

@@ -55,7 +55,7 @@ end
 --账号登陆
 function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     local open_id, token, platform = body.openid, body.session, body.platform
-    log_debug("[LoginServlet][on_account_login_req] open_id(%s) token(%s) login req!", open_id, token)
+    log_debug("[LoginServlet][on_account_login_req] open_id(%s) token(%s) body:%s login req!", open_id, token, body)
     if session.open_id then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
     end
@@ -64,9 +64,10 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
     local device_id = body.device_id
+    local account_params = {}
     if platform >= PLATFORM_PASSWORD then
         --登录验证
-        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, token, body)
+        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, token, body, account_params)
         local ok, code, sdk_open_id, sdk_device_id = tunpack(result)
         local login_failed, login_code = qfailed(code, ok)
         if login_failed then
@@ -85,7 +86,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     end
     --创建账号
     if not udata then
-        return self:create_account(session, open_id, token, session_id, cmd_id, device_id)
+        return self:create_account(session, open_id, token, session_id, cmd_id, device_id, account_params)
     end
     --密码验证
     if platform == PLATFORM_PASSWORD and udata.token ~= token then
@@ -116,6 +117,21 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_role_create_req] user_id(%s) name %s exist!", user_id, name)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NAME_EXIST, session_id)
     end
+    --检查名称合法性
+    local ip = session.ip
+    local text = name
+    local lang = session.account_params.lang
+    local dev_plat = session.account_params.dev_plat
+    log_debug("[LoginServlet][on_role_create_req] ip:%s lang:%s text:%s dev_plat:%s", ip, lang, text, dev_plat)
+    local result = event_mgr:notify_listener("on_safe_text", ip, lang, text, dev_plat)
+    local check_ok, code, result_name = tunpack(result)
+    if not check_ok or code ~= FRAME_SUCCESS then
+        log_debug("[LoginServlet][on_role_create_req] ok:%s code:%s result_name:%s", check_ok, code, result_name)
+        return client_mgr:callback_errcode(session, cmd_id, code, session_id)
+    end
+    log_debug("[LoginServlet][on_role_create_req] code:%s result_name:%s", code, result_name)
+
+
     --创建角色
     local add_role = { gender = gender, name = name, custom = custom }
     local ok, role_id = login_dao:create_player(user_id, session.open_id, add_role)
@@ -239,9 +255,9 @@ end
 --内部接口
 -----------------------------------------------------
 --创建账号
-function LoginServlet:create_account(session, open_id, token, session_id, cmd_id, device_id)
+function LoginServlet:create_account(session, open_id, token, session_id, cmd_id, device_id, account_params)
     local user_id = guid_new(quanta.service, quanta.index)
-    local udata = login_dao:create_account(open_id, user_id, token)
+    local udata = login_dao:create_account(open_id, user_id, token, account_params)
     if not udata then
         log_err("[LoginServlet][create_account] open_id(%s) create account failed!", open_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
@@ -262,6 +278,7 @@ function LoginServlet:save_account(session, udata, device_id, token)
     session.user_id = udata.user_id
     session.device_id = device_id
     session.account_token = token
+    session.account_params = udata.params
 end
 
 --查询角色

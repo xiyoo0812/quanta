@@ -10,18 +10,13 @@ local HOUR_S        = quanta.enum("PeriodTime", "HOUR_S")
 
 local Webhook = singleton()
 local prop = property(Webhook)
-prop:reader("url", nil)             --url地址
-prop:reader("lvl", 100)             --上报等级
 prop:reader("hooks", {})            --webhook通知接口
 prop:reader("notify_limit", {})     --控制同样消息的发送频率
 
 function Webhook:__init()
-    self.lvl = environ.number("QUANTA_WEBHOOK_LVL")
-    if self.lvl then
-        self.hooks.lark_log = environ.get("QUANTA_LARK_URL")
-        self.hooks.ding_log = environ.get("QUANTA_DING_URL")
-        self.hooks.wechat_log = environ.get("QUANTA_WECHAT_URL")
-    end
+    self.hooks.lark_log = environ.get("QUANTA_LARK_URL")
+    self.hooks.ding_log = environ.get("QUANTA_DING_URL")
+    self.hooks.wechat_log = environ.get("QUANTA_WECHAT_URL")
 end
 
 --飞书
@@ -49,8 +44,8 @@ function Webhook:ding_log(url, title, context, at_mobiles, at_all)
     http_client:call_post(url, body)
 end
 
-function Webhook:notify(title, content, lvl, ...)
-    if next(self.hooks) and lvl >= self.lvl then
+function Webhook:notify(title, content, ...)
+    if next(self.hooks) then
         local now = quanta.now
         local notify = self.notify_limit[content]
         if not notify then

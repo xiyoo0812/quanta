@@ -20,8 +20,8 @@ function ProxyMgr:__init()
 end
 
 --日志上报
-function ProxyMgr:rpc_fire_webhook(title, content, lvl)
-    webhook:notify(title, content, lvl)
+function ProxyMgr:rpc_fire_webhook(title, content)
+    webhook:notify(title, content)
 end
 
 --通用http请求

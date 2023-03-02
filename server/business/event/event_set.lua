@@ -1,7 +1,7 @@
 --attribute_set.lua
 local xpcall        = xpcall
-local log_err       = logger.err
 local log_warn      = logger.warn
+local log_fatal     = logger.fatal
 local tremove       = table.remove
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
@@ -119,7 +119,7 @@ function EventSet:notify_event(event, ...)
         local callback_func = trigger[func_name]
         local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)
         if not ok then
-            log_err("[EventSet][notify_event] xpcall [%s:%s] failed: %s!", trigger:source(), func_name, ret)
+            log_fatal("[EventSet][notify_event] xpcall [%s:%s] failed: %s!", trigger:source(), func_name, ret)
         end
     end
 end

@@ -21,12 +21,13 @@ function LoginDao:load_account(open_id)
     return true, udata
 end
 
-function LoginDao:create_account(open_id, user_id, session_token)
+function LoginDao:create_account(open_id, user_id, session_token, account_params)
     local udata = {
         roles = {},
         user_id = user_id,
         open_id = open_id,
         token = session_token,
+        params = account_params,
         time = quanta.now,
     }
     local ok, code, res = mongo_agent:insert({ "account", udata })

@@ -5,8 +5,8 @@ local tpack     = table.pack
 local tunpack   = table.unpack
 local tremove   = table.remove
 local sformat   = string.format
-local log_err   = logger.err
 local log_warn  = logger.warn
+local log_fatal = quanta.fatal
 local dtraceback= debug.traceback
 
 local Listener = class()
@@ -86,7 +86,7 @@ function Listener:notify_trigger(event, ...)
         local callback_func = trigger[func_name]
         local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)
         if not ok then
-            log_err("[Listener][notify_trigger] xpcall [%s:%s] failed: %s!", trigger:source(), func_name, ret)
+            log_fatal("[Listener][notify_trigger] xpcall [%s:%s] failed: %s!", trigger:source(), func_name, ret)
         end
     end
 end
@@ -104,7 +104,7 @@ function Listener:notify_listener(event, ...)
     local callback_func = listener[func_name]
     local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_listener] xpcall [%s:%s] failed: %s", listener:source(), func_name, result[2])
+        log_fatal("[Listener][notify_listener] xpcall [%s:%s] failed: %s", listener:source(), func_name, result[2])
         result[2] = sformat("event %s execute failed!", event)
     end
     return result
@@ -124,7 +124,7 @@ function Listener:notify_command(cmd, ...)
     local callback_func = listener[func_name]
     local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
     if not result[1] then
-        log_err("[Listener][notify_command] xpcall [%s:%s] failed: %s!", listener:source(), func_name, result[2])
+        log_fatal("[Listener][notify_command] xpcall [%s:%s] failed: %s!", listener:source(), func_name, result[2])
         result[2] = sformat("cmd %s execute failed!", cmd)
     end
     return result

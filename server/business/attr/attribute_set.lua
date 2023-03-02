@@ -44,11 +44,14 @@ end
 function AttributeSet:init_attrset(type_attr_db)
     for _, attr in type_attr_db:iterator() do
         local attr_id = qenum("AttrID", attr.key)
-        local attr_def = { save = attr.save, back = attr.back, range = attr.range }
+        local attr_def = { save = attr.save, back = attr.back, range = attr.range, value = 0 }
         if attr.limit then
             attr_def.limit_id = qenum("AttrID", attr.limit)
         end
         attr_def.type = attr_db:find_value("type", attr_id)
+        if attr_def.type ~= "int" then
+            attr_def.value = ""
+        end
         self.attr_set[attr_id] = attr_def
     end
 end
@@ -65,7 +68,7 @@ function AttributeSet:set_attr(attr_id, value, source_id)
         --检查限制
         if attr.limit_id then
             local limit = self:get_attr(attr.limit_id)
-            if limit and limit < value then
+            if limit > 0 and limit < value then
                 value = limit
             end
         end
@@ -113,7 +116,7 @@ end
 --检查属性
 function AttributeSet:check_attr(attr_id, value)
     local ovalue = self:get_attr(attr_id)
-    if ovalue and ovalue >= value then
+    if ovalue >= value then
         return true
     end
     return false
@@ -122,16 +125,13 @@ end
 --增加属性
 function AttributeSet:add_attr(attr_id, value)
     local ovalue = self:get_attr(attr_id)
-    if ovalue then
-        return self:set_attr(attr_id, ovalue + value)
-    end
-    return false
+    return self:set_attr(attr_id, ovalue + value)
 end
 
 --消耗属性
 function AttributeSet:cost_attr(attr_id, value)
     local ovalue = self:get_attr(attr_id)
-    if ovalue and ovalue >= value then
+    if ovalue >= value then
         return self:set_attr(attr_id, ovalue - value)
     end
     return false
@@ -163,7 +163,7 @@ end
 function AttributeSet:package_attrs(range)
     local attrs = {}
     for attr_id, attr in pairs(self.attr_set) do
-        if attr.range == range and attr.value then
+        if attr.range == range then
             tinsert(attrs, self:encode_attr(attr_id, attr))
         end
     end
@@ -174,7 +174,7 @@ end
 function AttributeSet:packet_sync_attrs(range)
     local attrs = {}
     for attr_id, attr in pairs(self.sync_attrs) do
-        if attr.range == range and attr.value then
+        if attr.range == range then
             tinsert(attrs, self:encode_attr(attr_id, attr))
         end
     end
