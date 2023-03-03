@@ -30,6 +30,9 @@ local t1 = ltimer.time()
 for i = 1, 33000 do
     local x1, y1, z1 = query.random_point()
     local x2, y2, z2 = query.random_point()
+    if (not query.point_valid(x1, y1, z1)) then
+        log_err('point (%s, %s, %s) is not valid', x1, y1, z1)
+    end
     query.find_path(x1, y1, z1, x2, y2, z2)
 end
 local t2 = ltimer.time()

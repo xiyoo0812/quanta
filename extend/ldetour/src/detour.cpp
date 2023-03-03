@@ -209,4 +209,16 @@ namespace ldetour {
         return luakit::variadic_return(L, pformat(pos[0]), pformat(pos[1]), pformat(pos[2]));
     }
 
+
+    bool nav_query::point_valid(lua_State* L, int32_t x, int32_t y, int32_t z) {
+        dtPolyRef ref;           // 起点/终点所在的多边形
+        float half_extents[3] = { 2, 4, 2 };    // 沿着每个轴的搜索长度
+
+        float pos[3] = { x / qscale, y / qscale, z / qscale };
+        nvquery->findNearestPoly(pos, half_extents, &filter, &ref, 0);
+        if (!ref) {
+            return false;
+        }
+        return true;
+    }
 }

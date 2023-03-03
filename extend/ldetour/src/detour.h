@@ -65,6 +65,11 @@ namespace ldetour {
         // [out]   pos         Intersecting point. [(x, y, z)].
         int raycast(lua_State* L, int32_t sx, int32_t sy, int32_t sz, int32_t ex, int32_t ey, int32_t ez);
 
+        // 判断点是否合法(是否可导航)
+        // [in]    pos         point. [(x, y, z)]
+        // [out]   valid       is point valid. [bool].
+        bool point_valid(lua_State* L, int32_t x, int32_t y, int32_t z);
+
     private:
         int32_t pformat(float v);
 
