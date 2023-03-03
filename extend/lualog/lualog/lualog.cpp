@@ -11,10 +11,10 @@ namespace logger {
         lualog.new_enum("LOG_LEVEL",
             "INFO", log_level::LOG_LEVEL_INFO,
             "WARN", log_level::LOG_LEVEL_WARN,
+            "DUMP", log_level::LOG_LEVEL_DUMP,
             "DEBUG", log_level::LOG_LEVEL_DEBUG,
             "ERROR", log_level::LOG_LEVEL_ERROR,
-            "FATAL", log_level::LOG_LEVEL_FATAL,
-            "DUMP", log_level::LOG_LEVEL_DUMP
+            "FATAL", log_level::LOG_LEVEL_FATAL
         );
         lualog.set_function("daemon", [](bool status) { get_logger()->daemon(status); });
         lualog.set_function("set_max_line", [](size_t line) { get_logger()->set_max_line(line); });

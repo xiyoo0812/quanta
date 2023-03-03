@@ -38,9 +38,9 @@ namespace logger {
         LOG_LEVEL_DEBUG = 1,
         LOG_LEVEL_INFO,
         LOG_LEVEL_WARN,
+        LOG_LEVEL_DUMP,
         LOG_LEVEL_ERROR,
         LOG_LEVEL_FATAL,
-        LOG_LEVEL_DUMP,
     };
 
     enum class rolling_type {
