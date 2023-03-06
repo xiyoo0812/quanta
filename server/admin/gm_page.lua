@@ -65,7 +65,7 @@ return [[
         resize: none;
     }
     .sendBtn{
-        height: 40px;
+        height: 100px;
     }
     footer{
         text-align: center;
@@ -87,10 +87,7 @@ return [[
                     <textarea id="inputMsg" class="inputMsg form-control"></textarea>
                 </div>
                 <div class="col-md-2 col-sm-2" style="padding:5px">
-                    <button id="sendBtn" class="form-control sendBtn btn btn-primary">sendCmd</button>
-                </div>
-                <div class="col-md-2 col-sm-2" style="padding:5px">
-                    <button id="sendMsg" class="form-control sendBtn btn btn-primary">sendMsg</button>
+                    <button id="send" class="form-control sendBtn btn btn-primary">send</button>
                 </div>
             </div>
         </div>
@@ -114,7 +111,7 @@ return [[
             var that = this;
             var cmd_index = 0;
             var historyCmds = [];
-            var treeNodes = [ {}, {}, {} ];
+            var treeNodes = [ {}, {} ];
             // 加载命令列表
             $.ajax({
                 url:"/gmlist",
@@ -130,7 +127,7 @@ return [[
                 }
             });
 
-            // 加载命令列表
+            // 加载JSON接口列表
             $.ajax({
                 url:"/monitors",
                 type: "GET",
@@ -145,32 +142,12 @@ return [[
                 }
             });
 
-            // 加载JSON接口列表
-            $.ajax({
-                url:"/messagelist",
-                type: "GET",
-                dataType: "json",
-                contentType: "utf-8",
-                success: function (res) {
-                    treeNodes[2] = res;
-                    that._showConsole(treeNodes);
-                },
-                error: function(status) {
-                    document.write(JSON.stringify(status));
-                }
-            });
-
             //sendMsg事件
-            document.getElementById('sendMsg').addEventListener('click', function(){
-                that._sendCommand("/message",historyCmds);
+            document.getElementById('send').addEventListener('click', function(){
+                that._sendCommand(historyCmds);
                 cmd_index = historyCmds.length
             }, false);
-
-            //sendBtn事件
-            document.getElementById('sendBtn').addEventListener('click', function(){
-                that._sendCommand("/command",historyCmds);
-                cmd_index = historyCmds.length
-            }, false);
+            
             //inputMsg事件
             document.getElementById('inputMsg').addEventListener('keyup', function(e){
                 if (e.keyCode == 38){
@@ -195,7 +172,18 @@ return [[
             //consoleTree事件
             $('#consoleTree').on('nodeSelected', function(event, data) {
                 if (data.tag == "gm") {
-                    var msg = "<pre>命令: " + data.text + "  参数: " + data.command + "</pre>";
+                    //参数数组
+                    var arg_arr = ["<pre>命令: ", data.text,"  参数: ", data.command];
+                    if (data.example) {
+                        arg_arr.push("<br>示例：");
+                        arg_arr.push(data.example);
+                    }
+                    if (data.tip) {
+                        arg_arr.push("<br>说明：");
+                        arg_arr.push(data.tip);
+                    }
+                    arg_arr.push("</pre>");
+                    var msg = arg_arr.join("")
                     that._displayNewMsg("historyMsg", msg, "myMsg");
                     that._showCommand(data.name + " ")
                 } else if (data.tag == "log") {
@@ -203,45 +191,64 @@ return [[
                 }
             });
         },
-
-        _inputMsgTrim(url, historyCmds){
-            var that = this;
-            var inputMsg = document.getElementById('inputMsg');
-            var msg = inputMsg.value.replace('\n','');
-            if (msg == ''){
-                inputMsg.focus();
-                return;
+        
+        _isJson(data){
+            try{
+                JSON.parse(data);
             }
-            historyCmds.push(msg)
-            that._displayNewMsg("historyMsg", msg, "myMsg");
-            if (url == "/command"){
-                return JSON.stringify({ data : msg })
+            catch(err){
+                return false;
             }
-            return JSON.stringify({ data : JSON.parse(msg) })
+            return true;
         },
 
-        _sendCommand: function(url, historyCmds) {
+        _inputMsgTrim(historyCmds){
             var that = this;
-            var msg = that._inputMsgTrim(url, historyCmds);
+            var inputMsg = document.getElementById('inputMsg');
+            var msg = inputMsg.value.replace('\n', '');
+            if (msg == ''){
+                inputMsg.focus();
+                return null;
+            }
+            var result = { cmdType : "cmd", data : {} };
+            that._displayNewMsg("historyMsg", msg, "myMsg");
+            if(that._isJson(msg)){
+                result.cmdType = "json";
+                result.data = JSON.stringify({ data : JSON.parse(msg) });
+                return result;
+            }
+            result.data = JSON.stringify({ data : msg })
+            return result;
+        },
+
+        _sendCommand: function(historyCmds) {
+            var that = this;
+            var result = that._inputMsgTrim(historyCmds);
+            if(!result){
+                that._displayNewMsg("historyMsg", "error", "newMsg");
+                return;
+            }
+            historyCmds.push(result.data);
+            var url = result.cmdType == "cmd" ? "/command" : "/message";
             $.ajax({
                 url: url,
                 type: "POST",
                 dataType: "json",
                 contentType: "utf-8",
-                data: msg,
+                data: result.data,
                 success: function (res) {
+                    var result = res.msg
                     if (res.code != 0) {
-                        that._displayNewMsg("historyMsg", res.msg, "newMsg");
+                        var data = "<pre>" + result + "</pre>";
+                        that._displayNewMsg("historyMsg", data, "newMsg");
                         return
                     }
-                    var result = res.msg
                     if (typeof(result) == "object") {
                         var data = JSON.stringify(result, null, "    ");
                         data = "<pre>" + data + "</pre>";
                         that._displayNewMsg("historyMsg", data, "newMsg");
                     } else {
-                        var data = result;
-                        data = "<pre>" + data + "</pre>";
+                        var data = "<pre>" + result + "</pre>";
                         that._displayNewMsg("historyMsg", data, "newMsg");
                     }
                 },

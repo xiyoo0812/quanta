@@ -51,15 +51,14 @@ function AdminMgr:__init()
     server:register_get("/monitors", "on_monitors", self)
     server:register_post("/command", "on_command", self)
     server:register_post("/message", "on_message", self)
-    server:register_get("/messagelist", "on_messagelist", self)
     service.make_node(server:get_port())
     self.http_server = server
     --关注monitor
     monitor:watch_service_ready(self, "monitor")
     monitor:watch_service_close(self, "monitor")
     --定时更新
-    update_mgr:attach_minute(self)
-    self:on_minute()
+    update_mgr:attach_second5(self)
+    self:on_second5()
 end
 
 --外部注册post请求
@@ -73,7 +72,7 @@ function AdminMgr:register_get(url, handler, target)
 end
 
 --定时更新
-function AdminMgr:on_minute()
+function AdminMgr:on_second5()
     self.gm_page = import("admin/gm_page.lua")
 end
 
@@ -86,7 +85,7 @@ function AdminMgr:rpc_register_command(command_list, service_id)
         return
     end
     for _, cmd in pairs(command_list) do
-        cmdline:register_command(cmd.name, cmd.args, cmd.desc, cmd.gm_type, cmd.group, service_id)
+        cmdline:register_command(cmd.name, cmd.args, cmd.desc, cmd.gm_type, cmd.group, cmd.tip, cmd.example, service_id)
     end
     self.services[service_id] = true
     return SUCCESS
@@ -124,11 +123,6 @@ end
 --gm列表
 function AdminMgr:on_gmlist(url, body, request)
     return { text = "GM指令", nodes = cmdline:get_displays() }
-end
-
---JSON接口列表
-function AdminMgr:on_messagelist(url, body, request)
-    return { text = "JSON指令", nodes = cmdline:get_displays() }
 end
 
 --monitor拉取

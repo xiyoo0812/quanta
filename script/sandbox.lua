@@ -69,6 +69,9 @@ local function try_load(node)
         log_output("error", sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
         return
     end
+    if res then
+        node.res = res
+    end
     log_output("info", sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
     return res
 end
@@ -80,10 +83,7 @@ function import(filename)
         load_files[filename] = node
     end
     if not node.time then
-        local res = try_load(node)
-        if res then
-            node.res = res
-        end
+        try_load(node)
     end
     return node.res
 end

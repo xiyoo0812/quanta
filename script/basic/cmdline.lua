@@ -95,13 +95,13 @@ end
 --command : command command定义
 --command 示例
 --command = "player_id|integer aa|table bb|string dd|number"
-function Cmdline:register_command(name, command, desc, cmd_type, group, service)
+function Cmdline:register_command(name, command, desc, cmd_type, group, tip, example, service)
     if self.commands[name] then
         log_warn("[Cmdline][register_command] command (%s) repeat registered!", name)
         return false
     end
     local def_args = {}
-    local cmd_define = {type = cmd_type, desc = desc, command = command, service = service }
+    local cmd_define = {type = cmd_type, desc = desc, command = command, tip = tip, example = example, service = service }
     for arg_name, arg_type in sgmatch(command, "([%a%d%_]+)|([%a%d%_]+)") do
         tinsert(def_args, {name = arg_name, type = arg_type})
     end
@@ -109,7 +109,7 @@ function Cmdline:register_command(name, command, desc, cmd_type, group, service)
     self.commands[name] = cmd_define
     --组织显示结构
     local nodes = self:find_group(group)
-    tinsert(nodes, { text = desc, name = name, command = command, tag = "gm" })
+    tinsert(nodes, { text = desc, name = name, command = command, tip = tip, example = example, tag = "gm" })
     log_info("[Cmdline][register_command] command (%s) registered!", name)
     return true
 end

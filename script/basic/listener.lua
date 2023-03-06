@@ -6,7 +6,7 @@ local tunpack   = table.unpack
 local tremove   = table.remove
 local sformat   = string.format
 local log_warn  = logger.warn
-local log_fatal = quanta.fatal
+local log_fatal = logger.fatal
 local dtraceback= debug.traceback
 
 local Listener = class()
