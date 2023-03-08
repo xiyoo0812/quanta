@@ -18,16 +18,12 @@ local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
 
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
-local SECOND_5_S    = quanta.enum("PeriodTime", "SECOND_5_S")
-local SECOND_30_S   = quanta.enum("PeriodTime", "SECOND_30_S")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
 prop:reader("last_hour", 0)
 prop:reader("last_frame", 0)
 prop:reader("last_minute", 0)
-prop:reader("last_second5", 0)
-prop:reader("last_second30", 0)
 prop:reader("quit_objs", {})
 prop:reader("hour_objs", {})
 prop:reader("frame_objs", {})
@@ -137,20 +133,19 @@ end
 
 function UpdateMgr:update_by_time(now, clock_ms)
     --5秒更新
-    if now < self.last_second5 then
+    local time = odate("*t", now)
+    if time.sec % 5 > 0 then
         return
     end
-    self.last_second5 = now + SECOND_5_S
     for obj in pairs(self.second5_objs) do
         thread_mgr:fork(function()
             obj:on_second5(clock_ms)
         end)
     end
     --30秒更新
-    if now < self.last_second30 then
+    if time.sec % 30 > 0 then
         return
     end
-    self.last_second30 = now + SECOND_30_S
     for obj in pairs(self.second30_objs) do
         thread_mgr:fork(function()
             obj:on_second30(clock_ms)
@@ -159,7 +154,6 @@ function UpdateMgr:update_by_time(now, clock_ms)
     --执行gc
     collectgarbage("step", 10)
     --分更新
-    local time = odate("*t", now)
     if time.min == self.last_minute then
         return
     end

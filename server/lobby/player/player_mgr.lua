@@ -14,6 +14,7 @@ local WEEK_FLUSH    = utility_db:find_integer("value", "flush_week_day")
 
 local SERVER_UPHOLD = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 
+local Account       = import("lobby/player/account.lua")
 local EntityMgr     = import("business/entity/entity_mgr.lua")
 
 local PlayerMgr = singleton(EntityMgr)
@@ -58,6 +59,15 @@ function PlayerMgr:kick_out(player, player_id)
         router_mgr:call_target(player:get_gateway(), "rpc_kickout_client", player_id, SERVER_UPHOLD)
     end
     update_mgr:attach_event(player_id, "on_kickout_success", player_id, player)
+end
+
+
+function PlayerMgr:load_account(user_id)
+    local account = Account(user_id)
+    if not account:load() then
+        return
+    end
+    return account
 end
 
 --创建玩家

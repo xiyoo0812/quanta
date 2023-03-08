@@ -12,70 +12,60 @@ function CacheAgent:__init()
 end
 
 -- 查询
-function CacheAgent:find(primary_key, coll_name)
-    local ok, code, row_data = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_find", primary_key, coll_name)
+function CacheAgent:find(primary_id, sheet_name, primary_key, filters)
+    local ok, code, row_data = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_find", primary_id, sheet_name, primary_key, filters)
     if qfailed(code, ok) then
-        log_err("[CacheAgent][find] code=%s, pkey=%s, coll_name=%s", code, primary_key, coll_name)
+        log_err("[CacheAgent][find] code=%s, pkey=%s, sheet_name=%s", code, primary_id, sheet_name)
         return ok and code or RPC_FAILED
     end
     return code, row_data
 end
 
 -- 加载
-function CacheAgent:load(primary_key, coll_name)
-    local ok, code, row_data = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_load", quanta.id, primary_key, coll_name)
+function CacheAgent:load(primary_id, sheet_name, primary_key, filters, group)
+    local ok, code, row_data = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_load", quanta.id, primary_id, sheet_name, primary_key, filters, group)
     if qfailed(code, ok) then
-        log_err("[CacheAgent][load] code=%s, pkey=%s, coll_name=%s", code, primary_key, coll_name)
+        log_err("[CacheAgent][load] code=%s, pkey=%s, sheet_name=%s, group=%s", code, primary_id, sheet_name, group)
         return ok and code or RPC_FAILED
     end
     return code, row_data
 end
 
--- 修改
-function CacheAgent:update(primary_key, coll_name, coll_data, flush)
-    local ok, code = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_update", quanta.id, primary_key, coll_name, coll_data, flush)
-    if qfailed(code, ok) then
-        log_err("[CacheAgent][update] faild: code=%s, coll_name=%s, primary_key=%s", code, coll_name, primary_key)
-        return ok and code or RPC_FAILED
-    end
-    return code
-end
-
 -- 修改fields
-function CacheAgent:update_fields(primary_key, coll_name, coll_fields, flush)
-    local ok, code = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_update_fields", quanta.id, primary_key, coll_name, coll_fields, flush)
+function CacheAgent:update_field(primary_id, sheet_name, field, field_data, flush)
+    local ok, code = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_update", quanta.id, primary_id, sheet_name, field, field_data, flush)
     if qfailed(code, ok) then
-        log_err("[CacheAgent][update_fields] faild: code=%s, coll_name=%s, primary_key=%s", code, coll_name, primary_key)
+        log_err("[CacheAgent][update_field] faild: code=%s, sheet_name=%s, primary_id=%s", code, sheet_name, primary_id)
         return ok and code or RPC_FAILED
     end
     return code
 end
 
 -- 删除fields
-function CacheAgent:remove_fields(primary_key, coll_name, coll_fields, flush)
-    local ok, code = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_remove_fields", quanta.id, primary_key, coll_name, coll_fields, flush)
+function CacheAgent:remove_field(primary_id, sheet_name, field, flush)
+    local ok, code = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_remove_fields", quanta.id, primary_id, sheet_name, field, flush)
     if qfailed(code, ok) then
-        log_err("[CacheAgent][update_key] faild: code=%s, coll_name=%s, primary_key=%s", code, coll_name, primary_key)
+        log_err("[CacheAgent][remove_field] faild: code=%s, sheet_name=%s, primary_id=%s", code, sheet_name, primary_id)
         return ok and code or RPC_FAILED
     end
     return code
 end
 
 -- 删除
-function CacheAgent:delete(primary_key, coll_name)
-    local ok, code = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_delete", quanta.id, primary_key, coll_name)
+function CacheAgent:delete(primary_id, group)
+    local ok, code = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_delete", quanta.id, primary_id, group)
     if qfailed(code, ok) then
-        log_err("[CacheAgent][delete] faild: code=%s, coll_name=%s, primary_key=%s", code, coll_name, primary_key)
+        log_err("[CacheAgent][delete] faild: code=%s, group=%s, primary_id=%s", code, group, primary_id)
         return ok and code or RPC_FAILED
     end
     return code
 end
 
 -- flush
-function CacheAgent:flush(primary_key, group)
-    local ok, code = router_mgr:call_cachesvr_hash(primary_key, "rpc_cache_flush", primary_key, group)
+function CacheAgent:flush(primary_id, group)
+    local ok, code = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_flush", primary_id, group)
     if qfailed(code, ok) then
-        log_err("[CacheAgent][flush] faild: code=%s, group=%s, primary_key=%s", code, group, primary_key)
+        log_err("[CacheAgent][flush] faild: code=%s, group=%s, primary_id=%s", code, group, primary_id)
         return ok and code or RPC_FAILED
     end
     return code

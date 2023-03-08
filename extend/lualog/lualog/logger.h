@@ -72,7 +72,7 @@ namespace logger {
     struct level_names {};
     template <> struct level_names<log_level> {
         constexpr std::array<const char*, 7> operator()() const {
-            return { "UNKNW", "DEBUG", "INFO", "WARN", "ERROR","FATAL", "DUMP" };
+            return { "UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR","FATAL" };
         }
     };
 

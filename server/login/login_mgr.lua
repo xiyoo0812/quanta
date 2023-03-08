@@ -6,6 +6,9 @@ local event_mgr         = quanta.get("event_mgr")
 local client_mgr        = quanta.get("client_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
+
+local DBAccount         = import("login/object/db_account.lua")
+
 local LoginMgr = singleton()
 
 function LoginMgr:__init()
@@ -42,6 +45,14 @@ end
 --客户端消息分发
 function LoginMgr:on_session_cmd(session, service_type, cmd_id, body, session_id)
     event_mgr:notify_command(cmd_id, session, cmd_id, body, session_id)
+end
+
+function LoginMgr:load_account(open_id)
+    local account = DBAccount(open_id)
+    if not account:load() then
+        return
+    end
+    return account
 end
 
 quanta.login_mgr = LoginMgr()

@@ -5,6 +5,7 @@ local send_worker   = quanta.send_worker
 local call_worker   = quanta.call_worker
 
 local WTITLE        = quanta.worker_title
+local HOST_IP       = environ.get("QUANTA_HOST_IP")
 
 local event_mgr     = quanta.get("event_mgr")
 local scheduler     = quanta.load("scheduler")
@@ -35,7 +36,7 @@ end
 
 --webhook
 function ProxyAgent:fire_webhook(content, lvl_name)
-    local title = sformat("%s | %s", quanta.service_name, lvl_name)
+    local title = sformat("%s | %s | %s", HOST_IP, quanta.service_name, lvl_name)
     self:send("rpc_fire_webhook", title, content)
 end
 

@@ -4,7 +4,7 @@ local log_info      = logger.info
 local qedition      = quanta.edition
 
 local online        = quanta.get("online")
-local login_dao     = quanta.get("login_dao")
+local lobby_dao     = quanta.get("lobby_dao")
 local config_mgr    = quanta.get("config_mgr")
 
 local attr_db       = config_mgr:init_table("player_attr", "key")
@@ -26,17 +26,44 @@ local EventSet      = import("business/event/event_set.lua")
 local Player = class(Entity, EventSet)
 
 local prop = property(Player)
-prop:reader("user_id")              --user_id
-prop:reader("open_id")              --open_id
+prop:reader("user_id")                      --user_id
+prop:reader("open_id")                      --open_id
 prop:reader("passkey", {})          --passkey
-prop:reader("status", ONL_LOADING)
 prop:reader("create_time", 0)       --create_time
-prop:reader("online_time", 0)       --online_time
 prop:accessor("gateway", nil)       --gateway
-prop:accessor("login_time", 0)      --login_time
-prop:accessor("upgrade_time", 0)    --upgrade_time
+prop:accessor("account", nil)       --account
+
+local dprop = db_property(Player, "player")
+dprop:store_value("login_time", 0)  --login_time
+dprop:store_value("online_time", 0) --online_time
+dprop:store_value("upgrade_time", 0)--upgrade_time
 
 function Player:__init(id)
+end
+
+function Player:on_db_player_load(data)
+    if data and data.player then
+        local player_data = data.player
+        self.name = player_data.name
+        self.user_id = player_data.user_id
+        self.open_id = player_data.open_id
+        self.login_time = player_data.login_time
+        self.create_time = player_data.create_time
+        self.online_time = player_data.online_time or 0
+        self.upgrade_time = player_data.upgrade_time or 0
+        self:set_gender(player_data.gender)
+        self:set_custom(player_data.custom)
+        self:set_relayable(true)
+        self.active_time = quanta.now_ms
+        return true
+    end
+    return false
+end
+
+--load
+function Player:load(conf)
+    self:init_attrset(attr_db)
+    return lobby_dao:load_all(self, self.id)
 end
 
 --是否新玩家
@@ -52,26 +79,6 @@ end
 --添加钥匙
 function Player:find_passkey(key)
     return self.passkey[key]
-end
-
---load
-function Player:load(conf)
-    self:init_attrset(attr_db)
-    self.active_time = quanta.now_ms
-    local ok, data = login_dao:load_player(self.id)
-    if ok then
-        self.name = data.name
-        self.user_id = data.user_id
-        self.open_id = data.open_id
-        self.login_time = data.login_time
-        self.create_time = data.create_time
-        self.online_time = data.online_time
-        self.upgrade_time = data.upgrade_time
-        self:set_gender(data.gender)
-        self:set_custom(data.custom)
-        self:set_relayable(true)
-    end
-    return ok
 end
 
 --day_update
@@ -116,12 +123,6 @@ function Player:sync_data()
     self:invoke("_sync_data")
 end
 
---update_time
-function Player:update_time(time_key, time)
-    self[time_key] = time
-    login_dao:update_time(self.id, time_key, time)
-end
-
 --online
 function Player:online()
     --invoke
@@ -136,7 +137,7 @@ function Player:online()
     self.active_time = quanta.now_ms
     self:set_version(self:build_version())
     self:add_passkey("lobby", quanta.id)
-    self:update_time("login_time", quanta.now)
+    self:set_login_time(quanta.now)
     log_info("[Player][online] player(%s) is online!", self.id)
     return true
 end
@@ -163,10 +164,10 @@ end
 --unload
 function Player:unload()
     online:logout_player(self.id)
-    login_dao:clear_account_lobby_status(self.user_id, 0)
     --计算在线时间
     local online_time = self.online_time + quanta.now - self.login_time
-    self:update_time("online_time", online_time)
+    self:set_online_time(online_time)
+    self.account:set_lobby(0)
     return true
 end
 

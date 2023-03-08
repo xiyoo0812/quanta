@@ -31,6 +31,7 @@ quanta.startup(function()--初始化test
     import("test/worker_test.lua")
     import("test/lock_test.lua")
     import("test/detour_test.lua")
+    import("test/sprop_test.lua")
     ]]
-    import("test/protobuf_test.lua")
+    import("test/sprop_test.lua")
 end)
