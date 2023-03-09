@@ -4,7 +4,7 @@ local log_info      = logger.info
 local qedition      = quanta.edition
 
 local online        = quanta.get("online")
-local lobby_dao     = quanta.get("lobby_dao")
+local game_dao      = quanta.get("game_dao")
 local config_mgr    = quanta.get("config_mgr")
 
 local attr_db       = config_mgr:init_table("player_attr", "key")
@@ -63,7 +63,7 @@ end
 --load
 function Player:load(conf)
     self:init_attrset(attr_db)
-    return lobby_dao:load_all(self, self.id)
+    return game_dao:load_group(self, "player", self.id)
 end
 
 --是否新玩家

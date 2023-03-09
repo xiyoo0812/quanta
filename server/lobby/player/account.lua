@@ -1,6 +1,6 @@
 --account.lua
 
-local lobby_dao     = quanta.get("lobby_dao")
+local game_dao  = quanta.get("game_dao")
 
 local Account = class()
 local prop = property(Account)
@@ -23,7 +23,7 @@ end
 
 function Account:load()
     local function load_account()
-        return lobby_dao:load(self.user_id, "account")
+        return game_dao:load(self.user_id, "account")
     end
     return self:load_account_db(self.user_id, load_account)
 end
@@ -40,8 +40,9 @@ function Account:on_db_account_load(data)
         self.create_time = account_data.create_time
         self.login_token = account_data.login_token
         self.reload_token = account_data.reload_token
+        return true
     end
-    return true
+    return false
 end
 
 return Account

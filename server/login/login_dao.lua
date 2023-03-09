@@ -1,30 +1,15 @@
 --login.lua
 
 local log_err       = logger.err
-local log_info      = logger.info
 local qfailed       = quanta.failed
 
-local GameDAO       = import("store/game_dao.lua")
-
-local event_mgr     = quanta.get("event_mgr")
+local game_dao      = quanta.get("game_dao")
 local mongo_agent   = quanta.get("mongo_agent")
 
-local LoginDao = singleton(GameDAO)
+local LoginDao = singleton()
 
 function LoginDao:__init()
-    event_mgr:add_listener(self, "on_db_prop_update")
-    event_mgr:add_listener(self, "on_db_prop_remove")
-    self:add_sheet(false, "account", "open_id", { account = 1})
-end
-
-function LoginDao:on_db_prop_update(primary_id, sheet_name, db_key, value)
-    log_info("[LoginDao][on_db_prop_update] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
-    return self:update_field(primary_id, sheet_name, db_key, value, true)
-end
-
-function LoginDao:on_db_prop_remove(primary_id, sheet_name, db_key)
-    log_info("[LoginDao][on_db_prop_remove] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
-    return self:remove_field(primary_id, sheet_name, db_key, true)
+    game_dao:add_sheet(nil, "account", "open_id", { account = 1})
 end
 
 function LoginDao:get_autoinc_id(open_id)

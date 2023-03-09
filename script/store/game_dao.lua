@@ -4,30 +4,38 @@ import("agent/mongo_agent.lua")
 import("agent/cache_agent.lua")
 
 local log_err       = logger.err
+local log_debug     = logger.debug
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local qfailed       = quanta.failed
 
+local event_mgr     = quanta.get("event_mgr")
 local mongo_agent   = quanta.get("mongo_agent")
 local cache_agent   = quanta.get("cache_agent")
 
 local USE_CACHE     = environ.status("QUANTA_DB_USE_CACHE")
 
-local GameDAO = class()
+local GameDAO = singleton()
 local prop = property(GameDAO)
-prop:reader("group", "game")
-prop:reader("sheets", {})
+prop:reader("sheet_groups", {})
 prop:reader("sheet_indexs", {})
 
 function GameDAO:__init()
+    event_mgr:add_listener(self, "on_db_prop_update")
+    event_mgr:add_listener(self, "on_db_prop_remove")
 end
 
 --{ "entity", "role_id", { _id = 0 } },
-function GameDAO:add_sheet(index, sheet_name, primary_key, filters)
+function GameDAO:add_sheet(group, sheet_name, primary_key, filters)
     if not self.sheet_indexs[sheet_name] then
         self.sheet_indexs[sheet_name] = { primary_key, filters or { _id = 0 } }
-        if index then
-            tinsert(self.sheets, sheet_name)
+        if group then
+            local sheets = self.sheet_groups[group]
+            if not sheets then
+                self.sheet_groups[group] = {sheet_name}
+            else
+                tinsert(sheets, sheet_name)
+            end
         end
     end
 end
@@ -61,8 +69,8 @@ function GameDAO:load_mongo(primary_id, sheet_name)
     return true, adata
 end
 
-function GameDAO:load_all(entity, primary_id)
-    for _, sheet_name in ipairs(self.sheets) do
+function GameDAO:load_group(entity, group, primary_id)
+    for _, sheet_name in ipairs(self.sheet_groups[group] or {}) do
         local function load_sheet_db()
             return self:load(primary_id, sheet_name)
         end
@@ -98,7 +106,7 @@ function GameDAO:update_mongo_field(primary_id, sheet_name, field, field_data)
     local udata = { ["$set"] = { [field] = field_data } }
     local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
     if qfailed(code, ok) then
-        log_err("[GameDAO][update_mongo_field%s] update (%s) failed! primary_id(%s), code(%s), res(%s)", sheet_name, field, primary_id, code, res)
+        log_err("[GameDAO][update_mongo_field_%s] update (%s) failed! primary_id(%s), code(%s), res(%s)", sheet_name, field, primary_id, code, res)
         return false
     end
     return true
@@ -176,10 +184,22 @@ end
 function GameDAO:find_primary_key(sheet_name)
     local sheet = self.sheet_indexs[sheet_name]
     if not sheet then
-        log_err("[GameDAO][find_primary_key] sheet %s not defined primary_key!", sheet_name)
+        log_err("[GameDAO][find_primary_key] sheet %s not defined primary_key : %s!", sheet_name, debug.traceback())
         return false
     end
     return tunpack(sheet)
 end
+
+function GameDAO:on_db_prop_update(primary_id, sheet_name, db_key, value)
+    log_debug("[GameDAO][on_db_prop_update] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
+    return self:update_field(primary_id, sheet_name, db_key, value, true)
+end
+
+function GameDAO:on_db_prop_remove(primary_id, sheet_name, db_key)
+    log_debug("[GameDAO][on_db_prop_remove] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
+    return self:remove_field(primary_id, sheet_name, db_key, true)
+end
+
+quanta.game_dao = GameDAO()
 
 return GameDAO

@@ -4,6 +4,7 @@ local tsize         = qtable.size
 local tinsert       = table.insert
 local guid_new      = quanta.new_guid
 
+local game_dao      = quanta.get("game_dao")
 local login_dao     = quanta.get("login_dao")
 
 local DBRole        = import("login/object/db_role.lua")
@@ -51,7 +52,7 @@ end
 
 function DBAccount:load()
     local function load_account()
-        return login_dao:load(self.open_id, "account")
+        return game_dao:load(self.open_id, "account")
     end
     return self:load_account_db(self.open_id, load_account)
 end
