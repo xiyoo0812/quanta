@@ -44,7 +44,6 @@ function service.init()
         SERVICES[conf.name] = conf.id
         SERVICE_NAMES[conf.id] = conf.name
     end
-    config_mgr:close_table("service")
     --初始化服务信息
     local index = environ.number("QUANTA_INDEX", 1)
     local group = environ.number("QUANTA_GROUP", 1)

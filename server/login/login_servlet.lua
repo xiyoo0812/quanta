@@ -141,14 +141,15 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     end
     log_debug("[LoginServlet][on_role_create_req] code:%s result_name:%s", code, result_name)
     --创建角色
-    local role = account:add_role(body)
-    if not role then
+    local role_id, role = account:add_role(body)
+    if not role_id then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) create role failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    event_mgr:notify_listener("on_role_create", user_id, role)
+    event_mgr:notify_listener("on_role_create", user_id, role_id, role)
+    local rdata = { role_id = role_id, gender = role.gender, name = role.name }
+    client_mgr:callback_by_id(session, cmd_id, { error_code = 0, role = rdata }, session_id)
     log_info("[LoginServlet][on_role_create_req] user_id(%s) create role %s success!", user_id, name)
-    client_mgr:callback_by_id(session, cmd_id, { error_code = 0, role = role:pack2client() }, session_id)
 end
 
 --选择角色
@@ -216,8 +217,8 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_account_reload_req] open_id(%s) load account status failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    local old_token = account:get_reload_token()
-    if token ~= account:get_reload_token() or device_id ~= account:get_device_id() then
+    local old_token = account:get_token()
+    if token ~= old_token or device_id ~= account:get_device_id() then
         log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: %s, token: %s-%s", open_id, token, old_token)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end

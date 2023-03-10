@@ -14,6 +14,7 @@ local lpardir       = lstdfs.parent_path
 local lcurdir       = lstdfs.current_path
 
 local nacos         = quanta.get("nacos")
+local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local monitor_mgr   = quanta.get("monitor_mgr")
 
@@ -23,11 +24,11 @@ prop:reader("config",  {})
 prop:reader("dictionary", {})
 
 function HotfixMgr:__init()
-    self:init_nacos()
+    event_mgr:add_trigger(self, "on_nacos_ready")
 end
 
 --初始化nacos
-function HotfixMgr:init_nacos()
+function HotfixMgr:on_nacos_ready()
     local hotfixable = environ.status("QUANTA_NACOS_HOTFIX")
     if hotfixable then
         thread_mgr:fork(function()

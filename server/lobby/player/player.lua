@@ -34,6 +34,8 @@ prop:accessor("gateway", nil)       --gateway
 prop:accessor("account", nil)       --account
 
 local dprop = db_property(Player, "player")
+dprop:store_value("nick", "")       --nick
+dprop:store_value("facade", "")     --nick
 dprop:store_value("login_time", 0)  --login_time
 dprop:store_value("online_time", 0) --online_time
 dprop:store_value("upgrade_time", 0)--upgrade_time
@@ -44,7 +46,8 @@ end
 function Player:on_db_player_load(data)
     if data and data.player then
         local player_data = data.player
-        self.name = player_data.name
+        self.nick = player_data.nick
+        self.facade = player_data.facade
         self.user_id = player_data.user_id
         self.open_id = player_data.open_id
         self.login_time = player_data.login_time
@@ -52,7 +55,8 @@ function Player:on_db_player_load(data)
         self.online_time = player_data.online_time or 0
         self.upgrade_time = player_data.upgrade_time or 0
         self:set_gender(player_data.gender)
-        self:set_custom(player_data.custom)
+        self:set_custom(player_data.facade)
+        self:set_name(player_data.nick)
         self:set_relayable(true)
         self.active_time = quanta.now_ms
         return true
@@ -64,6 +68,20 @@ end
 function Player:load(conf)
     self:init_attrset(attr_db)
     return game_dao:load_group(self, "player", self.id)
+end
+
+--修改玩家名字
+function Player:update_name(name)
+    self:set_name(name)
+    self:set_nick(name)
+    self.account:update_nick(self.id, name)
+end
+
+--修改玩家外观
+function Player:update_custom(custom)
+    self:set_custom(custom)
+    self:set_facade(custom)
+    self.account:update_custom(self.id, custom)
 end
 
 --是否新玩家

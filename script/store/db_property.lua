@@ -69,8 +69,8 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
         end
         return success
     end
-    class["flush_" .. sheet] = function(self)
-        return on_db_prop_update(self, self[sheetprimary], sheet, self[sheetkey], self:pack2db(), true)
+    class["flush_" .. sheet] = function(self, value)
+        return on_db_prop_update(self, self[sheetprimary], sheet, self[sheetkey], value, true)
     end
 end
 
@@ -80,7 +80,7 @@ local function db_prop_op_value(class, sheet, sheetkey, sheetroot, sheetprimary,
         return self[name]
     end
     class["set_" .. name] = function(self, value, force)
-        if self[name] ~= value then
+        if self[name] ~= value or type(value) == "table" then
             self[name] = value
             local sheet_key = self[sheetkey]
             if sheet_key then
@@ -102,14 +102,12 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
         return self[name]
     end
     class["set_" .. name] = function(self, value, force)
-        if self[name] ~= value then
-            self[name] = value
-            local sheet_key = self[sheetkey]
-            if sheet_key then
-                local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s", sheet_key, name)
-                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, force)
-            end
+        self[name] = value
+        local sheet_key = self[sheetkey]
+        if sheet_key then
+            local root = self[sheetroot] or self
+            local db_key = sformat("%s.%s", sheet_key, name)
+            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, force)
         end
         return true
     end
@@ -119,7 +117,7 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
         if not value then
             return class[del_func_name](self, key)
         end
-        if self[name][key] ~= value then
+        if self[name][key] ~= value or type(value) == "table" then
             self[name][key] = value
             local sheet_key = self[sheetkey]
             if sheet_key then
@@ -158,16 +156,14 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
         if not value then
             return class[del_func_name](self, key)
         end
-        if self[name][key] ~= value then
-            self[name][key] = value
-            local sheet_key = self[sheetkey]
-            if sheet_key then
-                local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s.%s", sheet_key, name, key)
-                value[sheetkey] = db_key
-                value[sheetroot] = root
-                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value:pack2db(), force)
-            end
+        self[name][key] = value
+        local sheet_key = self[sheetkey]
+        if sheet_key then
+            local root = self[sheetroot] or self
+            local db_key = sformat("%s.%s.%s", sheet_key, name, key)
+            value[sheetkey] = db_key
+            value[sheetroot] = root
+            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value:pack2db(), force)
         end
         return true
     end

@@ -105,7 +105,7 @@ end
 function NetServer:write(session, cmd, data, session_id, flag)
     local body, cmd_id, pflag = self:encode(cmd, data, flag)
     if not body then
-        log_err("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd_id, data)
+        log_err("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd, data)
         return false
     end
     session.serial = session.serial + 1

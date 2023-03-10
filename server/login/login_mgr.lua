@@ -7,7 +7,7 @@ local client_mgr        = quanta.get("client_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
 
-local DBAccount         = import("login/object/db_account.lua")
+local Account           = import("login/account.lua")
 
 local LoginMgr = singleton()
 
@@ -48,7 +48,7 @@ function LoginMgr:on_session_cmd(session, service_type, cmd_id, body, session_id
 end
 
 function LoginMgr:load_account(open_id)
-    local account = DBAccount(open_id)
+    local account = Account(open_id)
     if not account:load() then
         return
     end

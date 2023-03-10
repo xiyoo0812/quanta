@@ -30,7 +30,8 @@ function LoginDao:check_name_exist(name)
     return udata
 end
 
-function LoginDao:create_player(player_id, pdata)
+function LoginDao:create_player(player_id, data)
+    local pdata = { nick = data.name, gender = data.gender, facade = data.custom, create_time = quanta.now }
     local ok, code, udata = mongo_agent:insert({ "player", { player = pdata, player_id = player_id } })
     if qfailed(code, ok) then
         log_err("[LoginDao][create_player] player_id: %s create failed! code: %s, res: %s", player_id, code, udata)

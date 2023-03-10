@@ -34,7 +34,7 @@ local function prop_accessor(class, name, default, mode)
     end
     if (mode & WRITER) == WRITER then
         class["set_" .. name] = function(self, value, ...)
-            if self[name] ~= value then
+            if self[name] ~= value or type(value) == "table" then
                 self[name] = value
                 local n = select("#", ...)
                 if n > 0 then

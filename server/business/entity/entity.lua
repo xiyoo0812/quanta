@@ -7,7 +7,6 @@ local Entity = class(nil, AttributeSet)
 
 local prop = property(Entity)
 prop:reader("id")                       --id
-prop:accessor("name")                   --name
 prop:accessor("dynamic", false) --dynamic
 prop:accessor("release", false) --release
 prop:accessor("active_time", 0) --active_time

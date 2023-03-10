@@ -150,7 +150,10 @@ return [[
             
             //inputMsg事件
             document.getElementById('inputMsg').addEventListener('keyup', function(e){
-                if (e.keyCode == 38){
+                if (e.keyCode == 13 && e.ctrlKey){
+                    that._sendCommand(historyCmds);
+                    cmd_index = historyCmds.length
+                } else if (e.keyCode == 38){
                     if (cmd_index > 0) cmd_index = cmd_index - 1
                     that._showCommand(historyCmds[cmd_index])
                 } else if (e.keyCode == 40){
@@ -210,6 +213,7 @@ return [[
                 inputMsg.focus();
                 return null;
             }
+            historyCmds.push(msg);
             var result = { cmdType : "cmd", data : {} };
             that._displayNewMsg("historyMsg", msg, "myMsg");
             if(that._isJson(msg)){
@@ -228,7 +232,6 @@ return [[
                 that._displayNewMsg("historyMsg", "error", "newMsg");
                 return;
             }
-            historyCmds.push(result.data);
             var url = result.cmdType == "cmd" ? "/command" : "/message";
             $.ajax({
                 url: url,

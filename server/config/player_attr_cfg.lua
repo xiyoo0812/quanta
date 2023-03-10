@@ -81,8 +81,8 @@ player_attr:upsert({
 })
 
 player_attr:upsert({
-    key = 'ATTR_JEWEL',
-    range = 1,
+    key = 'ATTR_NAME',
+    range = 16,
     save = true,
     back = false,
 })

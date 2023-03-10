@@ -88,10 +88,10 @@ attribute:upsert({
 
 attribute:upsert({
     id = 11,
-    enum_key = 'ATTR_JEWEL',
-    nick = 'jewel',
-    type = 'int',
-    increase = true,
+    enum_key = 'ATTR_NAME',
+    nick = 'name',
+    type = 'string',
+    increase = false,
 })
 
 attribute:upsert({

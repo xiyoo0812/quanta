@@ -13,6 +13,7 @@ local jdecode       = ljson.decode
 local tdiff         = qtable.diff
 
 local nacos         = quanta.get("nacos")
+local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -43,6 +44,11 @@ function MonitorMgr:__init()
     --初始化定时器
     update_mgr:attach_minute(self)
     update_mgr:attach_second5(self)
+    --监听nacos
+    event_mgr:add_trigger(self, "on_nacos_ready")
+end
+
+function MonitorMgr:on_nacos_ready()
     --注册自己
     thread_mgr:fork(function()
         nacos:modify_switchs("healthCheckEnabled", "false")
@@ -58,6 +64,9 @@ function MonitorMgr:on_minute()
 end
 
 function MonitorMgr:on_second5()
+    if not nacos:get_access_token() then
+        return
+    end
     for _, service_name in pairs(nacos:query_services() or {}) do
         local curr = nacos:query_instances(service_name)
         if curr then
@@ -81,6 +90,9 @@ end
 function MonitorMgr:on_client_beat(client)
     local node = self.monitor_nodes[client.token]
     if node then
+        if not nacos:get_access_token() then
+            return
+        end
         if not node.status then
             local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
             node.status = nacos:regi_instance(node.service_name, node.host, node.port, nil, metadata)
@@ -92,10 +104,12 @@ end
 function MonitorMgr:on_client_register(client, node)
     local token = client.token
     log_debug("[MonitorMgr][on_service_register] node:%s, token: %s", node.name, token)
-    local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
-    local status = nacos:regi_instance(node.service_name, node.host, node.port, nil, metadata)
+    if nacos:get_access_token() then
+        local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
+        local status = nacos:regi_instance(node.service_name, node.host, node.port, nil, metadata)
+        node.status = status
+    end
     self.monitor_nodes[token] = node
-    node.status = status
     node.token = token
     --返回所有服务
     for service_name, curr_services in pairs(self.services) do
@@ -109,7 +123,7 @@ end
 function MonitorMgr:on_client_error(client, token, err)
     log_info("[MonitorMgr][on_client_error] node:%s, token:%s", client.name, token)
     local node = self.monitor_nodes[token]
-    if node then
+    if node and nacos:get_access_token() then
         nacos:del_instance(node.service_name, node.host, node.port)
         self.monitor_nodes[token] = nil
     end
