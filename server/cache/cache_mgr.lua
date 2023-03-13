@@ -18,7 +18,6 @@ local SECOND_10_MS          = quanta.enum("PeriodTime", "SECOND_10_MS")
 local CacheMgr = singleton()
 local prop = property(CacheMgr)
 prop:reader("collections", {})        -- collections
-prop:reader("dirty_map", nil)         -- dirty objects
 
 function CacheMgr:__init()
     -- 监听rpc事件
@@ -64,17 +63,6 @@ function CacheMgr:find_collection(coll_name)
         self.collections[coll_name] = collection
     end
     return collection
-end
-
-function CacheMgr:rpc_cache_find(primary_key, coll_name)
-    local collection = self:find_collection(coll_name)
-    local code, doc = collection:load(primary_key)
-    if qfailed(code) then
-        log_err("[CacheMgr][rpc_cache_find] doc not find! coll_name=%s,primary=%s", coll_name, primary_key)
-        return code
-    end
-    log_info("[CacheMgr][rpc_cache_find] coll_name=%s, primary=%s", coll_name, primary_key)
-    return code, doc:get_data()
 end
 
 function CacheMgr:rpc_cache_load(quanta_id, primary_key, coll_name)

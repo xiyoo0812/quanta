@@ -119,7 +119,7 @@ message login_role_delete_res
 //NID_LOGIN_ROLE_LOGIN_REQ
 message login_role_login_req
 {
-    uint64 user_id              = 1;        // 账号id
+    string open_id              = 1;        // open_id
     uint64 role_id              = 2;        // 角色id
     uint32 lobby                = 3;        // lobby id
     uint32 token                = 4;        // 验证token
@@ -147,7 +147,7 @@ message login_role_logout_res
 //NID_LOGIN_ROLE_RELOAD_REQ
 message login_role_reload_req
 {
-    uint64 user_id              = 1;        // 账号id
+    string open_id              = 1;        // open_id
     uint64 role_id              = 2;        // 角色id
     uint32 lobby                = 3;        // lobby id
     uint32 token                = 4;        // 验证token

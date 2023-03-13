@@ -33,7 +33,7 @@ local function on_db_sheet_load(object, sheet, data)
     local f_db_sheet_load = object["on_db_" .. sheet .. "_load"]
     if f_db_sheet_load then
         if f_db_sheet_load(object, data) then
-            object["load_" .. sheet .. "_success"] = true
+            object["__load_" .. sheet .. "_success"] = true
             return true, data
         end
         return false
@@ -42,7 +42,7 @@ local function on_db_sheet_load(object, sheet, data)
 end
 
 local function on_db_prop_update(object, primary_id, sheet, db_key, value, force)
-    if force or object["load_" .. sheet .. "_success"] then
+    if force or object["__load_" .. sheet .. "_success"] then
         local result = event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value)
         if result[1] then
             return result[2]
@@ -71,6 +71,9 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
     end
     class["flush_" .. sheet] = function(self, value)
         return on_db_prop_update(self, self[sheetprimary], sheet, self[sheetkey], value, true)
+    end
+    class["load_" .. sheet .. "_success"] = function(self)
+        return self["__load_" .. sheet .. "_success"]
     end
 end
 

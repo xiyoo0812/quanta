@@ -59,13 +59,13 @@ function Account:on_db_account_load(data)
         local account_data = data.account
         self.token = account_data.token
         self.lobby = account_data.lobby
-        self.roles = account_data.roles
         self.params = account_data.params
         self.user_id = account_data.user_id
         self.device_id = account_data.device_id
         self.login_time = account_data.login_time
         self.create_time = account_data.create_time
         self.login_token = account_data.login_token
+        self.roles = account_data.roles or {}
     end
     return true
 end

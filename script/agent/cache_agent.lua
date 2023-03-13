@@ -11,16 +11,6 @@ local CacheAgent = singleton()
 function CacheAgent:__init()
 end
 
--- 查询
-function CacheAgent:find(primary_id, sheet_name, primary_key, filters)
-    local ok, code, row_data = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_find", primary_id, sheet_name, primary_key, filters)
-    if qfailed(code, ok) then
-        log_err("[CacheAgent][find] code=%s, pkey=%s, sheet_name=%s", code, primary_id, sheet_name)
-        return ok and code or RPC_FAILED
-    end
-    return code, row_data
-end
-
 -- 加载
 function CacheAgent:load(primary_id, sheet_name, primary_key, filters, group)
     local ok, code, row_data = router_mgr:call_cachesvr_hash(primary_id, "rpc_cache_load", quanta.id, primary_id, sheet_name, primary_key, filters, group)

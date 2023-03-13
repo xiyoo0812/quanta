@@ -14,14 +14,14 @@ local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local GatePlayer = class()
 local prop = property(GatePlayer)
 prop:accessor("session", nil)       --session
-prop:accessor("user_id", 0)         --user_id
+prop:accessor("open_id", 0)         --open_id
 prop:accessor("player_id", 0)       --player_id
 prop:accessor("lobby_id", 0)        --大厅id
 prop:accessor("gate_services", {})  --转发服务集合
 
-function GatePlayer:__init(session, user_id, player_id)
+function GatePlayer:__init(session, open_id, player_id)
     self.session = session
-    self.user_id = user_id
+    self.open_id = open_id
     self.player_id = player_id
 end
 

@@ -61,9 +61,8 @@ function PlayerMgr:kick_out(player, player_id)
     update_mgr:attach_event(player_id, "on_kickout_success", player_id, player)
 end
 
-
-function PlayerMgr:load_account(user_id)
-    local account = Account(user_id)
+function PlayerMgr:load_account(open_id)
+    local account = Account(open_id)
     if not account:load() then
         return
     end

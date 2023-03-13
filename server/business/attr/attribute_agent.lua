@@ -47,9 +47,7 @@ function AttributeAgent:rpc_attr_setup(player_id, attrs)
         log_err("[AttributeAgent][rpc_attr_setup] player not exist, player_id=%s", player_id)
         return ROLE_NOT_EXIST
     end
-    for attr_id, value in pairs(attrs) do
-        player:set_attr(attr_id, value)
-    end
+    player:load_attrs(attrs)
     player:set_wbackable(true)
     player:set_relayable(false)
     log_debug("[AttributeAgent][rpc_attr_setup] success player_id=%s, attrs=%s", player_id, attrs)

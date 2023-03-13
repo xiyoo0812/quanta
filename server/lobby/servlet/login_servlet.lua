@@ -34,8 +34,9 @@ function LoginServlet:__init()
     event_mgr:add_listener(self, "rpc_player_reload")
 
     -- 注册存储结构
-    game_dao:add_sheet(nil, "account", "account.user_id", { account = 1 })
+    game_dao:add_sheet(nil, "account", "open_id", { account = 1 })
     game_dao:add_sheet("player", "player", "player_id", { player = 1 })
+    game_dao:add_sheet("player", "player_attr", "player_id", { player_attr = 1 })
 end
 
 -- 会话需要同步
@@ -77,9 +78,9 @@ function LoginServlet:rpc_player_command(player_id, cmd_id, message)
     return tunpack(result, 2)
 end
 
-function LoginServlet:rpc_player_login(user_id, player_id, lobby, token, gateway)
-    log_debug("[LoginServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login req!", user_id, player_id, token, gateway)
-    local account = player_mgr:load_account(user_id)
+function LoginServlet:rpc_player_login(open_id, player_id, lobby, token, gateway)
+    log_debug("[LoginServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login req!", open_id, player_id, token, gateway)
+    local account = player_mgr:load_account(open_id)
     if not account then
         return FRAME_FAILED
     end
@@ -125,13 +126,13 @@ function LoginServlet:rpc_player_logout(player_id)
     return FRAME_SUCCESS
 end
 
-function LoginServlet:rpc_player_reload(user_id, player_id, lobby, token, gateway)
+function LoginServlet:rpc_player_reload(open_id, player_id, lobby, token, gateway)
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
         return ROLE_NOT_EXIST
     end
-    local account = player_mgr:load_account(user_id)
+    local account = player_mgr:load_account(open_id)
     if not account then
         return FRAME_FAILED
     end
