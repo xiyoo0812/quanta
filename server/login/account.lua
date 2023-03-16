@@ -48,10 +48,7 @@ function Account:get_role_count()
 end
 
 function Account:load()
-    local function load_account()
-        return game_dao:load(self.open_id, "account")
-    end
-    return self:load_account_db(self.open_id, load_account)
+    return game_dao:load_group(self, "account", self.open_id)
 end
 
 function Account:on_db_account_load(data)
@@ -75,8 +72,8 @@ function Account:add_role(body)
     if not role_id then
         return
     end
-    if self:set_roles_field(role_id, body) then
-        login_dao:create_player(role_id, body)
+    if self:set_roles_field(role_id, body, true) then
+        login_dao:create_player(self.open_id, role_id, body)
         return role_id, body
     end
 end

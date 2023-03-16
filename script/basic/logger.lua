@@ -100,7 +100,7 @@ local LOG_LEVEL_OPTIONS = {
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
     logger[lvl_name] = function(fmt, ...)
-        local ok, res = pcall(logger_output, true, "", lvl, lvl_name, fmt, log_conf, ...)
+        local ok, res = pcall(logger_output, "", true, lvl, lvl_name, fmt, log_conf, ...)
         if not ok then
             local info = dgetinfo(2, "S")
             lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
@@ -116,7 +116,7 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
         llogger.add_dest(feature, path)
         llogger.ignore_prefix(feature, prefix)
         return function(fmt, ...)
-            local ok, res = pcall(logger_output, false, feature, lvl, lvl_name, fmt, log_conf, ...)
+            local ok, res = pcall(logger_output, feature, false, lvl, lvl_name, fmt, log_conf, ...)
             if not ok then
                 local info = dgetinfo(2, "S")
                 lwarn(sformat("[logfeature][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))

@@ -25,7 +25,6 @@ function GameDAO:__init()
     event_mgr:add_listener(self, "on_db_prop_remove")
 end
 
---{ "entity", "role_id", { _id = 0 } },
 function GameDAO:add_sheet(group, sheet_name, primary_key, filters)
     if not self.sheet_indexs[sheet_name] then
         self.sheet_indexs[sheet_name] = { primary_key, filters or { _id = 0 } }
@@ -40,14 +39,14 @@ function GameDAO:add_sheet(group, sheet_name, primary_key, filters)
     end
 end
 
-function GameDAO:load(primary_id, sheet_name)
+function GameDAO:load(primary_id, sheet_name, group)
     if USE_CACHE then
         local primary_key, filters = self:find_primary_key(sheet_name)
         if not primary_key then
             return false
         end
-        local ok, code, adata = cache_agent:load(primary_id, sheet_name, primary_key, filters, self.group)
-        if qfailed(code, ok) then
+        local code, adata = cache_agent:load(primary_id, sheet_name, primary_key, filters, group)
+        if qfailed(code) then
             log_err("[GameDAO][load_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
             return false
         end
@@ -72,7 +71,7 @@ end
 function GameDAO:load_group(entity, group, primary_id)
     for _, sheet_name in ipairs(self.sheet_groups[group] or {}) do
         local function load_sheet_db()
-            return self:load(primary_id, sheet_name)
+            return self:load(primary_id, sheet_name, group)
         end
         local ok = entity["load_" .. sheet_name .. "_db"](entity, primary_id, load_sheet_db)
         if not ok then
@@ -84,12 +83,8 @@ end
 
 function GameDAO:update_field(primary_id, sheet_name, field, field_data, flush)
     if USE_CACHE then
-        local primary_key = self:find_primary_key(sheet_name)
-        if not primary_key then
-            return false
-        end
-        local ok, code, adata = cache_agent:update_field(primary_id, sheet_name, primary_key, field, field_data, flush)
-        if qfailed(code, ok) then
+        local code, adata = cache_agent:update_field(primary_id, sheet_name, field, field_data, flush)
+        if qfailed(code) then
             log_err("[GameDAO][update_field_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
             return false
         end
@@ -114,12 +109,8 @@ end
 
 function GameDAO:remove_field(primary_id, sheet_name, field, flush)
     if USE_CACHE then
-        local primary_key = self:find_primary_key(sheet_name)
-        if not primary_key then
-            return false
-        end
-        local ok, code, res = cache_agent:remove_field(primary_id, sheet_name, primary_key, field, flush)
-        if qfailed(code, ok) then
+        local code, res = cache_agent:remove_field(primary_id, sheet_name, field, flush)
+        if qfailed(code) then
             log_err("[GameDAO][remove_field_%s] remove (%s) failed primary_id(%s), code: %s, res: %s!", sheet_name, field, primary_id, code, res)
             return false
         end
@@ -144,12 +135,8 @@ end
 
 function GameDAO:delete(primary_id, sheet_name)
     if USE_CACHE then
-        local primary_key = self:find_primary_key(sheet_name)
-        if not primary_key then
-            return false
-        end
-        local ok, code, res = cache_agent:delete(primary_id, sheet_name, primary_key, self.group)
-        if qfailed(code, ok) then
+        local code, res = cache_agent:delete(primary_id, sheet_name)
+        if qfailed(code) then
             log_err("[GameDAO][delete] delete (%s) failed primary_id(%s), code: %s, res: %s!",  sheet_name, primary_id, code, res)
             return false
         end
@@ -170,10 +157,10 @@ function GameDAO:delete_mongo(primary_id, sheet_name)
     return true
 end
 
-function GameDAO:flush(primary_id)
+function GameDAO:flush(primary_id, group)
     if USE_CACHE then
-        local ok, code, res = cache_agent:flush(primary_id, self.group)
-        if qfailed(code, ok) then
+        local code, res = cache_agent:flush(primary_id, group)
+        if qfailed(code) then
             log_err("[GameDAO][flush] flush (%s) failed primary_id(%s), code: %s, res: %s!",  primary_id, code, res)
             return false
         end
@@ -184,20 +171,20 @@ end
 function GameDAO:find_primary_key(sheet_name)
     local sheet = self.sheet_indexs[sheet_name]
     if not sheet then
-        log_err("[GameDAO][find_primary_key] sheet %s not defined primary_key : %s!", sheet_name, debug.traceback())
+        log_err("[GameDAO][find_primary_key] sheet %s not defined primary_key!", sheet_name)
         return false
     end
     return tunpack(sheet)
 end
 
-function GameDAO:on_db_prop_update(primary_id, sheet_name, db_key, value)
+function GameDAO:on_db_prop_update(primary_id, sheet_name, db_key, value, flush)
     log_debug("[GameDAO][on_db_prop_update] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
-    return self:update_field(primary_id, sheet_name, db_key, value, true)
+    return self:update_field(primary_id, sheet_name, db_key, value, flush)
 end
 
-function GameDAO:on_db_prop_remove(primary_id, sheet_name, db_key)
+function GameDAO:on_db_prop_remove(primary_id, sheet_name, db_key, flush)
     log_debug("[GameDAO][on_db_prop_remove] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
-    return self:remove_field(primary_id, sheet_name, db_key, true)
+    return self:remove_field(primary_id, sheet_name, db_key, flush)
 end
 
 quanta.game_dao = GameDAO()

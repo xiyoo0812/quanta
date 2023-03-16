@@ -27,9 +27,9 @@ local Player = class(Entity, EventSet)
 
 local prop = property(Player)
 prop:reader("user_id")                      --user_id
-prop:reader("open_id")                      --open_id
 prop:reader("passkey", {})          --passkey
 prop:reader("create_time", 0)       --create_time
+prop:accessor("open_id", nil)       --open_id
 prop:accessor("gateway", nil)       --gateway
 prop:accessor("account", nil)       --account
 
@@ -49,7 +49,6 @@ function Player:on_db_player_load(data)
         self.nick = player_data.nick
         self.facade = player_data.facade
         self.user_id = player_data.user_id
-        self.open_id = player_data.open_id
         self.login_time = player_data.login_time
         self.create_time = player_data.create_time
         self.online_time = player_data.online_time or 0
@@ -186,6 +185,9 @@ function Player:unload()
     local online_time = self.online_time + quanta.now - self.login_time
     self:set_online_time(online_time)
     self.account:set_lobby(0)
+    --flush
+    game_dao:flush(self.id, "player")
+    game_dao:flush(self.open_id, "account")
     return true
 end
 

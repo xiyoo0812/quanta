@@ -71,12 +71,6 @@ PeriodTime.DAY_S            = 86400     --1天（s）
 PeriodTime.WEEK_S           = 604800    --1周（s）
 PeriodTime.HOUR_M           = 60        --1小时（m
 
---数据加载状态
-local DBLoading             = enum("DBLoading", 0)
-DBLoading.INIT              = 0
-DBLoading.LOADING           = 1
-DBLoading.SUCCESS           = 2
-
 --在线状态
 local OnlineStatus          = enum("OnlineStatus", 0)
 OnlineStatus.LOADING        = 1
@@ -103,13 +97,10 @@ RobotType.RANDOM            = 0       -- 随机账号
 RobotType.COMPOSE           = 1       -- 组合账号
 RobotType.PLAYER            = 2       -- 指定账号
 
-
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
-CacheCode.CACHE_NOT_SUPPERT         = 10001  -- 不支持的缓存类型
-CacheCode.CACHE_IS_NOT_EXIST        = 10002  -- 缓存不存在
-CacheCode.CACHE_IS_HOLDING          = 10003  -- 缓存正在处理
-CacheCode.CACHE_KEY_IS_NOT_EXIST    = 10004  -- key不存在
-CacheCode.CACHE_FLUSH_FAILED        = 10005  -- flush失败
-CacheCode.CACHE_KEY_LOCK_FAILD      = 10006  -- 用户锁失败
-CacheCode.CACHE_DELETE_SAVE_FAILD   = 10007  -- 缓存删除失败
+CacheCode.CACHE_IS_NOT_EXIST        = 10001  -- 缓存不存在
+CacheCode.CACHE_IS_LOCK_FAILD       = 10002  -- 用户锁失败
+CacheCode.CACHE_KEY_NOT_EXIST       = 10003  -- key不存在
+CacheCode.CACHE_FLUSH_FAILED        = 10004  -- flush失败
+CacheCode.CACHE_DELETE_FAILD        = 10005  -- 缓存删除失败

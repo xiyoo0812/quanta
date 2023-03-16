@@ -22,10 +22,7 @@ function Account:__init(open_id)
 end
 
 function Account:load()
-    local function load_account()
-        return game_dao:load(self.open_id, "account")
-    end
-    return self:load_account_db(self.open_id, load_account)
+    return game_dao:load_group(self, "account", self.open_id)
 end
 
 function Account:on_db_account_load(data)

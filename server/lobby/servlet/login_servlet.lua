@@ -34,7 +34,7 @@ function LoginServlet:__init()
     event_mgr:add_listener(self, "rpc_player_reload")
 
     -- 注册存储结构
-    game_dao:add_sheet(nil, "account", "open_id", { account = 1 })
+    game_dao:add_sheet("account", "account", "open_id", { account = 1 })
     game_dao:add_sheet("player", "player", "player_id", { player = 1 })
     game_dao:add_sheet("player", "player_attr", "player_id", { player_attr = 1 })
 end
@@ -109,6 +109,7 @@ function LoginServlet:rpc_player_login(open_id, player_id, lobby, token, gateway
     --通知登陆成功
     local new_token = mrandom()
     player:set_account(account)
+    player:set_open_id(open_id)
     account:set_login_token(new_token)
     update_mgr:attach_event(player_id, "on_login_success", player_id, player)
     log_info("[LoginServlet][rpc_player_login] player(%s) login success!", player_id)

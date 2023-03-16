@@ -16,7 +16,7 @@ namespace lcodec {
     const uint32_t INDEX_BITS   = 10;
     const uint32_t SNUM_BITS    = 13;
 
-    const uint32_t LETTER_LEN   = 11;
+    const uint32_t LETTER_LEN   = 12;
     const uint32_t LETTER_SIZE  = 62;
 
     //基准时钟：2022-10-01 08:00:00
@@ -64,27 +64,27 @@ namespace lcodec {
     static int guid_string(lua_State* L, uint32_t group, uint32_t index) {
         char sguid[32];
         size_t guid = guid_new(group, index);
-        snprintf(sguid, 32, "%lu", guid);
+        snprintf(sguid, 32, "%zu", guid);
         lua_pushstring(L, sguid);
         return 1;
     }
 
     static int guid_tostring(lua_State* L, uint64_t guid) {
         char sguid[32];
-        snprintf(sguid, 32, "%lu", guid);
+        snprintf(sguid, 32, "%zu", guid);
         lua_pushstring(L, sguid);
         return 1;
     }
 
     static uint64_t guid_number(std::string guid) {
-        return strtoull(guid.c_str(), nullptr, 16);
+        return strtoull(guid.c_str(), nullptr, 10);
     }
 
     static int guid_encode(lua_State* L) {
         char tmp[LETTER_LEN];
         memset(tmp, 0, LETTER_LEN);
         uint64_t val = (lua_gettop(L) > 0) ? lua_tointeger(L, 1) : guid_new(0, 0);
-        for (int i = 0; i < LETTER_LEN; ++i) {
+        for (int i = 0; i < LETTER_LEN - 1; ++i) {
             tmp[i] = letter[val % LETTER_SIZE];
             val /= LETTER_SIZE;
             if (val == 0) break;

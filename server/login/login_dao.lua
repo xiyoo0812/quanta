@@ -9,7 +9,7 @@ local mongo_agent   = quanta.get("mongo_agent")
 local LoginDao = singleton()
 
 function LoginDao:__init()
-    game_dao:add_sheet(nil, "account", "open_id", { account = 1})
+    game_dao:add_sheet("account", "account", "open_id", { account = 1 })
 end
 
 function LoginDao:get_autoinc_id(open_id)
@@ -22,7 +22,7 @@ function LoginDao:get_autoinc_id(open_id)
 end
 
 function LoginDao:check_name_exist(name)
-    local ok, code, udata = mongo_agent:find_one({ "player", { name = name } })
+    local ok, code, udata = mongo_agent:find_one({ "player", { ["player.name"] = name } })
     if qfailed(code, ok) then
         log_err("[LoginDao][check_name_exist] name: %s find failed! code: %s, res: %s", name, code, udata)
         return false
@@ -30,8 +30,15 @@ function LoginDao:check_name_exist(name)
     return udata
 end
 
-function LoginDao:create_player(player_id, data)
-    local pdata = { nick = data.name, user_id = data.user_id, gender = data.gender, facade = data.custom, create_time = quanta.now }
+function LoginDao:create_player(open_id, player_id, data)
+    local pdata = {
+        nick = data.name,
+        open_id = open_id,
+        gender = data.gender,
+        facade = data.custom,
+        user_id = data.user_id,
+        create_time = quanta.now
+    }
     local ok, code, udata = mongo_agent:insert({ "player", { player = pdata, player_id = player_id } })
     if qfailed(code, ok) then
         log_err("[LoginDao][create_player] player_id: %s create failed! code: %s, res: %s", player_id, code, udata)

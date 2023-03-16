@@ -41,9 +41,9 @@ local function on_db_sheet_load(object, sheet, data)
     return true, data
 end
 
-local function on_db_prop_update(object, primary_id, sheet, db_key, value, force)
-    if force or object["__load_" .. sheet .. "_success"] then
-        local result = event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value)
+local function on_db_prop_update(object, primary_id, sheet, db_key, value, flush)
+    if flush or object["__load_" .. sheet .. "_success"] then
+        local result = event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value, flush)
         if result[1] then
             return result[2]
         end
@@ -51,8 +51,8 @@ local function on_db_prop_update(object, primary_id, sheet, db_key, value, force
     return false
 end
 
-local function on_db_prop_remove(primary_id, sheet, db_key)
-    local result =  event_mgr:notify_listener("on_db_prop_remove", primary_id, sheet, db_key)
+local function on_db_prop_remove(primary_id, sheet, db_key, flush)
+    local result =  event_mgr:notify_listener("on_db_prop_remove", primary_id, sheet, db_key, flush)
     if result[1] then
         return result[2]
     end
@@ -82,14 +82,14 @@ local function db_prop_op_value(class, sheet, sheetkey, sheetroot, sheetprimary,
     class["get_" .. name] = function(self)
         return self[name]
     end
-    class["set_" .. name] = function(self, value, force)
+    class["set_" .. name] = function(self, value, flush)
         if self[name] ~= value or type(value) == "table" then
             self[name] = value
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = sformat("%s.%s", sheet_key, name)
-                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, force)
+                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
             end
         end
         return true
@@ -104,19 +104,19 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
         end
         return self[name]
     end
-    class["set_" .. name] = function(self, value, force)
+    class["set_" .. name] = function(self, value, flush)
         self[name] = value
         local sheet_key = self[sheetkey]
         if sheet_key then
             local root = self[sheetroot] or self
             local db_key = sformat("%s.%s", sheet_key, name)
-            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, force)
+            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
         end
         return true
     end
     local set_func_name = "set_" .. name .. "_field"
     local del_func_name = "del_" .. name .. "_field"
-    class[set_func_name] = function(self, key, value, force)
+    class[set_func_name] = function(self, key, value, flush)
         if not value then
             return class[del_func_name](self, key)
         end
@@ -126,18 +126,18 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = sformat("%s.%s.%s", sheet_key, name, key)
-                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, force)
+                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
             end
         end
         return true
     end
-    class[del_func_name] = function(self, key)
+    class[del_func_name] = function(self, key, flush)
         if self[name][key] then
             self[name][key] = nil
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s.%s", sheet_key, name, key)
+                local db_key = sformat("%s.%s.%s", sheet_key, name, key, flush)
                 return on_db_prop_remove(root[sheetprimary], sheet, db_key)
             end
         end
@@ -155,7 +155,7 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
     end
     local set_func_name = "set_" .. name .. "_elem"
     local del_func_name = "del_" .. name .. "_elem"
-    class[set_func_name] = function(self, key, value, force)
+    class[set_func_name] = function(self, key, value, flush)
         if not value then
             return class[del_func_name](self, key)
         end
@@ -166,11 +166,11 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
             local db_key = sformat("%s.%s.%s", sheet_key, name, key)
             value[sheetkey] = db_key
             value[sheetroot] = root
-            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value:pack2db(), force)
+            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value:pack2db(), flush)
         end
         return true
     end
-    class[del_func_name] = function(self, key)
+    class[del_func_name] = function(self, key, flush)
         local value = self[name][key]
         if value then
             self[name][key] = nil
@@ -178,7 +178,7 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s.%s", sheet_key, name, key)
+                local db_key = sformat("%s.%s.%s", sheet_key, name, key, flush)
                 return on_db_prop_remove(root[sheetprimary], sheet, db_key)
             end
         end
