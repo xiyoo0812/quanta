@@ -75,6 +75,7 @@ function GameDAO:load_group(entity, group, primary_id)
         end
         local ok = entity["load_" .. sheet_name .. "_db"](entity, primary_id, load_sheet_db)
         if not ok then
+            log_err("[GameDAO][load_group] load %s failed! primary_id: %s", sheet_name, primary_id)
             return false
         end
     end

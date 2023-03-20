@@ -76,10 +76,10 @@ function PlayerMgr:load_player(player_id)
         local Player = import("lobby/player/player.lua")
         player = Player(player_id)
         self:calc_player_max()
-        if player:setup() then
-            self:add_entity(player_id, player)
-            return player
+        if not player:setup() then
+            return
         end
+        self:add_entity(player_id, player)
     end
     return player
 end

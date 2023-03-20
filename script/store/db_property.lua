@@ -33,7 +33,7 @@ local function on_db_sheet_load(object, sheet, data)
     local f_db_sheet_load = object["on_db_" .. sheet .. "_load"]
     if f_db_sheet_load then
         if f_db_sheet_load(object, data) then
-            object["__load_" .. sheet .. "_success"] = true
+            object["__db_" .. sheet .. "_syncing"] = true
             return true, data
         end
         return false
@@ -42,7 +42,7 @@ local function on_db_sheet_load(object, sheet, data)
 end
 
 local function on_db_prop_update(object, primary_id, sheet, db_key, value, flush)
-    if flush or object["__load_" .. sheet .. "_success"] then
+    if flush or object["__db_" .. sheet .. "_syncing"] then
         local result = event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value, flush)
         if result[1] then
             return result[2]
@@ -72,8 +72,11 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
     class["flush_" .. sheet] = function(self, value)
         return on_db_prop_update(self, self[sheetprimary], sheet, self[sheetkey], value, true)
     end
-    class["load_" .. sheet .. "_success"] = function(self)
-        return self["__load_" .. sheet .. "_success"]
+    class["pause_" .. sheet .. "_sync"] = function(self)
+        self["__db_" .. sheet .. "_syncing"] = false
+    end
+    class["continue_" .. sheet .. "_sync"] = function(self)
+        self["__db_" .. sheet .. "_syncing"] = true
     end
 end
 
@@ -198,7 +201,7 @@ local property_accessor_objects = function(self, name, default)
     db_prop_op_objects(self.__class, self.__sheet, self.__key, self.__root, self.__primary, name, default)
 end
 
-function db_property(class, sheet)
+function db_property(class, sheet, root)
     local prop = {
         __class = class,
         __sheet = sheet,
@@ -209,7 +212,9 @@ function db_property(class, sheet)
         store_values = property_accessor_values,
         store_objects = property_accessor_objects
     }
-    db_prop_op_sheet_key(prop.__class, sheet, prop.__key, prop.__primary)
+    if root then
+        db_prop_op_sheet_key(prop.__class, sheet, prop.__key, prop.__primary)
+    end
     return prop
 end
 

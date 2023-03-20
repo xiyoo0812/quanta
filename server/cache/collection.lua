@@ -125,7 +125,7 @@ function Collection:flush(primary_id)
         document = self.documents:get(primary_id)
     end
     if document then
-        document:set_lock_node_id(0)
+        document:flush()
     end
     return SUCCESS
 end

@@ -33,7 +33,7 @@ prop:accessor("open_id", nil)       --open_id
 prop:accessor("gateway", nil)       --gateway
 prop:accessor("account", nil)       --account
 
-local dprop = db_property(Player, "player")
+local dprop = db_property(Player, "player", true)
 dprop:store_value("nick", "")       --nick
 dprop:store_value("facade", "")     --nick
 dprop:store_value("login_time", 0)  --login_time

@@ -41,6 +41,12 @@ function Document:load(filters)
 end
 
 --保存数据库
+function Document:flush()
+    self.update_time = quanta.now
+    self.lock_node_id = 0
+end
+
+--保存数据库
 function Document:update(udata)
     local updata = udata or { ["$set"] = self.datas }
     local selector = { [self.primary_key] = self.primary_id }

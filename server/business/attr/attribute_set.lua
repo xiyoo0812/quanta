@@ -18,7 +18,7 @@ prop:accessor("write_attrs", {})    --需要回写属性
 prop:accessor("relayable", false)   --是否转发属性
 prop:accessor("wbackable", false)   --是否回写属性
 
-local dbprop = db_property(AttributeSet, "player_attr")
+local dbprop = db_property(AttributeSet, "player_attr", true)
 dbprop:store_values("attrs", {})  --属性集合
 
 --委托回调
