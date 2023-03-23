@@ -9,23 +9,16 @@ prop:reader("first", 1)
 prop:reader("tail", 0)
 prop:reader("index", nil)
 prop:reader("indexs", nil)
-prop:reader("duplicate", nil)
-prop:reader("duplicates", nil)
 prop:reader("datas", {})
 
-function Queue:__init(index, duplicate)
+function Queue:__init(index)
     if index then
         self.index = index
         self.indexs = {}
     end
-    if duplicate then
-        self.duplicate = duplicate
-        self.duplicates = {}
-    end
 end
 
 function Queue:clear()
-    self.duplicates = {}
     self.indexs = {}
     self.datas = {}
     self.first = 1
@@ -52,27 +45,15 @@ function Queue:elem(pos)
     return self.datas[key]
 end
 
-function Queue:get_duplicate(key)
-    return self.duplicates[key]
-end
-
 function Queue:build_index(value)
-    if self.duplicates then
-        local dupkey = value[self.duplicate]
-        if not dupkey then
-            log_warn("[Queue][build_index] dupkey is nil")
-            return false
-        end
-        if self.duplicates[dupkey] then
-            log_warn("[Queue][build_index] dupkey is hold")
-            return false
-        end
-        self.duplicates[dupkey] = value
-    end
-    if self.indexs then
+    if self.index then
         local idxkey = value[self.index]
         if not idxkey then
             log_warn("[Queue][build_index] index is nil")
+            return false
+        end
+        if self.indexs[idxkey] then
+            log_warn("[Queue][build_index] idxkey is hold")
             return false
         end
         self.indexs[idxkey] = value
@@ -81,19 +62,15 @@ function Queue:build_index(value)
 end
 
 function Queue:remove_index(value)
-    if self.indexs then
+    if self.index then
         local idxkey = value[self.index]
         self.indexs[idxkey] = nil
     end
-    if self.duplicates then
-        local dupkey = value[self.duplicate]
-        self.duplicates[dupkey] = nil
-    end
 end
 
-function Queue:find(fidx)
+function Queue:find(idx)
     if self.indexs then
-        return self.indexs[fidx]
+        return self.indexs[idx]
     end
 end
 

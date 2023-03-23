@@ -65,7 +65,7 @@ function GameDAO:load_mongo(primary_id, sheet_name)
         log_err("[GameDAO][load_mongo_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
         return false
     end
-    return true, adata
+    return true, adata or {}
 end
 
 function GameDAO:load_group(entity, group, primary_id)

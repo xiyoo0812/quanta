@@ -26,7 +26,7 @@ function Account:load()
 end
 
 function Account:on_db_account_load(data)
-    if data and data.account then
+    if data.account then
         local account_data = data.account
         self.token = account_data.token
         self.lobby = account_data.lobby

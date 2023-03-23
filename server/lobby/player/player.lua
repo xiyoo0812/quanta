@@ -44,7 +44,7 @@ function Player:__init(id)
 end
 
 function Player:on_db_player_load(data)
-    if data and data.player then
+    if data.player then
         local player_data = data.player
         self.nick = player_data.nick
         self.facade = player_data.facade
