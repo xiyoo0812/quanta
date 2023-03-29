@@ -39,7 +39,7 @@ end
 function service.init()
     --加载服务配置
     local config_mgr = quanta.get("config_mgr")
-    local service_db = config_mgr:init_table("service", "id")
+    local service_db = config_mgr:init_enum_table("service", "Service", "id")
     for _, conf in service_db:iterator() do
         SERVICES[conf.name] = conf.id
         SERVICE_NAMES[conf.id] = conf.name

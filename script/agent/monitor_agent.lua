@@ -9,6 +9,7 @@ local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
+local log_filter    = logger.filter
 local qfailed       = quanta.failed
 local sfind         = string.find
 local sformat       = string.format
@@ -40,6 +41,7 @@ function MonitorAgent:__init()
     event_mgr:add_listener(self, "rpc_remote_message")
     event_mgr:add_listener(self, "rpc_service_changed")
     event_mgr:add_listener(self, "rpc_service_hotfix")
+    event_mgr:add_listener(self, "rpc_set_logger_level")
     --心跳定时器
     update_mgr:attach_second5(self)
 end
@@ -126,6 +128,11 @@ end
 function MonitorAgent:rpc_service_hotfix()
     log_debug("[MonitorAgent][rpc_service_hotfix]")
     event_mgr:notify_trigger("on_service_hotfix")
+end
+
+function MonitorAgent:rpc_set_logger_level(level)
+    log_debug("[MonitorAgent][rpc_set_logger_level] level: %s", level)
+    log_filter(level)
 end
 
 --日志监控

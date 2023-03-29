@@ -27,6 +27,7 @@ local GLOBAL            = quanta.enum("GMType", "GLOBAL")
 local SYSTEM            = quanta.enum("GMType", "SYSTEM")
 local SERVICE           = quanta.enum("GMType", "SERVICE")
 local OFFLINE           = quanta.enum("GMType", "OFFLINE")
+local LOCAL             = quanta.enum("GMType", "LOCAL")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 
@@ -74,6 +75,12 @@ end
 --定时更新
 function AdminMgr:on_second5()
     self.gm_page = import("admin/gm_page.lua")
+end
+
+-- 事件请求
+function AdminMgr:on_register_command(command_list, service_id)
+    self:rpc_register_command(command_list, service_id)
+    return SUCCESS
 end
 
 --rpc请求
@@ -191,6 +198,8 @@ function AdminMgr:dispatch_command(cmd_args, gm_type, service)
         return self:exec_service_cmd(service, tunpack(cmd_args))
     elseif gm_type == OFFLINE then
         return self:exec_offline_cmd(tunpack(cmd_args))
+    elseif gm_type == LOCAL then
+        return self:exec_local_cmd(tunpack(cmd_args))
     end
     return self:exec_player_cmd(tunpack(cmd_args))
 end
@@ -225,6 +234,12 @@ function AdminMgr:exec_service_cmd(service_id, cmd_name, ...)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = "success" }
+end
+
+--local command
+function AdminMgr:exec_local_cmd(cmd_name, ...)
+    event_mgr:notify_trigger(cmd_name, ...)
+    return { code = 0, msg = "success" }
 end
 
 --兼容在线和离线的玩家指令

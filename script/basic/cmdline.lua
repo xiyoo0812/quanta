@@ -40,6 +40,8 @@ local function convert_arg(t, v)
     end
     if t == "integer" then
         return conv_integer(v)
+    elseif t == "bool" then
+        return v == "true" or v ~= "0"
     elseif t == "float" then
         return conv_number(v)
     elseif t == "table" then

@@ -9,6 +9,8 @@ enum ErrorCode
     FRAME_SUCCESS           = 0;        //成功
     FRAME_FAILED            = 1;        //系统错误，请重试
     FRAME_TOOFAST           = 2;        //请求太频繁
+    FRAME_PARAMS            = 3;        //参数错误，请重试
+    FRAME_UPHOLD            = 4;        //服务维护
     
     //登陆错误码
     LOGIN_PLATFORM_ERROR    = 1001;     //平台错误

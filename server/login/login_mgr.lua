@@ -5,9 +5,10 @@ local log_debug         = logger.debug
 local event_mgr         = quanta.get("event_mgr")
 local client_mgr        = quanta.get("client_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
-
-
 local Account           = import("login/account.lua")
+
+
+local FRAME_UPHOLD      = protobuf_mgr:error_code("FRAME_UPHOLD")
 
 local LoginMgr = singleton()
 
@@ -44,6 +45,12 @@ end
 
 --客户端消息分发
 function LoginMgr:on_session_cmd(session, service_type, cmd_id, body, session_id)
+    local result = event_mgr:notify_listener("on_proto_filter", cmd_id, service_type)
+    if result[1] and result[2] then
+        log_warn("[LoginMgr][on_session_cmd] on_proto_filter false, cmd_id=%s", cmd_id)
+        client_mgr:callback_errcode(session, cmd_id, FRAME_UPHOLD, session_id)
+        return
+    end
     event_mgr:notify_command(cmd_id, session, cmd_id, body, session_id)
 end
 

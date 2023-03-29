@@ -90,6 +90,7 @@ GMType.PLAYER               = 1       -- 玩家相关,ID为玩家的ID
 GMType.SERVICE              = 2       -- 服务相关,ID按hash分发
 GMType.SYSTEM               = 3       -- 业务相关,ID为队伍ID,房间ID等
 GMType.OFFLINE              = 4       -- 玩家相关,ID为玩家的ID,需要处理离线
+GMType.LOCAL                = 5       -- 本地事件转发
 
 -- robot类型
 local RobotType             = enum("RobotType", 0)

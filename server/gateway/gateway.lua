@@ -12,10 +12,10 @@ local event_mgr         = quanta.get("event_mgr")
 local router_mgr        = quanta.get("router_mgr")
 local client_mgr        = quanta.get("client_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
-
 local GatePlayer     	= import("gateway/player.lua")
 
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
+local FRAME_UPHOLD      = protobuf_mgr:error_code("FRAME_UPHOLD")
 local DEVICE_REPLACE    = protobuf_mgr:error_code("KICK_DEVICE_REPLACE")
 local ROLE_IS_INLINE    = protobuf_mgr:error_code("LOGIN_ROLE_IS_INLINE")
 
@@ -140,6 +140,7 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     else
         player = GatePlayer(session, open_id, player_id)
     end
+
     local code, passkey, new_token = self:call_lobby(lobby, "rpc_player_login", open_id, player_id, lobby, token, quanta.id)
     if qfailed(code) then
         log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, code, passkey)
@@ -241,6 +242,13 @@ end
 
 --客户端消息分发
 function Gateway:on_session_cmd(session, service_type, cmd_id, body, session_id)
+    -- 协议过滤
+    local result = event_mgr:notify_listener("on_proto_filter", cmd_id, service_type)
+    if result[1] and result[2] then
+        log_warn("[Gateway][on_session_cmd] on_proto_filter false, cmd_id=%s", cmd_id)
+        client_mgr:callback_errcode(session, cmd_id, FRAME_UPHOLD, session_id)
+        return
+    end
     if service_type == 0 or service_type == SERVICE_GATE then
         --gateway消息，本地转发
         event_mgr:notify_command(cmd_id, session, cmd_id, body, session_id, cmd_id)

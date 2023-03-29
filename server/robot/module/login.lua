@@ -228,7 +228,8 @@ function LoginModule:role_login_req()
         lobby = self.lobby,
         user_id = self.user_id,
         role_id = self.player_id,
-        token = self.lobby_token
+        token = self.lobby_token,
+        open_id = self.open_id
     }
     local ok, res = self:call("NID_LOGIN_ROLE_LOGIN_REQ", req_data)
     if self:check_callback(ok, res) then
