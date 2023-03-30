@@ -72,7 +72,7 @@ function RpcClient:connect()
     --开始连接
     local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT)
     if not socket then
-        log_err("[RpcClient][connect] failed to connect: %s:%d err=%s", self.ip, self.port, cerr)
+        log_err("[RpcClient][connect] failed to connect: %s:%s err=%s", self.ip, self.port, cerr)
         return false, cerr
     end
     socket.on_call = function(recv_len, session_id, rpc_flag, slice)

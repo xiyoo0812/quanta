@@ -9,6 +9,7 @@ local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
+
 local log_filter    = logger.filter
 local qfailed       = quanta.failed
 local sfind         = string.find
@@ -36,11 +37,11 @@ function MonitorAgent:__init()
     local ip, port = env_addr("QUANTA_MONITOR_ADDR")
     self.client = RpcClient(self, ip, port)
     --注册事件
-    event_mgr:add_listener(self, "on_quanta_quit")
     event_mgr:add_listener(self, "rpc_remote_log")
     event_mgr:add_listener(self, "rpc_remote_message")
     event_mgr:add_listener(self, "rpc_service_changed")
     event_mgr:add_listener(self, "rpc_service_hotfix")
+    event_mgr:add_listener(self, "rpc_server_shutdown")
     event_mgr:add_listener(self, "rpc_set_logger_level")
     --心跳定时器
     update_mgr:attach_second5(self)
@@ -82,13 +83,11 @@ function MonitorAgent:on_socket_connect(client)
     log_info("[MonitorAgent][on_socket_connect]: connect monitor success!")
 end
 
--- 处理Monitor通知退出消息
-function MonitorAgent:on_quanta_quit(reason)
-    -- 发个退出通知
-    event_mgr:notify_trigger("on_quanta_quit", reason)
+-- 停服
+function MonitorAgent:rpc_server_shutdown(reason)
     -- 关闭会话连接
     update_mgr:attach_next(function()
-        log_warn("[MonitorAgent][on_quanta_quit]->service:%s", quanta.name)
+        log_warn("[MonitorAgent][rpc_server_shutdown]->service:%s", quanta.name)
         self.client:close()
         signal_quit()
     end)

@@ -3,11 +3,14 @@ import("store/mongo_mgr.lua")
 
 local log_err       = logger.err
 local log_info      = logger.info
+local log_debug     = logger.debug
 local qfailed       = quanta.failed
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
+local protobuf_mgr  = quanta.get("protobuf_mgr")
 
+local FRAME_SUCCESS = protobuf_mgr:error_code("FRAME_SUCCESS")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local CNOT_EXIST    = quanta.enum("CacheCode", "CACHE_IS_NOT_EXIST")
 local DNOT_EXIST    = quanta.enum("CacheCode", "CACHE_KEY_NOT_EXIST")
@@ -21,13 +24,13 @@ local prop = property(CacheMgr)
 prop:reader("collections", {})        -- collections
 
 function CacheMgr:__init()
-    event_mgr:add_trigger(self, "on_quanta_quit")
     -- 监听rpc事件
     event_mgr:add_listener(self, "rpc_cache_load")
     event_mgr:add_listener(self, "rpc_cache_update_field")
     event_mgr:add_listener(self, "rpc_cache_remove_field")
     event_mgr:add_listener(self, "rpc_cache_delete")
     event_mgr:add_listener(self, "rpc_cache_flush")
+    event_mgr:add_listener(self, "rpc_server_close")
     --定时器
     update_mgr:attach_minute(self)
     update_mgr:attach_second5(self)
@@ -131,11 +134,13 @@ function CacheMgr:rpc_cache_flush(primary_id, group)
     return SUCCESS
 end
 
---退出
-function CacheMgr:on_quanta_quit()
+--停服
+function CacheMgr:rpc_server_close()
+    log_debug("[CacheMgr][rpc_server_close] cache close")
     for _, collection in pairs(self.collections) do
-        collection:save()
+        collection:save_all(true)
     end
+    return FRAME_SUCCESS, {msg = "success"}
 end
 
 quanta.cache_mgr = CacheMgr()

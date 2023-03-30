@@ -33,14 +33,14 @@ prop:reader("clients", {})
 prop:reader("listener", nil)
 prop:reader("holder", nil)                  --持有者
 
---induce：根据index推导port
+--induce：根据 order 推导port
 function RpcServer:__init(holder, ip, port, induce)
     if not ip or not port then
         log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)
         signalquit()
         return
     end
-    local real_port = induce and (port + quanta.index - 1) or port
+    local real_port = induce and (port + quanta.order - 1) or port
     self.listener = socket_mgr.listen(ip, real_port)
     if not self.listener then
         log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)

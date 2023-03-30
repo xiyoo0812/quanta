@@ -56,6 +56,7 @@ function service.init()
     quanta.service = service_type
     quanta.service_name = service_name
     quanta.host = environ.get("QUANTA_HOST_IP")
+    quanta.order = environ.number("QUANTA_PORT", 1)
     quanta.id = service.make_sid(service_type, index)
     quanta.name = sformat("%s_%s", service_name, index)
     quanta.cluster = environ.get("QUANTA_CLUSTER", "develop")

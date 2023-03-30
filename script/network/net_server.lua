@@ -49,7 +49,7 @@ function NetServer:__init(session_type)
     self.codec =  protobuf_mgr
 end
 
---induce：根据index推导port
+--induce：根据 order 推导port
 function NetServer:setup(ip, port, induce)
     -- 开启监听
     if not ip or not port then
@@ -59,7 +59,7 @@ function NetServer:setup(ip, port, induce)
     end
     local listen_proto_type = 1
     local socket_mgr = quanta.get("socket_mgr")
-    local real_port = induce and (port + quanta.index - 1) or port
+    local real_port = induce and (port + quanta.order - 1) or port
     self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
     if not self.listener then
         log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)

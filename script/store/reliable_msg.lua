@@ -41,6 +41,7 @@ function ReliableMsg:list_message(coll_name, target_id)
     if qsuccess(code, ok) then
         return result
     end
+    return {}
 end
 
 -- 设置信息为已处理

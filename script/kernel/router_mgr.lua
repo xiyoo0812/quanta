@@ -44,7 +44,7 @@ end
 --服务上线
 function RouterMgr:on_service_ready(id, name, info)
     log_debug("[RouterMgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
-    if info.region == quanta.region and info.group == quanta.group then
+    if info.group == quanta.group then
         self:add_router(info.id, info.ip, info.port)
     end
 end

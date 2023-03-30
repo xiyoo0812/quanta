@@ -3,6 +3,7 @@ import("driver/nacos.lua")
 local ljson         = require("lcjson")
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
+local timer_mgr     = quanta.get("timer_mgr")
 
 local env_get       = environ.get
 local env_addr      = environ.addr
@@ -10,12 +11,18 @@ local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
 local jdecode       = ljson.decode
+local json_encode   = ljson.encode
 local tdiff         = qtable.diff
-
+local signal_quit   = signal.quit
 local nacos         = quanta.get("nacos")
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+
+local DEPLOY_PATH   = environ.get("QUANTA_DEPLOY_PATH")
+local GROUP         = environ.number("QUANTA_GROUP")
+local log_dump      = logfeature.dump("deploy_logs", DEPLOY_PATH..GROUP, true)
+local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
@@ -36,6 +43,7 @@ function MonitorMgr:__init()
     server:register_get("/", "on_log_page", self)
     server:register_get("/status", "on_monitor_status", self)
     server:register_post("/command", "on_monitor_command", self)
+    server:register_post("/shutdown", "on_server_shutdown", self)
     --初始化变量
     self.host = ip
     self.http_server = server
@@ -154,7 +162,7 @@ end
 
 --broadcast_all
 function MonitorMgr:broadcast_all(rpc, ...)
-    self.rpc_server:broadcast("rpc_service_hotfix")
+    self.rpc_server:broadcast(rpc, ...)
 end
 
 --broadcast
@@ -181,6 +189,26 @@ function MonitorMgr:on_monitor_command(url, body, request)
         return {code = 1, msg = res}
     end
     return res
+end
+
+-- 退出
+function MonitorMgr:on_server_shutdown(url, body, request)
+    log_debug("[MonitorMgr][on_server_shutdown] monitor quit")
+    --发出退出进程
+    self:broadcast_all("rpc_server_shutdown")
+    -- 关闭会话连接
+    timer_mgr:loop(SECOND_10_MS, function()
+        log_warn("[MonitorMgr][on_server_shutdown]->service:%s", quanta.name)
+        local log_data = {
+            state = 0, -- 0代表成功
+            key = "shutdown",
+            time = quanta.now
+        }
+        log_dump(json_encode(log_data))
+        signal_quit()
+    end)
+
+    return "success"
 end
 
 quanta.monitor_mgr = MonitorMgr()

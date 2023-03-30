@@ -120,4 +120,15 @@ function Document:unset_field(field)
     cursor[fine_field] = nil
 end
 
+--序列化
+function Document:serialize()
+    local data = {
+      coll_name = self.coll_name,
+      primary_key = self.primary_key,
+      primary_id = self.primary_id,
+      datas = self.datas
+    }
+    return data
+end
+
 return Document

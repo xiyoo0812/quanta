@@ -50,7 +50,7 @@ function NetClient:connect(block)
     local proto_type = 1
     local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, proto_type)
     if not socket then
-        log_err("[NetClient][connect] failed to connect: %s:%d type=%d, err=%s", self.ip, self.port, proto_type, cerr)
+        log_err("[NetClient][connect] failed to connect: %s:%s type=%s, err=%s", self.ip, self.port, proto_type, cerr)
         return false, cerr
     end
     --设置阻塞id
