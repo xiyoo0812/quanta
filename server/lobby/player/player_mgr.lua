@@ -29,11 +29,11 @@ function PlayerMgr:__init()
     update_mgr:attach_second30(self)
 end
 
-function PlayerMgr:on_hour(hour, time)
+function PlayerMgr:on_hour(clock_ms, hour, time)
     if hour == DAY_FLUSH then
         --每周刷新
         local week_flush = (time.wday == WEEK_FLUSH)
-        for _, player in self.player_map:iterator() do
+        for _, player in self.entity_map:iterator() do
             player:day_update(week_flush)
         end
         event_mgr:notify_trigger("on_day_update", week_flush)

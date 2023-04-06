@@ -141,7 +141,7 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = sformat("%s.%s.%s", sheet_key, name, key, flush)
-                return on_db_prop_remove(root[sheetprimary], sheet, db_key)
+                return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
             end
         end
         return true
@@ -182,7 +182,7 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = sformat("%s.%s.%s", sheet_key, name, key, flush)
-                return on_db_prop_remove(root[sheetprimary], sheet, db_key)
+                return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
             end
         end
         return true

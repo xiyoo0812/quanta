@@ -20,8 +20,8 @@ local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local DEPLOY_PATH   = environ.get("QUANTA_DEPLOY_PATH")
-local GROUP         = environ.number("QUANTA_GROUP")
-local log_dump      = logfeature.dump("deploy_logs", DEPLOY_PATH..GROUP, true)
+local REGION        = environ.number("QUANTA_REGION")
+local log_dump      = logfeature.dump("deploy_logs", DEPLOY_PATH..REGION, true)
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 
 local MonitorMgr = singleton()
