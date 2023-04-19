@@ -260,7 +260,7 @@ void socket_stream::sendv(const sendv_item items[], int count)
 
 void socket_stream::stream_send(const char* data, size_t data_len)
 {
-    if (m_link_status != elink_status::link_connected)
+    if (m_link_status != elink_status::link_connected || data_len == 0)
         return;
 
     if (m_send_buffer->empty()) {
