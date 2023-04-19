@@ -1,28 +1,5 @@
 --db_property.lua
 --[[提供对象DB属性机制
-示例:
-local AAcomponent = mixin()
-local prop = db_property(AAcomponent, "packet")
-prop:store_value("capacity", 2)     --capacity
-prop:store_objects("packets", {})   --packets
-
-function AAcomponent:__init()
-    self:init_player_db(self.id, function()
-        --xxx
-    end)
-end
-
-local SPlayer = class(nil, AAC)
-local prop = db_property(SPlayer, "player")
-prop:store_value("level", 2)            --level
-prop:store_value("name", "")            --name
-prop:store_values("games", {})          --games
-
-function SPlayer:__init()
-    self:init_player_db(self.id, function()
-        --xxx
-    end)
-end
 --]]
 
 local sformat   = string.format
@@ -72,11 +49,19 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
     class["flush_" .. sheet] = function(self, value)
         return on_db_prop_update(self, self[sheetprimary], sheet, self[sheetkey], value, true)
     end
+    local sheet_status_name = "__db_" .. sheet .. "_syncing"
     class["pause_" .. sheet .. "_sync"] = function(self)
-        self["__db_" .. sheet .. "_syncing"] = false
+        if self[sheet_status_name] ~= nil then
+            self[sheet_status_name] = false
+        end
     end
     class["continue_" .. sheet .. "_sync"] = function(self)
-        self["__db_" .. sheet .. "_syncing"] = true
+        if self[sheet_status_name] ~= nil then
+            self[sheet_status_name] = true
+        end
+    end
+    class["is_" .. sheet .. "_loaded"] = function(self)
+        return self[sheet_status_name]
     end
 end
 

@@ -6,7 +6,6 @@ local WheelMap = class()
 local prop = property(WheelMap)
 prop:reader("host_maps", {})    -- 真实的map
 prop:reader("wheel_cnt", 1)     -- 轮子数量（最小为1）
-prop:reader("wheel_cur", 1)     -- 当前轮子号
 prop:reader("count", 0)         -- 数量
 
 function WheelMap:__init(wheel_cnt)
@@ -57,18 +56,18 @@ function WheelMap:iterator()
 end
 
 -- 带轮遍历
-function WheelMap:wheel_iterator()
+function WheelMap:wheel_iterator(wheel)
     local key = nil
-    local wheel_cur = self.wheel_cur
+    local wheel_cur = wheel or 1
     local host_map = self.host_maps[wheel_cur]
-    self.wheel_cur = (wheel_cur < self.wheel_cnt) and wheel_cur + 1 or 1
     local function iter()
         key = next(host_map, key)
         if key then
             return key, host_map[key]
         end
     end
-    return iter
+    local wheel_nxt = (wheel_cur < self.wheel_cnt) and wheel_cur + 1 or 1
+    return iter, wheel_nxt
 end
 
 -- export

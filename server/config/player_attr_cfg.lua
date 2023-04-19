@@ -123,6 +123,13 @@ player_attr:upsert({
 })
 
 player_attr:upsert({
+    key = 'ATTR_ONLINE_TIME',
+    range = 1,
+    save = true,
+    back = false,
+})
+
+player_attr:upsert({
     key = 'ATTR_ATTACK',
     range = 1,
     save = false,

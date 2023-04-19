@@ -48,7 +48,6 @@ namespace logger {
         DAYLY = 1,
     }; //rolling_type
 
-    const size_t QUEUE_MINI = 10;
     const size_t QUEUE_SIZE = 3000;
     const size_t MAX_LINE   = 100000;
     const size_t CLEAN_TIME = 7 * 24 * 3600;

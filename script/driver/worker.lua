@@ -108,7 +108,7 @@ end
 --底层驱动
 quanta.run = function()
     if socket_mgr then
-        socket_mgr.wait(20)
+        socket_mgr.wait(10)
     end
     quanta.update()
     --系统更新

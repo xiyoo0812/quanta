@@ -6,24 +6,26 @@ local update_mgr    = quanta.get("update_mgr")
 
 local EntityMgr = singleton()
 local prop = property(EntityMgr)
+prop:reader("wheel_cur", 1)
 prop:reader("entity_map", nil)
 
 function EntityMgr:__init()
     local WheelMap = import("container/wheel_map.lua")
-    self.entity_map = WheelMap(10)
-
-    update_mgr:attach_second(self)
+    self.entity_map = WheelMap(100)
+    update_mgr:attach_frame(self)
 end
 
-function EntityMgr:on_second()
+function EntityMgr:on_frame()
     local now = quanta.now
     local del_entitys = {}
-    for entity_id, entity in self.entity_map:iterator() do
+    local fiter, wheel = self.entity_map:wheel_iterator(self.wheel_cur)
+    for entity_id, entity in fiter do
         entity:update(now)
         if entity:is_release() then
             del_entitys[entity_id] = entity
         end
     end
+    self.wheel_cur = wheel
     for entity_id, entity in pairs(del_entitys) do
         self:remove_entity(entity, entity_id)
     end
@@ -63,8 +65,5 @@ end
 function EntityMgr:iterator()
     return self.entity_map:iterator()
 end
-
--- export
-quanta.entity_mgr = EntityMgr()
 
 return EntityMgr

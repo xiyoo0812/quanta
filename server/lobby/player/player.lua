@@ -37,7 +37,6 @@ local dprop = db_property(Player, "player", true)
 dprop:store_value("nick", "")       --nick
 dprop:store_value("facade", "")     --nick
 dprop:store_value("login_time", 0)  --login_time
-dprop:store_value("online_time", 0) --online_time
 dprop:store_value("upgrade_time", 0)--upgrade_time
 
 function Player:__init(id)
@@ -51,7 +50,6 @@ function Player:on_db_player_load(data)
         self.user_id = player_data.user_id
         self.login_time = player_data.login_time
         self.create_time = player_data.create_time
-        self.online_time = player_data.online_time or 0
         self.upgrade_time = player_data.upgrade_time or 0
         self:set_gender(player_data.gender)
         self:set_custom(player_data.facade)
@@ -149,12 +147,12 @@ function Player:online()
         return call_ok
     end
     self.release = false
-    self.load_success = true
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
     self:set_version(self:build_version())
     self:add_passkey("lobby", quanta.id)
     self:set_login_time(quanta.now)
+    self.load_success = true
     log_info("[Player][online] player(%s) is online!", self.id)
     return true
 end
@@ -164,6 +162,8 @@ function Player:offline()
     self.gateway = nil
     self.status = ONL_OFFLINE
     self.active_time = quanta.now_ms
+    --计算在线时间
+    self:add_online_time(quanta.now - self.login_time)
     --invoke
     self:invoke("_offline")
     log_warn("[Player][offline] player(%s) is offline!", self.id)
@@ -180,11 +180,8 @@ end
 
 --unload
 function Player:unload()
-    online:logout_player(self.id)
-    --计算在线时间
-    local online_time = self.online_time + quanta.now - self.login_time
-    self:set_online_time(online_time)
     self.account:set_lobby(0)
+    online:logout_player(self.id)
     --flush
     game_dao:flush(self.id, "player")
     game_dao:flush(self.open_id, "account")
@@ -195,7 +192,7 @@ end
 function Player:heartbeat()
     self.active_time = quanta.now_ms
     --invoke
-    self:invoke("_heartbeat")
+    self:invoke("_heartbeat", quanta.now)
 end
 
 return Player

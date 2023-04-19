@@ -135,11 +135,19 @@ attribute:upsert({
 })
 
 attribute:upsert({
-    id = 21,
+    id = 17,
     enum_key = 'ATTR_VERSION',
     nick = 'version',
     type = 'int',
     increase = false,
+})
+
+attribute:upsert({
+    id = 18,
+    enum_key = 'ATTR_ONLINE_TIME',
+    nick = 'online_time',
+    type = 'int',
+    increase = true,
 })
 
 attribute:upsert({

@@ -48,7 +48,7 @@ end
 function ReliableMsg:deal_message(coll_name, target_id, timestamp)
     log_info("[ReliableMsg][deal_message] deal message: %s", target_id)
     local selecter = { ["$and"] = { { target_id = target_id }, { time = { ["$lte"] = timestamp } }}}
-    local query = { coll_name, {["$set"] = { deal_time = quanta.now }}, selecter }
+    local query = { coll_name, {["$set"] = { deal_time = quanta.now_ms }}, selecter }
     return mongo_agent:update(query, target_id, MSG_DBID)
 end
 
@@ -61,7 +61,7 @@ end
 
 -- 发送消息
 function ReliableMsg:send_message(target_id, event, args)
-    local doc = { args = args, deal_time = 0, event = event, target_id = target_id, time = quanta.now }
+    local doc = { args = args, deal_time = 0, event = event, target_id = target_id, time = quanta.now_ms }
     if self.ttl then
         --设置过期ttl字段
         doc.ttl = mdate(quanta.now + self.ttl)
