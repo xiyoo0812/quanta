@@ -12,14 +12,15 @@ local json_decode   = ljson.decode
 local json_encode   = ljson.encode
 local mtointeger    = math.tointeger
 
-local event_mgr     = quanta.get("event_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-local update_mgr    = quanta.get("update_mgr")
 local http_client   = quanta.get("http_client")
 
 local WORD_SEPARATOR    = "\x02"
 local LINE_SEPARATOR    = "\x01"
-local LISTEN_TIMEOUT    = 30000
+local HOUR_MS           = quanta.enum("PeriodTime", "HOUR_MS")
+local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
+local SECOND_30_MS      = quanta.enum("PeriodTime", "SECOND_30_MS")
 
 local Nacos = singleton()
 local prop = property(Nacos)
@@ -37,19 +38,20 @@ prop:reader("instances_url", nil)   --instance list url
 prop:reader("services_url", nil)    --services list url
 prop:reader("access_token", nil)    --access token
 prop:reader("cluster", "")          --service cluster name
-prop:reader("nacos_ns", "")         --service namespace id
-prop:reader("config_ns", "")        --config namespace id
 prop:reader("listen_configs", {})   --listen configs
+prop:accessor("nacos_ns", "")       --service namespace id
+prop:accessor("config_ns", "")      --config namespace id
 
 function Nacos:__init()
+end
+
+function Nacos:setup(nacos_ns)
     local ip, port =  environ.addr("QUANTA_NACOS_ADDR")
-    local nacos_ns = environ.get("QUANTA_NACOS_NAMESPACE")
-    local config_ns = environ.get("QUANTA_CONFIG_NAMESPACE")
     if ip and port and nacos_ns then
         self.enable = true
         self.nacos_ns = nacos_ns
+        self.config_ns = nacos_ns
         self.cluster = quanta.cluster
-        self.config_ns = config_ns or nacos_ns
         self.login_url = sformat("http://%s:%s/nacos/v1/auth/login", ip, port)
         self.config_url = sformat("http://%s:%s/nacos/v1/cs/configs", ip, port)
         self.service_url = sformat("http://%s:%s/nacos/v1/ns/service", ip, port)
@@ -63,21 +65,20 @@ function Nacos:__init()
         log_info("[Nacos][setup] setup (%s:%s) success!", ip, port)
     end
     --定时获取token
-    update_mgr:attach_hour(self)
-    thread_mgr:success_call(1000, function()
-        return self:auth()
+    thread_mgr:entry(self:address(), function()
+        self:check_auth()
     end)
 end
 
-function Nacos:on_hour()
-    thread_mgr:success_call(1000, function()
-        return self:auth()
+function Nacos:check_auth()
+    local ok = self:auth()
+    timer_mgr:once(ok and HOUR_MS or SECOND_MS, function()
+        self:check_auth()
     end)
 end
 
 -- 登陆
 function Nacos:auth()
-    local bfirst = (not self.access_token)
     local auth_args = environ.get("QUANTA_NACOS_AUTH", "")
     local user, pass = qstring.usplit(auth_args, ":")
     if user and pass then
@@ -91,9 +92,6 @@ function Nacos:auth()
         log_info("[Nacos][auth] auth success : %s", res)
     else
         self.access_token = ""
-    end
-    if bfirst then
-        event_mgr:notify_trigger("on_nacos_ready")
     end
     return true
 end
@@ -138,17 +136,17 @@ function Nacos:listen_config(data_id, group, md5, on_changed)
     md5 = md5 or ""
     local rgroup = group or "DEFAULT_GROUP"
     local lkey = sformat("%s_%s", data_id, rgroup)
-    local headers = {["Long-Pulling-Timeout"] = LISTEN_TIMEOUT }
+    local headers = {["Long-Pulling-Timeout"] = SECOND_30_MS }
     self.listen_configs[lkey] = on_changed
     thread_mgr:fork(function()
         while self.listen_configs[lkey] do
             local query = { accessToken = self.access_token }
             local datas = { data_id, rgroup, md5, self.config_ns }
             local lisfmt = sformat("Listening-Configs=%s%s", tconcat(datas, WORD_SEPARATOR), LINE_SEPARATOR)
-            local ok, status, res = http_client:call_post(self.listen_url, lisfmt, headers, query, LISTEN_TIMEOUT + 1000)
+            local ok, status, res = http_client:call_post(self.listen_url, lisfmt, headers, query, SECOND_30_MS + 1000)
             if not ok or status ~= 200 then
                 log_err("[Nacos][listen_config] failed! data_id: %s, code: %s, err: %s", data_id, status, res)
-                thread_mgr:sleep(2000)
+                thread_mgr:sleep(SECOND_MS)
                 goto contione
             end
             if res and #res > 0 then

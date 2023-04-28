@@ -3,7 +3,6 @@ import("driver/nacos.lua")
 local ljson         = require("lcjson")
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
-local timer_mgr     = quanta.get("timer_mgr")
 
 local env_get       = environ.get
 local env_addr      = environ.addr
@@ -12,17 +11,17 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local jdecode       = ljson.decode
 local json_encode   = ljson.encode
-local tdiff         = qtable.diff
 local signal_quit   = signal.quit
-local nacos         = quanta.get("nacos")
-local event_mgr     = quanta.get("event_mgr")
-local update_mgr    = quanta.get("update_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
 
-local DEPLOY_PATH   = environ.get("QUANTA_DEPLOY_PATH")
+local timer_mgr     = quanta.get("timer_mgr")
+local update_mgr    = quanta.get("update_mgr")
+
 local REGION        = environ.number("QUANTA_REGION")
-local log_dump      = logfeature.dump("deploy_logs", DEPLOY_PATH..REGION, true)
+local DEPLOY_PATH   = environ.get("QUANTA_DEPLOY_PATH")
+local DISCOVERY     = environ.get("QUANTA_DISCOVERY", "redis")
+
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
+local log_dump      = logfeature.dump("deploy_logs", DEPLOY_PATH..REGION, true)
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
@@ -31,6 +30,7 @@ prop:reader("port", 0)
 prop:reader("rpc_server", nil)
 prop:reader("http_server", nil)
 prop:reader("monitor_nodes", {})
+prop:reader("discovery", nil)
 prop:reader("services", {})
 prop:reader("log_page", "")
 
@@ -51,19 +51,8 @@ function MonitorMgr:__init()
     self.log_page = import("monitor/log_page.lua")
     --初始化定时器
     update_mgr:attach_minute(self)
-    update_mgr:attach_second5(self)
-    --监听nacos
-    event_mgr:add_trigger(self, "on_nacos_ready")
-end
-
-function MonitorMgr:on_nacos_ready()
-    --注册自己
-    thread_mgr:fork(function()
-        nacos:modify_switchs("healthCheckEnabled", "false")
-        nacos:modify_switchs("autoChangeHealthCheckEnabled", "false")
-        local metadata = { region = quanta.region, group = quanta.group, id = quanta.id, name = quanta.name }
-        nacos:regi_instance(quanta.service_name, self.host, self.port, nil, metadata)
-    end)
+    --加载服务发现
+    self:load_discovery()
 end
 
 --定时更新
@@ -71,24 +60,14 @@ function MonitorMgr:on_minute()
     self.log_page = import("monitor/log_page.lua")
 end
 
-function MonitorMgr:on_second5()
-    if not nacos:get_access_token() then
-        return
+function MonitorMgr:load_discovery()
+    local Discovery
+    if DISCOVERY == "redis" then
+        Discovery = import("monitor/redis_discovery.lua")
+    else
+        Discovery = import("monitor/nacos_discovery.lua")
     end
-    for _, service_name in pairs(nacos:query_services() or {}) do
-        local curr = nacos:query_instances(service_name)
-        if curr then
-            local old = self.services[service_name]
-            local sadd, sdel = tdiff(old or {}, curr)
-            if next(sadd) or next(sdel) then
-                log_debug("[MonitorMgr][on_second5] sadd:%s, sdel: %s", sadd, sdel)
-                self.rpc_server:broadcast("rpc_service_changed", service_name, sadd, sdel)
-                self.services[service_name] = curr
-            end
-        end
-    end
-    --发送心跳
-    nacos:sent_beat(quanta.service_name, self.host, self.port)
+    self.discovery = Discovery(self.rpc_server)
 end
 
 function MonitorMgr:on_client_accept(client)
@@ -96,31 +75,16 @@ end
 
 -- 心跳
 function MonitorMgr:on_client_beat(client)
-    local node = self.monitor_nodes[client.token]
-    if node then
-        if not nacos:get_access_token() then
-            return
-        end
-        if not node.status then
-            local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
-            node.status = nacos:regi_instance(node.service_name, node.host, node.port, nil, metadata)
-        end
-        nacos:sent_beat(node.service_name, node.host, node.port)
-    end
+    self.discovery:heartbeat(client.id)
 end
 
 function MonitorMgr:on_client_register(client, node)
     local token = client.token
     log_debug("[MonitorMgr][on_service_register] node:%s, token: %s", node.name, token)
-    if nacos:get_access_token() then
-        local metadata = { region = node.region, group = node.group, id = node.id, name = node.name }
-        local status = nacos:regi_instance(node.service_name, node.host, node.port, nil, metadata)
-        node.status = status
-    end
+    self.discovery:register(node)
     self.monitor_nodes[token] = node
-    node.token = token
     --返回所有服务
-    for service_name, curr_services in pairs(self.services) do
+    for service_name, curr_services in pairs(self.discovery:get_services()) do
         if next(curr_services) then
             self.rpc_server:send(client, "rpc_service_changed", service_name, curr_services, {})
         end
@@ -131,8 +95,8 @@ end
 function MonitorMgr:on_client_error(client, token, err)
     log_info("[MonitorMgr][on_client_error] node:%s, token:%s", client.name, token)
     local node = self.monitor_nodes[token]
-    if node and nacos:get_access_token() then
-        nacos:del_instance(node.service_name, node.host, node.port)
+    if node then
+        self.discovery:unregister(client.id)
         self.monitor_nodes[token] = nil
     end
 end

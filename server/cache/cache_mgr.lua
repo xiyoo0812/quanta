@@ -63,6 +63,7 @@ function CacheMgr:check_doc(coll_name, primary_id, quanta_id)
     end
     local lock_node_id = doc:get_lock_node_id()
     if lock_node_id ~= 0 and lock_node_id ~= quanta_id then
+        log_err("[CacheMgr][check_doc] check_doc failed! coll_name=%s, lock_node_id=%s, quanta_id=%s", coll_name, lock_node_id, quanta_id)
         return LOCK_FAILD
     end
     return SUCCESS, doc, collection

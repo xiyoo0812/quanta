@@ -5,12 +5,10 @@ local log_fatal     = logger.fatal
 local tremove       = table.remove
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
+local qmake_mq      = quanta.make_mq
 
 local EVENT_NAME    = "reliable_events"
-
 local router_mgr    = quanta.get("router_mgr")
-
-local ReliableMsg   = import("store/reliable_msg.lua")
 
 local EventSet = mixin()
 local prop = property(EventSet)
@@ -18,7 +16,7 @@ prop:reader("triggers", {})
 prop:reader("delegater", nil)   --delegater
 
 function EventSet:__init()
-    self.delegater = ReliableMsg()
+    self.delegater = qmake_mq()
     self.delegater:setup(EVENT_NAME)
 end
 
@@ -74,16 +72,15 @@ end
 --load_events
 function EventSet:load_reliable_events()
     local timestamp = 0
-    local coll_name = EVENT_NAME
-    local events = self.delegater:list_message(coll_name, self.id)
-    for _, event in pairs(events) do
+    local events = self.delegater:list_message(self.id)
+    for i, event in ipairs(events) do
         if event.time > timestamp then
             timestamp = event.time
         end
         self:notify_event(event.event, tunpack(event.args))
     end
     if timestamp > 0 then
-        self.delegater:delete_message(coll_name, self.id, timestamp)
+        self.delegater:delete_message(self.id, timestamp)
     end
 end
 
@@ -108,6 +105,7 @@ function EventSet:remove_trigger(trigger, event)
         for i, context in pairs(trigger_array or {}) do
             if context[1] == trigger then
                 tremove(trigger_array, i)
+                return
             end
         end
     end

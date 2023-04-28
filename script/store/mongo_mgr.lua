@@ -33,7 +33,7 @@ end
 --初始化
 function MongoMgr:setup()
     local MongoDB = import("driver/mongo.lua")
-    local drivers = environ.driver("QUANTA_DB_URLS")
+    local drivers = environ.driver("QUANTA_MONGO_URLS")
     for i, conf in ipairs(drivers) do
         if conf.driver == "mongodb" then
             local mongo_db = MongoDB(conf)

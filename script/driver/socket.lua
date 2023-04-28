@@ -2,9 +2,9 @@
 local lbus          = require("luabus")
 
 local ssub          = string.sub
-local sfind         = string.find
 local log_err       = logger.err
 local log_info      = logger.info
+local split_pos     = qstring.split_pos
 local qxpcall       = quanta.xpcall
 
 local eproto_type   = lbus.eproto_type
@@ -18,6 +18,7 @@ local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local Socket = class()
 local prop = property(Socket)
 prop:reader("ip", nil)
+prop:reader("port", 0)
 prop:reader("host", nil)
 prop:reader("token", nil)
 prop:reader("alive", false)
@@ -26,10 +27,11 @@ prop:reader("proto_type", eproto_type.text)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
 prop:reader("recvbuf", "")
-prop:reader("port", 0)
 
-function Socket:__init(host)
+function Socket:__init(host, ip, port)
     self.host = host
+    self.port = port
+    self.ip = ip
 end
 
 function Socket:__release()
@@ -159,11 +161,9 @@ function Socket:peek(len, offset)
     end
 end
 
-function Socket:peek_data(split_char, offset)
-    offset = offset or 0
-    local i, j = sfind(self.recvbuf, split_char, offset + 1)
-    if i then
-        return ssub(self.recvbuf, offset + 1, i - 1), j - offset
+function Socket:peek_lines(split_char)
+    if #self.recvbuf > 0 then
+        return split_pos(self.recvbuf, split_char)
     end
 end
 

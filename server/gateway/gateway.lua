@@ -197,7 +197,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     end
     local code, new_token, passkey = self:call_lobby(lobby, "rpc_player_reload", open_id, player_id, lobby, token, quanta.id)
     if qfailed(code) then
-        log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", code, passkey)
+        log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", code, new_token)
         return client_mgr:callback_errcode(session, cmd_id, code, session_id)
     end
     if new_token > 0 then

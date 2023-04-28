@@ -38,10 +38,10 @@ prop:reader("next_handlers", {})
 
 function UpdateMgr:__init()
     --注册订阅
-    self:attach_frame(timer_mgr)
-    self:attach_frame(thread_mgr)
+    self:attach_fast(thread_mgr)
     self:attach_second(thread_mgr)
     self:attach_minute(thread_mgr)
+    self:attach_frame(timer_mgr)
     --监听热更新
     event_mgr:add_trigger(self, "on_service_hotfix")
 end
@@ -68,8 +68,8 @@ function UpdateMgr:update_next()
 end
 
 function UpdateMgr:update_second(clock_ms)
-    for obj in pairs(self.second_objs) do
-        thread_mgr:fork(function()
+    for obj, address in pairs(self.second_objs) do
+        thread_mgr:entry(address, function()
             obj:on_second(clock_ms)
         end)
     end
@@ -96,27 +96,27 @@ end
 function UpdateMgr:update(now_ms, clock_ms)
     --业务更新
     local diff_ms = clock_ms - quanta.clock_ms
+    quanta.clock_ms = clock_ms
+    quanta.now_ms = now_ms
     if diff_ms > HALF_MS then
         log_warn("[UpdateMgr][update] last frame exec too long(%d ms)!", diff_ms)
     end
     --帧更新
     local frame = quanta.frame + 1
-    for obj in pairs(self.frame_objs) do
-        thread_mgr:fork(function()
+    for obj, address in pairs(self.frame_objs) do
+        thread_mgr:entry(address, function()
             obj:on_frame(clock_ms, frame)
         end)
     end
     quanta.frame = frame
-    quanta.now_ms = now_ms
-    quanta.clock_ms = clock_ms
     --更新帧逻辑
     self:update_next()
     --快帧100ms更新
     if clock_ms < self.last_frame then
         return
     end
-    for obj in pairs(self.fast_objs) do
-        thread_mgr:fork(function()
+    for obj, address in pairs(self.fast_objs) do
+        thread_mgr:entry(address, function()
             obj:on_fast(clock_ms)
         end)
     end
@@ -194,7 +194,7 @@ end
 --添加对象到小时更新循环
 function UpdateMgr:attach_hour(obj)
     if not obj.on_hour then
-        log_warn("[UpdateMgr][attach_hour] obj(%s) isn't on_hour method!", obj)
+        log_warn("[UpdateMgr][attach_hour] obj(%s) isn't on_hour method!", obj:source())
         return
     end
     self.hour_objs[obj] = true
@@ -207,7 +207,7 @@ end
 --添加对象到分更新循环
 function UpdateMgr:attach_minute(obj)
     if not obj.on_minute then
-        log_warn("[UpdateMgr][attach_minute] obj(%s) isn't on_minute method!", obj)
+        log_warn("[UpdateMgr][attach_minute] obj(%s) isn't on_minute method!", obj:source())
         return
     end
     self.minute_objs[obj] = true
@@ -220,10 +220,10 @@ end
 --添加对象到秒更新循环
 function UpdateMgr:attach_second(obj)
     if not obj.on_second then
-        log_warn("[UpdateMgr][attach_second] obj(%s) isn't on_second method!", obj)
+        log_warn("[UpdateMgr][attach_second] obj(%s) isn't on_second method!", obj:source())
         return
     end
-    self.second_objs[obj] = true
+    self.second_objs[obj] = obj:address()
 end
 
 function UpdateMgr:detach_second(obj)
@@ -233,7 +233,7 @@ end
 --添加对象到5秒更新循环
 function UpdateMgr:attach_second5(obj)
     if not obj.on_second5 then
-        log_warn("[UpdateMgr][attach_second5] obj(%s) isn't on_second5 method!", obj)
+        log_warn("[UpdateMgr][attach_second5] obj(%s) isn't on_second5 method!", obj:source())
         return
     end
     self.second5_objs[obj] = true
@@ -246,7 +246,7 @@ end
 --添加对象到30秒更新循环
 function UpdateMgr:attach_second30(obj)
     if not obj.on_second30 then
-        log_warn("[UpdateMgr][attach_second30] obj(%s) isn't on_second30 method!", obj)
+        log_warn("[UpdateMgr][attach_second30] obj(%s) isn't on_second30 method!", obj:source())
         return
     end
     self.second30_objs[obj] = true
@@ -259,10 +259,10 @@ end
 --添加对象到帧更新循环
 function UpdateMgr:attach_frame(obj)
     if not obj.on_frame then
-        log_warn("[UpdateMgr][attach_frame] obj(%s) isn't on_frame method!", obj)
+        log_warn("[UpdateMgr][attach_frame] obj(%s) isn't on_frame method!", obj:source())
         return
     end
-    self.frame_objs[obj] = true
+    self.frame_objs[obj] = obj:address()
 end
 
 function UpdateMgr:detach_frame(obj)
@@ -272,10 +272,10 @@ end
 --添加对象到快帧更新循环
 function UpdateMgr:attach_fast(obj)
     if not obj.on_fast then
-        log_warn("[UpdateMgr][attach_fast] obj(%s) isn't on_fast method!", obj)
+        log_warn("[UpdateMgr][attach_fast] obj(%s) isn't on_fast method!", obj:source())
         return
     end
-    self.fast_objs[obj] = true
+    self.fast_objs[obj] = obj:address()
 end
 
 function UpdateMgr:detach_fast(obj)

@@ -44,7 +44,7 @@ end
 local function parse_message(full_name, proto_name)
     local proto_isreq = sends_with(proto_name, "_req")
     if proto_isreq then
-        local package_name = tunpack(ssplit(full_name, "%."))
+        local package_name = tunpack(ssplit(full_name, "."))
         local enum_type = package_name .. ".NCmdId"
         local msg_name = "NID_" .. supper(proto_name)
         local msg_id = pb_enum_id(enum_type, msg_name)

@@ -25,10 +25,10 @@ function GameDAO:__init()
     event_mgr:add_listener(self, "on_db_prop_remove")
 end
 
-function GameDAO:add_sheet(group, sheet_name, primary_key, filters)
+function GameDAO:add_sheet(group, sheet_name, primary_key, inertia)
     if not self.sheet_indexs[sheet_name] then
-        self.sheet_indexs[sheet_name] = { primary_key, group, filters or { _id = 0 } }
-        if group then
+        self.sheet_indexs[sheet_name] = { primary_key, group, { [sheet_name] = 1 } }
+        if not inertia then
             local sheets = self.sheet_groups[group]
             if not sheets then
                 self.sheet_groups[group] = { sheet_name }
@@ -44,7 +44,7 @@ function GameDAO:load_impl(primary_id, sheet_name)
     if not primary_key then
         return false
     end
-    if USE_CACHE and group then
+    if USE_CACHE then
         local code, adata = cache_agent:load(primary_id, sheet_name, primary_key, filters, group)
         if qfailed(code) then
             log_err("[GameDAO][load_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
@@ -86,11 +86,11 @@ function GameDAO:load_group(entity, group, primary_id)
 end
 
 function GameDAO:update_field(primary_id, sheet_name, field, field_data, flush)
-    local primary_key, group = self:find_primary_key(sheet_name)
+    local primary_key = self:find_primary_key(sheet_name)
     if not primary_key then
         return false
     end
-    if USE_CACHE and group then
+    if USE_CACHE then
         local code, adata = cache_agent:update_field(primary_id, sheet_name, field, field_data, flush)
         if qfailed(code) then
             log_err("[GameDAO][update_field_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
@@ -112,11 +112,11 @@ function GameDAO:update_mongo_field(sheet_name, primary_id, primary_key, field, 
 end
 
 function GameDAO:remove_field(primary_id, sheet_name, field, flush)
-    local primary_key, group = self:find_primary_key(sheet_name)
+    local primary_key = self:find_primary_key(sheet_name)
     if not primary_key then
         return false
     end
-    if USE_CACHE and group then
+    if USE_CACHE then
         local code, res = cache_agent:remove_field(primary_id, sheet_name, field, flush)
         if qfailed(code) then
             log_err("[GameDAO][remove_field_%s] remove (%s) failed primary_id(%s), code: %s, res: %s!", sheet_name, field, primary_id, code, res)
@@ -138,11 +138,11 @@ function GameDAO:remove_mongo_field(sheet_name, primary_id, primary_key, field)
 end
 
 function GameDAO:delete(primary_id, sheet_name)
-    local primary_key, group = self:find_primary_key(sheet_name)
+    local primary_key = self:find_primary_key(sheet_name)
     if not primary_key then
         return false
     end
-    if USE_CACHE and group then
+    if USE_CACHE then
         local code, res = cache_agent:delete(primary_id, sheet_name)
         if qfailed(code) then
             log_err("[GameDAO][delete] delete (%s) failed primary_id(%s), code: %s, res: %s!",  sheet_name, primary_id, code, res)

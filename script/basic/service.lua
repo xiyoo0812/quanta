@@ -41,8 +41,10 @@ function service.init()
     local config_mgr = quanta.get("config_mgr")
     local service_db = config_mgr:init_enum_table("service", "Service", "id")
     for _, conf in service_db:iterator() do
-        SERVICES[conf.name] = conf.id
-        SERVICE_NAMES[conf.id] = conf.name
+        if conf.enable then
+            SERVICES[conf.name] = conf.id
+            SERVICE_NAMES[conf.id] = conf.name
+        end
     end
     --初始化服务信息
     local index = environ.number("QUANTA_INDEX", 1)

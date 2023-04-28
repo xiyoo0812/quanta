@@ -14,9 +14,10 @@ local lpardir       = lstdfs.parent_path
 local lcurdir       = lstdfs.current_path
 
 local nacos         = quanta.get("nacos")
-local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local monitor_mgr   = quanta.get("monitor_mgr")
+
+local NAMESPACE     = environ.get("QUANTA_CLOUD_NAMESPACE")
 
 local HotfixMgr = singleton()
 local prop = property(HotfixMgr)
@@ -24,13 +25,14 @@ prop:reader("config",  {})
 prop:reader("dictionary", {})
 
 function HotfixMgr:__init()
-    event_mgr:add_trigger(self, "on_nacos_ready")
+    self:setup()
 end
 
 --初始化nacos
-function HotfixMgr:on_nacos_ready()
-    local hotfixable = environ.status("QUANTA_NACOS_HOTFIX")
+function HotfixMgr:setup()
+    local hotfixable = environ.status("QUANTA_CLOUD_HOTFIX")
     if hotfixable then
+        nacos:set_config_ns(NAMESPACE)
         thread_mgr:fork(function()
             self.config = import("hotfix/version.lua")
             self.dictionary = import("hotfix/dictionary.lua")

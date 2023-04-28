@@ -11,6 +11,8 @@ local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 local guid_new      = lcodec.guid_new
 
+local MQ_DRIVER     = environ.get("QUANTA_MQ_DRIVER", "redis")
+
 --函数装饰器: 保护性的调用指定函数,如果出错则写日志
 --主要用于一些C回调函数,它们本身不写错误日志
 --通过这个装饰器,方便查错
@@ -75,4 +77,14 @@ end
 
 function quanta.new_guid()
     return guid_new(quanta.service, quanta.index)
+end
+
+function quanta.make_mq()
+    local Driver
+    if MQ_DRIVER == "redis" then
+        Driver = import("cache/redis_mq.lua")
+    else
+        Driver = import("cache/mongo_mq.lua")
+    end
+    return Driver()
 end

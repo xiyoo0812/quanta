@@ -13,6 +13,7 @@ local log_err       = logger.err
 
 local QueueFIFO     = import("container/queue_fifo.lua")
 local SyncLock      = import("kernel/object/sync_lock.lua")
+local EntryLock     = import("kernel/object/entry_lock.lua")
 
 local MINUTE_10_MS  = quanta.enum("PeriodTime", "MINUTE_10_MS")
 local SYNC_PERFRAME = 10
@@ -20,6 +21,7 @@ local SYNC_PERFRAME = 10
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
 prop:reader("session_id", 1)
+prop:reader("entry_pools", {})
 prop:reader("syncqueue_map", {})
 prop:reader("coroutine_yields", {})
 prop:reader("coroutine_waitings", {})
@@ -35,6 +37,22 @@ function ThreadMgr:size()
     local co_yield_size = tsize(self.coroutine_yields)
     local co_wait_size = tsize(self.coroutine_waitings)
     return co_yield_size + co_wait_size + 1, co_idle_size
+end
+
+function ThreadMgr:entry(key, func)
+    if self.entry_pools[key] then
+        return false
+    end
+    self:fork(function()
+        local lock<close> = EntryLock(self, key)
+        self.entry_pools[key] = lock
+        func()
+    end)
+    return true
+end
+
+function ThreadMgr:leave(key)
+    self.entry_pools[key] = nil
 end
 
 function ThreadMgr:lock(key, waiting)
@@ -139,7 +157,7 @@ function ThreadMgr:on_minute(clock_ms)
     end
 end
 
-function ThreadMgr:on_frame(clock_ms)
+function ThreadMgr:on_fast(clock_ms)
     --检查协程超时
     local timeout_coroutines = {}
     for co, ms_to in pairs(self.coroutine_waitings) do

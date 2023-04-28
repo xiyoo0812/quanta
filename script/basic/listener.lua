@@ -39,6 +39,7 @@ function Listener:remove_trigger(trigger, event)
         for i, context in pairs(trigger_array or {}) do
             if context[1] == trigger then
                 tremove(trigger_array, i)
+                return
             end
         end
     end

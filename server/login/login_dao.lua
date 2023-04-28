@@ -9,7 +9,7 @@ local mongo_agent   = quanta.get("mongo_agent")
 local LoginDao = singleton()
 
 function LoginDao:__init()
-    game_dao:add_sheet("account", "account", "open_id", { account = 1 })
+    game_dao:add_sheet("account", "account", "open_id")
 end
 
 function LoginDao:get_autoinc_id(open_id)

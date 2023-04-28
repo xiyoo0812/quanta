@@ -161,7 +161,7 @@ end
 
 function ProtobufMgr:define_enum(full_name)
     local pb_enum = _G
-    local nodes = ssplit(full_name, "%.")
+    local nodes = ssplit(full_name, ".")
     for _, name in ipairs(nodes) do
         if not pb_enum[name] then
             pb_enum[name] = {}
@@ -174,7 +174,7 @@ end
 function ProtobufMgr:define_command(full_name, proto_name)
     local proto_isreq = sends_with(proto_name, "_req")
     if proto_isreq or sends_with(proto_name, "_res") or sends_with(proto_name, "_ntf") then
-        local package_name = tunpack(ssplit(full_name, "%."))
+        local package_name = tunpack(ssplit(full_name, "."))
         local msg_name = "NID_" .. supper(proto_name)
         local enum_type = package_name .. ".NCmdId"
         local msg_id = pb_enum_id(enum_type, msg_name)
@@ -191,7 +191,7 @@ function ProtobufMgr:define_command(full_name, proto_name)
             end
             return
         end
-        log_warn("[ProtobufMgr][define_command] proto_name: [%s] can't find msg enum:[%s] !", proto_name, msg_name)
+        --log_warn("[ProtobufMgr][define_command] proto_name: [%s] can't find msg enum:[%s] !", proto_name, msg_name)
     end
 end
 

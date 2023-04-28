@@ -53,7 +53,6 @@ function Queue:build_index(value)
             return false
         end
         if self.indexs[idxkey] then
-            log_warn("[Queue][build_index] idxkey is hold")
             return false
         end
         self.indexs[idxkey] = value
@@ -74,7 +73,7 @@ function Queue:find(idx)
     end
 end
 
-function Queue:push_left(value)
+function Queue:push_front(value)
     if not self:build_index(value) then
         return false
     end
@@ -83,7 +82,7 @@ function Queue:push_left(value)
     return true
 end
 
-function Queue:pop_left()
+function Queue:pop_front()
     local first, tail = self.first, self.tail
     if first > tail then
         return
@@ -95,7 +94,7 @@ function Queue:pop_left()
     return value
 end
 
-function Queue:push(value)
+function Queue:push_back(value)
     if not self:build_index(value) then
         return false
     end
@@ -104,7 +103,7 @@ function Queue:push(value)
     return true
 end
 
-function Queue:pop()
+function Queue:pop_back()
     local first, tail = self.first, self.tail
     if first > tail then
         return

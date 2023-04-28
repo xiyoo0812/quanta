@@ -11,7 +11,7 @@ local lencode           = lcodec.encode_slice
 local ldecode           = lcodec.decode_slice
 
 local event_mgr         = quanta.get("event_mgr")
-local update_mgr        = quanta.get("update_mgr")
+local timer_mgr         = quanta.get("timer_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local proxy_agent       = quanta.get("proxy_agent")
@@ -19,8 +19,10 @@ local proxy_agent       = quanta.get("proxy_agent")
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
+
+local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
+local RPC_TIMEOUT       = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
-local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RpcClient = class()
 local prop = property(RpcClient)
@@ -34,15 +36,20 @@ function RpcClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
     self.holder = holder
-    update_mgr:attach_second(self)
+    thread_mgr:entry(self:address(), function()
+        self:check_heartbeat()
+    end)
 end
 
-function RpcClient:on_second()
+function RpcClient:check_heartbeat()
     if self.alive then
         self:heartbeat()
-        return
+    else
+        self:connect()
     end
-    self:connect()
+    self.timer_id = timer_mgr:once(self.alive and SECOND_MS or RPC_TIMEOUT, function()
+        self:check_heartbeat()
+    end)
 end
 
 --发送心跳
@@ -186,7 +193,7 @@ function RpcClient:forward_socket(method, session_id, ...)
     if self.alive then
         if self.socket[method](session_id, ...) then
             if session_id > 0 then
-                return thread_mgr:yield(session_id, method, RPC_CALL_TIMEOUT)
+                return thread_mgr:yield(session_id, method, RPC_TIMEOUT)
             end
             return true, SUCCESS
         end
@@ -209,7 +216,7 @@ function RpcClient:call(rpc, ...)
     if self.alive then
         local session_id = thread_mgr:build_session_id()
         if self.socket.call_rpc(session_id, FLAG_REQ, rpc, ...) then
-            return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
+            return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
         end
     end
     return false, "socket not connected"

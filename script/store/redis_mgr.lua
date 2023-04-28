@@ -22,7 +22,7 @@ end
 --初始化
 function RedisMgr:setup()
     local RedisDB = import("driver/redis.lua")
-    local drivers = environ.driver("QUANTA_DB_URLS")
+    local drivers = environ.driver("QUANTA_REDIS_URLS")
     for i, conf in ipairs(drivers) do
         if conf.driver == "redis" then
             local redis_db = RedisDB(conf)

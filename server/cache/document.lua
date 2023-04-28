@@ -91,7 +91,7 @@ end
 --更新子数据
 function Document:set_field(field, value)
     local cursor = self.datas
-    local fields = ssplit(field, "%.")
+    local fields = ssplit(field, ".")
     local depth = #fields
     for i = 1, depth -1 do
         local cur_field = convint(fields[i])
@@ -107,7 +107,7 @@ end
 --更新子数据
 function Document:unset_field(field)
     local cursor = self.datas
-    local fields = ssplit(field, "%.")
+    local fields = ssplit(field, ".")
     local depth = #fields
     for i = 1, depth -1 do
         local cur_field = convint(fields[i])

@@ -34,9 +34,9 @@ function LoginServlet:__init()
     event_mgr:add_listener(self, "rpc_player_reload")
 
     -- 注册存储结构
-    game_dao:add_sheet("account", "account", "open_id", { account = 1 })
-    game_dao:add_sheet("player", "player", "player_id", { player = 1 })
-    game_dao:add_sheet("player", "player_attr", "player_id", { player_attr = 1 })
+    game_dao:add_sheet("account", "account", "open_id")
+    game_dao:add_sheet("player", "player", "player_id")
+    game_dao:add_sheet("player", "player_attr", "player_id")
 end
 
 -- 会话需要同步
