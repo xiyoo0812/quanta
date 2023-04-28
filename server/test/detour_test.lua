@@ -37,3 +37,11 @@ for i = 1, 33000 do
 end
 local t2 = ltimer.time()
 log_debug("find_path  : %s!", t2 - t1)
+
+local pos_x, pos_y, pos_z = query.random_point()
+-- log_debug('pos: %s', { x = pos_x, y = pos_y, z = pos_z, })
+local rnd_x, rnd_y, rnd_z = query.around_point(pos_x, pos_y, pos_z, 30)
+-- log_debug('rnd: %s', { x = rnd_x, y = rnd_y, z = rnd_z, })
+if (not query.point_valid(rnd_x, rnd_y, rnd_z)) then
+    log_err('point (%s, %s, %s) is not valid', rnd_x, rnd_y, rnd_z)
+end

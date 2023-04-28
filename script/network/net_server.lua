@@ -4,6 +4,7 @@ local lcrypt        = require("lcrypt")
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
+local log_fatal         = logger.fatal
 local signalquit        = signal.quit
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
@@ -105,7 +106,7 @@ end
 function NetServer:write(session, cmd, data, session_id, flag)
     local body, cmd_id, pflag = self:encode(cmd, data, flag)
     if not body then
-        log_err("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd, data)
+        log_fatal("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd, data)
         return false
     end
     session.serial = session.serial + 1
@@ -126,7 +127,7 @@ end
 function NetServer:broadcast(cmd, data)
     local body, cmd_id, pflag = self:encode(cmd, data, FLAG_REQ)
     if not body then
-        log_err("[NetServer][broadcast] encode failed! cmd_id:%s-(%s)", cmd_id, data)
+        log_fatal("[NetServer][broadcast] encode failed! cmd_id:%s-(%s)", cmd_id, data)
         return false
     end
     for _, session in pairs(self.sessions) do

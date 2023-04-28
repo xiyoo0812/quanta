@@ -2,6 +2,7 @@
 local lcrypt            = require("lcrypt")
 
 local log_err           = logger.err
+local log_fatal         = logger.fatal
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
@@ -163,7 +164,7 @@ function NetClient:write(cmd, data, type, session_id, flag)
     end
     local body, cmd_id, pflag = self:encode(cmd, data, flag)
     if not body then
-        log_err("[NetClient][write] encode failed! data (%s-%s)", cmd_id, body)
+        log_fatal("[NetClient][write] encode failed! data (%s-%s)", cmd_id, body)
         return false
     end
     -- call lbus

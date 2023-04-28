@@ -214,20 +214,24 @@ namespace laoi {
             get_around_objects(enters, leaves, obj->grid_x, obj->grid_z, nxgrid, nzgrid);
             //进入视野
             for (auto cobj : enters) {
-                if (cobj->type == aoi_type::watcher) {
-                    kit_state.object_call(this, "on_enter", nullptr, std::tie(), cobj->eid, obj->eid);
-                }
-                if (obj->type == aoi_type::watcher) {
-                    kit_state.object_call(this, "on_enter", nullptr, std::tie(), obj->eid, cobj->eid);
+                if (cobj->eid != obj->eid) {
+                    if (cobj->type == aoi_type::watcher) {
+                        kit_state.object_call(this, "on_enter", nullptr, std::tie(), cobj->eid, obj->eid);
+                    }
+                    if (obj->type == aoi_type::watcher) {
+                        kit_state.object_call(this, "on_enter", nullptr, std::tie(), obj->eid, cobj->eid);
+                    }
                 }
             }
             //退出事视野
             for (auto cobj : leaves) {
-                if (cobj->type == aoi_type::watcher) {
-                   kit_state.object_call(this, "on_leave", nullptr, std::tie(), cobj->eid, obj->eid);
-                }
-                if (obj->type == aoi_type::watcher) {
-                    kit_state.object_call(this, "on_leave", nullptr, std::tie(), obj->eid, cobj->eid);
+                if (cobj->eid != obj->eid) {
+                    if (cobj->type == aoi_type::watcher) {
+                        kit_state.object_call(this, "on_leave", nullptr, std::tie(), cobj->eid, obj->eid);
+                    }
+                    if (obj->type == aoi_type::watcher) {
+                        kit_state.object_call(this, "on_leave", nullptr, std::tie(), obj->eid, cobj->eid);
+                    }
                 }
             }
             //插入

@@ -209,6 +209,22 @@ namespace ldetour {
         return luakit::variadic_return(L, pformat(pos[0]), pformat(pos[1]), pformat(pos[2]));
     }
 
+    int nav_query::around_point(lua_State* L, int32_t x, int32_t y, int32_t z, int32_t radius) {
+        float half_extents[3] = { 2, 4, 2 };    // 沿着每个轴的搜索长度
+        dtPolyRef start_ref;
+        dtPolyRef random_ref;
+        nav_point random_pos;
+
+        float pos[3] = { x / qscale, y / qscale, z / qscale };
+        nvquery->findNearestPoly(pos, half_extents, &filter, &start_ref, 0);
+        if (!start_ref) {
+            return luakit::variadic_return(L, false);
+        }
+
+        nvquery->findRandomPointAroundCircle(start_ref, pos, radius, &filter, frand, &random_ref, random_pos);
+
+        return luakit::variadic_return(L, pformat(random_pos[0]), pformat(random_pos[1]), pformat(random_pos[2]));
+    }
 
     bool nav_query::point_valid(lua_State* L, int32_t x, int32_t y, int32_t z) {
         dtPolyRef ref;           // 起点/终点所在的多边形

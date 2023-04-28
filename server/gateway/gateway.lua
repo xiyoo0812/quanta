@@ -107,7 +107,6 @@ end
 
 --心跳协议
 function Gateway:on_heartbeat_req(session, cmd_id, body, session_id)
-    log_debug("[Gateway][on_heartbeat_req] player(%s-%s)!", session.token, session.player_id)
     local player = self:get_player(session.player_id)
     if player then
         player:notify_heartbeat(session, cmd_id, body, session_id)
@@ -196,18 +195,20 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local code, passkey, new_token = self:call_lobby(lobby, "rpc_player_reload", open_id, player_id, lobby, token, quanta.id)
+    local code, new_token, passkey = self:call_lobby(lobby, "rpc_player_reload", open_id, player_id, lobby, token, quanta.id)
     if qfailed(code) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", code, passkey)
         return client_mgr:callback_errcode(session, cmd_id, code, session_id)
     end
-    for service_name, server_id in pairs(passkey) do
-        local service_type = name2sid(service_name)
-        player:update_gateway(service_type, server_id)
+    if new_token > 0 then
+        for service_name, server_id in pairs(passkey) do
+            local service_type = name2sid(service_name)
+            player:update_gateway(service_type, server_id)
+        end
+        player:set_lobby_id(lobby)
+        session.player_id = player_id
+        self.players[player_id] = player
     end
-    player:set_lobby_id(lobby)
-    session.player_id = player_id
-    self.players[player_id] = player
     log_info("[Gateway][on_role_reload_req] user:%s player:%s new_token:%s reload success!", open_id, player_id, new_token)
     local callback_data = { error_code = code, token = new_token}
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)

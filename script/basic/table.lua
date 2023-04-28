@@ -56,7 +56,7 @@ end
 
 local function tcopy(src, dst)
     local ndst = dst or {}
-    for field, value in pairs(src) do
+    for field, value in pairs(src or {}) do
         ndst[field] = value
     end
     return ndst

@@ -53,6 +53,12 @@ namespace ldetour {
         // [out]   pos         The random location.
         int random_point(lua_State* L);
 
+        // 返回导航图上以指定点为圆心，指定半径范围内的随机一个点
+        // [in]    pos         point. [(x, y, z)]
+        // [in]    radius      radius
+        // [out]   pos         The random location.
+        int around_point(lua_State* L, int32_t x, int32_t y, int32_t z, int32_t radius);
+
         // 查找两点间的路径，如果不可达，则返回最接近终点的路径。
         // [in]    startPos    Path start position. [(x, y, z)]
         // [in]    endPos      Path end position. [(x, y, z)]

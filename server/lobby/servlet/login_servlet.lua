@@ -131,7 +131,7 @@ function LoginServlet:rpc_player_reload(open_id, player_id, lobby, token, gatewa
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
-        return ROLE_NOT_EXIST
+        return FRAME_SUCCESS, 0
     end
     local account = player_mgr:load_account(open_id)
     if not account then
@@ -149,7 +149,7 @@ function LoginServlet:rpc_player_reload(open_id, player_id, lobby, token, gatewa
     account:set_login_token(new_token)
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload success!", player_id)
     update_mgr:attach_event(player_id, "on_reload_success", player_id, player)
-    return FRAME_SUCCESS, player:get_passkey(), new_token
+    return FRAME_SUCCESS, new_token, player:get_passkey()
 end
 
 quanta.login_servlet = LoginServlet()
