@@ -61,7 +61,12 @@ function RedisDiscovery:check_services(time)
     if self.timer_id then
         timer_mgr:unregister(self.timer_id)
     end
-    self:refresh_services()
+    thread_mgr:fork(function()
+        --发送心跳
+        self:heartbeat(quanta.id)
+        --检查服务
+        self:refresh_services()
+    end)
     self.timer_id = timer_mgr:once(time or SECOND_5_MS, function()
         self:check_services()
     end)
@@ -90,8 +95,6 @@ function RedisDiscovery:refresh_services()
             self.origins[service_name] = querys
         end
     end
-    --发送心跳
-    self:heartbeat(quanta.id)
 end
 
 -- 心跳
@@ -105,7 +108,7 @@ function RedisDiscovery:heartbeat(node_id)
             end
             sdata.status = true
         end
-        self:sent_beat(sdata.service_key)
+        self.redis:execute("EXPIRE", sdata.service_key, EXPIRETIME)
     end
 end
 
@@ -136,7 +139,7 @@ function RedisDiscovery:query_instances(service_key)
         log_err("[RedisDiscovery][query_instances] query nodes %s failed: %s", service_key, skeys)
         return
     end
-    if next(skeys) then
+    if skeys and next(skeys) then
         local ok2, values = self.redis:execute("MGET", tunpack(skeys))
         if not ok2 then
             log_err("[RedisDiscovery][query_instances] query node infos %s failed: %s", service_key, values)

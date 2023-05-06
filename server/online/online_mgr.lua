@@ -133,6 +133,13 @@ function OnlineMgr:rpc_send_service(player_id, rpc, serv_name, ...)
     end
 end
 
+--组发消息给指定服务的玩家
+function OnlineMgr:rpc_group_send_service(player_ids, rpc, serv_name, ...)
+    for _, player_id in pairs(player_ids) do
+        self:rpc_send_service(player_id, rpc, serv_name, ...)
+    end
+end
+
 --根据玩家所在的gateway转发消息，然后转发给客户端
 function OnlineMgr:rpc_call_client(player_id, ...)
     local pdata = self.players[player_id]

@@ -4,6 +4,7 @@ local lbus          = require("luabus")
 local ssub          = string.sub
 local log_err       = logger.err
 local log_info      = logger.info
+local ends_with     = qstring.ends_with
 local split_pos     = qstring.split_pos
 local qxpcall       = quanta.xpcall
 
@@ -162,8 +163,10 @@ function Socket:peek(len, offset)
 end
 
 function Socket:peek_lines(split_char)
-    if #self.recvbuf > 0 then
-        return split_pos(self.recvbuf, split_char)
+    if #self.recvbuf >= #split_char then
+        if ends_with(self.recvbuf, split_char) then
+            return split_pos(self.recvbuf, split_char)
+        end
     end
 end
 

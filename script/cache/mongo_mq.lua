@@ -59,6 +59,7 @@ function MongoMQ:send_message(target_id, event, args)
     local ok = mongo_agent:insert({ self.coll_name, doc }, target_id)
     if not ok then
         log_err("[MongoMQ][send_message] send message failed: %s, %s", target_id, args)
+        return ok
     end
     log_debug("[MongoMQ][send_message] send message succeed: %s, %s", target_id, args)
     return ok

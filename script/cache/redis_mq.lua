@@ -61,9 +61,10 @@ function RedisMQ:send_message(target_id, event, args)
             redis_agent:execute( { "EXPIRE", zset_name, self.ttl }, target_id)
         end
         log_debug("[RedisMQ][send_message] send message succeed: %s, %s", target_id, doc)
+        return true
     end
     log_err("[RedisMQ][send_message] send message failed: %s, %s", target_id, doc)
-    return ok
+    return false
 end
 
 return RedisMQ

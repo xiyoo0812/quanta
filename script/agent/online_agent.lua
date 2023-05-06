@@ -1,5 +1,6 @@
 --online_agent.lua
 local log_info      = logger.info
+local mrandom       = qmath.random
 
 local monitor       = quanta.get("monitor")
 local router_mgr    = quanta.get("router_mgr")
@@ -50,6 +51,10 @@ end
 
 function OnlineAgent:send_service(pla_id, rpc, serv_name, ...)
     return router_mgr:random_online_hash(pla_id, "rpc_send_service", pla_id, rpc, serv_name, ...)
+end
+
+function OnlineAgent:group_send_service(pla_ids, rpc, serv_name, ...)
+    return router_mgr:random_online_hash(mrandom(), "rpc_group_send_service", pla_ids, rpc, serv_name, ...)
 end
 
 -- Online服务已经ready
