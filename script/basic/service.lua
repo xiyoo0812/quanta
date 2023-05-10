@@ -42,9 +42,9 @@ function service.init()
     local service_db = config_mgr:init_enum_table("service", "Service", "id")
     for _, conf in service_db:iterator() do
         if conf.enable then
-            SERVICES[conf.name] = conf.id
             SERVICE_NAMES[conf.id] = conf.name
         end
+        SERVICES[conf.name] = conf.id
     end
     --初始化服务信息
     local index = environ.number("QUANTA_INDEX", 1)
@@ -76,7 +76,7 @@ function service.make_sid(service, index)
 end
 
 function service.services()
-    return SERVICES
+    return SERVICE_NAMES
 end
 
 --节点id获取服务id

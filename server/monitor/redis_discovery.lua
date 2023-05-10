@@ -45,7 +45,7 @@ function RedisDiscovery:setup()
         end
     end
     --梳理服务
-    for service_name in pairs(service.services()) do
+    for _, service_name in pairs(service.services()) do
         self.services[service_name] = {}
         self.groups[service_name] = sformat("QUANTA:%s:%s*", NAMESPACE, service_name)
     end

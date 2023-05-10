@@ -34,7 +34,7 @@ prop:reader("allow_reload", false)
 function ProtobufMgr:__init()
     self:load_protos()
     --监听热更新
-    event_mgr:add_trigger(self, "on_service_hotfix")
+    event_mgr:add_trigger(self, "on_reload")
 end
 
 --返回回调id
@@ -205,7 +205,7 @@ function ProtobufMgr:register(doer, pb_name, callback)
 end
 
 -- 重新加载
-function ProtobufMgr:on_service_hotfix()
+function ProtobufMgr:on_reload()
     if not self.allow_reload then
         return
     end

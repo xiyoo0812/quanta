@@ -5,6 +5,7 @@
 --这里维护的在线状态仅供一般性消息中转用,登录状态判定以数据库中记录为准
 local pairs             = pairs
 local log_info          = logger.info
+local tinsert           = table.insert
 
 local monitor           = quanta.get("monitor")
 local event_mgr         = quanta.get("event_mgr")
@@ -18,7 +19,6 @@ local OnlineMgr = singleton()
 function OnlineMgr:__init()
     self.players = {}           --在线玩家
     self.lobby_indexs = {}      --lobby玩家索引
-
     --注册事件
     event_mgr:add_listener(self, "rpc_login_player")
     event_mgr:add_listener(self, "rpc_logout_player")
@@ -31,6 +31,8 @@ function OnlineMgr:__init()
     event_mgr:add_listener(self, "rpc_send_service")
     event_mgr:add_listener(self, "rpc_call_client")
     event_mgr:add_listener(self, "rpc_send_client")
+    event_mgr:add_listener(self, "rpc_group_send_client")
+    event_mgr:add_listener(self, "rpc_group_send_service")
     --服务发现
     monitor:watch_service_close(self, "lobby")
 end
@@ -135,8 +137,9 @@ end
 
 --组发消息给指定服务的玩家
 function OnlineMgr:rpc_group_send_service(player_ids, rpc, serv_name, ...)
-    for _, player_id in pairs(player_ids) do
-        self:rpc_send_service(player_id, rpc, serv_name, ...)
+    local groups = self:spilt_group(player_ids, serv_name)
+    for target_id, pla_ids in pairs(groups) do
+        router_mgr:send_target(target_id, rpc, pla_ids, ...)
     end
 end
 
@@ -159,6 +162,34 @@ function OnlineMgr:rpc_send_client(player_id, ...)
     if pdata then
         router_mgr:send_target(pdata.gateway, "rpc_forward_client", player_id, ...)
     end
+end
+
+--根据玩家所在的gateway转发消息，然后转发给客户端
+function OnlineMgr:rpc_group_send_client(player_ids, ...)
+    local groups = self:spilt_group(player_ids, "gateway")
+    for gateway, pla_ids in pairs(groups) do
+        router_mgr:call_target(gateway, "rpc_groupcast_client", pla_ids, ...)
+    end
+end
+
+function OnlineMgr:spilt_group(player_ids, serv_name)
+    local groups = {}
+    for _,player_id in pairs(player_ids) do
+        local player = self.players[player_id]
+        if not player then
+            goto continue
+        end
+        local passkey = player[serv_name]
+        if not passkey then
+            goto continue
+        end
+        if not groups[passkey] then
+            groups[passkey] = {}
+        end
+        tinsert(groups[passkey], player_id)
+        :: continue ::
+    end
+    return groups
 end
 
 -- export

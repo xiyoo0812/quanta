@@ -15,6 +15,7 @@ local qfailed       = quanta.failed
 local sfind         = string.find
 local sformat       = string.format
 local ssplit        = qstring.split
+local shotfix       = signal.hotfix
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
@@ -126,7 +127,7 @@ end
 --热更新
 function MonitorAgent:rpc_service_hotfix()
     log_debug("[MonitorAgent][rpc_service_hotfix]")
-    event_mgr:notify_trigger("on_service_hotfix")
+    shotfix()
 end
 
 function MonitorAgent:rpc_set_logger_level(level)

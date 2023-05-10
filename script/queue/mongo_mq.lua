@@ -31,10 +31,20 @@ function MongoMQ:setup(coll_name, ttl)
     log_info("[MongoMQ][setup] init rmsg coll: %s", coll_name)
 end
 
+-- 获取消息长度
+function MongoMQ:len_message(coll_name, target_id)
+    local query = { coll_name, { target_id = target_id }}
+    local ok, code, result = mongo_agent:count(query, target_id)
+    if qsuccess(code, ok) then
+        return result
+    end
+    return 0
+end
+
 
 -- 查询未处理消息列表
 function MongoMQ:list_message(coll_name, target_id)
-    local query = { coll_name, { target_id = target_id, deal_time = 0 }, nil, { time = 1 } }
+    local query = { coll_name, { target_id = target_id }, nil, { time = 1 } }
     local ok, code, result = mongo_agent:find(query, target_id)
     if qsuccess(code, ok) then
         return result

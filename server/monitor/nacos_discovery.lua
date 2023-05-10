@@ -29,7 +29,7 @@ end
 
 function NacosDiscovery:setup()
     --梳理服务
-    for service_name, service_id in pairs(service.services()) do
+    for service_id, service_name in pairs(service.services()) do
         self.services[service_name] = {}
         self.groups[service_name] = service_id
     end

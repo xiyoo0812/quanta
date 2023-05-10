@@ -34,7 +34,7 @@ function OnlineAgent:call_lobby(pla_id, rpc, ...)
 end
 
 function OnlineAgent:send_lobby(pla_id, rpc, ...)
-    return router_mgr:random_online_hash(pla_id, "rpc_send_lobby", pla_id, rpc, ...)
+    return router_mgr:send_online_hash(pla_id, "rpc_send_lobby", pla_id, rpc, ...)
 end
 
 function OnlineAgent:call_client(pla_id, ...)
@@ -42,7 +42,11 @@ function OnlineAgent:call_client(pla_id, ...)
 end
 
 function OnlineAgent:send_client(pla_id, ...)
-    return router_mgr:random_online_hash(pla_id, "rpc_send_client", pla_id, ...)
+    return router_mgr:send_online_hash(pla_id, "rpc_send_client", pla_id, ...)
+end
+
+function OnlineAgent:group_send_client(pla_ids, ...)
+    return router_mgr:send_online_hash(mrandom(), "rpc_group_send_client", pla_ids, ...)
 end
 
 function OnlineAgent:call_service(pla_id, rpc, serv_name, ...)
@@ -50,11 +54,11 @@ function OnlineAgent:call_service(pla_id, rpc, serv_name, ...)
 end
 
 function OnlineAgent:send_service(pla_id, rpc, serv_name, ...)
-    return router_mgr:random_online_hash(pla_id, "rpc_send_service", pla_id, rpc, serv_name, ...)
+    return router_mgr:send_online_hash(pla_id, "rpc_send_service", pla_id, rpc, serv_name, ...)
 end
 
 function OnlineAgent:group_send_service(pla_ids, rpc, serv_name, ...)
-    return router_mgr:random_online_hash(mrandom(), "rpc_group_send_service", pla_ids, rpc, serv_name, ...)
+    return router_mgr:send_online_hash(mrandom(), "rpc_group_send_service", pla_ids, rpc, serv_name, ...)
 end
 
 -- Online服务已经ready

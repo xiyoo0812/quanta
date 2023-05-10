@@ -12,6 +12,7 @@ local ltime         = ltimer.time
 local QuantaMode    = enum("QuantaMode")
 
 local co_hookor     = quanta.load("co_hookor")
+local scheduler     = quanta.load("scheduler")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
 
@@ -54,12 +55,9 @@ local function init_mainloop()
     import("kernel/thread_mgr.lua")
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
-    update_mgr = quanta.get("update_mgr")
-end
-
---初始化调度器
-local function init_scheduler()
     import("driver/scheduler.lua")
+    update_mgr = quanta.get("update_mgr")
+    scheduler = quanta.get("scheduler")
 end
 
 --初始化统计
@@ -77,11 +75,8 @@ function quanta.init()
     --主循环
     init_coroutine()
     init_mainloop()
-    if quanta.mode <= QuantaMode.TINY then
-        --加载调度器
-        init_scheduler()
-        init_statis()
-    end
+    init_statis()
+    --加载调度器
     if quanta.mode <= QuantaMode.TOOL then
         --加载网络
         init_network()
@@ -124,5 +119,6 @@ quanta.run = function()
         socket_mgr.wait(10)
     end
     --系统更新
-    update_mgr:update(ltime())
+    update_mgr:update(scheduler, ltime())
+    scheduler:update()
 end

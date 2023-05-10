@@ -25,13 +25,13 @@ local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
 local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
+local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 
-local out_press         = env_status("QUANTA_OUT_PRESS")
-local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
-local flow_ctrl         = env_status("QUANTA_FLOW_CTRL")
-local flow_cd           = env_number("QUANTA_FLOW_CTRL_CD")
-local fc_package        = env_number("QUANTA_FLOW_CTRL_PACKAGE") / 1000
-local fc_bytes          = env_number("QUANTA_FLOW_CTRL_BYTES") / 1000
+local OUT_PRESS         = env_status("QUANTA_OUT_PRESS")
+local OUT_ENCRYPT       = env_status("QUANTA_OUT_ENCRYPT")
+local FLOW_CTRL         = env_status("QUANTA_FLOW_CTRL")
+local FC_PACKETS        = env_number("QUANTA_FLOW_CTRL_PACKAGE")
+local FC_BYTES          = env_number("QUANTA_FLOW_CTRL_BYTES")
 
 -- CS协议会话对象管理器
 local NetServer = class()
@@ -42,7 +42,6 @@ prop:reader("sessions", {})             --会话列表
 prop:reader("session_type", "default")  --会话类型
 prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
-prop:reader("command_cds", {})          --CMD定制CD
 prop:accessor("codec", nil)             --编解码器
 
 function NetServer:__init(session_type)
@@ -86,8 +85,10 @@ function NetServer:on_socket_accept(session)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 绑定call回调
     session.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
-        session.fc_packet = session.fc_packet + 1
-        session.fc_bytes  = session.fc_bytes  + recv_len
+        if FLOW_CTRL then
+            session.fc_packet = session.fc_packet + 1
+            session.fc_bytes  = session.fc_bytes  + recv_len
+        end
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, slice)
     end
@@ -98,7 +99,6 @@ function NetServer:on_socket_accept(session)
     --初始化序号
     session.serial = 1
     session.serial_sync = 1
-    session.command_times = {}
     --通知链接成功
     event_mgr:notify_listener("on_socket_accept", session)
 end
@@ -168,12 +168,12 @@ function NetServer:encode(cmd, data, flag)
         return
     end
     -- 加密处理
-    if out_encrypt then
+    if OUT_ENCRYPT then
         en_data = b64_encode(en_data)
         flag = flag | FLAG_ENCRYPT
     end
     -- 压缩处理
-    if out_press then
+    if OUT_PRESS then
         en_data = lz4_encode(en_data)
         flag = flag | FLAG_ZIP
     end
@@ -193,27 +193,8 @@ function NetServer:decode(cmd_id, slice, flag)
     return self.codec:decode(cmd_id, de_data)
 end
 
--- 配置指定cmd的cd
-function NetServer:define_cmd_cd(cmd_id, cd_time)
-    self.command_cds[cmd_id] = cd_time
-end
-
--- 查找指定cmd的cdtime
-function NetServer:get_cmd_cd(cmd_id)
-    return self.command_cds[cmd_id] or flow_cd
-end
-
 -- 收到远程调用回调
 function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice)
-    local clock_ms = quanta.clock_ms
-    local cmd_cd_time = self:get_cmd_cd(cmd_id)
-    local command_times = session.command_times
-    if command_times[cmd_id] and clock_ms - command_times[cmd_id] < cmd_cd_time then
-        log_warn("[NetServer][on_socket_recv] session trigger cmd(%s) cd ctrl, will be drop.", cmd_id)
-        --协议CD
-        return
-    end
-    command_times[cmd_id] = clock_ms
     session.alive_time = quanta.now
     -- 解码
     local body, cmd_name = self:decode(cmd_id, slice, flag)
@@ -246,18 +227,20 @@ function NetServer:check_serial(session, cserial)
     session.serial_sync = sserial
 
     -- 流量控制检测
-    if flow_ctrl then
+    if FLOW_CTRL then
         -- 达到检测周期
         local cur_time = quanta.clock_ms
-        local escape_time = cur_time - session.last_fc_time
-        -- 检查是否超过配置
-        if session.fc_packet / escape_time > fc_package or session.fc_bytes / escape_time > fc_bytes then
-            log_warn("[NetServer][check_serial] session trigger package or bytes flowctrl line, will be closed.")
-            self:close_session(session)
+        local escape = cur_time - session.last_fc_time
+        if escape > SECOND_MS then
+            -- 检查是否超过配置
+            if session.fc_packet > (FC_PACKETS * escape // SECOND_MS) or session.fc_bytes > FC_BYTES then
+                log_warn("[NetServer][check_serial] session trigger package or bytes flowctrl line, will be closed.")
+                self:close_session(session)
+            end
+            session.fc_packet = 0
+            session.fc_bytes  = 0
+            session.last_fc_time = cur_time
         end
-        session.fc_packet = 0
-        session.fc_bytes  = 0
-        session.last_fc_time = cur_time
     end
     return sserial
 end

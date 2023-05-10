@@ -841,6 +841,7 @@ return [[<html>
                 </div>
             </ul>
             <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="runAll()">Run All</button><br>
+            <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="messageFilter()">消息筛选</button><br>
             <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="saveCaseData()">保存</button><br>
             <button id="runall-btn" class="add-plus-icon login-button run-button" ng-click="cleanLogs()">清空控制台</button>
         </div>
@@ -887,6 +888,40 @@ return [[<html>
             </div>
         </section>
     </article>
+
+    <article class="bk-sideslider bkci-property-panel" style="z-index: 2021;" ng-show="messageFilterShow">
+        <section class="bk-sideslider-wrapper right" style="width: 600px;">
+            <div class="bk-sideslider-header">
+                <i class="bk-sideslider-closer" style="float: left;" ng-click="showMessageFilter(false)">
+                    <i class="bk-icon icon-angle-right"></i>
+                </i>
+            </div>
+            <div class="bk-sideslider-content" style="max-height: calc(100vh - 30px); position: relative;">
+                <section class="atom-property-panel">
+                    <div class="atom-main-content" style="position: relative;">
+                        <div class="atom-form-content">
+                            <div class="atom-form-box">
+                                <section class="bk-form bk-form-vertical atom-content" atom="[object Object]">
+                                    <div class="form-field bk-form-item is-required">
+                                        <label ng-show="protoNew" class="bk-label atom-form-label">选择协议:</label>
+                                        <label class="bk-label atom-form-label">消息筛选(格式:逗号分割)(例如:10000,10001)</label>
+                                        <div class="bk-form-content">
+                                            <textarea id="parameter" name="parameter" ng-model="messageFilterText"
+                                                class="input-textarea">{{messageFilterText}}</textarea>
+                                        </div><br>
+                                        <div class="center-box">
+                                            <button class="add-plus-icon login-button" ng-click="modifyProtFilter()" ng-hide="protoNew">保存</button>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
+    </article>
+
     <article id="side-case" class="bk-sideslider bkci-property-panel" style="z-index: 2021;" ng-show="caseShow">
         <section class="bk-sideslider-wrapper right" style="width: 600px;">
             <div class="bk-sideslider-header">
@@ -946,6 +981,7 @@ return [[<html>
         $scope.logined = false
         $scope.caseShow = false
         $scope.protoShow = false
+        $scope.messageFilterShow = false
         $scope.serverAddr = null
         $scope.robotStatus ="未启动"
         $scope.showOperator = false
@@ -953,17 +989,21 @@ return [[<html>
         $scope.caseNew = false
         $scope.upload = false
         $scope.uploadConfig = {}
+
         //测试用例
         $scope.curCase = null
         $scope.curCaseName = "请配置测试用例"
         $scope.curProtocols = null
         $scope.curProtocolName = null
         $scope.curProtocolArgs = "{\n\}"
+        $scope.messageFilterText = ""
         $scope.messages = ""
         //全局信息
         $scope.protocols = []
         $scope.tescases = []
         $scope.servers = []
+        $scope.messageFilters = {}
+
         //当前插入新协议的索引
         $scope.newProtoIndex = 0;
         //新增协议选中
@@ -1031,8 +1071,17 @@ return [[<html>
             }).then(function(response) {
                     console.log("message", response.data)
                     if(response.data.hasOwnProperty("msg") &&  Object.keys(response.data.msg).length != 0){
-                        $scope.messages += "\n\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]服务器通知:\n"+$scope.prettyFormat(response.data)
-                        document.getElementById('jsonShow').innerHTML = $scope.messages
+                        var append = true
+                        if(Object.getOwnPropertyNames($scope.messageFilters).length > 0){
+                            var cmd_id = response.data.msg.cmd_id;
+                            if(!$scope.messageFilters[cmd_id]){
+                                append = false
+                            }
+                        }
+                        if(append){
+                            $scope.messages += "\n\n["+new Date().Format("yyyy-MM-dd hh:mm:ss S")+"]服务器通知:\n"+$scope.prettyFormat(response.data)
+                            document.getElementById('jsonShow').innerHTML = $scope.messages
+                        }
                     }
                 });
             }
@@ -1045,6 +1094,10 @@ return [[<html>
                 $scope.curProtocolName = cmd
                 $scope.curProtocolArgs = JSON.stringify(cmd.args, null, "    ")
             }
+        }
+        //成员函数
+        $scope.showMessageFilter=function(value){
+            $scope.messageFilterShow = value
         }
         $scope.uploadLocal= function(){
             $http.post('/upload',{
@@ -1163,6 +1216,32 @@ return [[<html>
             }
             $scope.protoShow = false;
             console.log(JSON.stringify(newProtocol,null,2))
+        }
+        //修改筛选参数
+        $scope.modifyProtFilter=function(){
+            $scope.messageFilters = {}
+            var cmds = $scope.messageFilterText.split(",")
+            for(var i=0; i<cmds.length; i++){
+                var cmd_id_s = cmds[i].split("-")
+                if(cmd_id_s.length <= 2){
+                    if(cmd_id_s.length == 1){
+                        var cmd_id = parseInt(cmd_id_s[0])
+                        console.log("1--cmd_id=%d",cmd_id)
+                        if(cmd_id){
+                            $scope.messageFilters[cmd_id] = cmd_id;
+                        }
+                    }else{
+                        var s_cmd_id = parseInt(cmd_id_s[0])
+                        var e_cmd_id = parseInt(cmd_id_s[1])
+                        for (var id=s_cmd_id; id<=e_cmd_id; id++){
+                            $scope.messageFilters[id] = id;
+                            console.log("2--id=%d",id)
+                        }
+                    }
+                }
+            }
+            console.log($scope.messageFilters)
+            $scope.showMessageFilter(false)
         }
         //新增协议
         $scope.insertProtoData=function(){
@@ -1361,6 +1440,9 @@ return [[<html>
         $scope.removeItem=function(cmd){
             console.log("removeItem", cmd)
             $scope.curProtocols.splice(cmd.index,1)
+        }
+        $scope.messageFilter=function(cmd){
+            $scope.showMessageFilter(true)
         }
         $scope.cleanLogs=function(cmd){
             $scope.messages = ""

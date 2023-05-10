@@ -65,9 +65,13 @@ static void check_input(luakit::kit_state& lua) {
 #endif
 }
 
-void quanta_app::set_signal(uint32_t n) {
+void quanta_app::set_signal(uint32_t n, bool b) {
     uint32_t mask = 1 << n;
-    m_signal |= mask;
+    if (b) {
+        m_signal |= mask;
+    } else {
+        m_signal ^= mask;
+    }
 }
 
 const char* quanta_app::get_env(const char* key) {
@@ -95,6 +99,8 @@ void quanta_app::setup(int argc, const char* argv[]) {
     logger::get_logger();
     //加载配置
     load(argc, argv);
+    //设置
+    g_app = this;
     //运行
     run();
 }
@@ -144,7 +150,7 @@ void quanta_app::run() {
     quanta.set("platform", get_platform());
     quanta.set_function("daemon", [&]() { daemon(); });
     quanta.set_function("get_signal", [&]() { return m_signal; });
-    quanta.set_function("set_signal", [&](int n) { set_signal(n); });
+    quanta.set_function("set_signal", [&](int n, bool b) { set_signal(n, b); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });

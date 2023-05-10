@@ -164,6 +164,20 @@ local function tmapsort(src, func)
     return dst
 end
 
+--截取
+local function tslice(src, spos, epos)
+    local dst = {}
+    if not epos then
+        epos = #src
+    end
+    if spos < epos then
+        for i = spos, epos, 1 do
+            dst[#dst + 1] = src[i]
+        end
+    end
+    return dst
+end
+
 qtable               = _ENV.qtable or {}
 qtable.random        = trandom
 qtable.random_array  = trandom_array
@@ -181,4 +195,5 @@ qtable.array         = tarray
 qtable.tkarray       = tkarray
 qtable.kvarray       = tkvarray
 qtable.mapsort       = tmapsort
+qtable.slice         = tslice
 

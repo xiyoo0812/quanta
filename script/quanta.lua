@@ -79,12 +79,18 @@ function quanta.new_guid()
     return guid_new(quanta.service, quanta.index)
 end
 
+function quanta.create(name, pclass)
+    if not quanta[name] then
+        quanta[name] = pclass()
+    end
+end
+
 function quanta.make_mq()
     local Driver
     if MQ_DRIVER == "redis" then
-        Driver = import("cache/redis_mq.lua")
+        Driver = import("queue/redis_mq.lua")
     else
-        Driver = import("cache/mongo_mq.lua")
+        Driver = import("queue/mongo_mq.lua")
     end
     return Driver()
 end

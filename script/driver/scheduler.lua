@@ -15,24 +15,18 @@ local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local event_mgr     = quanta.get("event_mgr")
-local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local Scheduler = singleton()
 function Scheduler:__init()
-    update_mgr:attach_quit(self)
-    update_mgr:attach_frame(self)
     lworker.setup("quanta", environ.get("QUANTA_SANDBOX"))
 end
 
-function Scheduler:setup(service)
-end
-
-function Scheduler:on_quit()
+function Scheduler:quit()
     lworker.shutdown()
 end
 
-function Scheduler:on_frame()
+function Scheduler:update()
     lworker.update()
 end
 
@@ -42,6 +36,11 @@ function Scheduler:startup(name, entry)
         log_err("[Scheduler][startup] startup failed: %s", err)
     end
     return ok
+end
+
+--访问其他线程任务
+function Scheduler:broadcast(rpc, ...)
+    lworker.broadcast(lencode(0, FLAG_REQ, "master", rpc, ...))
 end
 
 --访问其他线程任务

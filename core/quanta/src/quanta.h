@@ -12,7 +12,7 @@ public:
     void run();
     void setup(int argc, const char* argv[]);
     void load(int argc, const char* argv[]);
-    void set_signal(uint32_t n);
+    void set_signal(uint32_t n, bool b = true);
 
 protected:
     void exception_handler(std::string msg, std::string& err);

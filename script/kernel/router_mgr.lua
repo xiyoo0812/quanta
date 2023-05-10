@@ -221,7 +221,7 @@ end
 --生成针对服务的访问接口
 function RouterMgr:build_service()
     local services = service.services()
-    for service, service_id in pairs(services) do
+    for service_id, service in pairs(services) do
         self:build_service_method(service, service_id)
     end
 end

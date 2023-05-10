@@ -250,7 +250,6 @@ local function export_records_to_struct(output, title, records)
     tinsert(lines, sformat("%s:update()\n", title))
     export_file:write(tconcat(lines, "\n"))
     export_file:close()
-    print(sformat("export %s success!", filename))
 end
 
 --导出到lua
@@ -287,7 +286,6 @@ local function export_records_to_table(output, title, records)
     local output_data = tconcat(lines, "\n")
     export_file:write(output_data)
     export_file:close()
-    print(sformat("export %s success!", filename))
 end
 
 local function find_sheet_data_struct(sheet)
@@ -346,6 +344,7 @@ local function export_sheet_to_table(sheet, output, fullname, title)
         tinsert(records, record)
     end
     export_method(output, title, records)
+    print(sformat("export file: %s sheet: %s success!", fullname, title))
 end
 
 local function is_excel_file(file)

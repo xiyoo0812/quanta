@@ -6,8 +6,10 @@ local ltimer        = require("ltimer")
 
 local pcall         = pcall
 local log_err       = logger.err
+local log_info      = logger.info
 local tpack         = table.pack
 local tunpack       = table.unpack
+local qxpcall       = quanta.xpcall
 local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
 local lencode       = lcodec.encode_slice
@@ -110,13 +112,23 @@ quanta.run = function()
     if socket_mgr then
         socket_mgr.wait(10)
     end
-    quanta.update()
     --系统更新
-    update_mgr:update(ltime())
+    qxpcall(function()
+        quanta.update()
+        update_mgr:update(nil, ltime())
+    end, "quanta run err: %s")
 end
 
 --事件分发
 local function notify_rpc(session_id, title, rpc, ...)
+    if rpc == "on_reload" then
+        log_info("[Worker][on_reload]worker:%s reload for signal !", WTITLE)
+        --重新加载脚本
+        quanta.reload()
+        --事件通知
+        event_mgr:notify_trigger("on_reload")
+        return
+    end
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
         quanta.call(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
