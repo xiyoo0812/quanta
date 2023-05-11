@@ -22,7 +22,7 @@ function LoginDao:get_autoinc_id(open_id)
 end
 
 function LoginDao:check_name_exist(name)
-    local ok, code, udata = mongo_agent:find_one({ "player", { ["player.name"] = name } })
+    local ok, code, udata = mongo_agent:find_one({ "player", { ["name"] = name } })
     if qfailed(code, ok) then
         log_err("[LoginDao][check_name_exist] name: %s find failed! code: %s, res: %s", name, code, udata)
         return false
@@ -36,10 +36,11 @@ function LoginDao:create_player(open_id, player_id, data)
         open_id = open_id,
         gender = data.gender,
         facade = data.custom,
+        player_id = player_id,
         user_id = data.user_id,
         create_time = quanta.now
     }
-    local ok, code, udata = mongo_agent:insert({ "player", { player = pdata, player_id = player_id } })
+    local ok, code, udata = mongo_agent:insert({ "player", pdata })
     if qfailed(code, ok) then
         log_err("[LoginDao][create_player] player_id: %s create failed! code: %s, res: %s", player_id, code, udata)
         return false

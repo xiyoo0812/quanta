@@ -1,5 +1,7 @@
 --account.lua
 
+local sformat   = string.format
+
 local game_dao  = quanta.get("game_dao")
 
 local Account = class()
@@ -7,13 +9,11 @@ local prop = property(Account)
 prop:reader("user_id", 0)           --user_id
 prop:reader("open_id", "")          --open_id
 prop:reader("create_time", 0)       --create_time
+prop:accessor("reload_token", 0)    --reload_token
 
 local dprop = db_property(Account, "account", true)
-dprop:store_value("token", 0)       --token
 dprop:store_value("lobby", 0)       --lobby
 dprop:store_value("device_id", 0)   --device_id
-dprop:store_value("login_time", 0)  --login_time
-dprop:store_value("login_token", 0) --login_token
 dprop:store_value("params", {})     --params
 dprop:store_values("roles", {})     --roles
 
@@ -26,17 +26,13 @@ function Account:load()
 end
 
 function Account:on_db_account_load(data)
-    if data.account then
-        local account_data = data.account
-        self.token = account_data.token
-        self.lobby = account_data.lobby
-        self.roles = account_data.roles
-        self.params = account_data.params
-        self.user_id = account_data.user_id
-        self.device_id = account_data.device_id
-        self.login_time = account_data.login_time
-        self.create_time = account_data.create_time
-        self.login_token = account_data.login_token
+    if data.open_id then
+        self.lobby = data.lobby
+        self.roles = data.roles
+        self.params = data.params
+        self.user_id = data.user_id
+        self.device_id = data.device_id
+        self.create_time = data.create_time
         return true
     end
     return false
@@ -56,6 +52,11 @@ function Account:update_custom(role_id, custom)
         role.custom = custom
         self:set_roles_field(role_id, role)
     end
+end
+
+function Account:get_login_token()
+    local key = sformat("LOGIN:login_token:%s", self.user_id)
+    return game_dao:execute("GET", key)
 end
 
 return Account

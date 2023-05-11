@@ -84,11 +84,14 @@ function LoginServlet:rpc_player_login(open_id, player_id, lobby, token, gateway
     if not account then
         return FRAME_FAILED
     end
+    local code, login_token = account:get_login_token()
+    if qfailed(code) then
+        return ROLE_TOKEN_ERR
+    end
     --验证token
-    if token ~= account:get_login_token() or lobby ~= account:get_lobby() or quanta.now > account:get_login_time() then
-        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, account:get_lobby())
-        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, account:get_login_token())
-        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, time: %s-%s", player_id, quanta.now, account:get_login_time())
+    if tostring(token) ~= login_token or lobby ~= quanta.id then
+        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, quanta.id)
+        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, login_token)
         return ROLE_TOKEN_ERR
     end
     local player = player_mgr:load_player(player_id)
@@ -110,7 +113,7 @@ function LoginServlet:rpc_player_login(open_id, player_id, lobby, token, gateway
     local new_token = mrandom()
     player:set_account(account)
     player:set_open_id(open_id)
-    account:set_login_token(new_token)
+    account:set_reload_token(new_token)
     update_mgr:attach_event(player_id, "on_login_success", player_id, player)
     log_info("[LoginServlet][rpc_player_login] player(%s) login success!", player_id)
     return FRAME_SUCCESS, passkey, new_token
@@ -133,14 +136,15 @@ function LoginServlet:rpc_player_reload(open_id, player_id, lobby, token, gatewa
     if not player then
         return FRAME_SUCCESS, 0
     end
-    local account = player_mgr:load_account(open_id)
+    local account = player:get_account()
     if not account then
-        return FRAME_FAILED
+        return ROLE_TOKEN_ERR
     end
     --验证token
-    local old_token = account:get_login_token()
-    if token ~= old_token or lobby ~= account:get_lobby() then
-        log_err("[LoginServlet][rpc_player_reload] token verify failed! player:%s, token: %s, old_token=%s", player_id, token, old_token)
+    local old_token = account:get_reload_token()
+    if token ~= old_token or lobby ~= quanta.id then
+        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, quanta.id)
+        log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, old_token)
         return ROLE_TOKEN_ERR
     end
     local new_token = mrandom()

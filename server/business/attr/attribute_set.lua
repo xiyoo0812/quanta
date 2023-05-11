@@ -57,8 +57,8 @@ end
 
 --加载db数据
 function AttributeSet:on_db_player_attr_load(data)
-    if data.player_attr then
-        self:load_attrs(data.player_attr.attrs or {})
+    if data.attrs then
+        self:load_attrs(data.attrs or {})
         return true
     end
     event_mgr:notify_trigger("on_player_attr_init", self)

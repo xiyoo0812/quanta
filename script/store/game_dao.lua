@@ -1,5 +1,8 @@
 --game_dao.lua
+local ljson = require("lcjson")
+
 import("store/db_property.lua")
+import("agent/redis_agent.lua")
 import("agent/mongo_agent.lua")
 import("agent/cache_agent.lua")
 
@@ -10,6 +13,7 @@ local tinsert       = table.insert
 local qfailed       = quanta.failed
 
 local event_mgr     = quanta.get("event_mgr")
+local redis_agent   = quanta.get("redis_agent")
 local mongo_agent   = quanta.get("mongo_agent")
 local cache_agent   = quanta.get("cache_agent")
 
@@ -27,7 +31,7 @@ end
 
 function GameDAO:add_sheet(group, sheet_name, primary_key, inertia)
     if not self.sheet_indexs[sheet_name] then
-        self.sheet_indexs[sheet_name] = { primary_key, group, { [sheet_name] = 1 } }
+        self.sheet_indexs[sheet_name] = { primary_key, group }
         if not inertia then
             local sheets = self.sheet_groups[group]
             if not sheets then
@@ -40,23 +44,23 @@ function GameDAO:add_sheet(group, sheet_name, primary_key, inertia)
 end
 
 function GameDAO:load_impl(primary_id, sheet_name)
-    local primary_key, group, filters = self:find_primary_key(sheet_name)
+    local primary_key, group = self:find_primary_key(sheet_name)
     if not primary_key then
         return false
     end
     if USE_CACHE then
-        local code, adata = cache_agent:load(primary_id, sheet_name, primary_key, filters, group)
+        local code, adata = cache_agent:load(primary_id, sheet_name, primary_key, group)
         if qfailed(code) then
             log_err("[GameDAO][load_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
             return false
         end
         return true, adata
     end
-    return self:load_mongo(sheet_name, primary_id, primary_key, filters)
+    return self:load_mongo(sheet_name, primary_id, primary_key)
 end
 
-function GameDAO:load_mongo(sheet_name, primary_id, primary_key, filters)
-    local ok, code, adata = mongo_agent:find_one({ sheet_name, { [primary_key] = primary_id }, filters })
+function GameDAO:load_mongo(sheet_name, primary_id, primary_key)
+    local ok, code, adata = mongo_agent:find_one({ sheet_name, { [primary_key] = primary_id }, { _id = 0 } })
     if qfailed(code, ok) then
         log_err("[GameDAO][load_mongo_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
         return false
@@ -102,7 +106,10 @@ function GameDAO:update_field(primary_id, sheet_name, field, field_data, flush)
 end
 
 function GameDAO:update_mongo_field(sheet_name, primary_id, primary_key, field, field_data)
-    local udata = { ["$set"] = { [field] = field_data } }
+    local udata = field_data
+    if #field > 0 then
+        udata = { ["$set"] = { [field] = field_data } }
+    end 
     local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
     if qfailed(code, ok) then
         log_err("[GameDAO][update_mongo_field_%s] update (%s) failed! primary_id(%s), code(%s), res(%s)", sheet_name, field, primary_id, code, res)
@@ -190,6 +197,17 @@ end
 function GameDAO:on_db_prop_remove(primary_id, sheet_name, db_key, flush)
     log_debug("[GameDAO][on_db_prop_remove] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
     return self:remove_field(primary_id, sheet_name, db_key, flush)
+end
+
+--redis通用接口
+----------------------------------------------------------------------
+function GameDAO:execute(cmd, ...)
+    local ok, code, result = redis_agent:execute({ cmd, ... })
+    if qfailed(code, ok) then
+        log_err("[GameDAO][execute] execute (%s) failed: code: %s, res: %s!",  cmd, code, result)
+        return code
+    end
+    return code, result
 end
 
 quanta.game_dao = GameDAO()

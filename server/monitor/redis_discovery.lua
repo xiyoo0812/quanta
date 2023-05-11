@@ -44,6 +44,10 @@ function RedisDiscovery:setup()
             break
         end
     end
+    if not self.redis then
+        log_err("[RedisDiscovery][setup] discovery config err: driver is empty")
+        return
+    end
     --梳理服务
     for _, service_name in pairs(service.services()) do
         self.services[service_name] = {}

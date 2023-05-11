@@ -11,7 +11,7 @@ local protoaddr = qstring.protoaddr
 
 environ = {}
 
-local pattern = "(%a+)://([^:]+):([^@]+)@([^/]+)/?([^?]*)[%?]?(.*)"
+local pattern = "(%a+)://([^:]-):([^@]-)@([^/]+)/?([^?]*)[%?]?(.*)"
 
 function environ.init()
     if environ.status("QUANTA_DAEMON") then

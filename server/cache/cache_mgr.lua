@@ -69,13 +69,13 @@ function CacheMgr:check_doc(coll_name, primary_id, quanta_id)
     return SUCCESS, doc, collection
 end
 
-function CacheMgr:rpc_cache_load(quanta_id,  primary_id, coll_name, primary_key, filters, group)
+function CacheMgr:rpc_cache_load(quanta_id,  primary_id, coll_name, primary_key, group)
     local collection = self.collections[coll_name]
     if not collection then
         collection = Collection(coll_name, primary_key, group)
         self.collections[coll_name] = collection
     end
-    local code, doc = collection:load(primary_id, filters)
+    local code, doc = collection:load(primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_load] doc not find! coll_name=%s, primary=%s", coll_name, primary_id)
         return code

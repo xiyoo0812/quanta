@@ -305,6 +305,10 @@ function RedisDB:__release()
 end
 
 function RedisDB:choose_host(hosts)
+    if not next(hosts) then
+        log_err("[RedisDB][choose_host] redis config err: hosts is empty")
+        return
+    end
     local pcount = env_number("QUANTA_DB_POOL_COUNT", 1)
     while true do
         for ip, port in pairs(hosts) do
@@ -348,7 +352,7 @@ function RedisDB:login(socket, title)
         log_err("[RedisDB][login] connect %s db(%s:%s) failed!", title, socket.ip, socket.port)
         return false
     end
-    if self.passwd then
+    if self.passwd and #self.passwd > 0 then
         local ok, res = self:auth(socket)
         if not ok or res ~= "OK" then
             log_err("[RedisDB][login] auth %s db(%s:%s) failed! because: %s", title, socket.ip, socket.port, res)

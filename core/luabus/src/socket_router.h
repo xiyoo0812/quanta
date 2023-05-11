@@ -14,7 +14,7 @@ enum class rpc_type : char {
     forward_hash,
 };
 
-const int MAX_SERVICE_GROUP = 255;
+const int MAX_SERVICE_GROUP = UCHAR_MAX + 1;
 
 struct service_node {
     uint32_t id = 0;

@@ -43,17 +43,16 @@ function Player:__init(id)
 end
 
 function Player:on_db_player_load(data)
-    if data.player then
-        local player_data = data.player
-        self.nick = player_data.nick
-        self.facade = player_data.facade
-        self.user_id = player_data.user_id
-        self.login_time = player_data.login_time
-        self.create_time = player_data.create_time
-        self.upgrade_time = player_data.upgrade_time or 0
-        self:set_gender(player_data.gender)
-        self:set_custom(player_data.facade)
-        self:set_name(player_data.nick)
+    if data.player_id then
+        self.nick = data.nick
+        self.facade = data.facade
+        self.user_id = data.user_id
+        self.login_time = data.login_time
+        self.create_time = data.create_time
+        self.upgrade_time = data.upgrade_time or 0
+        self:set_gender(data.gender)
+        self:set_custom(data.facade)
+        self:set_name(data.nick)
         self:set_relayable(true)
         self.active_time = quanta.now_ms
         return true

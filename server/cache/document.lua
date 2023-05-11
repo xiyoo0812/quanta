@@ -27,10 +27,9 @@ function Document:__init(coll_name, primary_key, primary_id)
 end
 
 --从数据库加载
-function Document:load(filters)
-    filters._id = 0
+function Document:load()
     local query = { [self.primary_key] = self.primary_id }
-    local code, res = mongo_mgr:find_one(MAIN_DBID, self.coll_name, query, filters)
+    local code, res = mongo_mgr:find_one(MAIN_DBID, self.coll_name, query, { _id = 0 })
     if qfailed(code) then
         log_err("[Document][load] failed: %s=> table: %s", res, self.coll_name)
         return code
@@ -63,6 +62,9 @@ function Document:update_field(field, field_data, flush)
     self:set_field(field, field_data)
     self.update_time = quanta.now
     if flush then
+        if #field == 0 then
+            return self:update()
+        end
         return self:update({ ["$set"] = { [field] = field_data } })
     end
     return false
@@ -90,6 +92,11 @@ end
 -------------------------------------------------------
 --更新子数据
 function Document:set_field(field, value)
+    if #field == 0 then
+        value[self.primary_key] = self.primary_id
+        self.datas = value
+        return
+    end
     local cursor = self.datas
     local fields = ssplit(field, ".")
     local depth = #fields

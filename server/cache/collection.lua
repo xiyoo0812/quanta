@@ -35,11 +35,11 @@ function Collection:__init(coll_name, primary_key, group)
     self.group = group
 end
 
-function Collection:load(primary_id, filters)
+function Collection:load(primary_id)
     local doc = self.documents:get(primary_id)
     if not doc then
         doc = Document(self.coll_name, self.primary_key, primary_id)
-        local code = doc:load(filters)
+        local code = doc:load()
         if qfailed(code) then
             log_err("[Collection][load] load row failed: tab_name=%s", self.coll_name)
             return code

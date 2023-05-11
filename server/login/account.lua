@@ -2,6 +2,7 @@
 
 local tsize         = qtable.size
 local tinsert       = table.insert
+local sformat       = string.format
 local guid_new      = quanta.new_guid
 
 local game_dao      = quanta.get("game_dao")
@@ -17,8 +18,6 @@ local dprop = db_property(Account, "account", true)
 dprop:store_value("token", 0)       --token
 dprop:store_value("lobby", 0)       --lobby
 dprop:store_value("device_id", 0)   --device_id
-dprop:store_value("login_time", 0)  --login_time
-dprop:store_value("login_token", 0) --login_token
 dprop:store_values("params", {})    --params
 dprop:store_values("roles", {})     --roles
 
@@ -52,17 +51,14 @@ function Account:load()
 end
 
 function Account:on_db_account_load(data)
-    if data.account then
-        local account_data = data.account
-        self.token = account_data.token
-        self.lobby = account_data.lobby
-        self.params = account_data.params
-        self.user_id = account_data.user_id
-        self.device_id = account_data.device_id
-        self.login_time = account_data.login_time
-        self.create_time = account_data.create_time
-        self.login_token = account_data.login_token
-        self.roles = account_data.roles or {}
+    if data.open_id then
+        self.token = data.token
+        self.lobby = data.lobby
+        self.params = data.params
+        self.user_id = data.user_id
+        self.device_id = data.device_id
+        self.create_time = data.create_time
+        self.roles = data.roles or {}
     end
     return true
 end
@@ -84,6 +80,11 @@ function Account:del_role(role_id)
         return self:del_roles_field(role_id)
     end
     return false
+end
+
+function Account:set_login_token(token, time)
+    local key = sformat("LOGIN:login_token:%s", self.user_id)
+    game_dao:execute("SETEX", key, time, token)
 end
 
 function Account:pack2db()

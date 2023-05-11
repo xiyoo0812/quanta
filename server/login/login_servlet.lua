@@ -173,8 +173,7 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
     end
     account:set_lobby(gateway.lobby)
-    account:set_login_token(gateway.token)
-    account:set_login_time(quanta.now + MINUTE_5_S)
+    account:set_login_token(gateway.token, MINUTE_5_S)
     log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose success!", user_id, role_id)
     client_mgr:callback_by_id(session, cmd_id, gateway, session_id)
 end

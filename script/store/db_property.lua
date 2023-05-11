@@ -2,9 +2,16 @@
 --[[提供对象DB属性机制
 --]]
 
-local sformat   = string.format
+local tconcat   = table.concat
 
 local event_mgr = quanta.get("event_mgr")
+
+local function fmt_sheet_key(root, ...)
+    if #root > 0 then
+        return tconcat({ root, ... }, ".")
+    end
+    return tconcat({ ... }, ".")
+end
 
 local function on_db_sheet_load(object, sheet, data)
     local f_db_sheet_load = object["on_db_" .. sheet .. "_load"]
@@ -38,7 +45,7 @@ end
 
 local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
     class["load_" .. sheet .. "_db"] = function(self, primary_key, f_db_load)
-        self[sheetkey] = sheet
+        self[sheetkey] = ""
         self[sheetprimary] = primary_key
         local success, data = f_db_load()
         if success then
@@ -76,7 +83,7 @@ local function db_prop_op_value(class, sheet, sheetkey, sheetroot, sheetprimary,
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s", sheet_key, name)
+                local db_key = fmt_sheet_key(sheet_key, name)
                 return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
             end
         end
@@ -97,7 +104,7 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
         local sheet_key = self[sheetkey]
         if sheet_key then
             local root = self[sheetroot] or self
-            local db_key = sformat("%s.%s", sheet_key, name)
+            local db_key = fmt_sheet_key(sheet_key, name)
             return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
         end
         return true
@@ -113,7 +120,7 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s.%s", sheet_key, name, key)
+                local db_key = fmt_sheet_key(sheet_key, name, key)
                 return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
             end
         end
@@ -125,7 +132,7 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s.%s", sheet_key, name, key, flush)
+                local db_key = fmt_sheet_key(sheet_key, name, key, flush)
                 return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
             end
         end
@@ -151,7 +158,7 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
         local sheet_key = self[sheetkey]
         if sheet_key then
             local root = self[sheetroot] or self
-            local db_key = sformat("%s.%s.%s", sheet_key, name, key)
+            local db_key = fmt_sheet_key(sheet_key, name, key)
             value[sheetkey] = db_key
             value[sheetroot] = root
             return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value:pack2db(), flush)
@@ -166,7 +173,7 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = sformat("%s.%s.%s", sheet_key, name, key, flush)
+                local db_key = fmt_sheet_key(sheet_key, name, key, flush)
                 return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
             end
         end
