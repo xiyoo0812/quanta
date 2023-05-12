@@ -1,5 +1,4 @@
 --game_dao.lua
-local ljson = require("lcjson")
 
 import("store/db_property.lua")
 import("agent/redis_agent.lua")
@@ -109,7 +108,7 @@ function GameDAO:update_mongo_field(sheet_name, primary_id, primary_key, field, 
     local udata = field_data
     if #field > 0 then
         udata = { ["$set"] = { [field] = field_data } }
-    end 
+    end
     local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
     if qfailed(code, ok) then
         log_err("[GameDAO][update_mongo_field_%s] update (%s) failed! primary_id(%s), code(%s), res(%s)", sheet_name, field, primary_id, code, res)

@@ -19,7 +19,6 @@ import("basic/table.lua")
 import("basic/string.lua")
 import("basic/console.lua")
 import("basic/service.lua")
-import("basic/listener.lua")
 
 local odate     = os.date
 local qenum     = quanta.enum

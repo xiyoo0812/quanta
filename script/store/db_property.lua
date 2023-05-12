@@ -132,7 +132,7 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = fmt_sheet_key(sheet_key, name, key, flush)
+                local db_key = fmt_sheet_key(sheet_key, name, key)
                 return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
             end
         end
@@ -173,7 +173,7 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
-                local db_key = fmt_sheet_key(sheet_key, name, key, flush)
+                local db_key = fmt_sheet_key(sheet_key, name, key)
                 return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
             end
         end

@@ -1,9 +1,10 @@
 --entity.lua
 local log_warn      = logger.warn
 
-local AttributeSet  = import("business/attr/attribute_set.lua")
+local AttrComponent = import("business/component/attr_component.lua")
+local EvtComponent  = import("business/component/event_component.lua")
 
-local Entity = class(nil, AttributeSet)
+local Entity = class(nil, AttrComponent, EvtComponent)
 
 local prop = property(Entity)
 prop:reader("id")                       --id

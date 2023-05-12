@@ -1,4 +1,4 @@
---_listener.lua
+--listener.lua
 local xpcall    = xpcall
 local ipairs    = ipairs
 local tpack     = table.pack
@@ -130,8 +130,5 @@ function Listener:notify_command(cmd, ...)
     end
     return result
 end
-
---创建全局监听器
-quanta.event_mgr = Listener()
 
 return Listener

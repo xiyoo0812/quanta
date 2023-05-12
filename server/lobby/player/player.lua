@@ -21,9 +21,9 @@ local ONL_CLOSE     = quanta.enum("OnlineStatus", "CLOSE")
 local DAY_FLUSH_S   = utility_db:find_integer("value", "flush_day_hour") * 3600
 
 local Entity        = import("business/entity/entity.lua")
-local EventSet      = import("business/event/event_set.lua")
+local MsgComponent  = import("business/component/msg_component.lua")
 
-local Player = class(Entity, EventSet)
+local Player = class(Entity, MsgComponent)
 
 local prop = property(Player)
 prop:reader("user_id")                      --user_id
@@ -165,6 +165,9 @@ function Player:offline()
     self:add_online_time(quanta.now - self.login_time)
     --invoke
     self:invoke("_offline")
+    --flush
+    game_dao:flush(self.id, "player")
+    game_dao:flush(self.open_id, "account")
     log_warn("[Player][offline] player(%s) is offline!", self.id)
 end
 
@@ -181,9 +184,6 @@ end
 function Player:unload()
     self.account:set_lobby(0)
     online:logout_player(self.id)
-    --flush
-    game_dao:flush(self.id, "player")
-    game_dao:flush(self.open_id, "account")
     return true
 end
 

@@ -18,8 +18,6 @@ prop:reader("agents", {})
 
 --委托回调
 function AttributeAgent:__init()
-    --注册消息
-    event_mgr:add_trigger(self, "on_attr_writeback")
     --注册rpc
     event_mgr:add_listener(self, "rpc_attr_relay")
     event_mgr:add_listener(self, "rpc_attr_setup")
@@ -50,6 +48,7 @@ function AttributeAgent:rpc_attr_setup(player_id, attrs)
     player:load_attrs(attrs)
     player:set_wbackable(true)
     player:set_relayable(false)
+    player:add_trigger(self, "on_attr_writeback")
     log_debug("[AttributeAgent][rpc_attr_setup] success player_id=%s, attrs=%s", player_id, attrs)
     event_mgr:notify_trigger("on_load_success", player, player_id)
     return FRAME_SUCCESS

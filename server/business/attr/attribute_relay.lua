@@ -22,8 +22,6 @@ prop:reader("relay_attrs", {})
 
 --委托回调
 function AttributeRelay:__init()
-    --注册通知
-    event_mgr:add_trigger(self, "on_attr_relay")
     --注册rpc
     event_mgr:add_listener(self, "rpc_attr_writeback")
 end
@@ -62,6 +60,7 @@ function AttributeRelay:open_relay_attr(player, player_id, target_id)
         return false
     end
     log_info("[AttributeRelay][open_relay_attr] setup success player_id=%s", player_id)
+    player:add_trigger(self, "on_attr_relay")
     return true
 end
 

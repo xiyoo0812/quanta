@@ -58,7 +58,7 @@ function PlayerMgr:kick_out(player, player_id)
     if gateway then
         router_mgr:call_target(player:get_gateway(), "rpc_kickout_client", player_id, SERVER_UPHOLD)
     end
-    update_mgr:attach_event(player_id, "on_kickout_success", player_id, player)
+    player:delay_notify("on_kickout_success")
 end
 
 function PlayerMgr:load_account(open_id)
@@ -85,9 +85,9 @@ function PlayerMgr:load_player(player_id)
 end
 
 --实体被销毁
-function PlayerMgr:on_destory(player, player_id)
-    update_mgr:attach_event(player_id, "on_logout_success", player_id, player)
+function PlayerMgr:on_destory(player)
     self:calc_player_min()
+    player:delay_notify("on_logout_success")
 end
 
 --计算窗口内的最低在线人数

@@ -4,7 +4,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local tinsert       = table.insert
 
-local update_mgr    = quanta.get("update_mgr")
+local event_mgr    = quanta.get("event_mgr")
 
 local NodeFactory = singleton()
 local prop = property(NodeFactory)
@@ -12,7 +12,7 @@ prop:accessor("nodes", {})      --nodes
 prop:accessor("factorys", {})   --factorys
 
 function NodeFactory:__init()
-    update_mgr:attach_next(function()
+    event_mgr:fire_next_frame(function()
         log_info("[NodeFactory] load factorys")
         for _, factory in ipairs(self.factorys) do
             factory:load()

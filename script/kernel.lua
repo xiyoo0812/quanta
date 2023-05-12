@@ -1,6 +1,5 @@
 --kernel.lua
 import("basic/basic.lua")
-import("kernel/config_mgr.lua")
 local ltimer        = require("ltimer")
 
 local tpack         = table.pack
@@ -15,6 +14,13 @@ local co_hookor     = quanta.load("co_hookor")
 local scheduler     = quanta.load("scheduler")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
+
+--初始化核心
+local function init_core()
+    import("kernel/thread_mgr.lua")
+    import("kernel/event_mgr.lua")
+    import("kernel/config_mgr.lua")
+end
 
 --初始化网络
 local function init_network()
@@ -52,7 +58,6 @@ end
 
 --初始化loop
 local function init_mainloop()
-    import("kernel/thread_mgr.lua")
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
     import("driver/scheduler.lua")
@@ -67,6 +72,8 @@ local function init_statis()
 end
 
 function quanta.init()
+    --核心加载
+    init_core()
     --初始化基础模块
     signal.init()
     environ.init()

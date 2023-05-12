@@ -87,7 +87,7 @@ end
 -- 停服
 function MonitorAgent:rpc_server_shutdown(reason)
     -- 关闭会话连接
-    update_mgr:attach_next(function()
+    event_mgr:fire_next_frame(function()
         log_warn("[MonitorAgent][rpc_server_shutdown]->service:%s", quanta.name)
         self.client:close()
         signal_quit()

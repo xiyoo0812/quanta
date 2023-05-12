@@ -1,6 +1,5 @@
 --worker.lua
 import("basic/basic.lua")
-import("kernel/config_mgr.lua")
 local lcodec        = require("lcodec")
 local ltimer        = require("ltimer")
 
@@ -16,7 +15,7 @@ local lencode       = lcodec.encode_slice
 local ldecode       = lcodec.decode_slice
 local ltime         = ltimer.time
 
-local event_mgr     = quanta.get("event_mgr")
+local event_mgr     = quanta.load("event_mgr")
 local co_hookor     = quanta.load("co_hookor")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
@@ -26,6 +25,13 @@ local WTITLE        = quanta.worker_title
 local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+
+--初始化核心
+local function init_core()
+    import("kernel/thread_mgr.lua")
+    import("kernel/event_mgr.lua")
+    import("kernel/config_mgr.lua")
+end
 
 --初始化网络
 local function init_network()
@@ -69,14 +75,16 @@ end
 
 --初始化loop
 local function init_mainloop()
-    import("kernel/thread_mgr.lua")
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
+    event_mgr = quanta.get("event_mgr")
     thread_mgr = quanta.get("thread_mgr")
     update_mgr = quanta.get("update_mgr")
 end
 
 function quanta.init()
+    --核心加载
+    init_core()
     --初始化基础模块
     service.init()
     --主循环

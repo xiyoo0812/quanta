@@ -12,7 +12,6 @@ local qfailed           = quanta.failed
 local online            = quanta.get("online")
 local game_dao          = quanta.get("game_dao")
 local event_mgr         = quanta.get("event_mgr")
-local update_mgr        = quanta.get("update_mgr")
 local player_mgr        = quanta.get("player_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
@@ -105,8 +104,8 @@ function LoginServlet:rpc_player_login(open_id, player_id, lobby, token, gateway
     end
     --通知online
     local passkey = player:get_passkey()
-    local lok, code = online:login_player(player, passkey)
-    if qfailed(code, lok) then
+    local lok, lcode = online:login_player(player, passkey)
+    if qfailed(lcode, lok) then
         return FRAME_FAILED
     end
     --通知登陆成功
@@ -114,7 +113,7 @@ function LoginServlet:rpc_player_login(open_id, player_id, lobby, token, gateway
     player:set_account(account)
     player:set_open_id(open_id)
     account:set_reload_token(new_token)
-    update_mgr:attach_event(player_id, "on_login_success", player_id, player)
+    event_mgr:fire_next_frame("on_login_success", player_id, player)
     log_info("[LoginServlet][rpc_player_login] player(%s) login success!", player_id)
     return FRAME_SUCCESS, passkey, new_token
 end
@@ -147,12 +146,11 @@ function LoginServlet:rpc_player_reload(open_id, player_id, lobby, token, gatewa
         log_err("[LoginServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, old_token)
         return ROLE_TOKEN_ERR
     end
-    local new_token = mrandom()
     player:relive(gateway)
-    player:set_account(account)
-    account:set_login_token(new_token)
+    local new_token = mrandom()
+    account:set_reload_token(new_token)
+    player:delay_notify("on_reload_success")
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload success!", player_id)
-    update_mgr:attach_event(player_id, "on_reload_success", player_id, player)
     return FRAME_SUCCESS, new_token, player:get_passkey()
 end
 
