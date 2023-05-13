@@ -29,7 +29,7 @@ prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
     self.session_id = mrandom()
-    self.coroutine_pool = QueueFIFO()
+    self.coroutine_pool = QueueFIFO(512)
 end
 
 function ThreadMgr:size()

@@ -56,7 +56,7 @@ namespace lmongo {
         slice* encode_slice(lua_State* L) {
             lua_settop(L, 1);
             luaL_checktype(L, 1, LUA_TTABLE);
-            m_buffer.reset();
+            m_buffer.clean();
             pack_dict(L, 0);
             return m_buffer.get_slice();
         }
@@ -86,7 +86,7 @@ namespace lmongo {
         }
 
         int decode(lua_State* L, const char* buf, size_t len) {
-            m_buffer.reset();
+            m_buffer.clean();
             m_buffer.push_data((uint8_t*)buf, len);
             return decode_slice(L, m_buffer.get_slice());
         }
@@ -97,7 +97,7 @@ namespace lmongo {
                 luaL_error(L, "Invalid ordered dict");
             }
             size_t sz;
-            m_buffer.reset();
+            m_buffer.clean();
             size_t offset = m_buffer.size();
             m_buffer.write<uint32_t>(0);
             for (int i = 0; i < n; i += 2) {

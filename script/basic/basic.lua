@@ -83,3 +83,23 @@ function quanta.edition_utc(period, time, offset)
     local utime = quanta.utc_time(time)
     return quanta.edition(period, utime, offset)
 end
+
+-- 是否同周
+function quanta.sweek(t1, t2)
+    if quanta.edition("week", t1) == quanta.edition("week", t2) then
+        return true
+    end
+    return false
+end
+
+-- 字符串转时间戳(天)
+-- 参数说明: 09:30:00
+function quanta.dstotime(time)
+    local curTime = odate("*t")
+    local hour, min, sec = string.match(time, "(%d+):(%d+):(%d+)")
+    curTime.hour = hour
+    curTime.min = min
+    curTime.sec = sec
+    local timestamp = os.time(curTime)
+    return timestamp
+end

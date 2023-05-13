@@ -2,11 +2,13 @@
 
 local QueueFIFO = class()
 local prop = property(QueueFIFO)
+prop:reader("max", nil)
 prop:reader("first", 1)
 prop:reader("tail", 0)
 prop:reader("datas", {})
 
-function QueueFIFO:__init()
+function QueueFIFO:__init(max)
+    self.max = max
 end
 
 function QueueFIFO:clear()
@@ -38,6 +40,9 @@ end
 function QueueFIFO:push(value)
     self.tail = self.tail + 1
     self.datas[self.tail] = value
+    if self.max and self:size() > self.max then
+        return self:pop()
+    end
 end
 
 function QueueFIFO:pop()

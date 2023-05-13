@@ -5,6 +5,7 @@ local log_fatal     = logger.fatal
 local tinsert       = table.insert
 local tremove       = table.remove
 local tunpack       = table.unpack
+local qtweak        = qtable.weak
 local dtraceback    = debug.traceback
 
 local thread_mgr    = quanta.get("thread_mgr")
@@ -25,7 +26,7 @@ function EventComponent:add_trigger(trigger, event, handler)
         log_warn("[EventComponent][add_trigger] event(%s) handler is nil!", event)
         return
     end
-    local info = { trigger, func_name }
+    local info = qtweak({ trigger, func_name })
     local triggers = self.triggers[event]
     if not triggers then
         self.triggers[event] = { info }
@@ -59,11 +60,9 @@ end
 
 --延迟通知事件
 function EventComponent:delay_notify(event, ...)
-    if not self.devents[event] then
-        local args = { ... }
-        self.devents[event] = function()
-            self:notify_event(event, self.id, self, tunpack(args))
-        end
+    local args = { ... }
+    self.devents[event] = function()
+        self:notify_event(event, self.id, self, tunpack(args))
     end
 end
 

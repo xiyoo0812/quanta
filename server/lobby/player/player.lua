@@ -62,7 +62,7 @@ end
 
 --load
 function Player:load(conf)
-    self:init_attrset(attr_db)
+    self:init_attrset(attr_db, 1)
     return game_dao:load_group(self, "player", self.id)
 end
 
@@ -165,9 +165,6 @@ function Player:offline()
     self:add_online_time(quanta.now - self.login_time)
     --invoke
     self:invoke("_offline")
-    --flush
-    game_dao:flush(self.id, "player")
-    game_dao:flush(self.open_id, "account")
     log_warn("[Player][offline] player(%s) is offline!", self.id)
 end
 
@@ -184,6 +181,9 @@ end
 function Player:unload()
     self.account:set_lobby(0)
     online:logout_player(self.id)
+    --flush
+    game_dao:flush(self.id, "player")
+    game_dao:flush(self.open_id, "account")
     return true
 end
 

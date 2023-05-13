@@ -1,9 +1,10 @@
 --table.lua
-local type      = type
-local pairs     = pairs
-local tsort     = table.sort
-local mrandom   = math.random
-local tremove   = table.remove
+local type          = type
+local pairs         = pairs
+local tsort         = table.sort
+local mrandom       = math.random
+local tremove       = table.remove
+local setmetatable  = setmetatable
 
 local function trandom(tab)
     local keys = {}
@@ -178,22 +179,28 @@ local function tslice(src, spos, epos)
     return dst
 end
 
-qtable               = _ENV.qtable or {}
-qtable.random        = trandom
-qtable.random_array  = trandom_array
-qtable.indexof       = tindexof
-qtable.is_array      = tis_array
-qtable.size          = tsize
-qtable.copy          = tcopy
-qtable.deep_copy     = tdeep_copy
-qtable.delete        = tdelete
-qtable.join          = tjoin
-qtable.map           = tmap
-qtable.push          = tpush
-qtable.diff          = tdiff
-qtable.array         = tarray
-qtable.tkarray       = tkarray
-qtable.kvarray       = tkvarray
-qtable.mapsort       = tmapsort
-qtable.slice         = tslice
+--截取
+local function tweak(src, mode)
+    return setmetatable(src, { __mode = mode or "kv" })
+end
+
+qtable              = _ENV.qtable or {}
+qtable.random       = trandom
+qtable.random_array = trandom_array
+qtable.indexof      = tindexof
+qtable.is_array     = tis_array
+qtable.size         = tsize
+qtable.copy         = tcopy
+qtable.deep_copy    = tdeep_copy
+qtable.delete       = tdelete
+qtable.join         = tjoin
+qtable.map          = tmap
+qtable.push         = tpush
+qtable.diff         = tdiff
+qtable.array        = tarray
+qtable.tkarray      = tkarray
+qtable.kvarray      = tkvarray
+qtable.mapsort      = tmapsort
+qtable.slice        = tslice
+qtable.weak         = tweak
 

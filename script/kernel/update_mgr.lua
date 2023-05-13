@@ -2,6 +2,7 @@
 
 local pairs         = pairs
 local odate         = os.date
+local qtweak        = qtable.weak
 local log_info      = logger.info
 local log_warn      = logger.warn
 local sig_get       = signal.get
@@ -33,6 +34,14 @@ prop:reader("second5_objs", {})
 prop:reader("second30_objs", {})
 
 function UpdateMgr:__init()
+    --设置弱表
+    qtweak(self.quit_objs)
+    qtweak(self.hour_objs)
+    qtweak(self.fast_objs)
+    qtweak(self.frame_objs)
+    qtweak(self.second_objs)
+    qtweak(self.second5_objs)
+    qtweak(self.second30_objs)
     --注册订阅
     self:attach_fast(thread_mgr)
     self:attach_frame(event_mgr)
@@ -86,6 +95,8 @@ function UpdateMgr:update(scheduler, now_ms, clock_ms)
     if HOTFIXABLE then
         quanta.reload()
     end
+    --执行gc
+    collectgarbage("step", 10)
     --信号检查
     self:check_signal(scheduler)
     --时间更新
@@ -113,8 +124,6 @@ function UpdateMgr:update_by_time(now, clock_ms)
             obj:on_second30(clock_ms)
         end)
     end
-    --执行gc
-    collectgarbage("step", 10)
     --分更新
     if time.min == self.last_minute then
         return

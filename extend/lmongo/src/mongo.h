@@ -14,7 +14,7 @@ namespace lmongo {
     class mongo {
     public:
         int reply(lua_State* L, const char* buf, size_t len) {
-            m_buffer.reset();
+            m_buffer.clean();
             m_buffer.push_data((uint8_t*)buf, len);
             slice* slice = m_buffer.get_slice();
             int retn = reply_slice(L, slice);
@@ -62,7 +62,7 @@ namespace lmongo {
             uint32_t id = luaL_checknumber(L, 2);
             uint32_t flags = luaL_checknumber(L, 3);
 
-            m_buffer.reset();
+            m_buffer.clean();
             m_buffer.push_data((uint8_t*)buf, len);
             slice* slice = op_msg_slice(L, m_buffer.get_slice(), id, flags);
             if (!slice) return 0;
@@ -78,7 +78,7 @@ namespace lmongo {
                 luaL_error(L, "opmsg require cmd document");
                 return nullptr;
             }
-            m_buffer.reset();
+            m_buffer.clean();
             uint32_t data_len = MSG_HEADER_LENGTH + buf->size();
             m_buffer.write<int32_t>(data_len);
             m_buffer.write<int32_t>(id);

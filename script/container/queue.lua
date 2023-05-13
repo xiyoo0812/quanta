@@ -1,6 +1,7 @@
 --queue.lua
 --队列: 普通双端队列，元素可重复
 --索引队列： 支持索引，元素不能重复
+local qtweak    = qtable.weak
 local log_warn  = logger.warn
 
 local Queue = class()
@@ -14,12 +15,12 @@ prop:reader("datas", {})
 function Queue:__init(index)
     if index then
         self.index = index
-        self.indexs = {}
+        self.indexs = qtweak({})
     end
 end
 
 function Queue:clear()
-    self.indexs = {}
+    self.indexs = qtweak({})
     self.datas = {}
     self.first = 1
     self.tail = 0

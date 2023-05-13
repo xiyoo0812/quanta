@@ -5,6 +5,7 @@ local tpack     = table.pack
 local tunpack   = table.unpack
 local tremove   = table.remove
 local sformat   = string.format
+local qtweak    = qtable.weak
 local log_warn  = logger.warn
 local log_fatal = logger.fatal
 local dtraceback= debug.traceback
@@ -24,7 +25,7 @@ function Listener:add_trigger(trigger, event, handler)
         log_warn("[Listener][add_trigger] event(%s) handler is nil!", event)
         return
     end
-    local info = { trigger, func_name }
+    local info = qtweak({ trigger, func_name })
     local triggers = self._triggers[event]
     if not triggers then
         self._triggers[event] = { info }
@@ -56,7 +57,7 @@ function Listener:add_listener(listener, event, handler)
         log_warn("[Listener][add_listener] event(%s) callback is nil!", event)
         return
     end
-    self._listeners[event] = { listener, func_name }
+    self._listeners[event] = qtweak({ listener, func_name })
 end
 
 function Listener:remove_listener(event)
@@ -74,7 +75,7 @@ function Listener:add_cmd_listener(listener, cmd, handler)
         log_warn("[Listener][add_cmd_listener] cmd(%s) handler is nil!", cmd)
         return
     end
-    self._commands[cmd] = { listener, func_name }
+    self._commands[cmd] = qtweak({ listener, func_name })
 end
 
 function Listener:remove_cmd_listener(cmd)

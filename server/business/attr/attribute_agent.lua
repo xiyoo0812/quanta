@@ -13,8 +13,6 @@ local ROLE_NOT_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
 
 
 local AttributeAgent = singleton()
-local prop = property(AttributeAgent)
-prop:reader("agents", {})
 
 --委托回调
 function AttributeAgent:__init()

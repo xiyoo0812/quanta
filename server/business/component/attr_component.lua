@@ -11,6 +11,7 @@ local attr_db       = config_mgr:get_table("attribute")
 
 local AttrComponent = mixin()
 local prop = property(AttrComponent)
+prop:reader("range", {})            --属性集合
 prop:reader("attr_set", {})         --属性集合
 prop:reader("sync_attrs", {})       --需要同步属性
 prop:accessor("relay_attrs", {})    --需要转发属性
@@ -42,7 +43,8 @@ function AttrComponent:__delegate()
 end
 
 --初始化属性
-function AttrComponent:init_attrset(type_attr_db)
+function AttrComponent:init_attrset(type_attr_db, range)
+    self.range = range or 16
     for _, attr in type_attr_db:iterator() do
         local attr_id = qenum("AttrID", attr.key)
         local attr_type = attr_db:find_value("type", attr_id)
@@ -53,6 +55,7 @@ function AttrComponent:init_attrset(type_attr_db)
         self.attr_set[attr_id] = attr_def
         self.attrs[attr_id] = attr_type == "int" and 0 or ""
     end
+    self:add_trigger(self, "on_attr_sync")
 end
 
 --加载db数据
@@ -117,7 +120,7 @@ function AttrComponent:on_attr_changed(attr_id, attr, value, source_id)
             self:delay_notify("on_attr_relay")
         end
         --同步属性
-        if attr.range > 0 then
+        if attr.range == self.range then
             self.sync_attrs[attr_id] = attr
             self:delay_notify("on_attr_sync")
         end
@@ -215,6 +218,19 @@ function AttrComponent:pack_db_attrs()
         end
     end
     return { attrs = attrs }
+end
+
+function AttrComponent:on_attr_sync(entity_id, entity)
+    local attrs = entity:package_sync_attrs(self.range)
+    if next(attrs) then
+        --广播客户端
+        local pb_attr = { id = entity_id, attrs = attrs }
+        if self.range == 16 then
+            entity:sync_message("NID_ENTITY_ATTR_UPDATE_NTF", pb_attr)
+        else
+            entity:send("NID_ENTITY_ATTR_UPDATE_NTF", pb_attr)
+        end
+    end
 end
 
 --更新

@@ -522,8 +522,8 @@ void socket_stream::dispatch_package() {
         // 接收缓冲读游标调整
         m_recv_buffer->pop_size(package_size);
         m_last_recv_time = ltimer::steady_ms();
-        // 防止单个连接处理太久，不能大于20ms
-        if (m_last_recv_time - now > 20) break;
+        // 防止单个连接处理太久，不能大于100ms
+        if (m_last_recv_time - now > 100) break;
     }
 }
 
