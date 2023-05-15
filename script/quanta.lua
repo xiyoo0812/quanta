@@ -94,3 +94,17 @@ function quanta.make_mq()
     end
     return Driver()
 end
+
+--创建普通计数器
+function quanta.make_counter(title)
+    local Counter = import("kernel/object/counter.lua")
+    return Counter(title)
+end
+
+--创建采样计数器
+function quanta.make_sampling(title, period)
+    local Counter = import("kernel/object/counter.lua")
+    local counter = Counter(title)
+    counter:sampling(period)
+    return counter
+end

@@ -23,10 +23,8 @@ function MysqlMgr:setup()
     local MysqlDB = import("driver/mysql.lua")
     local drivers = environ.driver("QUANTA_MYSQL_URLS")
     for i, conf in ipairs(drivers) do
-        if conf.driver == "mysql" then
-            local mysql_db = MysqlDB(conf)
-            self.mysql_dbs[conf.id] = mysql_db
-        end
+        local mysql_db = MysqlDB(conf, i)
+        self.mysql_dbs[conf.id] = mysql_db
     end
 end
 

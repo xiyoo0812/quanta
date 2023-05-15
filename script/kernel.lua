@@ -4,8 +4,10 @@ local ltimer        = require("ltimer")
 
 local tpack         = table.pack
 local tunpack       = table.unpack
+local log_warn      = logger.warn
 local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
+local lclock_ms     = ltimer.clock_ms
 local ltime         = ltimer.time
 
 local QuantaMode    = enum("QuantaMode")
@@ -14,6 +16,9 @@ local co_hookor     = quanta.load("co_hookor")
 local scheduler     = quanta.load("scheduler")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
+
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
+local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 --初始化核心
 local function init_core()
@@ -82,12 +87,9 @@ function quanta.init()
     --主循环
     init_coroutine()
     init_mainloop()
+    init_network()
     init_statis()
-    --加载调度器
-    if quanta.mode <= QuantaMode.TOOL then
-        --加载网络
-        init_network()
-    end
+    --其他模式
     if quanta.mode <= QuantaMode.ROUTER then
         --加载monitor
         if not environ.get("QUANTA_MONITOR_HOST") then
@@ -122,10 +124,16 @@ end
 
 --底层驱动
 quanta.run = function()
-    if socket_mgr then
-        socket_mgr.wait(10)
-    end
-    --系统更新
-    update_mgr:update(scheduler, ltime())
+    local sclock_ms = lclock_ms()
+    socket_mgr.wait(sclock_ms, 10)
     scheduler:update()
+    --系统更新
+    local now_ms, clock_ms = ltime()
+    update_mgr:update(scheduler, now_ms, clock_ms)
+    --时间告警
+    local io_ms = clock_ms - sclock_ms
+    local work_ms = lclock_ms() - sclock_ms
+    if work_ms > HALF_MS or io_ms > FAST_MS then
+        log_warn("[quanta][run] last frame too long => all:%d, net:%d)!", work_ms, io_ms)
+    end
 end

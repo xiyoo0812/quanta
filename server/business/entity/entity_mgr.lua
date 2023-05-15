@@ -44,8 +44,8 @@ end
 -- 移除实体
 function EntityMgr:remove_entity(entity, entity_id)
     log_info("[EntityMgr][remove_entity] entity_id=%s", entity_id)
-    self:on_destory(entity)
     self.entity_map:set(entity_id, nil)
+    self:on_destory(entity)
     entity:destory()
 end
 

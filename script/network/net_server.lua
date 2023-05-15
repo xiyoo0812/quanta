@@ -8,8 +8,6 @@ local log_fatal         = logger.fatal
 local signalquit        = signal.quit
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
-local env_status        = environ.status
-local env_number        = environ.number
 local b64_encode        = lcrypt.b64_encode
 local b64_decode        = lcrypt.b64_decode
 local lz4_encode        = lcrypt.lz4_encode
@@ -17,6 +15,7 @@ local lz4_decode        = lcrypt.lz4_decode
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
+local socket_mgr        = quanta.get("socket_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 local proxy_agent       = quanta.get("proxy_agent")
 
@@ -27,11 +26,12 @@ local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 
-local OUT_PRESS         = env_status("QUANTA_OUT_PRESS")
-local OUT_ENCRYPT       = env_status("QUANTA_OUT_ENCRYPT")
-local FLOW_CTRL         = env_status("QUANTA_FLOW_CTRL")
-local FC_PACKETS        = env_number("QUANTA_FLOW_CTRL_PACKAGE")
-local FC_BYTES          = env_number("QUANTA_FLOW_CTRL_BYTES")
+local OUT_PRESS         = environ.status("QUANTA_OUT_PRESS")
+local OUT_ENCRYPT       = environ.status("QUANTA_OUT_ENCRYPT")
+local FLOW_CTRL         = environ.status("QUANTA_FLOW_CTRL")
+local FC_PACKETS        = environ.number("QUANTA_FLOW_CTRL_PACKAGE")
+local FC_BYTES          = environ.number("QUANTA_FLOW_CTRL_BYTES")
+local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
 
 -- CS协议会话对象管理器
 local NetServer = class()
@@ -58,7 +58,6 @@ function NetServer:setup(ip, port, induce)
         return
     end
     local listen_proto_type = 1
-    local socket_mgr = quanta.get("socket_mgr")
     local real_port = induce and (port + quanta.order - 1) or port
     self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
     if not self.listener then
@@ -76,25 +75,42 @@ end
 
 -- 连接回调
 function NetServer:on_socket_accept(session)
-    self:add_session(session)
     -- 流控配置
     session.fc_packet = 0
     session.fc_bytes  = 0
     session.last_fc_time = quanta.clock_ms
     -- 设置超时(心跳)
     session.set_timeout(NETWORK_TIMEOUT)
+    -- 添加会话
+    local token = self:add_session(session)
     -- 绑定call回调
+    session.call_client = function(cmd_id, flag, session_id, body)
+        local send_len = session.call_head(cmd_id, flag, 0, session_id, body, #body)
+        if send_len <= 0 then
+            log_err("[NetServer][call_client] call_head failed! code:%s", send_len)
+            return false
+        end
+        local more_byte = socket_mgr:get_sendbuf_size(token)
+        if more_byte > WARNING_BYTES then
+            log_warn("[NetServer][write] socket %s send buf has so more (%s) bytes!", token, more_byte)
+        end
+        return true
+    end
     session.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
         if FLOW_CTRL then
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len
         end
+        local more_byte = socket_mgr:get_recvbuf_size(token)
+        if more_byte > WARNING_BYTES then
+            log_warn("[NetServer][on_socket_recv] socket %s recv buf has so more (%s) bytes!", token, more_byte)
+        end
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, slice)
     end
     -- 绑定网络错误回调（断开）
-    session.on_error = function(token, err)
-        self:on_socket_error(token, err)
+    session.on_error = function(stoken, err)
+        self:on_socket_error(stoken, err)
     end
     --初始化序号
     session.serial = 1
@@ -113,14 +129,7 @@ function NetServer:write(session, cmd, data, session_id, flag)
     if session_id > 0 then
         session_id = session_id & 0xffff
     end
-    -- call lbus
-    local send_len = session.call_head(cmd_id, pflag, 0, session_id, body, #body)
-    if send_len <= 0 then
-        log_err("[NetServer][write] call_head failed! code:%s", send_len)
-        return false
-    end
-    proxy_agent:statistics("on_proto_send", cmd_id, send_len)
-    return true
+    return session.call_client(cmd_id, pflag, session_id, body)
 end
 
 -- 广播数据
@@ -131,10 +140,7 @@ function NetServer:broadcast(cmd, data)
         return false
     end
     for _, session in pairs(self.sessions) do
-        local send_len = session.call_head(cmd_id, pflag, 0, 0, body, #body)
-        if send_len > 0 then
-            proxy_agent:statistics("on_proto_send", cmd_id, send_len)
-        end
+        session.call_client(cmd_id, pflag, 0, body)
     end
     return true
 end
@@ -276,6 +282,7 @@ function NetServer:add_session(session)
         self.session_count = self.session_count + 1
         proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
     end
+    return token
 end
 
 -- 移除会话

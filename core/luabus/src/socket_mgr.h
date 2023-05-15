@@ -39,6 +39,8 @@ struct socket_object
 {
     virtual ~socket_object() {};
     virtual bool update(int64_t now) = 0;
+    virtual int get_sendbuf_size() { return 0; }
+    virtual int get_recvbuf_size() { return 0; }
     virtual void close() { m_link_status = elink_status::link_closed; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char node_name[], const char service_name[]) { }
@@ -48,7 +50,7 @@ struct socket_object
     virtual void sendv(const sendv_item items[], int count) { };
     virtual void set_accept_callback(const std::function<void(int, eproto_type)>& cb) { }
     virtual void set_connect_callback(const std::function<void(bool, const char*)>& cb) { }
-	virtual void set_error_callback(const std::function<void(const char*)>& cb) { }
+    virtual void set_error_callback(const std::function<void(const char*)>& cb) { }
     virtual void set_package_callback(const std::function<void(slice*)>& cb) { }
 
 #ifdef _MSC_VER
@@ -76,13 +78,13 @@ public:
     bool get_socket_funcs();
 #endif
 
-    int wait(int timeout);
+    int wait(int64_t now, int timeout);
 
     int listen(std::string& err, const char ip[], int port, eproto_type proto_type);
     int connect(std::string& err, const char node_name[], const char service_name[], int timeout, eproto_type proto_type);
 
-    void set_send_buffer_size(uint32_t token, size_t size);
-    void set_recv_buffer_size(uint32_t token, size_t size);
+    int get_sendbuf_size(uint32_t token);
+    int get_recvbuf_size(uint32_t token);
     void set_timeout(uint32_t token, int duration);
     void set_nodelay(uint32_t token, int flag);
     void send(uint32_t token, const void* data, size_t data_len);

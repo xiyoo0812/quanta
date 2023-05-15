@@ -108,8 +108,7 @@ Exit0:
 }
 #endif
 
-int socket_mgr::wait(int timeout) {
-    int64_t now = ltimer::steady_ms();
+int socket_mgr::wait(int64_t now, int timeout) {
     auto it = m_objects.begin(), end = m_objects.end();
     while (it != end) {
         socket_object* object = it->second;
@@ -269,6 +268,22 @@ bool socket_mgr::get_remote_ip(uint32_t token, std::string& ip) {
         return node->get_remote_ip(ip);
     }
     return false;
+}
+
+int socket_mgr::get_sendbuf_size(uint32_t token){
+    auto node = get_object(token);
+    if (node) {
+        return node->get_sendbuf_size();
+    }
+    return 0;
+}
+
+int socket_mgr::get_recvbuf_size(uint32_t token){
+    auto node = get_object(token);
+    if (node) {
+        return node->get_recvbuf_size();
+    }
+    return 0;
 }
 
 void socket_mgr::set_accept_callback(uint32_t token, const std::function<void(uint32_t, eproto_type eproto_type)>& cb) {

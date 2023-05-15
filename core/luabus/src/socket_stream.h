@@ -25,6 +25,9 @@ struct socket_stream : public socket_object
     void set_timeout(int duration) override { m_timeout = duration; }
     void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
 
+    int get_sendbuf_size() { return m_send_buffer->size(); }
+    int get_recvbuf_size() { return m_recv_buffer->size(); }
+
     void send(const void* data, size_t data_len) override;
     void sendv(const sendv_item items[], int count) override;
     void stream_send(const char* data, size_t data_len);

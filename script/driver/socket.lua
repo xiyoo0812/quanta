@@ -3,6 +3,7 @@ local lbus          = require("luabus")
 
 local ssub          = string.sub
 local log_err       = logger.err
+local log_warn      = logger.warn
 local log_info      = logger.info
 local ends_with     = qstring.ends_with
 local split_pos     = qstring.split_pos
@@ -12,6 +13,8 @@ local eproto_type   = lbus.eproto_type
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
+
+local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
 
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
@@ -84,6 +87,7 @@ function Socket:connect(ip, port, ptype)
         return false, cerr
     end
     --设置阻塞id
+    local token = session.token
     local block_id = thread_mgr:build_session_id()
     session.on_connect = function(res)
         local success = res == "ok"
@@ -96,18 +100,18 @@ function Socket:connect(ip, port, ptype)
         thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, slice)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, token, slice)
     end
     session.on_call_common = function(recv_len, slice)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, token, slice)
     end
-    session.on_error = function(token, err)
+    session.on_error = function(stoken, err)
         thread_mgr:fork(function()
-            self:on_socket_error(token, err)
+            self:on_socket_error(stoken, err)
         end)
     end
+    self.token = token
     self.session = session
-    self.token = session.token
     self.ip, self.port = ip, port
     --阻塞模式挂起
     return thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
@@ -118,7 +122,11 @@ function Socket:on_socket_accept(session)
     socket:accept(session, session.ip, self.port)
 end
 
-function Socket:on_socket_recv(session, slice)
+function Socket:on_socket_recv(token, slice)
+    local more_byte = socket_mgr:get_recvbuf_size(token)
+    if more_byte > WARNING_BYTES then
+        log_warn("[Socket][on_socket_recv] socket %s recv buf has so more (%s) bytes!", token, more_byte)
+    end
     self.alive_time = quanta.now
     if self.proto_type == eproto_type.text then
         self.recvbuf = self.recvbuf .. slice.string()
@@ -139,20 +147,21 @@ function Socket:on_socket_error(token, err)
 end
 
 function Socket:accept(session, ip, port)
+    local token = session.token
     session.set_timeout(NETWORK_TIMEOUT)
     session.on_call_text = function(recv_len, slice)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, token, slice)
     end
-    session.on_error = function(token, err)
+    session.on_error = function(stoken, err)
         thread_mgr:fork(function()
-            self:on_socket_error(token, err)
+            self:on_socket_error(stoken, err)
         end)
     end
     self.alive = true
+    self.token = token
     self.session = session
-    self.token = session.token
     self.ip, self.port = ip, port
-    self.host:on_socket_accept(self, self.token)
+    self.host:on_socket_accept(self, token)
 end
 
 function Socket:peek(len, offset)
@@ -183,7 +192,7 @@ end
 function Socket:send(data)
     if self.alive and data then
         local send_len = self.session.call_text(data, #data)
-        return send_len > 0
+        return self:on_send(self.session.token, send_len)
     end
     return false, "socket not alive"
 end
@@ -191,9 +200,21 @@ end
 function Socket:send_slice(slice)
     if self.alive and slice then
         local send_len = self.session.call_slice(slice)
-        return send_len > 0
+        return self:on_send(self.session.token, send_len)
     end
     return false, "socket not alive"
+end
+
+--调用rpc后续处理
+function Socket:on_send(token, send_len)
+    if send_len > 0 then
+        local more_byte = socket_mgr:get_sendbuf_size(token)
+        if more_byte > WARNING_BYTES then
+            log_warn("[Socket][on_send] socket %s send buf has so more (%s) bytes!", token, more_byte)
+        end
+        return true
+    end
+    return false
 end
 
 return Socket

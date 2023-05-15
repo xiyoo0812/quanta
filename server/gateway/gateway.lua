@@ -6,6 +6,7 @@ local log_debug         = logger.debug
 local tpack             = table.pack
 local tunpack           = table.unpack
 local qfailed           = quanta.failed
+local sformat           = string.format
 local name2sid          = service.name2sid
 
 local event_mgr         = quanta.get("event_mgr")
@@ -24,6 +25,9 @@ local SERVICE_GATE      = name2sid("gateway")
 local Gateway = singleton()
 local prop = property(Gateway)
 prop:reader("players", {})          --会话列表
+prop:reader("counter", nil)         --计数器
+prop:reader("req_counter", nil)     --计数器
+prop:reader("ntf_counter", nil)     --计数器
 
 function Gateway:__init()
     -- 网络事件监听
@@ -46,6 +50,10 @@ function Gateway:__init()
     local nport = client_mgr:get_port()
     local domain = environ.get("QUANTA_DOMAIN_ADDR")
     service.make_node(nport, domain)
+    --计数器
+    self.counter = quanta.make_counter(sformat("gateway %s player", quanta.index))
+    self.req_counter = quanta.make_sampling(sformat("gateway %s req", quanta.index))
+    self.ntf_counter = quanta.make_sampling(sformat("gateway %s ntf", quanta.index))
 end
 
 --查找玩家
@@ -67,6 +75,7 @@ end
 function Gateway:close_session(session, player_id)
     client_mgr:close_session(session)
     self.players[player_id] = nil
+    self.counter:count_reduce()
 end
 
 --踢掉客户端
@@ -85,6 +94,7 @@ end
 
 --转发给客户端
 function Gateway:rpc_forward_client(player_id, cmd_id, data)
+    self.ntf_counter:count_increase()
     local player = self:get_player(player_id)
     if not player then
         log_warn("[Gateway][rpc_forward_client] cmd_id(%s) player(%s) not exist!", cmd_id, player_id)
@@ -152,6 +162,7 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     player:set_lobby_id(lobby)
     session.player_id = player_id
     self.players[player_id] = player
+    self.counter:count_increase()
     log_info("[Gateway][on_role_login_req] user:%s player:%s, new_token:%s login success!", open_id, player_id, new_token)
     local callback_data = { error_code = code, token = new_token}
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
@@ -208,6 +219,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
         player:set_lobby_id(lobby)
         session.player_id = player_id
         self.players[player_id] = player
+        self.counter:count_increase()
     end
     log_info("[Gateway][on_role_reload_req] user:%s player:%s new_token:%s reload success!", open_id, player_id, new_token)
     local callback_data = { error_code = code, token = new_token}
@@ -237,6 +249,7 @@ function Gateway:on_session_error(session, token, err)
     if player then
         log_warn("[Gateway][on_session_error] session(%s-%s) lost, because: %s!", token, player_id, err)
         self.players[player_id] = nil
+        self.counter:count_reduce()
         player:notify_disconnect()
     end
 end
@@ -244,6 +257,7 @@ end
 --客户端消息分发
 function Gateway:on_session_cmd(session, service_type, cmd_id, body, session_id)
     -- 协议过滤
+    self.req_counter:count_increase()
     local result = event_mgr:notify_listener("on_proto_filter", cmd_id, service_type)
     if result[1] and result[2] then
         log_warn("[Gateway][on_session_cmd] on_proto_filter false, cmd_id=%s", cmd_id)

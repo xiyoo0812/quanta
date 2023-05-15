@@ -24,10 +24,8 @@ function RedisMgr:setup()
     local RedisDB = import("driver/redis.lua")
     local drivers = environ.driver("QUANTA_REDIS_URLS")
     for i, conf in ipairs(drivers) do
-        if conf.driver == "redis" then
-            local redis_db = RedisDB(conf)
-            self.redis_dbs[i] = redis_db
-        end
+        local redis_db = RedisDB(conf, i)
+        self.redis_dbs[i] = redis_db
     end
 end
 

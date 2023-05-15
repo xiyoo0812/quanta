@@ -3,7 +3,6 @@ local xpcall        = xpcall
 local log_warn      = logger.warn
 local log_fatal     = logger.fatal
 local tinsert       = table.insert
-local tremove       = table.remove
 local tunpack       = table.unpack
 local qtweak        = qtable.weak
 local dtraceback    = debug.traceback
@@ -26,30 +25,24 @@ function EventComponent:add_trigger(trigger, event, handler)
         log_warn("[EventComponent][add_trigger] event(%s) handler is nil!", event)
         return
     end
-    local info = qtweak({ trigger, func_name })
-    local triggers = self.triggers[event]
-    if not triggers then
-        self.triggers[event] = { info }
+    local trigger_map = self.triggers[event]
+    if not trigger_map then
+        self.triggers[event] = qtweak({ [trigger] = func_name })
         return
     end
-    triggers[#triggers + 1] = info
+    trigger_map[trigger] = func_name
 end
 
 function EventComponent:remove_trigger(trigger, event)
-    local trigger_array = self.triggers[event]
-    if trigger_array then
-        for i, context in pairs(trigger_array or {}) do
-            if context[1] == trigger then
-                tremove(trigger_array, i)
-                return
-            end
-        end
+    local trigger_map = self.triggers[event]
+    if trigger_map then
+        trigger_map[trigger] = nil
     end
 end
 
 function EventComponent:notify_event(event, ...)
-    for _, trigger_ctx in ipairs(self.triggers[event] or {}) do
-        local trigger, func_name = tunpack(trigger_ctx)
+    local trigger_map = self.triggers[event] or {}
+    for trigger, func_name in pairs(trigger_map) do
         local callback_func = trigger[func_name]
         local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)
         if not ok then

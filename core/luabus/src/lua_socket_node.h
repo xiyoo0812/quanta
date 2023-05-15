@@ -15,6 +15,7 @@ public:
 	void close();
 
 	uint32_t build_session_id() { return m_stoken | m_sindex++; }
+	uint32_t get_route_count() { return m_router->get_route_count(); }
 	void set_timeout(int ms) { m_mgr->set_timeout(m_token, ms); }
 	void set_nodelay(bool flag) { m_mgr->set_nodelay(m_token, flag); }
 

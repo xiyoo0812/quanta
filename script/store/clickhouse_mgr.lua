@@ -25,10 +25,8 @@ function ClickHouseMgr:setup()
     local MysqlDB = import("driver/mysql.lua")
     local drivers = environ.driver("QUANTA_MYSQL_URLS")
     for i, conf in ipairs(drivers) do
-        if conf.driver == "mysql" then
-            local clickhouse_db = MysqlDB(conf)
-            self.clickhouse_dbs[conf.id] = clickhouse_db
-        end
+        local clickhouse_db = MysqlDB(conf, i)
+        self.clickhouse_dbs[conf.id] = clickhouse_db
     end
 end
 

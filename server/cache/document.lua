@@ -17,7 +17,6 @@ prop:reader("primary_key", nil)     -- primary key
 prop:reader("primary_id", nil)      -- primary id
 prop:reader("update_time", 0)       -- update_time
 prop:reader("datas", {})            -- datas
-prop:accessor("lock_node_id", 0)    -- lock_node_id
 
 --构造函数
 function Document:__init(coll_name, primary_key, primary_id)
@@ -42,7 +41,6 @@ end
 --保存数据库
 function Document:flush()
     self.update_time = quanta.now
-    self.lock_node_id = 0
 end
 
 --保存数据库
@@ -82,9 +80,6 @@ end
 
 --是否过期
 function Document:is_expire(now)
-    if self.lock_node_id > 0 then
-        return false
-    end
     return (self.update_time + CACHE_EXPIRE) < now
 end
 

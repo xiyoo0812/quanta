@@ -18,6 +18,8 @@ local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local proxy_agent       = quanta.get("proxy_agent")
 
+local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
+
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
@@ -89,14 +91,22 @@ end
 
 --accept事件
 function RpcServer:on_socket_accept(client)
+    -- 设置超时(心跳)
     client.set_timeout(RPCLINK_TIMEOUT)
-    self.clients[client.token] = client
+    -- 添加会话
+    local token = client.token
+    self.clients[token] = client
+    -- 绑定call/回调
     client.call_rpc = function(session_id, rpc_flag, rpc, ...)
         local send_len = client.call(session_id, rpc_flag, lencode(0, rpc, ...))
         if send_len < 0 then
             proxy_agent:statistics("on_rpc_send", rpc, send_len)
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
             return false
+        end
+        local more_byte = socket_mgr:get_sendbuf_size(token)
+        if more_byte > WARNING_BYTES then
+            log_warn("[RpcServer][call_rpc] socket %s send buf has so more (%s) bytes!", token, more_byte)
         end
         return true, SUCCESS
     end
@@ -106,10 +116,14 @@ function RpcServer:on_socket_accept(client)
             log_err("[RpcServer][on_socket_accept] on_call decode failed %s!", rpc_res[2])
             return
         end
+        local more_byte = socket_mgr:get_recvbuf_size(token)
+        if more_byte > WARNING_BYTES then
+            log_warn("[RpcServer][on_socket_rpc] socket %s recv buf has so more (%s) bytes!", token, more_byte)
+        end
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
     end
-    client.on_error = function(token, err)
-        qxpcall(self.on_socket_error, "on_socket_error: %s", self, token, err)
+    client.on_error = function(ctoken, err)
+        qxpcall(self.on_socket_error, "on_socket_error: %s", self, ctoken, err)
     end
     --通知收到新client
     self.holder:on_client_accept(client)

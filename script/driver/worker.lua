@@ -13,6 +13,7 @@ local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
 local lencode       = lcodec.encode_slice
 local ldecode       = lcodec.decode_slice
+local lclock_ms     = ltimer.clock_ms
 local ltime         = ltimer.time
 
 local event_mgr     = quanta.load("event_mgr")
@@ -117,9 +118,8 @@ end
 
 --底层驱动
 quanta.run = function()
-    if socket_mgr then
-        socket_mgr.wait(10)
-    end
+    local sclock_ms = lclock_ms()
+    socket_mgr.wait(sclock_ms, 10)
     --系统更新
     qxpcall(function()
         quanta.update()

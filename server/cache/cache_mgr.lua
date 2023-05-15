@@ -14,7 +14,6 @@ local FRAME_SUCCESS = protobuf_mgr:error_code("FRAME_SUCCESS")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local CNOT_EXIST    = quanta.enum("CacheCode", "CACHE_IS_NOT_EXIST")
 local DNOT_EXIST    = quanta.enum("CacheCode", "CACHE_KEY_NOT_EXIST")
-local LOCK_FAILD    = quanta.enum("CacheCode", "CACHE_IS_LOCK_FAILD")
 local DELETE_FAILD  = quanta.enum("CacheCode", "CACHE_DELETE_FAILD")
 
 local Collection    = import("cache/collection.lua")
@@ -22,6 +21,7 @@ local Collection    = import("cache/collection.lua")
 local CacheMgr = singleton()
 local prop = property(CacheMgr)
 prop:reader("collections", {})        -- collections
+prop:reader("counter", nil)
 
 function CacheMgr:__init()
     -- 监听rpc事件
@@ -34,6 +34,8 @@ function CacheMgr:__init()
     --定时器
     update_mgr:attach_minute(self)
     update_mgr:attach_second5(self)
+    --counter
+    self.counter = quanta.make_sampling("cache req")
 end
 
 --更新数据
@@ -52,7 +54,8 @@ function CacheMgr:on_minute()
     end
 end
 
-function CacheMgr:check_doc(coll_name, primary_id, quanta_id)
+function CacheMgr:check_doc(coll_name, primary_id)
+    self.counter:count_increase()
     local collection = self.collections[coll_name]
     if not collection then
         return CNOT_EXIST
@@ -61,15 +64,11 @@ function CacheMgr:check_doc(coll_name, primary_id, quanta_id)
     if not doc then
         return DNOT_EXIST
     end
-    local lock_node_id = doc:get_lock_node_id()
-    if lock_node_id ~= 0 and lock_node_id ~= quanta_id then
-        log_err("[CacheMgr][check_doc] check_doc failed! coll_name=%s, lock_node_id=%s, quanta_id=%s", coll_name, lock_node_id, quanta_id)
-        return LOCK_FAILD
-    end
     return SUCCESS, doc, collection
 end
 
-function CacheMgr:rpc_cache_load(quanta_id,  primary_id, coll_name, primary_key, group)
+function CacheMgr:rpc_cache_load(primary_id, coll_name, primary_key, group)
+    self.counter:count_increase()
     local collection = self.collections[coll_name]
     if not collection then
         collection = Collection(coll_name, primary_key, group)
@@ -80,14 +79,13 @@ function CacheMgr:rpc_cache_load(quanta_id,  primary_id, coll_name, primary_key,
         log_err("[CacheMgr][rpc_cache_load] doc not find! coll_name=%s, primary=%s", coll_name, primary_id)
         return code
     end
-    doc:set_lock_node_id(quanta_id)
     log_info("[CacheMgr][rpc_cache_load] coll_name=%s, primary=%s", coll_name, primary_id)
     return code, doc:get_datas()
 end
 
 --更新缓存kv
-function CacheMgr:rpc_cache_update_field(quanta_id, primary_id, coll_name, field, field_data, flush)
-    local ccode, doc, collection = self:check_doc(coll_name, primary_id, quanta_id)
+function CacheMgr:rpc_cache_update_field(primary_id, coll_name, field, field_data, flush)
+    local ccode, doc, collection = self:check_doc(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_update_field] check_doc failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
         return ccode
@@ -97,8 +95,8 @@ function CacheMgr:rpc_cache_update_field(quanta_id, primary_id, coll_name, field
 end
 
 --更新缓存kv
-function CacheMgr:rpc_cache_remove_field(quanta_id, primary_id, coll_name, field, flush)
-    local ccode, doc, collection = self:check_doc(coll_name, primary_id, quanta_id)
+function CacheMgr:rpc_cache_remove_field(primary_id, coll_name, field, flush)
+    local ccode, doc, collection = self:check_doc(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_remove_field] check_doc failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
         return ccode
@@ -108,8 +106,8 @@ function CacheMgr:rpc_cache_remove_field(quanta_id, primary_id, coll_name, field
 end
 
 --删除缓存，通常由运维指令执行
-function CacheMgr:rpc_cache_delete(quanta_id, primary_id, coll_name)
-    local ccode, _, collection = self:check_doc(coll_name, primary_id, quanta_id)
+function CacheMgr:rpc_cache_delete(primary_id, coll_name)
+    local ccode, _, collection = self:check_doc(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_delete] check_doc failed! coll_name=%s, primary=%s", coll_name, primary_id)
         return ccode
@@ -124,6 +122,7 @@ end
 
 --缓存落地
 function CacheMgr:rpc_cache_flush(primary_id, group)
+    self.counter:count_increase()
     for coll_name, collection in pairs(self.collections) do
         if group == collection:get_group() then
             if qfailed(collection:flush(primary_id)) then

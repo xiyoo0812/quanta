@@ -39,10 +39,8 @@ end
 function RedisDiscovery:setup()
     local drivers = environ.driver("QUANTA_REDIS_URLS")
     for i, conf in ipairs(drivers) do
-        if conf.driver == "redis" then
-            self.redis = RedisDB(conf)
-            break
-        end
+        self.redis = RedisDB(conf, i)
+        break
     end
     if not self.redis then
         log_err("[RedisDiscovery][setup] discovery config err: driver is empty")
@@ -151,13 +149,6 @@ function RedisDiscovery:query_instances(service_key)
         end
         return values
     end
-end
-
--- 发送心跳
-function RedisDiscovery:sent_beat(service_key)
-    thread_mgr:fork(function()
-        self.redis:execute("EXPIRE", service_key, EXPIRETIME)
-    end)
 end
 
 -- 注册实例

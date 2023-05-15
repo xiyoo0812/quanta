@@ -62,6 +62,7 @@ bool socket_router::do_forward_target(router_header* header, char* data, size_t 
 	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
     sendv_item items[] = {{header, sizeof(router_header)}, {data, data_len}};
     m_mgr->sendv(it->token, items, _countof(items));
+    m_route_count++;
     return true;
 }
 
@@ -75,6 +76,7 @@ bool socket_router::do_forward_master(router_header* header, char* data, size_t 
 	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
     m_mgr->sendv(token, items, _countof(items));
+    m_route_count++;
     return true;
 }
 
@@ -91,6 +93,7 @@ bool socket_router::do_forward_broadcast(router_header* header, int source, char
     for (auto& target : nodes) {
         if (target.token != 0 && target.token != source) {
             m_mgr->sendv(target.token, items, _countof(items));
+            m_route_count++;
             broadcast_num++;
         }
     }
@@ -114,7 +117,14 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
     auto& target = nodes[hash % count];
     if (target.token != 0) {
         m_mgr->sendv(target.token, items, _countof(items));
+        m_route_count++;
         return true;
     }
     return false;
+}
+
+uint32_t socket_router::get_route_count() {
+    uint32_t old = m_route_count;
+    m_route_count = 0;
+    return old;
 }

@@ -17,6 +17,7 @@ local UNREACHABLE   = quanta.enum("KernCode", "RPC_UNREACHABLE")
 local RouterServer = singleton()
 local prop = property(RouterServer)
 prop:reader("rpc_server", nil)
+prop:reader("counter", nil)
 
 function RouterServer:__init()
     local inner = environ.get("QUANTA_INNER_IP")
@@ -24,6 +25,16 @@ function RouterServer:__init()
     local rserver = RpcServer(self, ip, port, true)
     service.make_node(rserver:get_port(), inner)
     self.rpc_server = rserver
+    --路由性能统计
+    self.counter = quanta.make_sampling("route msg")
+    self.counter:set_counter(function()
+        local route_count = 0
+        local clients = self.rpc_server:get_clients()
+        for _, client in pairs(clients) do
+            route_count = route_count + client:get_route_count()
+        end
+        return route_count
+    end)
 end
 
 --其他服务器节点关闭

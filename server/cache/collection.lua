@@ -1,20 +1,16 @@
 -- collection.lua
-local ljson         = require("lcjson")
 local log_err       = logger.err
 local log_info      = logger.info
 local qfailed       = quanta.failed
-local json_encode   = ljson.encode
 
 local Document      = import("cache/document.lua")
 local QueueLRU      = import("container/queue_lru.lua")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local REGION        = environ.number("QUANTA_REGION")
-local CACHE_PATH    = environ.get("QUANTA_CACHE_PATH")
+
 local CACHE_MAX     = environ.number("QUANTA_DB_CACHE_MAX")
 local CACHE_TIME    = environ.number("QUANTA_DB_CACHE_TIME")
 local CACHE_COUNT   = environ.number("QUANTA_DB_CACHE_COUNT")
-local log_dump      = logfeature.dump("cache_logs", CACHE_PATH..REGION, true)
 
 local Collection = class()
 local prop = property(Collection)
@@ -139,7 +135,6 @@ function Collection:save_all(safe)
         local ok = doc:update()
         if not ok and safe then
             log_err("[Collection][save_all] save mongo failed. try save file")
-            log_dump(json_encode(doc:serialize()))
         end
     end
     self.dirty_documents = {}

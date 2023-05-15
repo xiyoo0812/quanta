@@ -66,7 +66,9 @@ namespace luabus {
             "wait", &lua_socket_mgr::wait,
             "listen", &lua_socket_mgr::listen,
             "connect", &lua_socket_mgr::connect,
-            "map_token", &lua_socket_mgr::map_token
+            "map_token", &lua_socket_mgr::map_token,
+            "get_sendbuf_size", &lua_socket_mgr::get_sendbuf_size,
+            "get_recvbuf_size", &lua_socket_mgr::get_recvbuf_size
             );
         kit_state.new_class<lua_socket_node>(
             "ip", &lua_socket_node::m_ip,
@@ -80,6 +82,7 @@ namespace luabus {
             "set_timeout", &lua_socket_node::set_timeout,
             "forward_hash", &lua_socket_node::forward_hash,
             "forward_target", &lua_socket_node::forward_target,
+            "get_route_count", &lua_socket_node::get_route_count,
             "build_session_id", &lua_socket_node::build_session_id,
             "forward_master", &lua_socket_node::forward_by_group<rpc_type::forward_master>,
             "forward_broadcast", &lua_socket_node::forward_by_group<rpc_type::forward_broadcast>

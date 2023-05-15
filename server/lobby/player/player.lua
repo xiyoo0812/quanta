@@ -179,6 +179,7 @@ end
 
 --unload
 function Player:unload()
+    self:invoke("_unload")
     self.account:set_lobby(0)
     online:logout_player(self.id)
     --flush

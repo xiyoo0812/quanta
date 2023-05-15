@@ -289,11 +289,15 @@ local redis_commands = {
 
 local RedisDB = class()
 local prop = property(RedisDB)
+prop:reader("id", nil)                  --id
 prop:reader("passwd", nil)              --passwd
 prop:reader("drivers", {})              --drivers
 prop:reader("timer_id", nil)            --next_time
+prop:reader("req_counter", nil)
+prop:reader("res_counter", nil)
 
-function RedisDB:__init(conf)
+function RedisDB:__init(conf, id)
+    self.id = id
     self.passwd = conf.passwd
     self:choose_host(conf.hosts)
     --setup
@@ -327,6 +331,8 @@ function RedisDB:set_options(opts)
 end
 
 function RedisDB:setup()
+    self.req_counter = quanta.make_sampling(sformat("redis %s req", self.id))
+    self.res_counter = quanta.make_sampling(sformat("redis %s res", self.id))
     for cmd, param in pairs(redis_commands) do
         RedisDB[cmd] = function(this, ...)
             local socket = self:choose_driver()
@@ -417,6 +423,7 @@ function RedisDB:on_socket_recv(sock, token)
             break
         end
         sock:pop(_parse_offset(packet))
+        self.res_counter:count_increase()
         local task_queue = self.drivers[sock]
         local session_id = task_queue:pop()
         if session_id then
@@ -429,6 +436,7 @@ function RedisDB:wait_response(session_id, socket, packet, param)
     if not socket:send(packet) then
         return false, "send request failed"
     end
+    self.req_counter:count_increase()
     local task_queue = self.drivers[socket]
     task_queue:push(session_id)
     local ok, res = thread_mgr:yield(session_id, sformat("redis_comit:%s", param.cmd), DB_TIMEOUT)

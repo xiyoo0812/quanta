@@ -42,6 +42,7 @@ class socket_router
 public:
     socket_router(std::shared_ptr<socket_mgr>& mgr) : m_mgr(mgr){ }
 
+    uint32_t get_route_count();
     void erase(uint32_t node_id);
     uint32_t choose_master(uint32_t service_id);
     uint32_t map_token(uint32_t node_id, uint32_t token);
@@ -51,6 +52,7 @@ public:
     bool do_forward_broadcast(router_header* header, int source, char* data, size_t data_len, size_t& broadcast_num);
 
 private:
+    size_t m_route_count = 0;
     std::shared_ptr<socket_mgr> m_mgr;
     std::array<service_list, MAX_SERVICE_GROUP> m_services;
 };

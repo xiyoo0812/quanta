@@ -41,6 +41,15 @@ int lua_socket_mgr::connect(lua_State* L, const char* ip, const char* port, int 
     return luakit::variadic_return(L, stream, "ok");
 }
 
-uint32_t lua_socket_mgr::map_token(uint32_t node_id, uint32_t token) {
+int lua_socket_mgr::get_sendbuf_size(uint32_t token) {
+    return m_mgr->get_recvbuf_size(token);
+}
+
+int lua_socket_mgr::get_recvbuf_size(uint32_t token) {
+    return m_mgr->get_recvbuf_size(token);
+}
+
+int lua_socket_mgr::map_token(uint32_t node_id, uint32_t token) {
     return m_router->map_token(node_id, token);
 }
+

@@ -4,6 +4,7 @@ local lcodec            = require("lcodec")
 local tpack             = table.pack
 local tunpack           = table.unpack
 local log_err           = logger.err
+local log_warn          = logger.warn
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local hash_code         = lcodec.hash_code
@@ -15,6 +16,8 @@ local timer_mgr         = quanta.get("timer_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local proxy_agent       = quanta.get("proxy_agent")
+
+local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -47,7 +50,7 @@ function RpcClient:check_heartbeat()
     else
         self:connect()
     end
-    self.timer_id = timer_mgr:once(self.alive and SECOND_MS or RPC_TIMEOUT, function()
+    self.timer_id = timer_mgr:once(self.alive and RPC_TIMEOUT or SECOND_MS, function()
         self:check_heartbeat()
     end)
 end
@@ -61,8 +64,12 @@ function RpcClient:heartbeat(initial)
 end
 
 --调用rpc后续处理
-function RpcClient:on_call_router(rpc, send_len)
+function RpcClient:on_call_router(rpc, token, send_len)
     if send_len > 0 then
+        local more_byte = socket_mgr:get_sendbuf_size(token)
+        if more_byte > WARNING_BYTES then
+            log_warn("[RpcClient][on_call_router] socket %s send buf has so more (%s) bytes!", token, more_byte)
+        end
         proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, send_len
     end
@@ -82,56 +89,61 @@ function RpcClient:connect()
         log_err("[RpcClient][connect] failed to connect: %s:%s err=%s", self.ip, self.port, cerr)
         return false, cerr
     end
+    local token = socket.token
     socket.on_call = function(recv_len, session_id, rpc_flag, slice)
         local rpc_res = tpack(pcall(ldecode, slice))
         if not rpc_res[1] then
             log_err("[RpcClient][on_socket_rpc] decode failed %s!", rpc_res[2])
             return
         end
+        local more_byte = socket_mgr:get_recvbuf_size(token)
+        if more_byte > WARNING_BYTES then
+            log_warn("[RpcClient][on_socket_rpc] socket %s recv buf has so more (%s) bytes!", token, more_byte)
+        end
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
     end
     socket.call_rpc = function(session_id, rpc_flag, rpc, ...)
         local send_len = socket.call(session_id, rpc_flag, lencode(quanta.id, rpc, ...))
-        return self:on_call_router(rpc, send_len)
+        return self:on_call_router(rpc, token, send_len)
     end
     socket.call_target = function(session_id, target, rpc, ...)
         local send_len = socket.forward_target(session_id, FLAG_REQ, target, lencode(quanta.id, rpc, ...))
-        return self:on_call_router(rpc, send_len)
+        return self:on_call_router(rpc, token, send_len)
     end
     socket.callback_target = function(session_id, target, rpc, ...)
         if target == 0 then
             local send_len = socket.call(session_id, FLAG_RES, lencode(quanta.id, rpc, ...))
-            return self:on_call_router(rpc, send_len)
+            return self:on_call_router(rpc, token, send_len)
         else
             local send_len = socket.forward_target(session_id, FLAG_RES, target, lencode(quanta.id, rpc, ...))
-            return self:on_call_router(rpc, send_len)
+            return self:on_call_router(rpc, token, send_len)
         end
     end
     socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
         local hash_value = hash_code(hash_key, 0xffff)
         local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, lencode(quanta.id, rpc, ...))
-        return self:on_call_router(rpc, send_len)
+        return self:on_call_router(rpc, token, send_len)
     end
     socket.call_master = function(session_id, service_id, rpc, ...)
         local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
-        return self:on_call_router(rpc, send_len)
+        return self:on_call_router(rpc, token, send_len)
     end
     socket.call_broadcast = function(session_id, service_id, rpc, ...)
         local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
-        return self:on_call_router(rpc, send_len)
+        return self:on_call_router(rpc, token, send_len)
     end
     socket.call_collect = function(session_id, service_id, rpc, ...)
         local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
-        return self:on_call_router(rpc, send_len)
+        return self:on_call_router(rpc, token, send_len)
     end
-    socket.on_error = function(token, err)
-        self:on_socket_error(token, err)
+    socket.on_error = function(stoken, err)
+        self:on_socket_error(stoken, err)
     end
     socket.on_connect = function(res)
         if res == "ok" then
             qxpcall(self.on_socket_connect, "on_socket_connect: %s", self, socket, res)
         else
-            self:on_socket_error(socket.token, res)
+            self:on_socket_error(token, res)
         end
     end
     self.socket = socket

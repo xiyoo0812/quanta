@@ -21,12 +21,12 @@ local PlayerMgr = singleton(EntityMgr)
 local prop = property(PlayerMgr)
 prop:reader("day_edition", 0)
 prop:reader("week_edition", 0)
-prop:reader("min_count", 0)
-prop:reader("max_count", 0)
+prop:reader("counter", nil)
 
 function PlayerMgr:__init()
     update_mgr:attach_hour(self)
     update_mgr:attach_second30(self)
+    self.counter = quanta.make_counter("player")
 end
 
 function PlayerMgr:on_hour(clock_ms, hour, time)
@@ -41,10 +41,7 @@ function PlayerMgr:on_hour(clock_ms, hour, time)
 end
 
 function PlayerMgr:on_second30()
-    local cur_count = self:size()
-    event_mgr:notify_trigger("on_player_count", quanta.index, cur_count, self.max_count, self.min_count)
-    self.min_count = cur_count
-    self.max_count = cur_count
+    event_mgr:notify_trigger("on_player_count", quanta.index, self.counter:get_info())
 end
 
 function PlayerMgr:kick_all()
@@ -75,35 +72,19 @@ function PlayerMgr:load_player(player_id)
     if not player then
         local Player = import("lobby/player/player.lua")
         player = Player(player_id)
-        self:calc_player_max()
         if not player:setup() then
             return
         end
         self:add_entity(player_id, player)
+        self.counter:count_increase()
     end
     return player
 end
 
 --实体被销毁
 function PlayerMgr:on_destory(player)
-    self:calc_player_min()
+    self.counter:count_reduce()
     player:delay_notify("on_logout_success")
-end
-
---计算窗口内的最低在线人数
-function PlayerMgr:calc_player_min()
-    local cur_count = self:size()
-    if self.min_count > cur_count then
-        self.min_count = cur_count
-    end
-end
-
---计算窗口内的最高在线人数
-function PlayerMgr:calc_player_max()
-    local cur_count = self:size()
-    if self.max_count < cur_count then
-        self.max_count = cur_count
-    end
 end
 
 -- 广播消息

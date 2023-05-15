@@ -35,6 +35,7 @@ local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
 
 local MongoDB = class()
 local prop = property(MongoDB)
+prop:reader("id", nil)          --id
 prop:reader("ip", nil)          --mongo地址
 prop:reader("sock", nil)        --网络连接对象
 prop:reader("name", "")         --dbname
@@ -44,8 +45,11 @@ prop:reader("passwd", nil)      --passwd
 prop:reader("cursor_id", nil)   --cursor_id
 prop:reader("sessions", {})     --sessions
 prop:reader("readpref", nil)    --readPreference
+prop:reader("req_counter", nil)
+prop:reader("res_counter", nil)
 
-function MongoDB:__init(conf)
+function MongoDB:__init(conf, id)
+    self.id = id
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
@@ -56,8 +60,10 @@ function MongoDB:__init(conf)
     --attach_second
     update_mgr:attach_hour(self)
     update_mgr:attach_second(self)
+    --counter
+    self.req_counter = quanta.make_sampling(sformat("mongo %s req", self.id))
+    self.res_counter = quanta.make_sampling(sformat("mongo %s res", self.id))
 end
-
 
 function MongoDB:on_hour()
 end
@@ -201,6 +207,7 @@ function MongoDB:on_slice_recv(slice, token)
     local reply, session_id = mreply(slice)
     self.sessions[session_id] = nil
     local succ, doc = self:decode_reply(reply, slice)
+    self.res_counter:count_increase()
     thread_mgr:response(session_id, succ, doc)
 end
 
@@ -214,6 +221,7 @@ function MongoDB:op_msg(slice_bson)
         return false, "send failed"
     end
     self.sessions[session_id] = true
+    self.req_counter:count_increase()
     return thread_mgr:yield(session_id, "mongo_op_msg", DB_TIMEOUT)
 end
 

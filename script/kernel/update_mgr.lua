@@ -17,12 +17,11 @@ local thread_mgr    = quanta.get("thread_mgr")
 local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
 
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
-local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
 prop:reader("last_hour", 0)
-prop:reader("last_frame", 0)
+prop:reader("next_frame", 0)
 prop:reader("last_minute", 0)
 prop:reader("quit_objs", {})
 prop:reader("hour_objs", {})
@@ -40,6 +39,7 @@ function UpdateMgr:__init()
     qtweak(self.fast_objs)
     qtweak(self.frame_objs)
     qtweak(self.second_objs)
+    qtweak(self.minute_objs)
     qtweak(self.second5_objs)
     qtweak(self.second30_objs)
     --注册订阅
@@ -61,12 +61,9 @@ end
 
 function UpdateMgr:update(scheduler, now_ms, clock_ms)
     --业务更新
-    local diff_ms = clock_ms - quanta.clock_ms
+    quanta.frame_ms = clock_ms - quanta.clock_ms
     quanta.clock_ms = clock_ms
     quanta.now_ms = now_ms
-    if diff_ms > HALF_MS then
-        log_warn("[UpdateMgr][update] last frame exec too long(%d ms)!", diff_ms)
-    end
     --帧更新
     local frame = quanta.frame + 1
     for obj, address in pairs(self.frame_objs) do
@@ -76,7 +73,7 @@ function UpdateMgr:update(scheduler, now_ms, clock_ms)
     end
     quanta.frame = frame
     --快帧100ms更新
-    if clock_ms < self.last_frame then
+    if clock_ms < self.next_frame then
         return
     end
     for obj, address in pairs(self.fast_objs) do
@@ -84,7 +81,7 @@ function UpdateMgr:update(scheduler, now_ms, clock_ms)
             obj:on_fast(clock_ms)
         end)
     end
-    self.last_frame = clock_ms + FAST_MS
+    self.next_frame = clock_ms + FAST_MS
     --秒更新
     local now = now_ms // 1000
     if now == quanta.now then

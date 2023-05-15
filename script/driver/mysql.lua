@@ -596,6 +596,7 @@ end
 
 local MysqlDB = class()
 local prop = property(MysqlDB)
+prop:reader("id", nil)          --id
 prop:reader("ip", nil)          --mysql地址
 prop:reader("sock", nil)        --网络连接对象
 prop:reader("name", "")         --dbname
@@ -607,7 +608,8 @@ prop:reader("sessions", nil)                --sessions
 prop:accessor("charset", "_default")        --charset
 prop:accessor("max_packet_size", 1024*1024) --max_packet_size,1mb
 
-function MysqlDB:__init(conf)
+function MysqlDB:__init(conf, id)
+    self.id = id
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
