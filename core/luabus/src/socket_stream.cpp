@@ -503,10 +503,6 @@ void socket_stream::dispatch_package() {
             }
             //头长度只包含内容，不包括长度
             package_size = *length;
-            auto data = m_recv_buffer->peek_data(package_size);
-            if (!data) {
-                break;
-            }
         }
         else if (eproto_type::proto_text == m_proto_type) {
             package_size = m_recv_buffer->size();

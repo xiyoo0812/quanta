@@ -5,6 +5,7 @@
 #include <thread>
 
 #include "lua_kit.h"
+#include "ltimer.h"
 #include "fmt/core.h"
 
 using namespace luakit;
@@ -66,7 +67,8 @@ namespace lworker {
 
         bool call(slice* buf) {
             std::unique_lock<spin_mutex> lock(m_mutex);
-            if (buf->size() < UINT32_MAX) {
+            uint8_t* target = m_write_buf->peek_space(buf->size() + sizeof(uint32_t));
+            if (target) {
                 m_write_buf->write<uint32_t>(buf->size());
                 m_write_buf->push_data(buf->head(), buf->size());
                 return true;
@@ -74,7 +76,7 @@ namespace lworker {
             return false;
         }
 
-        void update() {
+        void update(uint64_t clock_ms) {
             if (m_read_buf->empty()) {
                 if (m_write_buf->empty()) {
                     return;
@@ -89,6 +91,7 @@ namespace lworker {
                 m_lua->table_call(service, "on_worker", nullptr, std::tie(), slice);
                 m_read_buf->pop_size(plen);
                 slice = read_slice(m_read_buf, &plen);
+                if (ltimer::steady_ms() - clock_ms > 100) break;
             }
         }
 
@@ -101,7 +104,7 @@ namespace lworker {
             quanta.set("worker_title", m_name);
             quanta.set("logtag", fmt::format("[{}]", m_name));
             quanta.set_function("stop", [&]() { stop(); });
-            quanta.set_function("update", [&]() { update(); });
+            quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
             quanta.set_function("call", [&](std::string name, slice* buf) { return m_schedulor->call(name, buf); });
             m_lua->run_script(fmt::format("require '{}'", m_sandbox), [&](std::string err) {

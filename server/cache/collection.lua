@@ -59,26 +59,6 @@ function Collection:check_store(now)
     end
 end
 
---检查过期
-function Collection:check_expired(now)
-    local time = 10
-    while time > 0 do
-        time = time - 1
-        local oldest = self.documents:get_oldest()
-        if not oldest then
-            break
-        end
-        local doc = oldest.value
-        if not doc:is_expire(now) then
-            break
-        end
-        if qfailed(self:delete(oldest.key)) then
-            break
-        end
-    end
-    log_info("[Collection][check_expired] collection %s now has %s documents!", self.coll_name, self.documents:get_size())
-end
-
 --更新数据
 function Collection:update_field(primary_id, document, field, field_data, flush)
     if not document:update_field(field, field_data, flush) then
@@ -99,16 +79,13 @@ end
 
 --删除数据
 function Collection:delete(primary_id)
-    local document = self.dirty_documents[primary_id]
-    if document then
-        local ok, code = document:update()
-        if not ok then
-            return code
-        end
+    local doc = self.documents:get(primary_id)
+    if doc then
         self.dirty_documents[primary_id] = nil
+        self.documents:del(primary_id)
+        doc:destory()
     end
     log_info("[Collection][delete] collection %s now has %s documents!", self.coll_name, self.documents:get_size())
-    self.documents:del(primary_id)
     return SUCCESS
 end
 

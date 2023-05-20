@@ -83,7 +83,7 @@ function LoginServlet:rpc_player_login(open_id, player_id, lobby, token, gateway
     if not account then
         return FRAME_FAILED
     end
-    local code, login_token = account:get_login_token()
+    local code, login_token = account:get_login_token(player_id)
     if qfailed(code) then
         return ROLE_TOKEN_ERR
     end
@@ -149,7 +149,7 @@ function LoginServlet:rpc_player_reload(open_id, player_id, lobby, token, gatewa
     player:relive(gateway)
     local new_token = mrandom()
     account:set_reload_token(new_token)
-    player:delay_notify("on_reload_success")
+    event_mgr:notify_trigger("on_reload_success", player_id, player)
     log_debug("[LoginServlet][rpc_player_reload] player(%s) reload success!", player_id)
     return FRAME_SUCCESS, new_token, player:get_passkey()
 end

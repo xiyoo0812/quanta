@@ -13,20 +13,16 @@ local mongo_agent   = quanta.get("mongo_agent")
 local MongoMQ = class()
 local prop = property(MongoMQ)
 prop:reader("coll_name", "")    -- coll_name
-prop:reader("ttl", nil)         -- ttl
 
 function MongoMQ:__init()
 end
 
 function MongoMQ:setup(coll_name, ttl)
     self.coll_name = coll_name
-    if ttl then
-        self.ttl = ttl
-        local query = { coll_name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
-        local ok, code = mongo_agent:create_indexes(query)
-        if qsuccess(code, ok) then
-            log_info("[MongoMQ][setup] rmsg table %s build due index success")
-        end
+    local query = { coll_name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
+    local ok, code = mongo_agent:create_indexes(query)
+    if qsuccess(code, ok) then
+        log_info("[MongoMQ][setup] rmsg table %s build due index success")
     end
     log_info("[MongoMQ][setup] init rmsg coll: %s", coll_name)
 end
@@ -60,11 +56,11 @@ function MongoMQ:delete_message(coll_name, target_id, timestamp)
 end
 
 -- 发送消息
-function MongoMQ:send_message(target_id, event, args)
+function MongoMQ:send_message(target_id, event, args, ttl)
     local doc = { args = args, event = event, target_id = target_id, time = quanta.now_ms }
-    if self.ttl then
+    if ttl then
         --设置过期ttl字段
-        doc.ttl = mdate(quanta.now + self.ttl)
+        doc.ttl = mdate(quanta.now + ttl)
     end
     local ok = mongo_agent:insert({ self.coll_name, doc }, target_id)
     if not ok then

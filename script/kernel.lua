@@ -125,8 +125,8 @@ end
 --底层驱动
 quanta.run = function()
     local sclock_ms = lclock_ms()
+    scheduler:update(sclock_ms)
     socket_mgr.wait(sclock_ms, 10)
-    scheduler:update()
     --系统更新
     local now_ms, clock_ms = ltime()
     update_mgr:update(scheduler, now_ms, clock_ms)

@@ -1,10 +1,12 @@
 --scheduler.lua
-local lworker       = require("lworker")
 local lcodec        = require("lcodec")
+local lworker       = require("lworker")
 
 local pcall         = pcall
 local log_err       = logger.err
+local tmove         = table.move
 local tpack         = table.pack
+local tinsert       = table.insert
 local tunpack       = table.unpack
 
 local lencode       = lcodec.encode_slice
@@ -14,10 +16,15 @@ local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
+local RPC_PERFRAME  = 400
+
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local Scheduler = singleton()
+local prop = property(Scheduler)
+prop:reader("contexts", {})
+
 function Scheduler:__init()
     lworker.setup("quanta", environ.get("QUANTA_SANDBOX"))
 end
@@ -26,8 +33,22 @@ function Scheduler:quit()
     lworker.shutdown()
 end
 
-function Scheduler:update()
-    lworker.update()
+function Scheduler:update(clock_ms)
+    lworker.update(clock_ms)
+    local all_datas = self.contexts
+    for i, args in pairs(all_datas) do
+        local name, session_id = args[1], args[2]
+        if not lworker.call(name, lencode(session_id, tunpack(args, 3))) then
+            if session_id > 0 then
+                thread_mgr:response(session_id, false, "send failed!")
+            end
+        end
+        if i >= RPC_PERFRAME then
+            self.contexts = tmove(all_datas, i + 1, #all_datas, 1, {})
+            return
+        end
+    end
+    self.contexts = {}
 end
 
 function Scheduler:startup(name, entry)
@@ -46,13 +67,13 @@ end
 --访问其他线程任务
 function Scheduler:call(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    lworker.call(name, lencode(session_id, FLAG_REQ, "master", rpc, ...))
+    tinsert(self.contexts, { name, session_id, FLAG_REQ, "master", rpc, ... })
     return thread_mgr:yield(session_id, "worker_call", RPC_TIMEOUT)
 end
 
 --访问其他线程任务
 function Scheduler:send(name, rpc, ...)
-    lworker.call(name, lencode(0, FLAG_REQ, "master", rpc, ...))
+    tinsert(self.contexts, { name, 0, FLAG_REQ, "master", rpc, ... })
 end
 
 --事件分发

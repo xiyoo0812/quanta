@@ -6,7 +6,6 @@ local sformat       = string.format
 local guid_new      = quanta.new_guid
 
 local game_dao      = quanta.get("game_dao")
-local login_dao     = quanta.get("login_dao")
 
 local Account = class()
 local prop = property(Account)
@@ -31,7 +30,7 @@ function Account:create(token, device_id, params)
     self.device_id = device_id
     self.create_time = quanta.now
     self.user_id = guid_new(quanta.service, quanta.index)
-    return self:flush_account(self:pack2db())
+    return self:flush_account(self:pack2db(), true)
 end
 
 function Account:is_newbee()
@@ -63,17 +62,6 @@ function Account:on_db_account_load(data)
     return true
 end
 
-function Account:add_role(body)
-    local role_id = login_dao:get_autoinc_id(self.open_id)
-    if not role_id then
-        return
-    end
-    if self:set_roles_field(role_id, body, true) then
-        login_dao:create_player(self.open_id, role_id, body)
-        return role_id, body
-    end
-end
-
 function Account:del_role(role_id)
     local role = self.roles[role_id]
     if role then
@@ -82,9 +70,9 @@ function Account:del_role(role_id)
     return false
 end
 
-function Account:set_login_token(token, time)
-    local key = sformat("LOGIN:login_token:%s", self.user_id)
-    game_dao:execute("SETEX", key, time, token)
+function Account:set_login_token(role_id, token, time)
+    local key = sformat("LOGIN:login_token:%s", role_id)
+    game_dao:execute(role_id, "SETEX", key, time, token)
 end
 
 function Account:pack2db()

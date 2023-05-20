@@ -50,7 +50,7 @@ local function conv_integer(v)
 end
 
 local function conv_number(v)
-    return mtointeger(v) or tonumber(v) or v
+    return mtointeger(v) or tonumber(v)
 end
 
 local function tsize(t)

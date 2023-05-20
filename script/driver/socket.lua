@@ -132,7 +132,7 @@ function Socket:on_socket_recv(token, slice)
         self.recvbuf = self.recvbuf .. slice.string()
         self.host:on_socket_recv(self, self.token)
     else
-        self.host:on_slice_recv(slice, self.token)
+        self.host:on_slice_recv(self, slice, self.token)
     end
 end
 

@@ -71,7 +71,6 @@ end
 --destory
 function Entity:destory()
     self:unload()
-    self:invoke("_destory")
 end
 
 return Entity

@@ -1,8 +1,11 @@
 --msg_component.lua
+import("agent/online_agent.lua")
+
 local tunpack       = table.unpack
 local qmake_mq      = quanta.make_mq
 
 local router_mgr    = quanta.get("router_mgr")
+local online_agent  = quanta.get("online")
 
 local MsgComponent = mixin()
 local prop = property(MsgComponent)
@@ -29,9 +32,22 @@ function MsgComponent:fire_reliable(serv_name, event, ...)
     self:send_target(serv_name, "rpc_reliable_event")
 end
 
+--fire_online_reliable
+function MsgComponent:fire_online_reliable(serv_name, target_id, event, ...)
+    local msg_queue = self:create_mq(serv_name)
+    msg_queue:send_message(target_id, event, { ... })
+    self:send_online_target(serv_name, target_id, "rpc_reliable_event")
+end
+
 --fire_lobby_reliable
 function MsgComponent:fire_lobby_reliable(event, ...)
     self:fire_reliable("lobby", event, ...)
+end
+
+--获取消息长度
+function MsgComponent:len_message(target_id, serv_name)
+    local msg_queue = self:create_mq(serv_name or quanta.service_name)
+    return msg_queue:len_message(target_id)
 end
 
 --load_reliable_events
@@ -58,6 +74,7 @@ function MsgComponent:send(cmd_id, data)
     end
 end
 
+
 --转发消息给target
 function MsgComponent:call_target(serv_name, rpc, ...)
     local target_id = self.passkey[serv_name]
@@ -73,6 +90,11 @@ function MsgComponent:send_target(serv_name, rpc, ...)
     if target_id then
         router_mgr:send_target(target_id, rpc, self.id, ...)
     end
+end
+
+--转发消息给target
+function MsgComponent:send_online_target(serv_name, target_id, rpc, ...)
+    online_agent:call_service(target_id, rpc, serv_name, target_id)
 end
 
 --转发消息给lobby

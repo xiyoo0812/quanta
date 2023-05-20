@@ -10,6 +10,7 @@ local log_debug     = logger.debug
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local qfailed       = quanta.failed
+local qconverger    = quanta.make_converger
 
 local event_mgr     = quanta.get("event_mgr")
 local redis_agent   = quanta.get("redis_agent")
@@ -17,6 +18,8 @@ local mongo_agent   = quanta.get("mongo_agent")
 local cache_agent   = quanta.get("cache_agent")
 
 local USE_CACHE     = environ.status("QUANTA_DB_USE_CACHE")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+
 
 local GameDAO = singleton()
 local prop = property(GameDAO)
@@ -68,22 +71,32 @@ function GameDAO:load_mongo(sheet_name, primary_id, primary_key)
 end
 
 function GameDAO:load(entity, primary_id, sheet_name)
-    local function load_sheet_db()
-        return self:load_impl(primary_id, sheet_name)
+    local ok, data = self:load_impl(primary_id, sheet_name)
+    if ok then
+        entity["load_" .. sheet_name .. "_db"](entity, primary_id, data)
     end
-    local ok = entity["load_" .. sheet_name .. "_db"](entity, primary_id, load_sheet_db)
-    if not ok then
-        log_err("[GameDAO][load] load %s failed! primary_id: %s", sheet_name, primary_id)
-        return false
-    end
-    return true
+    return ok
 end
 
 function GameDAO:load_group(entity, group, primary_id)
-    for _, sheet_name in ipairs(self.sheet_groups[group] or {}) do
-        if not self:load(entity, primary_id, sheet_name) then
-            return false
-        end
+    local sheets = self.sheet_groups[group]
+    local converger = qconverger("load_dbs")
+    for _, sheet_name in ipairs(sheets) do
+        converger:push(function()
+            local ok, data = self:load_impl(primary_id, sheet_name)
+            if not ok then
+                return false
+            end
+            return ok, SUCCESS, data
+        end)
+    end
+    local ok, all_datas = converger:execute()
+    if not ok then
+        return false
+    end
+    for i, sheet_name in ipairs(sheets) do
+        --log_debug("[GameDAO][load_group] load %s! data: %s", sheet_name, all_datas[i])
+        entity["load_" .. sheet_name .. "_db"](entity, primary_id, all_datas[i])
     end
     return true
 end
@@ -106,7 +119,9 @@ end
 
 function GameDAO:update_mongo_field(sheet_name, primary_id, primary_key, field, field_data)
     local udata = field_data
-    if #field > 0 then
+    if #field == 0 then
+        udata[primary_key] = primary_id
+    else
         udata = { ["$set"] = { [field] = field_data } }
     end
     local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
@@ -190,18 +205,30 @@ end
 
 function GameDAO:on_db_prop_update(primary_id, sheet_name, db_key, value, flush)
     log_debug("[GameDAO][on_db_prop_update] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
-    return self:update_field(primary_id, sheet_name, db_key, value, flush)
+    if flush then
+        return self:update_field(primary_id, sheet_name, db_key, value, flush)
+    end
+    event_mgr:fire_next_second(function()
+        self:update_field(primary_id, sheet_name, db_key, value, flush)
+    end)
+    return true
 end
 
 function GameDAO:on_db_prop_remove(primary_id, sheet_name, db_key, flush)
     log_debug("[GameDAO][on_db_prop_remove] primary_id: %s sheet_name: %s, db_key: %s", primary_id, sheet_name, db_key)
-    return self:remove_field(primary_id, sheet_name, db_key, flush)
+    if flush then
+        return self:remove_field(primary_id, sheet_name, db_key, flush)
+    end
+    event_mgr:fire_next_second(function()
+        self:remove_field(primary_id, sheet_name, db_key, flush)
+    end)
+    return true
 end
 
 --redis通用接口
 ----------------------------------------------------------------------
-function GameDAO:execute(cmd, ...)
-    local ok, code, result = redis_agent:execute({ cmd, ... })
+function GameDAO:execute(primary_id, cmd, ...)
+    local ok, code, result = redis_agent:execute({ cmd, ... }, primary_id)
     if qfailed(code, ok) then
         log_err("[GameDAO][execute] execute (%s) failed: code: %s, res: %s!",  cmd, code, result)
         return code

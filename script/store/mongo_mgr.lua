@@ -45,51 +45,66 @@ function MongoMgr:get_db(db_id)
     return self.mongo_dbs[db_id or MAIN_DBID]
 end
 
-function MongoMgr:find(db_id, coll_name, selector, fields, sortor, limit)
+function MongoMgr:find(db_id, primary_id, coll_name, selector, fields, sortor, limit)
     log_debug("[MongoMgr][find]: %s, selector:%s", coll_name, selector)
     local mongodb = self:get_db(db_id)
     if mongodb then
+        mongodb:set_executer(primary_id)
         local ok, res_oe = mongodb:find(coll_name, selector, fields or {_id = 0}, sortor, limit)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:find_one(db_id, coll_name, selector, fields)
+function MongoMgr:find_one(db_id, primary_id, coll_name, selector, fields)
     log_debug("[MongoMgr][find_one]: %s, selector:%s", coll_name, selector)
     local mongodb = self:get_db(db_id)
     if mongodb then
+        mongodb:set_executer(primary_id)
         local ok, res_oe = mongodb:find_one(coll_name, selector, fields or {_id = 0})
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:insert(db_id, coll_name, obj)
+function MongoMgr:insert(db_id, primary_id, coll_name, obj)
     log_debug("[MongoMgr][insert]: %s, obj:%s", coll_name, obj)
     local mongodb = self:get_db(db_id)
     if mongodb then
+        mongodb:set_executer(primary_id)
         local ok, res_oe = mongodb:insert(coll_name, obj)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:update(db_id, coll_name, obj, selector, upsert, multi)
+function MongoMgr:update(db_id, primary_id, coll_name, obj, selector, upsert, multi)
     log_debug("[MongoMgr][update]: %s, obj:%s, selector:%s", coll_name, obj, selector)
     local mongodb = self:get_db(db_id)
     if mongodb then
+        mongodb:set_executer(primary_id)
         local ok, res_oe = mongodb:update(coll_name, obj, selector, upsert, multi)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:delete(db_id, coll_name, selector, onlyone)
+function MongoMgr:delete(db_id, primary_id, coll_name, selector, onlyone)
     log_debug("[MongoMgr][delete]: %s, selector:%s", coll_name, selector)
     local mongodb = self:get_db(db_id)
     if mongodb then
+        mongodb:set_executer(primary_id)
         local ok, res_oe = mongodb:delete(coll_name, selector, onlyone)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "mongo db not exist"
+end
+
+function MongoMgr:find_and_modify(db_id, primary_id, coll_name, obj, selector, upsert, fields, new)
+    local mongodb = self:get_db(db_id)
+    if mongodb then
+        mongodb:set_executer(primary_id)
+        local ok, res_oe = mongodb:find_and_modify(coll_name, obj, selector, upsert, fields, new)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"
@@ -122,15 +137,6 @@ function MongoMgr:drop_indexes(db_id, coll_name, index_name)
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:find_and_modify(db_id, coll_name, obj, selector, upsert, fields, new)
-    local mongodb = self:get_db(db_id)
-    if mongodb then
-        local ok, res_oe = mongodb:find_and_modify(coll_name, obj, selector, upsert, fields, new)
-        return ok and SUCCESS or MONGO_FAILED, res_oe
-    end
-    return MONGO_FAILED, "mongo db not exist"
-end
-
 function MongoMgr:get_autoinc_id(db_id, id_key)
     local query = { key = id_key }
     local fields = { autoinc_id = 1 }
@@ -146,9 +152,10 @@ function MongoMgr:get_autoinc_id(db_id, id_key)
     return SUCCESS, origin_id
 end
 
-function MongoMgr:execute(db_id, cmd, ...)
+function MongoMgr:execute(db_id, primary_id, cmd, ...)
     local mongodb = self:get_db(db_id)
     if mongodb then
+        mongodb:set_executer(primary_id)
         local ok, res_oe = mongodb:runCommand(cmd, ...)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end

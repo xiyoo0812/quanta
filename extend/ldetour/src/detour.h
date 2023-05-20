@@ -76,6 +76,9 @@ namespace ldetour {
         // [out]   valid       is point valid. [bool].
         bool point_valid(lua_State* L, int32_t x, int32_t y, int32_t z);
 
+        // 判断多边形是否合法(是否位于可导航mesh中)
+        bool poly_valid(dtPolyRef* poly_ref);
+
     private:
         int32_t pformat(float v);
 
@@ -86,6 +89,7 @@ namespace ldetour {
         nav_point* points;      // 寻路过程中的路点缓存
         dtQueryFilter filter;
         dtNavMeshQuery* nvquery;
+        dtNavMesh* mesh_ref;
         float qscale = 1.0f; 
     };
 

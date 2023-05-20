@@ -84,7 +84,7 @@ namespace logger {
         }
         if (read_messages_->empty()) {
             std::unique_lock<std::mutex> lock(mutex_);
-            condv_.wait_for(lock, milliseconds(1));
+            condv_.wait_for(lock, milliseconds(5));
         }
         return read_messages_;
     }

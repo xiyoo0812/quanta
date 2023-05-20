@@ -11,6 +11,7 @@ PROJECT_TYPE = "dynamic"
 INCLUDES = {
     "../lua/lua",
     "../fmt/include",
+    "../ltimer/ltimer",
     "../luakit/include"
 }
 

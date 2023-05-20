@@ -32,7 +32,6 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "rpc_cache_flush")
     event_mgr:add_listener(self, "rpc_server_close")
     --定时器
-    update_mgr:attach_minute(self)
     update_mgr:attach_second5(self)
     --counter
     self.counter = quanta.make_sampling("cache req")
@@ -43,14 +42,6 @@ function CacheMgr:on_second5()
     local now_tick = quanta.now
     for _, collection in pairs(self.collections) do
         collection:check_store(now_tick)
-    end
-end
-
---清理超时的记录
-function CacheMgr:on_minute()
-    local now_tick = quanta.now
-    for _, collection in pairs(self.collections) do
-        collection:check_expired(now_tick)
     end
 end
 

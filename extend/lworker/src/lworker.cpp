@@ -8,8 +8,8 @@ namespace lworker {
     luakit::lua_table open_lworker(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llworker = kit_state.new_table();
-        llworker.set_function("update", []() { schedulor.update(); });
         llworker.set_function("shutdown", []() { schedulor.shutdown(); });
+        llworker.set_function("update", [&](uint64_t clock_ms) { schedulor.update(clock_ms); });
         llworker.set_function("broadcast", [&](slice* buf) { return schedulor.broadcast(buf); });
         llworker.set_function("setup", [](lua_State* L, std::string service, std::string sandbox) {
             schedulor.setup(L, service, sandbox);

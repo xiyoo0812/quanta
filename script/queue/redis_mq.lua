@@ -18,13 +18,11 @@ local prop = property(RedisMQ)
 prop:reader("expire_keys", {})  -- expire_keys
 prop:reader("coll_name", "")    -- coll_name
 prop:reader("prefix", nil)      -- prefix
-prop:reader("ttl", nil)         -- ttl
 
 function RedisMQ:__init()
 end
 
-function RedisMQ:setup(coll_name, ttl)
-    self.ttl = ttl
+function RedisMQ:setup(coll_name)
     self.coll_name = coll_name
     self.prefix = sformat("RELIABLE:%s:%s", NAMESPACE, coll_name)
     log_info("[RedisMQ][setup] init rmsg coll: %s", coll_name)
@@ -61,14 +59,14 @@ function RedisMQ:delete_message(target_id, timestamp)
 end
 
 -- 发送消息
-function RedisMQ:send_message(target_id, event, args)
+function RedisMQ:send_message(target_id, event, args, ttl)
     local timestamp = quanta.now_ms
     local doc = { args = args, event = event, time = timestamp }
     local zset_name = sformat("%s:%s", self.prefix, target_id)
     local ok, code = redis_agent:execute({ "ZADD", zset_name, timestamp, json_encode(doc) }, target_id)
     if qsuccess(code, ok) then
-        if self.ttl then
-            redis_agent:execute( { "EXPIRE", zset_name, self.ttl }, target_id)
+        if ttl then
+            redis_agent:execute( { "EXPIRE", zset_name, ttl }, target_id)
         end
         log_debug("[RedisMQ][send_message] send message succeed: %s, %s", target_id, doc)
         return true

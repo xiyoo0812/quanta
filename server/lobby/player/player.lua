@@ -26,8 +26,9 @@ local MsgComponent  = import("business/component/msg_component.lua")
 local Player = class(Entity, MsgComponent)
 
 local prop = property(Player)
-prop:reader("user_id")                      --user_id
+prop:reader("user_id")              --user_id
 prop:reader("passkey", {})          --passkey
+prop:reader("status", 0)            --status
 prop:reader("create_time", 0)       --create_time
 prop:accessor("open_id", nil)       --open_id
 prop:accessor("gateway", nil)       --gateway
@@ -62,6 +63,8 @@ end
 
 --load
 function Player:load(conf)
+    self.status = ONL_LOADING
+    self.active_time = quanta.now_ms
     self:init_attrset(attr_db, 1)
     return game_dao:load_group(self, "player", self.id)
 end
@@ -169,6 +172,7 @@ function Player:offline()
 end
 
 function Player:relive(gateway)
+    self.release = false
     self.gateway = gateway
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
@@ -184,7 +188,6 @@ function Player:unload()
     online:logout_player(self.id)
     --flush
     game_dao:flush(self.id, "player")
-    game_dao:flush(self.open_id, "account")
     return true
 end
 

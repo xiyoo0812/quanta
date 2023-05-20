@@ -8,7 +8,6 @@ local mongo_mgr     = quanta.get("mongo_mgr")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
-local CACHE_EXPIRE  = environ.number("QUANTA_DB_CACHE_EXPIRE")
 
 local Document = class()
 local prop = property(Document)
@@ -28,7 +27,7 @@ end
 --从数据库加载
 function Document:load()
     local query = { [self.primary_key] = self.primary_id }
-    local code, res = mongo_mgr:find_one(MAIN_DBID, self.coll_name, query, { _id = 0 })
+    local code, res = mongo_mgr:find_one(MAIN_DBID, self.primary_id, self.coll_name, query, { _id = 0 })
     if qfailed(code) then
         log_err("[Document][load] failed: %s=> table: %s", res, self.coll_name)
         return code
@@ -36,6 +35,12 @@ function Document:load()
     self.update_time = quanta.now
     self.datas = res or {}
     return code
+end
+
+--删除数据
+function Document:destory()
+    local query = { [self.primary_key] = self.primary_id }
+    mongo_mgr:delete(MAIN_DBID, self.primary_id, self.coll_name, query, true)
 end
 
 --保存数据库
@@ -47,7 +52,7 @@ end
 function Document:update(udata)
     local updata = udata or { ["$set"] = self.datas }
     local selector = { [self.primary_key] = self.primary_id }
-    local code, res = mongo_mgr:update(MAIN_DBID, self.coll_name, updata, selector, true)
+    local code, res = mongo_mgr:update(MAIN_DBID, self.primary_id, self.coll_name, updata, selector, true)
     if qfailed(code) then
         log_err("[Document][update] failed: %s=> table: %s", res, self.coll_name)
         return false, code
@@ -78,32 +83,31 @@ function Document:remove_field(field, flush)
     return false
 end
 
---是否过期
-function Document:is_expire(now)
-    return (self.update_time + CACHE_EXPIRE) < now
-end
-
 --内部接口
 -------------------------------------------------------
 --更新子数据
 function Document:set_field(field, value)
-    if #field == 0 then
-        value[self.primary_key] = self.primary_id
-        self.datas = value
-        return
-    end
-    local cursor = self.datas
-    local fields = ssplit(field, ".")
-    local depth = #fields
-    for i = 1, depth -1 do
-        local cur_field = convint(fields[i])
-        if not cursor[cur_field] then
-            cursor[cur_field] = {}
+    if #field > 0 then
+        local cursor = self.datas
+        local fields = ssplit(field, ".")
+        local depth = #fields
+        for i = 1, depth -1 do
+            local cur_field = convint(fields[i])
+            if not cursor[cur_field] then
+                cursor[cur_field] = {}
+            end
+            cursor = cursor[cur_field]
         end
-        cursor = cursor[cur_field]
+        local fine_field = convint(fields[depth])
+        cursor[fine_field] = value
+    else
+        self.datas = value
     end
-    local fine_field = convint(fields[depth])
-    cursor[fine_field] = value
+    --确保有主键
+    local primary_key = self.primary_key
+    if not self.datas[primary_key] then
+        self.datas[primary_key] = self.primary_id
+    end
 end
 
 --更新子数据

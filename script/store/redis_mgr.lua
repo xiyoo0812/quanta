@@ -34,9 +34,10 @@ function RedisMgr:get_db(db_id)
     return self.redis_dbs[db_id or MAIN_DBID]
 end
 
-function RedisMgr:execute(db_id, cmd, ...)
+function RedisMgr:execute(db_id, primary_id, cmd, ...)
     local redisdb = self:get_db(db_id)
     if redisdb then
+        redisdb:set_executer(primary_id)
         local ok, res_oe = redisdb:execute(cmd, ...)
         if not ok then
             log_err("[RedisMgr][execute] execute %s (%s) failed, because: %s", cmd, tpack(...), res_oe)

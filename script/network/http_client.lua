@@ -7,6 +7,8 @@ local log_err       = logger.err
 local tconcat       = table.concat
 local sformat       = string.format
 local qxpcall       = quanta.xpcall
+local tinsert       = table.insert
+local tunpack       = table.unpack
 local jencode       = ljson.encode
 local luencode      = lcurl.url_encode
 
@@ -19,6 +21,7 @@ local HTTP_CALL_TIMEOUT = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 local HttpClient = singleton()
 local prop = property(HttpClient)
 prop:reader("contexts", {})
+prop:reader("results", {})
 
 function HttpClient:__init()
     --加入帧更新
@@ -39,6 +42,12 @@ end
 function HttpClient:on_frame()
     if next(self.contexts) then
         curlm_mgr.update()
+        thread_mgr:fork(function()
+            for _, result in pairs(self.results) do
+                thread_mgr:response(tunpack(result))
+            end
+            self.results = {}
+        end)
         --清除超时请求
         local clock_ms = quanta.clock_ms
         for handle, context in pairs(self.contexts) do
@@ -57,9 +66,9 @@ function HttpClient:on_respond(curl_handle, result)
         local session_id = context.session_id
         local content, code, err = request.get_respond()
         if result == 0 then
-            thread_mgr:response(session_id, true, code, content)
+            tinsert(self.results, {session_id, true, code, content})
         else
-            thread_mgr:response(session_id, false, code, err)
+            tinsert(self.results, {session_id, false, code, err})
         end
     end
 end

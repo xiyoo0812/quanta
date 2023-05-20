@@ -54,9 +54,9 @@ function Account:update_custom(role_id, custom)
     end
 end
 
-function Account:get_login_token()
-    local key = sformat("LOGIN:login_token:%s", self.user_id)
-    return game_dao:execute("GET", key)
+function Account:get_login_token(role_id)
+    local key = sformat("LOGIN:login_token:%s", role_id)
+    return game_dao:execute(role_id, "GET", key)
 end
 
 return Account

@@ -1,7 +1,6 @@
 --db_property.lua
 --[[提供对象DB属性机制
 --]]
-
 local tconcat   = table.concat
 
 local event_mgr = quanta.get("event_mgr")
@@ -13,16 +12,12 @@ local function fmt_sheet_key(root, ...)
     return tconcat({ ... }, ".")
 end
 
-local function on_db_sheet_load(object, sheet, data)
-    local f_db_sheet_load = object["on_db_" .. sheet .. "_load"]
-    if f_db_sheet_load then
-        if f_db_sheet_load(object, data) then
-            object["__db_" .. sheet .. "_syncing"] = true
-            return true, data
-        end
-        return false
+local function on_db_prop_init(primary_id, sheet, db_key, value, flush)
+    local result = event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value, flush)
+    if result[1] then
+        return result[2]
     end
-    return true, data
+    return false
 end
 
 local function on_db_prop_update(object, primary_id, sheet, db_key, value, flush)
@@ -44,17 +39,14 @@ local function on_db_prop_remove(primary_id, sheet, db_key, flush)
 end
 
 local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
-    class["load_" .. sheet .. "_db"] = function(self, primary_key, f_db_load)
+    class["load_" .. sheet .. "_db"] = function(self, primary_key, data)
         self[sheetkey] = ""
         self[sheetprimary] = primary_key
-        local success, data = f_db_load()
-        if success then
-            return on_db_sheet_load(self, sheet, data)
-        end
-        return success
+        self["on_db_" .. sheet .. "_load"](self, data)
+        self["__db_" .. sheet .. "_syncing"] = true
     end
-    class["flush_" .. sheet] = function(self, value)
-        return on_db_prop_update(self, self[sheetprimary], sheet, self[sheetkey], value, true)
+    class["flush_" .. sheet] = function(self, value, flush)
+        return on_db_prop_init(self[sheetprimary], sheet, self[sheetkey], value, flush)
     end
     local sheet_status_name = "__db_" .. sheet .. "_syncing"
     class["pause_" .. sheet .. "_sync"] = function(self)

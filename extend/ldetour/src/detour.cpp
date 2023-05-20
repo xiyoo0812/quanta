@@ -83,12 +83,18 @@ namespace ldetour {
     }
 
     nav_query* nav_mesh::create_query(const int max_nodes, float scale) {
-        nav_query* query = new nav_query;
+        nav_query* query = new nav_query();
         if(!dtStatusSucceed(query->create(nvmesh, max_nodes, scale))) {
             delete query;
             return nullptr;
         }
         return query;
+    }
+
+    // 多边形是否合法
+    bool nav_query::poly_valid(dtPolyRef* poly_ref) {
+        unsigned short flags;
+        return dtStatusSucceed(mesh_ref->getPolyFlags(*poly_ref, &flags));
     }
 
     nav_query::~nav_query() {
@@ -111,13 +117,14 @@ namespace ldetour {
     }
 
     int nav_query::create(dtNavMesh* mesh, const int max_nodes, float scale ) {
+        mesh_ref = mesh;
         qscale = scale;
         filter = dtQueryFilter();
         nvquery = dtAllocNavMeshQuery();
         if (!nvquery) {
             return DT_FAILURE | DT_OUT_OF_MEMORY;
         }
-        int status = nvquery->init(mesh, max_nodes);
+        int status = nvquery->init(mesh_ref, max_nodes);
         if (!dtStatusSucceed(status)) {
             return status;
         }
@@ -210,19 +217,32 @@ namespace ldetour {
     }
 
     int nav_query::around_point(lua_State* L, int32_t x, int32_t y, int32_t z, int32_t radius) {
-        float half_extents[3] = { 2, 4, 2 };    // 沿着每个轴的搜索长度
+        float radius_f = radius / qscale;
+        const float radius_max = 40;
+        if (radius_f > radius_max) {
+            radius_f = radius_max;
+        }
+        float half_extents[3] = { radius_f, 0.1f, radius_f };    // 沿着每个轴的搜索长度
         dtPolyRef start_ref;
         dtPolyRef random_ref;
         nav_point random_pos;
-
         float pos[3] = { x / qscale, y / qscale, z / qscale };
         nvquery->findNearestPoly(pos, half_extents, &filter, &start_ref, 0);
         if (!start_ref) {
             return luakit::variadic_return(L, false);
         }
-
-        nvquery->findRandomPointAroundCircle(start_ref, pos, radius, &filter, frand, &random_ref, random_pos);
-
+        int try_count = 3; // 最多尝试3次
+        while (try_count-- > 0) {
+            nvquery->findRandomPointAroundCircle(start_ref, pos, radius_f, &filter, frand, &random_ref, random_pos);
+            if (poly_valid(&random_ref)) {
+                // 随机点可寻路，返回
+                break;
+            }
+        }
+        if (try_count < 0) {
+            // 重试次数用完了，但是未找到
+            return luakit::variadic_return(L, false);
+        }
         return luakit::variadic_return(L, pformat(random_pos[0]), pformat(random_pos[1]), pformat(random_pos[2]));
     }
 

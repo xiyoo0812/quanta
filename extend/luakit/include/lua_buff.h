@@ -115,6 +115,9 @@ namespace luakit {
                     while (nsize - data_len < len) {
                         nsize *= 2;
                     }
+                    if (nsize >= BUFFER_MAX) {
+                        return nullptr;
+                    }
                     space_len = _resize(nsize);
                     if (space_len < len) {
                         return nullptr;

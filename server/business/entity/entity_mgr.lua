@@ -32,7 +32,7 @@ function EntityMgr:on_frame()
 end
 
 --实体被消耗
-function EntityMgr:on_destory(entity)
+function EntityMgr:on_destory(entity_id, entity)
 end
 
 -- 设置实体
@@ -45,7 +45,7 @@ end
 function EntityMgr:remove_entity(entity, entity_id)
     log_info("[EntityMgr][remove_entity] entity_id=%s", entity_id)
     self.entity_map:set(entity_id, nil)
-    self:on_destory(entity)
+    self:on_destory(entity_id, entity)
     entity:destory()
 end
 

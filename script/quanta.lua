@@ -10,6 +10,7 @@ local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 local guid_new      = lcodec.guid_new
+local hash_code     = lcodec.hash_code
 
 local MQ_DRIVER     = environ.get("QUANTA_MQ_DRIVER", "redis")
 
@@ -75,6 +76,10 @@ function quanta.enum(ename, ekey)
     return eval
 end
 
+function quanta.hash(key, mod)
+    return hash_code(key, mod)
+end
+
 function quanta.new_guid()
     return guid_new(quanta.service, quanta.index)
 end
@@ -107,4 +112,10 @@ function quanta.make_sampling(title, period)
     local counter = Counter(title)
     counter:sampling(period)
     return counter
+end
+
+--创建聚合器
+function quanta.make_converger(title)
+    local Converger = import("kernel/object/converger.lua")
+    return Converger(title)
 end

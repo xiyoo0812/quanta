@@ -6,6 +6,7 @@ local ltimer        = require("ltimer")
 local pcall         = pcall
 local log_err       = logger.err
 local log_info      = logger.info
+local log_warn      = logger.warn
 local tpack         = table.pack
 local tunpack       = table.unpack
 local qxpcall       = quanta.xpcall
@@ -26,6 +27,9 @@ local WTITLE        = quanta.worker_title
 local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
+local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 --初始化核心
 local function init_core()
@@ -118,13 +122,20 @@ end
 
 --底层驱动
 quanta.run = function()
-    local sclock_ms = lclock_ms()
-    socket_mgr.wait(sclock_ms, 10)
     --系统更新
     qxpcall(function()
-        quanta.update()
-        update_mgr:update(nil, ltime())
-    end, "quanta run err: %s")
+        local sclock_ms = lclock_ms()
+        quanta.update(sclock_ms)
+        socket_mgr.wait(sclock_ms, 10)
+        local now_ms, clock_ms = ltime()
+        update_mgr:update(nil, now_ms, clock_ms)
+        --时间告警
+        local io_ms = clock_ms - sclock_ms
+        local work_ms = lclock_ms() - sclock_ms
+        if work_ms > HALF_MS or io_ms > FAST_MS then
+            log_warn("[worker][run] last frame too long => all:%d, net:%d)!", work_ms, io_ms)
+        end
+    end, "worker run err: %s")
 end
 
 --事件分发
@@ -139,7 +150,8 @@ local function notify_rpc(session_id, title, rpc, ...)
     end
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        quanta.call(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
+        local slice = lencode(session_id, FLAG_RES, tunpack(rpc_datas))
+        quanta.call(title, slice)
     end
 end
 
@@ -167,8 +179,11 @@ end
 --访问主线程
 quanta.call_master = function(rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    quanta.call("master", lencode(session_id, FLAG_REQ, WTITLE, rpc, ...))
-    return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+    local slice = lencode(session_id, FLAG_REQ, WTITLE, rpc, ...)
+    if quanta.call("master", slice) then
+        return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+    end
+    return false, "call failed"
 end
 
 --通知主线程
@@ -179,8 +194,10 @@ end
 --访问其他线程
 quanta.call_worker = function(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    quanta.call(name, lencode(session_id, FLAG_REQ, WTITLE, rpc, ...))
-    return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+    if quanta.call(name, lencode(session_id, FLAG_REQ, WTITLE, rpc, ...)) then
+        return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+    end
+    return false, "call failed"
 end
 
 --通知其他线程

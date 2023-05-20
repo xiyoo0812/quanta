@@ -1,14 +1,16 @@
 --thread_mgr.lua
 local select        = select
+
 local tunpack       = table.unpack
 local sformat       = string.format
 local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running
+local qxpcall       = quanta.xpcall
 local mrandom       = qmath.random
 local tsize         = qtable.size
-local qxpcall       = quanta.xpcall
+local log_warn      = logger.warn
 local log_err       = logger.err
 
 local QueueFIFO     = import("container/queue_fifo.lua")
@@ -129,10 +131,18 @@ function ThreadMgr:create_co(f)
     return co
 end
 
+function ThreadMgr:try_response(session_id, ...)
+    local context = self.coroutine_yields[session_id]
+    if context then
+        self.coroutine_yields[session_id] = nil
+        self:resume(context.co, ...)
+    end
+end
+
 function ThreadMgr:response(session_id, ...)
     local context = self.coroutine_yields[session_id]
     if not context then
-        log_err("[ThreadMgr][response] unknown session_id(%s) response!", session_id)
+        log_warn("[ThreadMgr][response] unknown session_id(%s) response!", session_id)
         return
     end
     self.coroutine_yields[session_id] = nil
@@ -194,7 +204,7 @@ function ThreadMgr:on_second(clock_ms)
         for session_id, context in pairs(timeout_coroutines) do
             self.coroutine_yields[session_id] = nil
             if context.title then
-                log_err("[ThreadMgr][on_fast] session_id(%s:%s) timeout!", session_id, context.title)
+                log_err("[ThreadMgr][on_second] session_id(%s:%s) timeout!", session_id, context.title)
             end
             self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
         end
