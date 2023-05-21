@@ -26,6 +26,17 @@ namespace ldetour {
         return old;
     }
 
+    // calculate the distance square between two points on the xyz zone
+    // [in]        point1    first point[(x, y, z)]
+    // [in]        point2    second point[(x, y, z)]
+    // [return]              distance square between two points
+    float distanceSqrBetweenPoints(const float* point1, const float* point2) {
+        float dx = point2[0] - point1[0];
+        float dy = point2[1] - point1[1];
+        float dz = point2[2] - point1[2];
+        return dx*dx + dy*dy + dz*dz;
+    }
+
     // 从dump到文件的mesh数据，还原出NavMesh的内存结构
     int nav_mesh::create(const char* buf, size_t sz) {
         unsigned char* stream = (unsigned char*)buf;
@@ -222,7 +233,7 @@ namespace ldetour {
         if (radius_f > radius_max) {
             radius_f = radius_max;
         }
-        float half_extents[3] = { radius_f, 0.1f, radius_f };    // 沿着每个轴的搜索长度
+        float half_extents[3] = { 2, 4, 2 };    // 沿着每个轴的搜索长度
         dtPolyRef start_ref;
         dtPolyRef random_ref;
         nav_point random_pos;
@@ -232,9 +243,10 @@ namespace ldetour {
             return luakit::variadic_return(L, false);
         }
         int try_count = 3; // 最多尝试3次
+        float radius_sqr = radius_f * radius_f; // 距离的平方
         while (try_count-- > 0) {
-            nvquery->findRandomPointAroundCircle(start_ref, pos, radius_f, &filter, frand, &random_ref, random_pos);
-            if (poly_valid(&random_ref)) {
+            bool found = nvquery->findRandomPointAroundCircle(start_ref, pos, radius_f, &filter, frand, &random_ref, random_pos) == DT_SUCCESS;
+            if (found && poly_valid(&random_ref) && distanceSqrBetweenPoints(pos, random_pos) <= radius_sqr) {
                 // 随机点可寻路，返回
                 break;
             }

@@ -6,7 +6,6 @@ local tonumber      = tonumber
 local log_err       = logger.err
 local log_info      = logger.info
 local ssub          = string.sub
-local sgsub         = string.gsub
 local supper        = string.upper
 local sformat       = string.format
 local tinsert       = table.insert
@@ -129,18 +128,6 @@ local function _compose_args(cmd, ...)
     return sformat("%s\r\n", buff)
 end
 
-local function _tokeys(value)
-    if type(value) == 'string' then
-        -- backwards compatibility path for Redis < 2.0
-        local keys = {}
-        sgsub(value, '[^%s]+', function(key)
-            keys[#keys + 1] = key
-        end)
-        return keys
-    end
-    return {}
-end
-
 local function _tomap(value)
     if (type(value) == 'table') then
         local maps = { }
@@ -163,7 +150,10 @@ end
 local redis_commands = {
     del         = { cmd = "DEL"     },
     set         = { cmd = "SET"     },
+    keys        = { cmd = "KEYS"    },
     type        = { cmd = "TYPE"    },
+    incr        = { cmd = "INCR"    },
+    incrby      = { cmd = "INCRBY", },
     rename      = { cmd = "RENAME"  },
     ttl         = { cmd = "TTL"     },
     dbsize      = { cmd = "DBSIZE"  },
@@ -218,6 +208,7 @@ local redis_commands = {
     hlen        = { cmd = "HLEN"    },      -- >= 2.0
     hkeys       = { cmd = "HKEYS"   },      -- >= 2.0
     hvals       = { cmd = "HVALS"   },      -- >= 2.0
+    hincrby     = { cmd = "HINCRBY" },      -- >= 2.0
     echo        = { cmd = "ECHO"    },
     select      = { cmd = "SELECT"  },
     multi       = { cmd = "MULTI"   },      -- >= 2.0
@@ -263,10 +254,7 @@ local redis_commands = {
     zinterstore     = { cmd = "ZINTERSTORE"         },  -- >= 2.0
     zremrangebyscore= { cmd = "ZREMRANGEBYSCORE"    },
     zremrangebyrank = { cmd = "ZREMRANGEBYRANK"     },  -- >= 2.0
-    incr            = { cmd = "INCR",           convertor = tonumber    },
-    incrby          = { cmd = "INCRBY",         convertor = tonumber    },
     zincrby         = { cmd = "ZINCRBY",        convertor = tonumber    },
-    hincrby         = { cmd = "HINCRBY",        convertor = tonumber    },  -- >= 2.0
     incrbyfloat     = { cmd = "INCRBYFLOAT",    convertor = tonumber    },
     hincrbyfloat    = { cmd = "HINCRBYFLOAT",   convertor = tonumber    },  -- >= 2.6
     setnx           = { cmd = "SETNX",          convertor = _toboolean  },
@@ -286,7 +274,6 @@ local redis_commands = {
     msetnx          = { cmd = "MSETNX",         convertor = _toboolean  },
     hgetall         = { cmd = "HGETALL",        convertor = _tomap      },  -- >= 2.0
     config          = { cmd = "CONFIG",         convertor = _tomap      },  -- >= 2.0
-    keys            = { cmd = "KEYS",           convertor = _tokeys     },
 }
 
 local RedisDB = class()
@@ -342,11 +329,7 @@ function RedisDB:setup()
     self.res_counter = quanta.make_sampling(sformat("redis %s res", self.id))
     for cmd, param in pairs(redis_commands) do
         RedisDB[cmd] = function(this, ...)
-            local socket = self:choose_driver()
-            if not socket then
-                return false, "redis not connested"
-            end
-            return this:commit(socket, param, ...)
+            return this:commit(param, ...)
         end
     end
     thread_mgr:entry(self:address(), function()
@@ -364,7 +347,7 @@ function RedisDB:on_hour()
     for _, sock in pairs(self.connections) do
         if not sock:is_alive() then
             self.executer = sock
-            self:commit(sock, { cmd = "PING" })
+            self:commit({ cmd = "PING" })
         end
     end
 end
@@ -476,10 +459,11 @@ function RedisDB:commit(param, ...)
 end
 
 function RedisDB:execute(cmd, ...)
-    if RedisDB[cmd] then
-        return self[cmd](self, ...)
+    local scmd = supper(cmd)
+    if RedisDB[scmd] then
+        return self[scmd](self, ...)
     end
-    return self:commit({ cmd = supper(cmd) }, ...)
+    return self:commit({ cmd = scmd }, ...)
 end
 
 return RedisDB

@@ -17,7 +17,7 @@ prop:reader("coll_name", "")    -- coll_name
 function MongoMQ:__init()
 end
 
-function MongoMQ:setup(coll_name, ttl)
+function MongoMQ:setup(coll_name)
     self.coll_name = coll_name
     local query = { coll_name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
     local ok, code = mongo_agent:create_indexes(query)
@@ -28,8 +28,8 @@ function MongoMQ:setup(coll_name, ttl)
 end
 
 -- 获取消息长度
-function MongoMQ:len_message(coll_name, target_id)
-    local query = { coll_name, { target_id = target_id }}
+function MongoMQ:len_message(target_id)
+    local query = { self.coll_name, { target_id = target_id }}
     local ok, code, result = mongo_agent:count(query, target_id)
     if qsuccess(code, ok) then
         return result
@@ -39,8 +39,8 @@ end
 
 
 -- 查询未处理消息列表
-function MongoMQ:list_message(coll_name, target_id)
-    local query = { coll_name, { target_id = target_id }, nil, { time = 1 } }
+function MongoMQ:list_message(target_id)
+    local query = { self.coll_name, { target_id = target_id }, nil, { time = 1 } }
     local ok, code, result = mongo_agent:find(query, target_id)
     if qsuccess(code, ok) then
         return result
@@ -49,10 +49,10 @@ function MongoMQ:list_message(coll_name, target_id)
 end
 
 -- 删除消息
-function MongoMQ:delete_message(coll_name, target_id, timestamp)
+function MongoMQ:delete_message(target_id, timestamp)
     log_info("[MongoMQ][delete_message] delete message: %s", target_id)
     local selecter = { ["$and"] = { { target_id = target_id }, { time = {["$lte"] = timestamp } }}}
-    return mongo_agent:delete({ coll_name, selecter }, target_id)
+    return mongo_agent:delete({ self.coll_name, selecter }, target_id)
 end
 
 -- 发送消息
