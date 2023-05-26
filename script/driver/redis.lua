@@ -6,7 +6,7 @@ local tonumber      = tonumber
 local log_err       = logger.err
 local log_info      = logger.info
 local ssub          = string.sub
-local supper        = string.upper
+local slower        = string.lower
 local sformat       = string.format
 local tinsert       = table.insert
 local is_array      = qtable.is_array
@@ -459,11 +459,11 @@ function RedisDB:commit(param, ...)
 end
 
 function RedisDB:execute(cmd, ...)
-    local scmd = supper(cmd)
-    if RedisDB[scmd] then
-        return self[scmd](self, ...)
+    local lcmd = slower(cmd)
+    if RedisDB[lcmd] then
+        return self[lcmd](self, ...)
     end
-    return self:commit({ cmd = scmd }, ...)
+    return self:commit({ cmd = cmd }, ...)
 end
 
 return RedisDB

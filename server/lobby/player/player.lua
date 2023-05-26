@@ -66,20 +66,19 @@ function Player:load(conf)
     self.status = ONL_LOADING
     self.active_time = quanta.now_ms
     self:init_attrset(attr_db, 1)
-    return game_dao:load_group(self, "player", self.id)
+    return game_dao:load_group(self, "lobby", self.id)
 end
 
 --修改玩家名字
 function Player:update_name(name)
-    self:set_name(name)
-    self:set_nick(name)
+    self:save_name(name)
+    self:save_nick(name)
     self.account:update_nick(self.id, name)
 end
 
 --修改玩家外观
 function Player:update_custom(custom)
-    self:set_custom(custom)
-    self:set_facade(custom)
+    self:save_facade(custom)
     self.account:update_custom(self.id, custom)
 end
 
@@ -153,7 +152,7 @@ function Player:online()
     self.active_time = quanta.now_ms
     self:set_version(self:build_version())
     self:add_passkey("lobby", quanta.id)
-    self:set_login_time(quanta.now)
+    self:save_login_time(quanta.now)
     self.load_success = true
     log_info("[Player][online] player(%s) is online!", self.id)
     return true
@@ -184,10 +183,8 @@ end
 --unload
 function Player:unload()
     self:invoke("_unload")
-    self.account:set_lobby(0)
+    self.account:save_lobby(0)
     online:logout_player(self.id)
-    --flush
-    game_dao:flush(self.id, "player")
     return true
 end
 

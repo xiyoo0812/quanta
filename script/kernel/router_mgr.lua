@@ -36,7 +36,7 @@ function RouterMgr:on_service_close(id, name)
     log_debug("[RouterMgr][on_service_close] node: %s-%s", name, id)
     local router = self.routers[id]
     if router then
-        router.client:close()
+        router:set_holder(nil)
         self.routers[id] = nil
     end
 end
@@ -59,11 +59,7 @@ end
 function RouterMgr:add_router(router_id, host, port)
     if not self.routers[router_id] then
         local RpcClient = import("network/rpc_client.lua")
-        self.routers[router_id] = {
-            addr = host,
-            router_id = router_id,
-            client = RpcClient(self, host, port)
-        }
+        self.routers[router_id] = RpcClient(self, host, port)
     end
 end
 
@@ -82,9 +78,9 @@ end
 --检查可用router
 function RouterMgr:check_router()
     local candidates = {}
-    for _, node in pairs(self.routers) do
-        if node.client:is_alive() then
-            candidates[#candidates + 1] = node
+    for _, client in pairs(self.routers) do
+        if client:is_alive() then
+            candidates[#candidates + 1] = client
         end
     end
     self.candidates = candidates
@@ -107,7 +103,7 @@ end
 --通过router发送点对点消息
 function RouterMgr:forward_client(router, method, ...)
     if router then
-        return router.client:forward_socket(method, ...)
+        return router:forward_socket(method, ...)
     end
     return false, "router not connected"
 end

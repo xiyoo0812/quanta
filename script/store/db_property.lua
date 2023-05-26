@@ -12,30 +12,12 @@ local function fmt_sheet_key(root, ...)
     return tconcat({ ... }, ".")
 end
 
-local function on_db_prop_init(primary_id, sheet, db_key, value, flush)
-    local result = event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value, flush)
-    if result[1] then
-        return result[2]
-    end
-    return false
+local function on_db_prop_update(primary_id, sheet, db_key, value)
+    event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value)
 end
 
-local function on_db_prop_update(object, primary_id, sheet, db_key, value, flush)
-    if flush or object["__db_" .. sheet .. "_syncing"] then
-        local result = event_mgr:notify_listener("on_db_prop_update", primary_id, sheet, db_key, value, flush)
-        if result[1] then
-            return result[2]
-        end
-    end
-    return false
-end
-
-local function on_db_prop_remove(primary_id, sheet, db_key, flush)
-    local result =  event_mgr:notify_listener("on_db_prop_remove", primary_id, sheet, db_key, flush)
-    if result[1] then
-        return result[2]
-    end
-    return false
+local function on_db_prop_remove(primary_id, sheet, db_key)
+    event_mgr:notify_listener("on_db_prop_remove", primary_id, sheet, db_key)
 end
 
 local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
@@ -43,24 +25,13 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
         self[sheetkey] = ""
         self[sheetprimary] = primary_key
         self["on_db_" .. sheet .. "_load"](self, data)
-        self["__db_" .. sheet .. "_syncing"] = true
+        self["__" .. sheet .. "_loaded"] = true
     end
-    class["flush_" .. sheet] = function(self, value, flush)
-        return on_db_prop_init(self[sheetprimary], sheet, self[sheetkey], value, flush)
-    end
-    local sheet_status_name = "__db_" .. sheet .. "_syncing"
-    class["pause_" .. sheet .. "_sync"] = function(self)
-        if self[sheet_status_name] ~= nil then
-            self[sheet_status_name] = false
-        end
-    end
-    class["continue_" .. sheet .. "_sync"] = function(self)
-        if self[sheet_status_name] ~= nil then
-            self[sheet_status_name] = true
-        end
+    class["init_" .. sheet .. "_db"] = function(self, values)
+        on_db_prop_update(self[sheetprimary], sheet, self[sheetkey], values)
     end
     class["is_" .. sheet .. "_loaded"] = function(self)
-        return self[sheet_status_name]
+        return self["__" .. sheet .. "_loaded"]
     end
 end
 
@@ -69,17 +40,21 @@ local function db_prop_op_value(class, sheet, sheetkey, sheetroot, sheetprimary,
     class["get_" .. name] = function(self)
         return self[name]
     end
-    class["set_" .. name] = function(self, value, flush)
+    class["set_" .. name] = function(self, value)
+        if self[name] ~= value or type(value) == "table" then
+            self[name] = value
+        end
+    end
+    class["save_" .. name] = function(self, value)
         if self[name] ~= value or type(value) == "table" then
             self[name] = value
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = fmt_sheet_key(sheet_key, name)
-                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
+                on_db_prop_update(root[sheetprimary], sheet, db_key, value)
             end
         end
-        return true
     end
 end
 
@@ -91,19 +66,31 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
         end
         return self[name]
     end
-    class["set_" .. name] = function(self, value, flush)
-        self[name] = value
-        local sheet_key = self[sheetkey]
-        if sheet_key then
-            local root = self[sheetroot] or self
-            local db_key = fmt_sheet_key(sheet_key, name)
-            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
+    class["set_" .. name] = function(self, values)
+        if self[name] ~= values or type(values) == "table" then
+            self[name] = values
         end
-        return true
+    end
+    class["save_" .. name] = function(self, values)
+        if self[name] ~= values or type(values) == "table" then
+            self[name] = values
+            local sheet_key = self[sheetkey]
+            if sheet_key then
+                local root = self[sheetroot] or self
+                local db_key = fmt_sheet_key(sheet_key, name)
+                on_db_prop_update(root[sheetprimary], sheet, db_key, values)
+            end
+        end
     end
     local set_func_name = "set_" .. name .. "_field"
     local del_func_name = "del_" .. name .. "_field"
-    class[set_func_name] = function(self, key, value, flush)
+    local save_func_name = "save_" .. name .. "_field"
+    class[set_func_name] = function(self, key, value)
+        if self[name][key] ~= value or type(value) == "table" then
+            self[name][key] = value
+        end
+    end
+    class[save_func_name] = function(self, key, value)
         if not value then
             return class[del_func_name](self, key)
         end
@@ -113,22 +100,20 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, sheetprimary
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = fmt_sheet_key(sheet_key, name, key)
-                return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value, flush)
+                on_db_prop_update(root[sheetprimary], sheet, db_key, value)
             end
         end
-        return true
     end
-    class[del_func_name] = function(self, key, flush)
+    class[del_func_name] = function(self, key)
         if self[name][key] then
             self[name][key] = nil
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = fmt_sheet_key(sheet_key, name, key)
-                return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
+                on_db_prop_remove(root[sheetprimary], sheet, db_key)
             end
         end
-        return true
     end
 end
 
@@ -142,7 +127,16 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
     end
     local set_func_name = "set_" .. name .. "_elem"
     local del_func_name = "del_" .. name .. "_elem"
-    class[set_func_name] = function(self, key, value, flush)
+    local save_func_name = "save_" .. name .. "_elem"
+    class[set_func_name] = function(self, key, value)
+        self[name][key] = value
+        local sheet_key = self[sheetkey]
+        if sheet_key then
+            value[sheetroot] = self[sheetroot] or self
+            value[sheetkey] = fmt_sheet_key(sheet_key, name, key)
+        end
+    end
+    class[save_func_name] = function(self, key, value)
         if not value then
             return class[del_func_name](self, key)
         end
@@ -153,23 +147,22 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, sheetprimar
             local db_key = fmt_sheet_key(sheet_key, name, key)
             value[sheetkey] = db_key
             value[sheetroot] = root
-            return on_db_prop_update(root, root[sheetprimary], sheet, db_key, value:pack2db(), flush)
+            on_db_prop_update(root[sheetprimary], sheet, db_key, value:pack2db())
         end
-        return true
     end
-    class[del_func_name] = function(self, key, flush)
+    class[del_func_name] = function(self, key)
         local value = self[name][key]
         if value then
             self[name][key] = nil
-            value[sheetroot] = nil
             local sheet_key = self[sheetkey]
             if sheet_key then
                 local root = self[sheetroot] or self
                 local db_key = fmt_sheet_key(sheet_key, name, key)
-                return on_db_prop_remove(root[sheetprimary], sheet, db_key, flush)
+                on_db_prop_remove(root[sheetprimary], sheet, db_key)
+                value[sheetroot] = nil
+                value[sheetkey] = nil
             end
         end
-        return true
     end
 end
 
@@ -201,4 +194,3 @@ function db_property(class, sheet, root)
     end
     return prop
 end
-

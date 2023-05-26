@@ -30,7 +30,8 @@ function Account:create(token, device_id, params)
     self.device_id = device_id
     self.create_time = quanta.now
     self.user_id = guid_new(quanta.service, quanta.index)
-    return self:flush_account(self:pack2db(), true)
+    self:init_account_db(self:pack2db())
+    return true
 end
 
 function Account:is_newbee()
@@ -59,7 +60,6 @@ function Account:on_db_account_load(data)
         self.create_time = data.create_time
         self.roles = data.roles or {}
     end
-    return true
 end
 
 function Account:del_role(role_id)

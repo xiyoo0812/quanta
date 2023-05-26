@@ -66,8 +66,8 @@
 #endif
 
 #define DEFAULT_SPARSE_CONVERT 1
-#define DEFAULT_SPARSE_RATIO 2
-#define DEFAULT_SPARSE_SAFE 10
+#define DEFAULT_SPARSE_RATIO 1
+#define DEFAULT_SPARSE_SAFE 1
 #define DEFAULT_ENCODE_MAX_DEPTH 1000
 #define DEFAULT_DECODE_MAX_DEPTH 1000
 #define DEFAULT_ENCODE_INVALID_NUMBERS 0
@@ -75,6 +75,7 @@
 #define DEFAULT_ENCODE_KEEP_BUFFER 1
 #define DEFAULT_ENCODE_NUMBER_PRECISION 14
 #define DEFAULT_ENCODE_EMPTY_TABLE_AS_OBJECT 1
+#define DEFAULT_DECODE_NUMBER_KEY 1
 
 #ifdef DISABLE_INVALID_NUMBERS
 #undef DEFAULT_DECODE_INVALID_NUMBERS
@@ -136,6 +137,7 @@ typedef struct {
     int encode_empty_table_as_object;
 
     int decode_invalid_numbers;
+    int decode_number_key;
     int decode_max_depth;
 } json_config_t;
 
@@ -285,6 +287,14 @@ static int json_cfg_encode_sparse_array(lua_State *l)
     return 3;
 }
 
+/* Configures enable the decode number key
+ * decoding */
+static int json_cfg_decode_number_key(lua_State *l)
+{
+    json_config_t *cfg = json_arg_init(l, 1);
+    return json_integer_option(l, 1, &cfg->decode_number_key, 1, INT_MAX);
+}
+
 /* Configures the maximum number of nested arrays/objects allowed when
  * encoding */
 static int json_cfg_encode_max_depth(lua_State *l)
@@ -405,6 +415,7 @@ static void json_create_config(lua_State *l)
     cfg->encode_sparse_safe = DEFAULT_SPARSE_SAFE;
     cfg->encode_max_depth = DEFAULT_ENCODE_MAX_DEPTH;
     cfg->decode_max_depth = DEFAULT_DECODE_MAX_DEPTH;
+    cfg->decode_number_key = DEFAULT_DECODE_NUMBER_KEY;
     cfg->encode_invalid_numbers = DEFAULT_ENCODE_INVALID_NUMBERS;
     cfg->decode_invalid_numbers = DEFAULT_DECODE_INVALID_NUMBERS;
     cfg->encode_keep_buffer = DEFAULT_ENCODE_KEEP_BUFFER;
@@ -1186,7 +1197,13 @@ static void json_parse_object_context(lua_State *l, json_parse_t *json)
             json_throw_parse_error(l, json, "object key string", &token);
 
         /* Push key */
-        lua_pushlstring(l, token.value.string, token.string_len);
+        if (json->cfg->decode_number_key){
+            if (lua_stringtonumber(l, token.value.string) == 0) {
+                lua_pushlstring(l, token.value.string, token.string_len);
+            }
+        } else {
+            lua_pushlstring(l, token.value.string, token.string_len);
+        }
 
         json_next_token(json, &token);
         if (token.type != T_COLON)
@@ -1383,8 +1400,9 @@ static int lua_cjson_new(lua_State *l)
         { "encode_sparse_array", json_cfg_encode_sparse_array },
         { "encode_max_depth", json_cfg_encode_max_depth },
         { "decode_max_depth", json_cfg_decode_max_depth },
+        { "decode_number_key", json_cfg_decode_number_key },
         { "encode_number_precision", json_cfg_encode_number_precision },
-         { "encode_empty_table_as_object", json_cfg_encode_empty_table_as_object },
+        { "encode_empty_table_as_object", json_cfg_encode_empty_table_as_object },
         { "encode_keep_buffer", json_cfg_encode_keep_buffer },
         { "encode_invalid_numbers", json_cfg_encode_invalid_numbers },
         { "decode_invalid_numbers", json_cfg_decode_invalid_numbers },

@@ -34,7 +34,8 @@ prop:reader("port", nil)
 prop:reader("alive", false)
 prop:reader("alive_time", 0)
 prop:reader("socket", nil)
-prop:reader("holder", nil)    --持有者
+prop:accessor("holder", nil)    --持有者
+
 function RpcClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
@@ -45,6 +46,9 @@ function RpcClient:__init(holder, ip, port)
 end
 
 function RpcClient:check_heartbeat()
+    if not self.holder then
+        return
+    end
     if self.alive then
         self:heartbeat()
     else

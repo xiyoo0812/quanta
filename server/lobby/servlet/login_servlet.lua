@@ -10,7 +10,6 @@ local mrandom           = qmath.random
 local qfailed           = quanta.failed
 
 local online            = quanta.get("online")
-local game_dao          = quanta.get("game_dao")
 local event_mgr         = quanta.get("event_mgr")
 local player_mgr        = quanta.get("player_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
@@ -31,11 +30,6 @@ function LoginServlet:__init()
     event_mgr:add_listener(self, "rpc_player_login")
     event_mgr:add_listener(self, "rpc_player_logout")
     event_mgr:add_listener(self, "rpc_player_reload")
-
-    -- 注册存储结构
-    game_dao:add_sheet("account", "account", "open_id")
-    game_dao:add_sheet("player", "player", "player_id")
-    game_dao:add_sheet("player", "player_attr", "player_id")
 end
 
 -- 会话需要同步

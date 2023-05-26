@@ -11,6 +11,8 @@ local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 local guid_new      = lcodec.guid_new
 local hash_code     = lcodec.hash_code
+local serialize     = lcodec.serialize
+local unserialize   = lcodec.unserialize
 
 local MQ_DRIVER     = environ.get("QUANTA_MQ_DRIVER", "redis")
 
@@ -80,6 +82,14 @@ function quanta.hash(key, mod)
     return hash_code(key, mod)
 end
 
+function quanta.serialize(t)
+    return serialize(t)
+end
+
+function quanta.unserialize(s)
+    return unserialize(s)
+end
+
 function quanta.new_guid()
     return guid_new(quanta.service, quanta.index)
 end
@@ -114,8 +124,8 @@ function quanta.make_sampling(title, period)
     return counter
 end
 
---创建聚合器
-function quanta.make_converger(title)
-    local Converger = import("kernel/object/converger.lua")
-    return Converger(title)
+--创建管道
+function quanta.make_channel(title)
+    local Channel = import("kernel/object/channel.lua")
+    return Channel(title)
 end

@@ -99,8 +99,5 @@ RobotType.PLAYER            = 2       -- 指定账号
 
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
-CacheCode.CACHE_IS_NOT_EXIST        = 10001  -- 缓存不存在
-CacheCode.CACHE_IS_LOCK_FAILD       = 10002  -- 用户锁失败
-CacheCode.CACHE_KEY_NOT_EXIST       = 10003  -- key不存在
-CacheCode.CACHE_FLUSH_FAILED        = 10004  -- flush失败
-CacheCode.CACHE_DELETE_FAILD        = 10005  -- 缓存删除失败
+CacheCode.CACHE_DB_LOAD_ERR         = 10001  -- DB加载失败
+CacheCode.CACHE_DELETE_FAILD        = 10002  -- 缓存删除失败

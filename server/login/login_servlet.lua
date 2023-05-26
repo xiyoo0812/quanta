@@ -13,7 +13,6 @@ local guid_encode           = lcodec.guid_encode
 
 local monitor               = quanta.get("monitor")
 local login_dao             = quanta.get("login_dao")
-local login_mgr             = quanta.get("login_mgr")
 local event_mgr             = quanta.get("event_mgr")
 local thread_mgr            = quanta.get("thread_mgr")
 local client_mgr            = quanta.get("client_mgr")
@@ -80,7 +79,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         open_id, device_id = sdk_open_id, sdk_device_id
     end
     --加载账号信息
-    local account = login_mgr:load_account(open_id)
+    local account = login_dao:load_account(open_id)
     if not account then
         log_err("[LoginServlet][on_account_login_req] load account failed! open_id: %s token:%s", open_id, access_token)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
@@ -129,10 +128,11 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     end
     --创建角色
     local role_id = datas[3]
-    if not login_dao:create_player(account, role_id, body) then
+    if not login_dao:create_player(account:get_open_id(), role_id, body) then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) create role failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
+    account:save_roles_field(role_id, body)
     event_mgr:notify_listener("on_role_create", user_id, role_id, body)
     local rdata = { role_id = role_id, gender = body.gender, name = body.name }
     client_mgr:callback_by_id(session, cmd_id, { error_code = 0, role = rdata }, session_id)
@@ -159,7 +159,7 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) server uphold!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
     end
-    account:set_lobby(gateway.lobby)
+    account:save_lobby(gateway.lobby)
     account:set_login_token(role_id, gateway.token, MINUTE_5_S)
     log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose success!", user_id, role_id)
     client_mgr:callback_by_id(session, cmd_id, gateway, session_id)
@@ -194,7 +194,7 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
     --验证token
-    local account = login_mgr:load_account(open_id)
+    local account = login_dao:load_account(open_id)
     if not account then
         log_err("[LoginServlet][on_account_login_req] load account failed! open_id: %s token:%s", open_id, token)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
@@ -209,7 +209,6 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     session.account = account
-    account:set_device_id(device_id)
     client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id)
     log_info("[LoginServlet][on_account_reload_req] success! open_id: %s", open_id)
 end

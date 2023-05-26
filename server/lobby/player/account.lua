@@ -42,7 +42,7 @@ function Account:update_nick(role_id, name)
     local role = self.roles[role_id]
     if role then
         role.name = name
-        self:set_roles_field(role_id, role)
+        self:save_roles_field(role_id, role)
     end
 end
 
@@ -50,7 +50,7 @@ function Account:update_custom(role_id, custom)
     local role = self.roles[role_id]
     if role then
         role.custom = custom
-        self:set_roles_field(role_id, role)
+        self:save_roles_field(role_id, role)
     end
 end
 

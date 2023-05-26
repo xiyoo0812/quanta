@@ -4,6 +4,7 @@ local log_warn      = logger.warn
 local log_fatal     = logger.fatal
 local tinsert       = table.insert
 local tunpack       = table.unpack
+local tcopy         = qtable.copy
 local qtweak        = qtable.weak
 local dtraceback    = debug.traceback
 
@@ -41,7 +42,7 @@ function EventComponent:remove_trigger(trigger, event)
 end
 
 function EventComponent:notify_event(event, ...)
-    local trigger_map = self.triggers[event] or {}
+    local trigger_map = tcopy(self.triggers[event] or {})
     for trigger, func_name in pairs(trigger_map) do
         local callback_func = trigger[func_name]
         local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)

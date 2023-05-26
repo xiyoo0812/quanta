@@ -52,7 +52,6 @@ prop:reader("executer", nil)    --执行者
 prop:reader("timer_id", nil)    --timer_id
 prop:reader("cursor_id", nil)   --cursor_id
 prop:reader("connections", {})  --connections
-prop:reader("sessions", {})     --sessions
 prop:reader("readpref", nil)    --readPreference
 prop:reader("req_counter", nil)
 prop:reader("res_counter", nil)
@@ -227,7 +226,7 @@ function MongoDB:on_socket_error(sock, token, err)
     for session_id in pairs(sock.sessions) do
         thread_mgr:response(session_id, false, err)
     end
-    self.sessions = {}
+    sock.sessions = {}
     --检查活跃
     thread_mgr:entry(self:address(), function()
         self:check_alive()
@@ -288,12 +287,12 @@ function MongoDB:runCommand(cmd, cmd_v, ...)
 end
 
 function MongoDB:sendCommand(cmd, cmd_v, ...)
-    if not self.sock then
+    if not self.executer then
         return false, "db not connected"
     end
     local slice_bson = mencode_o(cmd, cmd_v or 1, "$db", self.name, "writeConcern", {w=0}, ...)
     local pack = mopmsg(slice_bson, 0, 0)
-    self.sock:send(pack)
+    self.executer:send(pack)
     return true
 end
 

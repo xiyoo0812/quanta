@@ -65,8 +65,6 @@ function AttrComponent:on_db_player_attr_load(data)
         return true
     end
     event_mgr:notify_trigger("on_player_attr_init", self)
-    local attrs = self:pack_db_attrs()
-    self:flush_player_attr(attrs)
     return true
 end
 
@@ -88,9 +86,9 @@ function AttrComponent:set_attr(attr_id, value, source_id)
         end
         --修改属性
         if attr.save then
-            self:set_attrs_field(attr_id, value)
+            self:save_attrs_field(attr_id, value)
         else
-            self.attrs[attr_id] = value
+            self:set_attrs_field(attr_id, value)
         end
         self:on_attr_changed(attr_id, attr, value, source_id)
         return true
@@ -111,7 +109,7 @@ function AttrComponent:on_attr_changed(attr_id, attr, value, source_id)
     if self:is_load_success() then
         --回写判定
         if self.wbackable and attr.back and (not source_id) then
-            self.write_attrs[attr_id] = attr.value
+            self.write_attrs[attr_id] = value
             self:delay_notify("on_attr_writeback")
         end
         --转发判定
@@ -171,7 +169,7 @@ function AttrComponent:load_attrs(attrs)
             log_warn("[AttrComponent][load_attrs] attr(%s) not define", attr_id)
             return false
         end
-        self.attrs[attr_id] = value
+        self:set_attrs_field(attr_id, value)
     end
 end
 
@@ -207,17 +205,6 @@ function AttrComponent:package_sync_attrs(range)
     end
     self.sync_attrs = {}
     return attrs
-end
-
---pack_db_attrs
-function AttrComponent:pack_db_attrs()
-    local attrs = {}
-    for attr_id, attr in pairs(self.attr_set) do
-        if attr.save then
-            attrs[attr_id] = self.attrs[attr_id]
-        end
-    end
-    return { attrs = attrs }
 end
 
 function AttrComponent:on_attr_sync(entity_id, entity)

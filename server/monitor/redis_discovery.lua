@@ -25,7 +25,6 @@ prop:reader("redis", nil)
 prop:reader("trigger", nil)
 prop:reader("timer_id", nil)
 prop:reader("services", {})
-prop:reader("origins", {})
 prop:reader("groups", {})
 prop:reader("locals", {})
 
@@ -77,24 +76,14 @@ end
 function RedisDiscovery:refresh_services()
     for service_name, service_key in pairs(self.groups) do
         local querys = self:query_instances(service_key)
-        if querys and next(querys) then
-            local news = {}
+        if querys then
             local cur_services = self.services[service_name]
-            local cur_origins = self.origins[service_name] or {}
-            local sadd, sdel = tdiff(cur_origins, querys)
-            for _, matadata in pairs(sadd) do
-                local meta = json_decode(matadata)
-                cur_services[meta.id] = meta
-                news[meta.id] = meta
+            local sadd, sdel = tdiff(cur_services, querys)
+            if next(sadd) or next(sdel) then
+                log_debug("[RedisDiscovery][check_services] sadd:%s, sdel: %s", sadd, sdel)
+                self.trigger:broadcast("rpc_service_changed", service_name, sadd, sdel)
             end
-            for id in pairs(sdel) do
-                cur_services[id] = nil
-            end
-            if next(news) or next(sdel) then
-                log_debug("[RedisDiscovery][check_services] sadd:%s, sdel: %s", news, sdel)
-                self.trigger:broadcast("rpc_service_changed", service_name, news, sdel)
-            end
-            self.origins[service_name] = querys
+            self.services[service_name] = querys
         end
     end
 end
@@ -127,6 +116,7 @@ end
 function RedisDiscovery:unregister(node_id)
     local sdata = self.locals[node_id]
     if sdata then
+        log_debug("[RedisDiscovery][unregister] node %s", node_id)
         self:del_instance(sdata.service_key)
         self:refresh_services(SECOND_MS)
     end
@@ -141,14 +131,20 @@ function RedisDiscovery:query_instances(service_key)
         log_err("[RedisDiscovery][query_instances] query nodes %s failed: %s", service_key, skeys)
         return
     end
-    if skeys and next(skeys) then
+    local results = {}
+    if next(skeys) then
         local ok2, values = self.redis:execute("MGET", tunpack(skeys))
         if not ok2 then
             log_err("[RedisDiscovery][query_instances] query node infos %s failed: %s", service_key, values)
             return
         end
-        return values
+        for _, value in pairs(values) do
+            local meta = json_decode(value)
+            results[meta.id] = meta
+        end
+        return results
     end
+    return results
 end
 
 -- 注册实例
