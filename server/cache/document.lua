@@ -143,7 +143,7 @@ function Document:update_redis(fields)
         cursor = cursor[convint(name)]
     end
     event_mgr:fire_next_frame(function()
-        if type(cursor) == "table" then
+        if cursor then
             cursor = json_encode(cursor)
         end
         self:cmomit_redis(key, cursor or "nil")

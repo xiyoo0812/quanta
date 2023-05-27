@@ -3,6 +3,7 @@
 local sformat   = string.format
 
 local game_dao  = quanta.get("game_dao")
+local NAMESPACE = environ.get("QUANTA_NAMESPACE")
 
 local Account = class()
 local prop = property(Account)
@@ -55,7 +56,7 @@ function Account:update_custom(role_id, custom)
 end
 
 function Account:get_login_token(role_id)
-    local key = sformat("LOGIN:login_token:%s", role_id)
+    local key = sformat("LOGIN:%s:token:%s", NAMESPACE, role_id)
     return game_dao:execute(role_id, "GET", key)
 end
 

@@ -7,6 +7,8 @@ local guid_new      = quanta.new_guid
 
 local game_dao      = quanta.get("game_dao")
 
+local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
+
 local Account = class()
 local prop = property(Account)
 prop:reader("user_id", 0)           --user_id
@@ -71,7 +73,7 @@ function Account:del_role(role_id)
 end
 
 function Account:set_login_token(role_id, token, time)
-    local key = sformat("LOGIN:login_token:%s", role_id)
+    local key = sformat("LOGIN:%s:token:%s", NAMESPACE, role_id)
     game_dao:execute(role_id, "SETEX", key, time, token)
 end
 
