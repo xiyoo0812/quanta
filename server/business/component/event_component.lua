@@ -19,6 +19,7 @@ prop:reader("uevents", {})      --update events
 function EventComponent:__init()
 end
 
+--添加事件触发器
 function EventComponent:add_trigger(trigger, event, handler)
     local func_name = handler or event
     local callback_func = trigger[func_name]
@@ -34,6 +35,7 @@ function EventComponent:add_trigger(trigger, event, handler)
     trigger_map[trigger] = func_name
 end
 
+--添加移除触发器
 function EventComponent:remove_trigger(trigger, event)
     local trigger_map = self.triggers[event]
     if trigger_map then
@@ -41,6 +43,7 @@ function EventComponent:remove_trigger(trigger, event)
     end
 end
 
+--发布事件
 function EventComponent:notify_event(event, ...)
     local trigger_map = tcopy(self.triggers[event] or {})
     for trigger, func_name in pairs(trigger_map) do

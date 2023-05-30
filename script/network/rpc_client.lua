@@ -34,7 +34,7 @@ prop:reader("port", nil)
 prop:reader("alive", false)
 prop:reader("alive_time", 0)
 prop:reader("socket", nil)
-prop:accessor("holder", nil)    --持有者
+prop:reader("holder", nil)    --持有者
 
 function RpcClient:__init(holder, ip, port)
     self.ip = ip
@@ -155,6 +155,7 @@ end
 
 -- 主动关闭连接
 function RpcClient:close()
+    self.holder = nil
     if self.socket then
         self.socket.close()
         self.alive = false

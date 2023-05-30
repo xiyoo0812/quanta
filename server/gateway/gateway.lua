@@ -56,6 +56,19 @@ function Gateway:__init()
     self.ntf_counter = quanta.make_sampling(sformat("gateway %s ntf", quanta.index))
 end
 
+---日志忽略网络消息通知名
+local ignore_messages = {
+    [12301] = true,
+    [12303] = true,
+}
+---是否输出CMD消息的内容
+function Gateway:is_display_message(cmd_id)
+    if ignore_messages[cmd_id] then
+        return false
+    end
+    return true
+end
+
 --查找玩家
 function Gateway:get_player(player_id)
     if player_id then
@@ -100,7 +113,7 @@ function Gateway:rpc_forward_client(player_id, cmd_id, data)
         log_warn("[Gateway][rpc_forward_client] cmd_id(%s) player(%s) not exist!", cmd_id, player_id)
         return
     end
-    player:send_message(cmd_id, data)
+    player:send_message(cmd_id, data, self:is_display_message(cmd_id))
 end
 
 --组发消息
@@ -277,7 +290,7 @@ function Gateway:on_session_cmd(session, service_type, cmd_id, body, session_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         return
     end
-    player:notify_command(service_type, cmd_id, body, session_id)
+    player:notify_command(service_type, cmd_id, body, session_id, self:is_display_message(cmd_id))
 end
 
 quanta.gateway = Gateway()

@@ -11,14 +11,20 @@ local protobuf_mgr      = quanta.get("protobuf_mgr")
 local FRAME_SUCCESS     = protobuf_mgr:error_code("FRAME_SUCCESS")
 local ROLE_NOT_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
 
-
 local AttributeAgent = singleton()
 
 --委托回调
 function AttributeAgent:__init()
     --注册rpc
     event_mgr:add_listener(self, "rpc_attr_relay")
-    event_mgr:add_listener(self, "rpc_attr_setup")
+end
+
+--属性加载
+function AttributeAgent:load_attrs(player, attrs)
+    player:load_attrs(attrs)
+    player:set_wbackable(true)
+    player:set_relayable(false)
+    player:add_trigger(self, "on_attr_writeback")
 end
 
 --本地消息
@@ -37,22 +43,6 @@ end
 --rpc协议
 -------------------------------------------------------------------------
 --属性更新
-function AttributeAgent:rpc_attr_setup(player_id, attrs)
-    local player  = player_mgr:get_entity(player_id)
-    if not player then
-        log_err("[AttributeAgent][rpc_attr_setup] player not exist, player_id=%s", player_id)
-        return ROLE_NOT_EXIST
-    end
-    player:load_attrs(attrs)
-    player:set_wbackable(true)
-    player:set_relayable(false)
-    player:add_trigger(self, "on_attr_writeback")
-    log_debug("[AttributeAgent][rpc_attr_setup] success player_id=%s, attrs=%s", player_id, attrs)
-    event_mgr:notify_trigger("on_load_success", player, player_id)
-    return FRAME_SUCCESS
-end
-
---属性更新
 function AttributeAgent:rpc_attr_relay(player_id, attrs, source_id)
     local player  = player_mgr:get_entity(player_id)
     if not player then
@@ -66,6 +56,6 @@ function AttributeAgent:rpc_attr_relay(player_id, attrs, source_id)
     return FRAME_SUCCESS
 end
 
-quanta.attr_agent= AttributeAgent()
+quanta.attr_agent = AttributeAgent()
 
 return AttributeAgent

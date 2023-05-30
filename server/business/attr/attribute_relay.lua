@@ -1,6 +1,5 @@
 --attribute_relay.lua
 local log_err           = logger.err
-local log_info          = logger.info
 local log_debug         = logger.debug
 local tunpack           = table.unpack
 local qenum             = quanta.enum
@@ -38,8 +37,12 @@ function AttributeRelay:setup_relay_attrs(service_id, attr_db)
     end
 end
 
---打开同步
-function AttributeRelay:open_relay_attr(player, player_id, target_id)
+function AttributeRelay:open_relay_attr(player)
+    --注册属性转发
+    player:add_trigger(self, "on_attr_relay")
+end
+
+function AttributeRelay:collect_relay_attr(player, player_id, target_id)
     local attrs = {}
     local relay_agents = self.relay_agents
     local service_id = get_service(target_id)
@@ -53,15 +56,7 @@ function AttributeRelay:open_relay_attr(player, player_id, target_id)
         relay_agents[player_id][target_id][attr_id] = true
         attrs[attr_id] = player:get_attr(attr_id)
     end
-    --初始化属性同步
-    local ok, code = router_mgr:call_target(target_id, "rpc_attr_setup", player_id, attrs)
-    if qfailed(code, ok) then
-        log_err("[AttributeRelay][open_relay_attr] setup failed attrs=%s, player_id=%s, code=%s", attrs, player_id, code)
-        return false
-    end
-    log_info("[AttributeRelay][open_relay_attr] setup success player_id=%s", player_id)
-    player:add_trigger(self, "on_attr_relay")
-    return true
+    return attrs
 end
 
 --关闭同步

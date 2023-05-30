@@ -1,6 +1,10 @@
 --player_mgr.lua
 
+local log_err       = logger.err
 local log_debug     = logger.debug
+local tunpack       = table.unpack
+local qfailed       = quanta.failed
+local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -13,6 +17,8 @@ local DAY_FLUSH     = utility_db:find_integer("value", "flush_day_hour")
 local WEEK_FLUSH    = utility_db:find_integer("value", "flush_week_day")
 
 local SERVER_UPHOLD = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
+
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local Account       = import("lobby/player/account.lua")
 local EntityMgr     = import("business/entity/entity_mgr.lua")
@@ -58,33 +64,59 @@ function PlayerMgr:kick_out(player, player_id)
     event_mgr:notify_trigger("on_logout_success", player_id, player)
 end
 
-function PlayerMgr:load_account(open_id)
-    local account = Account(open_id)
-    if not account:load() then
-        return
-    end
-    return account
-end
-
 --创建玩家
-function PlayerMgr:load_player(player_id)
+function PlayerMgr:load_player(account, player_id, gateway)
     local player = self:get_entity(player_id)
     if not player then
         local Player = import("lobby/player/player.lua")
         player = Player(player_id)
-        if not player:setup() then
-            return
-        end
+        --先加入
         self:add_entity(player_id, player)
         self.counter:count_increase()
     end
-    return player
+    if player:is_load_success() then
+        return player
+    end
+    --初始化
+    player:set_gateway(gateway)
+    player:set_account(account)
+    player:set_open_id(account.open_id)
+    player:set_user_id(account.user_id)
+    if player:setup() then
+        return player
+    end
 end
 
 --实体被销毁
 function PlayerMgr:on_destory(player_id, player)
     self.counter:count_reduce()
     event_mgr:notify_trigger("on_logout_success", player_id, player)
+end
+
+--加载账号信息
+function PlayerMgr:load_account(open_id, player_id)
+    local account = Account(open_id)
+    local channel = makechan("load_account")
+    channel:push(function()
+        if not account:load() then
+            log_err("[LobbyDao][load_account] (%s-%s)load account failed", open_id, player_id)
+            return false
+        end
+        return true, SUCCESS, account
+    end)
+    channel:push(function()
+        local code, login_token = account:get_login_token(player_id)
+        if qfailed(code) then
+            log_err("[LobbyDao][load_account] (%s) load login token failed", player_id)
+            return false
+        end
+        return true, SUCCESS, login_token
+    end)
+    local ok, all_datas = channel:execute()
+    if not ok then
+        return
+    end
+    return tunpack(all_datas)
 end
 
 -- 广播消息

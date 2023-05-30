@@ -2,8 +2,8 @@
 local log_warn      = logger.warn
 local log_info      = logger.info
 local qedition      = quanta.edition
+local makechan      = quanta.make_channel
 
-local online        = quanta.get("online")
 local game_dao      = quanta.get("game_dao")
 local config_mgr    = quanta.get("config_mgr")
 
@@ -22,14 +22,15 @@ local DAY_FLUSH_S   = utility_db:find_integer("value", "flush_day_hour") * 3600
 
 local Entity        = import("business/entity/entity.lua")
 local MsgComponent  = import("business/component/msg_component.lua")
+local SubComponent  = import("business/component/sub_component.lua")
 
-local Player = class(Entity, MsgComponent)
+local Player = class(Entity, MsgComponent, SubComponent)
 
 local prop = property(Player)
-prop:reader("user_id")              --user_id
 prop:reader("passkey", {})          --passkey
 prop:reader("status", 0)            --status
 prop:reader("create_time", 0)       --create_time
+prop:accessor("user_id", nil)       --user_id
 prop:accessor("open_id", nil)       --open_id
 prop:accessor("gateway", nil)       --gateway
 prop:accessor("account", nil)       --account
@@ -66,7 +67,16 @@ function Player:load(conf)
     self.status = ONL_LOADING
     self.active_time = quanta.now_ms
     self:init_attrset(attr_db, 1)
-    return game_dao:load_group(self, "lobby", self.id)
+    self:add_passkey("lobby", quanta.id)
+    local channel = makechan("load_player")
+    local sheets = game_dao:find_group("lobby")
+    for _, sconf in ipairs(sheets) do
+        channel:push(function()
+            return game_dao:load(self, self.id, sconf.sheet)
+        end)
+    end
+    self:invoke("_load", channel, self.id)
+    return channel:execute()
 end
 
 --修改玩家名字
@@ -140,22 +150,17 @@ function Player:sync_data()
 end
 
 --online
-function Player:online()
-    --invoke
-    local call_ok = self:collect("_online")
-    if not call_ok then
-        log_warn("[Player][online] Player %s online faild!", self.id)
-        return call_ok
-    end
+function Player:online(gateway)
     self.release = false
+    self.gateway = gateway
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
     self:set_version(self:build_version())
-    self:add_passkey("lobby", quanta.id)
     self:save_login_time(quanta.now)
     self.load_success = true
     log_info("[Player][online] player(%s) is online!", self.id)
-    return true
+    --invoke
+    self:invoke("_online")
 end
 
 --掉线
@@ -184,7 +189,6 @@ end
 function Player:unload()
     self:invoke("_unload")
     self.account:save_lobby(0)
-    online:logout_player(self.id)
     return true
 end
 

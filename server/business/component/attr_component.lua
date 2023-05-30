@@ -78,10 +78,12 @@ function AttrComponent:set_attr(attr_id, value, source_id)
     end
     if cur_val ~= value then
         --检查限制
-        if attr.limit_id then
-            local limit = self:get_attr(attr.limit_id)
-            if limit > 0 and limit < value then
-                value = limit
+        if not source_id then
+            if attr.limit_id then
+                local limit = self:get_attr(attr.limit_id)
+                if limit > 0 and limit < value then
+                    value = limit
+                end
             end
         end
         --修改属性
@@ -131,7 +133,6 @@ end
 function AttrComponent:get_attr(attr_id)
     local value = self.attrs[attr_id]
     if not value then
-        log_warn("[AttrComponent][get_attr] attr(%s) not define", attr_id)
         return
     end
     return value

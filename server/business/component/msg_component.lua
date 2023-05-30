@@ -74,7 +74,6 @@ function MsgComponent:send(cmd_id, data)
     end
 end
 
-
 --转发消息给target
 function MsgComponent:call_target(serv_name, rpc, ...)
     local target_id = self.passkey[serv_name]

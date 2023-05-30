@@ -36,7 +36,7 @@ function RouterMgr:on_service_close(id, name)
     log_debug("[RouterMgr][on_service_close] node: %s-%s", name, id)
     local router = self.routers[id]
     if router then
-        router:set_holder(nil)
+        router:close()
         self.routers[id] = nil
     end
 end

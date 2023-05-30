@@ -85,32 +85,22 @@ end
 
 function GameDAO:load(entity, primary_id, sheet_name)
     local ok, data = self:load_impl(primary_id, sheet_name)
-    if ok then
-        entity["load_" .. sheet_name .. "_db"](entity, primary_id, data)
+    if not ok then
+        return ok
     end
-    return ok
+    entity["load_" .. sheet_name .. "_db"](entity, primary_id, data)
+    return ok, SUCCESS
 end
 
-function GameDAO:load_group(entity, group, primary_id)
+function GameDAO:load_group(entity, primary_id, group)
+    local channel = makechan("load_group")
     local sheets = self:find_group(group)
-    local channel = makechan("load_dbs")
-    for i, conf in ipairs(sheets) do
+    for _, conf in ipairs(sheets) do
         channel:push(function()
-            local ok, data = self:load_impl(primary_id, conf.sheet)
-            if not ok then
-                return false
-            end
-            return ok, SUCCESS, data
+            return self:load(entity, primary_id, conf.sheet)
         end)
     end
-    local ok, all_datas = channel:execute()
-    if not ok then
-        return false
-    end
-    for i, conf in ipairs(sheets) do
-        entity["load_" .. conf.sheet .. "_db"](entity, primary_id, all_datas[i])
-    end
-    return true
+    return channel:execute()
 end
 
 function GameDAO:update_field(primary_id, sheet_name, field, field_data)

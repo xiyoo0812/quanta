@@ -56,15 +56,15 @@ function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
 end
 
 --发送消息
-function GatePlayer:send_message(cmd_id, data)
+function GatePlayer:send_message(cmd_id, data, display)
     client_mgr:send(self.session, cmd_id, data)
-    if cmd_id ~= "NID_ENTITY_MOVE_PATH_NTF" then
+    if display then
         log_debug("[Gateway][send_message] player(%s) send message(%s-%s) !", self.player_id, cmd_id, data)
     end
 end
 
 --转发消息
-function GatePlayer:notify_command(service_type, cmd_id, body, session_id)
+function GatePlayer:notify_command(service_type, cmd_id, body, session_id, display)
     local server_id = self.gate_services[service_type]
     if not server_id then
         log_err("[GatePlayer][notify_command] service(%s) cnot transfor, cmd_id=%s, player=%s", service_type, cmd_id, self.player_id)
@@ -77,7 +77,7 @@ function GatePlayer:notify_command(service_type, cmd_id, body, session_id)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
         return
     end
-    if cmd_id ~= 12103 then
+    if display then
         log_debug("[GatePlayer][notify_command] player(%s) response message(%s-%s) !", self.player_id, cmd_id, res)
     end
     client_mgr:callback_by_id(self.session, cmd_id, res, session_id)
