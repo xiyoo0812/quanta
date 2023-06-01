@@ -101,3 +101,8 @@ RobotType.PLAYER            = 2       -- 指定账号
 local CacheCode = enum("CacheCode", 0)
 CacheCode.CACHE_DB_LOAD_ERR         = 10001  -- DB加载失败
 CacheCode.CACHE_DELETE_FAILD        = 10002  -- 缓存删除失败
+
+--路由分配规则
+local RouteAllocRule = enum("RouteAllocRule", 0)
+RouteAllocRule.DEFAULT    = 0  -- 默认(缓存服务类型)
+RouteAllocRule.HASHKEY    = 1 -- 哈希值

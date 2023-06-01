@@ -60,6 +60,7 @@ end
 local ignore_messages = {
     [12301] = true,
     [12303] = true,
+    ["NID_ACTOR_ACTION_NTF"] = true,
 }
 ---是否输出CMD消息的内容
 function Gateway:is_display_message(cmd_id)
@@ -243,7 +244,7 @@ end
 ----------------------------------------------------------------------
 --客户端连上
 function Gateway:on_socket_accept(session)
-    log_debug("[Gateway][on_socket_accept] %s connected!", session.token)
+    --log_debug("[Gateway][on_socket_accept] %s connected!", session.token)
 end
 
 --客户端数据同步

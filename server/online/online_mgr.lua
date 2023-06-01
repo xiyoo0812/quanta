@@ -21,9 +21,11 @@ function OnlineMgr:__init()
     self.lobby_indexs = {}      --lobby玩家索引
     --注册事件
     event_mgr:add_listener(self, "rpc_login_player")
+    event_mgr:add_listener(self, "rpc_login_service")
     event_mgr:add_listener(self, "rpc_logout_player")
     event_mgr:add_listener(self, "rpc_query_lobby")
     event_mgr:add_listener(self, "rpc_query_service")
+
     --消息转发
     event_mgr:add_listener(self, "rpc_call_lobby")
     event_mgr:add_listener(self, "rpc_send_lobby")
@@ -55,11 +57,26 @@ function OnlineMgr:rpc_login_player(player_id, gateway, data)
     local lobby = data.lobby
     log_info("[OnlineMgr][rpc_login_player]: %s, lobby: %s, gateway: %s", player_id, lobby, gateway)
     data.gateway = gateway
-    self.players[player_id] = data
+    if not self.players[player_id] then
+        self.players[player_id] = {}
+    end
+    for key,val in pairs(data) do
+        self.players[player_id][key] = val
+    end
     if not self.lobby_indexs[lobby] then
         self.lobby_indexs[lobby] = {}
     end
     self.lobby_indexs[lobby][player_id] = true
+    return SUCCESS
+end
+
+--角色登录服务
+function OnlineMgr:rpc_login_service(player_id, service_name, service_id)
+    log_info("[OnlineMgr][rpc_login_service]: %s, service_name: %s, service_id: %s", player_id, service_name, service_id)
+    if not self.players[player_id] then
+        self.players[player_id] = {}
+    end
+    self.players[player_id][service_name] = service_id
     return SUCCESS
 end
 

@@ -17,6 +17,11 @@ function OnlineAgent:login_player(player, serv_data)
     return router_mgr:call_online_hash(pla_id, "rpc_login_player", pla_id, gateway, serv_data)
 end
 
+--执行远程rpc消息
+function OnlineAgent:login_service(pla_id, ser_name, ser_id)
+    return router_mgr:call_online_hash(pla_id, "rpc_login_service", pla_id, ser_name, ser_id)
+end
+
 function OnlineAgent:logout_player(pla_id)
     return router_mgr:call_online_hash(pla_id, "rpc_logout_player", pla_id)
 end

@@ -1,6 +1,7 @@
 --attr_component.lua
 local qenum         = quanta.enum
 local log_warn      = logger.warn
+local log_debug     = logger.debug
 local tinsert       = table.insert
 local sformat       = string.format
 
@@ -60,6 +61,7 @@ end
 
 --加载db数据
 function AttrComponent:on_db_player_attr_load(data)
+    log_debug("[AttrComponent][on_db_player_attr_load] data(%s)", data)
     if data.player_id then
         self:load_attrs(data.attrs or {})
         return true
@@ -71,11 +73,16 @@ end
 --设置属性
 --source_id表示修改源，用于同步和回写
 function AttrComponent:set_attr(attr_id, value, source_id)
-    local attr, cur_val = self.attr_set[attr_id], self.attrs[attr_id]
-    if not attr or not cur_val then
+    local attr = self.attr_set[attr_id]
+    if not attr then
         log_warn("[AttrComponent][set_attr] attr(%s) not define", attr_id)
         return false
     end
+    if not value then
+        log_warn("[AttrComponent][set_attr] attr(%s) value is nil", attr_id)
+        return false
+    end
+    local cur_val = self.attrs[attr_id]
     if cur_val ~= value then
         --检查限制
         if not source_id then
@@ -131,11 +138,7 @@ end
 
 --获取属性
 function AttrComponent:get_attr(attr_id)
-    local value = self.attrs[attr_id]
-    if not value then
-        return
-    end
-    return value
+    return self.attrs[attr_id]
 end
 
 --检查属性
@@ -149,12 +152,18 @@ end
 
 --增加属性
 function AttrComponent:add_attr(attr_id, value)
+    if not value then
+        return false
+    end
     local ovalue = self.attrs[attr_id]
     return self:set_attr(attr_id, ovalue + value)
 end
 
 --消耗属性
 function AttrComponent:cost_attr(attr_id, value)
+    if not value then
+        return false
+    end
     local ovalue = self.attrs[attr_id]
     if ovalue >= value then
         return self:set_attr(attr_id, ovalue - value)
@@ -168,7 +177,6 @@ function AttrComponent:load_attrs(attrs)
         local attr = self.attr_set[attr_id]
         if not attr then
             log_warn("[AttrComponent][load_attrs] attr(%s) not define", attr_id)
-            return false
         end
         self:set_attrs_field(attr_id, value)
     end

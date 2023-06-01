@@ -81,7 +81,6 @@ end
 
 --修改玩家名字
 function Player:update_name(name)
-    self:save_name(name)
     self:save_nick(name)
     self.account:update_nick(self.id, name)
 end

@@ -1,6 +1,5 @@
 --login_mgr.lua
 local log_warn          = logger.warn
-local log_debug         = logger.debug
 
 local event_mgr         = quanta.get("event_mgr")
 local client_mgr        = quanta.get("client_mgr")
@@ -29,7 +28,7 @@ end
 
 --客户端连上
 function LoginMgr:on_socket_accept(session)
-    log_debug("[LoginMgr][on_socket_accept] %s connected!", session.token)
+    --log_debug("[LoginMgr][on_socket_accept] %s connected!", session.token)
 end
 
 --客户端数据同步

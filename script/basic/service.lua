@@ -13,15 +13,18 @@
 --node_id:      节点服务id  32位数字
 --name:         服务名      lobby.1
 
-
 local sformat       = string.format
+local tinsert       = table.insert
 
 --服务组常量
 local SERVICES      = _ENV.SERVICES or {}
 local SERVICE_NAMES = _ENV.SERVICE_NAMES or {}
+-- 路由分配规则
+local RALLOC_NV = _ENV.RULE_NV or {}    -- 名称与规则的映射
+local RALLOC_VA = _ENV.RULE_VA or {}    -- 类型与规则的映射
+local RALLOC_RU = _ENV.RALLOC_RU or {}  -- 路由规则与id的映射
 
 service = {}
-
 function service.make_node(port, domain)
     quanta.node_info = {
         id = quanta.id,
@@ -43,6 +46,12 @@ function service.init()
     for _, conf in service_db:iterator() do
         if conf.enable then
             SERVICE_NAMES[conf.id] = conf.name
+            RALLOC_NV[conf.name] = conf.ralloc
+            RALLOC_VA[conf.id] = conf.ralloc
+            if not RALLOC_RU[conf.ralloc] then
+                RALLOC_RU[conf.ralloc] = {}
+            end
+            tinsert(RALLOC_RU[conf.ralloc], conf.id)
         end
         SERVICES[conf.name] = conf.id
     end
@@ -102,4 +111,19 @@ end
 --服务名转服务id
 function service.name2sid(name)
     return SERVICES[name]
+end
+
+--路由分配规则(名称与值的映射)
+function service.rallocn(ser_name)
+    return RALLOC_NV[ser_name]
+end
+
+--路由分配规则(类型与值的映射)
+function service.rallocv(ser_type)
+    return RALLOC_VA[ser_type]
+end
+
+--路由分配规则(规则与id的映射)
+function service.rallorl()
+    return RALLOC_RU
 end
