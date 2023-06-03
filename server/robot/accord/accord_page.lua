@@ -973,7 +973,6 @@ return [[<html>
 </div>
 </body>
 <script>
-    var heartSerial = 1
     var app = angular.module('robot', [])
     app.controller('protocol', function($scope, $http, $interval) {
         $scope.openid = null
@@ -1315,7 +1314,6 @@ return [[<html>
             var cmd={}
             var heartArgs={}
             heartArgs.time = 0
-            heartArgs.serial = heartSerial
             cmd.id=1001;
             cmd.args=heartArgs;
             $http.post('/run',{
@@ -1327,8 +1325,6 @@ return [[<html>
                 {
                     return
                 }
-                //使用服务器序列号重置
-                heartSerial = response.data.msg.serial
             },function(response){
                 console.log("请求处理失败",response.data)
             });

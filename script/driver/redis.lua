@@ -4,6 +4,7 @@ local QueueFIFO     = import("container/queue_fifo.lua")
 
 local tonumber      = tonumber
 local log_err       = logger.err
+local log_warn      = logger.warn
 local log_info      = logger.info
 local ssub          = string.sub
 local slower        = string.lower
@@ -421,7 +422,7 @@ function RedisDB:on_socket_recv(sock, token)
             break
         end
         if not succ then
-            log_err("[RedisDB][on_socket_recv] parse failed: %s", rdsucc)
+            log_warn("[RedisDB][on_socket_recv] parse failed: %s", rdsucc)
             break
         end
         sock:pop(_parse_offset(packet))

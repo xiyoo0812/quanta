@@ -106,4 +106,25 @@ function MsgComponent:send_lobby(rpc, ...)
     self:send_target("lobby", rpc, ...)
 end
 
+--转发消息给gatwway
+function MsgComponent:send_gateway(rpc, ...)
+    if self.gateway then
+        router_mgr:send_target(self.gateway, rpc, self.id, ...)
+    end
+end
+
+--更新服务网关
+function MsgComponent:update_gate_passkey(servive, servive_id)
+    if self.gateway then
+        router_mgr:send_target(self.gateway, "rpc_update_passkey", self.id, servive, servive_id)
+    end
+end
+
+--更新分组信息
+function MsgComponent:update_gate_group(group, group_id)
+    if self.gateway then
+        router_mgr:send_target(self.gateway, "rpc_update_group", self.id, group, group_id)
+    end
+end
+
 return MsgComponent

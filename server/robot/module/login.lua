@@ -23,7 +23,6 @@ prop:reader("lobby_token", nil)     --lobby_token
 prop:reader("login_connect", false)
 prop:reader("lobby_connect", false)
 prop:reader("login_success", false)
-prop:reader("serial", 1)
 
 function LoginModule:__init()
 end
@@ -50,11 +49,8 @@ end
 
 function LoginModule:send_heartbeat()
     if self.login_success then
-        local req_data = { time = quanta.now, serial = self.serial }
-        local ok, res = self:call("NID_HEARTBEAT_REQ", req_data)
-        if ok then
-            self.serial = res.serial
-        end
+        local req_data = { time = quanta.now }
+        self:call("NID_HEARTBEAT_REQ", req_data)
     end
 end
 

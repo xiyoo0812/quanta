@@ -4,6 +4,7 @@ local tsize         = qtable.size
 local tinsert       = table.insert
 local sformat       = string.format
 local guid_new      = quanta.new_guid
+local log_debug     = logger.debug
 
 local game_dao      = quanta.get("game_dao")
 
@@ -73,6 +74,7 @@ function Account:del_role(role_id)
 end
 
 function Account:set_login_token(role_id, token, time)
+    log_debug("[Account][set_login_token] role_id:%s, token:%s", role_id, token)
     local key = sformat("LOGIN:%s:token:%s", NAMESPACE, role_id)
     game_dao:execute(role_id, "SETEX", key, time, token)
 end

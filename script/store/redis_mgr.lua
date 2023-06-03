@@ -1,6 +1,6 @@
 --redis_mgr.lua
-local tpack         = table.pack
 local log_err       = logger.err
+local log_debug     = logger.debug
 
 local event_mgr     = quanta.get("event_mgr")
 
@@ -40,8 +40,9 @@ function RedisMgr:execute(db_id, primary_id, cmd, ...)
         redisdb:set_executer(primary_id)
         local ok, res_oe = redisdb:execute(cmd, ...)
         if not ok then
-            log_err("[RedisMgr][execute] execute %s (%s) failed, because: %s", cmd, tpack(...), res_oe)
+            log_err("[RedisMgr][execute] execute %s (%s) failed, because: %s", cmd, {...}, res_oe)
         end
+        log_debug("[RedisMgr][execute]: cmd %s, primary_id:%s, args: %s", cmd, primary_id, {...})
         return ok and SUCCESS or REDIS_FAILED, res_oe
     end
     return REDIS_FAILED, "redis db not exist"

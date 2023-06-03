@@ -24,7 +24,6 @@ function SessionModule:connect(ip, port, block)
     if self.client then
         self.client:close()
     end
-    self.serial = 1
     self.client = NetClient(self, ip, port)
     return self.client:connect(block)
 end

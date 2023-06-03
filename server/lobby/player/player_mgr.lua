@@ -8,7 +8,6 @@ local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
-local router_mgr    = quanta.get("router_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
@@ -57,10 +56,7 @@ function PlayerMgr:kick_all()
 end
 
 function PlayerMgr:kick_out(player, player_id)
-    local gateway = player:get_gateway()
-    if gateway then
-        router_mgr:call_target(player:get_gateway(), "rpc_kickout_client", player_id, SERVER_UPHOLD)
-    end
+    player:send_gateway("rpc_kickout_client", SERVER_UPHOLD)
     event_mgr:notify_trigger("on_logout_success", player_id, player)
 end
 

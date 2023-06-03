@@ -102,7 +102,8 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     session.account = account
-    account:set_token(access_token)
+    account:save_token(access_token)
+    account:save_params(account_params)
     event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id, device_id)
     client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id)
     log_info("[LoginServlet][on_account_login_req] success! open_id: %s", open_id)

@@ -1,5 +1,6 @@
 --quanta.lua
 local lcodec        = require("lcodec")
+local ltimer        = require("ltimer")
 
 local xpcall        = xpcall
 local otime         = os.time
@@ -9,6 +10,7 @@ local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
+local lclock_ms     = ltimer.clock_ms
 local guid_new      = lcodec.guid_new
 local hash_code     = lcodec.hash_code
 local serialize     = lcodec.serialize
@@ -92,6 +94,10 @@ end
 
 function quanta.new_guid()
     return guid_new(quanta.service, quanta.index)
+end
+
+function quanta.time()
+    return lclock_ms()
 end
 
 function quanta.create(name, pclass)

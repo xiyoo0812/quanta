@@ -112,9 +112,6 @@ function NetServer:on_socket_accept(session)
     session.on_error = function(stoken, err)
         self:on_socket_error(stoken, err)
     end
-    --初始化序号
-    session.serial = 1
-    session.serial_sync = 1
     --通知链接成功
     event_mgr:notify_listener("on_socket_accept", session)
 end
@@ -125,7 +122,6 @@ function NetServer:write(session, cmd, data, session_id, flag)
         log_fatal("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd, data)
         return false
     end
-    session.serial = session.serial + 1
     if session_id > 0 then
         session_id = session_id & 0xffff
     end
@@ -211,9 +207,9 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(_session, typ, cmd, bd)
             local _<close> = qeval(cmd_name)
-            local result = event_mgr:notify_listener("on_session_cmd", _session, typ, cmd, bd, session_id)
+            local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, bd, session_id)
             if not result[1] then
-                log_err("[NetServer][on_socket_recv] on_session_cmd failed! cmd_id:%s", cmd_id)
+                log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:%s", cmd_id)
             end
         end
         thread_mgr:fork(dispatch_rpc_message, session, type, cmd_id, body)
@@ -224,14 +220,7 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice
 end
 
 --检查序列号
-function NetServer:check_serial(session, cserial)
-    local sserial = session.serial
-    if cserial and cserial ~= session.serial_sync then
-        log_warn("[NetServer][check_serial] serial number(%s-%s) error", cserial, session.serial_sync)
-        event_mgr:notify_listener("on_session_sync", session)
-    end
-    session.serial_sync = sserial
-
+function NetServer:check_flow(session)
     -- 流量控制检测
     if FLOW_CTRL then
         -- 达到检测周期
@@ -240,7 +229,7 @@ function NetServer:check_serial(session, cserial)
         if escape > SECOND_MS then
             -- 检查是否超过配置
             if session.fc_packet > (FC_PACKETS * escape // SECOND_MS) or session.fc_bytes > FC_BYTES then
-                log_warn("[NetServer][check_serial] session trigger package or bytes flowctrl line, will be closed.")
+                log_warn("[NetServer][check_flow] session trigger package or bytes flowctrl line, will be closed.")
                 self:close_session(session)
             end
             session.fc_packet = 0
@@ -248,7 +237,6 @@ function NetServer:check_serial(session, cserial)
             session.last_fc_time = cur_time
         end
     end
-    return sserial
 end
 
 -- 关闭会话
@@ -269,7 +257,7 @@ function NetServer:on_socket_error(token, err)
     thread_mgr:fork(function()
         local session = self:remove_session(token)
         if session then
-            event_mgr:notify_listener("on_session_error", session, token, err)
+            event_mgr:notify_listener("on_socket_error", session, token, err)
         end
     end)
 end

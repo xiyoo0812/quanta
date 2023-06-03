@@ -12,6 +12,7 @@ quanta.startup(function()
     quanta.client_mgr = client_mgr
 
     --初始化gateway
+    import("gateway/group_mgr.lua")
     import("gateway/gateway.lua")
     -- 协议过滤器
     import("business/admin/shield.lua")

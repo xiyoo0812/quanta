@@ -49,8 +49,8 @@ function Player:on_db_player_load(data)
         self.nick = data.nick
         self.facade = data.facade
         self.user_id = data.user_id
-        self.login_time = data.login_time
         self.create_time = data.create_time
+        self.login_time = data.login_time or 0
         self.upgrade_time = data.upgrade_time or 0
         self:set_gender(data.gender)
         self:set_custom(data.facade)
@@ -81,6 +81,7 @@ end
 
 --修改玩家名字
 function Player:update_name(name)
+    self:set_name(name)
     self:save_nick(name)
     self.account:update_nick(self.id, name)
 end
@@ -155,11 +156,12 @@ function Player:online(gateway)
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
     self:set_version(self:build_version())
+    --invoke
+    self:invoke("_online")
+    --load success
     self:save_login_time(quanta.now)
     self.load_success = true
     log_info("[Player][online] player(%s) is online!", self.id)
-    --invoke
-    self:invoke("_online")
 end
 
 --掉线
@@ -169,6 +171,7 @@ function Player:offline()
     self.active_time = quanta.now_ms
     --计算在线时间
     self:add_online_time(quanta.now - self.login_time)
+    self:save_login_time(quanta.now)
     --invoke
     self:invoke("_offline")
     log_warn("[Player][offline] player(%s) is offline!", self.id)
