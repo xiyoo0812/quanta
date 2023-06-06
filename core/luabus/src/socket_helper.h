@@ -2,7 +2,8 @@
 #include "ltimer.h"
 #include "lua_kit.h"
 
-const int SOCKET_RECV_LEN = 4096;
+const int SOCKET_RECV_LEN   = 4096;
+const int SOCKET_PACKET_MAX = 1024 * 1024 * 16; //16m
 
 #pragma pack(1)
 struct socket_header {

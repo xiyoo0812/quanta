@@ -39,18 +39,22 @@ int lua_socket_node::call_slice(slice* slice){
 }
 
 int lua_socket_node::call_text(const char* data, uint32_t data_len) {
+    if (data_len > SOCKET_PACKET_MAX) return 0;
     m_mgr->send(m_token, data, data_len);
     return data_len;
 }
 
 int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len){
+    int length = data_len + sizeof(socket_header);
+    if (length > SOCKET_PACKET_MAX) return 0;
+    //组装数据
     socket_header header;
     header.flag = flag;
     header.type = type;
+    header.len = length;
     header.cmd_id = cmd_id;
     header.session_id = (session_id & 0xffff);
-    header.len = data_len + sizeof(socket_header);
-
+    //发送数据
     sendv_item items[] = { { &header, sizeof(socket_header) }, {data, data_len} };
     m_mgr->sendv(m_token, items, _countof(items));
     return header.len;
@@ -58,13 +62,16 @@ int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint
 
 int lua_socket_node::call(uint32_t session_id, uint8_t flag, slice* slice) {
     size_t data_len = 0;
-    router_header header;
     char* data = (char*)slice->data(&data_len);
-    header.len = data_len + sizeof(router_header);
-    header.context = (uint8_t)rpc_type::remote_call << 4 | flag;
-    header.session_id = session_id;
+    int length = data_len + sizeof(socket_header);
+    if (length > SOCKET_PACKET_MAX) return 0;
+    //组装数据
+    router_header header;
+    header.len = length;
     header.target_id = 0;
-
+    header.session_id = session_id;
+    header.context = (uint8_t)rpc_type::remote_call << 4 | flag;
+    //发送数据
     sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len}};
     m_mgr->sendv(m_token, items, _countof(items));
     return header.len;
@@ -72,13 +79,16 @@ int lua_socket_node::call(uint32_t session_id, uint8_t flag, slice* slice) {
 
 int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, slice* slice) {
     size_t data_len = 0;
-    router_header header;
     char* data = (char*)slice->data(&data_len);
-    header.len = data_len + sizeof(router_header);
-    header.context = (uint8_t)rpc_type::forward_target << 4 | flag;
-    header.session_id = session_id;
+    int length = data_len + sizeof(socket_header);
+    if (length > SOCKET_PACKET_MAX) return 0;
+    //组装数据
+    router_header header;
+    header.len = length;
     header.target_id = target_id;
-
+    header.session_id = session_id;
+    header.context = (uint8_t)rpc_type::forward_target << 4 | flag;
+    //发送数据
     sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
     m_mgr->sendv(m_token, items, _countof(items));
     return header.len;
@@ -86,13 +96,16 @@ int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t 
 
 int lua_socket_node::forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, slice* slice) {
     size_t data_len = 0;
-    router_header header;
     char* data = (char*)slice->data(&data_len);
-    header.len = data_len + sizeof(router_header);
-    header.context = (uint8_t)rpc_type::forward_hash << 4 | flag;
+    int length = data_len + sizeof(socket_header);
+    if (length > SOCKET_PACKET_MAX) return 0;
+    //组装数据
+    router_header header;
+    header.len = length;
     header.session_id = session_id;
     header.target_id = service_id << 16 | hash;
-
+    header.context = (uint8_t)rpc_type::forward_hash << 4 | flag;
+    //发送数据
     sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
     m_mgr->sendv(m_token, items, _countof(items));
     return header.len;

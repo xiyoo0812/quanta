@@ -474,8 +474,8 @@ void socket_stream::dispatch_package() {
                 break;
             }
             router_header* header = (router_header*)data;
-            // 当前包长小于headlen，当前包头标识的数据超过最大长度,关闭连接
-            if (header->len < header_len || header->len > USHRT_MAX) {
+            // 当前包长小于headlen, 关闭连接
+            if (header->len < header_len) {
                 on_error("package-length-err");
                 break;
             }
@@ -489,8 +489,8 @@ void socket_stream::dispatch_package() {
                 break;
             }
             socket_header* header = (socket_header*)data;
-            // 当前包长小于headlen，当前包头标识的数据超过最大长度,关闭连接
-            if (header->len < header_len || header->len > USHRT_MAX) {
+            // 当前包长小于headlen, 关闭连接
+            if (header->len < header_len) {
                 on_error("package-length-err");
                 break;
             }
@@ -511,7 +511,11 @@ void socket_stream::dispatch_package() {
             on_error("proto-type-not-suppert!");
             break;
         }
-
+        //当前包头标识的数据超过最大长度, 关闭连接
+        if (package_size > SOCKET_PACKET_MAX) {
+            on_error("package-length-err");
+            break;
+        }
         // 数据包还没有收完整
         if (data_len < package_size) break;
         m_package_cb(m_recv_buffer->get_slice(package_size));

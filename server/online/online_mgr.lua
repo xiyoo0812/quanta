@@ -116,7 +116,7 @@ function OnlineMgr:rpc_call_lobby(player_id, rpc, ...)
     if not pdata then
         return PLAYER_NOT_EXIST, "player not online!"
     end
-    local ok, codeoe, res = router_mgr:call_target(pdata.lobby, rpc, ...)
+    local ok, codeoe, res = router_mgr:hash_call(pdata.lobby, player_id, rpc, ...)
     if not ok then
         return RPC_FAILED, codeoe
     end
@@ -127,7 +127,7 @@ end
 function OnlineMgr:rpc_send_lobby(player_id, rpc, ...)
     local pdata = self.players[player_id]
     if pdata then
-        router_mgr:send_target(pdata.lobby, rpc, ...)
+        router_mgr:hash_send(pdata.lobby, player_id, rpc, ...)
     end
 end
 
@@ -137,7 +137,7 @@ function OnlineMgr:rpc_call_service(player_id, rpc, serv_name, ...)
     if not pdata or not pdata[serv_name] then
         return PLAYER_NOT_EXIST, "player not online!"
     end
-    local ok, codeoe, res = router_mgr:call_target(pdata[serv_name], rpc, ...)
+    local ok, codeoe, res = router_mgr:hash_call(pdata[serv_name], player_id, rpc, ...)
     if not ok then
         return RPC_FAILED, codeoe
     end
@@ -148,7 +148,7 @@ end
 function OnlineMgr:rpc_send_service(player_id, rpc, serv_name, ...)
     local pdata = self.players[player_id]
     if pdata and pdata[serv_name] then
-        router_mgr:send_target(pdata[serv_name], rpc, ...)
+        router_mgr:hash_send(pdata[serv_name], player_id, rpc, ...)
     end
 end
 
@@ -166,7 +166,7 @@ function OnlineMgr:rpc_call_client(player_id, ...)
     if not pdata then
         return PLAYER_NOT_EXIST, "player not online!"
     end
-    local ok, codeoe, res = router_mgr:call_target(pdata.gateway, "rpc_forward_client", player_id, ...)
+    local ok, codeoe, res = router_mgr:hash_call(pdata.gateway, player_id, "rpc_forward_client", player_id, ...)
     if not ok then
         return RPC_FAILED, codeoe
     end
@@ -177,7 +177,7 @@ end
 function OnlineMgr:rpc_send_client(player_id, ...)
     local pdata = self.players[player_id]
     if pdata then
-        router_mgr:send_target(pdata.gateway, "rpc_forward_client", player_id, ...)
+        router_mgr:hash_send(pdata.gateway, player_id, "rpc_forward_client", player_id, ...)
     end
 end
 
@@ -185,7 +185,7 @@ end
 function OnlineMgr:rpc_group_send_client(player_ids, ...)
     local groups = self:spilt_group(player_ids, "gateway")
     for gateway, pla_ids in pairs(groups) do
-        router_mgr:call_target(gateway, "rpc_groupcast_client", pla_ids, ...)
+        router_mgr:send_target(gateway, "rpc_groupcast_client", pla_ids, ...)
     end
 end
 

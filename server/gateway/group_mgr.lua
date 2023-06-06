@@ -12,7 +12,7 @@ end
 
 --更新服务网关
 function GroupMgr:add_member(group_id, player_id, player)
-    log_info("[GroupMgr][add_member] group_id(%d) player_id(%s) id(%s)!", group_id, player_id)
+    log_info("[GroupMgr][add_member] group_id(%s) player_id(%s)!", group_id, player_id)
     local group = self.groups[group_id]
     if not group then
         self.groups[group_id] = qtweak({ [player_id] = player })
@@ -23,7 +23,7 @@ end
 
 --更新分组信息
 function GroupMgr:remove_member(group_id, player_id)
-    log_info("[GroupMgr][remove_member] group_id(%d) player_id(%s) id(%s)!", group_id, player_id)
+    log_info("[GroupMgr][remove_member] group_id(%s) player_id(%s)!", group_id, player_id)
     local group = self.groups[group_id]
     if group then
         group[player_id] = nil

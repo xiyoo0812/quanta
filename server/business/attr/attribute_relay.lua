@@ -97,7 +97,7 @@ function AttributeRelay:on_attr_relay(player_id, player)
             end
         end
         if next(attrs) then
-            local ok, code =  router_mgr:call_target(target_id, "rpc_attr_relay", player_id, attrs, quanta_id)
+            local ok, code =  router_mgr:hash_call(target_id, player_id, "rpc_attr_relay", player_id, attrs, quanta_id)
             if qfailed(code, ok) then
                 log_err("[AttributeRelay][on_attr_relay] sync failed attrs=%s, player_id=%s, code=%s", attrs, player_id, code)
             end

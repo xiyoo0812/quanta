@@ -70,7 +70,7 @@ end
 --转发消息给gateway
 function MsgComponent:send(cmd_id, data)
     if self.gateway and self.load_success then
-        router_mgr:send_target(self.gateway, "rpc_forward_client", self.id, cmd_id, data)
+        router_mgr:hash_send(self.gateway, self.id, "rpc_forward_client", self.id, cmd_id, data)
     end
 end
 
@@ -80,14 +80,14 @@ function MsgComponent:call_target(serv_name, rpc, ...)
     if not target_id then
         return false
     end
-    return router_mgr:call_target(target_id, rpc, self.id, ...)
+    return router_mgr:hash_call(target_id, self.id, rpc, self.id, ...)
 end
 
 --转发消息给target
 function MsgComponent:send_target(serv_name, rpc, ...)
     local target_id = self.passkey[serv_name]
     if target_id then
-        router_mgr:send_target(target_id, rpc, self.id, ...)
+        router_mgr:hash_send(target_id, self.id, rpc, self.id, ...)
     end
 end
 
@@ -109,21 +109,21 @@ end
 --转发消息给gatwway
 function MsgComponent:send_gateway(rpc, ...)
     if self.gateway then
-        router_mgr:send_target(self.gateway, rpc, self.id, ...)
+        router_mgr:hash_send(self.gateway, self.id, rpc, self.id, ...)
     end
 end
 
 --更新服务网关
 function MsgComponent:update_gate_passkey(servive, servive_id)
     if self.gateway then
-        router_mgr:send_target(self.gateway, "rpc_update_passkey", self.id, servive, servive_id)
+        router_mgr:hash_send(self.gateway, self.id, "rpc_update_passkey", self.id, servive, servive_id)
     end
 end
 
 --更新分组信息
 function MsgComponent:update_gate_group(group, group_id)
     if self.gateway then
-        router_mgr:send_target(self.gateway, "rpc_update_group", self.id, group, group_id)
+        router_mgr:hash_send(self.gateway, self.id, "rpc_update_group", self.id, group, group_id)
     end
 end
 

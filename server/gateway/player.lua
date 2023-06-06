@@ -40,8 +40,8 @@ end
 --更新分组信息
 function GatePlayer:update_group(group_name, group_id)
     log_info("[GatePlayer][update_group] player(%d) group(%s) id(%s)!", self.player_id, group_name, group_id)
-    local old_group = self.passkeys[group_name]
-    self.passkeys[group_name] = group_id
+    local old_group = self.groups[group_name]
+    self.groups[group_name] = group_id
     --管理 玩家 group 信息
     if old_group and old_group ~= group_id then
         group_mgr:remove_member(old_group, self.player_id)
@@ -62,7 +62,7 @@ end
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
     -- 缓存服务
     for _, server_id in pairs(self.passkeys) do
-        router_mgr:send_target(server_id, "rpc_player_heartbeat", self.player_id)
+        router_mgr:send_hash(server_id, self.player_id, "rpc_player_heartbeat", self.player_id)
     end
     -- hashkey服务
     for _,service_type in pairs(rallorl[RAR_HASHKEY] or {}) do
@@ -98,7 +98,7 @@ function GatePlayer:notify_command(service_type, cmd_id, body, session_id, displ
             client_mgr:callback_errcode(self.session, cmd_id, FRAME_FAILED, session_id)
             return
         end
-        ok, codeoe, res = router_mgr:call_target(server_id, "rpc_player_command", self.player_id, cmd_id, body)
+        ok, codeoe, res = router_mgr:hash_call(server_id, self.player_id, "rpc_player_command", self.player_id, cmd_id, body)
     end
 
     if qfailed(codeoe, ok) then

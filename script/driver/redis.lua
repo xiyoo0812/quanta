@@ -16,6 +16,7 @@ local tjoin         = qtable.join
 
 local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local LineTitle     = "\r\n"
@@ -336,7 +337,7 @@ function RedisDB:setup()
             return this:commit(param, ...)
         end
     end
-    thread_mgr:entry(self:address(), function()
+    self.timer_id = timer_mgr:loop(SECOND_MS, function()
         self:check_alive()
     end)
 end
@@ -357,9 +358,6 @@ function RedisDB:on_hour()
 end
 
 function RedisDB:check_alive()
-    if self.timer_id then
-        timer_mgr:unregister(self.timer_id)
-    end
     local ok = true
     for no, sock in pairs(self.connections) do
         if not sock:is_alive() then
@@ -368,9 +366,7 @@ function RedisDB:check_alive()
             end
         end
     end
-    self.timer_id = timer_mgr:once(ok and SECOND_10_MS or SECOND_MS, function()
-        self:check_alive()
-    end)
+    timer_mgr:set_period(ok and SECOND_10_MS or SECOND_MS)
 end
 
 function RedisDB:login(socket, no)
@@ -404,8 +400,7 @@ function RedisDB:on_socket_error(sock, token, err)
         thread_mgr:response(session_id, false, err)
         session_id = task_queue:pop()
     end
-    --检查活跃
-    thread_mgr:entry(self:address(), function()
+    event_mgr:fire_next_second(function()
         self:check_alive()
     end)
 end

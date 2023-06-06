@@ -32,15 +32,14 @@ local prop = property(RpcClient)
 prop:reader("ip", nil)
 prop:reader("port", nil)
 prop:reader("alive", false)
-prop:reader("alive_time", 0)
 prop:reader("socket", nil)
-prop:reader("holder", nil)    --持有者
+prop:accessor("holder", nil)    --持有者
 
 function RpcClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
     self.holder = holder
-    thread_mgr:entry(self:address(), function()
+    self.timer_id = timer_mgr:loop(SECOND_MS, function()
         self:check_heartbeat()
     end)
 end
@@ -49,14 +48,14 @@ function RpcClient:check_heartbeat()
     if not self.holder then
         return
     end
+    --处理连接
     if self.alive then
         self:heartbeat()
+        timer_mgr:set_period(self.timer_id, RPC_TIMEOUT)
     else
         self:connect()
+        timer_mgr:set_period(self.timer_id, SECOND_MS)
     end
-    self.timer_id = timer_mgr:once(self.alive and RPC_TIMEOUT or SECOND_MS, function()
-        self:check_heartbeat()
-    end)
 end
 
 --发送心跳
@@ -155,7 +154,7 @@ end
 
 -- 主动关闭连接
 function RpcClient:close()
-    self.holder = nil
+    log_err("[RpcClient][close] socket %s:%s!", self.ip, self.port)
     if self.socket then
         self.socket.close()
         self.alive = false
@@ -165,7 +164,6 @@ end
 
 --rpc事件
 function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source, rpc, ...)
-    self.alive_time = quanta.now
     if rpc == "on_heartbeat" then
         return
     end
@@ -187,10 +185,15 @@ end
 --错误处理
 function RpcClient:on_socket_error(token, err)
     thread_mgr:fork(function()
+        log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
         self.socket = nil
         self.alive = false
-        self.holder:on_socket_error(self, token, err)
-        log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
+        if self.holder then
+            self.holder:on_socket_error(self, token, err)
+            event_mgr:fire_next_second(function()
+                self:check_heartbeat()()
+            end)
+        end
     end)
 end
 
@@ -199,7 +202,6 @@ function RpcClient:on_socket_connect(socket)
     --log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
     thread_mgr:fork(function()
         self.alive = true
-        self.alive_time = quanta.now
         self.holder:on_socket_connect(self)
         self:heartbeat(true)
     end)

@@ -4,7 +4,6 @@ local log_debug         = logger.debug
 local qfailed           = quanta.failed
 
 local event_mgr         = quanta.get("event_mgr")
-local router_mgr        = quanta.get("router_mgr")
 local player_mgr        = quanta.get("player_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
@@ -32,8 +31,7 @@ end
 --属性回写
 function AttributeAgent:on_attr_writeback(player_id, player)
     local write_attrs = player:get_write_attrs()
-    local lobby_id = player:find_passkey("lobby")
-    local ok, code = router_mgr:call_target(lobby_id, "rpc_attr_writeback", player_id, write_attrs, quanta.id)
+    local ok, code = player:call_lobby("rpc_attr_writeback", write_attrs, quanta.id)
     if qfailed(code, ok) then
         log_err("[AttributeAgent][on_attr_writeback] writeback failed attrs=%s, player=%s, code=%s", write_attrs, player_id, code)
     end

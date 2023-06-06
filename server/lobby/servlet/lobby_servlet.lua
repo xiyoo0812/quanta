@@ -69,7 +69,7 @@ function LobbyServlet:rpc_player_command(player_id, cmd_id, message)
     return tunpack(result, 2)
 end
 
-function LobbyServlet:rpc_player_login(open_id, player_id, lobby, token, gateway)
+function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway)
     log_debug("[LobbyServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login req!", open_id, player_id, token, gateway)
     local account, login_token = player_mgr:load_account(open_id, player_id)
     if not account or not login_token then
@@ -110,11 +110,11 @@ function LobbyServlet:rpc_player_logout(player_id)
     return FRAME_SUCCESS
 end
 
-function LobbyServlet:rpc_player_reload(open_id, player_id, lobby, token, gateway)
+function LobbyServlet:rpc_player_reload(player_id, lobby, token, gateway)
     log_debug("[LobbyServlet][rpc_player_reload] player(%s) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
-        return FRAME_SUCCESS, 0
+        return ROLE_NOT_EXIST
     end
     local account = player:get_account()
     if not account then

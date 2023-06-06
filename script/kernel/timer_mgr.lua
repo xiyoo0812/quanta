@@ -28,19 +28,16 @@ function TimerMgr:trigger(handle, clock_ms)
     if handle.times > 0 then
         handle.times = handle.times - 1
     end
-    local function timer_cb()
-        handle.params[#handle.params] = clock_ms - handle.last
-        handle.cb(tunpack(handle.params))
-    end
     --防止在定时器中阻塞
-    thread_mgr:fork(timer_cb)
+    handle.params[#handle.params] = clock_ms - handle.last
+    thread_mgr:fork(handle.cb, tunpack(handle.params))
     --更新定时器数据
-    handle.last = clock_ms
     if handle.times == 0 then
         self.timers[handle.timer_id] = nil
         return
     end
     --继续注册
+    handle.last = clock_ms
     ltinsert(handle.timer_id, handle.period)
 end
 
@@ -91,6 +88,13 @@ end
 
 function TimerMgr:unregister(timer_id)
     self.timers[timer_id] = nil
+end
+
+function TimerMgr:set_period(timer_id, period)
+    local info = self.timers[timer_id]
+    if info then
+        info.period = period // TIMER_ACCURYACY
+    end
 end
 
 quanta.timer_mgr = TimerMgr()

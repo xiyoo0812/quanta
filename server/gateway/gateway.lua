@@ -41,10 +41,12 @@ function Gateway:__init()
     event_mgr:add_listener(self, "on_socket_accept")
     -- rpc消息监听
     event_mgr:add_listener(self, "rpc_update_passkey")
+    event_mgr:add_listener(self, "rpc_update_group")
     event_mgr:add_listener(self, "rpc_kickout_client")
     event_mgr:add_listener(self, "rpc_forward_client")
     event_mgr:add_listener(self, "rpc_groupcast_client")
     event_mgr:add_listener(self, "rpc_broadcast_client")
+    event_mgr:add_listener(self, "rpc_broadcast_group")
     -- cs协议监听
     protobuf_mgr:register(self, "NID_HEARTBEAT_REQ", "on_heartbeat_req")
     protobuf_mgr:register(self, "NID_LOGIN_ROLE_LOGIN_REQ", "on_role_login_req")
@@ -104,9 +106,12 @@ end
 
 --更新分组信息
 function Gateway:rpc_update_group(player_id, group_name, group_id)
+    log_debug("[Gateway][rpc_update_group] player(%s) group_name(%s) group_id(%s)", player_id, group_name, group_id)
     local player = self:get_player(player_id)
     if player then
         player:update_group(group_name, group_id)
+    else
+        log_warn("[Gateway][rpc_update_group] not player player(%s) group_name(%s) group_id(%s)", player_id, group_name, group_id)
     end
 end
 
@@ -116,7 +121,7 @@ function Gateway:remove_player(player, player_id)
     self.players[player_id] = nil
     local groups = player:get_groups()
     for _, group_id in pairs(groups or {}) do
-        group_mgr:remove_member(group_id, self.player_id)
+        group_mgr:remove_member(group_id, player_id)
     end
 end
 
@@ -188,8 +193,8 @@ function Gateway:on_heartbeat_req(session, cmd_id, body, session_id)
     end
 end
 
-function Gateway:call_lobby(lobby, rpc, ...)
-    local result = tpack(router_mgr:call_target(lobby, rpc, ...))
+function Gateway:call_lobby(lobby, rpc, player_id, ...)
+    local result = tpack(router_mgr:hash_call(lobby, player_id, rpc, player_id, ...))
     if not result[1] then
         return FRAME_FAILED, result[2]
     end
@@ -214,7 +219,7 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     else
         player = GatePlayer(session, open_id, player_id)
     end
-    local code, passkey, new_token = self:call_lobby(lobby, "rpc_player_login", open_id, player_id, lobby, token, quanta.id)
+    local code, passkey, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, lobby, token, quanta.id)
     if qfailed(code) then
         log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, code, passkey)
         return client_mgr:callback_errcode(session, cmd_id, code, session_id)
@@ -264,10 +269,10 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local code, new_token, passkey = self:call_lobby(lobby, "rpc_player_reload", open_id, player_id, lobby, token, quanta.id)
+    local code, new_token, passkey = self:call_lobby(lobby, "rpc_player_reload", player_id, lobby, token, quanta.id)
     if qfailed(code) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", code, new_token)
-        return client_mgr:callback_errcode(session, cmd_id, code, session_id)
+        return client_mgr:callback_by_id(session, cmd_id, { error_code = 0, token = 0 }, session_id)
     end
     if new_token > 0 then
         session.player_id = player_id

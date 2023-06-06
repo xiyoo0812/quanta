@@ -10,10 +10,9 @@ local json_encode   = ljson.encode
 local json_decode   = ljson.decode
 
 local timer_mgr     = quanta.get("timer_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
+local event_mgr     = quanta.get("event_mgr")
 local RedisDB       = import("driver/redis.lua")
 
-local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_5_MS   = quanta.enum("PeriodTime", "SECOND_5_MS")
 
 local EXPIRETIME    = 30
@@ -51,26 +50,21 @@ function RedisDiscovery:setup()
         self.groups[service_name] = sformat("QUANTA:%s:%s*", NAMESPACE, service_name)
     end
     --初始化定时器
-    timer_mgr:once(SECOND_MS, function()
-        --注册自己
+    timer_mgr:loop(SECOND_5_MS, function()
+        self:check_services()
+    end)
+    --注册自己
+    event_mgr:fire_next_second(function()
         self:register(quanta.node_info)
         self:check_services()
     end)
 end
 
 function RedisDiscovery:check_services(time)
-    if self.timer_id then
-        timer_mgr:unregister(self.timer_id)
-    end
-    thread_mgr:fork(function()
-        --发送心跳
-        self:heartbeat(quanta.id)
-        --检查服务
-        self:refresh_services()
-    end)
-    self.timer_id = timer_mgr:once(time or SECOND_5_MS, function()
-        self:check_services()
-    end)
+    --发送心跳
+    self:heartbeat(quanta.id)
+    --检查服务
+    self:refresh_services()
 end
 
 function RedisDiscovery:refresh_services()
@@ -80,7 +74,7 @@ function RedisDiscovery:refresh_services()
             local cur_services = self.services[service_name]
             local sadd, sdel = tdiff(cur_services, querys)
             if next(sadd) or next(sdel) then
-                log_debug("[RedisDiscovery][check_services] sadd:%s, sdel: %s", sadd, sdel)
+                log_debug("[RedisDiscovery][refresh_services] sadd:%s, sdel: %s", sadd, sdel)
                 self.trigger:broadcast("rpc_service_changed", service_name, sadd, sdel)
             end
             self.services[service_name] = querys
@@ -118,7 +112,6 @@ function RedisDiscovery:unregister(node_id)
     if sdata then
         log_debug("[RedisDiscovery][unregister] node %s", node_id)
         self:del_instance(sdata.service_key)
-        self:refresh_services(SECOND_MS)
     end
 end
 

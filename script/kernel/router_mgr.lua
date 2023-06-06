@@ -36,17 +36,14 @@ function RouterMgr:on_service_close(id, name)
     log_debug("[RouterMgr][on_service_close] node: %s-%s", name, id)
     local router = self.routers[id]
     if router then
-        router:close()
-        self.routers[id] = nil
+        router:set_holder(nil)
     end
 end
 
 --服务上线
 function RouterMgr:on_service_ready(id, name, info)
     log_debug("[RouterMgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
-    if info.group == quanta.group then
-        self:add_router(info.id, info.ip, info.port)
-    end
+    self:add_router(info.id, info.ip, info.port)
 end
 
 --服务被踢下线
@@ -57,10 +54,13 @@ end
 
 --添加router
 function RouterMgr:add_router(router_id, host, port)
-    if not self.routers[router_id] then
-        local RpcClient = import("network/rpc_client.lua")
-        self.routers[router_id] = RpcClient(self, host, port)
+    local router = self.routers[router_id]
+    if router then
+        router:set_holder(self)
+        return
     end
+    local RpcClient = import("network/rpc_client.lua")
+    self.routers[router_id] = RpcClient(self, host, port)
 end
 
 --错误处理
@@ -143,12 +143,31 @@ function RouterMgr:call_target(target, rpc, ...)
 end
 
 --发送给指定目标
+function RouterMgr:hash_call(target, hash_key, rpc, ...)
+    if target == quanta.id then
+        local res = event_mgr:notify_listener(rpc, ...)
+        return tunpack(res)
+    end
+    local session_id = thread_mgr:build_session_id()
+    return self:forward_client(self:hash_router(hash_key), "call_target", session_id, target, rpc, ...)
+end
+
+--发送给指定目标
 function RouterMgr:send_target(target, rpc, ...)
     if target == quanta.id then
         event_mgr:notify_listener(rpc, ...)
         return true
     end
     return self:forward_client(self:hash_router(target), "call_target", 0, target, rpc, ...)
+end
+
+--发送给指定目标
+function RouterMgr:hash_send(target, hash_key, rpc, ...)
+    if target == quanta.id then
+        event_mgr:notify_listener(rpc, ...)
+        return true
+    end
+    return self:forward_client(self:hash_router(hash_key), "call_target", 0, target, rpc, ...)
 end
 
 --指定路由发送给指定目标

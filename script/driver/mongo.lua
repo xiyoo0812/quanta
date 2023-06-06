@@ -34,8 +34,9 @@ local mencode_o     = lmongo.encode_order_slice
 local eproto_type   = lbus.eproto_type
 
 local timer_mgr     = quanta.get("timer_mgr")
-local update_mgr    = quanta.get("update_mgr")
+local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+local update_mgr    = quanta.get("update_mgr")
 
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
@@ -82,6 +83,14 @@ function MongoDB:set_executer(id)
     self.executer = self.connections[index]
 end
 
+function MongoDB:set_options(opts)
+    for key, value in pairs(opts) do
+        if key == "readPreference" then
+            self.readpref = { mode = value }
+        end
+    end
+end
+
 function MongoDB:choose_host(hosts)
     if not next(hosts) then
         log_err("[MongoDB][choose_host] mongo config err: hosts is empty")
@@ -96,23 +105,12 @@ function MongoDB:choose_host(hosts)
             count = count - 1
         end
     end
-    thread_mgr:entry(self:address(), function()
+    self.timer_id = timer_mgr:loop(SECOND_MS, function()
         self:check_alive()
     end)
 end
 
-function MongoDB:set_options(opts)
-    for key, value in pairs(opts) do
-        if key == "readPreference" then
-            self.readpref = { mode = value }
-        end
-    end
-end
-
 function MongoDB:check_alive()
-    if self.timer_id then
-        timer_mgr:unregister(self.timer_id)
-    end
     local ok = true
     for no, sock in pairs(self.connections) do
         if not sock:is_alive() then
@@ -121,9 +119,7 @@ function MongoDB:check_alive()
             end
         end
     end
-    self.timer_id = timer_mgr:once(ok and SECOND_10_MS or SECOND_MS, function()
-        self:check_alive()
-    end)
+    timer_mgr:set_period(ok and SECOND_10_MS or SECOND_MS)
 end
 
 function MongoDB:on_hour()
@@ -227,8 +223,7 @@ function MongoDB:on_socket_error(sock, token, err)
         thread_mgr:response(session_id, false, err)
     end
     sock.sessions = {}
-    --检查活跃
-    thread_mgr:entry(self:address(), function()
+    event_mgr:fire_next_second(function()
         self:check_alive()
     end)
 end
