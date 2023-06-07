@@ -117,6 +117,10 @@ function NetServer:on_socket_accept(session)
 end
 
 function NetServer:write(session, cmd, data, session_id, flag)
+    if session.token == 0 then
+        log_fatal("[NetServer][write] session lost! cmd_id:%s-(%s)", cmd, data)
+        return false
+    end
     local body, cmd_id, pflag = self:encode(cmd, data, flag)
     if not body then
         log_fatal("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd, data)
@@ -197,7 +201,6 @@ end
 
 -- 收到远程调用回调
 function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice)
-    session.alive_time = quanta.now
     -- 解码
     local body, cmd_name = self:decode(cmd_id, slice, flag)
     if not body then

@@ -41,6 +41,12 @@ function Account:is_newbee()
     return self.create_time == 0
 end
 
+function Account:update_params(params)
+    for key, value in pairs(params) do
+        self:save_params_field(key, value)
+    end
+end
+
 function Account:get_role(role_id)
     return self.roles[role_id]
 end

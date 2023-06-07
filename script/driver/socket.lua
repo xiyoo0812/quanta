@@ -26,7 +26,6 @@ prop:reader("port", 0)
 prop:reader("host", nil)
 prop:reader("token", nil)
 prop:reader("alive", false)
-prop:reader("alive_time", 0)
 prop:reader("proto_type", eproto_type.text)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
@@ -96,7 +95,6 @@ function Socket:connect(ip, port, ptype)
             self.token = nil
             self.session = nil
         end
-        self.alive_time = quanta.now
         thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, slice)
@@ -127,7 +125,6 @@ function Socket:on_socket_recv(token, slice)
     if more_byte > WARNING_BYTES then
         log_warn("[Socket][on_socket_recv] socket %s recv buf has so more (%s) bytes!", token, more_byte)
     end
-    self.alive_time = quanta.now
     if self.proto_type == eproto_type.text then
         self.recvbuf = self.recvbuf .. slice.string()
         self.host:on_socket_recv(self, self.token)

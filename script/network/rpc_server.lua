@@ -60,7 +60,6 @@ end
 
 --rpc事件
 function RpcServer:on_socket_rpc(client, session_id, rpc_flag, recv_len, source, rpc, ...)
-    client.alive_time = quanta.now
     proxy_agent:statistics("on_rpc_recv", rpc, recv_len)
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)

@@ -62,7 +62,7 @@ end
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
     -- 缓存服务
     for _, server_id in pairs(self.passkeys) do
-        router_mgr:send_hash(server_id, self.player_id, "rpc_player_heartbeat", self.player_id)
+        router_mgr:hash_send(server_id, self.player_id, "rpc_player_heartbeat", self.player_id)
     end
     -- hashkey服务
     for _,service_type in pairs(rallorl[RAR_HASHKEY] or {}) do

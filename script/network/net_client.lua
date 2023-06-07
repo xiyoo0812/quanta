@@ -30,7 +30,6 @@ local prop = property(NetClient)
 prop:reader("ip", nil)
 prop:reader("port", nil)
 prop:reader("alive", false)
-prop:reader("alive_time", 0)
 prop:reader("socket", nil)          --连接成功对象
 prop:reader("holder", nil)          --持有者
 prop:reader("wait_list", {})        --等待协议列表
@@ -124,7 +123,6 @@ function NetClient:decode(cmd_id, slice, flag)
 end
 
 function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
-    self.alive_time = quanta.now
     local body, cmd_name = self:decode(cmd_id, slice, flag)
     if not body  then
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
@@ -204,7 +202,6 @@ end
 -- 连接成回调
 function NetClient:on_socket_connect(socket)
     self.alive = true
-    self.alive_time = quanta.now
     self.holder:on_socket_connect(self)
 end
 

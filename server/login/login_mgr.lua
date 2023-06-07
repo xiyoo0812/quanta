@@ -1,5 +1,6 @@
 --login_mgr.lua
 local log_warn          = logger.warn
+local log_debug         = logger.debug
 
 local event_mgr         = quanta.get("event_mgr")
 local client_mgr        = quanta.get("client_mgr")
@@ -26,12 +27,16 @@ end
 
 --客户端连上
 function LoginMgr:on_socket_accept(session)
-    --log_debug("[LoginMgr][on_socket_accept] %s connected!", session.token)
+    log_debug("[LoginMgr][on_socket_accept] %s connected!", session.token)
 end
 
 --客户端连接断开
 function LoginMgr:on_socket_error(session, token, err)
-    log_warn("[LoginMgr][on_socket_error] %s lost, because: %s!", token, err)
+    log_debug("[LoginMgr][on_socket_error] %s lost, because: %s!", token, err)
+    local account = session.account
+    if account then
+        log_debug("[LoginMgr][on_socket_error] (t:%s-o:%s-u:%s) lost, because: %s!", token, account.open_id, account.user_id, err)
+    end
 end
 
 --客户端消息分发

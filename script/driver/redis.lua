@@ -366,7 +366,7 @@ function RedisDB:check_alive()
             end
         end
     end
-    timer_mgr:set_period(ok and SECOND_10_MS or SECOND_MS)
+    timer_mgr:set_period(self.timer_id, ok and SECOND_10_MS or SECOND_MS)
 end
 
 function RedisDB:login(socket, no)

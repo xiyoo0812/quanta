@@ -103,10 +103,13 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     end
     session.account = account
     account:save_token(access_token)
-    account:save_params(account_params)
+    account:update_params(account_params)
     event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id, device_id)
-    client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id)
-    log_info("[LoginServlet][on_account_login_req] success! open_id: %s", open_id)
+    if not client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id) then
+        log_info("[LoginServlet][on_account_login_req] callback failed! open_id: %s, user_id：%s", open_id, account:get_user_id())
+        return
+    end
+    log_info("[LoginServlet][on_account_login_req] success! open_id: %s, user_id：%s", open_id, account:get_user_id())
 end
 
 --创建角色
@@ -136,7 +139,10 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     account:save_roles_field(role_id, body)
     event_mgr:notify_listener("on_role_create", user_id, role_id, body)
     local rdata = { role_id = role_id, gender = body.gender, name = body.name }
-    client_mgr:callback_by_id(session, cmd_id, { error_code = 0, role = rdata }, session_id)
+    if not client_mgr:callback_by_id(session, cmd_id, { error_code = 0, role = rdata }, session_id) then
+        log_info("[LoginServlet][on_role_create_req] user_id(%s) create role %s callback failed!", user_id, name)
+        return
+    end
     log_info("[LoginServlet][on_role_create_req] user_id(%s) create role %s success!", user_id, name)
 end
 
@@ -162,8 +168,11 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
     end
     account:save_lobby(gateway.lobby)
     account:set_login_token(role_id, gateway.token, MINUTE_5_S)
+    if not client_mgr:callback_by_id(session, cmd_id, gateway, session_id) then
+        log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) callback failed!", user_id, role_id)
+        return
+    end
     log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose success!", user_id, role_id)
-    client_mgr:callback_by_id(session, cmd_id, gateway, session_id)
 end
 
 --删除角色
@@ -171,7 +180,7 @@ function LoginServlet:on_role_delete_req(session, cmd_id, body, session_id)
     local user_id, role_id = body.user_id, body.role_id
     log_debug("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete req!", user_id, role_id)
     local account = session.account
-    if not account or account:get_user_id() ~= session.user_id then
+    if not account or account:get_user_id() ~= user_id then
         log_err("[LoginServlet][on_role_delete_req] user_id(%s) need login!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
     end
@@ -179,8 +188,11 @@ function LoginServlet:on_role_delete_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) role nit exist!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NOT_EXIST, session_id)
     end
+    if not client_mgr:callback_errcode(session, cmd_id, FRAME_SUCCESS, session_id) then
+        log_info("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) callback failed!", user_id, role_id)
+        return
+    end
     log_info("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete success!", user_id, role_id)
-    client_mgr:callback_errcode(session, cmd_id, FRAME_SUCCESS, session_id)
 end
 
 --账号重登
@@ -210,16 +222,21 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     session.account = account
-    client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id)
-    log_info("[LoginServlet][on_account_reload_req] success! open_id: %s", open_id)
+    if not client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id) then
+        log_info("[LoginServlet][on_account_reload_req] callback failed! open_id: %s", open_id)
+        return
+    end
+    log_info("[LoginServlet][on_account_reload_req] success! open_id: %s, user_id: %s", open_id, account:get_user_id())
 end
 
 --随机名字
 function LoginServlet:on_random_name_req(session, cmd_id, body, session_id)
     local rname = guid_encode()
-    log_debug("[LoginServlet][on_random_name_req] open_id(%s) randname: %s!",session.open_id, rname)
+    log_debug("[LoginServlet][on_random_name_req] open_id(%s) randname: %s!", session.open_id, rname)
     local callback_data = { error_code = 0, name = rname }
-    client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
+    if not client_mgr:callback_by_id(session, cmd_id, callback_data, session_id) then
+        log_info("[LoginServlet][on_random_name_req] callback failed! open_id: %s", session.open_id)
+    end
 end
 
 --网关和lobby相关接口
