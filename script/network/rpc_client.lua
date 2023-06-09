@@ -191,7 +191,7 @@ function RpcClient:on_socket_error(token, err)
         if self.holder then
             self.holder:on_socket_error(self, token, err)
             event_mgr:fire_next_second(function()
-                self:check_heartbeat()()
+                self:check_heartbeat()
             end)
         end
     end)

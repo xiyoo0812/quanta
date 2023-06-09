@@ -31,7 +31,7 @@ function LoginDao:get_autoinc_id(user_id)
 end
 
 function LoginDao:check_name_exist(name)
-    local ok, code, udata = mongo_agent:find_one({ "player", { name = name }, { name = 1 } })
+    local ok, code, udata = mongo_agent:find_one({ "player", { nick = name }, { nick = 1 } })
     if qfailed(code, ok) then
         log_err("[LoginDao][check_name_exist] name: %s find failed! code: %s, res: %s", name, code, udata)
         return false

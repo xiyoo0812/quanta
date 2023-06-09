@@ -17,7 +17,7 @@ local lis_filter    = llogger.is_filter
 local LOG_LEVEL     = llogger.LOG_LEVEL
 
 local dispatching   = false
-local logtag        = quanta.logtag
+local title         = quanta.title
 local monitors      = _ENV.monitors or {}
 
 logger = {}
@@ -25,16 +25,12 @@ logfeature = {}
 
 function logger.init()
     --配置日志信息
-    local service_name, index = quanta.service_name, quanta.index
-    local path = environ.get("QUANTA_LOG_PATH", "./logs/")
-    local rolltype = environ.number("QUANTA_LOG_ROLL", 0)
-    local maxline = environ.number("QUANTA_LOG_LINE", 100000)
-    llogger.option(path, service_name, index, rolltype);
-    llogger.set_max_line(maxline);
+    llogger.set_max_line(environ.number("QUANTA_LOG_LINE", 100000))
+    llogger.set_rolling_type(environ.number("QUANTA_LOG_ROLL", 0))
     --设置日志过滤
     logger.filter(environ.number("QUANTA_LOG_LVL"))
     --添加输出目标
-    llogger.add_dest(service_name);
+    llogger.add_dest(quanta.service_name);
     llogger.add_lvl_dest(LOG_LEVEL.ERROR)
     --设置daemon
     llogger.daemon(environ.status("QUANTA_DAEMON"))
@@ -76,7 +72,7 @@ local function logger_output(feature, notify, lvl, lvl_name, fmt, log_conf, ...)
     else
         content = sformat(fmt, ...)
     end
-    lvl_func(content, logtag, feature)
+    lvl_func(content, title, feature)
     if notify and not dispatching then
         --防止重入
         dispatching = true

@@ -160,6 +160,8 @@ function UpdateMgr:check_signal(scheduler)
             event_mgr:notify_trigger("on_reload")
             --通知woker更新
             scheduler:broadcast("on_reload")
+            --输出状态
+            quanta.report("reload")
         end
         if sig_check(signal) then
             log_info("[UpdateMgr][check_signal]service quit for signal !")

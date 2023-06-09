@@ -14,13 +14,16 @@ local group_mgr         = quanta.get("group_mgr")
 local config_mgr        = quanta.get("config_mgr")
 local router_mgr        = quanta.get("router_mgr")
 local client_mgr        = quanta.get("client_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
+
 local GatePlayer     	= import("gateway/player.lua")
 
 local gatelog           = config_mgr:init_table("gatelog", "name")
 
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_UPHOLD      = protobuf_mgr:error_code("FRAME_UPHOLD")
+local FRAME_TOOFAST     = protobuf_mgr:error_code("FRAME_TOOFAST")
 local DEVICE_REPLACE    = protobuf_mgr:error_code("KICK_DEVICE_REPLACE")
 local ROLE_IS_INLINE    = protobuf_mgr:error_code("LOGIN_ROLE_IS_INLINE")
 
@@ -323,6 +326,10 @@ function Gateway:on_socket_cmd(session, service_type, cmd_id, body, session_id)
         log_warn("[Gateway][on_socket_cmd] need login, cmd_id=%s, player_id=%s", cmd_id, player_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         return
+    end
+    local _lock<close> = thread_mgr:lock(sformat("%d_%d", player_id, cmd_id))
+    if not _lock then
+        return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
     player:notify_command(service_type, cmd_id, body, session_id, self:is_print_cmd(cmd_id))
 end

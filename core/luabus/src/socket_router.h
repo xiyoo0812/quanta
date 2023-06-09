@@ -25,7 +25,7 @@ struct service_node {
 
 #pragma pack(1)
 struct router_header {
-    uint16_t len = 0;
+    uint32_t len = 0;
     uint8_t  context = 0;       //高4位为msg_id，低4位为flag
     uint32_t session_id = 0;
     uint32_t target_id = 0;

@@ -40,7 +40,7 @@ dprop:store_value("nick", "")       --nick
 dprop:store_value("facade", "")     --nick
 dprop:store_value("login_time", 0)  --login_time
 dprop:store_value("upgrade_time", 0)--upgrade_time
-
+dprop:store_value("energy_tick", 0)--下次能量恢复时间
 function Player:__init(id)
 end
 
@@ -52,6 +52,7 @@ function Player:on_db_player_load(data)
         self.create_time = data.create_time
         self.login_time = data.login_time or 0
         self.upgrade_time = data.upgrade_time or 0
+        self.energy_tick = data.energy_tick or quanta.now
         self:set_gender(data.gender)
         self:set_custom(data.facade)
         self:set_name(data.nick)

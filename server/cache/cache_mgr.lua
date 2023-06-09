@@ -23,6 +23,7 @@ local DELETE_FAILD  = quanta.enum("CacheCode", "CACHE_DELETE_FAILD")
 local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
 local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
 local CACHE_MAX     = environ.number("QUANTA_DB_CACHE_MAX")
+local CACHE_FLUSH   = environ.number("QUANTA_DB_CACHE_FLUSH")
 
 local Group         = import("cache/group.lua")
 local QueueLRU      = import("container/queue_lru.lua")
@@ -73,11 +74,12 @@ end
 
 --更新数据
 function CacheMgr:on_frame()
+    local channel = makechan()
+    --保存数据
     if next(self.save_documents) then
-        --保存数据
-        local schannel = makechan()
+        local count = 0
         for document in pairs(self.save_documents) do
-            schannel:push(function()
+            channel:push(function()
                 local ok, code = document:update()
                 if qfailed(code, ok) then
                     return false
@@ -85,14 +87,17 @@ function CacheMgr:on_frame()
                 self.save_documents[document] = nil
                 return true, code
             end)
+            count = count + 1
+            if count == CACHE_FLUSH then
+                break
+            end
         end
-        schannel:execute("save cache")
     end
     if next(self.del_documents) then
         --删除数据
-        local dchannel = makechan()
+        local count = 0
         for document in pairs(self.del_documents) do
-            dchannel:push(function()
+            channel:push(function()
                 local ok, code = document:destory()
                 if qfailed(code, ok) then
                     return false
@@ -100,9 +105,13 @@ function CacheMgr:on_frame()
                 self.del_documents[document] = nil
                 return true, code
             end)
+            count = count + 1
+            if count == CACHE_FLUSH then
+                break
+            end
         end
-        dchannel:execute("del cache")
     end
+    channel:execute("flush cache")
 end
 
 --检查锁
@@ -176,7 +185,7 @@ function CacheMgr:rpc_cache_update_field(primary_id, coll_name, field, field_dat
         log_err("[CacheMgr][rpc_cache_update_field] load_document failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
         return ccode
     end
-    log_debug("[CacheMgr][rpc_cache_update_field] coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
+    log_debug("[CacheMgr][rpc_cache_update_field] coll_name=%s, primary=%s, field=%s, data:%s", coll_name, primary_id, field, field_data)
     doc:update_field(field, field_data)
     return SUCCESS
 end

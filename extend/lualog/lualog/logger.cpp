@@ -100,7 +100,7 @@ namespace logger {
         if (!ignore_prefix_) {
             auto names = level_names<log_level>()();
             const log_time& t = logmsg->get_log_time();
-            return fmt::format("[{:4d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}]{}[{}]",
+            return fmt::format("[{:4d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}][{}][{}]",
                 t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, t.tm_usec, logmsg->tag(), names[(int)logmsg->level()]);
         }
         return "";
@@ -204,9 +204,10 @@ namespace logger {
 
     // class log_service
     // --------------------------------------------------------------------------------
-    void log_service::option(cstring& log_path, cstring& service, cstring& index, rolling_type type) {
-        log_path_ = log_path, service_ = service; rolling_type_ = type;
+    void log_service::option(cstring& log_path, cstring& service, cstring& index) {
+        log_path_ = log_path, service_ = service;
         log_path_.append(fmt::format("{}-{}", service, index));
+        create_directories(log_path_);
     }
 
     path log_service::build_path(cstring& feature, cstring& lpath) {
@@ -235,7 +236,6 @@ namespace logger {
                 return true;
             }
             dest_features_.insert(std::make_pair(feature, logfile));
-            return true;
         }
         return true;
     }
@@ -253,6 +253,17 @@ namespace logger {
         else {
             auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature, max_line_, clean_time_);
             dest_lvls_.insert(std::make_pair(log_lvl, logfile));
+        }
+        return true;
+    }
+
+    bool log_service::add_file_dest(cstring& feature, cstring& fname) {
+        std::unique_lock<spin_mutex> lock(mutex_);
+        if (dest_features_.find(feature) == dest_features_.end()) {
+            auto logfile = std::make_shared<log_file_base>(max_line_);
+            logfile->create(log_path_, fname, log_time::now());
+            logfile->ignore_prefix(true);
+            dest_features_.insert(std::make_pair(feature, logfile));
         }
         return true;
     }
@@ -279,9 +290,6 @@ namespace logger {
             iter->second->ignore_prefix(prefix);
             return;
         }
-        if (def_dest_) def_dest_->ignore_prefix(prefix);
-        if (std_dest_) std_dest_->ignore_prefix(prefix);
-        for (auto dest : dest_lvls_) dest.second->ignore_prefix(prefix);
     }
 
     void log_service::ignore_suffix(cstring& feature, bool suffix) {
@@ -290,9 +298,6 @@ namespace logger {
             iter->second->ignore_suffix(suffix);
             return;
         }
-        if (def_dest_) def_dest_->ignore_suffix(suffix);
-        if (std_dest_) std_dest_->ignore_suffix(suffix);
-        for (auto dest : dest_lvls_) dest.second->ignore_suffix(suffix);
     }
 
     void log_service::start(){

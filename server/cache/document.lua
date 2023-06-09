@@ -7,6 +7,7 @@ local tconcat       = table.concat
 local qfailed       = quanta.failed
 local sformat       = string.format
 local ssplit        = qstring.split
+local mrandom       = math.random
 local convint       = qmath.conv_integer
 local makechan      = quanta.make_channel
 local json_encode   = ljson.encode
@@ -31,12 +32,12 @@ prop:reader("depth_max", 1)         -- depth_max
 prop:reader("depth_min", 0)         -- depth_min
 prop:reader("hotkey", "")           -- hotkey
 prop:reader("datas", {})            -- datas
-prop:reader("time", 1200)           -- time
-prop:reader("count", 300)           -- count
+prop:reader("count", 0)             -- count
+prop:reader("time", 0)              -- time
 
 --构造函数
 function Document:__init(conf, primary_id)
-    self.prototype = self
+    self.prototype = conf
     self.count = conf.count
     self.coll_name = conf.sheet
     self.primary_key = conf.key
@@ -69,13 +70,17 @@ function Document:merge(primary_id)
     end
     if next(res) then
         for key, value in pairs(res) do
+            self.count = self.count - 1
             if value == "nil" then
                 self:unset_field(key)
             else
                 self:set_field(key, json_decode(value))
             end
         end
-        self:flush()
+        local conf = self.prototype
+        self.time = quanta.now + mrandom(0, conf.time // 2)
+        self.count = self.count - mrandom(0, conf.count // 2)
+        self:check_flush()
     end
     return SUCCESS
 end
@@ -164,7 +169,7 @@ function Document:update_field(field, field_data)
     self:flush()
 end
 
-    --确保有主键
+--确保有主键
 function Document:check_primary(datas, primary_key)
     if not datas[primary_key] then
         datas[primary_key] = self.primary_id
@@ -227,8 +232,12 @@ function Document:cmomit_redis(field, value)
         self:flush()
         return
     end
+    self:check_flush()
+end
+
+function Document:check_flush()
     self.count = self.count - 1
-    if self.count == 0 or self.time == quanta.now then
+    if self.count <= 0 or self.time < quanta.now then
         self:flush()
     end
 end

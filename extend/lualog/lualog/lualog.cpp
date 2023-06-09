@@ -24,18 +24,18 @@ namespace logger {
         lualog.set_function("del_dest", [](string feature) { get_logger()->del_dest(feature); });
         lualog.set_function("del_lvl_dest", [](int lv) { get_logger()->del_lvl_dest((log_level)lv); });
         lualog.set_function("add_lvl_dest", [](int lv) { return get_logger()->add_lvl_dest((log_level)lv); });
+        lualog.set_function("set_rolling_type", [](rolling_type type) { get_logger()->set_rolling_type(type); });
         lualog.set_function("ignore_prefix", [](string feature, bool prefix) { get_logger()->ignore_prefix(feature, prefix); });
         lualog.set_function("ignore_suffix", [](string feature, bool suffix) { get_logger()->ignore_suffix(feature, suffix); });
         lualog.set_function("add_dest", [](string feature, string log_path) { return get_logger()->add_dest(feature, log_path); });
+        lualog.set_function("add_file_dest", [](string feature, string fname) { return get_logger()->add_file_dest(feature, fname); });
         lualog.set_function("info", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_INFO, msg, tag, feature); });
         lualog.set_function("warn", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_WARN, msg, tag, feature); });
         lualog.set_function("dump", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_DUMP, msg, tag, feature); });
         lualog.set_function("debug", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_DEBUG, msg, tag, feature); });
         lualog.set_function("error", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_ERROR, msg, tag, feature); });
         lualog.set_function("fatal", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_FATAL, msg, tag, feature); });
-        lualog.set_function("option", [](string log_path, string service, string index, rolling_type type) {
-            get_logger()->option(log_path, service, index, type);
-        });
+        lualog.set_function("option", [](string log_path, string service, string index) { get_logger()->option(log_path, service, index); });
         return lualog;
     }
 }

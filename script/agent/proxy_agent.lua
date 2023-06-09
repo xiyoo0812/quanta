@@ -4,7 +4,7 @@ local tunpack       = table.unpack
 local send_worker   = quanta.send_worker
 local call_worker   = quanta.call_worker
 
-local WTITLE        = quanta.worker_title
+local TITLE         = quanta.title
 local HOST_IP       = environ.get("QUANTA_HOST_IP")
 
 local event_mgr     = quanta.get("event_mgr")
@@ -75,7 +75,7 @@ function ProxyAgent:send(rpc, ...)
     if scheduler then
         return scheduler:send("proxy", rpc, ...)
     end
-    if WTITLE ~= "proxy" then
+    if TITLE ~= "proxy" then
         return send_worker("proxy", rpc, ...)
     end
     event_mgr:notify_listener(rpc, ...)
@@ -85,7 +85,7 @@ function ProxyAgent:call(rpc, ...)
     if scheduler then
         return scheduler:call("proxy", rpc, ...)
     end
-    if WTITLE ~= "proxy" then
+    if TITLE ~= "proxy" then
         return call_worker("proxy", rpc, ...)
     end
     local rpc_datas = event_mgr:notify_listener(rpc, ...)

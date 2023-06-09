@@ -111,15 +111,17 @@ end
 
 --启动
 function quanta.startup(entry)
-    quanta.now = 0
     quanta.frame = 0
     quanta.now_ms, quanta.clock_ms = ltime()
+    quanta.now = quanta.now_ms // 1000
     --初始化随机种子
     math.randomseed(quanta.now_ms)
     --初始化quanta
     quanta.init()
     --启动服务器
-    entry()
+    pcall(entry)
+    --输出启动信息
+    quanta.report("startup")
 end
 
 --底层驱动

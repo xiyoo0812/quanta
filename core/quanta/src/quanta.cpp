@@ -145,7 +145,7 @@ void quanta_app::run() {
     luakit::kit_state lua;
     auto quanta = lua.new_table("quanta");
     quanta.set("pid", ::getpid());
-    quanta.set("logtag", "[quanta]");
+    quanta.set("title", "quanta");
     quanta.set("environs", m_environs);
     quanta.set("platform", get_platform());
     quanta.set_function("daemon", [&]() { daemon(); });

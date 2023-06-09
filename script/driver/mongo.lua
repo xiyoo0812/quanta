@@ -105,7 +105,7 @@ function MongoDB:choose_host(hosts)
             count = count - 1
         end
     end
-    self.timer_id = timer_mgr:loop(SECOND_MS, function()
+    self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
         self:check_alive()
     end)
 end

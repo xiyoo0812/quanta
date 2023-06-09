@@ -10,6 +10,8 @@
 
 using namespace luakit;
 
+const int SOCKET_PACKET_MAX = 1024 * 1024 * 16; //16m
+
 namespace lworker {
 
     static slice* read_slice(std::shared_ptr<var_buffer> buff, size_t* pack_len) {
@@ -101,8 +103,7 @@ namespace lworker {
 
         void run(){
             auto quanta = m_lua->new_table(m_service.c_str());
-            quanta.set("worker_title", m_name);
-            quanta.set("logtag", fmt::format("[{}]", m_name));
+            quanta.set("title", fmt::format("{}", m_name));
             quanta.set_function("stop", [&]() { m_running = false; });
             quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });

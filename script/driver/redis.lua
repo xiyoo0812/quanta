@@ -337,7 +337,7 @@ function RedisDB:setup()
             return this:commit(param, ...)
         end
     end
-    self.timer_id = timer_mgr:loop(SECOND_MS, function()
+    self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
         self:check_alive()
     end)
 end

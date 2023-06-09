@@ -8,7 +8,6 @@ local HttpServer        = import("network/http_server.lua")
 
 local log_err           = logger.err
 local log_debug         = logger.debug
-local env_get           = environ.get
 local sformat           = string.format
 local tunpack           = table.unpack
 local tinsert           = table.insert
@@ -46,14 +45,17 @@ function AdminMgr:__init()
     event_mgr:add_listener(self, "rpc_execute_message")
 
     --创建HTTP服务器
-    local server = HttpServer(env_get("QUANTA_ADMIN_HTTP"))
-    server:register_get("/", "on_gm_page", self)
-    server:register_get("/gmlist", "on_gmlist", self)
-    server:register_get("/monitors", "on_monitors", self)
-    server:register_post("/command", "on_command", self)
-    server:register_post("/message", "on_message", self)
+    local server = HttpServer(environ.get("QUANTA_ADMIN_HTTP"))
     service.make_node(server:get_port())
     self.http_server = server
+    --是否开启GM功能
+    if environ.status("QUANTA_ADMIN_GM") then
+        server:register_get("/", "on_gm_page", self)
+        server:register_get("/gmlist", "on_gmlist", self)
+        server:register_get("/monitors", "on_monitors", self)
+        server:register_post("/command", "on_command", self)
+        server:register_post("/message", "on_message", self)
+    end
     --关注monitor
     monitor:watch_service_ready(self, "monitor")
     monitor:watch_service_close(self, "monitor")

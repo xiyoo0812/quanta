@@ -45,8 +45,8 @@ int lua_socket_node::call_text(const char* data, uint32_t data_len) {
 }
 
 int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len){
-    int length = data_len + sizeof(socket_header);
-    if (length > SOCKET_PACKET_MAX) return 0;
+    size_t length = data_len + sizeof(socket_header);
+    if (length > USHRT_MAX) return 0;
     //组装数据
     socket_header header;
     header.flag = flag;
@@ -63,7 +63,7 @@ int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint
 int lua_socket_node::call(uint32_t session_id, uint8_t flag, slice* slice) {
     size_t data_len = 0;
     char* data = (char*)slice->data(&data_len);
-    int length = data_len + sizeof(socket_header);
+    size_t length = data_len + sizeof(router_header);
     if (length > SOCKET_PACKET_MAX) return 0;
     //组装数据
     router_header header;
@@ -80,7 +80,7 @@ int lua_socket_node::call(uint32_t session_id, uint8_t flag, slice* slice) {
 int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, slice* slice) {
     size_t data_len = 0;
     char* data = (char*)slice->data(&data_len);
-    int length = data_len + sizeof(socket_header);
+    size_t length = data_len + sizeof(router_header);
     if (length > SOCKET_PACKET_MAX) return 0;
     //组装数据
     router_header header;
@@ -97,7 +97,7 @@ int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t 
 int lua_socket_node::forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, slice* slice) {
     size_t data_len = 0;
     char* data = (char*)slice->data(&data_len);
-    int length = data_len + sizeof(socket_header);
+    size_t length = data_len + sizeof(router_header);
     if (length > SOCKET_PACKET_MAX) return 0;
     //组装数据
     router_header header;

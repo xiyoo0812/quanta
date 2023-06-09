@@ -23,7 +23,7 @@ local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
 local thread_mgr    = quanta.load("thread_mgr")
 
-local WTITLE        = quanta.worker_title
+local TITLE         = quanta.title
 local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
@@ -141,11 +141,13 @@ end
 --事件分发
 local function notify_rpc(session_id, title, rpc, ...)
     if rpc == "on_reload" then
-        log_info("[Worker][on_reload]worker:%s reload for signal !", WTITLE)
+        log_info("[Worker][on_reload]worker:%s reload for signal !", TITLE)
         --重新加载脚本
         quanta.reload()
         --事件通知
         event_mgr:notify_trigger("on_reload")
+        --输出状态
+        quanta.report("reload")
         return
     end
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
@@ -179,7 +181,7 @@ end
 --访问主线程
 quanta.call_master = function(rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    local slice = lencode(session_id, FLAG_REQ, WTITLE, rpc, ...)
+    local slice = lencode(session_id, FLAG_REQ, TITLE, rpc, ...)
     if quanta.call("master", slice) then
         return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
     end
@@ -188,13 +190,13 @@ end
 
 --通知主线程
 quanta.send_master = function(rpc, ...)
-    quanta.call("master", lencode(0, FLAG_REQ, WTITLE, rpc, ...))
+    quanta.call("master", lencode(0, FLAG_REQ, TITLE, rpc, ...))
 end
 
 --访问其他线程
 quanta.call_worker = function(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    if quanta.call(name, lencode(session_id, FLAG_REQ, WTITLE, rpc, ...)) then
+    if quanta.call(name, lencode(session_id, FLAG_REQ, TITLE, rpc, ...)) then
         return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
     end
     return false, "call failed"
@@ -202,5 +204,5 @@ end
 
 --通知其他线程
 quanta.send_worker = function(name, rpc, ...)
-    quanta.call(name, lencode(0, FLAG_REQ, WTITLE, rpc, ...))
+    quanta.call(name, lencode(0, FLAG_REQ, TITLE, rpc, ...))
 end
