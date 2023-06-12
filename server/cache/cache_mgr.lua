@@ -10,6 +10,7 @@ local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
 local redis_mgr     = quanta.get("redis_mgr")
+local router_mgr    = quanta.get("router_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -32,6 +33,7 @@ local CacheMgr = singleton()
 local prop = property(CacheMgr)
 prop:reader("caches", {})           -- caches
 prop:reader("groups", {})           -- groups
+prop:reader("mlocks", {})           -- 内存锁
 prop:reader("collections", {})      -- collections
 prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
@@ -44,6 +46,7 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "rpc_cache_update_field")
     event_mgr:add_listener(self, "rpc_cache_remove_field")
     -- 事件监听
+    event_mgr:add_listener(self, "on_cache_load")
     event_mgr:add_listener(self, "on_document_del")
     event_mgr:add_listener(self, "on_document_save")
     --counter
@@ -59,6 +62,15 @@ function CacheMgr:__init()
         if not self.groups[group_name] then
             self.groups[group_name] = cache_db:find_group(group_name)
         end
+    end
+end
+
+--清理缓存
+function CacheMgr:on_cache_load(group_name, primary_id)
+    log_debug("[CacheMgr][on_cache_load] group_name=%s, primary=%s", group_name, primary_id)
+    local groups = self.caches[group_name]
+    if groups then
+        groups:del(primary_id)
     end
 end
 
@@ -149,6 +161,7 @@ function CacheMgr:load_group(coll_name, primary_id)
     end
     local groups = self.caches[group_name]
     groups:set(primary_id, group)
+    router_mgr:call_cache_all("on_cache_load", group_name, primary_id)
     return SUCCESS, group
 end
 

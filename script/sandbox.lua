@@ -8,7 +8,6 @@ local iopen         = io.open
 local mabs          = math.abs
 local log_err       = logger.error
 local log_info      = logger.info
-local qgetenv       = quanta.getenv
 local sformat       = string.format
 local traceback     = debug.traceback
 local file_time     = lstdfs.last_write_time
@@ -42,11 +41,7 @@ local function ssplit(str, token)
 end
 
 --加载部署日志
-local log_path = qgetenv("QUANTA_LOG_PATH")
-if log_path then
-    logger.option(log_path, qgetenv("QUANTA_SERVICE"), qgetenv("QUANTA_INDEX"))
-    logger.add_file_dest(FEATURE, "devops.log")
-end
+logger.add_file_dest(FEATURE, "devops.log")
 
 --加载lua文件搜索路径
 local load_files    = {}
@@ -111,7 +106,7 @@ end
 
 function quanta.report(type)
     local divider = "----------------------------------------------------------------------------------------"
-    local fmt = '{"type":"%s","pid":%s,"state":"%s","time":%s,"service"="%s"}'
+    local fmt = '{"type":"%s","pid":%s,"state":"%s","time":%s,"service":"%s"}'
     local str = sformat(fmt, type, quanta.pid, load_status, os.time(),  quanta.name)
     log_info(divider, TITLE, FEATURE)
     log_info(str, TITLE, FEATURE)

@@ -30,6 +30,7 @@ prop:reader("proto_type", eproto_type.text)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
 prop:reader("recvbuf", "")
+prop:accessor("id", 0)
 
 function Socket:__init(host, ip, port)
     self.host = host

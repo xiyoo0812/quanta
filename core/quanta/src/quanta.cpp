@@ -156,6 +156,12 @@ void quanta_app::run() {
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
     quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
 
+    const char* env_log_path = get_env("QUANTA_LOG_PATH");
+    if (env_log_path) {
+        const char* env_index = get_env("QUANTA_INDEX");
+        const char* env_service = get_env("QUANTA_SERVICE");
+        logger::get_logger()->option(env_log_path, env_service, env_index);
+    }
     lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string err) {
         exception_handler("load sandbox err: {}", err);
     });

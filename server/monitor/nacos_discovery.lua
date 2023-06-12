@@ -65,6 +65,12 @@ function NacosDiscovery:refresh_services()
                 log_debug("[NacosDiscovery][check_services] sadd:%s, sdel: %s", sadd, sdel)
                 self.trigger:broadcast("rpc_service_changed", service_name, sadd, sdel)
                 self.services[service_name] = curr
+                --设置状态
+                for node_id in pairs(sdel) do
+                    if self.locals[node_id] then
+                        self.locals[node_id].status = false
+                    end
+                end
             end
         end
     end
@@ -99,8 +105,10 @@ end
 function NacosDiscovery:unregister(node_id)
     local sdata = self.locals[node_id]
     if sdata then
+        self.locals[node_id] = nil
+        log_debug("[RedisDiscovery][unregister] node %s", node_id)
         nacos:del_instance(sdata.service_name, sdata.host, sdata.port)
-        self:refresh_services(SECOND_MS)
+        self:refresh_services()
     end
 end
 

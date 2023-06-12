@@ -51,4 +51,12 @@ function Group:remove_field(document, field)
     document:remove_field(field)
 end
 
+--flush
+function Group:flush()
+    for _, doc in pairs(self.documents) do
+        doc:flush()
+    end
+end
+
+
 return Group

@@ -27,6 +27,8 @@ local SYSTEM            = quanta.enum("GMType", "SYSTEM")
 local SERVICE           = quanta.enum("GMType", "SERVICE")
 local OFFLINE           = quanta.enum("GMType", "OFFLINE")
 local LOCAL             = quanta.enum("GMType", "LOCAL")
+local HASHKEY           = quanta.enum("GMType", "HASHKEY")
+local PLAYER            = quanta.enum("GMType", "PLAYER")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 
@@ -94,7 +96,8 @@ function AdminMgr:rpc_register_command(command_list, service_id)
         return
     end
     for _, cmd in pairs(command_list) do
-        cmdline:register_command(cmd.name, cmd.args, cmd.desc, cmd.gm_type, cmd.group, cmd.tip, cmd.example, service_id)
+        local gm_type = cmd.gm_type or PLAYER
+        cmdline:register_command(cmd.name, cmd.args, cmd.desc, gm_type, cmd.group, cmd.tip, cmd.example, service_id)
     end
     self.services[service_id] = true
     return SUCCESS
@@ -191,19 +194,17 @@ function AdminMgr:exec_message(message)
 end
 
 --分发command
-function AdminMgr:dispatch_command(cmd_args, gm_type, service)
-    if gm_type == GLOBAL then
-        return self:exec_global_cmd(service, tunpack(cmd_args))
-    elseif gm_type == SYSTEM then
-        return self:exec_system_cmd(service, tunpack(cmd_args))
-    elseif gm_type == SERVICE then
-        return self:exec_service_cmd(service, tunpack(cmd_args))
-    elseif gm_type == OFFLINE then
-        return self:exec_offline_cmd(tunpack(cmd_args))
-    elseif gm_type == LOCAL then
-        return self:exec_local_cmd(tunpack(cmd_args))
-    end
-    return self:exec_player_cmd(tunpack(cmd_args))
+function AdminMgr:dispatch_command(cmd_args, gm_type, service_id)
+    local callback = {
+        [GLOBAL]    = AdminMgr.exec_global_cmd,
+        [SYSTEM]    = AdminMgr.exec_system_cmd,
+        [PLAYER]    = AdminMgr.exec_player_cmd,
+        [SERVICE]   = AdminMgr.exec_service_cmd,
+        [OFFLINE]   = AdminMgr.exec_offline_cmd,
+        [LOCAL]     = AdminMgr.exec_local_cmd,
+        [HASHKEY]   = AdminMgr.exec_hash_cmd,
+    }
+    return callback[gm_type](self, service_id, tunpack(cmd_args))
 end
 
 --GLOBAL command
@@ -238,14 +239,24 @@ function AdminMgr:exec_service_cmd(service_id, cmd_name, ...)
     return { code = codeoe, msg = "success" }
 end
 
+--hash command
+function AdminMgr:exec_hash_cmd(service_id, cmd_name, target_id, ...)
+    local ok, codeoe, res = router_mgr:call_hash(service_id, target_id, "rpc_command_execute", cmd_name, target_id, ...)
+    if not ok then
+        log_err("[AdminMgr][exec_hash_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        return { code = 1, msg = codeoe }
+    end
+    return { code = codeoe, msg = res }
+end
+
 --local command
-function AdminMgr:exec_local_cmd(cmd_name, ...)
+function AdminMgr:exec_local_cmd(service_id, cmd_name, ...)
     event_mgr:notify_trigger(cmd_name, ...)
     return { code = 0, msg = "success" }
 end
 
 --兼容在线和离线的玩家指令
-function AdminMgr:exec_offline_cmd(cmd_name, player_id, ...)
+function AdminMgr:exec_offline_cmd(service_id, cmd_name, player_id, ...)
     log_debug("[AdminMgr][exec_offline_cmd] cmd_name:%s player_id:%s", cmd_name, player_id)
     local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
@@ -264,7 +275,7 @@ function AdminMgr:exec_offline_cmd(cmd_name, player_id, ...)
 end
 
 --player command
-function AdminMgr:exec_player_cmd(cmd_name, player_id, ...)
+function AdminMgr:exec_player_cmd(service_id, cmd_name, player_id, ...)
     if player_id == 0 then
         local ok, codeoe, res = router_mgr:call_lobby_random("rpc_command_execute", cmd_name, player_id, ...)
         if not ok then

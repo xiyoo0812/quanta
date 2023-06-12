@@ -40,9 +40,9 @@ local function invoke(class, object, method, ...)
     for _, mixin in ipairs(class.__mixins) do
         local mixin_method = mixin[method]
         if mixin_method then
-            local ok, res = xpcall(mixin_method, dtraceback, object, ...)
+            local ok, err = xpcall(mixin_method, dtraceback, object, ...)
             if not ok then
-                error(sformat("mixin: %s invoke '%s' failed: %s.", mixin.__source, method, res))
+                error(sformat("mixin: %s invoke '%s' failed: %s.", mixin.__source, method, err))
             end
         end
     end
@@ -58,9 +58,9 @@ local function collect(class, object, method, ...)
     for _, mixin in ipairs(class.__mixins) do
         local mixin_method = mixin[method]
         if mixin_method then
-            local ok, res = xpcall(mixin_method, dtraceback, object, ...)
-            if (not ok) or (not res) then
-                error(sformat("mixin: %s collect '%s' failed: %s.", mixin.__source, method, res))
+            local ok, err = xpcall(mixin_method, dtraceback, object, ...)
+            if not ok then
+                error(sformat("mixin: %s collect '%s' failed: %s.", mixin.__source, method, err))
                 return false
             end
         end

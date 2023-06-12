@@ -58,7 +58,7 @@ end
 
 function PlayerMgr:kick_out(player, player_id)
     player:send_gateway("rpc_kickout_client", SERVER_UPHOLD)
-    event_mgr:notify_trigger("on_logout_success", player_id, player)
+    event_mgr:notify_trigger("on_kickout_success", player_id, player)
 end
 
 --创建玩家

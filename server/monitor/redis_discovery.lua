@@ -76,6 +76,12 @@ function RedisDiscovery:refresh_services()
             if next(sadd) or next(sdel) then
                 log_debug("[RedisDiscovery][refresh_services] sadd:%s, sdel: %s", sadd, sdel)
                 self.trigger:broadcast("rpc_service_changed", service_name, sadd, sdel)
+                --设置状态
+                for node_id in pairs(sdel) do
+                    if self.locals[node_id] then
+                        self.locals[node_id].status = false
+                    end
+                end
             end
             self.services[service_name] = querys
         end
@@ -110,8 +116,10 @@ end
 function RedisDiscovery:unregister(node_id)
     local sdata = self.locals[node_id]
     if sdata then
+        self.locals[node_id] = nil
         log_debug("[RedisDiscovery][unregister] node %s", node_id)
         self:del_instance(sdata.service_key)
+        self:refresh_services()
     end
 end
 

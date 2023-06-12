@@ -85,11 +85,13 @@ RandType.WHEEL              = 2       -- 轮盘随机
 -- GM命令类型
 local GMType                = enum("GMType", 0)
 GMType.GLOBAL               = 0       -- 全局相关
-GMType.PLAYER               = 1       -- 玩家相关,ID为玩家的ID
-GMType.SERVICE              = 2       -- 服务相关,ID按hash分发
-GMType.SYSTEM               = 3       -- 业务相关,ID为队伍ID,房间ID等
-GMType.OFFLINE              = 4       -- 玩家相关,ID为玩家的ID,需要处理离线
+GMType.PLAYER               = 1       -- 玩家相关, ID为玩家的ID
+GMType.SERVICE              = 2       -- 服务相关, 转发所有服务
+GMType.SYSTEM               = 3       -- 业务相关, ID为队伍ID,房间ID等
+GMType.OFFLINE              = 4       -- 玩家相关, ID为玩家的ID,需要处理离线
 GMType.LOCAL                = 5       -- 本地事件转发
+GMType.HASHKEY              = 6       -- 服务相关, ID按hash分发
+
 
 -- robot类型
 local RobotType             = enum("RobotType", 0)
