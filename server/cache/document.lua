@@ -158,14 +158,15 @@ end
 
 function Document:update_field(field, field_data)
     if #field > 0 then
-        if self:set_field(field, field_data) then
-            return
+        local fields = self:set_field(field, field_data)
+        if fields then
+            self:update_redis(fields)
         end
     else
         self.datas = field_data
         self:check_primary(self.datas, self.primary_key)
+        self:flush()
     end
-    self:flush()
 end
 
 --确保有主键
@@ -193,16 +194,15 @@ function Document:set_field(field, field_data)
     local fine_field = convint(fields[depth])
     if cursor[fine_field] ~= field_data then
         cursor[fine_field] = field_data
-        return self:update_redis(fields)
+        return fields
     end
-    return true
 end
 
 function Document:remove_field(field)
-    if self:unset_field(field) then
-        return
+    local fields = self:unset_field(field)
+    if fields then
+        self:update_redis(fields)
     end
-    self:flush()
 end
 
 --删除子数据
@@ -216,16 +216,15 @@ function Document:unset_field(field)
     for i = 1, depth -1 do
         local cur_field = convint(fields[i])
         if not cursor[cur_field] then
-            return true
+            return
         end
         cursor = cursor[cur_field]
     end
     local fine_field = convint(fields[depth])
     if cursor[fine_field] then
         cursor[fine_field] = nil
-        return self:update_redis(fields)
+        return fields
     end
-    return true
 end
 
 --记录缓存
