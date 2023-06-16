@@ -76,8 +76,9 @@ function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway
         return ROLE_TOKEN_ERR
     end
     --验证token
-    if tostring(token) ~= login_token or lobby ~= quanta.id then
-        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, quanta.id)
+    local lobby_id = quanta.id
+    if tostring(token) ~= login_token or lobby ~= lobby_id then
+        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, lobby_id)
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, login_token)
         return ROLE_TOKEN_ERR
     end
@@ -87,6 +88,7 @@ function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway
     end
     --通知登陆成功
     local new_token = mrandom()
+    account:save_lobby(lobby_id)
     account:set_reload_token(new_token)
     local passkey = player:get_passkey()
     event_mgr:fire_next_frame(function()

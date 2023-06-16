@@ -365,7 +365,10 @@ end
 --入口函数
 local function export_excel(input, output)
     local files = ldir(input)
-    for _, file in pairs(files) do
+    if files == 0 then
+        error(sformat("input dir: %s not exist!", input))
+    end
+    for _, file in pairs(files or {}) do
         local fullname = file.name
         if file.type == "directory" then
             if fullname == output then
@@ -443,5 +446,6 @@ local input, output = export_config()
 local ok, err = pcall(export_excel, input, output)
 if not ok then
     print("export excel to lua failed:", err)
+    return
 end
 print("success export excels to lua!")

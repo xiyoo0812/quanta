@@ -28,6 +28,8 @@ local SUCCESS   = qenum("KernCode", "SUCCESS")
 local DAY_S     = qenum("PeriodTime", "DAY_S")
 local HOUR_S    = qenum("PeriodTime", "HOUR_S")
 
+local DIFF_TIME = environ.number("QUANTA_TIMEZONE", 8) * 3600
+
 function quanta.success(code, ok)
     if ok == nil then
         return code == SUCCESS
@@ -42,27 +44,14 @@ function quanta.failed(code, ok, def_code)
     return not ok or code ~= SUCCESS, ok and code or (def_code or FAILED)
 end
 
---获取utc时间戳
-local utc_diff_time = nil
-function quanta.utc_time(time)
-    if not time or time <= 0 then
-        time = quanta.now
-    end
-    if not utc_diff_time then
-        local nowt = odate("*t", time)
-        local utct = odate("!*t", time)
-        utc_diff_time = (nowt.hour - utct.hour) * HOUR_S
-    end
-    return time - utc_diff_time
-end
-
 --获取一个类型的时间版本号
 function quanta.edition(period, time, offset)
     local edition = 0
     if not time or time <= 0 then
         time = quanta.now
     end
-    local t = odate("*t", time - (offset or 0))
+    time = time + DIFF_TIME - (offset or 0)
+    local t = odate("*t", time)
     if period == "hour" then
         edition = time // HOUR_S
     elseif period == "day" then
@@ -76,12 +65,6 @@ function quanta.edition(period, time, offset)
         edition = t.year
     end
     return edition
-end
-
---获取UTC的时间版本号
-function quanta.edition_utc(period, time, offset)
-    local utime = quanta.utc_time(time)
-    return quanta.edition(period, utime, offset)
 end
 
 -- 是否同周

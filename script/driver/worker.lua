@@ -146,8 +146,6 @@ local function notify_rpc(session_id, title, rpc, ...)
         quanta.reload()
         --事件通知
         event_mgr:notify_trigger("on_reload")
-        --输出状态
-        quanta.report("reload")
         return
     end
     local rpc_datas = event_mgr:notify_listener(rpc, ...)

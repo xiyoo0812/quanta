@@ -158,8 +158,7 @@ end
 
 function Document:update_field(field, field_data)
     if #field > 0 then
-        local fields = self:set_field(field, field_data)
-        if self:update_redis(fields) then
+        if self:set_field(field, field_data) then
             return
         end
     else
@@ -192,13 +191,15 @@ function Document:set_field(field, field_data)
         cursor = cursor[cur_field]
     end
     local fine_field = convint(fields[depth])
-    cursor[fine_field] = field_data
-    return fields
+    if cursor[fine_field] ~= field_data then
+        cursor[fine_field] = field_data
+        return self:update_redis(fields)
+    end
+    return true
 end
 
 function Document:remove_field(field)
-    local fields = self:unset_field(field)
-    if self:update_redis(fields) then
+    if self:unset_field(field) then
         return
     end
     self:flush()
@@ -215,13 +216,16 @@ function Document:unset_field(field)
     for i = 1, depth -1 do
         local cur_field = convint(fields[i])
         if not cursor[cur_field] then
-            return
+            return true
         end
         cursor = cursor[cur_field]
     end
     local fine_field = convint(fields[depth])
-    cursor[fine_field] = nil
-    return fields
+    if cursor[fine_field] then
+        cursor[fine_field] = nil
+        return self:update_redis(fields)
+    end
+    return true
 end
 
 --记录缓存

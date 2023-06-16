@@ -28,6 +28,7 @@ cache:upsert({
     time = 600,
     depth_min = 0,
     depth_max = 1,
+    key2 = 'nick',
 })
 
 cache:upsert({

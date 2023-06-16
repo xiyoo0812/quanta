@@ -4,6 +4,8 @@ import("store/redis_mgr.lua")
 
 local log_err       = logger.err
 local log_debug     = logger.debug
+local tsort         = table.sort
+local tinsert       = table.insert
 local sformat       = string.format
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
@@ -33,7 +35,6 @@ local CacheMgr = singleton()
 local prop = property(CacheMgr)
 prop:reader("caches", {})           -- caches
 prop:reader("groups", {})           -- groups
-prop:reader("mlocks", {})           -- 内存锁
 prop:reader("collections", {})      -- collections
 prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
@@ -60,7 +61,12 @@ function CacheMgr:__init()
         self.collections[sheet] = group_name
         self.caches[group_name] = QueueLRU(CACHE_MAX)
         if not self.groups[group_name] then
-            self.groups[group_name] = cache_db:find_group(group_name)
+            local sgroup = {}
+            for _, sconf in pairs(cache_db:find_group(group_name)) do
+                tinsert(sgroup, sconf)
+            end
+            tsort(sgroup, function(a, b) return a.id < b.id end)
+            self.groups[group_name] = sgroup
         end
     end
 end
@@ -167,10 +173,8 @@ end
 
 --加载文档
 function CacheMgr:load_document(coll_name, primary_id)
-    local _<close> = thread_mgr:lock(primary_id, true)
-    local legal = self:check_lock(primary_id)
     local doc = self:find_document(coll_name, primary_id)
-    if not doc or not legal then
+    if not doc then
         local code, group = self:load_group(coll_name, primary_id)
         if qfailed(code) then
             return code
@@ -182,6 +186,7 @@ end
 
 function CacheMgr:rpc_cache_load(primary_id, coll_name)
     self.counter:count_increase()
+    local _<close> = thread_mgr:lock(primary_id, true)
     local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name=%s, primary=%s", coll_name, primary_id)
@@ -193,6 +198,7 @@ end
 
 --更新缓存kv
 function CacheMgr:rpc_cache_update_field(primary_id, coll_name, field, field_data)
+    local _<close> = thread_mgr:lock(primary_id, true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_update_field] load_document failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
@@ -205,6 +211,7 @@ end
 
 --更新缓存kv
 function CacheMgr:rpc_cache_remove_field(primary_id, coll_name, field)
+    local _<close> = thread_mgr:lock(primary_id, true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_remove_field] load_document failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
@@ -217,6 +224,7 @@ end
 
 --删除缓存，通常由运维指令执行
 function CacheMgr:rpc_cache_delete(primary_id, coll_name)
+    local _<close> = thread_mgr:lock(primary_id, true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_delete] load_document failed! coll_name=%s, primary=%s", coll_name, primary_id)

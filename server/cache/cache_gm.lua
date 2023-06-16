@@ -39,8 +39,8 @@ end
 function CacheGM:query_cache(player_id, coll_name)
     log_info("[CacheGM][query_cache] player_id=%s coll_name=%s", player_id, coll_name)
     -- 通知服务
-    local doc = cache_mgr:find_document(coll_name, player_id)
-    if not doc then
+    local ok, doc = cache_mgr:load_document(coll_name, player_id)
+    if not ok or not doc then
         return "cache not find"
     end
     return doc:get_datas()

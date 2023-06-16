@@ -187,7 +187,25 @@ namespace laoi {
             cur_set->insert(obj);
         }
 
-        void detach(aoi_obj* obj) {
+        bool detach(lua_State* L, aoi_obj* obj) {
+            object_set objs;
+            kit_state kit_state(L);
+            get_rect_objects(objs, obj->grid_x - m_aoi_radius, obj->grid_x + m_aoi_radius, obj->grid_z - m_aoi_radius, obj->grid_z + m_aoi_radius);
+            //退出视野
+            for (auto cobj : objs) {
+                if (obj == cobj) continue;
+                if (cobj->type == aoi_type::watcher) {
+                    kit_state.object_call(this, "on_leave", nullptr, std::tie(), cobj->eid, obj->eid);
+                }
+                if (obj->type == aoi_type::watcher) {
+                    kit_state.object_call(this, "on_leave", nullptr, std::tie(), obj->eid, cobj->eid);
+                }
+            }
+            remove(obj);
+            return true;
+        }
+
+        void remove(aoi_obj* obj) {
             auto gset = m_grids[obj->grid_z][obj->grid_x];
             if (gset) {
                 gset->erase(obj);
@@ -207,7 +225,7 @@ namespace laoi {
             if (nxgrid == obj->grid_x && nzgrid == obj->grid_z){
                 return 0;
             }
-            detach(obj);
+            remove(obj);
             //消息通知
             kit_state kit_state(L);
             object_set enters, leaves;
@@ -223,7 +241,7 @@ namespace laoi {
                     }
                 }
             }
-            //退出事视野
+            //退出视野
             for (auto cobj : leaves) {
                 if (cobj->eid != obj->eid) {
                     if (cobj->type == aoi_type::watcher) {

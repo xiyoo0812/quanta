@@ -70,12 +70,9 @@ function Player:load(conf)
     self:init_attrset(attr_db, 1)
     self:add_passkey("lobby", quanta.id)
     local channel = makechan("load_player")
-    local sheets = game_dao:find_group("lobby")
-    for _, sconf in ipairs(sheets) do
-        channel:push(function()
-            return game_dao:load(self, self.id, sconf.sheet)
-        end)
-    end
+    channel:push(function()
+        return game_dao:load_group(self, self.id, "lobby")
+    end)
     self:invoke("_load", channel, self.id)
     return channel:execute()
 end

@@ -97,10 +97,21 @@ function GameDAO:load_group(entity, primary_id, group)
     local sheets = self:find_group(group)
     for _, conf in ipairs(sheets) do
         channel:push(function()
-            return self:load(entity, primary_id, conf.sheet)
+            local ok, data = self:load_impl(primary_id, conf.sheet)
+            if not ok then
+                return false, data
+            end
+            return ok, SUCCESS, data
         end)
     end
-    return channel:execute()
+    local ok, cordatas = channel:execute()
+    if not ok then
+        return false
+    end
+    for i, conf in ipairs(sheets) do
+        entity["load_" .. conf.sheet .. "_db"](entity, primary_id, cordatas[i])
+    end
+    return ok, SUCCESS
 end
 
 function GameDAO:update_field(primary_id, sheet_name, field, field_data)
