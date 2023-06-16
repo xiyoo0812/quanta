@@ -6,8 +6,10 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local tsort         = table.sort
 local tinsert       = table.insert
+local ssplit        = qstring.split
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
+local convint       = qmath.conv_integer
 
 local event_mgr     = quanta.get("event_mgr")
 local redis_mgr     = quanta.get("redis_mgr")
@@ -26,7 +28,6 @@ local DELETE_FAILD  = quanta.enum("CacheCode", "CACHE_DELETE_FAILD")
 local CACHE_MAX     = environ.number("QUANTA_DB_CACHE_MAX")
 local CACHE_FLUSH   = environ.number("QUANTA_DB_CACHE_FLUSH")
 
-local Group         = import("cache/group.lua")
 local QueueLRU      = import("container/queue_lru.lua")
 
 local CacheMgr = singleton()
@@ -36,6 +37,7 @@ prop:reader("groups", {})           -- groups
 prop:reader("collections", {})      -- collections
 prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
+prop:reader("kindexs", {})          -- kindexs
 prop:reader("counter", nil)
 
 function CacheMgr:__init()
@@ -46,8 +48,6 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "rpc_cache_remove_field")
     -- 事件监听
     event_mgr:add_listener(self, "on_cache_load")
-    event_mgr:add_listener(self, "on_document_del")
-    event_mgr:add_listener(self, "on_document_save")
     --counter
     self.counter = quanta.make_sampling("cache req")
     --定时器
@@ -79,13 +79,20 @@ function CacheMgr:on_cache_load(group_name, primary_id)
 end
 
 --需要更新的表
-function CacheMgr:on_document_del(document)
-    self.del_documents[document] = true
+function CacheMgr:save_doc(document)
+    self.save_documents[document] = true
 end
 
---需要更新的表
-function CacheMgr:on_document_save(document)
-    self.save_documents[document] = true
+function CacheMgr:build_fields(field)
+    local fields = self.kindexs[field]
+    if not fields then
+        fields = ssplit(field, ".")
+        for i, sfield in ipairs(fields) do
+            fields[i] = convint(sfield)
+        end
+        self.kindexs[field] = fields
+    end
+    return fields, #fields
 end
 
 --更新数据
@@ -152,6 +159,7 @@ function CacheMgr:load_group(coll_name, primary_id)
     local group_name = self.collections[coll_name]
     local gconfs = self.groups[group_name]
     --拉取数据
+    local Group = import("cache/group.lua")
     local group = Group(group_name)
     if not group:load(primary_id, gconfs) then
         log_err("[CacheMgr][load_group] group load failed! coll_name=%s, primary=%s", group_name, primary_id)

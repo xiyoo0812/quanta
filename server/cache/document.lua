@@ -6,9 +6,7 @@ local tabmove       = table.move
 local tconcat       = table.concat
 local qfailed       = quanta.failed
 local sformat       = string.format
-local ssplit        = qstring.split
 local mrandom       = math.random
-local convint       = qmath.conv_integer
 local makechan      = quanta.make_channel
 local json_encode   = ljson.encode
 local json_decode   = ljson.decode
@@ -16,6 +14,7 @@ local json_decode   = ljson.decode
 local redis_mgr     = quanta.get("redis_mgr")
 local mongo_mgr     = quanta.get("mongo_mgr")
 local event_mgr     = quanta.get("event_mgr")
+local cache_mgr     = quanta.get("cache_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
@@ -28,6 +27,7 @@ prop:reader("coll_name", nil)       -- table name
 prop:reader("primary_key", nil)     -- primary key
 prop:reader("primary_id", nil)      -- primary id
 prop:reader("prototype", nil)       -- prototype
+prop:reader("flushing", false)      -- flushing
 prop:reader("depth_max", 1)         -- depth_max
 prop:reader("depth_min", 0)         -- depth_min
 prop:reader("hotkey", "")           -- hotkey
@@ -130,14 +130,19 @@ function Document:update()
         local conf = self.prototype
         self.time = quanta.now + conf.time
         self.count = conf.count
+        self.flushing = false
         return true, SUCCESS
     end
     return false, code
 end
 
 function Document:update_redis(fields)
+    if self.flushing then
+        return
+    end
     if #fields <= self.depth_min then
-        return false
+        self:flush()
+        return
     end
     if #fields > self.depth_max then
         fields = tabmove(fields, 1, self.depth_max, 1, {})
@@ -145,7 +150,7 @@ function Document:update_redis(fields)
     local key = tconcat(fields, ".")
     local cursor = self.datas
     for _, name in pairs(fields) do
-        cursor = cursor[convint(name)]
+        cursor = cursor[name]
     end
     event_mgr:fire_next_frame(function()
         if cursor then
@@ -153,7 +158,6 @@ function Document:update_redis(fields)
         end
         self:cmomit_redis(key, cursor or "nil")
     end)
-    return true
 end
 
 function Document:update_field(field, field_data)
@@ -182,16 +186,15 @@ function Document:set_field(field, field_data)
     --检查主键
     self:check_primary(cursor, self.primary_key)
     --设置数值
-    local fields = ssplit(field, ".")
-    local depth = #fields
+    local fields, depth = cache_mgr:build_fields(field)
     for i = 1, depth -1 do
-        local cur_field = convint(fields[i])
+        local cur_field = fields[i]
         if not cursor[cur_field] then
             cursor[cur_field] = {}
         end
         cursor = cursor[cur_field]
     end
-    local fine_field = convint(fields[depth])
+    local fine_field = fields[depth]
     if cursor[fine_field] ~= field_data then
         cursor[fine_field] = field_data
         return fields
@@ -211,16 +214,15 @@ function Document:unset_field(field)
     --检查主键
     self:check_primary(cursor, self.primary_key)
     --设置数值
-    local fields = ssplit(field, ".")
-    local depth = #fields
+    local fields, depth = cache_mgr:build_fields(field)
     for i = 1, depth -1 do
-        local cur_field = convint(fields[i])
+        local cur_field = fields[i]
         if not cursor[cur_field] then
             return
         end
         cursor = cursor[cur_field]
     end
-    local fine_field = convint(fields[depth])
+    local fine_field = fields[depth]
     if cursor[fine_field] then
         cursor[fine_field] = nil
         return fields
@@ -247,7 +249,11 @@ end
 
 --全量存储
 function Document:flush()
-    event_mgr:notify_listener("on_document_save", self)
+    if self.flushing then
+        return
+    end
+    self.flushing = true
+    cache_mgr:save_doc(self)
 end
 
 return Document
