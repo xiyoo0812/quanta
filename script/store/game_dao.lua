@@ -35,8 +35,8 @@ function GameDAO:__init()
     --通知监听
     update_mgr:attach_frame(self)
     --消息队列
-    self.recv_channel = makechan()
-    self.send_channel = makechan()
+    self.recv_channel = makechan("game dao")
+    self.send_channel = makechan("game dao")
     --事件监听
     event_mgr:add_listener(self, "on_db_prop_update")
     event_mgr:add_listener(self, "on_db_prop_remove")
@@ -218,7 +218,7 @@ function GameDAO:on_frame()
         self.send_channel = self.recv_channel
         self.recv_channel = channel
     end
-    if self.send_channel:execute("send cache") then
+    if self.send_channel:execute(true) then
         self.send_channel:clear()
     end
 end

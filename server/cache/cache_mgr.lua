@@ -6,12 +6,12 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local tsort         = table.sort
 local tinsert       = table.insert
-local sformat       = string.format
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
 local redis_mgr     = quanta.get("redis_mgr")
+local mongo_mgr     = quanta.get("mongo_mgr")
 local router_mgr    = quanta.get("router_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local config_mgr    = quanta.get("config_mgr")
@@ -23,8 +23,6 @@ local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local DB_LOAD_ERR   = quanta.enum("CacheCode", "CACHE_DB_LOAD_ERR")
 local DELETE_FAILD  = quanta.enum("CacheCode", "CACHE_DELETE_FAILD")
 
-local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
-local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
 local CACHE_MAX     = environ.number("QUANTA_DB_CACHE_MAX")
 local CACHE_FLUSH   = environ.number("QUANTA_DB_CACHE_FLUSH")
 
@@ -92,7 +90,13 @@ end
 
 --更新数据
 function CacheMgr:on_frame()
-    local channel = makechan()
+    if not redis_mgr:available() then
+        return
+    end
+    if not mongo_mgr:available() then
+        return
+    end
+    local channel = makechan("flush cache")
     --保存数据
     if next(self.save_documents) then
         local count = 0
@@ -129,19 +133,7 @@ function CacheMgr:on_frame()
             end
         end
     end
-    channel:execute("flush cache")
-end
-
---检查锁
-function CacheMgr:check_lock(primary_id)
-    local sname = quanta.name
-    local lock_key = sformat("CACHE:%s:lock:%s", NAMESPACE, primary_id)
-    local code, old_name = redis_mgr:execute(MAIN_DBID, primary_id, "GETSET", lock_key, sname)
-    if qfailed(code) then
-        log_err("[CacheMgr][check_lock] GETSET failed! code=%s, old_id=%s", code, old_name)
-        return false
-    end
-    return sname == old_name
+    channel:execute(true)
 end
 
 --查找文档

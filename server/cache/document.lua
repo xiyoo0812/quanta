@@ -124,7 +124,7 @@ function Document:update()
         end
         return true, SUCCESS
     end)
-    local ok, code = channel:execute()
+    local ok, code = channel:execute(true)
     if ok then
         --重置时间和次数
         local conf = self.prototype

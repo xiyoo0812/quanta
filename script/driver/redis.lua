@@ -356,10 +356,16 @@ function RedisDB:set_executer(id)
     if count > 0 then
         local index = qhash(id or mrandom(), count)
         self.executer = self.alives[index]
+        return true
     end
+    return false
 end
 
 function RedisDB:set_options(opts)
+end
+
+function RedisDB:available()
+    return #self.alives > 0
 end
 
 function RedisDB:on_hour()
@@ -378,7 +384,7 @@ function RedisDB:check_alive()
                     return self:login(sock)
                 end)
             end
-            if channel:execute() then
+            if channel:execute(true) then
                 timer_mgr:set_period(self.timer_id, SECOND_10_MS)
             end
             self:set_executer()
@@ -396,6 +402,7 @@ function RedisDB:login(socket)
         local ok, res = self:auth(socket)
         if not ok or res ~= "OK" then
             log_err("[RedisDB][login] auth db(%s:%s:%s) auth failed! because: %s", ip, port, id, res)
+            self:delive(socket)
             socket:close()
             return false
         end
@@ -410,6 +417,11 @@ function RedisDB:auth(sock)
     return self:commit(sock, { cmd = "AUTH" }, self.passwd)
 end
 
+function RedisDB:delive(sock)
+    tdelete(self.alives, sock)
+    self.connections[sock.id] = sock
+end
+
 function RedisDB:on_socket_error(sock, token, err)
     local task_queue = sock.task_queue
     local session_id = task_queue:pop()
@@ -422,9 +434,8 @@ function RedisDB:on_socket_error(sock, token, err)
         self.executer = nil
         self:set_executer()
     end
-    tdelete(self.alives, sock)
-    self.connections[sock.id] = sock
     --设置重连
+    self:delive(sock)
     timer_mgr:set_period(self.timer_id, SECOND_MS)
     event_mgr:fire_next_second(function()
         self:check_alive()

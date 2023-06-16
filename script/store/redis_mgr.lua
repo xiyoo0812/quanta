@@ -36,8 +36,7 @@ end
 
 function RedisMgr:execute(db_id, primary_id, cmd, ...)
     local redisdb = self:get_db(db_id)
-    if redisdb then
-        redisdb:set_executer(primary_id)
+    if redisdb and redisdb:set_executer(primary_id) then
         local ok, res_oe = redisdb:execute(cmd, ...)
         if not ok then
             log_err("[RedisMgr][execute] execute %s (%s) failed, because: %s", cmd, {...}, res_oe)
@@ -46,6 +45,14 @@ function RedisMgr:execute(db_id, primary_id, cmd, ...)
         return ok and SUCCESS or REDIS_FAILED, res_oe
     end
     return REDIS_FAILED, "redis db not exist"
+end
+
+function RedisMgr:available(db_id)
+    local redisdb = self:get_db(db_id)
+    if not redisdb then
+        return false
+    end
+    return redisdb:available()
 end
 
 quanta.redis_mgr = RedisMgr()
