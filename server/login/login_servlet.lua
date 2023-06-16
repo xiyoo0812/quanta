@@ -103,6 +103,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     end
     session.account = account
     account:save_token(access_token)
+    account:save_device_id(device_id)
     account:update_params(account_params)
     event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id, device_id)
     if not client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id) then
