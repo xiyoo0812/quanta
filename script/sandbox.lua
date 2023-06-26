@@ -48,6 +48,7 @@ end
 
 --加载lua文件搜索路径
 local load_files    = {}
+local load_codes    = {}
 local search_path   = {}
 for _, path in ipairs(ssplit(package.path, ";")) do
     search_path[#search_path + 1] = path:sub(1, path:find("?") - 1)
@@ -92,10 +93,11 @@ local function try_load(node)
 end
 
 function import(filename)
-    local node = load_files[filename]
+    local node = load_codes[filename]
     if not node then
         node = { filename = filename }
-        load_files[filename] = node
+        load_codes[filename] = node
+        load_files[#load_files + 1] = node
     end
     if not node.time then
         try_load(node)
@@ -118,7 +120,7 @@ end
 
 function quanta.reload()
     load_status = "success"
-    for _, node in pairs(load_files) do
+    for _, node in ipairs(load_files) do
         if node.time then
             local filetime, err = file_time(node.fullpath)
             if filetime == 0 then

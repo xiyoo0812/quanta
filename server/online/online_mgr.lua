@@ -86,7 +86,10 @@ function OnlineMgr:rpc_logout_player(player_id)
     local pdata = self.players[player_id]
     if pdata then
         self.players[player_id] = nil
-        self.lobby_indexs[pdata.lobby][player_id] = nil
+        local lpindex = self.lobby_indexs[pdata.lobby]
+        if lpindex then
+            lpindex[player_id] = nil
+        end
     end
     return SUCCESS
 end

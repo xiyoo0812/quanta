@@ -26,7 +26,6 @@ local ACCOUTN_INLINE        = protobuf_mgr:error_code("LOGIN_ACCOUTN_INLINE")
 local VERIFY_FAILED         = protobuf_mgr:error_code("LOGIN_VERIFY_FAILED")
 local ROLE_NOT_EXIST        = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
 local ROLE_NUM_LIMIT        = protobuf_mgr:error_code("LOGIN_ROLE_NUM_LIMIT")
-local ROLE_NAME_EXIST       = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
 local ACCOUTN_OFFLINE       = protobuf_mgr:error_code("LOGIN_ACCOUTN_OFFLINE")
 
 local MINUTE_5_S            = quanta.enum("PeriodTime", "MINUTE_5_S")
@@ -36,6 +35,7 @@ local LoginServlet = singleton()
 local prop = property(LoginServlet)
 prop:reader("lobbys", {})
 prop:reader("gateways", {})
+
 
 function LoginServlet:__init()
     -- cs协议监听
@@ -122,17 +122,17 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_role_create_req] user_id(%s) need login!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
     end
-    if account:get_role_count() >= 3 then
+    if account:get_role_count() > 1 then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) role num limit!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NUM_LIMIT, session_id)
     end
     --检查名称合法性
-    local ok, datas = login_dao:check_player(account.params, session.ip, user_id, name)
+    local ok, codatas = login_dao:check_player(account.params, session.ip, user_id, name)
     if not ok then
-        return client_mgr:callback_errcode(session, cmd_id, datas or ROLE_NAME_EXIST, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, codatas, session_id)
     end
     --创建角色
-    local role_id = datas[3]
+    local role_id = codatas[3]
     if not login_dao:create_player(account:get_open_id(), role_id, body) then
         log_err("[LoginServlet][on_role_create_req] user_id(%s) create role failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
@@ -289,11 +289,12 @@ function LoginServlet:find_gateway(account)
     if not gate_info then
         return false
     end
+    local ip, port = gate_info.ip, gate_info.port
     local gateway = {
+        addr = ip,
+        port = port,
         lobby = lobby,
         token = mrandom(),
-        addr = gate_info.ip,
-        port = gate_info.port,
         error_code = FRAME_SUCCESS
     }
     return true, gateway

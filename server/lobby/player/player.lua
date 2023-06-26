@@ -167,9 +167,6 @@ function Player:offline()
     self.gateway = nil
     self.status = ONL_OFFLINE
     self.active_time = quanta.now_ms
-    --计算在线时间
-    self:add_online_time(quanta.now - self.login_time)
-    self:save_login_time(quanta.now)
     --invoke
     self:invoke("_offline")
     log_warn("[Player][offline] player(%s) is offline!", self.id)
@@ -189,6 +186,9 @@ end
 function Player:unload()
     self:invoke("_unload")
     self.account:save_lobby(0)
+    --计算在线时间
+    self:add_online_time(quanta.now - self.login_time)
+    self:save_login_time(quanta.now)
     return true
 end
 

@@ -6,7 +6,6 @@ local xpcall        = xpcall
 local otime         = os.time
 local log_err       = logger.err
 local log_fatal     = logger.fatal
-local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
@@ -24,7 +23,7 @@ local MQ_DRIVER     = environ.get("QUANTA_MQ_DRIVER", "redis")
 function quanta.xpcall(func, fmt, ...)
     local ok, err = xpcall(func, dtraceback, ...)
     if not ok then
-        log_fatal(sformat(fmt, err))
+        log_fatal(fmt, err)
     end
 end
 
@@ -43,7 +42,7 @@ function quanta.check_endless_loop()
     local debug_hook = function()
         local now = otime()
         if now - quanta.now >= 10 then
-            log_err(sformat("check_endless_loop:%s", dtraceback()))
+            log_err("check_endless_loop:%s", dtraceback())
         end
     end
     dsethook(debug_hook, "l")
@@ -57,7 +56,7 @@ function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then
         local info = dgetinfo(2, "S")
-        log_err(sformat("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined))
+        log_err("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined)
         return
     end
     return global_obj
@@ -68,13 +67,13 @@ function quanta.enum(ename, ekey)
     local eobj = enum(ename)
     if not eobj then
         local info = dgetinfo(2, "S")
-        log_err(sformat("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined))
+        log_err("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined)
         return
     end
     local eval = eobj[ekey]
     if not eval then
         local info = dgetinfo(2, "S")
-        log_err(sformat("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined))
+        log_err("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined)
         return
     end
     return eval
@@ -89,7 +88,12 @@ function quanta.serialize(t)
 end
 
 function quanta.unserialize(s)
-    return unserialize(s)
+    local ok, res = pcall(unserialize, s)
+    if not ok then
+        log_err("[quanta][unserialize] unserialize: %s failed: %s", s, res)
+        return
+    end
+    return res
 end
 
 function quanta.new_guid()
