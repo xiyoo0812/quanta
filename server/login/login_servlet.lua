@@ -1,5 +1,6 @@
 --login_servlet.lua
 local lcodec                = require("lcodec")
+local luabus                = require("luabus")
 
 local log_err               = logger.err
 local log_info              = logger.info
@@ -9,12 +10,14 @@ local trandom               = qtable.random
 local mrandom               = qmath.random
 local tremove               = table.remove
 local tunpack               = table.unpack
+local lbusdns               = luabus.dns
 local guid_encode           = lcodec.guid_encode
 
 local monitor               = quanta.get("monitor")
 local login_dao             = quanta.get("login_dao")
 local event_mgr             = quanta.get("event_mgr")
 local thread_mgr            = quanta.get("thread_mgr")
+local update_mgr            = quanta.get("update_mgr")
 local client_mgr            = quanta.get("client_mgr")
 local protobuf_mgr          = quanta.get("protobuf_mgr")
 
@@ -35,7 +38,7 @@ local LoginServlet = singleton()
 local prop = property(LoginServlet)
 prop:reader("lobbys", {})
 prop:reader("gateways", {})
-
+prop:reader("gateaddrs", {})
 
 function LoginServlet:__init()
     -- cs协议监听
@@ -50,6 +53,8 @@ function LoginServlet:__init()
     monitor:watch_service_close(self, "gateway")
     monitor:watch_service_ready(self, "lobby")
     monitor:watch_service_close(self, "lobby")
+    --定时器
+    update_mgr:attach_minute(self)
 end
 
 --账号登陆
@@ -291,13 +296,30 @@ function LoginServlet:find_gateway(account)
     end
     local ip, port = gate_info.ip, gate_info.port
     local gateway = {
-        addr = ip,
         port = port,
         lobby = lobby,
         token = mrandom(),
+        addrs = self:parse_addr(ip),
         error_code = FRAME_SUCCESS
     }
     return true, gateway
+end
+
+function LoginServlet:parse_addr(domain)
+    local addrs = self.gateaddrs[domain]
+    if not addrs then
+        addrs = lbusdns(domain)
+        if addrs then
+            self.gateaddrs[domain] = addrs
+        end
+    end
+    return addrs
+end
+
+function LoginServlet:on_minute()
+    for domain in pairs(self.gateaddrs) do
+        self.gateaddrs[domain] = lbusdns(domain)
+    end
 end
 
 quanta.login_servlet = LoginServlet()

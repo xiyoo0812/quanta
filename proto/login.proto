@@ -97,7 +97,7 @@ message login_role_choose_req
 message login_role_choose_res
 {
     uint32 error_code           = 1;        // 错误码
-    string addr                 = 2;        // gateway ip
+    repeated string addrs       = 2;        // gateway ips
     uint32 port                 = 3;        // gateway port
     uint32 lobby                = 4;        // lobby id
     uint32 token                = 5;        // 验证token
