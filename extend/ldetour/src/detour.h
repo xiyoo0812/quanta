@@ -79,6 +79,13 @@ namespace ldetour {
         // 判断多边形是否合法(是否位于可导航mesh中)
         bool poly_valid(dtPolyRef* poly_ref);
 
+        // 查找起始点到目标点的之间最远可达的点,如果目标点的x,z可达,则贴地计算y
+        // [in]    startPos      Path start position, must be valid. [(x, y, z)]
+        // [in]    endPos        Path end position, maybe invalid. [(x, y, z)]
+        // [in]    along_surface does move along surface(true: use nav path, false: use raycast)
+        // [out]   pos           The valid location.
+        int find_valid_point(lua_State* L, int32_t sx, int32_t sy, int32_t sz, int32_t ex, int32_t ey, int32_t ez, bool is_along_surface);
+
     private:
         int32_t pformat(float v);
 

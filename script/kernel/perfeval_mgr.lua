@@ -1,12 +1,11 @@
 --perfeval_mgr.lua
-local ltimer = require("ltimer")
 
 local pairs         = pairs
 local co_running    = coroutine.running
 local env_status    = environ.status
-local lclock_ms     = ltimer.clock_ms
+local qdefer        = quanta.defer
+local qtime         = quanta.time
 
-local EvalSlot      = import("kernel/object/eval_slot.lua")
 local proxy_agent   = quanta.get("proxy_agent")
 
 local PerfevalMgr = singleton()
@@ -20,7 +19,7 @@ function PerfevalMgr:__init()
 end
 
 function PerfevalMgr:yield()
-    local clock_ms = lclock_ms()
+    local clock_ms = qtime()
     local yield_co = co_running()
     local eval_cos = self.eval_list[yield_co]
     for _, eval_data in pairs(eval_cos or {}) do
@@ -29,7 +28,7 @@ function PerfevalMgr:yield()
 end
 
 function PerfevalMgr:resume(co)
-    local clock_ms = lclock_ms()
+    local clock_ms = qtime()
     local resume_co = co or co_running()
     local eval_cos = self.eval_list[resume_co]
     for _, eval_data in pairs(eval_cos or {}) do
@@ -50,7 +49,10 @@ function PerfevalMgr:get_eval_id()
 end
 
 function PerfevalMgr:eval(eval_name)
-    return EvalSlot(self, eval_name)
+    local edata = self:start(eval_name)
+    return qdefer(function()
+        self:stop(edata)
+    end)
 end
 
 function PerfevalMgr:start(eval_name)
@@ -61,7 +63,7 @@ function PerfevalMgr:start(eval_name)
         yield_time = 0,
         eval_id = eval_id,
         eval_name = eval_name,
-        begin_time = lclock_ms(),
+        begin_time = qtime(),
     }
     local eval_cos = self.eval_list[co]
     if eval_cos then
@@ -73,7 +75,7 @@ function PerfevalMgr:start(eval_name)
 end
 
 function PerfevalMgr:stop(eval_data)
-    local clock_ms = lclock_ms()
+    local clock_ms = qtime()
     proxy_agent:statistics("on_perfeval", eval_data, clock_ms)
     self.eval_list[eval_data.co][eval_data.eval_id] = nil
 end

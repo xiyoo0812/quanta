@@ -39,6 +39,7 @@ prop:reader("cluster", "local")
 prop:reader("services", {})
 prop:reader("monitors", {})
 prop:reader("gm_page", "")
+prop:reader("gm_status", false)
 
 function AdminMgr:__init()
     --监听事件
@@ -52,11 +53,8 @@ function AdminMgr:__init()
     self.http_server = server
     --是否开启GM功能
     if environ.status("QUANTA_ADMIN_GM") then
-        server:register_get("/", "on_gm_page", self)
-        server:register_get("/gmlist", "on_gmlist", self)
-        server:register_get("/monitors", "on_monitors", self)
-        server:register_post("/command", "on_command", self)
-        server:register_post("/message", "on_message", self)
+        self.gm_status = true
+        self:register_gm_url()
     end
     --关注monitor
     monitor:watch_service_ready(self, "monitor")
@@ -76,6 +74,11 @@ function AdminMgr:register_get(url, handler, target)
     self.http_server:register_get(url, handler, target)
 end
 
+--取消注册请求
+function AdminMgr:unregister_url(url)
+    self.http_server:unregister(url)
+end
+
 --定时更新
 function AdminMgr:on_second5()
     self.gm_page = import("admin/gm_page.lua")
@@ -85,6 +88,33 @@ end
 function AdminMgr:on_register_command(command_list, service_id)
     self:rpc_register_command(command_list, service_id)
     return SUCCESS
+end
+
+function AdminMgr:register_gm_url()
+    self:register_get("/", "on_gm_page", self)
+    self:register_get("/gmlist", "on_gmlist", self)
+    self:register_get("/monitors", "on_monitors", self)
+    self:register_post("/command", "on_command", self)
+    self:register_post("/message", "on_message", self)
+end
+
+function AdminMgr:unregister_gm_url()
+    self:unregister_url("/")
+    self:unregister_url("/gmlist")
+    self:unregister_url("/monitors")
+    self:unregister_url("/command")
+    self:unregister_url("/message")
+end
+
+--切换gm状态
+function AdminMgr:gm_switch(status)
+    self.gm_status = status
+    if self.gm_status then
+        self:register_gm_url()
+    else
+        self:unregister_gm_url()
+    end
+    return status
 end
 
 --rpc请求

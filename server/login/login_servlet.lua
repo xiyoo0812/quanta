@@ -33,6 +33,7 @@ local ACCOUTN_OFFLINE       = protobuf_mgr:error_code("LOGIN_ACCOUTN_OFFLINE")
 
 local MINUTE_5_S            = quanta.enum("PeriodTime", "MINUTE_5_S")
 local PLATFORM_PASSWORD     = protobuf_mgr:enum("platform_type", "PLATFORM_PASSWORD")
+local DATA_URL              = environ.get("QUANTA_DATA_URL")
 
 local LoginServlet = singleton()
 local prop = property(LoginServlet)
@@ -174,6 +175,8 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
     end
     account:save_lobby(gateway.lobby)
     account:set_login_token(role_id, gateway.token, MINUTE_5_S)
+    --保存数据服token到redis
+    login_dao:save_data_token(role_id, gateway.token)
     if not client_mgr:callback_by_id(session, cmd_id, gateway, session_id) then
         log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) callback failed!", user_id, role_id)
         return
@@ -300,7 +303,8 @@ function LoginServlet:find_gateway(account)
         lobby = lobby,
         token = mrandom(),
         addrs = self:parse_addr(ip),
-        error_code = FRAME_SUCCESS
+        error_code = FRAME_SUCCESS,
+        data_url = DATA_URL
     }
     return true, gateway
 end

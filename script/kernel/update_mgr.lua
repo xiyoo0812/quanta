@@ -48,7 +48,7 @@ function UpdateMgr:__init()
     self:attach_frame(timer_mgr)
     self:attach_second(event_mgr)
     self:attach_second(thread_mgr)
-    self:attach_minute(thread_mgr)
+    self:attach_second30(thread_mgr)
 end
 
 function UpdateMgr:update_second(clock_ms)

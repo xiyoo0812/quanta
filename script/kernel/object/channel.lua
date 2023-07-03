@@ -40,24 +40,25 @@ function Channel:execute(all_back)
     local success = true
     local session_id = thread_mgr:build_session_id()
     for i, executer in ipairs(self.executers) do
-        local ok, corerr, data = true, 0
         thread_mgr:fork(function()
-            ok, corerr, data = executer()
+            local ok, corerr, data = executer()
             all_datas[i] = data
-            count = count - 1
-            thread_mgr:try_response(session_id, ok, corerr)
-        end)
-        local efailed, code = qfailed(corerr, ok)
-        if efailed then
-            success = efailed
-            if not all_back then
-                return false, code
+            if not thread_mgr:try_response(session_id, ok, corerr) then
+                local efailed, code = qfailed(corerr, ok)
+                count = count - 1
+                if efailed then
+                    success = efailed
+                    if not all_back then
+                        return false, code
+                    end
+                end
             end
-        end
+        end)
     end
     while count > 0 do
         local sok, corerr = thread_mgr:yield(session_id, self.title, RPC_TIMEOUT)
         local efailed, code = qfailed(corerr, sok)
+        count = count - 1
         if efailed then
             success = efailed
             if not all_back then

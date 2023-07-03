@@ -120,6 +120,11 @@ function quanta.make_mq()
     return Driver()
 end
 
+function quanta.defer(handler)
+    local Defer = import("kernel/object/defer.lua")
+    return Defer(handler)
+end
+
 --创建普通计数器
 function quanta.make_counter(title)
     local Counter = import("kernel/object/counter.lua")

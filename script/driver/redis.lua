@@ -15,6 +15,7 @@ local tjoin         = qtable.join
 local tdelete       = qtable.delete
 local is_array      = qtable.is_array
 local qhash         = quanta.hash
+local qdefer        = quanta.defer
 local makechan      = quanta.make_channel
 
 local timer_mgr     = quanta.get("timer_mgr")
@@ -423,12 +424,6 @@ function RedisDB:delive(sock)
 end
 
 function RedisDB:on_socket_error(sock, token, err)
-    local task_queue = sock.task_queue
-    local session_id = task_queue:pop()
-    while session_id do
-        thread_mgr:response(session_id, false, err)
-        session_id = task_queue:pop()
-    end
     --清空状态
     if sock == self.executer then
         self.executer = nil
@@ -440,6 +435,12 @@ function RedisDB:on_socket_error(sock, token, err)
     event_mgr:fire_next_second(function()
         self:check_alive()
     end)
+    local task_queue = sock.task_queue
+    local session_id = task_queue:pop()
+    while session_id do
+        thread_mgr:response(session_id, false, err)
+        session_id = task_queue:pop()
+    end
 end
 
 function RedisDB:on_socket_recv(sock, token)
@@ -458,10 +459,14 @@ function RedisDB:on_socket_recv(sock, token)
             break
         end
         sock:pop(_parse_offset(packet))
-        local session_id = sock.task_queue:pop()
-        if session_id and session_id > 0 then
-            self.res_counter:count_increase()
-            thread_mgr:response(session_id, rdsucc, res)
+        local session_id = sock.task_queue:head()
+        if session_id then
+            if session_id > 0 then
+                self.res_counter:count_increase()
+                thread_mgr:response(session_id, rdsucc, res)
+            else
+                sock.task_queue:pop()
+            end
         end
     end
 end
@@ -475,6 +480,9 @@ function RedisDB:wait_response(socket, session_id, packet, param)
     end
     self.req_counter:count_increase()
     socket.task_queue:push(session_id)
+    local _<close> = qdefer(function()
+        socket.task_queue:pop()
+    end)
     local ok, res = thread_mgr:yield(session_id, sformat("redis_comit:%s", param.cmd), DB_TIMEOUT)
     if not ok then
         log_err("[RedisDB][wait_response] exec cmd %s failed: %s", param.cmd, res)

@@ -71,10 +71,7 @@ function SubComponent:pub_event(serv_name, event, ...)
     local taigger, func_name = tunpack(hand_info)
     for _, args in pairs(subscriber) do
         local ok, success, res = xpcall(taigger[func_name], dtraceback, taigger, args, ...)
-        if not ok then
-            log_warn("[SubComponent][notify_event] xpcall [%s:%s] failed: %s!", taigger:source(), func_name, success)
-        end
-        if success then
+        if ok and success then
             if res then
                 self:fire_reliable(serv_name, event, res)
             else
@@ -82,6 +79,7 @@ function SubComponent:pub_event(serv_name, event, ...)
             end
             return
         end
+        log_warn("[SubComponent][pub_event] xpcall [%s] failed: %s!", func_name, success)
     end
 end
 

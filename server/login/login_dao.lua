@@ -4,6 +4,7 @@ local log_err       = logger.err
 local tunpack       = table.unpack
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
+local sformat       = string.format
 
 local event_mgr     = quanta.get("event_mgr")
 local mongo_agent   = quanta.get("mongo_agent")
@@ -12,9 +13,11 @@ local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "COUNTER:QUANTA:ROLE")
+local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
+local DAY_S         = quanta.enum("PeriodTime", "DAY_S")
 
 local Account       = import("login/account.lua")
 
@@ -89,6 +92,18 @@ function LoginDao:load_account(open_id)
         return
     end
     return account
+end
+
+--保存数据服token
+function LoginDao:save_data_token(role_id, token)
+    local key = sformat("LOGIN:%s:data_token:%s", NAMESPACE, role_id)
+    --有效期24小时
+    local aok, acode, res = redis_agent:execute({ "SETEX", key, DAY_S, token }, role_id)
+    if qfailed(acode, aok) then
+        log_err("[LoginDao][save_data_token] player_id: %s save_data_token failed! code: %s, res: %s", role_id, acode, res)
+        return false
+    end
+    return true
 end
 
 quanta.login_dao = LoginDao()

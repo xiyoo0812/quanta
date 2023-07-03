@@ -1,6 +1,7 @@
 --thread_mgr.lua
 local select        = select
 
+local tsort         = table.sort
 local tunpack       = table.unpack
 local sformat       = string.format
 local co_yield      = coroutine.yield
@@ -8,6 +9,7 @@ local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running
 local qxpcall       = quanta.xpcall
+local qdefer        = quanta.defer
 local mrandom       = qmath.random
 local tsize         = qtable.size
 local log_warn      = logger.warn
@@ -15,15 +17,14 @@ local log_err       = logger.err
 
 local QueueFIFO     = import("container/queue_fifo.lua")
 local SyncLock      = import("kernel/object/sync_lock.lua")
-local EntryLock     = import("kernel/object/entry_lock.lua")
 
-local MINUTE_10_MS  = quanta.enum("PeriodTime", "MINUTE_10_MS")
+local MINUTE_MS     = quanta.enum("PeriodTime", "MINUTE_MS")
 local SYNC_PERFRAME = 10
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
 prop:reader("session_id", 1)
-prop:reader("entry_pools", {})
+prop:reader("entry_map", {})
 prop:reader("syncqueue_map", {})
 prop:reader("coroutine_yields", {})
 prop:reader("coroutine_waitings", {})
@@ -42,19 +43,17 @@ function ThreadMgr:size()
 end
 
 function ThreadMgr:entry(key, func)
-    if self.entry_pools[key] then
+    if self.entry_map[key] then
         return false
     end
     self:fork(function()
-        local lock<close> = EntryLock(self, key)
-        self.entry_pools[key] = lock
+        local _<close> = qdefer(function()
+            self.entry_map[key] = nil
+        end)
+        self.entry_map[key] = quanta.clock_ms + MINUTE_MS
         func()
     end)
     return true
-end
-
-function ThreadMgr:leave(key)
-    self.entry_pools[key] = nil
 end
 
 function ThreadMgr:lock(key, waiting)
@@ -64,7 +63,7 @@ function ThreadMgr:lock(key, waiting)
         queue.sync_num = 0
         self.syncqueue_map[key] = queue
     end
-    queue.ttl = quanta.clock_ms + MINUTE_10_MS
+    queue.ttl = quanta.clock_ms + MINUTE_MS
     local head = queue:head()
     if not head then
         local lock = SyncLock(self, key)
@@ -136,7 +135,9 @@ function ThreadMgr:try_response(session_id, ...)
     if context then
         self.coroutine_yields[session_id] = nil
         self:resume(context.co, ...)
+        return true
     end
+    return false
 end
 
 function ThreadMgr:response(session_id, ...)
@@ -159,10 +160,15 @@ function ThreadMgr:yield(session_id, title, ms_to, ...)
     return co_yield(...)
 end
 
-function ThreadMgr:on_minute(clock_ms)
+function ThreadMgr:on_second30(clock_ms)
     for key, queue in pairs(self.syncqueue_map) do
         if queue:empty() and clock_ms > queue.ttl then
             self.syncqueue_map[key] = nil
+        end
+    end
+    for key, clock_to in pairs(self.entry_map) do
+        if clock_ms > clock_to then
+            self.entry_map[key] = nil
         end
     end
 end
@@ -196,12 +202,15 @@ function ThreadMgr:on_second(clock_ms)
     local timeout_coroutines = {}
     for session_id, context in pairs(self.coroutine_yields) do
         if context.to <= clock_ms then
-            timeout_coroutines[session_id] = context
+            context.session_id = session_id
+            timeout_coroutines[#timeout_coroutines + 1] = context
         end
     end
     --处理协程超时
     if next(timeout_coroutines) then
-        for session_id, context in pairs(timeout_coroutines) do
+        tsort(timeout_coroutines, function(a, b) return a.to < b.to end)
+        for _, context in ipairs(timeout_coroutines) do
+            local session_id = context.session_id
             self.coroutine_yields[session_id] = nil
             if context.title then
                 log_err("[ThreadMgr][on_second] session_id(%s:%s) timeout!", session_id, context.title)

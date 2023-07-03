@@ -10,18 +10,14 @@ local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
 local jdecode       = ljson.decode
-local json_encode   = ljson.encode
 local signal_quit   = signal.quit
 
 local timer_mgr     = quanta.get("timer_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
-local REGION        = environ.number("QUANTA_REGION")
-local DEPLOY_PATH   = environ.get("QUANTA_DEPLOY_PATH")
 local DISCOVERY     = environ.get("QUANTA_DISCOVERY", "redis")
 
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
-local log_dump      = logfeature.dump("deploy_logs", DEPLOY_PATH..REGION, true)
 
 local MonitorMgr = singleton()
 local prop = property(MonitorMgr)
@@ -163,12 +159,6 @@ function MonitorMgr:on_server_shutdown(url, body, request)
     -- 关闭会话连接
     timer_mgr:loop(SECOND_10_MS, function()
         log_warn("[MonitorMgr][on_server_shutdown]->service:%s", quanta.name)
-        local log_data = {
-            state = 0, -- 0代表成功
-            key = "shutdown",
-            time = quanta.now
-        }
-        log_dump(json_encode(log_data))
         signal_quit()
     end)
 

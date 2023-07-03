@@ -269,4 +269,57 @@ namespace ldetour {
         }
         return true;
     }
+
+    int nav_query::find_valid_point(lua_State* L, int32_t sx, int32_t sy, int32_t sz, int32_t ex, int32_t ey, int32_t ez, bool is_along_surface)
+    {
+        //查找开始位置所在的poly
+        dtPolyRef start_ref;           // 起点/合法终点所在的多边形
+        float half_extents[3] = { 2, 4, 2 };    // 沿着每个轴的搜索长度
+        float start_pos[3] = { sx / qscale, sy / qscale, sz / qscale };
+        dtStatus status = nvquery->findNearestPoly(start_pos, half_extents, &filter, &start_ref, 0);
+        if (status != DT_SUCCESS || !start_ref) {
+            return luakit::variadic_return(L, false);
+        }
+
+        //查找可到达的结束位置
+        int npolys = 0;
+        nav_point pos;
+        float end_pos[3] = { ex / qscale, ey / qscale, ez / qscale };
+        if (is_along_surface)
+        {
+            // 贴地移动可以到达的位置
+            status = nvquery->moveAlongSurface(start_ref, start_pos, end_pos, &filter, pos, polys, &npolys, max_polys);
+        }
+        else
+        {
+            // 射线可以到达的位置
+            float t = 0;
+            nav_point hit_normal, hit_point;
+            status = nvquery->raycast(start_ref, start_pos, end_pos, &filter, &t, hit_normal, polys, &npolys, 64);
+            pos[0] = end_pos[0];
+            pos[1] = end_pos[1];
+            pos[2] = end_pos[2];
+            if (t < 1)
+            {
+                pos[0] = start_pos[0] + (end_pos[0] - start_pos[0]) * t;
+                pos[1] = start_pos[1] + (end_pos[1] - start_pos[1]) * t;
+                pos[2] = start_pos[2] + (end_pos[2] - start_pos[2]) * t;
+            }
+        }
+        if (status != DT_SUCCESS || npolys <= 0)
+        {
+            return luakit::variadic_return(L, false);
+        }
+
+        //查找结束位置的高度
+        float height = pos[1];
+        dtPolyRef lastPolyRef = polys[npolys - 1];
+        status = nvquery->getPolyHeight(lastPolyRef, pos, &height);
+        if (status != DT_SUCCESS)
+        {
+            return luakit::variadic_return(L, false);
+        }
+        pos[1] = height;
+        return luakit::variadic_return(L, true, pformat(pos[0]), pformat(pos[1]), pformat(pos[2]));
+    }
 }

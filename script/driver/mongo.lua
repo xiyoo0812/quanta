@@ -20,6 +20,7 @@ local sgmatch       = string.gmatch
 local mrandom       = qmath.random
 local mtointeger    = math.tointeger
 local qhash         = quanta.hash
+local qdefer        = quanta.defer
 local makechan      = quanta.make_channel
 
 local lmd5          = lcrypt.md5
@@ -254,10 +255,6 @@ function MongoDB:delive(sock)
 end
 
 function MongoDB:on_socket_error(sock, token, err)
-    for session_id in pairs(sock.sessions) do
-        thread_mgr:response(session_id, false, err)
-    end
-    sock.sessions = {}
     --清空状态
     if sock == self.executer then
         self.executer = nil
@@ -269,6 +266,10 @@ function MongoDB:on_socket_error(sock, token, err)
     event_mgr:fire_next_second(function()
         self:check_alive()
     end)
+    for session_id in pairs(sock.sessions) do
+        thread_mgr:response(session_id, false, err)
+    end
+    sock.sessions = {}
 end
 
 function MongoDB:decode_reply(succ, slice)
@@ -288,13 +289,11 @@ end
 function MongoDB:on_slice_recv(sock, slice, token)
     local ok, session_id = mreply(slice)
     if session_id > 0 then
-        local sessions = sock.sessions
-        local time, cmd = tunpack(sessions[session_id])
+        local time, cmd = tunpack(sock.sessions[session_id])
         local utime = lclock_ms() - time
         if utime > 100 then
             log_warn("[MongoDB][on_slice_recv] cmd (%s:%s) execute so big %s!", cmd, session_id, utime)
         end
-        sessions[session_id] = nil
         self.res_counter:count_increase()
         local succ, doc = self:decode_reply(ok, slice)
         thread_mgr:response(session_id, succ, doc)
@@ -311,7 +310,11 @@ function MongoDB:op_msg(sock, slice_bson, cmd)
         return false, "send failed"
     end
     self.req_counter:count_increase()
-    sock.sessions[session_id] = { lclock_ms(), cmd }
+    local sessions = sock.sessions
+    sessions[session_id] = { lclock_ms(), cmd }
+    local _<close> = qdefer(function()
+        sessions[session_id] = nil
+    end)
     return thread_mgr:yield(session_id, "mongo_op_msg", DB_TIMEOUT)
 end
 
