@@ -2,7 +2,8 @@
 local log_warn  = logger.warn
 
 -- 配置管理器
-local ConfigTable = import("kernel/object/config_table.lua")
+local Config    = import("feature/config.lua")
+
 local ConfigMgr = singleton()
 function ConfigMgr:__init()
     -- 配置对象列表
@@ -49,7 +50,7 @@ function ConfigMgr:init_table(name, ...)
 end
 
 function ConfigMgr:create_table(name)
-    local conf_tab = ConfigTable()
+    local conf_tab = Config()
     self.table_list[name] = conf_tab
     conf_tab:set_name(name)
     return conf_tab

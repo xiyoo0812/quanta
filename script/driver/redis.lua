@@ -15,7 +15,6 @@ local tjoin         = qtable.join
 local tdelete       = qtable.delete
 local is_array      = qtable.is_array
 local qhash         = quanta.hash
-local qdefer        = quanta.defer
 local makechan      = quanta.make_channel
 
 local timer_mgr     = quanta.get("timer_mgr")
@@ -438,7 +437,9 @@ function RedisDB:on_socket_error(sock, token, err)
     local task_queue = sock.task_queue
     local session_id = task_queue:pop()
     while session_id do
-        thread_mgr:response(session_id, false, err)
+        if session_id > 0 then
+            thread_mgr:response(session_id, false, err)
+        end
         session_id = task_queue:pop()
     end
 end
@@ -459,14 +460,10 @@ function RedisDB:on_socket_recv(sock, token)
             break
         end
         sock:pop(_parse_offset(packet))
-        local session_id = sock.task_queue:head()
-        if session_id then
-            if session_id > 0 then
-                self.res_counter:count_increase()
-                thread_mgr:response(session_id, rdsucc, res)
-            else
-                sock.task_queue:pop()
-            end
+        local session_id = sock.task_queue:pop()
+        if session_id and session_id > 0 then
+            self.res_counter:count_increase()
+            thread_mgr:response(session_id, rdsucc, res)
         end
     end
 end
@@ -480,9 +477,6 @@ function RedisDB:wait_response(socket, session_id, packet, param)
     end
     self.req_counter:count_increase()
     socket.task_queue:push(session_id)
-    local _<close> = qdefer(function()
-        socket.task_queue:pop()
-    end)
     local ok, res = thread_mgr:yield(session_id, sformat("redis_comit:%s", param.cmd), DB_TIMEOUT)
     if not ok then
         log_err("[RedisDB][wait_response] exec cmd %s failed: %s", param.cmd, res)

@@ -1,5 +1,5 @@
 --proxy.lua
-import("driver/worker.lua")
+import("feature/worker.lua")
 
 --启动worker
 quanta.startup(function()

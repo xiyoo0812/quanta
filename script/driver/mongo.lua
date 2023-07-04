@@ -12,7 +12,6 @@ local log_warn      = logger.warn
 local tinsert       = table.insert
 local qjoin         = qtable.join
 local tdelete       = qtable.delete
-local tunpack       = table.unpack
 local ssub          = string.sub
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -45,6 +44,7 @@ local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
@@ -266,7 +266,8 @@ function MongoDB:on_socket_error(sock, token, err)
     event_mgr:fire_next_second(function()
         self:check_alive()
     end)
-    for session_id in pairs(sock.sessions) do
+    for session_id, cmd in pairs(sock.sessions) do
+        log_warn("[MongoDB][on_socket_error] drop cmd %s-%s)!", cmd, session_id)
         thread_mgr:response(session_id, false, err)
     end
     sock.sessions = {}
@@ -289,11 +290,6 @@ end
 function MongoDB:on_slice_recv(sock, slice, token)
     local ok, session_id = mreply(slice)
     if session_id > 0 then
-        local time, cmd = tunpack(sock.sessions[session_id])
-        local utime = lclock_ms() - time
-        if utime > 100 then
-            log_warn("[MongoDB][on_slice_recv] cmd (%s:%s) execute so big %s!", cmd, session_id, utime)
-        end
         self.res_counter:count_increase()
         local succ, doc = self:decode_reply(ok, slice)
         thread_mgr:response(session_id, succ, doc)
@@ -304,16 +300,20 @@ function MongoDB:op_msg(sock, slice_bson, cmd)
     if not sock then
         return false, "db not connected"
     end
+    local tick = lclock_ms()
     local session_id = thread_mgr:build_session_id()
     local slice = mopmsg(slice_bson, session_id, 0)
     if not sock:send_slice(slice) then
         return false, "send failed"
     end
+    sock.sessions[session_id] = cmd
     self.req_counter:count_increase()
-    local sessions = sock.sessions
-    sessions[session_id] = { lclock_ms(), cmd }
     local _<close> = qdefer(function()
-        sessions[session_id] = nil
+        sock.sessions[session_id] = nil
+        local utime = lclock_ms() - tick
+        if utime > FAST_MS then
+            log_warn("[MongoDB][on_slice_recv] cmd (%s:%s) execute so big %s!", cmd, session_id, utime)
+        end
     end)
     return thread_mgr:yield(session_id, "mongo_op_msg", DB_TIMEOUT)
 end

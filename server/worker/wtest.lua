@@ -1,5 +1,5 @@
 --wtest.lua
-import("driver/worker.lua")
+import("feature/worker.lua")
 
 local log_err       = logger.err
 local log_debug     = logger.debug

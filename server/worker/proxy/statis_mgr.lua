@@ -1,6 +1,6 @@
 --statis_mgr.lua
-import("driver/worker.lua")
-import("kernel/object/linux.lua")
+import("feature/worker.lua")
+import("feature/linux.lua")
 
 local ljson         = require("lcjson")
 

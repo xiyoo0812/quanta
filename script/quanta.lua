@@ -121,19 +121,19 @@ function quanta.make_mq()
 end
 
 function quanta.defer(handler)
-    local Defer = import("kernel/object/defer.lua")
+    local Defer = import("feature/defer.lua")
     return Defer(handler)
 end
 
 --创建普通计数器
 function quanta.make_counter(title)
-    local Counter = import("kernel/object/counter.lua")
+    local Counter = import("feature/counter.lua")
     return Counter(title)
 end
 
 --创建采样计数器
 function quanta.make_sampling(title, period)
-    local Counter = import("kernel/object/counter.lua")
+    local Counter = import("feature/counter.lua")
     local counter = Counter(title)
     counter:sampling(period)
     return counter
@@ -141,6 +141,6 @@ end
 
 --创建管道
 function quanta.make_channel(title)
-    local Channel = import("kernel/object/channel.lua")
+    local Channel = import("feature/channel.lua")
     return Channel(title)
 end

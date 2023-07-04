@@ -65,7 +65,7 @@ end
 local function init_mainloop()
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
-    import("driver/scheduler.lua")
+    import("feature/scheduler.lua")
     update_mgr = quanta.get("update_mgr")
     scheduler = quanta.get("scheduler")
 end
