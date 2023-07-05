@@ -32,8 +32,8 @@ local PLAYER            = quanta.enum("GMType", "PLAYER")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 
-local AdminMgr = singleton()
-local prop = property(AdminMgr)
+local GM_Mgr = singleton()
+local prop = property(GM_Mgr)
 prop:reader("http_server", nil)
 prop:reader("cluster", "local")
 prop:reader("services", {})
@@ -41,20 +41,20 @@ prop:reader("monitors", {})
 prop:reader("gm_page", "")
 prop:reader("gm_status", false)
 
-function AdminMgr:__init()
+function GM_Mgr:__init()
     --监听事件
     event_mgr:add_listener(self, "rpc_register_command")
     event_mgr:add_listener(self, "rpc_execute_command")
     event_mgr:add_listener(self, "rpc_execute_message")
 
     --创建HTTP服务器
-    local server = HttpServer(environ.get("QUANTA_ADMIN_HTTP"))
+    local server = HttpServer(environ.get("QUANTA_GM_HTTP"))
     service.make_node(server:get_port())
     self.http_server = server
     --是否开启GM功能
-    if environ.status("QUANTA_ADMIN_GM") then
+    if environ.status("QUANTA_GM_WEB") then
         self.gm_status = true
-        self:register_gm_url()
+        self:register_webgm()
     end
     --关注monitor
     monitor:watch_service_ready(self, "monitor")
@@ -65,32 +65,32 @@ function AdminMgr:__init()
 end
 
 --外部注册post请求
-function AdminMgr:register_post(url, handler, target)
+function GM_Mgr:register_post(url, handler, target)
     self.http_server:register_post(url, handler, target)
 end
 
 --外部注册get请求
-function AdminMgr:register_get(url, handler, target)
+function GM_Mgr:register_get(url, handler, target)
     self.http_server:register_get(url, handler, target)
 end
 
 --取消注册请求
-function AdminMgr:unregister_url(url)
+function GM_Mgr:unregister_url(url)
     self.http_server:unregister(url)
 end
 
 --定时更新
-function AdminMgr:on_second5()
-    self.gm_page = import("admin/gm_page.lua")
+function GM_Mgr:on_second5()
+    self.gm_page = import("center/gm_page.lua")
 end
 
 -- 事件请求
-function AdminMgr:on_register_command(command_list, service_id)
+function GM_Mgr:on_register_command(command_list, service_id)
     self:rpc_register_command(command_list, service_id)
     return SUCCESS
 end
 
-function AdminMgr:register_gm_url()
+function GM_Mgr:register_webgm()
     self:register_get("/", "on_gm_page", self)
     self:register_get("/gmlist", "on_gmlist", self)
     self:register_get("/monitors", "on_monitors", self)
@@ -98,7 +98,7 @@ function AdminMgr:register_gm_url()
     self:register_post("/message", "on_message", self)
 end
 
-function AdminMgr:unregister_gm_url()
+function GM_Mgr:unregister_webgm()
     self:unregister_url("/")
     self:unregister_url("/gmlist")
     self:unregister_url("/monitors")
@@ -107,12 +107,12 @@ function AdminMgr:unregister_gm_url()
 end
 
 --切换gm状态
-function AdminMgr:gm_switch(status)
+function GM_Mgr:gm_switch(status)
     self.gm_status = status
     if self.gm_status then
-        self:register_gm_url()
+        self:register_webgm()
     else
-        self:unregister_gm_url()
+        self:unregister_webgm()
     end
     return status
 end
@@ -120,56 +120,60 @@ end
 --rpc请求
 ---------------------------------------------------------------------
 --注册GM
-function AdminMgr:rpc_register_command(command_list, service_id)
+function GM_Mgr:rpc_register_command(command_list, service_id)
     --同服务只执行一次
-    if self.services[service_id] then
+    if service_id and self.services[service_id] then
         return
     end
     for _, cmd in pairs(command_list) do
         local gm_type = cmd.gm_type or PLAYER
         cmdline:register_command(cmd.name, cmd.args, cmd.desc, gm_type, cmd.group, cmd.tip, cmd.example, service_id)
     end
-    self.services[service_id] = true
+    if service_id then
+        self.services[service_id] = true
+    end
     return SUCCESS
 end
 
 --执行gm, command：string
-function AdminMgr:rpc_execute_command(command)
+function GM_Mgr:rpc_execute_command(command)
+    log_debug("[GM_Mgr][rpc_execute_command] command: %s", command)
     local res = self:exec_command(command)
     return SUCCESS, res
 end
 
 --执行gm, message: table
-function AdminMgr:rpc_execute_message(message)
+function GM_Mgr:rpc_execute_message(message)
+    log_debug("[GM_Mgr][rpc_execute_message] message: %s", message)
     local res = self:exec_message(message)
     return SUCCESS, res
 end
 
-function AdminMgr:on_service_close(id, name)
-    log_debug("[AdminMgr][on_service_close] node: %s-%s", name, id)
+function GM_Mgr:on_service_close(id, name)
+    log_debug("[GM_Mgr][on_service_close] node: %s-%s", name, id)
     self.monitors[id] = nil
 end
 
-function AdminMgr:on_service_ready(id, name, info)
-    log_debug("[AdminMgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
+function GM_Mgr:on_service_ready(id, name, info)
+    log_debug("[GM_Mgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
     self.monitors[id] = sformat("%s:%s", info.ip, info.port)
 end
 
 --http 回调
 ----------------------------------------------------------------------
 --gm_page
-function AdminMgr:on_gm_page(url, body, request)
+function GM_Mgr:on_gm_page(url, body, request)
     return self.gm_page, {["Access-Control-Allow-Origin"] = "*"}
 end
 
 --gm列表
-function AdminMgr:on_gmlist(url, body, request)
+function GM_Mgr:on_gmlist(url, body, request)
     return { text = "GM指令", nodes = cmdline:get_displays() }
 end
 
 --monitor拉取
-function AdminMgr:on_monitors(url, body, request)
-    log_debug("[AdminMgr][on_monitors] body: %s", body)
+function GM_Mgr:on_monitors(url, body, request)
+    log_debug("[GM_Mgr][on_monitors] body: %s", body)
     local nodes = {}
     for _, addr in pairs(self.monitors) do
         tinsert(nodes, { text = addr, tag = "log" })
@@ -178,23 +182,23 @@ function AdminMgr:on_monitors(url, body, request)
 end
 
 --后台GM调用，字符串格式
-function AdminMgr:on_command(url, body, request)
-    log_debug("[AdminMgr][on_command] body: %s", body)
+function GM_Mgr:on_command(url, body, request)
+    log_debug("[GM_Mgr][on_command] body: %s", body)
     local cmd_req = jdecode(body)
     return self:exec_command(cmd_req.data)
 end
 
 --后台GM调用，table格式
-function AdminMgr:on_message(url, body, request)
-    log_debug("[AdminMgr][on_message] body: %s", body)
+function GM_Mgr:on_message(url, body, request)
+    log_debug("[GM_Mgr][on_message] body: %s", body)
     local cmd_req = jdecode(body)
     return self:exec_message(cmd_req.data)
 end
 
 -------------------------------------------------------------------------
 --参数分发预处理
-function AdminMgr:dispatch_pre_command(fmtargs)
-    local result = event_mgr:notify_listener("on_admin_command", fmtargs.name, fmtargs.args)
+function GM_Mgr:dispatch_pre_command(fmtargs)
+    local result = event_mgr:notify_listener("on_center_command", fmtargs.name, fmtargs.args)
     local _, status_ok, args = tunpack(result)
     --无额外处理
     if not status_ok then
@@ -205,7 +209,7 @@ function AdminMgr:dispatch_pre_command(fmtargs)
 end
 
 --后台GM执行，字符串格式
-function AdminMgr:exec_command(command)
+function GM_Mgr:exec_command(command)
     local fmtargs, err = cmdline:parser_command(command)
     if not fmtargs then
         return { code = 1, msg = err }
@@ -215,7 +219,7 @@ end
 
 --后台GM执行，table格式
 --message必须有name字段，作为cmd_name
-function AdminMgr:exec_message(message)
+function GM_Mgr:exec_message(message)
     local fmtargs, err = cmdline:parser_data(message)
     if not fmtargs then
         return { code = 1, msg = err }
@@ -224,79 +228,79 @@ function AdminMgr:exec_message(message)
 end
 
 --分发command
-function AdminMgr:dispatch_command(cmd_args, gm_type, service_id)
+function GM_Mgr:dispatch_command(cmd_args, gm_type, service_id)
     local callback = {
-        [GLOBAL]    = AdminMgr.exec_global_cmd,
-        [SYSTEM]    = AdminMgr.exec_system_cmd,
-        [PLAYER]    = AdminMgr.exec_player_cmd,
-        [SERVICE]   = AdminMgr.exec_service_cmd,
-        [OFFLINE]   = AdminMgr.exec_offline_cmd,
-        [LOCAL]     = AdminMgr.exec_local_cmd,
-        [HASHKEY]   = AdminMgr.exec_hash_cmd,
+        [GLOBAL]    = GM_Mgr.exec_global_cmd,
+        [SYSTEM]    = GM_Mgr.exec_system_cmd,
+        [PLAYER]    = GM_Mgr.exec_player_cmd,
+        [SERVICE]   = GM_Mgr.exec_service_cmd,
+        [OFFLINE]   = GM_Mgr.exec_offline_cmd,
+        [LOCAL]     = GM_Mgr.exec_local_cmd,
+        [HASHKEY]   = GM_Mgr.exec_hash_cmd,
     }
     return callback[gm_type](self, service_id, tunpack(cmd_args))
 end
 
 --GLOBAL command
-function AdminMgr:exec_global_cmd(service_id, cmd_name, ...)
+function GM_Mgr:exec_global_cmd(service_id, cmd_name, ...)
     local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[AdminMgr][exec_global_cmd] rpc_command_execute failed! service_id:%s, cmd_name=%s", service_id, cmd_name)
+        log_err("[GM_Mgr][exec_global_cmd] rpc_command_execute failed! service_id:%s, cmd_name=%s", service_id, cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
 end
 
 --system command
-function AdminMgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
+function GM_Mgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
     local index = guid_index(target_id)
     local quanta_id = make_sid(service_id, index)
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_command_execute" , cmd_name, target_id, ...)
     if not ok then
-        log_err("[AdminMgr][exec_system_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        log_err("[GM_Mgr][exec_system_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
 end
 
 --service command
-function AdminMgr:exec_service_cmd(service_id, cmd_name, ...)
+function GM_Mgr:exec_service_cmd(service_id, cmd_name, ...)
     local ok, codeoe = router_mgr:broadcast(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[AdminMgr][exec_service_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        log_err("[GM_Mgr][exec_service_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = "success" }
 end
 
 --hash command
-function AdminMgr:exec_hash_cmd(service_id, cmd_name, target_id, ...)
+function GM_Mgr:exec_hash_cmd(service_id, cmd_name, target_id, ...)
     local ok, codeoe, res = router_mgr:call_hash(service_id, target_id, "rpc_command_execute", cmd_name, target_id, ...)
     if not ok then
-        log_err("[AdminMgr][exec_hash_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        log_err("[GM_Mgr][exec_hash_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
 end
 
 --local command
-function AdminMgr:exec_local_cmd(service_id, cmd_name, ...)
+function GM_Mgr:exec_local_cmd(service_id, cmd_name, ...)
     event_mgr:notify_trigger(cmd_name, ...)
     return { code = 0, msg = "success" }
 end
 
 --兼容在线和离线的玩家指令
-function AdminMgr:exec_offline_cmd(service_id, cmd_name, player_id, ...)
-    log_debug("[AdminMgr][exec_offline_cmd] cmd_name:%s player_id:%s", cmd_name, player_id)
+function GM_Mgr:exec_offline_cmd(service_id, cmd_name, player_id, ...)
+    log_debug("[GM_Mgr][exec_offline_cmd] cmd_name:%s player_id:%s", cmd_name, player_id)
     local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
-        log_err("[AdminMgr][exec_offline_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+        log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
         return { code = 1, msg = codeoe }
     end
     if codeoe == PLAYER_NOT_EXIST then
         ok, codeoe, res = router_mgr:call_lobby_hash(player_id, "rpc_command_execute", cmd_name, player_id, ...)
         if not ok then
-            log_err("[AdminMgr][exec_offline_cmd] rpc_command_execute failed! player_id:%s, cmd_name=%s", player_id, cmd_name)
+            log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! player_id:%s, cmd_name=%s", player_id, cmd_name)
             return { code = 1, msg = codeoe }
         end
         return { code = codeoe, msg = res }
@@ -305,23 +309,23 @@ function AdminMgr:exec_offline_cmd(service_id, cmd_name, player_id, ...)
 end
 
 --player command
-function AdminMgr:exec_player_cmd(service_id, cmd_name, player_id, ...)
+function GM_Mgr:exec_player_cmd(service_id, cmd_name, player_id, ...)
     if player_id == 0 then
         local ok, codeoe, res = router_mgr:call_lobby_random("rpc_command_execute", cmd_name, player_id, ...)
         if not ok then
-            log_err("[AdminMgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+            log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
             return { code = 1, msg = codeoe }
         end
         return { code = codeoe, msg = res }
     end
     local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
-        log_err("[AdminMgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+        log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
 end
 
-quanta.admin_mgr = AdminMgr()
+quanta.gm_mgr = GM_Mgr()
 
-return AdminMgr
+return GM_Mgr

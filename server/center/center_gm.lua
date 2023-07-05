@@ -1,21 +1,21 @@
--- admin_gm.lua
+-- center_gm.lua
 local log_info      = logger.info
 
+local gm_mgr        = quanta.get("gm_mgr")
 local event_mgr     = quanta.get("event_mgr")
-local admin_mgr     = quanta.get("admin_mgr")
 local router_mgr    = quanta.get("router_mgr")
 
 local LOCAL         = quanta.enum("GMType", "LOCAL")
 local LOGIN         = quanta.enum("Service", "LOGIN")
 local GATEWAY       = quanta.enum("Service", "GATEWAY")
 
-local AdminGM = singleton()
-function AdminGM:__init()
+local CenterGM = singleton()
+function CenterGM:__init()
     self:register()
 end
 
 -- 注册
-function AdminGM:register()
+function CenterGM:register()
     local cmd_list = {
         {
             name = "add_proto_shield",
@@ -56,7 +56,7 @@ function AdminGM:register()
     }
 
     --注册GM
-    admin_mgr:rpc_register_command(cmd_list, quanta.service)
+    gm_mgr:rpc_register_command(cmd_list)
     -- 初始化监听事件
     for _, cmd in ipairs(cmd_list) do
         event_mgr:add_trigger(self, cmd.name)
@@ -64,7 +64,7 @@ function AdminGM:register()
 end
 
 -- 通知指定服务
-function AdminGM:call_command_service(cmd_id, rpc, ...)
+function CenterGM:call_command_service(cmd_id, rpc, ...)
     local server_type = (cmd_id // 1000) % 10
     if server_type ~= 0 then
         router_mgr:broadcast(GATEWAY, rpc, ...)
@@ -75,22 +75,22 @@ function AdminGM:call_command_service(cmd_id, rpc, ...)
 end
 
 -- 添加协议屏蔽(多个)
-function AdminGM:add_proto_shield(start_cmd_id, count)
-    log_info("[AdminGM][add_proto_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
+function CenterGM:add_proto_shield(start_cmd_id, count)
+    log_info("[CenterGM][add_proto_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
     -- 通知服务
     self:call_command_service(start_cmd_id, "rpc_add_proto_shield", start_cmd_id, count)
 end
 
 -- 删除协议屏蔽(多个)
-function AdminGM:del_proto_shield(start_cmd_id, count)
-    log_info("[AdminGM][del_proto_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
+function CenterGM:del_proto_shield(start_cmd_id, count)
+    log_info("[CenterGM][del_proto_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
     -- 通知服务
     self:call_command_service(start_cmd_id, "rpc_del_proto_shield", start_cmd_id, count)
 end
 
 -- 屏蔽服务协议
-function AdminGM:shield_service_proto(service_type, status)
-    log_info("[AdminGM][shield_service_proto] service_type: %s, status:%s", service_type, status)
+function CenterGM:shield_service_proto(service_type, status)
+    log_info("[CenterGM][shield_service_proto] service_type: %s, status:%s", service_type, status)
     -- 通知服务
     if service_type ~= 0 then
         router_mgr:broadcast(GATEWAY, "rpc_shield_service_proto", service_type, status)
@@ -101,13 +101,13 @@ function AdminGM:shield_service_proto(service_type, status)
 end
 
 -- 设置日志等级
-function AdminGM:set_logger_level(service_id, level)
-    log_info("[AdminGM][set_logger_level] service_id: %s, level:%s", service_id, level)
+function CenterGM:set_logger_level(service_id, level)
+    log_info("[CenterGM][set_logger_level] service_id: %s, level:%s", service_id, level)
     -- 通知服务
     router_mgr:broadcast(service_id, "rpc_set_logger_level", level)
 end
 
 -- export
-quanta.admin_gm = AdminGM()
+quanta.center_gm = CenterGM()
 
-return AdminGM
+return CenterGM

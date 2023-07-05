@@ -15,71 +15,7 @@ service:upsert({
 })
 
 service:upsert({
-    id = 2,
-    name = 'scene',
-    enum_key = 'SCENE',
-    enable = true,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 3,
-    name = 'team',
-    enum_key = 'TEAM',
-    enable = false,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 4,
-    name = 'friend',
-    enum_key = 'FRIEND',
-    enable = false,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 5,
-    name = 'chat',
-    enum_key = 'CHAT',
-    enable = false,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 6,
-    name = 'room',
-    enum_key = 'ROOM',
-    enable = false,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 7,
-    name = 'task',
-    enum_key = 'TASK',
-    enable = false,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 8,
-    name = 'match',
-    enum_key = 'MATCH',
-    enable = false,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 9,
-    name = 'activity',
-    enum_key = 'ACTIVITY',
-    enable = false,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 18,
+    id = 11,
     name = 'login',
     enum_key = 'LOGIN',
     enable = true,
@@ -87,7 +23,7 @@ service:upsert({
 })
 
 service:upsert({
-    id = 19,
+    id = 12,
     name = 'gateway',
     enum_key = 'GATEWAY',
     enable = true,
@@ -95,15 +31,7 @@ service:upsert({
 })
 
 service:upsert({
-    id = 20,
-    name = 'online',
-    enum_key = 'ONLINE',
-    enable = true,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 23,
+    id = 13,
     name = 'router',
     enum_key = 'ROUTER',
     enable = true,
@@ -111,15 +39,23 @@ service:upsert({
 })
 
 service:upsert({
-    id = 24,
-    name = 'tool',
-    enum_key = 'TOOL',
+    id = 14,
+    name = 'online',
+    enum_key = 'ONLINE',
     enable = true,
     ralloc = 0,
 })
 
 service:upsert({
-    id = 25,
+    id = 15,
+    name = 'center',
+    enum_key = 'CENTER',
+    enable = true,
+    ralloc = 0,
+})
+
+service:upsert({
+    id = 16,
     name = 'monitor',
     enum_key = 'MONITOR',
     enable = true,
@@ -127,15 +63,7 @@ service:upsert({
 })
 
 service:upsert({
-    id = 26,
-    name = 'test',
-    enum_key = 'TEST',
-    enable = true,
-    ralloc = 0,
-})
-
-service:upsert({
-    id = 27,
+    id = 17,
     name = 'cache',
     enum_key = 'CACHE',
     enable = true,
@@ -144,16 +72,16 @@ service:upsert({
 
 service:upsert({
     id = 28,
-    name = 'admin',
-    enum_key = 'ADMIN',
+    name = 'mongo',
+    enum_key = 'MONGO',
     enable = true,
     ralloc = 0,
 })
 
 service:upsert({
     id = 29,
-    name = 'mongo',
-    enum_key = 'MONGO',
+    name = 'redis',
+    enum_key = 'REDIS',
     enable = true,
     ralloc = 0,
 })
@@ -168,8 +96,16 @@ service:upsert({
 
 service:upsert({
     id = 31,
-    name = 'redis',
-    enum_key = 'REDIS',
+    name = 'test',
+    enum_key = 'TEST',
+    enable = true,
+    ralloc = 0,
+})
+
+service:upsert({
+    id = 32,
+    name = 'tool',
+    enum_key = 'TOOL',
     enable = false,
     ralloc = 0,
 })
