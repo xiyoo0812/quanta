@@ -62,15 +62,14 @@ function LoginDao:create_player(open_id, player_id, data)
     return true
 end
 
-function LoginDao:check_player(params, ip, user_id, name)
+function LoginDao:check_player(user_id, name)
     --检查名称合法性
     local channel = makechan("check_name")
     channel:push(function()
-        local lang, dev_plat = params.lang, params.dev_plat
-        local check_res = event_mgr:notify_listener("on_safe_text", ip, lang, name, dev_plat)
+        local check_res = event_mgr:notify_listener("on_safe_text", user_id, name)
         local check_ok, code, result_name = tunpack(check_res)
         if qfailed(code, check_ok) then
-            log_err("[LoginDao][check_player] ok:%s code:%s result_name:%s", check_ok, code, result_name)
+            log_err("[LoginDao][check_player] user_id:%s ok:%s code:%s result_name:%s", user_id, check_ok, code, result_name)
         end
         return check_ok, code
     end)

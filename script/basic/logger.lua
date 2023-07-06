@@ -26,6 +26,7 @@ logfeature = {}
 function logger.init()
     --配置日志信息
     llogger.set_max_line(environ.number("QUANTA_LOG_LINE", 100000))
+    llogger.set_clean_time(environ.number("QUANTA_LOG_TIME", 648000))
     llogger.set_rolling_type(environ.number("QUANTA_LOG_ROLL", 0))
     --设置日志过滤
     logger.filter(environ.number("QUANTA_LOG_LVL"))
@@ -108,9 +109,12 @@ end
 
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
-    logfeature[lvl_name] = function(feature, path, prefix)
+    logfeature[lvl_name] = function(feature, path, prefix, clean_time)
         llogger.add_dest(feature, path)
         llogger.ignore_prefix(feature, prefix)
+        if clean_time then
+            llogger.set_dest_clean_time(feature, clean_time)
+        end
         return function(fmt, ...)
             local ok, res = pcall(logger_output, feature, false, lvl, lvl_name, fmt, log_conf, ...)
             if not ok then

@@ -180,7 +180,8 @@ namespace logger {
                 create_directories(log_path_);
                 try {
                     for (auto entry : recursive_directory_iterator(log_path_)) {
-                        if (!entry.is_directory() && entry.path().extension().string() == ".log") {
+                        if (entry.is_directory() || entry.path().extension().string() != ".log") continue;
+                        if (entry.path().stem().has_extension()) {
                             auto ftime = last_write_time(entry.path());
                             if ((size_t)duration_cast<seconds>(file_time_type::clock::now() - ftime).count() > clean_time_) {
                                 remove(entry.path());
@@ -281,6 +282,14 @@ namespace logger {
         auto it = dest_lvls_.find(log_lvl);
         if (it != dest_lvls_.end()) {
             dest_lvls_.erase(it);
+        }
+    }
+
+    void log_service::set_dest_clean_time(cstring& feature, size_t clean_time){
+        std::unique_lock<spin_mutex> lock(mutex_);
+        auto it = dest_features_.find(feature);
+        if (it != dest_features_.end()) {
+            it->second->set_clean_time(clean_time);
         }
     }
 

@@ -29,6 +29,7 @@ namespace logger {
         lualog.set_function("ignore_suffix", [](string feature, bool suffix) { get_logger()->ignore_suffix(feature, suffix); });
         lualog.set_function("add_dest", [](string feature, string log_path) { return get_logger()->add_dest(feature, log_path); });
         lualog.set_function("add_file_dest", [](string feature, string fname) { return get_logger()->add_file_dest(feature, fname); });
+        lualog.set_function("set_dest_clean_time", [](string feature, size_t time) { get_logger()->set_dest_clean_time(feature, time); });
         lualog.set_function("info", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_INFO, msg, tag, feature); });
         lualog.set_function("warn", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_WARN, msg, tag, feature); });
         lualog.set_function("dump", [](string msg, string tag, string feature) { get_logger()->output(log_level::LOG_LEVEL_DUMP, msg, tag, feature); });

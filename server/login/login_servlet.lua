@@ -96,7 +96,8 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
             return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         end
         session.account = account
-        event_mgr:notify_listener("on_account_create", account, device_id)
+        event_mgr:notify_listener("on_account_create", account, device_id, session.ip,
+                                    account_params.lang, account_params.dev_plat)
         client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id)
         log_info("[LoginServlet][on_account_login_req] newbee success! open_id: %s", open_id)
         return
@@ -110,7 +111,8 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     account:save_token(access_token)
     account:save_device_id(device_id)
     account:update_params(account_params)
-    event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id, device_id)
+    event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id,
+                                device_id, session.ip, account_params.lang, account_params.dev_plat)
     if not client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id) then
         log_info("[LoginServlet][on_account_login_req] callback failed! open_id: %s, user_id：%s", open_id, account:get_user_id())
         return
@@ -132,7 +134,8 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NUM_LIMIT, session_id)
     end
     --检查名称合法性
-    local ok, codatas = login_dao:check_player(account.params, session.ip, user_id, name)
+    local ok, codatas = login_dao:check_player(user_id, name)
+    log_debug("[LoginServlet][on_role_create_req] ok:%s codatas:%s", ok, codatas)
     if not ok then
         return client_mgr:callback_errcode(session, cmd_id, codatas, session_id)
     end
