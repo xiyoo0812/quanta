@@ -46,6 +46,8 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "rpc_cache_delete")
     event_mgr:add_listener(self, "rpc_cache_update_field")
     event_mgr:add_listener(self, "rpc_cache_remove_field")
+    event_mgr:add_listener(self, "rpc_cache_copy")
+    event_mgr:add_listener(self, "rpc_cache_signed")
     -- 事件监听
     event_mgr:add_listener(self, "on_cache_load")
     --counter
@@ -153,6 +155,17 @@ function CacheMgr:find_document(coll_name, primary_id)
     end
 end
 
+--清理文档
+function CacheMgr:clear_document(coll_name, primary_id)
+    local group_name = self.collections[coll_name]
+    local groups = self.caches[group_name]
+    local group = groups:get(primary_id)
+    if group then
+        group:clear()
+        groups[primary_id] = nil
+    end
+end
+
 --加载DB组
 function CacheMgr:load_group(coll_name, primary_id)
     --准备信息
@@ -179,9 +192,10 @@ function CacheMgr:load_document(coll_name, primary_id)
         if qfailed(code) then
             return code
         end
-        return SUCCESS, group:get_doc(coll_name)
+        return SUCCESS, group:get_doc(coll_name), false
+    else
+        return SUCCESS, doc, true
     end
-    return SUCCESS, doc
 end
 
 function CacheMgr:rpc_cache_load(primary_id, coll_name)
@@ -238,6 +252,53 @@ function CacheMgr:rpc_cache_delete(primary_id, coll_name)
     end
     log_debug("[CacheMgr][rpc_cache_delete] coll_name=%s, primary=%s", coll_name, primary_id)
     return SUCCESS
+end
+
+--复制缓存
+function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
+    log_debug("[CacheMgr][rpc_cache_copy] coll_name=%s, src_id=%s, to_id=%s", coll_name, src_id, to_id)
+    local _<close> = thread_mgr:lock(to_id, true)
+    local src_code, src_doc, from_mem = self:load_document(coll_name, src_id)
+    if qfailed(src_code) then
+        log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name=%s, src_id=%s", coll_name, src_id)
+        return src_code
+    end
+    --原表是否为空
+    if not next(src_doc:get_datas()) then
+        if not from_mem then
+            self:clear_document(coll_name, src_id)
+        end
+        return SUCCESS
+    end
+    local to_code, doc = self:load_document(coll_name, to_id)
+    if qfailed(to_code) then
+        log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name=%s, to_id=%s", coll_name, to_id)
+        if not from_mem then
+            self:clear_document(coll_name, src_id)
+        end
+        return to_code
+    end
+    doc:copy(src_doc:get_datas())
+    if not from_mem then
+        self:clear_document(coll_name, src_id)
+    end
+    return SUCCESS
+end
+
+--标记注销
+function CacheMgr:rpc_cache_signed(primary_id, coll_name)
+    local _<close> = thread_mgr:lock(primary_id, true)
+    local field = "del_time"
+    local field_data = quanta.now
+    local ccode, doc = self:load_document(coll_name, primary_id)
+    if qfailed(ccode) then
+        log_err("[CacheMgr][rpc_cache_signed] load_document failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
+        return ccode
+    end
+    log_debug("[CacheMgr][rpc_cache_signed] coll_name=%s, primary=%s, field=%s, data:%s", coll_name, primary_id, field, field_data)
+    doc:update_field(field, field_data)
+    --强制落库
+    doc:update()
 end
 
 quanta.cache_mgr = CacheMgr()

@@ -1,5 +1,5 @@
 --sub_component.lua
-
+local sformat       = string.format
 local xpcall        = xpcall
 local log_warn      = logger.warn
 local tunpack       = table.unpack
@@ -42,6 +42,7 @@ function SubComponent:on_subscriber(event, guid, ...)
         self.subscribers[event] = {}
     end
     self.subscribers[event][guid] = { ... }
+    self:notify_event(sformat("on_sub_%s", event), self, ...)
 end
 
 --处理删除跨服订阅

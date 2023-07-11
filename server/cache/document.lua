@@ -5,6 +5,7 @@ local log_err       = logger.err
 local tabmove       = table.move
 local tconcat       = table.concat
 local qfailed       = quanta.failed
+local tclone        = qtable.deep_copy
 local sformat       = string.format
 local mrandom       = math.random
 local makechan      = quanta.make_channel
@@ -100,6 +101,14 @@ function Document:destory()
         return false, code
     end
     return true, SUCCESS
+end
+
+--复制数据
+function Document:copy(datas)
+    local copy_data = tclone(datas)
+    copy_data[self.primary_key] = self.primary_id
+    self.datas = copy_data
+    self:update()
 end
 
 --保存数据库

@@ -41,6 +41,11 @@ function Group:get_doc(sheet)
     return self.documents[sheet]
 end
 
+--移除内存数据
+function Group:clear()
+    self.documents = {}
+end
+
 --更新数据
 function Group:update_field(document, field, field_data)
     document:update_field(field, field_data)
