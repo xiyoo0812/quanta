@@ -174,7 +174,7 @@ function LoginModule:choose_role_req()
         return false
     end
     self.lobby = res.lobby
-    self.gate_ip = res.addr
+    self.gate_ip = res.addrs[1]
     self.gate_port = res.port
     self.lobby_token = res.token
     self.player_id = role.role_id
