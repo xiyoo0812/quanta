@@ -16,6 +16,7 @@ cache:upsert({
     time = 600,
     depth_min = 0,
     depth_max = 1,
+    copyable = false,
 })
 
 cache:upsert({
@@ -28,6 +29,7 @@ cache:upsert({
     time = 600,
     depth_min = 0,
     depth_max = 1,
+    copyable = true,
     key2 = 'nick',
 })
 
@@ -41,6 +43,7 @@ cache:upsert({
     time = 600,
     depth_min = 1,
     depth_max = 2,
+    copyable = true,
 })
 
 cache:update()

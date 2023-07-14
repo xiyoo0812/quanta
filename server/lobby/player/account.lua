@@ -1,9 +1,6 @@
 --account.lua
 
-local sformat   = string.format
-
 local game_dao  = quanta.get("game_dao")
-local NAMESPACE = environ.get("QUANTA_NAMESPACE")
 
 local Account = class()
 local prop = property(Account)
@@ -15,6 +12,8 @@ prop:accessor("reload_token", 0)    --reload_token
 local dprop = db_property(Account, "account", true)
 dprop:store_value("lobby", 0)       --lobby
 dprop:store_value("device_id", 0)   --device_id
+dprop:store_value("login_token", 0) --login_token
+dprop:store_value("login_time", 0)  --login_time
 dprop:store_value("params", {})     --params
 dprop:store_values("roles", {})     --roles
 
@@ -34,6 +33,8 @@ function Account:on_db_account_load(data)
         self.user_id = data.user_id
         self.device_id = data.device_id
         self.create_time = data.create_time
+        self.login_token = data.login_token
+        self.login_time = data.login_time
         return true
     end
     return false
@@ -55,9 +56,10 @@ function Account:update_custom(role_id, custom)
     end
 end
 
-function Account:get_login_token(role_id)
-    local key = sformat("LOGIN:%s:token:%s", NAMESPACE, role_id)
-    return game_dao:execute(role_id, "GET", key)
+function Account:get_login_token()
+    if quanta.now <= self.login_time then
+        return self.login_token
+    end
 end
 
 return Account

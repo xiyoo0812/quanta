@@ -4,7 +4,6 @@ local lcodec            = require("lcodec")
 local tpack             = table.pack
 local tunpack           = table.unpack
 local log_err           = logger.err
-local log_warn          = logger.warn
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local hash_code         = lcodec.hash_code
@@ -16,8 +15,6 @@ local timer_mgr         = quanta.get("timer_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local proxy_agent       = quanta.get("proxy_agent")
-
-local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -69,10 +66,6 @@ end
 --调用rpc后续处理
 function RpcClient:on_call_router(rpc, token, send_len)
     if send_len > 0 then
-        local more_byte = socket_mgr:get_sendbuf_size(token)
-        if more_byte > WARNING_BYTES then
-            log_warn("[RpcClient][on_call_router] socket %s send buf has so more (%s) bytes!", token, more_byte)
-        end
         proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, send_len
     end
@@ -99,15 +92,15 @@ function RpcClient:connect()
             log_err("[RpcClient][on_socket_rpc] decode failed %s!", rpc_res[2])
             return
         end
-        local more_byte = socket_mgr:get_recvbuf_size(token)
-        if more_byte > WARNING_BYTES then
-            log_warn("[RpcClient][on_socket_rpc] socket %s recv buf has so more (%s) bytes!", token, more_byte)
-        end
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
     end
     socket.call_rpc = function(session_id, rpc_flag, rpc, ...)
         local send_len = socket.call(session_id, rpc_flag, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, token, send_len)
+    end
+    socket.transfor = function(session_id, target_id, service_id, rpc, ...)
+        local send_len = socket.transfor_call(session_id, target_id, service_id, lencode(quanta.id, rpc, ...))
+        return self:on_call_router("rpc_transfor_call", token, send_len)
     end
     socket.call_target = function(session_id, target, rpc, ...)
         local send_len = socket.forward_target(session_id, FLAG_REQ, target, lencode(quanta.id, rpc, ...))
@@ -217,6 +210,26 @@ function RpcClient:forward_socket(method, session_id, ...)
             return true, SUCCESS
         end
         return false, "socket send failed"
+    end
+    return false, "socket not connected"
+end
+
+--转发消息
+function RpcClient:transfor_call(target_id, service_id, ...)
+    if self.alive then
+        local session_id = thread_mgr:build_session_id()
+        if self.socket.transfor(session_id, target_id, service_id, ...) then
+            return thread_mgr:yield(session_id, "transfor_call", RPC_TIMEOUT)
+        end
+        return true
+    end
+    return false, "socket not connected"
+end
+
+function RpcClient:transfor_send(target_id, service_id, ...)
+    if self.alive then
+        self.socket.transfor(0, target_id, service_id, ...)
+        return true
     end
     return false, "socket not connected"
 end

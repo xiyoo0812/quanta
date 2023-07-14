@@ -27,6 +27,9 @@ public:
 
     int forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, slice* slice);
 
+    int transfor_call(uint32_t session_id, uint32_t target_id, uint8_t service_id, slice* slice);
+    int forward_call(uint32_t session_id, uint32_t target_id, uint16_t hash, std::string slice);
+
     template <rpc_type forward_method>
     int forward_by_group(uint32_t session_id, uint8_t flag, uint16_t service_id, slice* slice) {
         size_t data_len = 0;
@@ -57,6 +60,7 @@ private:
     void on_call_text(slice* slice);
     void on_call_common(slice* slice);
     void on_call(router_header* header, slice* slice);
+    void on_transfor(transfor_header* header, slice* slice);
     void on_forward_broadcast(router_header* header, size_t target_size);
     void on_forward_error(router_header* header);
 

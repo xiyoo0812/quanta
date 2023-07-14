@@ -110,12 +110,29 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
     if (count == 0) {
         return false;
     }
-	uint8_t flag = header->context & 0xf;
-	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
-	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
-
     auto& target = nodes[hash % count];
     if (target.token != 0) {
+        uint8_t flag = header->context & 0xf;
+        header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
+        sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
+
+        m_mgr->sendv(target.token, items, _countof(items));
+        m_route_count++;
+        return true;
+    }
+    return false;
+}
+
+bool socket_router::do_transfor_call(transfor_header* header, char* data, size_t data_len) {
+    auto& services = m_services[header->service_id];
+    auto& nodes = services.nodes;
+    int count = (int)nodes.size();
+    if (count == 0) {
+        return false;
+    }
+    auto& target = nodes[header->target_id % count];
+    if (target.token != 0) {
+        sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
         m_mgr->sendv(target.token, items, _countof(items));
         m_route_count++;
         return true;

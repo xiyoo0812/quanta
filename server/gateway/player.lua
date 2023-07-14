@@ -9,10 +9,8 @@ local rallorl       = service.rallorl()
 local group_mgr     = quanta.get("group_mgr")
 local router_mgr    = quanta.get("router_mgr")
 local client_mgr    = quanta.get("client_mgr")
-local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local RAR_HASHKEY   = quanta.enum("RouteAllocRule", "HASHKEY")
-local FRAME_FAILED  = protobuf_mgr:error_code("FRAME_FAILED")
 
 --创建角色数据
 local GatePlayer = class()
@@ -20,7 +18,6 @@ local prop = property(GatePlayer)
 prop:reader("open_id", 0)       --open_id
 prop:reader("player_id", 0)     --player_id
 prop:reader("groups", {})       --分组列表
-prop:reader("passkeys", {})     --通行证列表
 prop:accessor("token", 0)       --token
 prop:accessor("lobby_id", 0)    --大厅id
 prop:accessor("session", nil)   --session
@@ -29,12 +26,6 @@ function GatePlayer:__init(session, open_id, player_id)
     self.session = session
     self.open_id = open_id
     self.player_id = player_id
-end
-
---更新服务网关
-function GatePlayer:update_passkey(service_type, server_id)
-    log_info("[GatePlayer][update_passkey] player(%d) service(%s) id(%s)!", self.player_id, service_type, server_id)
-    self.passkeys[service_type] = server_id
 end
 
 --更新分组信息
@@ -53,17 +44,13 @@ end
 
 --通知连接断开
 function GatePlayer:notify_disconnect()
-    for _, server_id in pairs(self.passkeys) do
-        router_mgr:send_target(server_id, "rpc_player_disconnect", self.player_id)
-    end
+    router_mgr:transfor_send(self.player_id, -1, "rpc_player_disconnect", self.player_id)
 end
 
 --通知心跳
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
     -- 缓存服务
-    for _, server_id in pairs(self.passkeys) do
-        router_mgr:hash_send(server_id, self.player_id, "rpc_player_heartbeat", self.player_id)
-    end
+    router_mgr:transfor_send(self.player_id, -1, "rpc_player_heartbeat", self.player_id)
     -- hashkey服务
     for _,service_type in pairs(rallorl[RAR_HASHKEY] or {}) do
         router_mgr:send_hash(service_type, self.player_id, "rpc_player_heartbeat", self.player_id, quanta.id, self.token)
@@ -83,31 +70,25 @@ end
 --转发消息
 function GatePlayer:notify_command(service_type, cmd_id, body, session_id, display)
     local ok, codeoe, res
+    local pla_id = self.player_id
     local alloc_type = rallocv(service_type)
     if alloc_type == RAR_HASHKEY then
-        local hash_key = body.hash_key or self.player_id
+        local hash_key = body.hash_key or pla_id
         if not hash_key then
-            log_err("[GatePlayer][notify_command] service(%s) cnot transfor not hash_key, cmd_id=%s, player=%s", service_type, cmd_id, self.player_id)
+            log_err("[GatePlayer][notify_command] service(%s) cnot transfor not hash_key, cmd_id=%s, player=%s", service_type, cmd_id,pla_id)
             return
         end
-        ok, codeoe, res = router_mgr:call_hash(service_type, hash_key, "rpc_player_command", self.player_id, cmd_id, body, quanta.id, self.token)
+        ok, codeoe, res = router_mgr:call_hash(service_type, hash_key, "rpc_player_command", pla_id, cmd_id, body, quanta.id, self.token)
     else
-        local server_id = self.passkeys[service_type]
-        if not server_id then
-            log_err("[GatePlayer][notify_command] service(%s) cnot transfor not server_id, cmd_id=%s, player=%s", service_type, cmd_id, self.player_id)
-            client_mgr:callback_errcode(self.session, cmd_id, FRAME_FAILED, session_id)
-            return
-        end
-        ok, codeoe, res = router_mgr:hash_call(server_id, self.player_id, "rpc_player_command", self.player_id, cmd_id, body)
+        ok, codeoe, res = router_mgr:transfor_call(pla_id, service_type, "rpc_player_command", pla_id, cmd_id, body)
     end
-
     if qfailed(codeoe, ok) then
-        log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", self.player_id, cmd_id, codeoe, res)
+        log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", pla_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
         return
     end
     if display then
-        log_debug("[GatePlayer][notify_command] player(%s) response message(%s-%s) !", self.player_id, cmd_id, res)
+        log_debug("[GatePlayer][notify_command] player(%s) response message(%s-%s) !", pla_id, cmd_id, res)
     end
     client_mgr:callback_by_id(self.session, cmd_id, res, session_id)
 end

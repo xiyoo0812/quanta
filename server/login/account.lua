@@ -2,13 +2,9 @@
 
 local tsize         = qtable.size
 local tinsert       = table.insert
-local sformat       = string.format
 local guid_new      = quanta.new_guid
-local log_debug     = logger.debug
 
 local game_dao      = quanta.get("game_dao")
-
-local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
 
 local Account = class()
 local prop = property(Account)
@@ -19,6 +15,8 @@ prop:reader("create_time", 0)       --create_time
 local dprop = db_property(Account, "account", true)
 dprop:store_value("token", 0)       --token
 dprop:store_value("lobby", 0)       --lobby
+dprop:store_value("login_token", 0) --login_token
+dprop:store_value("login_time", 0)  --login_time
 dprop:store_value("device_id", 0)   --device_id
 dprop:store_values("params", {})    --params
 dprop:store_values("roles", {})     --roles
@@ -77,12 +75,6 @@ function Account:del_role(role_id)
         return self:del_roles_field(role_id)
     end
     return false
-end
-
-function Account:set_login_token(role_id, token, time)
-    log_debug("[Account][set_login_token] role_id:%s, token:%s", role_id, token)
-    local key = sformat("LOGIN:%s:token:%s", NAMESPACE, role_id)
-    game_dao:execute(role_id, "SETEX", key, time, token)
 end
 
 function Account:pack2db()

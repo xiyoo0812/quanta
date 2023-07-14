@@ -31,7 +31,6 @@ local OUT_ENCRYPT       = environ.status("QUANTA_OUT_ENCRYPT")
 local FLOW_CTRL         = environ.status("QUANTA_FLOW_CTRL")
 local FC_PACKETS        = environ.number("QUANTA_FLOW_CTRL_PACKAGE")
 local FC_BYTES          = environ.number("QUANTA_FLOW_CTRL_BYTES")
-local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
 
 -- CS协议会话对象管理器
 local NetServer = class()
@@ -82,7 +81,7 @@ function NetServer:on_socket_accept(session)
     -- 设置超时(心跳)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 添加会话
-    local token = self:add_session(session)
+    self:add_session(session)
     -- 绑定call回调
     session.call_client = function(cmd_id, flag, session_id, body)
         local send_len = session.call_head(cmd_id, flag, 0, session_id, body, #body)
@@ -90,20 +89,12 @@ function NetServer:on_socket_accept(session)
             log_err("[NetServer][call_client] call_head failed! code:%s", send_len)
             return false
         end
-        local more_byte = socket_mgr:get_sendbuf_size(token)
-        if more_byte > WARNING_BYTES then
-            log_warn("[NetServer][write] socket %s send buf has so more (%s) bytes!", token, more_byte)
-        end
         return true
     end
     session.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
         if FLOW_CTRL then
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len
-        end
-        local more_byte = socket_mgr:get_recvbuf_size(token)
-        if more_byte > WARNING_BYTES then
-            log_warn("[NetServer][on_socket_recv] socket %s recv buf has so more (%s) bytes!", token, more_byte)
         end
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, slice)

@@ -3,7 +3,6 @@ local lbus          = require("luabus")
 
 local ssub          = string.sub
 local log_err       = logger.err
-local log_warn      = logger.warn
 local log_info      = logger.info
 local ends_with     = qstring.ends_with
 local split_pos     = qstring.split_pos
@@ -13,8 +12,6 @@ local eproto_type   = lbus.eproto_type
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
-
-local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
 
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
@@ -122,10 +119,6 @@ function Socket:on_socket_accept(session)
 end
 
 function Socket:on_socket_recv(token, slice)
-    local more_byte = socket_mgr:get_recvbuf_size(token)
-    if more_byte > WARNING_BYTES then
-        log_warn("[Socket][on_socket_recv] socket %s recv buf has so more (%s) bytes!", token, more_byte)
-    end
     if self.proto_type == eproto_type.text then
         self.recvbuf = self.recvbuf .. slice.string()
         self.host:on_socket_recv(self, self.token)
@@ -206,10 +199,6 @@ end
 --调用rpc后续处理
 function Socket:on_send(token, send_len)
     if send_len > 0 then
-        local more_byte = socket_mgr:get_sendbuf_size(token)
-        if more_byte > WARNING_BYTES then
-            log_warn("[Socket][on_send] socket %s send buf has so more (%s) bytes!", token, more_byte)
-        end
         return true
     end
     return false

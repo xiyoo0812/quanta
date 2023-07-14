@@ -24,7 +24,7 @@ function EventComponent:add_trigger(trigger, event, handler)
     local func_name = handler or event
     local callback_func = trigger[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[EventComponent][add_trigger] event(%s) handler is nil!", event)
+        log_warn("[EventComponent][add_trigger] event(%s) handler not define!", event)
         return
     end
     local trigger_map = self.triggers[event]

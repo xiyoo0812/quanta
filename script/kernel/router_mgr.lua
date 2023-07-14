@@ -100,8 +100,26 @@ function RouterMgr:hash_router(hash_key)
     end
 end
 
+--发送router消息
+function RouterMgr:transfor_send(target_id, service_id, ...)
+    local router = self:hash_router(target_id)
+    if router then
+        return router:transfor_call(target_id, service_id, ...)
+    end
+    return false, "router not connected"
+end
+
+--发送router消息
+function RouterMgr:transfor_call(target_id, service_id, ...)
+    local router = self:hash_router(target_id)
+    if router then
+        return router:transfor_call(target_id, service_id, ...)
+    end
+    return false, "router not connected"
+end
+
 --通过router发送点对点消息
-function RouterMgr:forward_client(router, method, ...)
+function RouterMgr:forward_target(router, method, ...)
     if router then
         return router:forward_socket(method, ...)
     end
@@ -113,7 +131,7 @@ function RouterMgr:collect(service_id, rpc, ...)
     local collect_res = {}
     local session_id = thread_mgr:build_session_id()
     local router = self:hash_router(session_id)
-    local ok, code, target_cnt = self:forward_client(router, "call_broadcast", session_id, service_id, rpc, ...)
+    local ok, code, target_cnt = self:forward_target(router, "call_broadcast", session_id, service_id, rpc, ...)
     if qsuccess(code, ok) then
         while target_cnt > 0 do
             target_cnt = target_cnt - 1
@@ -129,7 +147,7 @@ end
 --通过router传递广播
 function RouterMgr:broadcast(service_id, rpc, ...)
     local router = self:hash_router(service_id)
-    return self:forward_client(router, "call_broadcast", 0, service_id, rpc, ...)
+    return self:forward_target(router, "call_broadcast", 0, service_id, rpc, ...)
 end
 
 --发送给指定目标
@@ -139,7 +157,7 @@ function RouterMgr:call_target(target, rpc, ...)
         return tunpack(res)
     end
     local session_id = thread_mgr:build_session_id()
-    return self:forward_client(self:hash_router(target), "call_target", session_id, target, rpc, ...)
+    return self:forward_target(self:hash_router(target), "call_target", session_id, target, rpc, ...)
 end
 
 --发送给指定目标
@@ -149,7 +167,7 @@ function RouterMgr:hash_call(target, hash_key, rpc, ...)
         return tunpack(res)
     end
     local session_id = thread_mgr:build_session_id()
-    return self:forward_client(self:hash_router(hash_key), "call_target", session_id, target, rpc, ...)
+    return self:forward_target(self:hash_router(hash_key), "call_target", session_id, target, rpc, ...)
 end
 
 --发送给指定目标
@@ -158,7 +176,7 @@ function RouterMgr:send_target(target, rpc, ...)
         event_mgr:notify_listener(rpc, ...)
         return true
     end
-    return self:forward_client(self:hash_router(target), "call_target", 0, target, rpc, ...)
+    return self:forward_target(self:hash_router(target), "call_target", 0, target, rpc, ...)
 end
 
 --发送给指定目标
@@ -167,40 +185,40 @@ function RouterMgr:hash_send(target, hash_key, rpc, ...)
         event_mgr:notify_listener(rpc, ...)
         return true
     end
-    return self:forward_client(self:hash_router(hash_key), "call_target", 0, target, rpc, ...)
+    return self:forward_target(self:hash_router(hash_key), "call_target", 0, target, rpc, ...)
 end
 
 --指定路由发送给指定目标
 function RouterMgr:router_call(router_id, target, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return self:forward_client(self:get_router(router_id), "call_target", session_id, target, rpc, ...)
+    return self:forward_target(self:get_router(router_id), "call_target", session_id, target, rpc, ...)
 end
 
 --指定路由发送给指定目标
 function RouterMgr:router_send(router_id, target, rpc, ...)
-    return self:forward_client(self:get_router(router_id), "call_target", 0, target, rpc, ...)
+    return self:forward_target(self:get_router(router_id), "call_target", 0, target, rpc, ...)
 end
 
 --发送给指定service的hash
 function RouterMgr:call_hash(service_id, hash_key, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return self:forward_client(self:hash_router(hash_key), "call_hash", session_id, service_id, hash_key, rpc, ...)
+    return self:forward_target(self:hash_router(hash_key), "call_hash", session_id, service_id, hash_key, rpc, ...)
 end
 
 --发送给指定service的hash
 function RouterMgr:send_hash(service_id, hash_key, rpc, ...)
-    return self:forward_client(self:hash_router(hash_key), "call_hash", 0, service_id, hash_key, rpc, ...)
+    return self:forward_target(self:hash_router(hash_key), "call_hash", 0, service_id, hash_key, rpc, ...)
 end
 
 --发送给指定service的master
 function RouterMgr:call_master(service_id, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return self:forward_client(self:hash_router(service_id), "call_master", session_id, service_id, rpc, ...)
+    return self:forward_target(self:hash_router(service_id), "call_master", session_id, service_id, rpc, ...)
 end
 
 --发送给指定service的master
 function RouterMgr:send_master(service_id, rpc, ...)
-    return self:forward_client(self:hash_router(service_id), "call_master", 0, service_id, rpc, ...)
+    return self:forward_target(self:hash_router(service_id), "call_master", 0, service_id, rpc, ...)
 end
 
 --生成针对服务的访问接口

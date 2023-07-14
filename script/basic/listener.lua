@@ -19,7 +19,7 @@ function Listener:add_trigger(trigger, event, handler)
     local func_name = handler or event
     local callback_func = trigger[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[Listener][add_trigger] event(%s) handler is nil!", event)
+        log_warn("[Listener][add_trigger] event(%s) handler not define", event)
         return
     end
     local trigger_map = self._triggers[event]
@@ -45,7 +45,7 @@ function Listener:add_listener(listener, event, handler)
     local func_name = handler or event
     local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[Listener][add_listener] event(%s) callback is nil!", event)
+        log_warn("[Listener][add_listener] event(%s) callback not define!", event)
         return
     end
     self._listeners[event] = qtweak({ [listener] = func_name })
@@ -63,7 +63,7 @@ function Listener:add_cmd_listener(listener, cmd, handler)
     local func_name = handler
     local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[Listener][add_cmd_listener] cmd(%s) handler is nil!", cmd)
+        log_warn("[Listener][add_cmd_listener] cmd(%s) handler not define!", cmd)
         return
     end
     self._commands[cmd] = qtweak({ [listener] = func_name })
@@ -97,7 +97,7 @@ function Listener:notify_listener(event, ...)
     end
     if not self._ignores[event] then
         self._ignores[event] = true
-        log_warn("[Listener][notify_listener] event %s handler is nil!", event)
+        log_warn("[Listener][notify_listener] event (%s-%s) handler is nil! ", event, {...})
     end
     return tpack(false, "event handler is nil")
 end

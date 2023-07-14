@@ -49,6 +49,10 @@ function Document:__init(conf, primary_id)
     self.hotkey = sformat("CACHE:%s:%s:%s", NAMESPACE, conf.sheet, primary_id)
 end
 
+function Document:get(key)
+    return self.datas[key]
+end
+
 --从数据库加载
 function Document:load()
     local pid = self.primary_id

@@ -1,4 +1,5 @@
 --unicode.lua
+--provides the mutual conversion of Unicode and UTF-8.
 
 local type = type
 local ssub = string.sub

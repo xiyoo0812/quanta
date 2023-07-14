@@ -10,6 +10,7 @@ local log_warn          = logger.warn
 local log_info          = logger.info
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
+local hash_code         = lcodec.hash_code
 local lencode           = lcodec.encode_slice
 local ldecode           = lcodec.decode_slice
 
@@ -17,8 +18,6 @@ local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local proxy_agent       = quanta.get("proxy_agent")
-
-local WARNING_BYTES     = environ.number("QUANTA_WARNING_BYTES")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -43,13 +42,14 @@ function RpcServer:__init(holder, ip, port, induce)
         return
     end
     local real_port = induce and (port + quanta.order - 1) or port
-    self.listener = socket_mgr.listen(ip, real_port)
-    if not self.listener then
+    local listener = socket_mgr.listen(ip, real_port)
+    if not listener then
         log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)
         signalquit()
         return
     end
     self.holder = holder
+    self.listener = listener
     self.ip, self.port = ip, real_port
     log_info("[RpcServer][setup] now listen %s:%s success!", ip, real_port)
     self.listener.on_accept = function(client)
@@ -99,14 +99,10 @@ function RpcServer:on_socket_accept(client)
     client.call_rpc = function(session_id, rpc_flag, rpc, ...)
         local send_len = client.call(session_id, rpc_flag, lencode(0, rpc, ...))
         if send_len < 0 then
-            proxy_agent:statistics("on_rpc_send", rpc, send_len)
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
             return false
         end
-        local more_byte = socket_mgr:get_sendbuf_size(token)
-        if more_byte > WARNING_BYTES then
-            log_warn("[RpcServer][call_rpc] socket %s send buf has so more (%s) bytes!", token, more_byte)
-        end
+        proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, SUCCESS
     end
     client.on_call = function(recv_len, session_id, rpc_flag, slice)
@@ -115,17 +111,42 @@ function RpcServer:on_socket_accept(client)
             log_err("[RpcServer][on_socket_accept] on_call decode failed %s!", rpc_res[2])
             return
         end
-        local more_byte = socket_mgr:get_recvbuf_size(token)
-        if more_byte > WARNING_BYTES then
-            log_warn("[RpcServer][on_socket_rpc] socket %s recv buf has so more (%s) bytes!", token, more_byte)
-        end
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
+    end
+    client.on_transfor = function(recv_len, session_id, service_id, target_id, slice)
+        local function dispatch_rpc_message()
+            if service_id > 0 then
+                event_mgr:notify_listener("on_transfor_rpc", client, session_id, service_id, target_id, slice.string())
+                return
+            end
+            client.on_call(recv_len, session_id, FLAG_REQ, slice)
+        end
+        thread_mgr:fork(dispatch_rpc_message)
     end
     client.on_error = function(ctoken, err)
         qxpcall(self.on_socket_error, "on_socket_error: %s", self, ctoken, err)
     end
     --通知收到新client
     self.holder:on_client_accept(client)
+end
+
+--直接调用路由hash
+function RpcServer:forward_call(session_id, target_id, slice)
+    self.listener.forward_call(session_id, target_id, 0, slice)
+end
+
+--直接调用路由hash
+function RpcServer:forward_hash(session_id, service_id, hash_key, ...)
+    local slice = lencode(0, ...)
+    local hash_value = hash_code(hash_key, 0xffff)
+    local send_len = self.listener.forward_call(session_id, service_id, hash_value, slice:string())
+    if send_len > 0 then
+        if session_id > 0 then
+            return thread_mgr:yield(session_id, "forward_call", RPC_CALL_TIMEOUT)
+        end
+        return true
+    end
+    return false, "rpc server send failed"
 end
 
 --send接口
@@ -140,6 +161,11 @@ end
 --send接口
 function RpcServer:send(client, rpc, ...)
     return client.call_rpc(0, FLAG_REQ, rpc, ...)
+end
+
+--回调
+function RpcServer:callback(client, session_id, ...)
+    client.call_rpc(session_id, FLAG_RES, "callback", ...)
 end
 
 --broadcast接口

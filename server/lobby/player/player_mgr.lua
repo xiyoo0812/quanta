@@ -2,9 +2,6 @@
 
 local log_err       = logger.err
 local log_debug     = logger.debug
-local tunpack       = table.unpack
-local qfailed       = quanta.failed
-local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -17,8 +14,6 @@ local WEEK_FLUSH    = utility_db:find_integer("value", "flush_week_day")
 
 local SERVER_UPHOLD = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 local DEVICE_REPLACE= protobuf_mgr:error_code("KICK_DEVICE_REPLACE")
-
-local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local Account       = import("lobby/player/account.lua")
 local EntityMgr     = import("business/entity/entity_mgr.lua")
@@ -99,27 +94,11 @@ end
 --加载账号信息
 function PlayerMgr:load_account(open_id, player_id)
     local account = Account(open_id)
-    local channel = makechan("load_account")
-    channel:push(function()
-        if not account:load() then
-            log_err("[LobbyDao][load_account] (%s-%s)load account failed", open_id, player_id)
-            return false
-        end
-        return true, SUCCESS, account
-    end)
-    channel:push(function()
-        local code, login_token = account:get_login_token(player_id)
-        if qfailed(code) then
-            log_err("[LobbyDao][load_account] (%s) load login token failed", player_id)
-            return false
-        end
-        return true, SUCCESS, login_token
-    end)
-    local ok, all_datas = channel:execute()
-    if not ok then
+    if not account:load() then
+        log_err("[PlayerMgr][load_account] (%s-%s)load account failed", open_id, player_id)
         return
     end
-    return tunpack(all_datas)
+    return account
 end
 
 -- 广播消息

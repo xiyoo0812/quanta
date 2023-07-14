@@ -1,16 +1,13 @@
 --router_server.lua
-local lcodec        = require("lcodec")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local lencode       = lcodec.encode_slice
 
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local RpcServer     = import("network/rpc_server.lua")
 
-local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local UNREACHABLE   = quanta.enum("KernCode", "RPC_UNREACHABLE")
 
@@ -50,14 +47,12 @@ function RouterServer:on_client_accept(client)
     client.on_forward_error = function(session_id)
         thread_mgr:fork(function()
             log_err("[RouterServer][on_client_accept] on_forward_error, session_id=%s", session_id)
-            local slice = lencode(false, UNREACHABLE, "router con't find target!")
-            client.call(session_id, FLAG_RES, slice)
+            self.rpc_server:callback(client, session_id, false, UNREACHABLE, "router con't find target!")
         end)
     end
     client.on_forward_broadcast = function(session_id, broadcast_num)
         thread_mgr:fork(function()
-            local slice = lencode(true, SUCCESS, broadcast_num)
-            client.call(session_id, FLAG_RES, slice)
+            self.rpc_server:callback(client, session_id, true, SUCCESS, broadcast_num)
         end)
     end
 end

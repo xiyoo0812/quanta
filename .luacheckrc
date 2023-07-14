@@ -21,6 +21,7 @@ exclude_files = {
     "script/luabt/LICENSE",
     "script/luaoop/LICENSE",
     "script/luabt/luaoop/LICENSE",
+    "server/robot/accord/page/*",
     "extend/lmake/share.lua"
 }
 include_files = {

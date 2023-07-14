@@ -71,26 +71,27 @@ end
 
 function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway)
     log_debug("[LobbyServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login req!", open_id, player_id, token, gateway)
-    local account, login_token = player_mgr:load_account(open_id, player_id)
-    if not account or not login_token then
+    local account = player_mgr:load_account(open_id, player_id)
+    if not account then
         return ROLE_TOKEN_ERR
     end
     --验证token
     local lobby_id = quanta.id
-    if tostring(token) ~= login_token or lobby ~= lobby_id then
+    local login_token = account:get_login_token()
+    if not login_token or token ~= login_token or lobby ~= lobby_id then
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, lobby_id)
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, login_token)
         return ROLE_TOKEN_ERR
     end
     local player = player_mgr:load_player(account, player_id, gateway)
     if not player then
+        log_err("[LobbyServlet][rpc_player_login] load_player failed! player:%s", player_id)
         return FRAME_FAILED
     end
     --通知登陆成功
     local new_token = mrandom()
     account:save_lobby(lobby_id)
     account:set_reload_token(new_token)
-    local passkey = player:get_passkey()
     event_mgr:fire_next_frame(function()
         --玩家上线
         player:online(gateway)
@@ -98,7 +99,7 @@ function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway
         event_mgr:notify_trigger("on_login_success", player_id, player)
     end)
     log_info("[LobbyServlet][rpc_player_login] player(%s) login success!", player_id)
-    return FRAME_SUCCESS, passkey, new_token
+    return FRAME_SUCCESS, new_token
 end
 
 function LobbyServlet:rpc_player_logout(player_id)
@@ -134,7 +135,7 @@ function LobbyServlet:rpc_player_reload(player_id, lobby, token, gateway)
     account:set_reload_token(new_token)
     event_mgr:notify_trigger("on_reload_success", player_id, player)
     log_debug("[LobbyServlet][rpc_player_reload] player(%s) reload success!", player_id)
-    return FRAME_SUCCESS, new_token, player:get_passkey()
+    return FRAME_SUCCESS, new_token
 end
 
 quanta.lobby_servlet = LobbyServlet()

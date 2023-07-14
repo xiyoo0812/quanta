@@ -1,8 +1,9 @@
 --sub_component.lua
-local sformat       = string.format
+
 local xpcall        = xpcall
 local log_warn      = logger.warn
 local tunpack       = table.unpack
+local sformat       = string.format
 local dtraceback    = debug.traceback
 
 local SubComponent = mixin()
@@ -80,7 +81,6 @@ function SubComponent:pub_event(serv_name, event, ...)
             end
             return
         end
-        log_warn("[SubComponent][pub_event] xpcall [%s] failed: %s!", func_name, success)
     end
 end
 

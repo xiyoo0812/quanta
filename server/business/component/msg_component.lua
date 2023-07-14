@@ -4,8 +4,7 @@ import("agent/online_agent.lua")
 local tunpack       = table.unpack
 local qmake_mq      = quanta.make_mq
 
-local router_mgr    = quanta.get("router_mgr")
-local online_agent  = quanta.get("online")
+local online        = quanta.get("online")
 
 local MsgComponent = mixin()
 local prop = property(MsgComponent)
@@ -29,7 +28,7 @@ end
 function MsgComponent:fire_reliable(serv_name, event, ...)
     local msg_queue = self:create_mq(serv_name)
     msg_queue:send_message(self.id, event, { ... })
-    self:send_target(serv_name, "rpc_reliable_event")
+    self:send_target(serv_name, "rpc_reliable_event", self.id)
 end
 
 --fire_online_reliable
@@ -67,64 +66,41 @@ function MsgComponent:load_reliable_events()
     end
 end
 
---转发消息给gateway
+--通过gateway转发消息给client
 function MsgComponent:send(cmd_id, data)
-    if self.gateway and self.load_success then
-        router_mgr:hash_send(self.gateway, self.id, "rpc_forward_client", self.id, cmd_id, data)
+    if self.load_success then
+        online:send_client(self.id, self.id, cmd_id, data)
     end
 end
 
 --转发消息给target
 function MsgComponent:call_target(serv_name, rpc, ...)
-    local target_id = self.passkey[serv_name]
-    if not target_id then
-        return false
-    end
-    return router_mgr:hash_call(target_id, self.id, rpc, self.id, ...)
+    return online:call_service(self.id, rpc, serv_name, ...)
 end
 
 --转发消息给target
 function MsgComponent:send_target(serv_name, rpc, ...)
-    local target_id = self.passkey[serv_name]
-    if target_id then
-        router_mgr:hash_send(target_id, self.id, rpc, self.id, ...)
-    end
-end
-
---转发消息给target
-function MsgComponent:send_online_target(serv_name, target_id, rpc, ...)
-    online_agent:call_service(target_id, rpc, serv_name, target_id)
+    online:send_service(self.id, rpc, serv_name, ...)
 end
 
 --转发消息给lobby
 function MsgComponent:call_lobby(rpc, ...)
-    return self:call_target("lobby", rpc, ...)
+    return online:call_lobby(self.id, rpc, ...)
 end
 
 --转发消息给lobby
 function MsgComponent:send_lobby(rpc, ...)
-    self:send_target("lobby", rpc, ...)
+    online:send_lobby(self.id, rpc, ...)
 end
 
 --转发消息给gatwway
 function MsgComponent:send_gateway(rpc, ...)
-    if self.gateway then
-        router_mgr:hash_send(self.gateway, self.id, rpc, self.id, ...)
-    end
-end
-
---更新服务网关
-function MsgComponent:update_gate_passkey(servive, servive_id)
-    if self.gateway then
-        router_mgr:hash_send(self.gateway, self.id, "rpc_update_passkey", self.id, servive, servive_id)
-    end
+    online:send_gateway(self.id, rpc, ...)
 end
 
 --更新分组信息
 function MsgComponent:update_gate_group(group, group_id)
-    if self.gateway then
-        router_mgr:hash_send(self.gateway, self.id, "rpc_update_group", self.id, group, group_id)
-    end
+    online:send_gateway(self.id, "rpc_update_group", self.id, group, group_id)
 end
 
 return MsgComponent

@@ -7,6 +7,7 @@ local log_debug     = logger.debug
 local tsort         = table.sort
 local tinsert       = table.insert
 local ssplit        = qstring.split
+local sformat       = string.format
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
 local convint       = qmath.conv_integer
@@ -25,6 +26,7 @@ local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local DB_LOAD_ERR   = quanta.enum("CacheCode", "CACHE_DB_LOAD_ERR")
 local DELETE_FAILD  = quanta.enum("CacheCode", "CACHE_DELETE_FAILD")
 
+local ROUTER_COL    = "player"
 local CACHE_MAX     = environ.number("QUANTA_DB_CACHE_MAX")
 local CACHE_FLUSH   = environ.number("QUANTA_DB_CACHE_FLUSH")
 
@@ -43,11 +45,12 @@ prop:reader("counter", nil)
 function CacheMgr:__init()
     -- 监听rpc事件
     event_mgr:add_listener(self, "rpc_cache_load")
+    event_mgr:add_listener(self, "rpc_cache_copy")
     event_mgr:add_listener(self, "rpc_cache_delete")
+    event_mgr:add_listener(self, "rpc_cache_signed")
     event_mgr:add_listener(self, "rpc_cache_update_field")
     event_mgr:add_listener(self, "rpc_cache_remove_field")
-    event_mgr:add_listener(self, "rpc_cache_copy")
-    event_mgr:add_listener(self, "rpc_cache_signed")
+    event_mgr:add_listener(self, "rpc_router_update")
     -- 事件监听
     event_mgr:add_listener(self, "on_cache_load")
     --counter
@@ -196,6 +199,33 @@ function CacheMgr:load_document(coll_name, primary_id)
     else
         return SUCCESS, doc, true
     end
+end
+
+function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
+    local _<close> = thread_mgr:lock(primary_id, true)
+    log_debug("[CacheMgr][rpc_router_update] router_id=%s, primary=%s, service: %s-%s", router_id, primary_id, serv_name, serv_id)
+    local ccode, doc = self:load_document(ROUTER_COL, primary_id)
+    if qfailed(ccode) then
+        log_err("[CacheMgr][rpc_router_update] load_document failed! primary=%s", primary_id)
+        return ccode
+    end
+    if serv_name and serv_id then
+        local routers = doc:get("routers") or {}
+        local old_rid = routers.router
+        if old_rid and old_rid ~= router_id then
+            local router = router_mgr:get_router(old_rid)
+            if router then
+                router:send("rpc_router_clean", primary_id)
+            end
+        end
+        if router_id == 0 then
+            doc:update_field("routers", {})
+        else
+            doc:update_field("routers.router", router_id)
+            doc:update_field(sformat("routers.%s", serv_name), serv_id)
+        end
+    end
+    return ccode, doc:get("routers") or {}
 end
 
 function CacheMgr:rpc_cache_load(primary_id, coll_name)

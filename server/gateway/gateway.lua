@@ -9,6 +9,7 @@ local qfailed           = quanta.failed
 local sformat           = string.format
 local name2sid          = service.name2sid
 
+local online            = quanta.get("online")
 local event_mgr         = quanta.get("event_mgr")
 local group_mgr         = quanta.get("group_mgr")
 local config_mgr        = quanta.get("config_mgr")
@@ -43,7 +44,6 @@ function Gateway:__init()
     event_mgr:add_listener(self, "on_socket_error")
     event_mgr:add_listener(self, "on_socket_accept")
     -- rpc消息监听
-    event_mgr:add_listener(self, "rpc_update_passkey")
     event_mgr:add_listener(self, "rpc_update_group")
     event_mgr:add_listener(self, "rpc_kickout_client")
     event_mgr:add_listener(self, "rpc_forward_client")
@@ -98,15 +98,6 @@ function Gateway:get_player(player_id)
     end
 end
 
---更新网关信息
-function Gateway:rpc_update_passkey(player_id, service_name, server_id)
-    local player = self:get_player(player_id)
-    if player then
-        local service_type = name2sid(service_name)
-        player:update_passkey(service_type, server_id)
-    end
-end
-
 --更新分组信息
 function Gateway:rpc_update_group(player_id, group_name, group_id)
     log_debug("[Gateway][rpc_update_group] player(%s) group_name(%s) group_id(%s)", player_id, group_name, group_id)
@@ -135,13 +126,9 @@ function Gateway:close_client(player, player_id)
 end
 
 --添加玩家
-function Gateway:add_player(player, player_id, lobby, token, passkey)
+function Gateway:add_player(player, player_id, lobby, token)
     player:set_token(token)
     player:set_lobby_id(lobby)
-    for service_name, server_id in pairs(passkey) do
-        local service_type = name2sid(service_name)
-        player:update_passkey(service_type, server_id)
-    end
     self.players[player_id] = player
     self.counter:count_increase()
 end
@@ -222,13 +209,14 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     else
         player = GatePlayer(session, open_id, player_id)
     end
-    local code, passkey, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, lobby, token, quanta.id)
+    local code, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, lobby, token, quanta.id)
     if qfailed(code) then
-        log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, code, passkey)
+        log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, code, new_token)
         return client_mgr:callback_errcode(session, cmd_id, code, session_id)
     end
     session.player_id = player_id
-    self:add_player(player, player_id, lobby, new_token, passkey)
+    online:login_service(player_id, "gateway", quanta.id)
+    self:add_player(player, player_id, lobby, new_token)
     log_info("[Gateway][on_role_login_req] user:%s player:%s, new_token:%s login success!", open_id, player_id, new_token)
     local callback_data = { error_code = code, token = new_token}
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
@@ -245,6 +233,7 @@ function Gateway:on_role_logout_req(session, cmd_id, body, session_id)
             log_err("[Gateway][on_role_logout_req] call rpc_player_logout code %s failed: %s", code, err)
             return client_mgr:callback_errcode(session, cmd_id, code, session_id)
         end
+        online:login_service(player_id, "gateway", 0)
         log_info("[Gateway][on_role_logout_req] player(%s) logout success!", player_id)
         client_mgr:callback_errcode(session, cmd_id, code, session_id)
         self:close_client(player, player_id)
@@ -272,15 +261,16 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local code, new_token, passkey = self:call_lobby(lobby, "rpc_player_reload", player_id, lobby, token, quanta.id)
+    local code, new_token = self:call_lobby(lobby, "rpc_player_reload", player_id, lobby, token, quanta.id)
     if qfailed(code) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", code, new_token)
         return client_mgr:callback_by_id(session, cmd_id, { error_code = 0, token = 0 }, session_id)
     end
     if new_token > 0 then
         session.player_id = player_id
-        self:add_player(player, player_id, lobby, new_token, passkey)
+        self:add_player(player, player_id, lobby, new_token)
     end
+    online:login_service(player_id, "gateway", quanta.id)
     log_info("[Gateway][on_role_reload_req] user:%s player:%s new_token:%s reload success!", open_id, player_id, new_token)
     local callback_data = { error_code = code, token = new_token}
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
@@ -300,6 +290,7 @@ function Gateway:on_socket_error(session, token, err)
     if player then
         log_warn("[Gateway][on_socket_error] session(%s-%s) lost, because: %s!", token, player_id, err)
         self:remove_player(player, player_id)
+        online:login_service(player_id, "gateway", 0)
         player:notify_disconnect()
     end
 end

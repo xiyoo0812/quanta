@@ -132,7 +132,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
         -- 执行消息分发
         local function dispatch_rpc_message()
             local _<close> = qeval(cmd_name)
-            self.holder:on_socket_rpc(self, cmd_id, body)
+            self.holder:on_socket_rpc(self, cmd_id, body, session_id)
         end
         thread_mgr:fork(dispatch_rpc_message)
         --等待协议处理

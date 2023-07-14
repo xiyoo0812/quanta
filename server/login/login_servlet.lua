@@ -176,9 +176,8 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
     end
     account:save_lobby(gateway.lobby)
-    account:set_login_token(role_id, gateway.token, MINUTE_5_S)
-    --保存数据服token到redis
-    login_dao:save_data_token(role_id, gateway.token)
+    account:save_login_token(gateway.token)
+    account:save_login_time(quanta.now + MINUTE_5_S)
     if not client_mgr:callback_by_id(session, cmd_id, gateway, session_id) then
         log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) callback failed!", user_id, role_id)
         return
