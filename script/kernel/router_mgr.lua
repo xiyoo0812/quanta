@@ -104,7 +104,7 @@ end
 function RouterMgr:transfor_send(target_id, service_id, ...)
     local router = self:hash_router(target_id)
     if router then
-        return router:transfor_call(target_id, service_id, ...)
+        return router:transfor_send(target_id, service_id, ...)
     end
     return false, "router not connected"
 end

@@ -28,14 +28,14 @@ end
 function MsgComponent:fire_reliable(serv_name, event, ...)
     local msg_queue = self:create_mq(serv_name)
     msg_queue:send_message(self.id, event, { ... })
-    self:send_target(serv_name, "rpc_reliable_event", self.id)
+    self:send_service(serv_name, "rpc_reliable_event")
 end
 
 --fire_online_reliable
-function MsgComponent:fire_online_reliable(serv_name, target_id, event, ...)
+function MsgComponent:fire_role_reliable(serv_name, target_id, event, ...)
     local msg_queue = self:create_mq(serv_name)
     msg_queue:send_message(target_id, event, { ... })
-    self:send_online_target(serv_name, target_id, "rpc_reliable_event")
+    self:send_service2role(serv_name, target_id, "rpc_reliable_event")
 end
 
 --fire_lobby_reliable
@@ -73,34 +73,39 @@ function MsgComponent:send(cmd_id, data)
     end
 end
 
---转发消息给target
-function MsgComponent:call_target(serv_name, rpc, ...)
-    return online:call_service(self.id, rpc, serv_name, ...)
+--转发消息给role
+function MsgComponent:send_service2role(serv_name, role_id, rpc, ...)
+    return online:call_service(role_id, rpc, serv_name, role_id, ...)
 end
 
 --转发消息给target
-function MsgComponent:send_target(serv_name, rpc, ...)
-    online:send_service(self.id, rpc, serv_name, ...)
+function MsgComponent:call_service(serv_name, rpc, ...)
+    return online:call_service(self.id, rpc, serv_name, self.id, ...)
+end
+
+--转发消息给target
+function MsgComponent:send_service(serv_name, rpc, ...)
+    online:send_service(self.id, rpc, serv_name, self.id, ...)
 end
 
 --转发消息给lobby
 function MsgComponent:call_lobby(rpc, ...)
-    return online:call_lobby(self.id, rpc, ...)
+    return online:call_lobby(self.id, rpc, self.id, ...)
 end
 
 --转发消息给lobby
 function MsgComponent:send_lobby(rpc, ...)
-    online:send_lobby(self.id, rpc, ...)
+    online:send_lobby(self.id, rpc, self.id, ...)
 end
 
 --转发消息给gatwway
 function MsgComponent:send_gateway(rpc, ...)
-    online:send_gateway(self.id, rpc, ...)
+    online:send_gateway(self.id, rpc, self.id, ...)
 end
 
 --更新分组信息
 function MsgComponent:update_gate_group(group, group_id)
-    online:send_gateway(self.id, "rpc_update_group", self.id, group, group_id)
+    online:send_gateway(self.id, "rpc_update_group", group, group_id)
 end
 
 return MsgComponent
