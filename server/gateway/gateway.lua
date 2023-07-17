@@ -10,6 +10,7 @@ local sformat           = string.format
 local name2sid          = service.name2sid
 
 local online            = quanta.get("online")
+local monitor           = quanta.get("monitor")
 local event_mgr         = quanta.get("event_mgr")
 local group_mgr         = quanta.get("group_mgr")
 local config_mgr        = quanta.get("config_mgr")
@@ -25,6 +26,7 @@ local gatelog           = config_mgr:init_table("gatelog", "name")
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_UPHOLD      = protobuf_mgr:error_code("FRAME_UPHOLD")
 local FRAME_TOOFAST     = protobuf_mgr:error_code("FRAME_TOOFAST")
+local SERVER_UPHOLD     = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 local DEVICE_REPLACE    = protobuf_mgr:error_code("KICK_DEVICE_REPLACE")
 local ROLE_IS_INLINE    = protobuf_mgr:error_code("LOGIN_ROLE_IS_INLINE")
 
@@ -65,6 +67,19 @@ function Gateway:__init()
     self.counter = quanta.make_counter(sformat("gateway %s player", quanta.index))
     self.req_counter = quanta.make_sampling(sformat("gateway %s req", quanta.index))
     self.ntf_counter = quanta.make_sampling(sformat("gateway %s ntf", quanta.index))
+    --关注lobby
+    monitor:watch_service_close(self, "lobby")
+end
+
+--lobby关闭
+----------------------------------------------------------------
+function Gateway:on_service_close(id, name, info)
+    log_debug("[Gateway][on_service_close] node: %s-%s", name, id)
+    for player_id, player in pairs(self.players) do
+        if player:get_lobby_id() == id then
+            self:kickout_client(player, player_id, SERVER_UPHOLD)
+        end
+    end
 end
 
 ---是否输出CMD消息的内容

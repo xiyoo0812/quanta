@@ -11,7 +11,6 @@ service:upsert({
     name = 'lobby',
     enum_key = 'LOBBY',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -19,7 +18,6 @@ service:upsert({
     name = 'login',
     enum_key = 'LOGIN',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -27,7 +25,6 @@ service:upsert({
     name = 'gateway',
     enum_key = 'GATEWAY',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -35,7 +32,6 @@ service:upsert({
     name = 'router',
     enum_key = 'ROUTER',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -43,7 +39,6 @@ service:upsert({
     name = 'online',
     enum_key = 'ONLINE',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -51,7 +46,6 @@ service:upsert({
     name = 'center',
     enum_key = 'CENTER',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -59,7 +53,6 @@ service:upsert({
     name = 'monitor',
     enum_key = 'MONITOR',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -67,7 +60,6 @@ service:upsert({
     name = 'cache',
     enum_key = 'CACHE',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -75,7 +67,6 @@ service:upsert({
     name = 'mongo',
     enum_key = 'MONGO',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -83,7 +74,6 @@ service:upsert({
     name = 'redis',
     enum_key = 'REDIS',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -91,7 +81,6 @@ service:upsert({
     name = 'mysql',
     enum_key = 'MYSQL',
     enable = false,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -99,7 +88,6 @@ service:upsert({
     name = 'test',
     enum_key = 'TEST',
     enable = true,
-    ralloc = 0,
 })
 
 service:upsert({
@@ -107,7 +95,6 @@ service:upsert({
     name = 'tool',
     enum_key = 'TOOL',
     enable = false,
-    ralloc = 0,
 })
 
 service:update()

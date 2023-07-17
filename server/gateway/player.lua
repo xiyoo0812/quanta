@@ -3,14 +3,10 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
 local qfailed       = quanta.failed
-local rallocv       = service.rallocv
-local rallorl       = service.rallorl()
 
 local group_mgr     = quanta.get("group_mgr")
 local router_mgr    = quanta.get("router_mgr")
 local client_mgr    = quanta.get("client_mgr")
-
-local RAR_HASHKEY   = quanta.enum("RouteAllocRule", "HASHKEY")
 
 --创建角色数据
 local GatePlayer = class()
@@ -51,10 +47,6 @@ end
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
     -- 缓存服务
     router_mgr:transfor_send(self.player_id, -1, "rpc_player_heartbeat", self.player_id)
-    -- hashkey服务
-    for _,service_type in pairs(rallorl[RAR_HASHKEY] or {}) do
-        router_mgr:send_hash(service_type, self.player_id, "rpc_player_heartbeat", self.player_id, quanta.id, self.token)
-    end
     client_mgr:check_flow(session)
     client_mgr:callback_by_id(session, cmd_id, { time = quanta.now_ms }, session_id)
 end
@@ -69,19 +61,8 @@ end
 
 --转发消息
 function GatePlayer:notify_command(service_type, cmd_id, body, session_id, display)
-    local ok, codeoe, res
     local pla_id = self.player_id
-    local alloc_type = rallocv(service_type)
-    if alloc_type == RAR_HASHKEY then
-        local hash_key = body.hash_key or pla_id
-        if not hash_key then
-            log_err("[GatePlayer][notify_command] service(%s) cnot transfor not hash_key, cmd_id=%s, player=%s", service_type, cmd_id,pla_id)
-            return
-        end
-        ok, codeoe, res = router_mgr:call_hash(service_type, hash_key, "rpc_player_command", pla_id, cmd_id, body, quanta.id, self.token)
-    else
-        ok, codeoe, res = router_mgr:transfor_call(pla_id, service_type, "rpc_player_command", pla_id, cmd_id, body)
-    end
+    local ok, codeoe, res = router_mgr:transfor_call(pla_id, service_type, "rpc_player_command", pla_id, cmd_id, body)
     if qfailed(codeoe, ok) then
         log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", pla_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)

@@ -31,7 +31,7 @@ function MsgComponent:fire_reliable(serv_name, event, ...)
     self:send_service(serv_name, "rpc_reliable_event")
 end
 
---fire_online_reliable
+--fire_role_reliable
 function MsgComponent:fire_role_reliable(serv_name, target_id, event, ...)
     local msg_queue = self:create_mq(serv_name)
     msg_queue:send_message(target_id, event, { ... })
@@ -105,7 +105,7 @@ end
 
 --更新分组信息
 function MsgComponent:update_gate_group(group, group_id)
-    online:send_gateway(self.id, "rpc_update_group", group, group_id)
+    online:send_gateway(self.id, "rpc_update_group", self.id, group, group_id)
 end
 
 return MsgComponent
