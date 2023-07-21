@@ -9,7 +9,7 @@
 
 local type      = type
 local select    = select
-local tpack     = table.pack
+local tunpack   = table.unpack
 
 local WRITER    = 1
 local READER    = 2
@@ -32,7 +32,7 @@ local function on_prop_changed(object, name, value, ...)
 end
 
 local function prop_accessor(class, name, default, mode)
-    class.__props[name] = tpack(default)
+    class.__props[name] = { default }
     if (mode & READER) == READER then
         class["get_" .. name] = function(self)
             return self[name]
@@ -43,7 +43,7 @@ local function prop_accessor(class, name, default, mode)
     end
     if (mode & WRITER) == WRITER then
         class["set_" .. name] = function(self, value, ...)
-            if self[name] ~= value or type(value) == "table" then
+            if self[name] ~= value then
                 self[name] = value
                 on_prop_changed(self, name, value, ...)
             end
@@ -51,13 +51,14 @@ local function prop_accessor(class, name, default, mode)
     end
 end
 
-local function prop_wraper(class, name, fields)
+local function prop_wraper(class, name, ...)
+    local fields = { ... }
     class["get_" .. name] = function(self)
         local res = {}
         for _, field in ipairs(fields) do
-            res[field] = self[field]
+            res[#res + 1] = self[field]
         end
-        return res
+        return tunpack(res)
     end
     class["set_" .. name] = function(self, ...)
         local args = { ... }

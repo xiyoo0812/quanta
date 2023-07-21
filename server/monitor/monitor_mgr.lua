@@ -67,6 +67,13 @@ function MonitorMgr:load_discovery()
 end
 
 function MonitorMgr:on_client_accept(client)
+    --返回所有服务
+    local services = self.discovery:get_services()
+    for service_name, curr_services in pairs(services) do
+        if next(curr_services) then
+            self.rpc_server:send(client, "rpc_service_changed", service_name, curr_services, {})
+        end
+    end
 end
 
 -- 心跳
@@ -79,12 +86,6 @@ function MonitorMgr:on_client_register(client, node)
     log_debug("[MonitorMgr][on_service_register] node:%s, token: %s", node.name, token)
     self.discovery:register(node)
     self.monitor_nodes[token] = node
-    --返回所有服务
-    for service_name, curr_services in pairs(self.discovery:get_services()) do
-        if next(curr_services) then
-            self.rpc_server:send(client, "rpc_service_changed", service_name, curr_services, {})
-        end
-    end
 end
 
 -- 会话关闭回调

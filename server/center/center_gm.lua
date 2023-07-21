@@ -6,8 +6,6 @@ local event_mgr     = quanta.get("event_mgr")
 local router_mgr    = quanta.get("router_mgr")
 
 local LOCAL         = quanta.enum("GMType", "LOCAL")
-local LOGIN         = quanta.enum("Service", "LOGIN")
-local GATEWAY       = quanta.enum("Service", "GATEWAY")
 
 local CenterGM = singleton()
 function CenterGM:__init()
@@ -67,10 +65,10 @@ end
 function CenterGM:call_command_service(cmd_id, rpc, ...)
     local server_type = (cmd_id // 1000) % 10
     if server_type ~= 0 then
-        router_mgr:broadcast(GATEWAY, rpc, ...)
+        router_mgr:call_gateway_all(rpc, ...)
     else
-        router_mgr:broadcast(LOGIN, rpc, ...)
-        router_mgr:broadcast(GATEWAY, rpc, ...)
+        router_mgr:call_login_all(rpc, ...)
+        router_mgr:call_gateway_all(rpc, ...)
     end
 end
 
@@ -93,10 +91,10 @@ function CenterGM:shield_service_proto(service_type, status)
     log_info("[CenterGM][shield_service_proto] service_type: %s, status:%s", service_type, status)
     -- 通知服务
     if service_type ~= 0 then
-        router_mgr:broadcast(GATEWAY, "rpc_shield_service_proto", service_type, status)
+        router_mgr:call_gateway_all("rpc_shield_service_proto", service_type, status)
     else
-        router_mgr:broadcast(LOGIN, "rpc_shield_service_proto", service_type, status)
-        router_mgr:broadcast(GATEWAY, "rpc_shield_service_proto", service_type, status)
+        router_mgr:call_login_all("rpc_shield_service_proto", service_type, status)
+        router_mgr:call_gateway_all("rpc_shield_service_proto", service_type, status)
     end
 end
 

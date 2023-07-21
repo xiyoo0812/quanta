@@ -19,6 +19,7 @@ local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
 local prop = property(RouterMgr)
+prop:reader("startup", false)
 prop:reader("routers", {})
 prop:reader("candidates", {})
 
@@ -28,7 +29,7 @@ function RouterMgr:__init()
     --监听路由信息
     monitor:watch_service_ready(self, "router")
     monitor:watch_service_close(self, "router")
-    event_mgr:add_listener(self, "rpc_client_kickout")
+    event_mgr:add_listener(self, "rpc_service_kickout")
 end
 
 --服务关闭
@@ -47,8 +48,8 @@ function RouterMgr:on_service_ready(id, name, info)
 end
 
 --服务被踢下线
-function RouterMgr:rpc_client_kickout(router_id, reason)
-    log_err("[RouterMgr][rpc_client_kickout] reason:%s router_id:%s", reason, router_id)
+function RouterMgr:rpc_service_kickout(router_id, reason)
+    log_err("[RouterMgr][rpc_service_kickout] reason:%s router_id:%s", reason, router_id)
     signal_quit()
 end
 
@@ -72,6 +73,7 @@ end
 --连接成功
 function RouterMgr:on_socket_connect(client, res)
     log_info("[RouterMgr][on_socket_connect] router %s:%s success!", client.ip, client.port)
+    client:register()
     self:check_router()
 end
 
@@ -84,6 +86,10 @@ function RouterMgr:check_router()
         end
     end
     self.candidates = candidates
+    if not self.startup then
+        self.startup = true
+        event_mgr:notify_trigger("on_router_connected")
+    end
 end
 
 --查找指定router

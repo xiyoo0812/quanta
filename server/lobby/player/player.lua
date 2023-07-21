@@ -27,12 +27,11 @@ local SubComponent  = import("business/component/sub_component.lua")
 local Player = class(Entity, MsgComponent, SubComponent)
 
 local prop = property(Player)
-prop:reader("passkey", {})          --passkey
 prop:reader("status", 0)            --status
 prop:reader("create_time", 0)       --create_time
+prop:reader("routers", {})          --routers
 prop:accessor("user_id", nil)       --user_id
 prop:accessor("open_id", nil)       --open_id
-prop:accessor("gateway", nil)       --gateway
 prop:accessor("account", nil)       --account
 
 local dprop = db_property(Player, "player", true)
@@ -48,19 +47,22 @@ function Player:on_db_player_load(data)
     if data.player_id then
         self.nick = data.nick
         self.facade = data.facade
-        self.user_id = data.user_id
         self.create_time = data.create_time
         self.login_time = data.login_time or 0
         self.upgrade_time = data.upgrade_time or 0
         self.energy_tick = data.energy_tick or quanta.now
+        self.routers = data.routers or {}
         self:set_gender(data.gender)
         self:set_custom(data.facade)
         self:set_name(data.nick)
         self:set_relayable(true)
-        self.active_time = quanta.now_ms
         return true
     end
     return false
+end
+
+function Player:find_router(name)
+    return self.routers[name] or 0
 end
 
 --load
@@ -68,13 +70,16 @@ function Player:load(conf)
     self.status = ONL_LOADING
     self.active_time = quanta.now_ms
     self:init_attrset(attr_db, 1)
-    self:add_passkey("lobby", quanta.id)
     local channel = makechan("load_player")
     channel:push(function()
         return game_dao:load_group(self, self.id, "lobby")
     end)
     self:invoke("_load", channel, self.id)
-    return channel:execute()
+    local ok, code =  channel:execute()
+    if not ok then
+        log_warn("[Player][load] player(%s) failed: %s!", self.id, code)
+    end
+    return ok
 end
 
 --修改玩家名字
@@ -93,16 +98,6 @@ end
 --是否新玩家
 function Player:is_newbee()
     return self.login_time == 0
-end
-
---添加钥匙
-function Player:add_passkey(key, id)
-    self.passkey[key] = id
-end
-
---添加钥匙
-function Player:find_passkey(key)
-    return self.passkey[key]
 end
 
 --day_update
@@ -148,9 +143,8 @@ function Player:sync_data()
 end
 
 --online
-function Player:online(gateway)
+function Player:online()
     self.release = false
-    self.gateway = gateway
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
     self:set_version(self:build_version())
@@ -164,7 +158,6 @@ end
 
 --掉线
 function Player:offline()
-    self.gateway = nil
     self.status = ONL_OFFLINE
     self.active_time = quanta.now_ms
     --invoke
@@ -172,9 +165,8 @@ function Player:offline()
     log_warn("[Player][offline] player(%s) is offline!", self.id)
 end
 
-function Player:relive(gateway)
+function Player:relive()
     self.release = false
-    self.gateway = gateway
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
     --invoke

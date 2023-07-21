@@ -56,6 +56,7 @@ function RpcServer:__init(holder, ip, port, induce)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
     end
     event_mgr:add_listener(self, "rpc_heartbeat")
+    event_mgr:add_listener(self, "rpc_register")
 end
 
 --rpc事件
@@ -204,18 +205,19 @@ end
 function RpcServer:rpc_heartbeat(client, node)
     --回复心跳
     self:send(client, "on_heartbeat", quanta.id)
-    if not node then
-        --正常心跳
+    if client.id then
         self.holder:on_client_beat(client)
-        return
     end
+end
+
+function RpcServer:rpc_register(client, node)
     if not client.id then
         -- 检查重复注册
         local client_id = node.id
         local eclient = self:get_client_by_id(client_id)
         if eclient then
             eclient.id = nil
-            self:send(eclient, "rpc_client_kickout", quanta.id, "service replace")
+            self:send(eclient, "rpc_service_kickout", quanta.id, "service replace")
             log_warn("[RpcServer][rpc_heartbeat] client(%s) be kickout, service replace!", eclient.name)
         end
         -- 通知注册

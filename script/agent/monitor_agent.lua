@@ -22,6 +22,7 @@ local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
 local PULL_CNT_MAX      = 10
+local ROUTER            = quanta.enum("QuantaMode", "ROUTER")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local RPC_FAILED        = quanta.enum("KernCode", "RPC_FAILED")
 local RECONNECT_TIME    = quanta.enum("NetwkTime", "RECONNECT_TIME")
@@ -44,6 +45,8 @@ function MonitorAgent:__init()
     event_mgr:add_listener(self, "rpc_service_hotfix")
     event_mgr:add_listener(self, "rpc_server_shutdown")
     event_mgr:add_listener(self, "rpc_set_logger_level")
+    --消息
+    event_mgr:add_trigger(self, "on_router_connected")
     --心跳定时器
     update_mgr:attach_second5(self)
 end
@@ -56,6 +59,11 @@ function MonitorAgent:on_second5()
             self:close_session(session_id)
         end
     end
+end
+
+function MonitorAgent:on_router_connected()
+    self.client:register()
+    event_mgr:notify_trigger("on_service_startup")
 end
 
 --监听服务断开
@@ -82,6 +90,9 @@ end
 -- 连接成回调
 function MonitorAgent:on_socket_connect(client)
     log_info("[MonitorAgent][on_socket_connect]: connect monitor success!")
+    if quanta.mode == ROUTER then
+        client:register()
+    end
 end
 
 -- 停服

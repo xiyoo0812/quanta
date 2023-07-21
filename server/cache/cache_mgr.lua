@@ -221,8 +221,13 @@ function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
         if router_id == 0 then
             doc:update_field("routers", {})
         else
+            local old_svr_id = routers[serv_name]
             doc:update_field("routers.router", router_id)
             doc:update_field(sformat("routers.%s", serv_name), serv_id)
+            --通知节点改变
+            if old_svr_id and old_svr_id ~= serv_id then
+                router_mgr:send_target(old_svr_id, "rpc_service_svr_changed", primary_id)
+            end
         end
     end
     return ccode, doc:get("routers") or {}

@@ -13,7 +13,6 @@ local DAY_FLUSH     = utility_db:find_integer("value", "flush_day_hour")
 local WEEK_FLUSH    = utility_db:find_integer("value", "flush_week_day")
 
 local SERVER_UPHOLD = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
-local DEVICE_REPLACE= protobuf_mgr:error_code("KICK_DEVICE_REPLACE")
 
 local Account       = import("lobby/player/account.lua")
 local EntityMgr     = import("business/entity/entity_mgr.lua")
@@ -65,18 +64,11 @@ function PlayerMgr:load_player(account, player_id, gateway)
         --先加入
         self:add_entity(player_id, player)
         self.counter:count_increase()
-    else
-        --不同设备需要踢出
-        local old_gateway = player:get_gateway()
-        if old_gateway and old_gateway ~= gateway then
-            player:send_gateway("rpc_kickout_client", DEVICE_REPLACE)
-        end
     end
     if player:is_load_success() then
         return player
     end
     --初始化
-    player:set_gateway(gateway)
     player:set_account(account)
     player:set_open_id(account.open_id)
     player:set_user_id(account.user_id)

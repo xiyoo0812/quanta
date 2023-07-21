@@ -71,8 +71,8 @@ function AttrComponent:on_db_player_attr_load(data)
 end
 
 --设置属性
---source_id表示修改源，用于同步和回写
-function AttrComponent:set_attr(attr_id, value, source_id)
+--service_id表示修改源，用于同步和回写
+function AttrComponent:set_attr(attr_id, value, service_id)
     local attr = self.attr_set[attr_id]
     if not attr then
         log_warn("[AttrComponent][set_attr] attr(%s) not define", attr_id)
@@ -85,7 +85,7 @@ function AttrComponent:set_attr(attr_id, value, source_id)
     local cur_val = self.attrs[attr_id]
     if cur_val ~= value then
         --检查限制
-        if not source_id then
+        if not service_id then
             if attr.limit_id then
                 local limit = self:get_attr(attr.limit_id)
                 if limit > 0 and limit < value then
@@ -99,7 +99,7 @@ function AttrComponent:set_attr(attr_id, value, source_id)
         else
             self:set_attrs_field(attr_id, value)
         end
-        self:on_attr_changed(attr_id, attr, value, source_id)
+        self:on_attr_changed(attr_id, attr, value, service_id)
         return true
     end
     return true
@@ -114,20 +114,20 @@ function AttrComponent:unwatch_attr(trigger, attr_id)
     self:remove_trigger(trigger, sformat("on_attr_changed_%s", attr_id))
 end
 
-function AttrComponent:on_attr_changed(attr_id, attr, value, source_id)
+function AttrComponent:on_attr_changed(attr_id, attr, value, service_id)
     if self:is_load_success() then
         --回写判定
-        if self.wbackable and attr.back and (not source_id) then
+        if self.wbackable and attr.back and (not service_id) then
             self.write_attrs[attr_id] = value
             self:delay_notify("on_attr_writeback")
         end
         --转发判定
         if self.relayable then
-            self.relay_attrs[attr_id] = { value, source_id }
+            self.relay_attrs[attr_id] = { value, service_id }
             self:delay_notify("on_attr_relay")
         end
         --同步属性
-        if attr.range == self.range then
+        if attr.range > 0 and self.range >= attr.range then
             self.sync_attrs[attr_id] = attr
             self:delay_notify("on_attr_sync")
         end
@@ -197,36 +197,29 @@ end
 function AttrComponent:package_attrs(range)
     local attrs = {}
     for attr_id, attr in pairs(self.attr_set) do
-        if attr.range == range then
+        if attr.range > 0 and range >= attr.range then
             tinsert(attrs, self:encode_attr(attr_id, attr))
         end
     end
-    return attrs
-end
-
---package_sync_attrs
-function AttrComponent:package_sync_attrs(range)
-    local attrs = {}
-    for attr_id, attr in pairs(self.sync_attrs) do
-        if attr.range == range then
-            tinsert(attrs, self:encode_attr(attr_id, attr))
-        end
-    end
-    self.sync_attrs = {}
     return attrs
 end
 
 function AttrComponent:on_attr_sync(entity_id, entity)
-    local attrs = entity:package_sync_attrs(self.range)
-    if next(attrs) then
-        --广播客户端
-        local pb_attr = { id = entity_id, attrs = attrs }
-        if self.range == 16 then
-            entity:sync_message("NID_ENTITY_ATTR_UPDATE_NTF", pb_attr)
-        else
-            entity:send("NID_ENTITY_ATTR_UPDATE_NTF", pb_attr)
+    local attrs, battrs = {}, {}
+    for attr_id, attr in pairs(self.sync_attrs) do
+        if attr.range == 1 then
+            tinsert(attrs, self:encode_attr(attr_id, attr))
+        elseif self.range > 1 then
+            tinsert(battrs, self:encode_attr(attr_id, attr))
         end
     end
+    if next(attrs) then
+        entity:send("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = attrs })
+    end
+    if self.range > 1 and next(battrs) then
+        entity:sync_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = battrs })
+    end
+    self.sync_attrs = {}
 end
 
 --更新

@@ -47,7 +47,8 @@ function RpcClient:check_heartbeat()
     end
     --处理连接
     if self.alive then
-        self:heartbeat()
+        --发送心跳
+        self:send("rpc_heartbeat")
         timer_mgr:set_period(self.timer_id, RPC_TIMEOUT)
     else
         self:connect()
@@ -55,12 +56,8 @@ function RpcClient:check_heartbeat()
     end
 end
 
---发送心跳
-function RpcClient:heartbeat(initial)
-    if initial then
-        return self:send("rpc_heartbeat", quanta.node_info)
-    end
-    self:send("rpc_heartbeat")
+function RpcClient:register()
+    self:call("rpc_register", quanta.node_info)
 end
 
 --调用rpc后续处理
@@ -196,7 +193,6 @@ function RpcClient:on_socket_connect(socket)
     thread_mgr:fork(function()
         self.alive = true
         self.holder:on_socket_connect(self)
-        self:heartbeat(true)
     end)
 end
 

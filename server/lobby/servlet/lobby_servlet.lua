@@ -69,8 +69,8 @@ function LobbyServlet:rpc_player_command(player_id, cmd_id, message)
     return tunpack(result, 2)
 end
 
-function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway)
-    log_debug("[LobbyServlet][rpc_player_login] user(%s) player(%s) token(%s) gateway(%s) login req!", open_id, player_id, token, gateway)
+function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token)
+    log_debug("[LobbyServlet][rpc_player_login] open_id(%s) player(%s) token(%s)  login req!", open_id, player_id, token)
     local account = player_mgr:load_account(open_id, player_id)
     if not account then
         return ROLE_TOKEN_ERR
@@ -83,7 +83,7 @@ function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, login_token)
         return ROLE_TOKEN_ERR
     end
-    local player = player_mgr:load_player(account, player_id, gateway)
+    local player = player_mgr:load_player(account, player_id)
     if not player then
         log_err("[LobbyServlet][rpc_player_login] load_player failed! player:%s", player_id)
         return FRAME_FAILED
@@ -94,7 +94,7 @@ function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token, gateway
     account:set_reload_token(new_token)
     event_mgr:fire_next_frame(function()
         --玩家上线
-        player:online(gateway)
+        player:online()
         --通知登陆成功
         event_mgr:notify_trigger("on_login_success", player_id, player)
     end)
@@ -113,7 +113,7 @@ function LobbyServlet:rpc_player_logout(player_id)
     return FRAME_SUCCESS
 end
 
-function LobbyServlet:rpc_player_reload(player_id, lobby, token, gateway)
+function LobbyServlet:rpc_player_reload(player_id, lobby, token)
     log_debug("[LobbyServlet][rpc_player_reload] player(%s) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
@@ -130,7 +130,7 @@ function LobbyServlet:rpc_player_reload(player_id, lobby, token, gateway)
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, old_token)
         return ROLE_TOKEN_ERR
     end
-    player:relive(gateway)
+    player:relive()
     local new_token = mrandom()
     account:set_reload_token(new_token)
     event_mgr:notify_trigger("on_reload_success", player_id, player)

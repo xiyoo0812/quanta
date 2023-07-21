@@ -24,6 +24,11 @@ function GatePlayer:__init(session, open_id, player_id)
     self.player_id = player_id
 end
 
+--查询组ID
+function GatePlayer:get_group_id(group_name)
+    return self.groups[group_name]
+end
+
 --更新分组信息
 function GatePlayer:update_group(group_name, group_id)
     log_info("[GatePlayer][update_group] player(%d) group(%s) id(%s)!", self.player_id, group_name, group_id)
@@ -33,7 +38,7 @@ function GatePlayer:update_group(group_name, group_id)
     if old_group and old_group ~= group_id then
         group_mgr:remove_member(old_group, self.player_id)
     end
-    if group_id then
+    if group_id > 0 then
         group_mgr:add_member(group_id, self.player_id, self)
     end
 end
@@ -55,7 +60,7 @@ end
 function GatePlayer:send_message(cmd_id, data, display)
     client_mgr:send(self.session, cmd_id, data)
     if display then
-        log_debug("[Gateway][send_message] player(%s) send message(%s-%s) !", self.player_id, cmd_id, data)
+        log_debug("[GatePlayer][send_message] player(%s) send message(%s-%s) !", self.player_id, cmd_id, data)
     end
 end
 

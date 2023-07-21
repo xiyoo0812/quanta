@@ -52,6 +52,8 @@ function Gateway:__init()
     event_mgr:add_listener(self, "rpc_groupcast_client")
     event_mgr:add_listener(self, "rpc_broadcast_client")
     event_mgr:add_listener(self, "rpc_broadcast_group")
+    event_mgr:add_listener(self, "rpc_broadcast_groupname")
+    event_mgr:add_listener(self, "rpc_service_svr_changed")
     -- cs协议监听
     protobuf_mgr:register(self, "NID_HEARTBEAT_REQ", "on_heartbeat_req")
     protobuf_mgr:register(self, "NID_LOGIN_ROLE_LOGIN_REQ", "on_role_login_req")
@@ -185,6 +187,23 @@ function Gateway:rpc_broadcast_group(group_id, cmd_id, data)
     group_mgr:broadcast(group_id, cmd_id, data)
 end
 
+--组发消息
+function Gateway:rpc_broadcast_groupname(player_id, group_name, cmd_id, data)
+    local player = self:get_player(player_id)
+    if player then
+        local group_id = player:get_group_id(group_name)
+        group_mgr:broadcast(group_id, cmd_id, data)
+    end
+end
+
+--服务svr发生改变
+function Gateway:rpc_service_svr_changed(player_id)
+    local player = self:get_player(player_id)
+    if player then
+        self:kickout_client(player, player_id, DEVICE_REPLACE)
+    end
+end
+
 --广播给客户端
 function Gateway:rpc_broadcast_client(cmd_id, data)
     client_mgr:broadcast(cmd_id, data)
@@ -224,7 +243,7 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     else
         player = GatePlayer(session, open_id, player_id)
     end
-    local code, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, lobby, token, quanta.id)
+    local code, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, lobby, token)
     if qfailed(code) then
         log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, code, new_token)
         return client_mgr:callback_errcode(session, cmd_id, code, session_id)
@@ -276,7 +295,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local code, new_token = self:call_lobby(lobby, "rpc_player_reload", player_id, lobby, token, quanta.id)
+    local code, new_token = self:call_lobby(lobby, "rpc_player_reload", player_id, lobby, token)
     if qfailed(code) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", code, new_token)
         return client_mgr:callback_by_id(session, cmd_id, { error_code = 0, token = 0 }, session_id)
