@@ -156,6 +156,13 @@ local function _toboolean(value)
     return false
 end
 
+local function _toscan(value)
+    if (type(value) == 'table') then
+        return tonumber(value[1]), _tomap(value[2])
+    end
+    return 0, {}
+end
+
 local redis_commands = {
     del         = { cmd = "DEL"     },
     set         = { cmd = "SET"     },
@@ -239,11 +246,8 @@ local redis_commands = {
     monitor     = { cmd = "MONITOR" },
     hmset       = { cmd = "HMSET"   },      -- >= 2.0
     hmget       = { cmd = "HMGET"   },      -- >= 2.0
-    hscan       = { cmd = "HSCAN"   },      -- >= 2.8
     sort        = { cmd = "SORT"    },
-    scan        = { cmd = "SCAN"    },      -- >= 2.8
     mset        = { cmd = "MSET"    },
-    sscan       = { cmd = "SSCAN"   },      -- >= 2.8
     publish     = { cmd = "PUBLISH"     },  -- >= 2.0
     sinterstore = { cmd = "SINTERSTORE" },
     sunionstore = { cmd = "SUNIONSTORE" },
@@ -254,7 +258,6 @@ local redis_commands = {
     randomkey   = { cmd = "RANDOMKEY"   },
     brpoplpush  = { cmd = "BRPOPLPUSH"  },  -- >= 2.2
     bgrewriteaof= { cmd = "BGREWRITEAOF"},
-    zscan       = { cmd = "ZSCAN"       },  -- >= 2.8
     zrange      = { cmd = "ZRANGE",     },
     zrevrange   = { cmd = "ZREVRANGE"   },
     zrangebyscore   = { cmd = "ZRANGEBYSCORE"       },
@@ -263,6 +266,10 @@ local redis_commands = {
     zinterstore     = { cmd = "ZINTERSTORE"         },  -- >= 2.0
     zremrangebyscore= { cmd = "ZREMRANGEBYSCORE"    },
     zremrangebyrank = { cmd = "ZREMRANGEBYRANK"     },  -- >= 2.0
+    scan            = { cmd = "SCAN",           convertor = _toscan     },  -- >= 2.8
+    hscan           = { cmd = "HSCAN",          convertor = _toscan     },  -- >= 2.8
+    sscan           = { cmd = "SSCAN",          convertor = _toscan     },  -- >= 2.8
+    zscan           = { cmd = "ZSCAN",          convertor = _toscan     },  -- >= 2.8
     zincrby         = { cmd = "ZINCRBY",        convertor = tonumber    },
     incrbyfloat     = { cmd = "INCRBYFLOAT",    convertor = tonumber    },
     hincrbyfloat    = { cmd = "HINCRBYFLOAT",   convertor = tonumber    },  -- >= 2.6
@@ -325,13 +332,17 @@ function RedisDB:setup(conf)
     self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
         self:check_alive()
     end)
+    self:setup_command()
+    self.req_counter = quanta.make_sampling(sformat("redis %s req", self.id))
+    self.res_counter = quanta.make_sampling(sformat("redis %s res", self.id))
+end
+
+function RedisDB:setup_command()
     for cmd, param in pairs(redis_commands) do
         RedisDB[cmd] = function(this, ...)
             return this:commit(self.executer, param, ...)
         end
     end
-    self.req_counter = quanta.make_sampling(sformat("redis %s req", self.id))
-    self.res_counter = quanta.make_sampling(sformat("redis %s res", self.id))
 end
 
 function RedisDB:setup_pool(hosts)
@@ -410,7 +421,13 @@ function RedisDB:login(socket)
     self.connections[id] = nil
     tinsert(self.alives, socket)
     log_info("[RedisDB][login] login db(%s:%s:%s) success!", ip, port, id)
+    event_mgr:fire_next_frame(function()
+        self:on_socket_alive()
+    end)
     return true, SUCCESS
+end
+
+function RedisDB:on_socket_alive()
 end
 
 function RedisDB:auth(sock)
@@ -461,11 +478,19 @@ function RedisDB:on_socket_recv(sock, token)
         end
         sock:pop(_parse_offset(packet))
         local session_id = sock.task_queue:pop()
-        if session_id and session_id > 0 then
+        if not session_id then
+            self:do_socket_recv(res)
+            goto continue
+        end
+        if session_id > 0 then
             self.res_counter:count_increase()
             thread_mgr:response(session_id, rdsucc, res)
         end
+        :: continue ::
     end
+end
+
+function RedisDB:do_socket_recv(res)
 end
 
 function RedisDB:wait_response(socket, session_id, packet, param)

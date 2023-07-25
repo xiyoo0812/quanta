@@ -193,6 +193,7 @@ function Gateway:rpc_broadcast_groupname(player_id, group_name, cmd_id, data)
     if player then
         local group_id = player:get_group_id(group_name)
         group_mgr:broadcast(group_id, cmd_id, data)
+        router_mgr:call_gateway_all("rpc_broadcast_group", group_id, cmd_id, data)
     end
 end
 
