@@ -106,7 +106,7 @@ end
 quanta.call_master = function(rpc, ...)
     local session_id = thread_mgr:build_session_id()
     quanta.call(lencode(session_id, FLAG_REQ, TITLE, rpc, ...))
-    return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+    return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
 end
 
 --访问其他线程任务

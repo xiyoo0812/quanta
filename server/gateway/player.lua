@@ -65,9 +65,9 @@ function GatePlayer:send_message(cmd_id, data, display)
 end
 
 --转发消息
-function GatePlayer:notify_command(service_type, cmd_id, body, session_id, display)
+function GatePlayer:notify_command(service_id, cmd_id, body, session_id, display)
     local pla_id = self.player_id
-    local ok, codeoe, res = router_mgr:transfor_call(pla_id, service_type, "rpc_player_command", pla_id, cmd_id, body)
+    local ok, codeoe, res = router_mgr:transfor_call(pla_id, service_id, "rpc_player_command", pla_id, cmd_id, body)
     if qfailed(codeoe, ok) then
         log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", pla_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)

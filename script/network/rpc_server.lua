@@ -67,7 +67,7 @@ function RpcServer:on_socket_rpc(client, session_id, rpc_flag, recv_len, source,
             local _<close> = qeval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
-                client.call_rpc(session_id, FLAG_RES, rpc, tunpack(rpc_datas))
+                client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))
             end
         end
         thread_mgr:fork(dispatch_rpc_message, ...)
@@ -82,9 +82,7 @@ function RpcServer:on_socket_error(token, err)
     if client then
         self.clients[token] = nil
         if client.id then
-            thread_mgr:fork(function()
-                self.holder:on_client_error(client, token, err)
-            end)
+            self.holder:on_client_error(client, token, err)
         end
     end
 end
@@ -97,7 +95,7 @@ function RpcServer:on_socket_accept(client)
     local token = client.token
     self.clients[token] = client
     -- 绑定call/回调
-    client.call_rpc = function(session_id, rpc_flag, rpc, ...)
+    client.call_rpc = function(rpc, session_id, rpc_flag, ...)
         local send_len = client.call(session_id, rpc_flag, lencode(0, rpc, ...))
         if send_len < 0 then
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
@@ -125,7 +123,9 @@ function RpcServer:on_socket_accept(client)
         thread_mgr:fork(dispatch_rpc_message)
     end
     client.on_error = function(ctoken, err)
-        qxpcall(self.on_socket_error, "on_socket_error: %s", self, ctoken, err)
+        thread_mgr:fork(function()
+            self:on_socket_error(ctoken, err)
+        end)
     end
     --通知收到新client
     self.holder:on_client_accept(client)
@@ -153,7 +153,7 @@ end
 --send接口
 function RpcServer:call(client, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    if client.call_rpc(session_id, FLAG_REQ, rpc, ...) then
+    if client.call_rpc(rpc, session_id, FLAG_REQ, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
     end
     return false, "rpc server send failed"
@@ -161,26 +161,28 @@ end
 
 --send接口
 function RpcServer:send(client, rpc, ...)
-    return client.call_rpc(0, FLAG_REQ, rpc, ...)
+    return client.call_rpc(rpc, 0, FLAG_REQ, ...)
 end
 
 --回调
 function RpcServer:callback(client, session_id, ...)
-    client.call_rpc(session_id, FLAG_RES, "callback", ...)
+    client.call_rpc("callback", session_id, FLAG_RES, ...)
 end
 
 --broadcast接口
 function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
-        client.call_rpc(0, FLAG_REQ, rpc, ...)
+        if client.service then
+            client.call_rpc(rpc, 0, FLAG_REQ, ...)
+        end
     end
 end
 
 --servicecast接口
 function RpcServer:servicecast(service_id, rpc, ...)
     for _, client in pairs(self.clients) do
-        if service_id == 0 or client.service_id == service_id then
-            client.call_rpc(0, FLAG_REQ, rpc, ...)
+        if service_id == 0 or client.service == service_id then
+            client.call_rpc(rpc, 0, FLAG_REQ, ...)
         end
     end
 end

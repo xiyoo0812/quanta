@@ -197,22 +197,22 @@ void lua_socket_node::on_recv(slice* slice) {
         break;
     case rpc_type::forward_target:
         if (!m_router->do_forward_target(header, data, data_len))
-            on_forward_error(header);
+            on_forward_error(header, slice);
         break;
     case rpc_type::forward_master:
         if (!m_router->do_forward_master(header, data, data_len))
-            on_forward_error(header);
+            on_forward_error(header, slice);
         break;
     case rpc_type::forward_hash:
         if (!m_router->do_forward_hash(header, data, data_len))
-            on_forward_error(header);
+            on_forward_error(header, slice);
         break;
     case rpc_type::forward_broadcast: {
             size_t broadcast_num = 0;
             if (m_router->do_forward_broadcast(header, m_token, data, data_len, broadcast_num))
                 on_forward_broadcast(header, broadcast_num);
             else
-                on_forward_error(header);
+                on_forward_error(header, slice);
         }
         break;
     default:
@@ -220,10 +220,10 @@ void lua_socket_node::on_recv(slice* slice) {
     }
 }
 
-void lua_socket_node::on_forward_error(router_header* header) {
+void lua_socket_node::on_forward_error(router_header* header, slice* slice) {
     if (header->session_id > 0) {
         luakit::kit_state kit_state(m_lvm);
-        kit_state.object_call(this, "on_forward_error", nullptr, std::tie(), header->session_id);
+        kit_state.object_call(this, "on_forward_error", nullptr, std::tie(), header->session_id, header->target_id, slice);
     }
 }
 

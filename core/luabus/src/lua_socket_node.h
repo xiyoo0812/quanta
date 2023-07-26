@@ -62,7 +62,7 @@ private:
     void on_call(router_header* header, slice* slice);
     void on_transfor(transfor_header* header, slice* slice);
     void on_forward_broadcast(router_header* header, size_t target_size);
-    void on_forward_error(router_header* header);
+    void on_forward_error(router_header* header, slice* slice);
 
     lua_State* m_lvm = nullptr;
     std::shared_ptr<socket_mgr> m_mgr;

@@ -19,8 +19,8 @@ local _redis_subscribe_replys = {
     message = function(self, channel, data)
         event_mgr:notify_trigger("on_subscribe_ready", channel, data)
     end,
-    pmessage = function(self, channel, data, date2)
-        event_mgr:notify_trigger("on_psubscribe_ready", channel, data, date2)
+    pmessage = function(self, pattern, channel, data)
+        event_mgr:notify_trigger("on_subscribe_ready", channel, data)
     end,
     subscribe = function(self, channel, status)
         self.subscribes[channel] = true
@@ -42,6 +42,7 @@ prop:reader("subscribes", {})
 prop:reader("psubscribes", {})
 
 function PSRedis:__init(conf, id)
+    self.subscrible = true
 end
 
 function PSRedis:setup_command()

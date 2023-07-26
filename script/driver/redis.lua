@@ -302,6 +302,7 @@ prop:reader("connections", {})      --connections
 prop:reader("alives", {})           --alives
 prop:reader("req_counter", nil)
 prop:reader("res_counter", nil)
+prop:reader("subscrible", false)
 
 function RedisDB:__init(conf, id)
     self.id = id
@@ -477,16 +478,14 @@ function RedisDB:on_socket_recv(sock, token)
             break
         end
         sock:pop(_parse_offset(packet))
-        local session_id = sock.task_queue:pop()
-        if not session_id then
+        if self.subscrible then
             self:do_socket_recv(res)
-            goto continue
         end
-        if session_id > 0 then
+        local session_id = sock.task_queue:pop()
+        if session_id and session_id > 0 then
             self.res_counter:count_increase()
             thread_mgr:response(session_id, rdsucc, res)
         end
-        :: continue ::
     end
 end
 

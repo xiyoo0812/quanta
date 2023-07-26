@@ -1,7 +1,9 @@
 --router_server.lua
+local lcodec        = require("lcodec")
 
 local log_err       = logger.err
 local log_info      = logger.info
+local ldecode       = lcodec.decode_slice
 
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -44,9 +46,10 @@ end
 --accept事件
 function RouterServer:on_client_accept(client)
     log_info("[RouterServer][on_client_accept] new connection, token=%s", client.token)
-    client.on_forward_error = function(session_id)
+    client.on_forward_error = function(session_id, target_id, slice)
         thread_mgr:fork(function()
-            log_err("[RouterServer][on_client_accept] on_forward_error, session_id=%s", session_id)
+            local source_id, rpc = pcall(ldecode, slice)
+            log_err("[RouterServer][on_client_accept] on_forward_error, ssid:%s, tar:%s, src:%s, rpc:%s)", session_id, target_id, source_id, rpc)
             self.rpc_server:callback(client, session_id, false, UNREACHABLE, "router con't find target!")
         end)
     end

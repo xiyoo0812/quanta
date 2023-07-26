@@ -96,15 +96,13 @@ function Socket:connect(ip, port, ptype)
         thread_mgr:response(block_id, success, res)
     end
     session.on_call_text = function(recv_len, slice)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, token, slice)
+        self:on_socket_recv(token, slice)
     end
     session.on_call_common = function(recv_len, slice)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, token, slice)
+        self:on_socket_recv(token, slice)
     end
     session.on_error = function(stoken, err)
-        thread_mgr:fork(function()
-            self:on_socket_error(stoken, err)
-        end)
+        self:on_socket_error(stoken, err)
     end
     self.token = token
     self.session = session
@@ -119,34 +117,36 @@ function Socket:on_socket_accept(session)
 end
 
 function Socket:on_socket_recv(token, slice)
-    if self.proto_type == eproto_type.text then
-        self.recvbuf = self.recvbuf .. slice.string()
-        self.host:on_socket_recv(self, self.token)
-    else
-        self.host:on_slice_recv(self, slice, self.token)
-    end
+    thread_mgr:fork(function()
+        if self.proto_type == eproto_type.text then
+            self.recvbuf = self.recvbuf .. slice.string()
+            self.host:on_socket_recv(self, self.token)
+        else
+            self.host:on_slice_recv(self, slice, self.token)
+        end
+    end)
 end
 
 function Socket:on_socket_error(token, err)
-    if self.session then
-        self.session = nil
-        self.alive = false
-        log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
-        self.host:on_socket_error(self, token, err)
-        self.token = nil
-    end
+    thread_mgr:fork(function()
+        if self.session then
+            self.token = nil
+            self.session = nil
+            self.alive = false
+            log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
+            self.host:on_socket_error(self, token, err)
+        end
+    end)
 end
 
 function Socket:accept(session, ip, port)
     local token = session.token
     session.set_timeout(NETWORK_TIMEOUT)
     session.on_call_text = function(recv_len, slice)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, token, slice)
+        self:on_socket_recv(token, slice)
     end
     session.on_error = function(stoken, err)
-        thread_mgr:fork(function()
-            self:on_socket_error(stoken, err)
-        end)
+        self:on_socket_error(stoken, err)
     end
     self.alive = true
     self.token = token

@@ -91,19 +91,19 @@ function RpcClient:connect()
         end
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
     end
-    socket.call_rpc = function(session_id, rpc_flag, rpc, ...)
+    socket.call_rpc = function(rpc, session_id, rpc_flag, ...)
         local send_len = socket.call(session_id, rpc_flag, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, token, send_len)
     end
-    socket.transfor = function(session_id, target_id, service_id, rpc, ...)
+    socket.transfor = function(rpc, session_id, target_id, service_id, ...)
         local send_len = socket.transfor_call(session_id, target_id, service_id, lencode(quanta.id, rpc, ...))
-        return self:on_call_router("rpc_transfor_call", token, send_len)
+        return self:on_call_router(rpc, token, send_len)
     end
-    socket.call_target = function(session_id, target, rpc, ...)
+    socket.call_target = function(rpc, session_id, target, ...)
         local send_len = socket.forward_target(session_id, FLAG_REQ, target, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, token, send_len)
     end
-    socket.callback_target = function(session_id, target, rpc, ...)
+    socket.callback_target = function(rpc, session_id, target, ...)
         if target == 0 then
             local send_len = socket.call(session_id, FLAG_RES, lencode(quanta.id, rpc, ...))
             return self:on_call_router(rpc, token, send_len)
@@ -112,20 +112,16 @@ function RpcClient:connect()
             return self:on_call_router(rpc, token, send_len)
         end
     end
-    socket.call_hash = function(session_id, service_id, hash_key, rpc, ...)
+    socket.call_hash = function(rpc, session_id, service_id, hash_key, ...)
         local hash_value = hash_code(hash_key, 0xffff)
         local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, token, send_len)
     end
-    socket.call_master = function(session_id, service_id, rpc, ...)
+    socket.call_master = function(rpc, session_id, service_id, ...)
         local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, token, send_len)
     end
-    socket.call_broadcast = function(session_id, service_id, rpc, ...)
-        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
-        return self:on_call_router(rpc, token, send_len)
-    end
-    socket.call_collect = function(session_id, service_id, rpc, ...)
+    socket.call_broadcast = function(rpc, session_id, service_id, ...)
         local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
         return self:on_call_router(rpc, token, send_len)
     end
@@ -163,7 +159,7 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source,
             local _<close> = qeval(rpc)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
-                socket.callback_target(session_id, source, rpc, tunpack(rpc_datas))
+                socket.callback_target(rpc, session_id, source, tunpack(rpc_datas))
             end
         end
         thread_mgr:fork(dispatch_rpc_message, ...)
@@ -197,11 +193,11 @@ function RpcClient:on_socket_connect(socket)
 end
 
 --转发系列接口
-function RpcClient:forward_socket(method, session_id, ...)
+function RpcClient:forward_socket(method, rpc, session_id, ...)
     if self.alive then
-        if self.socket[method](session_id, ...) then
+        if self.socket[method](rpc, session_id, ...) then
             if session_id > 0 then
-                return thread_mgr:yield(session_id, method, RPC_TIMEOUT)
+                return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
             end
             return true, SUCCESS
         end
@@ -211,20 +207,20 @@ function RpcClient:forward_socket(method, session_id, ...)
 end
 
 --转发消息
-function RpcClient:transfor_call(target_id, service_id, ...)
+function RpcClient:transfor_call(target_id, service_id, rpc, ...)
     if self.alive then
         local session_id = thread_mgr:build_session_id()
-        if self.socket.transfor(session_id, target_id, service_id, ...) then
-            return thread_mgr:yield(session_id, "transfor_call", RPC_TIMEOUT)
+        if self.socket.transfor(rpc, session_id, target_id, service_id, ...) then
+            return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
         end
         return true
     end
     return false, "socket not connected"
 end
 
-function RpcClient:transfor_send(target_id, service_id, ...)
+function RpcClient:transfor_send(target_id, service_id, rpc, ...)
     if self.alive then
-        self.socket.transfor(0, target_id, service_id, ...)
+        self.socket.transfor(rpc, 0, target_id, service_id, ...)
         return true
     end
     return false, "socket not connected"
@@ -233,7 +229,7 @@ end
 --直接发送接口
 function RpcClient:send(rpc, ...)
     if self.alive then
-        self.socket.call_rpc(0, FLAG_REQ, rpc, ...)
+        self.socket.call_rpc(rpc, 0, FLAG_REQ, ...)
         return true
     end
     return false, "socket not connected"
@@ -243,7 +239,7 @@ end
 function RpcClient:call(rpc, ...)
     if self.alive then
         local session_id = thread_mgr:build_session_id()
-        if self.socket.call_rpc(session_id, FLAG_REQ, rpc, ...) then
+        if self.socket.call_rpc(rpc, session_id, FLAG_REQ, ...) then
             return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
         end
     end

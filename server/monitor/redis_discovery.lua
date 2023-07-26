@@ -17,22 +17,26 @@ local PSRedis       = import("driver/psredis.lua")
 
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local EXPIRETIME    = quanta.enum("PeriodTime", "SECOND_30_S")
+local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
+local SERVICE_KEY   = sformat("QUANTA:service:%s", NAMESPACE)
+local CHANNEL_DN    = sformat("%s.unregister", NAMESPACE)
+local CHANNEL_UP    = sformat("%s.register", NAMESPACE)
+local CHANNEL_PT    = sformat("%s.*", NAMESPACE)
 
 local RedisDiscovery = class()
 local prop = property(RedisDiscovery)
 prop:reader("redis", nil)
-prop:reader("subscriber", nil)
 prop:reader("trigger", nil)
 prop:reader("timer_id", nil)
+prop:reader("subscriber", nil)
 prop:reader("services", {})
-prop:reader("service_key", "")
 prop:reader("locals", {})
 
 function RedisDiscovery:__init(trigger)
-    --初始化变量
-    self.trigger = trigger
     --设置
     self:setup()
+    --初始化变量
+    self.trigger = trigger
     --事件
     event_mgr:add_trigger(self, "on_subscribe_ready")
     event_mgr:add_trigger(self, "on_subscribe_alive")
@@ -49,8 +53,6 @@ function RedisDiscovery:setup()
         log_err("[RedisDiscovery][setup] discovery config err: driver is empty")
         return
     end
-    local namespace = environ.get("QUANTA_NAMESPACE")
-    self.service_key = sformat("QUANTA:service:%s", namespace)
     --初始化定时器
     timer_mgr:loop(SECOND_10_MS, function()
         self:check_heartbeat(quanta.now)
@@ -62,36 +64,41 @@ function RedisDiscovery:setup()
 end
 
 function RedisDiscovery:load_services()
+    local querys = self:query_instances()
+    if not querys then
+        return
+    end
     --梳理服务
     for _, service_name in pairs(service.services()) do
         self.services[service_name] = {}
     end
-    local querys = self:query_instances()
-    for _, node in pairs(querys or {}) do
-        self.services[sid2name(node.id)][node.id] = node
+    for _, node in pairs(querys) do
+        local sname = sid2name(node.id)
+        if self.services[sname] then
+            self.services[sname][node.id] = node
+        end
     end
 end
 
-function RedisDiscovery:subscribe()
-    self.subscriber:subscribe("quanta_register")
-    self.subscriber:subscribe("quanta_unregister")
+function RedisDiscovery:routers()
+    return self.services.router or {}
 end
 
 function RedisDiscovery:on_subscribe_alive()
     log_debug("[RedisDiscovery][on_subscribe_alive]")
-    self:subscribe()
+    self.subscriber:psubscribe(CHANNEL_PT)
     self:load_services()
 end
 
 function RedisDiscovery:on_subscribe_ready(channel, data)
     local node_data = json_decode(data)
     local node_id = node_data.id
-    if channel == "quanta_register" then
+    if channel == CHANNEL_UP then
         log_debug("[RedisDiscovery][quanta_register] data:%s", data)
         self.services[sid2name(node_id)][node_id] = node_data
         self.trigger:broadcast("rpc_service_changed", sid2name(node_id), { [node_id] = node_data }, {})
     end
-    if channel == "quanta_unregister" then
+    if channel == CHANNEL_DN then
         log_debug("[RedisDiscovery][quanta_unregister] data:%s", data)
         self.services[sid2name(node_id)][node_id] = nil
         self.trigger:broadcast("rpc_service_changed", sid2name(node_id), {}, { [node_id] = node_data })
@@ -106,15 +113,15 @@ function RedisDiscovery:check_heartbeat(now)
         tinsert(fields, sdata)
     end
     if next(fields) then
-        self.redis:execute("ZADD", self.service_key, tunpack(fields))
+        self.redis:execute("ZADD", SERVICE_KEY, tunpack(fields))
     end
-end
-
-function RedisDiscovery:heartbeat(node_id)
 end
 
 --注册服务
 function RedisDiscovery:register(node)
+    if not self.services[node.service_name] then
+        return
+    end
     local fmt = [[{"id":%d,"port":%d,"ip":"%s","region":%d,"name":"%s"}]]
     local node_data = sformat(fmt, node.id, node.port, node.host, node.region, node.name)
     self:regi_instance(node_data)
@@ -139,7 +146,7 @@ function RedisDiscovery:query_instances()
     local results = {}
     local now = quanta.now
     repeat
-        local ok, next_cur, datas = self.redis:execute("ZSCAN", self.service_key, cur, "count", 100)
+        local ok, next_cur, datas = self.redis:execute("ZSCAN", SERVICE_KEY, cur, "count", 100)
         if not ok or not cur or not datas then
             log_err("[RedisDiscovery][query_instances] query failed: cur:%s, datas:%s", cur, datas)
             return
@@ -156,14 +163,14 @@ end
 
 -- 注册实例
 function RedisDiscovery:regi_instance(node_data)
-    self.redis:execute("ZADD", self.service_key, quanta.now, node_data)
-    self.subscriber:publish("quanta_register", node_data)
+    self.redis:execute("ZADD", SERVICE_KEY, quanta.now, node_data)
+    self.subscriber:publish(CHANNEL_UP, node_data)
 end
 
 -- 删除实例
 function RedisDiscovery:del_instance(node_data)
-    self.redis:execute("ZREM", self.service_key, node_data)
-    self.subscriber:publish("quanta_unregister", node_data)
+    self.redis:execute("ZREM", SERVICE_KEY, node_data)
+    self.subscriber:publish(CHANNEL_DN, node_data)
 end
 
 return RedisDiscovery

@@ -56,12 +56,13 @@ prop:reader("id", nil)          --id
 prop:reader("name", "")         --dbname
 prop:reader("user", nil)        --user
 prop:reader("passwd", nil)      --passwd
+prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
 prop:reader("timer_id", nil)    --timer_id
 prop:reader("cursor_id", nil)   --cursor_id
 prop:reader("connections", {})  --connections
 prop:reader("readpref", nil)    --readPreference
-prop:reader("alives", {})           --alives
+prop:reader("alives", {})       --alives
 prop:reader("req_counter", nil)
 prop:reader("res_counter", nil)
 
@@ -183,7 +184,10 @@ function MongoDB:login(socket)
     return true, SUCCESS
 end
 
-local function salt_password(password, salt, iter)
+function MongoDB:salt_password(password, salt, iter)
+    if self.salted_pass then
+        return self.salted_pass
+    end
     salt = salt .. "\0\0\0\1"
     local output = lhmac_sha1(password, salt)
     local inter = output
@@ -191,6 +195,7 @@ local function salt_password(password, salt, iter)
         inter = lhmac_sha1(password, inter)
         output = lxor_byte(output, inter)
     end
+    self.salted_pass = output
     return output
 end
 
@@ -217,7 +222,7 @@ function MongoDB:auth(sock, username, password)
     end
     local without_proof = "c=biws,r=" .. rnonce
     local pbkdf2_key = lmd5(sformat("%s:mongo:%s", username, password), 1)
-    local salted_pass = salt_password(pbkdf2_key, lb64decode(salt), iterations)
+    local salted_pass = self:salt_password(pbkdf2_key, lb64decode(salt), iterations)
     local client_key = lhmac_sha1(salted_pass, "Client Key")
     local stored_key = lsha1(client_key)
     local auth_msg = first_bare .. ',' .. str_payload_start .. ',' .. without_proof
@@ -315,7 +320,7 @@ function MongoDB:op_msg(sock, slice_bson, cmd)
             log_warn("[MongoDB][on_slice_recv] cmd (%s:%s) execute so big %s!", cmd, session_id, utime)
         end
     end)
-    return thread_mgr:yield(session_id, "mongo_op_msg", DB_TIMEOUT)
+    return thread_mgr:yield(session_id, sformat("mongo_op:%s", cmd), DB_TIMEOUT)
 end
 
 function MongoDB:adminCommand(sock, cmd, cmd_v, ...)

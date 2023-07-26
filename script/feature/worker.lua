@@ -181,7 +181,7 @@ quanta.call_master = function(rpc, ...)
     local session_id = thread_mgr:build_session_id()
     local slice = lencode(session_id, FLAG_REQ, TITLE, rpc, ...)
     if quanta.call("master", slice) then
-        return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+        return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end
     return false, "call failed"
 end
@@ -195,7 +195,7 @@ end
 quanta.call_worker = function(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
     if quanta.call(name, lencode(session_id, FLAG_REQ, TITLE, rpc, ...)) then
-        return thread_mgr:yield(session_id, "call_master", RPC_TIMEOUT)
+        return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end
     return false, "call failed"
 end

@@ -35,23 +35,17 @@ function NacosDiscovery:setup()
     end
     nacos:setup(NAMESPACE)
     --配置nacos
+    timer_mgr:loop(SECOND_5_MS, function()
+        self:check_heartbeat(quanta.now)
+        self:refresh_services()
+    end)
     timer_mgr:once(SECOND_MS, function()
         nacos:modify_switchs("healthCheckEnabled", "false")
         nacos:modify_switchs("autoChangeHealthCheckEnabled", "false")
         --注册自己
         self:register(quanta.node_info)
         --初始化定时器
-        self:check_services()
-    end)
-end
-
-function NacosDiscovery:check_services(time)
-    if self.timer_id then
-        timer_mgr:unregister(self.timer_id)
-    end
-    self:refresh_services()
-    self.timer_id = timer_mgr:once(time or SECOND_5_MS, function()
-        self:check_services()
+        self:refresh_services()
     end)
 end
 
@@ -74,14 +68,15 @@ function NacosDiscovery:refresh_services()
             end
         end
     end
-    --发送心跳
-    self:heartbeat(quanta.id)
+end
+
+function NacosDiscovery:routers()
+    return self.services.router or {}
 end
 
 -- 心跳
-function NacosDiscovery:heartbeat(node_id)
-    local sdata = self.locals[node_id]
-    if sdata then
+function NacosDiscovery:check_heartbeat()
+    for _, sdata in pairs(self.locals) do
         if not sdata.status then
             local status = nacos:regi_instance(sdata.service_name, sdata.host, sdata.port, nil, sdata.metadata)
             if not status then
