@@ -1,17 +1,16 @@
 --sandbox.lua
-local logger        = require("lualog")
-local lstdfs        = require("lstdfs")
+require("basic.library")
 
 local pairs         = pairs
 local loadfile      = loadfile
 local iopen         = io.open
 local mabs          = math.abs
 local ogetenv       = os.getenv
+local log_info      = log.info
+local log_err       = log.error
 local sformat       = string.format
 local traceback     = debug.traceback
-local log_info      = logger.info
-local log_err       = logger.error
-local file_time     = lstdfs.last_write_time
+local file_time     = stdfs.last_write_time
 
 local FEATURE       = "devops"
 local TITLE         = quanta.title
@@ -43,7 +42,7 @@ end
 
 --加载部署日志
 if ogetenv("QUANTA_LOG_PATH") then
-    logger.add_file_dest(FEATURE, "devops.log")
+    log.add_file_dest(FEATURE, "devops.log")
 end
 
 --加载lua文件搜索路径

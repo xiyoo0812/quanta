@@ -1,6 +1,4 @@
 --http_server.lua
-local lhttp         = require("lhttp")
-local ljson         = require("lcjson")
 local Socket        = import("driver/socket.lua")
 
 local type          = type
@@ -13,7 +11,7 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local tunpack       = table.unpack
 local signalquit    = signal.quit
-local json_encode   = ljson.encode
+local json_encode   = json.encode
 local saddr         = qstring.addr
 
 local thread_mgr    = quanta.get("thread_mgr")
@@ -71,7 +69,7 @@ end
 function HttpServer:on_socket_recv(socket, token)
     local request = self.requests[token]
     if not request then
-        request = lhttp.create_request()
+        request = http.create_request()
         self.requests[token] = request
     end
     local buf = socket:get_recvbuf()
@@ -158,7 +156,7 @@ function HttpServer:response(socket, status, response, headers)
     if not token or not response then
         return
     end
-    local new_resp = lhttp.create_response()
+    local new_resp = http.create_response()
     for key, value in pairs(headers or {}) do
         new_resp.set_header(key, value)
     end

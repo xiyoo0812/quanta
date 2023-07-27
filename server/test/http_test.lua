@@ -1,8 +1,7 @@
 -- http_test.lua
 import("network/http_client.lua")
-local ltimer = require("ltimer")
 
-local ltime         = ltimer.time
+local ltime         = timer.time
 local log_debug     = logger.debug
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")

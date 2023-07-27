@@ -1,6 +1,4 @@
 --websocket.lua
-local lhttp         = require("lhttp")
-local lcrypt        = require("lcrypt")
 
 local ssub          = string.sub
 local spack         = string.pack
@@ -8,9 +6,9 @@ local sformat       = string.format
 local sunpack       = string.unpack
 local log_err       = logger.err
 local log_info      = logger.info
-local lsha1         = lcrypt.sha1
-local lxor_byte     = lcrypt.xor_byte
-local lb64encode    = lcrypt.b64_encode
+local lsha1         = crypt.sha1
+local lxor_byte     = crypt.xor_byte
+local lb64encode    = crypt.b64_encode
 local qxpcall       = quanta.xpcall
 
 local socket_mgr        = quanta.get("socket_mgr")
@@ -140,7 +138,7 @@ end
 
 --握手协议
 function WebSocket:on_accept_handshake(session, token, data)
-    local request = lhttp.create_request()
+    local request = http.create_request()
     if not request:append(data) then
         log_err("[WebSocket][on_accept_handshake] http request append failed, close client(token:%s)!", token)
         return self:response(400, request, "this http request parse error!")

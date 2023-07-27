@@ -1,11 +1,11 @@
 
 #pragma once
 
-#include "serializer.h"
-#include "bufpool.h"
-#include "shmpool.h"
-#include "bufqueue.h"
-#include "bitarray.h"
+#include "lua_kit.h"
+
+#include "crc.h"
 #include "guid.h"
 #include "hash.h"
 #include "ketama.h"
+#include "bitarray.h"
+#include "serializer.h"

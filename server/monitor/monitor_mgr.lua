@@ -1,6 +1,5 @@
 --monitor_mgr.lua
 import("driver/nacos.lua")
-local ljson         = require("lcjson")
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
 
@@ -9,7 +8,7 @@ local env_addr      = environ.addr
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
-local jdecode       = ljson.decode
+local jdecode       = json.decode
 local signal_quit   = signal.quit
 
 local timer_mgr     = quanta.get("timer_mgr")

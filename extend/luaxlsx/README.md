@@ -20,7 +20,7 @@
 
 # 用法
 ```lua
-local lexcel = require('luaxlsx')
+local lexcel = require("luaxlsx")
 
 local workbook = lexcel.open(full_name)
 if not workbook then

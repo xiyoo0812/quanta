@@ -1,7 +1,5 @@
 --logger.lua
 --logger功能支持
-local lcodec        = require("lcodec")
-local llogger       = require("lualog")
 
 local pcall         = pcall
 local pairs         = pairs
@@ -9,12 +7,12 @@ local tpack         = table.pack
 local tunpack       = table.unpack
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
-local serialize     = lcodec.serialize
-local lwarn         = llogger.warn
-local lfilter       = llogger.filter
-local lis_filter    = llogger.is_filter
+local lwarn         = log.warn
+local lfilter       = log.filter
+local lis_filter    = log.is_filter
+local serialize     = codec.serialize
 
-local LOG_LEVEL     = llogger.LOG_LEVEL
+local LOG_LEVEL     = log.LOG_LEVEL
 
 local dispatching   = false
 local title         = quanta.title
@@ -25,20 +23,20 @@ logfeature = {}
 
 function logger.init()
     --配置日志信息
-    llogger.set_max_line(environ.number("QUANTA_LOG_LINE", 100000))
-    llogger.set_clean_time(environ.number("QUANTA_LOG_TIME", 648000))
-    llogger.set_rolling_type(environ.number("QUANTA_LOG_ROLL", 0))
+    log.set_max_line(environ.number("QUANTA_LOG_LINE", 100000))
+    log.set_clean_time(environ.number("QUANTA_LOG_TIME", 648000))
+    log.set_rolling_type(environ.number("QUANTA_LOG_ROLL", 0))
     --设置日志过滤
     logger.filter(environ.number("QUANTA_LOG_LVL"))
     --添加输出目标
-    llogger.add_dest(quanta.service_name);
-    llogger.add_lvl_dest(LOG_LEVEL.ERROR)
+    log.add_dest(quanta.service_name);
+    log.add_lvl_dest(LOG_LEVEL.ERROR)
     --设置daemon
-    llogger.daemon(environ.status("QUANTA_DAEMON"))
+    log.daemon(environ.status("QUANTA_DAEMON"))
 end
 
 function logger.daemon(daemon)
-    llogger.daemon(daemon)
+    log.daemon(daemon)
 end
 
 function logger.add_monitor(monitor, lvl)
@@ -87,12 +85,12 @@ local function logger_output(feature, notify, lvl, lvl_name, fmt, log_conf, ...)
 end
 
 local LOG_LEVEL_OPTIONS = {
-    [LOG_LEVEL.INFO]    = { "info",  { llogger.info,  false, false } },
-    [LOG_LEVEL.WARN]    = { "warn",  { llogger.warn,  true,  false } },
-    [LOG_LEVEL.DUMP]    = { "dump",  { llogger.dump,  true,  true  } },
-    [LOG_LEVEL.DEBUG]   = { "debug", { llogger.debug, true,  false } },
-    [LOG_LEVEL.ERROR]   = { "err",   { llogger.error, true,  false } },
-    [LOG_LEVEL.FATAL]   = { "fatal", { llogger.fatal, true,  false } }
+    [LOG_LEVEL.INFO]    = { "info",  { log.info,  false, false } },
+    [LOG_LEVEL.WARN]    = { "warn",  { log.warn,  true,  false } },
+    [LOG_LEVEL.DUMP]    = { "dump",  { log.dump,  true,  true  } },
+    [LOG_LEVEL.DEBUG]   = { "debug", { log.debug, true,  false } },
+    [LOG_LEVEL.ERROR]   = { "err",   { log.error, true,  false } },
+    [LOG_LEVEL.FATAL]   = { "fatal", { log.fatal, true,  false } }
 }
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
@@ -110,10 +108,10 @@ end
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, log_conf = tunpack(conf)
     logfeature[lvl_name] = function(feature, path, prefix, clean_time)
-        llogger.add_dest(feature, path)
-        llogger.ignore_prefix(feature, prefix)
+        log.add_dest(feature, path)
+        log.ignore_prefix(feature, prefix)
         if clean_time then
-            llogger.set_dest_clean_time(feature, clean_time)
+            log.set_dest_clean_time(feature, clean_time)
         end
         return function(fmt, ...)
             local ok, res = pcall(logger_output, feature, false, lvl, lvl_name, fmt, log_conf, ...)

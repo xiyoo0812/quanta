@@ -5,7 +5,6 @@
 #endif
 
 #include <vector>
-#include "lua_kit.h"
 
 using namespace luakit;
 
@@ -87,7 +86,9 @@ namespace lcodec {
                     return 1;
                 }
             }
-            return luaL_error(L, lua_tostring(L, -1));
+            lua_pushnil(L);
+            lua_pushstring(L, lua_tostring(L, -2));
+            return 2;
         }
 
     protected:

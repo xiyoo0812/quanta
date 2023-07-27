@@ -1,5 +1,5 @@
 --index.lua
-local lstdfs        = require('lstdfs')
+local lstdfs        = require("lstdfs")
 
 local io_open       = io.open
 local ogetenv       = os.getenv

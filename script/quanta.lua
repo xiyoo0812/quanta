@@ -1,6 +1,4 @@
 --quanta.lua
-local lcodec        = require("lcodec")
-local ltimer        = require("ltimer")
 
 local xpcall        = xpcall
 local otime         = os.time
@@ -9,11 +7,6 @@ local log_fatal     = logger.fatal
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
-local lclock_ms     = ltimer.clock_ms
-local guid_new      = lcodec.guid_new
-local hash_code     = lcodec.hash_code
-local serialize     = lcodec.serialize
-local unserialize   = lcodec.unserialize
 
 local MQ_DRIVER     = environ.get("QUANTA_MQ_DRIVER", "redis")
 
@@ -77,31 +70,6 @@ function quanta.enum(ename, ekey)
         return
     end
     return eval
-end
-
-function quanta.hash(key, mod)
-    return hash_code(key, mod)
-end
-
-function quanta.serialize(t)
-    return serialize(t)
-end
-
-function quanta.unserialize(s)
-    local ok, res = pcall(unserialize, s)
-    if not ok then
-        log_err("[quanta][unserialize] unserialize: %s failed: %s", s, res)
-        return
-    end
-    return res
-end
-
-function quanta.new_guid()
-    return guid_new(quanta.service, quanta.index)
-end
-
-function quanta.time()
-    return lclock_ms()
 end
 
 function quanta.create(name, pclass)

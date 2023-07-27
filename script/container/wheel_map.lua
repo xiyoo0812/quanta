@@ -1,5 +1,5 @@
 -- wheel_map.lua
-local qhash     = quanta.hash
+local qhash     = codec.hash_code
 
 local WheelMap = class()
 local prop = property(WheelMap)

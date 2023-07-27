@@ -1,5 +1,4 @@
 -- router_mgr.lua
-local lcodec            = require("lcodec")
 
 local pairs             = pairs
 local log_err           = logger.err
@@ -8,7 +7,7 @@ local log_debug         = logger.debug
 local tunpack           = table.unpack
 local sformat           = string.format
 local qsuccess          = quanta.success
-local jumphash          = lcodec.jumphash
+local jumphash          = codec.jumphash
 local signal_quit       = signal.quit
 
 local monitor           = quanta.get("monitor")

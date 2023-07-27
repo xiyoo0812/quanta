@@ -1,16 +1,14 @@
 --worker.lua
 import("basic/basic.lua")
 import("kernel/config_mgr.lua")
-local lcodec        = require("lcodec")
-local ltimer        = require("ltimer")
 
 local pcall         = pcall
 local log_err       = logger.err
 local tpack         = table.pack
 local tunpack       = table.unpack
-local lencode       = lcodec.encode_slice
-local ldecode       = lcodec.decode_slice
-local ltime         = ltimer.time
+local lencode       = codec.encode_slice
+local ldecode       = codec.decode_slice
+local ltime         = timer.time
 
 local event_mgr     = quanta.get("event_mgr")
 local socket_mgr    = quanta.load("socket_mgr")
@@ -24,9 +22,8 @@ local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 --初始化网络
 local function init_network()
-    local lbus = require("luabus")
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
-    socket_mgr = lbus.create_socket_mgr(max_conn)
+    socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
 end
 

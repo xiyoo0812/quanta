@@ -1,7 +1,6 @@
 --log_test.lua
 
-local ltimer    = require("ltimer")
-local lnow_ms   = ltimer.now_ms
+local lnow_ms   = timer.now_ms
 local log_info  = logger.info
 local log_debug = logfeature.debug("lualog")
 local log_dump  = logfeature.dump("bilogs", "./bilogs/", true)

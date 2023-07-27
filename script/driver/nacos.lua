@@ -1,15 +1,13 @@
 --nacos.lua
 import("network/http_client.lua")
-local ljson         = require("lcjson")
-local lcrypt        = require("lcrypt")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local lmd5          = lcrypt.md5
+local lmd5          = crypt.md5
 local tconcat       = table.concat
 local sformat       = string.format
-local json_decode   = ljson.decode
-local json_encode   = ljson.encode
+local json_decode   = json.decode
+local json_encode   = json.encode
 local mtointeger    = math.tointeger
 
 local timer_mgr     = quanta.get("timer_mgr")

@@ -1,10 +1,8 @@
 --bitarray_test.lua
 
-local lcodec    = require("lcodec")
-
 local log_debug = logger.debug
 
-local array = lcodec.bitarray(32)
+local array = codec.bitarray(32)
 log_debug("array1: %s", array.to_string())
 array.fill(1)
 log_debug("array11: %s", array.to_string())

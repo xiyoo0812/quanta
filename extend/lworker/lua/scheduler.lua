@@ -1,14 +1,14 @@
 --scheduler.lua
-local lworker       = require("lworker")
-local lcodec        = require("lcodec")
 
 local pcall         = pcall
 local log_err       = logger.err
 local tpack         = table.pack
 local tunpack       = table.unpack
 
-local lencode       = lcodec.encode_slice
-local ldecode       = lcodec.decode_slice
+local lencode       = codec.encode_slice
+local ldecode       = codec.decode_slice
+local wupdate       = worker.update
+local wcall         = worker.call
 
 local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
@@ -24,15 +24,15 @@ function Scheduler:__init()
 end
 
 function Scheduler:on_frame()
-    lworker.update()
+    wupdate()
 end
 
 function Scheduler:setup(service)
-    lworker.setup(service, environ.get("QUANTA_SANDBOX"))
+    worker.setup(service, environ.get("QUANTA_SANDBOX"))
 end
 
 function Scheduler:startup(name, entry)
-    local ok, err = pcall(lworker.startup, name, entry)
+    local ok, err = pcall(worker.startup, name, entry)
     if not ok then
         log_err("[Scheduler][startup] startup failed: %s", err)
     end
@@ -42,20 +42,20 @@ end
 --访问其他线程任务
 function Scheduler:call(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    lworker.call(name, lencode(session_id, FLAG_REQ, rpc, ...))
+    wcall(name, lencode(session_id, FLAG_REQ, rpc, ...))
     return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
 end
 
 --访问其他线程任务
 function Scheduler:send(name, rpc, ...)
-    lworker.call(name, lencode(0, FLAG_REQ, rpc, ...))
+    wcall(name, lencode(0, FLAG_REQ, rpc, ...))
 end
 
 --事件分发
 local function notify_rpc(session_id, title, rpc, ...)
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        lworker.call(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
+        wcall(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
     end
 end
 

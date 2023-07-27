@@ -1,28 +1,24 @@
 --login_servlet.lua
-local lcodec                = require("lcodec")
-local luabus                = require("luabus")
 
 local log_err               = logger.err
 local log_info              = logger.info
 local log_debug             = logger.debug
+local lbusdns               = luabus.dns
 local qfailed               = quanta.failed
 local trandom               = qtable.random
 local mrandom               = qmath.random
 local tremove               = table.remove
 local tunpack               = table.unpack
-local lbusdns               = luabus.dns
-local guid_encode           = lcodec.guid_encode
+local guid_encode           = codec.guid_encode
 
 local monitor               = quanta.get("monitor")
 local login_dao             = quanta.get("login_dao")
 local event_mgr             = quanta.get("event_mgr")
-local thread_mgr            = quanta.get("thread_mgr")
 local update_mgr            = quanta.get("update_mgr")
 local client_mgr            = quanta.get("client_mgr")
 local protobuf_mgr          = quanta.get("protobuf_mgr")
 
 local FRAME_FAILED          = protobuf_mgr:error_code("FRAME_FAILED")
-local FRAME_TOOFAST         = protobuf_mgr:error_code("FRAME_TOOFAST")
 local FRAME_SUCCESS         = protobuf_mgr:error_code("FRAME_SUCCESS")
 local SERVER_UPHOLD         = protobuf_mgr:error_code("LOGIN_SERVER_UPHOLD")
 local ACCOUTN_INLINE        = protobuf_mgr:error_code("LOGIN_ACCOUTN_INLINE")
@@ -63,10 +59,6 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     log_debug("[LoginServlet][on_account_login_req] open_id(%s) token(%s) body:%s login req!", open_id, access_token, body)
     if session.account then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
-    end
-    local _lock<close> = thread_mgr:lock(open_id)
-    if not _lock then
-        return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
     local device_id = body.device_id
     local account_params = {}
@@ -211,10 +203,6 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
     log_debug("[LoginServlet][on_account_reload_req] openid(%s) token(%s) reload req!", open_id, token)
     if session.account then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
-    end
-    local _lock<close> = thread_mgr:lock(open_id)
-    if not _lock then
-        return client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
     end
     --验证token
     local account = login_dao:load_account(open_id)

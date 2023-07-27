@@ -1,5 +1,4 @@
 -- document.lua
-local ljson = require("lcjson")
 
 local log_err       = logger.err
 local tabmove       = table.move
@@ -9,8 +8,8 @@ local tclone        = qtable.deep_copy
 local sformat       = string.format
 local mrandom       = math.random
 local makechan      = quanta.make_channel
-local json_encode   = ljson.encode
-local json_decode   = ljson.decode
+local json_encode   = json.encode
+local json_decode   = json.decode
 
 local redis_mgr     = quanta.get("redis_mgr")
 local mongo_mgr     = quanta.get("mongo_mgr")

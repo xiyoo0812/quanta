@@ -1,5 +1,4 @@
 -- udp_test.lua
-local luabus        = require("luabus")
 
 local log_debug     = logger.debug
 

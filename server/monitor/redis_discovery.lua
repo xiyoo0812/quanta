@@ -1,5 +1,4 @@
 --redis_discovery.lua
-local ljson         = require("lcjson")
 
 local tonumber      = tonumber
 local log_err       = logger.err
@@ -8,7 +7,7 @@ local tunpack       = table.unpack
 local tinsert       = table.insert
 local sformat       = string.format
 local sid2name      = service.id2name
-local json_decode   = ljson.decode
+local json_decode   = json.decode
 
 local timer_mgr     = quanta.get("timer_mgr")
 local event_mgr     = quanta.get("event_mgr")

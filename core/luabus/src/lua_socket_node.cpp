@@ -253,6 +253,7 @@ void lua_socket_node::on_call_head(slice* slice) {
     size_t header_len = sizeof(socket_header);
     auto data = slice->peek(header_len);
     socket_header* header = (socket_header*)data;
+    uint8_t crc8 = header->crc8;
     uint8_t flag = header->flag;
     uint8_t type = header->type;
     uint16_t cmd_id = header->cmd_id;
@@ -260,7 +261,7 @@ void lua_socket_node::on_call_head(slice* slice) {
     if (session_id > 0) session_id |= m_stoken;
     slice->erase(header_len);
     luakit::kit_state kit_state(m_lvm);
-    kit_state.object_call(this, "on_call_head", nullptr, std::tie(), header->len, cmd_id, flag, type, session_id, slice);
+    kit_state.object_call(this, "on_call_head", nullptr, std::tie(), header->len, cmd_id, flag, type, crc8, session_id, slice);
 }
 
 void lua_socket_node::on_call_text(slice* slice) {

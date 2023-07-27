@@ -1,12 +1,11 @@
 --redis_mq.lua
 import("agent/redis_agent.lua")
-local ljson         = require("lcjson")
 
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
-local json_encode   = ljson.encode
-local json_decode   = ljson.decode
+local json_encode   = json.encode
+local json_decode   = json.decode
 local sformat       = string.format
 local qsuccess      = quanta.success
 

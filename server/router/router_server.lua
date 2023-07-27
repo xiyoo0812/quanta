@@ -1,9 +1,8 @@
 --router_server.lua
-local lcodec        = require("lcodec")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local ldecode       = lcodec.decode_slice
+local ldecode       = codec.decode_slice
 
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")

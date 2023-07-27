@@ -1,5 +1,4 @@
 --net_server.lua
-local lcrypt        = require("lcrypt")
 
 local log_err           = logger.err
 local log_info          = logger.info
@@ -8,10 +7,10 @@ local log_fatal         = logger.fatal
 local signalquit        = signal.quit
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
-local b64_encode        = lcrypt.b64_encode
-local b64_decode        = lcrypt.b64_decode
-local lz4_encode        = lcrypt.lz4_encode
-local lz4_decode        = lcrypt.lz4_decode
+local b64_encode        = crypt.b64_encode
+local b64_decode        = crypt.b64_decode
+local lz4_encode        = crypt.lz4_encode
+local lz4_decode        = crypt.lz4_decode
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -25,6 +24,7 @@ local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
 local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
+local TOO_FAST          = quanta.enum("KernCode", "TOO_FAST")
 
 local OUT_PRESS         = environ.status("QUANTA_OUT_PRESS")
 local OUT_ENCRYPT       = environ.status("QUANTA_OUT_ENCRYPT")
@@ -75,6 +75,8 @@ end
 -- 连接回调
 function NetServer:on_socket_accept(session)
     -- 流控配置
+    session.lc_crc = 0
+    session.lc_time = 0
     session.fc_packet = 0
     session.fc_bytes  = 0
     session.last_fc_time = quanta.clock_ms
@@ -91,7 +93,14 @@ function NetServer:on_socket_accept(session)
         end
         return true
     end
-    session.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
+    session.on_call_head = function(recv_len, cmd_id, flag, type, crc8, session_id, slice)
+        local now_ms = quanta.now_ms
+        if now_ms - session.lc_time > 200 and session.lc_crc == crc8 then
+            self:callback_errcode(session, cmd_id, TOO_FAST, session_id)
+            return
+        end
+        session.lc_crc = crc8
+        session.lc_time = now_ms
         if FLOW_CTRL then
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len

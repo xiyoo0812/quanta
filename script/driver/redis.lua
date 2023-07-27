@@ -14,7 +14,7 @@ local mrandom       = qmath.random
 local tjoin         = qtable.join
 local tdelete       = qtable.delete
 local is_array      = qtable.is_array
-local qhash         = quanta.hash
+local qhash         = codec.hash_code
 local makechan      = quanta.make_channel
 
 local timer_mgr     = quanta.get("timer_mgr")

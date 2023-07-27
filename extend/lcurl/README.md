@@ -20,18 +20,16 @@
 --本示例使用了quanta引擎
 --https://github.com/xiyoo0812/quanta.git
 --httpClient.lua
-local lcurl = require("lcurl")
-local ljson = require("lcjson")
 
 local pairs         = pairs
 local log_err       = logger.err
 local tconcat       = table.concat
 local sformat       = string.format
 local qxpcall       = quanta.xpcall
-local jencode       = ljson.encode
-local luencode      = lcurl.url_encode
+local jencode       = json.encode
+local luencode      = curl.url_encode
 
-local curlm_mgr     = lcurl.curlm_mgr
+local curlm_mgr     = curl.curlm_mgr
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 

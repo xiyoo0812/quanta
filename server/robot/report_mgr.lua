@@ -1,10 +1,9 @@
 --report_mgr.lua
-local ltimer        = require("ltimer")
-local lnow_ms       = ltimer.now_ms
 local mhuge         = math.huge
 local tunpack       = table.unpack
 local sformat       = string.format
 local log_info      = logger.info
+local lnow_ms       = timer.now_ms
 
 local event_mgr     = quanta.get("event_mgr")
 local robot_mgr     = quanta.get("robot_mgr")

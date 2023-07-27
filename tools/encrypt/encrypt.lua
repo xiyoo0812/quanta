@@ -1,5 +1,5 @@
 --encrypt.lua
-local lstdfs        = require('lstdfs')
+local lstdfs        = require("lstdfs")
 
 local ldir          = lstdfs.dir
 local lmkdir        = lstdfs.mkdir

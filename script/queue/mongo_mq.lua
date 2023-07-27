@@ -1,8 +1,7 @@
 --mongo_mq.lua
 import("agent/mongo_agent.lua")
-local lmongo        = require("lmongo")
 
-local mdate         = lmongo.date
+local mdate         = mongo.date
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug

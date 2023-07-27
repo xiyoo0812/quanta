@@ -1,21 +1,18 @@
 --sandbox.lua
-local logger        = require("lualog")
-local lstdfs        = require("lstdfs")
-local lcodec        = require("lcodec")
+require("basic.library")
 
 local pairs         = pairs
 local loadfile      = loadfile
 local iopen         = io.open
 local mabs          = math.abs
-local log_err       = logger.error
-local log_debug     = logger.debug
+local log_err       = log.error
+local log_info      = log.info
+local ogetenv       = os.getenv
 local sformat       = string.format
 local traceback     = debug.traceback
-local file_time     = lstdfs.last_write_time
-local serialize     = lcodec.serialize
-local unserialize   = lcodec.unserialize
+local file_time     = stdfs.last_write_time
 
-local FEATURE       = "deploy"
+local FEATURE       = "devops"
 local TITLE         = quanta.title
 
 local load_status = "success"
@@ -25,7 +22,7 @@ local log_error = function(ctx)
 end
 
 local log_output = function(ctx)
-    log_debug(ctx, TITLE)
+    log_info(ctx, TITLE)
 end
 
 local function ssplit(str, token)
@@ -44,7 +41,10 @@ local function ssplit(str, token)
 end
 
 --加载部署日志
-logger.add_file_dest(FEATURE, "status.log")
+if ogetenv("QUANTA_LOG_PATH") then
+    log.add_file_dest(FEATURE, "devops.log")
+end
+
 --加载lua文件搜索路径
 local load_files    = {}
 local search_path   = {}
@@ -106,23 +106,13 @@ function quanta.load_failed(ctx)
     log_error(ctx)
 end
 
-function quanta.serialize(t)
-    return serialize(t)
-end
-
-function quanta.unserialize(s)
-    return unserialize(s)
-end
-
 function quanta.report(type)
-    local log_data = {
-        type = type,
-        state = load_status,
-        time = quanta.now,
-        index = quanta.index,
-        service = quanta.service_name,
-    }
-    log_debug(serialize(log_data))
+    local divider = "----------------------------------------------------------------------------------------"
+    local fmt = '{"type":"%s","pid":"%s","state":"%s","time":%s,"service":"%s"}'
+    local str = sformat(fmt, type, quanta.pid, load_status, os.time(),  quanta.name)
+    log_info(divider, TITLE, FEATURE)
+    log_info(str, TITLE, FEATURE)
+    log_info(divider, TITLE, FEATURE)
 end
 
 function quanta.reload()

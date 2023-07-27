@@ -1,15 +1,14 @@
 --net_client.lua
-local lcrypt            = require("lcrypt")
 
 local log_err           = logger.err
 local log_fatal         = logger.fatal
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local env_status        = environ.status
-local b64_encode        = lcrypt.b64_encode
-local b64_decode        = lcrypt.b64_decode
-local lz4_encode        = lcrypt.lz4_encode
-local lz4_decode        = lcrypt.lz4_decode
+local b64_encode        = crypt.b64_encode
+local b64_decode        = crypt.b64_decode
+local lz4_encode        = crypt.lz4_encode
+local lz4_decode        = crypt.lz4_decode
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -70,7 +69,7 @@ function NetClient:connect(block)
             thread_mgr:response(block_id, success, res)
         end
     end
-    socket.on_call_head = function(recv_len, cmd_id, flag, type, session_id, slice)
+    socket.on_call_head = function(recv_len, cmd_id, flag, type, crc8, session_id, slice)
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, type, session_id, slice)
     end

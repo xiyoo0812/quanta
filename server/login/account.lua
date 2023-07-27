@@ -2,7 +2,7 @@
 
 local tsize         = qtable.size
 local tinsert       = table.insert
-local guid_new      = quanta.new_guid
+local guid_new      = codec.guid_new
 
 local game_dao      = quanta.get("game_dao")
 

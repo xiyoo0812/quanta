@@ -20,8 +20,6 @@
 --本示例使用了quanta引擎
 --https://github.com/xiyoo0812/quanta.git
 --http_server.lua
-local lhttp         = require("lhttp")
-local ljson         = require("lcjson")
 local Socket        = import("driver/socket.lua")
 
 local type          = type
@@ -30,7 +28,7 @@ local getmetatable  = getmetatable
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
-local json_encode   = ljson.encode
+local json_encode   = json.encode
 local tunpack       = table.unpack
 local signalquit    = signal.quit
 local saddr         = qstring.addr
@@ -84,7 +82,7 @@ end
 function HttpServer:on_socket_recv(socket, token)
     local request = self.requests[token]
     if not request then
-        request = lhttp.create_request()
+        request = http.create_request()
         log_debug("[HttpServer][on_socket_accept] create_request(token:%s)!", token)
         self.requests[token] = request
     end
@@ -141,7 +139,7 @@ end
 
 --生成response
 function HttpServer:build_response(status, content, headers)
-    local response = lhttp.create_response()
+    local response = http.create_response()
     response.status = status
     response.content = content
     for name, value in pairs(headers or {}) do
@@ -194,7 +192,7 @@ function HttpServer:response(socket, status, response)
         socket:close()
         return
     end
-    local new_resp = lhttp.create_response()
+    local new_resp = http.create_response()
     if type(response) == "table" then
         new_resp.set_header("Content-Type", "application/json")
         new_resp.content = json_encode(response)

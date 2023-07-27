@@ -1,14 +1,13 @@
 --kernel.lua
 import("basic/basic.lua")
-local ltimer        = require("ltimer")
 
 local tpack         = table.pack
 local tunpack       = table.unpack
 local log_warn      = logger.warn
 local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
-local lclock_ms     = ltimer.clock_ms
-local ltime         = ltimer.time
+local lclock_ms     = timer.clock_ms
+local ltime         = timer.time
 
 local QuantaMode    = enum("QuantaMode")
 
@@ -29,9 +28,8 @@ end
 
 --初始化网络
 local function init_network()
-    local lbus = require("luabus")
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
-    socket_mgr = lbus.create_socket_mgr(max_conn)
+    socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
 end
 

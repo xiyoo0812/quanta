@@ -37,7 +37,7 @@ namespace lcodec {
         return thread_ketama.virtual_map;
     }
     
-    static bitarray* barray(lua_State* L, size_t nbits) {
+    static bitarray* lbarray(lua_State* L, size_t nbits) {
         bitarray* barray = new bitarray();
         if (!barray->general(nbits)) {
             delete barray;
@@ -46,11 +46,47 @@ namespace lcodec {
         return barray;
     }
 
+    static int lcrc8(lua_State* L) {
+        size_t len;
+        const char* key = lua_tolstring(L, 1, &len);
+        lua_pushinteger(L, crc8_lsb(key, len));
+        return 1;
+    }
+
+    static int lcrc8_msb(lua_State* L) {
+        size_t len;
+        const char* key = lua_tolstring(L, 1, &len);
+        lua_pushinteger(L, crc8_msb(key, len));
+        return 1;
+    }
+
+    static int lcrc16(lua_State* L) {
+        size_t len;
+        const char* key = lua_tolstring(L, 1, &len);
+        lua_pushinteger(L, crc16(key, len));
+        return 1;
+    }
+
+    static int lcrc32(lua_State* L) {
+        size_t len;
+        const char* key = lua_tolstring(L, 1, &len);
+        lua_pushinteger(L, crc32(key, len));
+        return 1;
+    }
+
+    static int lcrc64(lua_State* L) {
+        size_t len;
+        const char* key = lua_tolstring(L, 1, &len);
+        lua_pushinteger(L, (int64_t)crc64(key, len));
+        return 1;
+    }
+
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llcodec = kit_state.new_table();
         llcodec.set_function("encode", encode);
         llcodec.set_function("decode", decode);
+        llcodec.set_function("bitarray", lbarray);
         llcodec.set_function("serialize", serialize);
         llcodec.set_function("unserialize", unserialize);
         llcodec.set_function("encode_slice", encode_slice);
@@ -74,7 +110,11 @@ namespace lcodec {
         llcodec.set_function("ketama_remove", ketama_remove);
         llcodec.set_function("ketama_next", ketama_next);
         llcodec.set_function("ketama_map", ketama_map);
-        llcodec.set_function("bitarray", barray);
+        llcodec.set_function("crc8_msb", lcrc8_msb);
+        llcodec.set_function("crc64", lcrc64);
+        llcodec.set_function("crc32", lcrc32);
+        llcodec.set_function("crc16", lcrc16);
+        llcodec.set_function("crc8", lcrc8);
         kit_state.new_class<bitarray>(
             "flip", &bitarray::flip,
             "fill", &bitarray::fill,

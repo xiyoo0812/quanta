@@ -1,5 +1,5 @@
 --lmake.lua
-local lstdfs        = require('lstdfs')
+local lstdfs        = require("lstdfs")
 
 local ldir          = lstdfs.dir
 local lstem         = lstdfs.stem

@@ -1,15 +1,12 @@
 --json_test.lua
-local ltimer    = require("ltimer")
-local ljson     = require("lcjson")
-local lcodec    = require("lcodec")
 
 local log_debug     = logger.debug
-local json_encode   = ljson.encode
-local json_decode   = ljson.decode
-local new_guid      = lcodec.guid_new
-local encode_slice  = lcodec.encode_slice
-local decode_slice  = lcodec.decode_slice
-local ltime         = ltimer.time
+local json_encode   = json.encode
+local json_decode   = json.decode
+local new_guid      = codec.guid_new
+local encode_slice  = codec.encode_slice
+local decode_slice  = codec.decode_slice
+local ltime         = timer.time
 
 local test  = {
     tid = 3.1415926,

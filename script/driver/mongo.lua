@@ -1,9 +1,5 @@
 
 --mongo.lua
-local lbus          = require("luabus")
-local lmongo        = require("lmongo")
-local ltimer        = require("ltimer")
-local lcrypt        = require("lcrypt")
 local Socket        = import("driver/socket.lua")
 
 local log_err       = logger.err
@@ -18,25 +14,25 @@ local sformat       = string.format
 local sgmatch       = string.gmatch
 local mrandom       = qmath.random
 local mtointeger    = math.tointeger
-local qhash         = quanta.hash
+local qhash         = codec.hash_code
 local qdefer        = quanta.defer
 local makechan      = quanta.make_channel
 
-local lmd5          = lcrypt.md5
-local lsha1         = lcrypt.sha1
-local lrandomkey    = lcrypt.randomkey
-local lb64encode    = lcrypt.b64_encode
-local lb64decode    = lcrypt.b64_decode
-local lhmac_sha1    = lcrypt.hmac_sha1
-local lxor_byte     = lcrypt.xor_byte
-local lclock_ms     = ltimer.clock_ms
-local mreply        = lmongo.reply_slice
-local mopmsg        = lmongo.opmsg_slice
-local mdecode       = lmongo.decode_slice
-local mencode_s     = lmongo.encode_sparse
-local mencode_o     = lmongo.encode_order_slice
+local lmd5          = crypt.md5
+local lsha1         = crypt.sha1
+local lrandomkey    = crypt.randomkey
+local lb64encode    = crypt.b64_encode
+local lb64decode    = crypt.b64_decode
+local lhmac_sha1    = crypt.hmac_sha1
+local lxor_byte     = crypt.xor_byte
+local lclock_ms     = timer.clock_ms
+local mreply        = mongo.reply_slice
+local mopmsg        = mongo.opmsg_slice
+local mdecode       = mongo.decode_slice
+local mencode_s     = mongo.encode_sparse
+local mencode_o     = mongo.encode_order_slice
 
-local eproto_type   = lbus.eproto_type
+local eproto_type   = luabus.eproto_type
 
 local timer_mgr     = quanta.get("timer_mgr")
 local event_mgr     = quanta.get("event_mgr")
@@ -71,7 +67,7 @@ function MongoDB:__init(conf, id)
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
-    self.cursor_id = lmongo.int64(0)
+    self.cursor_id = mongo.int64(0)
     self:set_options(conf.opts)
     self:setup_pool(conf.hosts)
     --attach_hour

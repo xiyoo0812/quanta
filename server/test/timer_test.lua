@@ -1,17 +1,16 @@
 --log_test.lua
-local ltimer    = require("ltimer")
 
 local log_info  = logger.info
 
-local msec, sec = ltimer.time()
+local msec, sec = timer.time()
 log_info("time: sec:%s, msec:%s", sec, msec)
---ltimer:sleep(2000)
-local now = ltimer.now()
-local now_ms = ltimer.now_ms()
+--timer:sleep(2000)
+local now = timer.now()
+local now_ms = timer.now_ms()
 log_info("time: now:%s, now_ms:%s", now, now_ms)
 
-local clock = ltimer.clock()
-local clock_ms = ltimer.clock_ms()
+local clock = timer.clock()
+local clock_ms = timer.clock_ms()
 log_info("time: clock:%s, clock_ms:%s", clock, clock_ms)
 
 local timer_mgr = quanta.get("timer_mgr")

@@ -1,5 +1,4 @@
 --socket.lua
-local lbus          = require("luabus")
 
 local ssub          = string.sub
 local log_err       = logger.err
@@ -8,7 +7,7 @@ local ends_with     = qstring.ends_with
 local split_pos     = qstring.split_pos
 local qxpcall       = quanta.xpcall
 
-local eproto_type   = lbus.eproto_type
+local eproto_type   = luabus.eproto_type
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")

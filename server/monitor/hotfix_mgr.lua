@@ -1,17 +1,16 @@
 --monitor_mgr.lua
-local lstdfs        = require("lstdfs")
 
 local iopen         = io.open
 local oexec         = os.execute
 local log_warn      = logger.warn
 local log_debug     = logger.debug
 local sformat       = string.format
-local lmkdir        = lstdfs.mkdir
-local lappend       = lstdfs.append
-local lremove       = lstdfs.remove
-local ltemp_dir     = lstdfs.temp_dir
-local lpardir       = lstdfs.parent_path
-local lcurdir       = lstdfs.current_path
+local lmkdir        = stdfs.mkdir
+local lappend       = stdfs.append
+local lremove       = stdfs.remove
+local ltemp_dir     = stdfs.temp_dir
+local lpardir       = stdfs.parent_path
+local lcurdir       = stdfs.current_path
 
 local nacos         = quanta.get("nacos")
 local thread_mgr    = quanta.get("thread_mgr")

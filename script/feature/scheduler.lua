@@ -1,6 +1,4 @@
 --scheduler.lua
-local lcodec        = require("lcodec")
-local lworker       = require("lworker")
 
 local pcall         = pcall
 local log_err       = logger.err
@@ -9,8 +7,11 @@ local tpack         = table.pack
 local tinsert       = table.insert
 local tunpack       = table.unpack
 
-local lencode       = lcodec.encode_slice
-local ldecode       = lcodec.decode_slice
+local lencode       = codec.encode_slice
+local ldecode       = codec.decode_slice
+local wbroadcast    = worker.broadcast
+local wupdate       = worker.update
+local wcall         = worker.call
 
 local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
@@ -26,19 +27,19 @@ local prop = property(Scheduler)
 prop:reader("contexts", {})
 
 function Scheduler:__init()
-    lworker.setup("quanta", environ.get("QUANTA_SANDBOX"))
+    worker.setup("quanta", environ.get("QUANTA_SANDBOX"))
 end
 
 function Scheduler:quit()
-    lworker.shutdown()
+    worker.shutdown()
 end
 
 function Scheduler:update(clock_ms)
-    lworker.update(clock_ms)
+    wupdate(clock_ms)
     local all_datas = self.contexts
     for i, args in pairs(all_datas) do
         local name, session_id = args[1], args[2]
-        if not lworker.call(name, lencode(session_id, tunpack(args, 3))) then
+        if not wcall(name, lencode(session_id, tunpack(args, 3))) then
             if session_id > 0 then
                 thread_mgr:response(session_id, false, "send failed!")
             end
@@ -52,7 +53,7 @@ function Scheduler:update(clock_ms)
 end
 
 function Scheduler:startup(name, entry)
-    local ok, err = pcall(lworker.startup, name, entry)
+    local ok, err = pcall(worker.startup, name, entry)
     if not ok then
         log_err("[Scheduler][startup] startup failed: %s", err)
     end
@@ -61,7 +62,7 @@ end
 
 --访问其他线程任务
 function Scheduler:broadcast(rpc, ...)
-    lworker.broadcast(lencode(0, FLAG_REQ, "master", rpc, ...))
+    wbroadcast(lencode(0, FLAG_REQ, "master", rpc, ...))
 end
 
 --访问其他线程任务
@@ -80,7 +81,7 @@ end
 local function notify_rpc(session_id, title, rpc, ...)
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        lworker.call(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
+        wcall(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
     end
 end
 

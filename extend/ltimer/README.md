@@ -22,16 +22,14 @@
 --本示例使用了quanta引擎
 --https://github.com/xiyoo0812/quanta.git
 --timer_mgr.lua
-local ltimer    = require("ltimer")
-local lcodec    = require("lcodec")
 
 local ipairs    = ipairs
 local tpack     = table.pack
 local tunpack   = table.unpack
-local new_guid  = lcodec.guid_new
-local lclock_ms = ltimer.clock_ms
-local ltinsert  = ltimer.insert
-local ltupdate  = ltimer.update
+local new_guid  = codec.guid_new
+local lclock_ms = timer.clock_ms
+local ltinsert  = timer.insert
+local ltupdate  = timer.update
 
 --定时器精度，20ms
 local TIMER_ACCURYACY = 20

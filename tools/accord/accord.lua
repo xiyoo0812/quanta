@@ -1,19 +1,15 @@
---encrypt.lua
-local protobuf      = require('pb')
-local lstdfs        = require('lstdfs')
-local ljson         = require("lcjson")
-local lcodec        = require("lcodec")
+--accord.lua
 
-local ldir          = lstdfs.dir
-local lstem         = lstdfs.stem
-local lmkdir        = lstdfs.mkdir
-local lappend       = lstdfs.append
-local lfilename     = lstdfs.filename
-local lextension    = lstdfs.extension
-local lcurdir       = lstdfs.current_path
-local serialize     = lcodec.serialize
+local ldir          = stdfs.dir
+local lstem         = stdfs.stem
+local lmkdir        = stdfs.mkdir
+local lappend       = stdfs.append
+local lfilename     = stdfs.filename
+local lextension    = stdfs.extension
+local lcurdir       = stdfs.current_path
+local serialize     = codec.serialize
 local pb_enum_id    = protobuf.enum
-local json_encode   = ljson.encode
+local json_encode   = json.encode
 local tunpack       = table.unpack
 local sformat       = string.format
 local supper        = string.upper

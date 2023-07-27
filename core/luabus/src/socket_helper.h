@@ -12,6 +12,7 @@ struct socket_header {
     uint8_t     type;           // 消息类型
     uint16_t    cmd_id;         // 协议ID
     uint16_t    session_id;     // sessionId
+    uint8_t     crc8;           // crc8
 };
 #pragma pack()
 

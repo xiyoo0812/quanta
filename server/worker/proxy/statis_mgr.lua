@@ -2,9 +2,7 @@
 import("feature/worker.lua")
 import("feature/linux.lua")
 
-local ljson         = require("lcjson")
-
-local json_encode   = ljson.encode
+local json_encode   = json.encode
 
 local log_path      = environ.get("QUANTA_STATIS_PATH")
 local log_dump      = logfeature.dump("statis", log_path, true)

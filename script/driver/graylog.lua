@@ -1,11 +1,9 @@
 --graylog.lua
 import("network/http_client.lua")
-local ljson         = require("lcjson")
-local luabus        = require("luabus")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local json_encode   = ljson.encode
+local json_encode   = json.encode
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local tcopy         = qtable.copy

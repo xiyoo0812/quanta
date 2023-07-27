@@ -3,8 +3,8 @@
 local pairs         = pairs
 local co_running    = coroutine.running
 local env_status    = environ.status
+local tclock_ms     = timer.clock_ms
 local qdefer        = quanta.defer
-local qtime         = quanta.time
 
 local proxy_agent   = quanta.get("proxy_agent")
 
@@ -19,7 +19,7 @@ function PerfevalMgr:__init()
 end
 
 function PerfevalMgr:yield()
-    local clock_ms = qtime()
+    local clock_ms = tclock_ms()
     local yield_co = co_running()
     local eval_cos = self.eval_list[yield_co]
     for _, eval_data in pairs(eval_cos or {}) do
@@ -28,7 +28,7 @@ function PerfevalMgr:yield()
 end
 
 function PerfevalMgr:resume(co)
-    local clock_ms = qtime()
+    local clock_ms = tclock_ms()
     local resume_co = co or co_running()
     local eval_cos = self.eval_list[resume_co]
     for _, eval_data in pairs(eval_cos or {}) do
@@ -63,7 +63,7 @@ function PerfevalMgr:start(eval_name)
         yield_time = 0,
         eval_id = eval_id,
         eval_name = eval_name,
-        begin_time = qtime(),
+        begin_time = tclock_ms(),
     }
     local eval_cos = self.eval_list[co]
     if eval_cos then
@@ -75,7 +75,7 @@ function PerfevalMgr:start(eval_name)
 end
 
 function PerfevalMgr:stop(eval_data)
-    local clock_ms = qtime()
+    local clock_ms = tclock_ms()
     proxy_agent:statistics("on_perfeval", eval_data, clock_ms)
     self.eval_list[eval_data.co][eval_data.eval_id] = nil
 end

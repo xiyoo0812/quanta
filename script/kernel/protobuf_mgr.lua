@@ -1,6 +1,4 @@
 --protobuf_mgr.lua
-local protobuf      = require('pb')
-local lstdfs        = require('lstdfs')
 
 local pairs         = pairs
 local ipairs        = ipairs
@@ -8,10 +6,10 @@ local pcall         = pcall
 local log_err       = logger.err
 local log_warn      = logger.warn
 local env_get       = environ.get
-local ldir          = lstdfs.dir
-local lappend       = lstdfs.append
-local lfilename     = lstdfs.filename
-local lextension    = lstdfs.extension
+local ldir          = stdfs.dir
+local lappend       = stdfs.append
+local lfilename     = stdfs.filename
+local lextension    = stdfs.extension
 local pb_enum_id    = protobuf.enum
 local pb_decode     = protobuf.decode
 local pb_encode     = protobuf.encode

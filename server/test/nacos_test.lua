@@ -1,10 +1,9 @@
 -- nacos_test.lua
 import("driver/nacos.lua")
-local lcrypt        = require("lcrypt")
 
 local log_debug     = logger.debug
-local lhex_encode   = lcrypt.hex_encode
-local lrandomkey    = lcrypt.randomkey
+local lhex_encode   = crypt.hex_encode
+local lrandomkey    = crypt.randomkey
 
 local nacos         = quanta.get("nacos")
 local timer_mgr     = quanta.get("timer_mgr")

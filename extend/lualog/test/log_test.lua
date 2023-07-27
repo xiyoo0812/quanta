@@ -1,22 +1,21 @@
 --log_test.lua
-local llog = require("lualog")
 
-local LOG_LEVEL     = llog.LOG_LEVEL
+local LOG_LEVEL     = log.LOG_LEVEL
 
-llog.option("./newlog/", "qtest", 1, 1);
-llog.set_max_line(500000);
-llog.daemon(true)
+log.option("./newlog/", "qtest", 1, 1);
+log.set_max_line(500000);
+log.daemon(true)
 
-llog.is_filter(LOG_LEVEL.DEBUG)
-llog.filter(LOG_LEVEL.DEBUG)
+log.is_filter(LOG_LEVEL.DEBUG)
+log.filter(LOG_LEVEL.DEBUG)
 
-llog.add_dest("qtest");
-llog.add_lvl_dest(LOG_LEVEL.ERROR)
+log.add_dest("qtest");
+log.add_lvl_dest(LOG_LEVEL.ERROR)
 
-llog.debug("aaaaaaaaaa")
-llog.info("bbbb")
-llog.warn("cccccc")
-llog.dump("dddddddddd")
-llog.error("eeeeeeeeeeee")
+log.debug("aaaaaaaaaa")
+log.info("bbbb")
+log.warn("cccccc")
+log.dump("dddddddddd")
+log.error("eeeeeeeeeeee")
 
 --os.exit()

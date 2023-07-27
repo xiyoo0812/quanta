@@ -1,10 +1,9 @@
 -- gm_mgr.lua
-local log_err     = logger.err
-local log_debug   = logger.debug
-local ljson         = require("lcjson")
+local log_err       = logger.err
+local log_debug     = logger.debug
+local jdecode       = json.decode
+
 local HttpServer    = import("network/http_server.lua")
-local env_get       = environ.get
-local jdecode       = ljson.decode
 
 local robot_mgr     = quanta.get("robot_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -26,7 +25,7 @@ prop:reader("load_db_status", false)
 
 function AccordMgr:__init()
     -- 创建HTTP服务器
-    local server = HttpServer(env_get("QUANTA_ACCORD_HTTP"))
+    local server = HttpServer(environ.get("QUANTA_ACCORD_HTTP"))
     server:register_get("/", "on_accord_page", self)
     server:register_get("/style", "on_accord_css", self)
     server:register_get("/message", "on_message", self)
