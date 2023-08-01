@@ -23,6 +23,7 @@ local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
 local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
+local FAST_MS           = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local TOO_FAST          = quanta.enum("KernCode", "TOO_FAST")
 
@@ -86,7 +87,7 @@ function NetServer:on_socket_accept(session)
     self:add_session(session)
     -- 绑定call回调
     session.call_client = function(cmd_id, flag, session_id, body)
-        local send_len = session.call_head(cmd_id, flag, 0, session_id, body, #body)
+        local send_len = session.call_head(cmd_id, flag, 0, 0, session_id, body, #body)
         if send_len <= 0 then
             log_err("[NetServer][call_client] call_head failed! code:%s", send_len)
             return false
@@ -95,7 +96,7 @@ function NetServer:on_socket_accept(session)
     end
     session.on_call_head = function(recv_len, cmd_id, flag, type, crc8, session_id, slice)
         local now_ms = quanta.now_ms
-        if now_ms - session.lc_time > 200 and session.lc_crc == crc8 then
+        if session.lc_crc == crc8 and now_ms - session.lc_time < FAST_MS then
             self:callback_errcode(session, cmd_id, TOO_FAST, session_id)
             return
         end

@@ -16,6 +16,9 @@
     <ClInclude Include="src\md5.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\rsa.h">
+      <Filter>inc</Filter>
+    </ClInclude>
     <ClInclude Include="src\sha1.h">
       <Filter>inc</Filter>
     </ClInclude>
@@ -40,6 +43,9 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\md5.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rsa.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\sha1.c">

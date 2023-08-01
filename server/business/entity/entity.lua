@@ -52,7 +52,7 @@ function Entity:load(conf)
     return true
 end
 
---on_update
+--check
 function Entity:check()
     return true
 end

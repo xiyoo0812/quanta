@@ -87,7 +87,7 @@ namespace lcodec {
                 }
             }
             lua_pushnil(L);
-            lua_pushstring(L, lua_tostring(L, -2));
+            lua_insert(L, -2);
             return 2;
         }
 

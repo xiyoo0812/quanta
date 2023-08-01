@@ -23,7 +23,7 @@ function AttributeAgent:load_attrs(player, attrs)
     player:load_attrs(attrs)
     player:set_wbackable(true)
     player:set_relayable(false)
-    player:add_trigger(self, "on_attr_writeback")
+    player:watch_event(self, "on_attr_writeback")
 end
 
 --本地消息

@@ -9,7 +9,9 @@ local b64_encode        = crypt.b64_encode
 local b64_decode        = crypt.b64_decode
 local lz4_encode        = crypt.lz4_encode
 local lz4_decode        = crypt.lz4_decode
+local lcrc8             = codec.crc8
 
+local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
@@ -127,6 +129,7 @@ function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
         return
     end
+    event_mgr:notify_trigger("on_message_recv", cmd_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
@@ -165,7 +168,7 @@ function NetClient:write(cmd, data, type, session_id, flag)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_head(cmd_id, pflag, type or 0, session_id or 0, body, #body)
+    local send_len = self.socket.call_head(cmd_id, pflag, type or 0, lcrc8(body), session_id or 0, body, #body)
     if send_len < 0 then
         log_err("[NetClient][write] call_head failed! code:%s", send_len)
         return false

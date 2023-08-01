@@ -102,15 +102,6 @@ end
 function RobotMgr:destory_robot(open_id)
     local robot = self.robot_list[open_id]
     if robot then
-        local ok, res = robot:logout_server()
-        return { code = ok and 0 or -1, msg = res }
-    end
-    return { code = -1, msg = "robot not exist" }
-end
-
-function RobotMgr:destory_robot(open_id)
-    local robot = self.robot_list[open_id]
-    if robot then
         robot:logout_server()
         self.robot_list[open_id] = nil
         return { code = 0, msg = "success" }

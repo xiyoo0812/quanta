@@ -164,7 +164,7 @@ function Document:update_redis(fields)
     for _, name in pairs(fields) do
         cursor = cursor[name]
     end
-    event_mgr:fire_next_frame(function()
+    event_mgr:fire_frame(function()
         if cursor then
             cursor = json_encode(cursor)
         end

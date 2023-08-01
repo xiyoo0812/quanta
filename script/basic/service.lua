@@ -78,13 +78,13 @@ function service.services()
 end
 
 --节点id获取服务id
-function service.get_service(service_id)
-    return (service_id >> 16) & 0xff
+function service.get_service(quanta_id)
+    return (quanta_id >> 16) & 0xff
 end
 
 --节点id获取服务index
-function service.get_index(service_id)
-    return service_id & 0x3ff
+function service.get_index(quanta_id)
+    return quanta_id & 0x3ff
 end
 
 --节点id转服务名

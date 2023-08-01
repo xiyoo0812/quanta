@@ -1,5 +1,5 @@
--- gm_mgr.lua
-local log_err       = logger.err
+-- accord_mgr.lua
+local log_warn       = logger.warn
 local log_debug     = logger.debug
 local jdecode       = json.decode
 
@@ -7,7 +7,6 @@ local HttpServer    = import("network/http_server.lua")
 
 local robot_mgr     = quanta.get("robot_mgr")
 local update_mgr    = quanta.get("update_mgr")
-local monitor       = quanta.get("monitor")
 local thread_mgr    = quanta.get("thread_mgr")
 local accord_dao    = quanta.get("accord_dao")
 
@@ -47,22 +46,20 @@ function AccordMgr:__init()
     server:register_post("/proto_edit", "on_proto_edit", self)
     server:register_post("/proto_del", "on_proto_del", self)
 
-
     service.make_node(server:get_port())
     self.http_server = server
-    -- 关注 mongo服务 事件
-    monitor:watch_service_ready(self, "mongo")
     -- 定时更新
     update_mgr:attach_second(self)
+    -- 加载数据
+    self:load_db_data()
     self:on_second()
 end
 
--- mongo服务已经ready
-function AccordMgr:on_service_ready(id, service_name)
+-- 加载db数据
+function AccordMgr:load_db_data()
     if self.load_db_status then
         return
     end
-    log_debug("[AccordMgr][on_service_ready] id:%s, service_name:%s", id, service_name)
     thread_mgr:success_call(SECOND_3_MS, function()
         local svr_ok, srv_dbdata = accord_dao.load_server_list()
         if svr_ok then
@@ -70,7 +67,7 @@ function AccordMgr:on_service_ready(id, service_name)
                 self.server_list[tostring(server.name)] = server
             end
         else
-            log_err("[AccordMgr][on_service_ready] load_server_list fail ok(%s)", svr_ok)
+            log_warn("[AccordMgr][load_db_data] load_server_list fail ok(%s)", svr_ok)
         end
 
         local cf_ok, cf_dbdata = accord_dao.load_accord_conf()
@@ -91,7 +88,7 @@ function AccordMgr:on_service_ready(id, service_name)
                 end
             end
         else
-            log_err("[AccordMgr][on_service_ready] load_accord_conf fail ok(%s)", cf_ok)
+            log_warn("[AccordMgr][load_db_data] load_accord_conf fail ok(%s)", cf_ok)
         end
 
         if svr_ok and cf_ok then
@@ -119,7 +116,7 @@ function AccordMgr:load_html()
         self.accord_html = file:read("*a")
         file:close()
     else
-        log_err("Unable to open file(file_path=bin/%s)", file_path)
+        log_warn("Unable to open file(file_path=bin/%s)", file_path)
     end
 end
 
@@ -134,7 +131,7 @@ function AccordMgr:load_css()
         self.accord_css = file:read("*a")
         file:close()
     else
-        log_err("Unable to open file(file_path=bin/%s)", file_path)
+        log_warn("Unable to open file(file_path=bin/%s)", file_path)
     end
 end
 

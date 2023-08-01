@@ -44,7 +44,7 @@ int lua_socket_node::call_text(const char* data, uint32_t data_len) {
     return data_len;
 }
 
-int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint32_t session_id, const char* data, uint32_t data_len){
+int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint8_t crc8, uint32_t session_id, const char* data, uint32_t data_len){
     size_t length = data_len + sizeof(socket_header);
     if (length > USHRT_MAX) return 0;
     //组装数据
@@ -52,6 +52,7 @@ int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint
     header.flag = flag;
     header.type = type;
     header.len = length;
+    header.crc8 = crc8;
     header.cmd_id = cmd_id;
     header.session_id = (session_id & 0xffff);
     //发送数据

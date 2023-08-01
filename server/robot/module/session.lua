@@ -3,7 +3,9 @@ local log_warn      = logger.warn
 local log_debug     = logger.debug
 local tunpack       = table.unpack
 
+local event_mgr     = quanta.get("event_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
+
 local NetClient     = import("network/net_client.lua")
 
 local SessionModule = mixin()
@@ -12,6 +14,7 @@ prop:reader("client", nil)
 prop:reader("cmd_doers", {})
 
 function SessionModule:__init()
+    event_mgr:add_trigger(self, "")
 end
 
 function SessionModule:disconnect()
@@ -38,9 +41,13 @@ function SessionModule:on_socket_error(client, token, err)
     log_debug("[SessionModule][on_socket_error] %s, err:%s", self:get_title(), err)
 end
 
+--消息回调
+function SessionModule:on_message_recv(cmd_id, body)
+    self:push_message(cmd_id, body)
+end
+
 -- ntf消息回调
 function SessionModule:on_socket_rpc(client, cmd_id, body)
-    self:push_message(cmd_id, body)
     local doer = self.cmd_doers[cmd_id]
     if not doer then
         log_warn("[SessionModule][on_socket_rpc] cmd %s hasn't register doer!, msg=%s", cmd_id, body)

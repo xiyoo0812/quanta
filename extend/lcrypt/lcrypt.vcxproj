@@ -12,6 +12,7 @@
     <ClInclude Include="src\lcrypt.h" />
     <ClInclude Include="src\lz4.h" />
     <ClInclude Include="src\md5.h" />
+    <ClInclude Include="src\rsa.h" />
     <ClInclude Include="src\sha1.h" />
     <ClInclude Include="src\sha2.h" />
     <ClInclude Include="src\xxtea.h" />
@@ -22,6 +23,7 @@
     <ClCompile Include="src\lcrypt.c" />
     <ClCompile Include="src\lz4.c" />
     <ClCompile Include="src\md5.c" />
+    <ClCompile Include="src\rsa.c" />
     <ClCompile Include="src\sha1.c" />
     <ClCompile Include="src\sha2.c" />
     <ClCompile Include="src\xxtea.c" />

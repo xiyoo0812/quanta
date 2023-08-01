@@ -23,6 +23,7 @@
                 <div class="left-pad">
                     <p>服务器地址: {{serverAddr}}</p>
                     <p>OpenID: {{openid}}</p>
+                    <p>roleId: {{roleId}}<button id="runall-btn" class="edit-btn" ng-show="roleId" ng-click="copyRoleId()">复制</button></p>
                 </div>
                 <div class="pad-line"></div>
             </div>
@@ -88,6 +89,9 @@
             </label> -->
             <label class="checkbox-inline">
                 <input type="checkbox" ng-model="checkbox.rptAtt" ng-change="onCheckboxChange('rptAtt')"> 回执关注
+            </label>
+            <label class="checkbox-inline">
+                <input type="checkbox" ng-model="checkbox.login" ng-change="onCheckboxChange('login')"> 登录关注
             </label>
         </div>
 
@@ -351,6 +355,7 @@
     app.controller('protocol', function ($scope, $http, $interval) {
         $scope.openid = null
         $scope.passwd = null
+        $scope.roleId = 0
         $scope.logined = false
         $scope.caseShow = false
         $scope.protoShow = false
@@ -367,7 +372,8 @@
         $scope.checkbox = {
             msgFilter: true,
             rptAtt: true,
-            msgRoll: true
+            msgRoll: true,
+            login: true
         }
 
         $scope.svrListShow = false,
@@ -568,9 +574,24 @@
                                 append = false
                             }
                         }
+
+                        //登录回执关注(cmd_id千分位=0表示登录服务的协议号)
+                        if(!append && $scope.checkbox.login){
+                            if (parseInt((response.data.msg.cmd_id/1000) % 10) == 0 || response.data.msg.cmd_id <= 10019) {
+                                append = true
+                            }
+                        }
+
                         if (append) {
                             $scope.messages += "\n\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "]服务器通知:\n" + $scope.prettyFormat(response.data)
                             document.getElementById('jsonShow').innerHTML = $scope.messages
+                        }
+
+                        //更新roleid
+                        if(response.data.msg.cmd_id == 10002){
+                            if(response.data.roles && response.data.roles.length > 0){
+                                $scope.roleId = response.data.roles[0].role_id
+                            }
                         }
                     }
                 });
@@ -1182,7 +1203,7 @@
                 return;
             }
 
-            $scope.messages += "\n开始启动机器人"
+            $scope.messages += "\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "] 开始启动机器人"
             //解析ip和port
             const regex = /\((.*?)\)/g;
             const matches = $scope.serverAddr.match(regex);
@@ -1196,7 +1217,7 @@
             }).then(function (response) {
                 if (response.data.code != 0) {
                     alert("启动失败" + response.data.msg)
-                    $scope.messages += "\n启动失败" + response.data.msg
+                    $scope.messages += "\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "] 启动失败：" + response.data.msg
                     return
                 }
                 console.log("启动成功")
@@ -1267,7 +1288,7 @@
                 document.getElementById("heartbeat-light").className = "heartbeat-icon light-green"
                 document.getElementById('jsonShow').innerHTML = $scope.messages
             } else {
-                $scope.messages += "\n停止成功"
+                $scope.messages += "\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "] 停止成功"
                 $scope.robotStatus = "已停止"
                 document.getElementById("heartbeat-light").className = "heartbeat-icon light-gray"
                 document.getElementById('jsonShow').innerHTML = $scope.messages
@@ -1285,6 +1306,26 @@
                 this.upProtFilter()
             }
         }
+        $scope.copyRoleId = function() {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText($scope.roleId.toString());
+            } else {
+                let textArea = document.createElement("textarea");
+                textArea.value = $scope.roleId.toString();
+                textArea.style.position = "absolute";
+                textArea.style.opacity = 0;
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                return new Promise((res, rej) => {
+                    document.execCommand('copy') ? res() : rej();
+                    textArea.remove();
+                });
+            }
+        }
+
     });
 </script>
 

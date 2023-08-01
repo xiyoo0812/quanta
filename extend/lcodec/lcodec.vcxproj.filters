@@ -4,10 +4,7 @@
     <ClInclude Include="src\bitarray.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\bufpool.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="src\bufqueue.h">
+    <ClInclude Include="src\crc.h">
       <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="src\guid.h">
@@ -23,12 +20,6 @@
       <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="src\serializer.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="src\shm.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="src\shmpool.h">
       <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>

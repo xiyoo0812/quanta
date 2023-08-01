@@ -70,7 +70,7 @@ function NacosDiscovery:refresh_services()
     end
 end
 
-function NacosDiscovery:routers()
+function NacosDiscovery:get_routers()
     return self.services.router or {}
 end
 

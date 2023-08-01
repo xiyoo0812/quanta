@@ -207,7 +207,7 @@ end
 --lmake_dir：项目目录相对于lmake的路径
 local function build_projfile(solution_dir, project_dir, lmake_dir)
     local lguid = require("lguid")
-    local ltmpl = require("ltemplate.ltemplate")
+    local ltmpl = require("ltemplate")
     local dir_files = ldir(project_dir)
     for _, file in pairs(dir_files) do
         local fullname = file.name
@@ -272,7 +272,7 @@ local function build_lmak(solution_dir)
         error("load share lmake file failed")
         return
     end
-    local ltmpl = require("ltemplate.ltemplate")
+    local ltmpl = require("ltemplate")
     ltmpl.render_file(lappend(lmake_dir, "tmpl/makefile.tpl"), lappend(solution_dir, "Makefile"), env)
     ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
     print(sformat("build solution %s success!", solution))

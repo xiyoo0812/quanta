@@ -17,7 +17,12 @@ local FRAME_SUCCESS     = protobuf_mgr:error_code("FRAME_SUCCESS")
 local ROLE_NOT_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
 local ROLE_TOKEN_ERR    = protobuf_mgr:error_code("LOGIN_ROLE_TOKEN_ERR")
 
+local MINUTE_5_S        = quanta.enum("PeriodTime", "MINUTE_5_S")
+
 local LobbyServlet = singleton()
+local prop = property(LobbyServlet)
+prop:reader("login_tokens", {})
+
 function LobbyServlet:__init()
     -- 事件监听
     event_mgr:add_listener(self, "rpc_player_sync")
@@ -28,6 +33,27 @@ function LobbyServlet:__init()
     event_mgr:add_listener(self, "rpc_player_login")
     event_mgr:add_listener(self, "rpc_player_logout")
     event_mgr:add_listener(self, "rpc_player_reload")
+
+    event_mgr:add_listener(self, "rpc_update_login_token")
+end
+
+function LobbyServlet:check_login_token(open_id, token)
+    local tokens = self.login_tokens[open_id]
+    if tokens then
+        self.login_tokens[open_id] = nil
+        local otoken, tick = tunpack(tokens)
+        if tick > quanta.now and otoken == token then
+            return true, otoken
+        end
+        return false, otoken
+    end
+    return false
+end
+
+function LobbyServlet:rpc_update_login_token(open_id, token)
+    log_debug("[LobbyServlet][rpc_update_login_token] open_id(%s) token(%s)!", open_id, token)
+    self.login_tokens[open_id] = { token, quanta.now + MINUTE_5_S }
+    return FRAME_SUCCESS
 end
 
 -- 会话需要同步
@@ -69,17 +95,15 @@ function LobbyServlet:rpc_player_command(player_id, cmd_id, message)
     return tunpack(result, 2)
 end
 
-function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token)
+function LobbyServlet:rpc_player_login(player_id, open_id, token)
     log_debug("[LobbyServlet][rpc_player_login] open_id(%s) player(%s) token(%s)  login req!", open_id, player_id, token)
     local account = player_mgr:load_account(open_id, player_id)
     if not account then
         return ROLE_TOKEN_ERR
     end
     --验证token
-    local lobby_id = quanta.id
-    local login_token = account:get_login_token()
-    if not login_token or token ~= login_token or lobby ~= lobby_id then
-        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, lobby_id)
+    local ok, login_token = self:check_login_token(open_id, token)
+    if not ok then
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, login_token)
         return ROLE_TOKEN_ERR
     end
@@ -90,9 +114,9 @@ function LobbyServlet:rpc_player_login(player_id, open_id, lobby, token)
     end
     --通知登陆成功
     local new_token = mrandom()
-    account:save_lobby(lobby_id)
+    account:save_lobby(quanta.id)
     account:set_reload_token(new_token)
-    event_mgr:fire_next_frame(function()
+    event_mgr:fire_frame(function()
         --玩家上线
         player:online()
         --通知登陆成功
@@ -113,7 +137,7 @@ function LobbyServlet:rpc_player_logout(player_id)
     return FRAME_SUCCESS
 end
 
-function LobbyServlet:rpc_player_reload(player_id, lobby, token)
+function LobbyServlet:rpc_player_reload(player_id, token)
     log_debug("[LobbyServlet][rpc_player_reload] player(%s) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
@@ -125,8 +149,7 @@ function LobbyServlet:rpc_player_reload(player_id, lobby, token)
     end
     --验证token
     local old_token = account:get_reload_token()
-    if token ~= old_token or lobby ~= quanta.id then
-        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, lobby: %s-%s", player_id, lobby, quanta.id)
+    if token ~= old_token then
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, old_token)
         return ROLE_TOKEN_ERR
     end

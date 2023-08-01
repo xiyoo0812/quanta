@@ -6,6 +6,8 @@ local lrandomkey    = crypt.randomkey
 local lb64encode    = crypt.b64_encode
 local lb64decode    = crypt.b64_decode
 local lhex_encode   = crypt.hex_encode
+local rsa_init_pkey = crypt.rsa_init_pkey
+local rsa_init_skey = crypt.rsa_init_skey
 
 local lsha1         = crypt.sha1
 local lsha224       = crypt.sha224
@@ -57,3 +59,46 @@ local hmac_sha384 = lhex_encode(lhmac_sha384(key, value))
 log_info("hmac_sha384: %s", hmac_sha384)
 local hmac_sha512 = lhex_encode(lhmac_sha512(key, value))
 log_info("hmac_sha512: %s", hmac_sha512)
+
+--rsa
+local pem_pub = [[
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCWKUc5BTsvNKLv389mqShFhg7l
+HbG8SyyAiHZ5gMMMoBGayBGgOCGXHDRDUabr0E8xFtSApu9Ppuj3frzwRDcj4Q69
+yXc/x1+a18Jt96DI/DJEkmkmo/Mr+pmY4mVFk4a7pxnXpynBUz7E7vp9/XvMs84L
+DFqqvGiSmW/YKJfsAQIDAQAB
+]]
+
+local pem_pri = [[
+MIICWwIBAAKBgQCWKUc5BTsvNKLv389mqShFhg7lHbG8SyyAiHZ5gMMMoBGayBGg
+OCGXHDRDUabr0E8xFtSApu9Ppuj3frzwRDcj4Q69yXc/x1+a18Jt96DI/DJEkmkm
+o/Mr+pmY4mVFk4a7pxnXpynBUz7E7vp9/XvMs84LDFqqvGiSmW/YKJfsAQIDAQAB
+AoGANhfDnPJZ+izbf07gH0rTg4wB5J5YTwzDiL/f8fAlE3C8NsZYtx9RVmamGxQY
+bf158aSYQ4ofTlHBvZptxJ3GQLzJQd2K15UBzBe67y2umN7oP3QD+nUhw83PnD/R
+A+aTmEiujIXS9aezbfaADYGd5fFr2ExUPvw9t0Pijxjw8WMCQQDDsGLBH4RTQwPe
+koVHia72LF7iQPP75AaOZIuhCTffaLsimA2icO+8/XT2yaeyiXqHn1Wzyk1ZrGgy
+MTeTu9jPAkEAxHDPRxNpPUhWQ6IdPWflecKpzT7fPcNJDyd6/Mg3MghWjuWc1xTl
+nmBDdlQGOvKsOY4K4ihDZjVMhBnqp16CLwJAOvaT2wMHGRtxOAhIFnUa/dwCvwO5
+QGXFv/P1ypD/f9aLxHGycga7heOM8atzVy1reR/+b8z+H43+W1lPGLmaKwJAJ2zA
+nPIvX+ZBsec6WRWd/5bq/09L/JhR9GGnFE6WjUsRHDLHDH+cKfIF+Bya93+2wwJX
++tW72Sp/Rc/xwU99bwJAfUw9Nfv8llVA2ZCHkHGNc70BjTyaT/TxLV6jcouDYMTW
+RfSHi27F/Ew6pENe4AwY2sfEV2TXrwEdrvfjNWFSPw==
+]]
+
+local pub_pem_b64 = lb64decode(string.gsub(pem_pub, "\n", "") )
+log_info("pub_pem_b64: %s", lhex_encode(pub_pem_b64))
+local pri_pem_b64 = lb64decode(string.gsub(pem_pri, "\n", "") )
+log_info("pri_pem_b64: %s", lhex_encode(pri_pem_b64))
+
+
+local code1 = rsa_init_pkey(pub_pem_b64)
+local code2 = rsa_init_skey(pri_pem_b64)
+log_info("rsa_init: %s, %s",  code1, code2)
+
+local rsav1 = crypt.rsa_pencode("xiyoo0812")
+log_info("rsa_pencode: %s, %s",  #rsav1, lhex_encode(rsav1))
+local rsav2 = crypt.rsa_sdecode(rsav1)
+log_info("rsa_sdecode: %s",  rsav2)
+local rsav3 = crypt.rsa_sencode("xiyoo0812")
+log_info("rsa_sencode: %s, %s",  #rsav3, lhex_encode(rsav3))
+local rsav4 = crypt.rsa_pdecode(rsav3)
+log_info("rsa_pdecode: %s",  rsav4)

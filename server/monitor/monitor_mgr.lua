@@ -12,7 +12,6 @@ local jdecode       = json.decode
 local signal_quit   = signal.quit
 
 local timer_mgr     = quanta.get("timer_mgr")
-local update_mgr    = quanta.get("update_mgr")
 
 local DISCOVERY     = environ.get("QUANTA_DISCOVERY", "redis")
 
@@ -27,7 +26,6 @@ prop:reader("http_server", nil)
 prop:reader("monitor_nodes", {})
 prop:reader("discovery", nil)
 prop:reader("services", {})
-prop:reader("log_page", "")
 
 function MonitorMgr:__init()
     --创建rpc服务器
@@ -35,24 +33,14 @@ function MonitorMgr:__init()
     self.rpc_server = RpcServer(self, ip, port)
     --创建HTTP服务器
     local server = HttpServer(env_get("QUANTA_MONITOR_HTTP"))
-    server:register_get("/", "on_log_page", self)
-    server:register_get("/status", "on_monitor_status", self)
     server:register_post("/command", "on_monitor_command", self)
     server:register_post("/shutdown", "on_server_shutdown", self)
     --初始化变量
     self.host = ip
     self.http_server = server
     self.port = server:get_port()
-    self.log_page = import("monitor/log_page.lua")
-    --初始化定时器
-    update_mgr:attach_minute(self)
     --加载服务发现
     self:load_discovery()
-end
-
---定时更新
-function MonitorMgr:on_minute()
-    self.log_page = import("monitor/log_page.lua")
 end
 
 function MonitorMgr:load_discovery()
@@ -67,7 +55,7 @@ end
 
 function MonitorMgr:on_client_accept(client)
     --返回所有路由信息
-    local routers = self.discovery:routers()
+    local routers = self.discovery:get_routers()
     if next(routers) then
         self.rpc_server:send(client, "rpc_service_changed", "router", routers, {})
     end
@@ -99,16 +87,6 @@ function MonitorMgr:on_client_error(client, token, err)
         self.discovery:unregister(client.id)
         self.monitor_nodes[token] = nil
     end
-end
-
---gm_page
-function MonitorMgr:on_log_page(url, body, request)
-    return self.log_page, {["Access-Control-Allow-Origin"] = "*"}
-end
-
--- status查询
-function MonitorMgr:on_monitor_status(url, querys, request)
-    return self.monitor_nodes
 end
 
 --call

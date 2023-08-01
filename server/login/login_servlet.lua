@@ -14,6 +14,7 @@ local guid_encode           = codec.guid_encode
 local monitor               = quanta.get("monitor")
 local login_dao             = quanta.get("login_dao")
 local event_mgr             = quanta.get("event_mgr")
+local router_mgr            = quanta.get("router_mgr")
 local update_mgr            = quanta.get("update_mgr")
 local client_mgr            = quanta.get("client_mgr")
 local protobuf_mgr          = quanta.get("protobuf_mgr")
@@ -27,7 +28,6 @@ local ROLE_NOT_EXIST        = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
 local ROLE_NUM_LIMIT        = protobuf_mgr:error_code("LOGIN_ROLE_NUM_LIMIT")
 local ACCOUTN_OFFLINE       = protobuf_mgr:error_code("LOGIN_ACCOUTN_OFFLINE")
 
-local MINUTE_5_S            = quanta.enum("PeriodTime", "MINUTE_5_S")
 local PLATFORM_PASSWORD     = protobuf_mgr:enum("platform_type", "PLATFORM_PASSWORD")
 
 local LoginServlet = singleton()
@@ -167,9 +167,12 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) server uphold!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
     end
+    local ok, code = router_mgr:call_target(gateway.lobby, "rpc_update_login_token", account.open_id, gateway.token)
+    if qfailed(code, ok) then
+        log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) update token failed!", user_id, role_id)
+        return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
+    end
     account:save_lobby(gateway.lobby)
-    account:save_login_token(gateway.token)
-    account:save_login_time(quanta.now + MINUTE_5_S)
     if not client_mgr:callback_by_id(session, cmd_id, gateway, session_id) then
         log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) callback failed!", user_id, role_id)
         return

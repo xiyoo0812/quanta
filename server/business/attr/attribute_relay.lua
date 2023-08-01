@@ -38,7 +38,7 @@ end
 
 function AttributeRelay:open_relay_attr(player)
     --注册属性转发
-    player:add_trigger(self, "on_attr_relay")
+    player:watch_event(self, "on_attr_relay")
 end
 
 function AttributeRelay:collect_relay_attr(player, player_id, service_name)

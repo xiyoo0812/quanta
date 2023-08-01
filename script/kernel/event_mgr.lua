@@ -1,6 +1,7 @@
 --event_mgr.lua
 local tinsert       = table.insert
 local tunpack       = table.unpack
+local log_warn      = logger.warn
 
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -10,6 +11,9 @@ local EventMgr = singleton(Listener)
 local prop = property(EventMgr)
 prop:reader("fevent_set", {})       -- frame event set
 prop:reader("sevent_set", {})       -- second event set
+prop:reader("fevent_map", {})       -- frame event map
+prop:reader("sevent_map", {})       -- second event map
+prop:reader("invalidates", {})      -- invalidates
 function EventMgr:__init()
 end
 
@@ -19,6 +23,19 @@ function EventMgr:on_frame()
     for _, handler in pairs(handlers) do
         thread_mgr:fork(handler)
     end
+    for obj, args in pairs(self.fevent_map) do
+        thread_mgr:fork(function()
+            obj:notify_event(tunpack(args))
+        end)
+    end
+    self.fevent_map = {}
+    local tick = quanta.now
+    for obj, func in pairs(self.invalidates) do
+        thread_mgr:fork(function()
+            obj[func](obj, tick)
+        end)
+    end
+    self.invalidates = {}
 end
 
 function EventMgr:on_second()
@@ -27,10 +44,35 @@ function EventMgr:on_second()
     for _, handler in pairs(handlers) do
         thread_mgr:fork(handler)
     end
+    for obj, args in pairs(self.sevent_map) do
+        thread_mgr:fork(function()
+            obj:notify_event(tunpack(args))
+        end)
+    end
+    self.sevent_map = {}
 end
 
---延迟一帧
-function EventMgr:fire_next_frame(event, ...)
+--invalidate
+function EventMgr:invalidate(obj, func)
+    if not obj[func] then
+        log_warn("[EventMgr][invalidate] obj(%s) isn't %s method!", obj:source(), func)
+        return
+    end
+    self.invalidates[obj] = func
+end
+
+--下一帧发布
+function EventMgr:publish_frame(obj, event, ...)
+    self.fevent_map[obj] = { event, ... }
+end
+
+--下一秒发布
+function EventMgr:publish_second(obj, event, ...)
+    self.sevent_map[obj] = { event, ... }
+end
+
+--延迟一帧事件
+function EventMgr:fire_frame(event, ...)
     if type(event) == "function" then
         tinsert(self.fevent_set, event)
         return
@@ -41,8 +83,8 @@ function EventMgr:fire_next_frame(event, ...)
     end)
 end
 
---延迟一秒
-function EventMgr:fire_next_second(event, ...)
+--延迟一秒事件
+function EventMgr:fire_second(event, ...)
     if type(event) == "function" then
         tinsert(self.sevent_set, event)
         return

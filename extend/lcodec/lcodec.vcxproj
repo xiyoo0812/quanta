@@ -8,15 +8,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bitarray.h" />
-    <ClInclude Include="src\bufpool.h" />
-    <ClInclude Include="src\bufqueue.h" />
+    <ClInclude Include="src\crc.h" />
     <ClInclude Include="src\guid.h" />
     <ClInclude Include="src\hash.h" />
     <ClInclude Include="src\ketama.h" />
     <ClInclude Include="src\lcodec.h" />
     <ClInclude Include="src\serializer.h" />
-    <ClInclude Include="src\shm.h" />
-    <ClInclude Include="src\shmpool.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lcodec.cpp" />

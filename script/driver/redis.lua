@@ -422,7 +422,7 @@ function RedisDB:login(socket)
     self.connections[id] = nil
     tinsert(self.alives, socket)
     log_info("[RedisDB][login] login db(%s:%s:%s) success!", ip, port, id)
-    event_mgr:fire_next_frame(function()
+    event_mgr:fire_frame(function()
         self:on_socket_alive()
     end)
     return true, SUCCESS
@@ -449,7 +449,7 @@ function RedisDB:on_socket_error(sock, token, err)
     --设置重连
     self:delive(sock)
     timer_mgr:set_period(self.timer_id, SECOND_MS)
-    event_mgr:fire_next_second(function()
+    event_mgr:fire_second(function()
         self:check_alive()
     end)
     local task_queue = sock.task_queue

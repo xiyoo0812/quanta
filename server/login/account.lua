@@ -15,8 +15,6 @@ prop:reader("create_time", 0)       --create_time
 local dprop = db_property(Account, "account", true)
 dprop:store_value("token", 0)       --token
 dprop:store_value("lobby", 0)       --lobby
-dprop:store_value("login_token", 0) --login_token
-dprop:store_value("login_time", 0)  --login_time
 dprop:store_value("device_id", 0)   --device_id
 dprop:store_values("params", {})    --params
 dprop:store_values("roles", {})     --roles

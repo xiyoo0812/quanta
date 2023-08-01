@@ -56,7 +56,7 @@ function AttrComponent:init_attrset(type_attr_db, range)
         self.attr_set[attr_id] = attr_def
         self.attrs[attr_id] = attr_type == "int" and 0 or ""
     end
-    self:add_trigger(self, "on_attr_sync")
+    self:watch_event(self, "on_attr_sync")
 end
 
 --加载db数据
@@ -107,11 +107,11 @@ end
 
 --观察属性
 function AttrComponent:watch_attr(trigger, attr_id, handler)
-    self:add_trigger(trigger, sformat("on_attr_changed_%s", attr_id), handler)
+    self:watch_event(trigger, sformat("on_attr_changed_%s", attr_id), handler)
 end
 
 function AttrComponent:unwatch_attr(trigger, attr_id)
-    self:remove_trigger(trigger, sformat("on_attr_changed_%s", attr_id))
+    self:unwatch_event(trigger, sformat("on_attr_changed_%s", attr_id))
 end
 
 function AttrComponent:on_attr_changed(attr_id, attr, value, service_id)
@@ -119,17 +119,17 @@ function AttrComponent:on_attr_changed(attr_id, attr, value, service_id)
         --回写判定
         if self.wbackable and attr.back and (not service_id) then
             self.write_attrs[attr_id] = value
-            self:delay_notify("on_attr_writeback")
+            event_mgr:publish_frame(self, "on_attr_writeback", self.id, self)
         end
         --转发判定
         if self.relayable then
             self.relay_attrs[attr_id] = { value, service_id }
-            self:delay_notify("on_attr_relay")
+            event_mgr:publish_frame(self, "on_attr_relay", self.id, self)
         end
         --同步属性
         if attr.range > 0 and self.range >= attr.range then
             self.sync_attrs[attr_id] = attr
-            self:delay_notify("on_attr_sync")
+            event_mgr:publish_frame(self, "on_attr_sync", self.id, self)
         end
         --通知改变
         self:notify_event(sformat("on_attr_changed_%s", attr_id), value, attr_id, self)
@@ -220,10 +220,6 @@ function AttrComponent:on_attr_sync(entity_id, entity)
         entity:sync_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = battrs })
     end
     self.sync_attrs = {}
-end
-
---更新
-function AttrComponent:_update()
 end
 
 return AttrComponent

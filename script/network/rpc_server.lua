@@ -171,6 +171,13 @@ end
 --broadcast接口
 function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
+        client.call_rpc(rpc, 0, FLAG_REQ, ...)
+    end
+end
+
+--broadcast接口，注册后才转发
+function RpcServer:broadcast_legal(rpc, ...)
+    for _, client in pairs(self.clients) do
         if client.service then
             client.call_rpc(rpc, 0, FLAG_REQ, ...)
         end

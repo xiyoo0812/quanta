@@ -29,6 +29,7 @@ prop:reader("trigger", nil)
 prop:reader("timer_id", nil)
 prop:reader("subscriber", nil)
 prop:reader("services", {})
+prop:reader("routers", {})
 prop:reader("locals", {})
 
 function RedisDiscovery:__init(trigger)
@@ -57,7 +58,7 @@ function RedisDiscovery:setup()
         self:check_heartbeat(quanta.now)
     end)
     --注册自己
-    event_mgr:fire_next_second(function()
+    event_mgr:fire_second(function()
         self:register(quanta.node_info)
     end)
 end
@@ -73,14 +74,12 @@ function RedisDiscovery:load_services()
     end
     for _, node in pairs(querys) do
         local sname = sid2name(node.id)
-        if self.services[sname] then
+        if sname == "router" then
+            self.routers[node.id] = node
+        else
             self.services[sname][node.id] = node
         end
     end
-end
-
-function RedisDiscovery:routers()
-    return self.services.router or {}
 end
 
 function RedisDiscovery:on_subscribe_alive()
@@ -92,15 +91,26 @@ end
 function RedisDiscovery:on_subscribe_ready(channel, data)
     local node_data = json_decode(data)
     local node_id = node_data.id
+    local sname = sid2name(node_id)
     if channel == CHANNEL_UP then
         log_debug("[RedisDiscovery][quanta_register] data:%s", data)
-        self.services[sid2name(node_id)][node_id] = node_data
-        self.trigger:broadcast("rpc_service_changed", sid2name(node_id), { [node_id] = node_data }, {})
+        if sname == "router" then
+            self.routers[node_id] = node_data
+            self.trigger:broadcast("rpc_service_changed", sname, { [node_id] = node_data }, {})
+            return
+        end
+        self.services[sname][node_id] = node_data
+        self.trigger:broadcast_legal("rpc_service_changed", sname, { [node_id] = node_data }, {})
     end
     if channel == CHANNEL_DN then
         log_debug("[RedisDiscovery][quanta_unregister] data:%s", data)
-        self.services[sid2name(node_id)][node_id] = nil
-        self.trigger:broadcast("rpc_service_changed", sid2name(node_id), {}, { [node_id] = node_data })
+        if sname == "router" then
+            self.routers[node_id] = nil
+            self.trigger:broadcast("rpc_service_changed", sname, {}, { [node_id] = node_data })
+            return
+        end
+        self.services[sname][node_id] = nil
+        self.trigger:broadcast_legal("rpc_service_changed", sname, {}, { [node_id] = node_data })
     end
 end
 
@@ -108,11 +118,11 @@ end
 function RedisDiscovery:check_heartbeat(now)
     local fields = {}
     for _, sdata in pairs(self.locals) do
-        tinsert(fields, now)
         tinsert(fields, sdata)
+        tinsert(fields, now)
     end
     if next(fields) then
-        self.redis:execute("ZADD", SERVICE_KEY, tunpack(fields))
+        self.redis:execute("HMSET", SERVICE_KEY, tunpack(fields))
     end
 end
 
@@ -145,7 +155,7 @@ function RedisDiscovery:query_instances()
     local results = {}
     local now = quanta.now
     repeat
-        local ok, next_cur, datas = self.redis:execute("ZSCAN", SERVICE_KEY, cur, "count", 100)
+        local ok, next_cur, datas = self.redis:execute("HSCAN", SERVICE_KEY, cur, "count", 200)
         if not ok or not cur or not datas then
             log_err("[RedisDiscovery][query_instances] query failed: cur:%s, datas:%s", cur, datas)
             return
@@ -162,13 +172,13 @@ end
 
 -- 注册实例
 function RedisDiscovery:regi_instance(node_data)
-    self.redis:execute("ZADD", SERVICE_KEY, quanta.now, node_data)
+    self.redis:execute("HSET", SERVICE_KEY, node_data, quanta.now)
     self.subscriber:publish(CHANNEL_UP, node_data)
 end
 
 -- 删除实例
 function RedisDiscovery:del_instance(node_data)
-    self.redis:execute("ZREM", SERVICE_KEY, node_data)
+    self.redis:execute("HDEL", SERVICE_KEY, node_data)
     self.subscriber:publish(CHANNEL_DN, node_data)
 end
 

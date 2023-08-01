@@ -12,8 +12,8 @@ prop:reader("subscribers", {})
 prop:reader("subhandlers", {})
 
 function SubComponent:__init()
-    self:add_trigger(self, "on_subscriber")
-    self:add_trigger(self, "on_unsubscriber")
+    self:watch_event(self, "on_subscriber")
+    self:watch_event(self, "on_unsubscriber")
 end
 
 --注册订阅器执行函数

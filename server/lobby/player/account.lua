@@ -4,17 +4,15 @@ local game_dao  = quanta.get("game_dao")
 
 local Account = class()
 local prop = property(Account)
+prop:reader("params", {})           --params
 prop:reader("user_id", 0)           --user_id
 prop:reader("open_id", "")          --open_id
+prop:reader("device_id", 0)         --device_id
 prop:reader("create_time", 0)       --create_time
 prop:accessor("reload_token", 0)    --reload_token
 
 local dprop = db_property(Account, "account", true)
 dprop:store_value("lobby", 0)       --lobby
-dprop:store_value("device_id", 0)   --device_id
-dprop:store_value("login_token", 0) --login_token
-dprop:store_value("login_time", 0)  --login_time
-dprop:store_value("params", {})     --params
 dprop:store_values("roles", {})     --roles
 
 function Account:__init(open_id)
@@ -33,8 +31,6 @@ function Account:on_db_account_load(data)
         self.user_id = data.user_id
         self.device_id = data.device_id
         self.create_time = data.create_time
-        self.login_token = data.login_token
-        self.login_time = data.login_time
         return true
     end
     return false
@@ -53,12 +49,6 @@ function Account:update_custom(role_id, custom)
     if role then
         role.custom = custom
         self:save_roles_field(role_id, role)
-    end
-end
-
-function Account:get_login_token()
-    if quanta.now <= self.login_time then
-        return self.login_token
     end
 end
 

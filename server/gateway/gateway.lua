@@ -242,7 +242,7 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     else
         player = GatePlayer(session, open_id, player_id)
     end
-    local code, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, lobby, token)
+    local code, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, token)
     if qfailed(code) then
         log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, code, new_token)
         return client_mgr:callback_errcode(session, cmd_id, code, session_id)
@@ -294,7 +294,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
-    local code, new_token = self:call_lobby(lobby, "rpc_player_reload", player_id, lobby, token)
+    local code, new_token = self:call_lobby(lobby, "rpc_player_reload", player_id, token)
     if qfailed(code) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code %s failed: %s", code, new_token)
         return client_mgr:callback_by_id(session, cmd_id, { error_code = 0, token = 0 }, session_id)

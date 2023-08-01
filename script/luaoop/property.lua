@@ -51,8 +51,7 @@ local function prop_accessor(class, name, default, mode)
     end
 end
 
-local function prop_wraper(class, name, ...)
-    local fields = { ... }
+local function prop_wraper(class, name, fields)
     class["get_" .. name] = function(self)
         local res = {}
         for _, field in ipairs(fields) do
@@ -79,8 +78,8 @@ end
 local property_writer = function(self, name, default)
     prop_accessor(self.__class, name, default, WRITER)
 end
-local property_wraper = function(self, name, fields)
-    prop_wraper(self.__class, name, fields)
+local property_wraper = function(self, name, ...)
+    prop_wraper(self.__class, name, { ... })
 end
 local property_accessor = function(self, name, default)
     prop_accessor(self.__class, name, default, ACCESSOR)
