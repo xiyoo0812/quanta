@@ -33,5 +33,5 @@ quanta.startup(function()--初始化test
     import("test/detour_test.lua")
     import("test/bitarray_test.lua")
     ]]
-    import("test/crypt_test.lua")
+    import("test/json_test.lua")
 end)

@@ -242,13 +242,13 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
     else
         player = GatePlayer(session, open_id, player_id)
     end
+    online:login_service(player_id, "gateway", quanta.id)
     local code, new_token = self:call_lobby(lobby, "rpc_player_login", player_id, open_id, token)
     if qfailed(code) then
         log_err("[Gateway][on_role_login_req] player (%s) call rpc_player_login code %s failed: %s", player_id, code, new_token)
         return client_mgr:callback_errcode(session, cmd_id, code, session_id)
     end
     session.player_id = player_id
-    online:login_service(player_id, "gateway", quanta.id)
     self:add_player(player, player_id, lobby, new_token)
     log_info("[Gateway][on_role_login_req] user:%s player:%s, new_token:%s login success!", open_id, player_id, new_token)
     local callback_data = { error_code = code, token = new_token}

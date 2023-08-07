@@ -1,8 +1,8 @@
 --工程名字
-PROJECT_NAME = "lcjson"
+PROJECT_NAME = "ljson"
 
 --目标名字
-TARGET_NAME = "lcjson"
+TARGET_NAME = "ljson"
 
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
@@ -13,8 +13,11 @@ EX_FLAGS = {
 
 --需要的include目录
 INCLUDES = {
-    "../lua/lua"
+    "../lua/lua",
+    "../luakit/include"
 }
+
+MIMALLOC = false
 
 --需要连接的库文件
 LIBS = {

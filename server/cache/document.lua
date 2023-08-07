@@ -118,6 +118,16 @@ end
 function Document:update()
     local pid = self.primary_id
     local channel = makechan("doc update")
+    --清理缓存
+    channel:push(function()
+        local rcode, rres = redis_mgr:execute(MAIN_DBID, pid, "DEL", self.hotkey)
+        if qfailed(rcode) then
+            log_err("[Document][update] del failed: %s=> hotkey: %s", rres, self.hotkey)
+            return false, rcode
+        end
+        self.flushing = false
+        return true, SUCCESS
+    end)
     channel:push(function()
         local selector = { [self.primary_key] = pid }
         local code, res = mongo_mgr:update(MAIN_DBID, pid, self.coll_name, self.datas, selector, true)
@@ -127,22 +137,12 @@ function Document:update()
         end
         return true, SUCCESS
     end)
-    --清理缓存
-    channel:push(function()
-        local rcode, rres = redis_mgr:execute(MAIN_DBID, pid, "DEL", self.hotkey)
-        if qfailed(rcode) then
-            log_err("[Document][update] del failed: %s=> hotkey: %s", rres, self.hotkey)
-            return false, rcode
-        end
-        return true, SUCCESS
-    end)
     local ok, code = channel:execute(true)
     if ok then
         --重置时间和次数
         local conf = self.prototype
         self.time = quanta.now + conf.time
         self.count = conf.count
-        self.flushing = false
         return true, SUCCESS
     end
     return false, code

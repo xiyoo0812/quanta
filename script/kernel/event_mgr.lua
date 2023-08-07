@@ -23,10 +23,12 @@ function EventMgr:on_frame()
     for _, handler in pairs(handlers) do
         thread_mgr:fork(handler)
     end
-    for obj, args in pairs(self.fevent_map) do
-        thread_mgr:fork(function()
-            obj:notify_event(tunpack(args))
-        end)
+    for obj, events in pairs(self.fevent_map) do
+        for event, args in pairs(events) do
+            thread_mgr:fork(function()
+                obj:notify_event(event, obj, tunpack(args))
+            end)
+        end
     end
     self.fevent_map = {}
     local tick = quanta.now
@@ -44,10 +46,12 @@ function EventMgr:on_second()
     for _, handler in pairs(handlers) do
         thread_mgr:fork(handler)
     end
-    for obj, args in pairs(self.sevent_map) do
-        thread_mgr:fork(function()
-            obj:notify_event(tunpack(args))
-        end)
+    for obj, events in pairs(self.sevent_map) do
+        for event, args in pairs(events) do
+            thread_mgr:fork(function()
+                obj:notify_event(event, obj, tunpack(args))
+            end)
+        end
     end
     self.sevent_map = {}
 end
@@ -63,12 +67,18 @@ end
 
 --下一帧发布
 function EventMgr:publish_frame(obj, event, ...)
-    self.fevent_map[obj] = { event, ... }
+    if not self.fevent_map[obj] then
+        self.fevent_map[obj] = {[event] = { ... }}
+    end
+    self.fevent_map[obj][event] = { ... }
 end
 
 --下一秒发布
 function EventMgr:publish_second(obj, event, ...)
-    self.sevent_map[obj] = { event, ... }
+    if not self.sevent_map[obj] then
+        self.sevent_map[obj] = {[event] = { ... }}
+    end
+    self.sevent_map[obj][event] = { ... }
 end
 
 --延迟一帧事件

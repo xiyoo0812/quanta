@@ -21,7 +21,7 @@ cache:upsert({
 
 cache:upsert({
     id = 2,
-    group = 'lobby',
+    group = 'player',
     sheet = 'player',
     key = 'player_id',
     inertable = false,

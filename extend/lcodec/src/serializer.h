@@ -12,17 +12,18 @@ namespace lcodec {
     const uint8_t type_nil          = 0;
     const uint8_t type_true         = 1;
     const uint8_t type_false        = 2;
-    const uint8_t type_tab_head     = 3;
-    const uint8_t type_tab_tail     = 4;
-    const uint8_t type_number       = 5;
-    const uint8_t type_int16        = 6;
-    const uint8_t type_int32        = 7;
-    const uint8_t type_int64        = 8;
-    const uint8_t type_str_shrt     = 9;
-    const uint8_t type_str_long     = 10;
-    const uint8_t type_index        = 11;
-    const uint8_t type_undefine     = 12;
-    const uint8_t type_max          = 13;
+    const uint8_t type_arr_head     = 3;
+    const uint8_t type_obj_head     = 4;
+    const uint8_t type_tab_tail     = 5;
+    const uint8_t type_number       = 6;
+    const uint8_t type_int16        = 7;
+    const uint8_t type_int32        = 8;
+    const uint8_t type_int64        = 9;
+    const uint8_t type_str_shrt     = 10;
+    const uint8_t type_str_long     = 11;
+    const uint8_t type_index        = 12;
+    const uint8_t type_undefine     = 13;
+    const uint8_t type_max          = 14;
 
     const uint8_t max_encode_depth  = 16;
     const uint8_t max_share_string  = 255;
@@ -92,6 +93,21 @@ namespace lcodec {
         }
 
     protected:
+        bool is_array(lua_State *L, int idx, size_t raw_len) {
+            if (raw_len == 0) return false;
+            lua_guard g(L);
+            size_t cur_len = 0;
+            lua_pushnil(L);
+            while (lua_next(L, idx) != 0) {
+                if (!lua_isinteger(L, -2)) {
+                    return false;
+                }
+                cur_len++;
+                lua_pop(L, 1);
+            }
+            return cur_len == raw_len;
+        }
+
         int16_t find_index(std::string str) {
             for (int i = 0; i < m_sshares.size(); ++i) {
                 if (m_sshares[i] == str) {
@@ -190,16 +206,30 @@ namespace lcodec {
             }
         }
 
-        void table_encode(lua_State* L, int index, int depth) {
-            index = lua_absindex(L, index);
-            value_encode(type_tab_head);
+        void array_encode(lua_State* L, int index, int depth) {
+            value_encode(type_arr_head);
             lua_pushnil(L);
             while (lua_next(L, index) != 0) {
-                encode_one(L, -2, depth);
                 encode_one(L, -1, depth);
                 lua_pop(L, 1);
             }
             value_encode(type_tab_tail);
+        }
+
+        void table_encode(lua_State* L, int index, int depth) {
+            index = lua_absindex(L, index);
+            if (!is_array(L, index, lua_rawlen(L, index))) {
+                value_encode(type_obj_head);
+                lua_pushnil(L);
+                while (lua_next(L, index) != 0) {
+                    encode_one(L, -2, depth);
+                    encode_one(L, -1, depth);
+                    lua_pop(L, 1);
+                }
+                value_encode(type_tab_tail);
+                return;
+            }
+            return array_encode(L, index, depth);
         }
 
         void string_decode(lua_State* L, slice* buf, uint16_t sz) {
@@ -223,14 +253,25 @@ namespace lcodec {
             lua_pushlstring(L, str.c_str(), str.size());
         }
 
-        void table_decode(lua_State* L, slice* buf) {
-            lua_newtable(L);
+        void object_decode(lua_State* L, slice* buf) {
+            lua_createtable(L, 0, 8);
             do {
                 if (decode_one(L, buf) == type_tab_tail) {
                     break;
                 }
                 decode_one(L, buf);
                 lua_rawset(L, -3);
+            } while (1);
+        }
+
+        void array_decode(lua_State* L, slice* buf) {
+            int idx = 1;
+            lua_createtable(L, 0, 8);
+            do {
+                if (decode_one(L, buf) == type_tab_tail) {
+                    break;
+                }
+                lua_rawseti(L, -2, idx++);
             } while (1);
         }
 
@@ -257,8 +298,11 @@ namespace lcodec {
             case type_index:
                 index_decode(L, buf);
                 break;
-            case type_tab_head:
-                table_decode(L, buf);
+            case type_arr_head:
+                array_decode(L, buf);
+                break;
+            case type_obj_head:
+                object_decode(L, buf);
                 break;
             case type_tab_tail:
                 break;
@@ -370,6 +414,8 @@ namespace lcodec {
 
         void serialize_table(lua_State* L, int index, int depth, int line) {
             index = lua_absindex(L, index);
+            bool barray = is_array(L, index, lua_rawlen(L, index));
+
             int size = 0;
             lua_pushnil(L);
             serialize_value("{");
@@ -379,18 +425,20 @@ namespace lcodec {
                     serialize_value(",");
                     serialize_crcn(depth, line);
                 }
-                if (lua_isnumber(L, -2)) {
-                    lua_pushvalue(L, -2);
-                    serialize_quote(lua_tostring(L, -1), "[", "]=");
-                    lua_pop(L, 1);
-                }
-                else if (lua_type(L, -2) == LUA_TSTRING) {
-                    serialize_value(lua_tostring(L, -2));
-                    serialize_value("=");
-                }
-                else {
-                    serialize_one(L, -2, depth, line);
-                    serialize_value("=");
+                if (!barray) {
+                    if (lua_isnumber(L, -2)) {
+                        lua_pushvalue(L, -2);
+                        serialize_quote(lua_tostring(L, -1), "[", "]=");
+                        lua_pop(L, 1);
+                    }
+                    else if (lua_type(L, -2) == LUA_TSTRING) {
+                        serialize_value(lua_tostring(L, -2));
+                        serialize_value("=");
+                    }
+                    else {
+                        serialize_one(L, -2, depth, line);
+                        serialize_value("=");
+                    }
                 }
                 serialize_one(L, -1, depth, line);
                 lua_pop(L, 1);

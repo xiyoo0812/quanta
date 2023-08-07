@@ -119,17 +119,17 @@ function AttrComponent:on_attr_changed(attr_id, attr, value, service_id)
         --回写判定
         if self.wbackable and attr.back and (not service_id) then
             self.write_attrs[attr_id] = value
-            event_mgr:publish_frame(self, "on_attr_writeback", self.id, self)
+            event_mgr:publish_frame(self, "on_attr_writeback", self.id)
         end
         --转发判定
         if self.relayable then
             self.relay_attrs[attr_id] = { value, service_id }
-            event_mgr:publish_frame(self, "on_attr_relay", self.id, self)
+            event_mgr:publish_frame(self, "on_attr_relay", self.id)
         end
         --同步属性
         if attr.range > 0 and self.range >= attr.range then
             self.sync_attrs[attr_id] = attr
-            event_mgr:publish_frame(self, "on_attr_sync", self.id, self)
+            event_mgr:publish_frame(self, "on_attr_sync")
         end
         --通知改变
         self:notify_event(sformat("on_attr_changed_%s", attr_id), value, attr_id, self)
@@ -204,7 +204,7 @@ function AttrComponent:package_attrs(range)
     return attrs
 end
 
-function AttrComponent:on_attr_sync(entity_id, entity)
+function AttrComponent:on_attr_sync()
     local attrs, battrs = {}, {}
     for attr_id, attr in pairs(self.sync_attrs) do
         if attr.range == 1 then
@@ -214,10 +214,10 @@ function AttrComponent:on_attr_sync(entity_id, entity)
         end
     end
     if next(attrs) then
-        entity:send("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = attrs })
+        self:send("NID_ENTITY_ATTR_UPDATE_NTF", { id = self.id, attrs = attrs })
     end
     if self.range > 1 and next(battrs) then
-        entity:sync_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = battrs })
+        self:boardcast_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = self.id, attrs = battrs })
     end
     self.sync_attrs = {}
 end

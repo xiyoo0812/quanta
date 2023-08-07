@@ -45,8 +45,8 @@ end
 
 --角色登录服务
 function TransferMgr:rpc_login_service(client, player_id, serv_name, serv_id)
-    log_info("[TransferMgr][rpc_login_service]: %s, service: %s-%s", player_id, serv_name, serv_id)
     if self:update_service(player_id, serv_name, serv_id) then
+        log_info("[TransferMgr][rpc_login_service]: %s, service: %s-%s", player_id, serv_name, serv_id)
         return SUCCESS
     end
     return RPC_FAILED
@@ -68,13 +68,19 @@ function TransferMgr:update_service(pla_id, serv_name, serv_id)
     if serv_name == "lobby" and serv_id == 0 then
         router_id = 0
     end
+    local old_serv_id
+    if self.routers[pla_id] then
+        old_serv_id = self.routers[pla_id][serv_name]
+        self.routers[pla_id][serv_name] = serv_id
+    else
+        self.routers[pla_id] = {[serv_name] = serv_id}
+    end
     local ok, code, routers = self.rpc_server:forward_hash(sess_id, SERVICE_CACHE, pla_id, "rpc_router_update", pla_id, router_id, serv_name, serv_id)
     if qfailed(code, ok) then
+        self.routers[pla_id][serv_name] = old_serv_id
         return
     end
-    if routers.router then
-        self.routers[pla_id] = routers
-    end
+    self.routers[pla_id] = routers
     return routers
 end
 
@@ -83,17 +89,19 @@ function TransferMgr:query_service(player_id, serv_name)
     if routers then
         return SUCCESS, routers[serv_name]
     end
-    routers = self:update_service(player_id)
-    if not routers then
+    local sess_id = thread_mgr:build_session_id()
+    local ok, code, rrouters = self.rpc_server:forward_hash(sess_id, SERVICE_CACHE, player_id, "rpc_router_update", player_id, NODE_ID)
+    if qfailed(code, ok) then
         return RPC_FAILED
     end
-    return SUCCESS, routers[serv_name]
+    self.routers[player_id] = rrouters
+    return SUCCESS, rrouters[serv_name]
 end
 
 --转发消息
 function TransferMgr:on_transfor_rpc(client, session_id, service_id, player_id, slice)
     if service_id == SERVICE_MAX then
-        self:boardcast_transfor(player_id, slice)
+        self:boardcast_transfor(client, player_id, slice)
         return
     end
     local _, server_id = self:query_service(player_id, sid2name(service_id))
@@ -107,13 +115,15 @@ function TransferMgr:on_transfor_rpc(client, session_id, service_id, player_id, 
 end
 
 --转发广播
-function TransferMgr:boardcast_transfor(player_id, slice)
+function TransferMgr:boardcast_transfor(client, player_id, slice)
     local routers = self.routers[player_id]
     if not routers then
         routers = self:update_service(player_id)
     end
     for _, server_id in pairs(routers) do
-        self.rpc_server:forward_call(0, server_id, slice)
+        if client.id ~= server_id then
+            self.rpc_server:forward_call(0, server_id, slice)
+        end
     end
 end
 

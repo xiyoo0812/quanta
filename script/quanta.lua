@@ -112,3 +112,9 @@ function quanta.make_channel(title)
     local Channel = import("feature/channel.lua")
     return Channel(title)
 end
+
+--创建定时器
+function quanta.make_timer()
+    local Timer = import("feature/timer.lua")
+    return Timer()
+end

@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = lcjson
+PROJECT_NAME = ljson
 
 #目标名字
-TARGET_NAME = lcjson
+TARGET_NAME = ljson
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -33,6 +33,7 @@ STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../lua/lua
+MYCFLAGS += -I../luakit/include
 
 #需要定义的选项
 
@@ -48,9 +49,6 @@ EXCLUDE =
 
 #需要连接的库文件
 LIBS =
-#是否启用mimalloc库
-LIBS += -lmimalloc
-MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
 #自定义库
 LIBS += -llua
 #系统库

@@ -29,7 +29,7 @@ end
 --本地消息
 -------------------------------------------------------------------------
 --属性回写
-function AttributeAgent:on_attr_writeback(player_id, player)
+function AttributeAgent:on_attr_writeback(player, player_id)
     local write_attrs = player:get_write_attrs()
     local ok, code = player:call_lobby("rpc_attr_writeback", write_attrs, quanta.service)
     if qfailed(code, ok) then

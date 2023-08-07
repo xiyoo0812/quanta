@@ -1,37 +1,42 @@
 --library.lua
 local sformat   = string.format
+local qgetenv   = quanta.getenv
 
 --加载全局扩展库，使用顶级域名
 local librarys = {
-    --aoi解析
-    aoi = require("laoi"),
     --日志库
     log = require("lualog"),
-    --http解析
-    http = require("lhttp"),
-    --Curl库
-    curl = require("lcurl"),
-    --json库
-    json = require("lcjson"),
-    --加密解密库
-    crypt = require("lcrypt"),
-    --编码库
-    codec = require("lcodec"),
     --文件系统库
     stdfs = require("lstdfs"),
     --定时器库
     timer = require("ltimer"),
     --PB解析库
     protobuf = require("pb"),
-    --网络库
-    luabus = require("luabus"),
+    --json库
+    json = require("ljson"),
     --Mongo驱动/bson库
     mongo = require("lmongo"),
-    --detour库
-    detour = require("ldetour"),
-    --多线程库
-    worker = require("lworker"),
+    --编码库
+    codec = require("lcodec"),
+    --加密解密库
+    crypt = require("lcrypt"),
 }
+
+--特定模块
+if qgetenv("QUANTA_MODE") then
+    --aoi解析
+    librarys.aoi = require("laoi")
+    --http解析
+    librarys.http = require("lhttp")
+    --Curl库
+    librarys.curl = require("lcurl")
+    --网络库
+    librarys.luabus = require("luabus")
+    --detour库
+    librarys.detour = require("ldetour")
+    --多线程库
+    librarys.worker = require("lworker")
+end
 
 --index
 local function _glib_index(o, k)
