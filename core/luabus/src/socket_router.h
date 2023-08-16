@@ -7,7 +7,7 @@
 
 enum class rpc_type : char {
     remote_call,
-    transfor_call,
+    transfer_call,
     forward_target,
     forward_master,
     forward_broadcast,
@@ -30,7 +30,7 @@ struct router_header {
     uint32_t session_id = 0;
     uint32_t target_id = 0;
 };
-struct transfor_header {
+struct transfer_header {
     uint32_t len = 0;
     uint8_t  context = 0;       //高4位为msg_id，低4位为flag
     uint32_t session_id = 0;
@@ -57,7 +57,7 @@ public:
     bool do_forward_target(router_header* header, char* data, size_t data_len);
     bool do_forward_master(router_header* header, char* data, size_t data_len);
     bool do_forward_broadcast(router_header* header, int source, char* data, size_t data_len, size_t& broadcast_num);
-    bool do_transfor_call(transfor_header* header, char* data, size_t data_len);
+    bool do_transfer_call(transfer_header* header, char* data, size_t data_len);
 
 private:
     size_t m_route_count = 0;

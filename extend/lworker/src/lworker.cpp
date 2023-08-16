@@ -10,7 +10,7 @@ namespace lworker {
         auto llworker = kit_state.new_table();
         llworker.set_function("shutdown", []() { schedulor.shutdown(); });
         llworker.set_function("update", [&](uint64_t clock_ms) { schedulor.update(clock_ms); });
-        llworker.set_function("broadcast", [&](slice* buf) { return schedulor.broadcast(buf); });
+        llworker.set_function("broadcast", [&](lua_State* L) { return schedulor.broadcast(L); });
         llworker.set_function("setup", [](lua_State* L, std::string service, std::string sandbox) {
             schedulor.setup(L, service, sandbox);
             return 0;
@@ -18,8 +18,8 @@ namespace lworker {
         llworker.set_function("startup", [](std::string name, std::string entry) {
             return schedulor.startup(name, entry);
         });
-        llworker.set_function("call", [](std::string name, slice* buf) {
-            return schedulor.call(name, buf);
+        llworker.set_function("call", [](lua_State* L, std::string name) {
+            return schedulor.call(L, name);
         });
         return llworker;
     }

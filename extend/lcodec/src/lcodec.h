@@ -8,4 +8,3 @@
 #include "hash.h"
 #include "ketama.h"
 #include "bitarray.h"
-#include "serializer.h"

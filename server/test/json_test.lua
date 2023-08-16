@@ -1,14 +1,18 @@
 --json_test.lua
 local cjson = require("lcjson")
 
-local log_debug     = logger.debug
-local json_encode   = json.encode
-local json_decode   = json.decode
-local json_pretty   = json.pretty
-local cjson_encode  = cjson.encode
-local cjson_decode  = cjson.decode
-local new_guid      = codec.guid_new
 local ltime         = timer.time
+local jencode       = json.encode
+local jdecode       = json.decode
+local jpretty       = json.pretty
+local bencode       = bson.encode
+local bdecode       = bson.decode
+local cencode       = cjson.encode
+local cdecode       = cjson.decode
+local lencode       = codec.encode
+local ldecode       = codec.decode
+local log_debug     = logger.debug
+local new_guid      = codec.guid_new
 
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
@@ -17,8 +21,7 @@ local test = {
     player_id = new_guid(),
     c = {[2]=1},
     d = {1, 2, 4, 5, 6},
-    effect = {a=3, b=6},
-    f = {}
+    effect = {a=3, b=6}
 }
 
 local value = {
@@ -44,19 +47,19 @@ local vv = {
 
 log_debug("%s, %s", #vv.detail, vv.detail)
 
-local c = json_pretty(vv)
+local c = jpretty(vv)
 log_debug("json_encode: %s", c)
 
-local d = json_decode(c)
+local d = jdecode(c)
 log_debug("json_decode: %s", d)
 
 local dd = protobuf_mgr:decode_byname("ncmd_cs.login_account_login_res", d.detail)
 log_debug("decode_byname: %s", dd)
 
-local a = json_encode(test, 1)
+local a = jencode(test, 1)
 log_debug("json_encode: %s", a)
 
-local b = json_decode(a, 1)
+local b = jdecode(a, 1)
 log_debug(type(b.tid), b.tid)
 log_debug(type(b.player_id), b.player_id)
 log_debug("json_decode: %s", b)
@@ -69,33 +72,54 @@ for k, v in pairs(b.c) do
     log_debug("c %s, %s", type(v), v)
 end
 
-local encode_slice  = codec.encode_slice
-local decode_slice  = codec.decode_slice
-local tt = { region = 123, group = 3324, id = 122143556, name = "nodename", host = "127.0.0.1", port = 3369 }
-local x1 = json_encode(tt)
-log_debug("tt1:%s", x1)
-local x2 = encode_slice(tt)
-local ts = decode_slice(x2)
-log_debug("tt21:%s", json_encode(ts))
+local x1 = jencode(test)
+log_debug("tt1:%s%s", x1, #x1)
+
+local aaa = lencode(test)
+local bbb = ldecode(aaa)
+log_debug("tt22:%s%s", bbb, #aaa)
+
+local aaa1 = bencode(test)
+local bbb1 = bdecode(aaa1)
+log_debug("tt23:%s%s", bbb1, #aaa1)
 
 local tt1 = ltime()
-for i = 1, 200000 do
-    json_encode(test)
+for i = 1, 100000 do
+    jencode(test)
 end
 local tt2 = ltime()
-for i = 1, 200000 do
-    cjson_encode(test)
+for i = 1, 100000 do
+    cencode(test)
 end
-
 local tt3 = ltime()
-for i = 1, 200000 do
-    json_decode(a)
+for i = 1, 100000 do
+    bencode(test)
 end
 local tt4 = ltime()
-for i = 1, 200000 do
-    cjson_decode(a)
+for i = 1, 100000 do
+    lencode(test)
 end
 
 local tt5 = ltime()
-log_debug("tt1:%s, tt2:%s", tt2 - tt1, tt3 - tt2)
-log_debug("tt3:%s, tt4:%s", tt4 - tt3, tt5 - tt4)
+for i = 1, 100000 do
+    jdecode(a)
+end
+local tt6 = ltime()
+for i = 1, 100000 do
+    cdecode(a)
+end
+local tt7 = ltime()
+for i = 1, 100000 do
+    local x = bdecode(aaa1)
+    if i == 10000 then
+        log_debug("tt24:%s", x)
+    end
+end
+local tt8 = ltime()
+for i = 1, 100000 do
+    ldecode(aaa)
+end
+local tt9 = ltime()
+
+log_debug("tt1:%s, tt2:%s, tt3:%s, tt4:%s", tt2 - tt1, tt3 - tt2, tt4 - tt3, tt5 - tt4)
+log_debug("tt5:%s, tt6:%s, tt7:%s, tt8:%s", tt6 - tt5, tt7 - tt6, tt8 - tt7, tt9 - tt8)

@@ -123,7 +123,7 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
     return false;
 }
 
-bool socket_router::do_transfor_call(transfor_header* header, char* data, size_t data_len) {
+bool socket_router::do_transfer_call(transfer_header* header, char* data, size_t data_len) {
     auto& services = m_services[header->service_id];
     auto& nodes = services.nodes;
     int count = (int)nodes.size();

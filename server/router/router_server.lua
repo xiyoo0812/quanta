@@ -2,7 +2,7 @@
 
 local log_err       = logger.err
 local log_info      = logger.info
-local ldecode       = codec.decode_slice
+local id2name       = service.id2name
 
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -45,10 +45,10 @@ end
 --accept事件
 function RouterServer:on_client_accept(client)
     log_info("[RouterServer][on_client_accept] new connection, token=%s", client.token)
-    client.on_forward_error = function(session_id, target_id, slice)
+    client.on_forward_error = function(session_id, target_id, source_id, rpc)
         thread_mgr:fork(function()
-            local source_id, rpc = ldecode(slice)
-            log_err("[RouterServer][on_client_accept] on_forward_error, ssid:%s, tar:%s, src:%s, rpc:%s)", session_id, target_id, source_id, rpc)
+            local target, source =  id2name(target_id), id2name(source_id)
+            log_err("[RouterServer][on_client_accept] on_forward_error, ssid:%s, tar:%s, src:%s, rpc:%s)", session_id, target, source, rpc)
             self.rpc_server:callback(client, session_id, false, UNREACHABLE, "router con't find target!")
         end)
     end

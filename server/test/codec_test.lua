@@ -6,8 +6,6 @@ local lhex_encode   = crypt.hex_encode
 
 local encode        = codec.encode
 local decode        = codec.decode
-local encode_slice  = codec.encode_slice
-local decode_slice  = codec.decode_slice
 local serialize     = codec.serialize
 local unserialize   = codec.unserialize
 local hash_code     = codec.hash_code
@@ -115,25 +113,10 @@ end
 --encode
 local e = {a = 1, c = {ab = 2}}
 local bufe = encode(e)
-local slice = encode_slice(e)
-local bufs = slice.string()
 log_debug("encode-> bufe: %d, %s", #bufe, lhex_encode(bufe))
-log_debug("encode-> bufs: %d, %s", #bufs, lhex_encode(bufs))
 
-local datas = decode_slice(slice)
-log_debug("decode-> %s", datas)
 local datae = decode(bufe, #bufe)
 log_debug("decode-> %s", datae)
-
-local a = 1
-local b = 2
-local c = 4
-local es = encode_slice(a, b, c, 5)
-local ess = es.string()
-log_debug("encode-> aa: %d, %s", #ess, lhex_encode(ess))
-local da, db, dc, dd = decode_slice(es)
-log_debug("decode-> %s, %s, %s, %s", da, db, dc, dd)
-
 
 local ip = luabus.dns("mtae-global-test-outer-zone-a-2-89e65514de3445cc.elb.us-east-1.amazonaws.com")
 log_debug("luabus dns-> %s", ip)

@@ -94,11 +94,11 @@ function Socket:connect(ip, port, ptype)
         end
         thread_mgr:response(block_id, success, res)
     end
-    session.on_call_text = function(recv_len, slice)
-        self:on_socket_recv(token, slice)
+    session.on_call_text = function(recv_len, buff)
+        self:on_socket_recv(token, buff)
     end
-    session.on_call_common = function(recv_len, slice)
-        self:on_socket_recv(token, slice)
+    session.on_call_common = function(recv_len, buff)
+        self:on_socket_recv(token, buff)
     end
     session.on_error = function(stoken, err)
         self:on_socket_error(stoken, err)
@@ -115,13 +115,13 @@ function Socket:on_socket_accept(session)
     socket:accept(session, session.ip, self.port)
 end
 
-function Socket:on_socket_recv(token, slice)
+function Socket:on_socket_recv(token, buff)
     thread_mgr:fork(function()
         if self.proto_type == eproto_type.text then
-            self.recvbuf = self.recvbuf .. slice.string()
+            self.recvbuf = self.recvbuf .. buff
             self.host:on_socket_recv(self, self.token)
         else
-            self.host:on_slice_recv(self, slice, self.token)
+            self.host:on_socket_recv(self, self.token, buff)
         end
     end)
 end
@@ -141,8 +141,8 @@ end
 function Socket:accept(session, ip, port)
     local token = session.token
     session.set_timeout(NETWORK_TIMEOUT)
-    session.on_call_text = function(recv_len, slice)
-        self:on_socket_recv(token, slice)
+    session.on_call_text = function(recv_len, buff)
+        self:on_socket_recv(token, buff)
     end
     session.on_error = function(stoken, err)
         self:on_socket_error(stoken, err)
@@ -182,14 +182,6 @@ end
 function Socket:send(data)
     if self.alive and data then
         local send_len = self.session.call_text(data, #data)
-        return self:on_send(self.session.token, send_len)
-    end
-    return false, "socket not alive"
-end
-
-function Socket:send_slice(slice)
-    if self.alive and slice then
-        local send_len = self.session.call_slice(slice)
         return self:on_send(self.session.token, send_len)
     end
     return false, "socket not alive"

@@ -1,28 +1,26 @@
 #include "stdafx.h"
 #include "lua_socket_node.h"
 
-lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr,
-    std::shared_ptr<socket_router> router, bool blisten, eproto_type proto_type)
-    : m_token(token), m_lvm(L), m_mgr(mgr), m_router(router), m_proto_type(proto_type) {
-    m_mgr->get_remote_ip(m_token, m_ip);
+lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<socket_router>& router
+    , bool blisten, eproto_type proto_type) : m_token(token), m_mgr(mgr), m_router(router), m_proto_type(proto_type) {
     m_stoken = (m_token & 0xffff) << 16;
+    m_luakit = std::make_shared<luakit::kit_state>(L);
+    m_mgr->get_remote_ip(m_token, m_ip);
     if (blisten) {
         m_mgr->set_accept_callback(token, [=](uint32_t steam_token, eproto_type proto_type) {
-            luakit::kit_state kit_state(m_lvm);
-            auto stream = new lua_socket_node(steam_token, m_lvm, m_mgr, m_router, false, proto_type);
-            kit_state.object_call(this, "on_accept", nullptr, std::tie(), stream);
+            auto node = new lua_socket_node(steam_token, m_luakit->L(), m_mgr, m_router, false, proto_type);
+            node->set_codec(m_codec);
+            m_luakit->object_call(this, "on_accept", nullptr, std::tie(), node);
         });
     }
     m_mgr->set_connect_callback(token, [=](bool ok, const char* reason) {
-        luakit::kit_state kit_state(m_lvm);
-        kit_state.object_call(this, "on_connect", nullptr, std::tie(), ok ? "ok" : reason);
+        m_luakit->object_call(this, "on_connect", nullptr, std::tie(), ok ? "ok" : reason);
     });
 
     m_mgr->set_error_callback(token, [=](const char* err) {
         auto token = m_token;
         m_token = 0;
-        luakit::kit_state kit_state(m_lvm);
-        kit_state.object_call(this, "on_error", nullptr, std::tie(), token, err);
+        m_luakit->object_call(this, "on_error", nullptr, std::tie(), token, err);
     });
 
     m_mgr->set_package_callback(token, [=](slice* data){
@@ -32,6 +30,13 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<s
 
 lua_socket_node::~lua_socket_node() {
     close();
+}
+
+void lua_socket_node::close() {
+    if (m_token != 0) {
+        m_mgr->close(m_token);
+        m_token = 0;
+    }
 }
 
 int lua_socket_node::call_slice(slice* slice){
@@ -44,120 +49,155 @@ int lua_socket_node::call_text(const char* data, uint32_t data_len) {
     return data_len;
 }
 
-int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint8_t crc8, uint32_t session_id, const char* data, uint32_t data_len){
+int lua_socket_node::call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint8_t crc8, uint32_t session_id, const char* data, uint32_t data_len) {
     size_t length = data_len + sizeof(socket_header);
-    if (length > USHRT_MAX) return 0;
-    //组装数据
-    socket_header header;
-    header.flag = flag;
-    header.type = type;
-    header.len = length;
-    header.crc8 = crc8;
-    header.cmd_id = cmd_id;
-    header.session_id = (session_id & 0xffff);
-    //发送数据
-    sendv_item items[] = { { &header, sizeof(socket_header) }, {data, data_len} };
-    m_mgr->sendv(m_token, items, _countof(items));
-    return header.len;
-}
-
-int lua_socket_node::call(uint32_t session_id, uint8_t flag, slice* slice) {
-    size_t data_len = 0;
-    char* data = (char*)slice->data(&data_len);
-    size_t length = data_len + sizeof(router_header);
-    if (length > SOCKET_PACKET_MAX) return 0;
-    //组装数据
-    router_header header;
-    header.len = length;
-    header.target_id = 0;
-    header.session_id = session_id;
-    header.context = (uint8_t)rpc_type::remote_call << 4 | flag;
-    //发送数据
-    sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len}};
-    m_mgr->sendv(m_token, items, _countof(items));
-    return header.len;
-}
-
-int lua_socket_node::transfor_call(uint32_t session_id, uint32_t target_id, uint8_t service_id, slice* slice) {
-    size_t data_len = 0;
-    char* data = (char*)slice->data(&data_len);
-    size_t length = data_len + sizeof(transfor_header);
-    if (length > SOCKET_PACKET_MAX) return 0;
-    //组装数据
-    transfor_header header;
-    header.len = length;
-    header.target_id = target_id;
-    header.service_id = service_id;
-    header.session_id = session_id;
-    header.context = (uint8_t)rpc_type::transfor_call << 4;
-    //发送数据
-    sendv_item items[] = { { &header, sizeof(transfor_header)}, {data, data_len}};
-    m_mgr->sendv(m_token, items, _countof(items));
-    return header.len;
-}
-
-int lua_socket_node::forward_call(uint32_t session_id, uint32_t target_id, uint16_t hash, std::string slice) {
-    size_t data_len = slice.size();
-    size_t length = data_len + sizeof(router_header);
-    if (length > SOCKET_PACKET_MAX) return 0;
-    //组装数据
-    router_header header;
-    header.len = length;
-    header.session_id = session_id;
-    header.context = (uint8_t)rpc_type::remote_call << 4 | 0x01;
-    if (hash == 0) {
-        header.target_id = target_id;
-        if (m_router->do_forward_target(&header, (char*)slice.c_str(), data_len)) {
-            return length;
-        }
-    } else {
-        header.target_id = (uint16_t)target_id << 16 | hash;
-        if (m_router->do_forward_hash(&header, (char*)slice.c_str(), data_len)) {
-            return length;
-        }
+    if (length <= USHRT_MAX) {
+        //组装数据
+        socket_header header;
+        header.flag = flag;
+        header.type = type;
+        header.len = length;
+        header.crc8 = crc8;
+        header.cmd_id = cmd_id;
+        header.session_id = (session_id & 0xffff);
+        //发送数据
+        sendv_item items[] = { { &header, sizeof(socket_header) }, {data, data_len} };
+        m_mgr->sendv(m_token, items, _countof(items));
+        return length;
     }
     return 0;
 }
 
-int lua_socket_node::forward_target(uint32_t session_id, uint8_t flag, uint32_t target_id, slice* slice) {
+int lua_socket_node::call(lua_State* L, uint32_t session_id, uint8_t flag) {
     size_t data_len = 0;
-    char* data = (char*)slice->data(&data_len);
+    char* data = (char*)m_codec->encode(L, 3, &data_len);
     size_t length = data_len + sizeof(router_header);
-    if (length > SOCKET_PACKET_MAX) return 0;
-    //组装数据
-    router_header header;
-    header.len = length;
-    header.target_id = target_id;
-    header.session_id = session_id;
-    header.context = (uint8_t)rpc_type::forward_target << 4 | flag;
-    //发送数据
-    sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
-    m_mgr->sendv(m_token, items, _countof(items));
-    return header.len;
-}
-
-int lua_socket_node::forward_hash(uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash, slice* slice) {
-    size_t data_len = 0;
-    char* data = (char*)slice->data(&data_len);
-    size_t length = data_len + sizeof(router_header);
-    if (length > SOCKET_PACKET_MAX) return 0;
-    //组装数据
-    router_header header;
-    header.len = length;
-    header.session_id = session_id;
-    header.target_id = service_id << 16 | hash;
-    header.context = (uint8_t)rpc_type::forward_hash << 4 | flag;
-    //发送数据
-    sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
-    m_mgr->sendv(m_token, items, _countof(items));
-    return header.len;
-}
-
-void lua_socket_node::close() {
-    if (m_token != 0) {
-        m_mgr->close(m_token);
-        m_token = 0;
+    if (length <= SOCKET_PACKET_MAX) {
+        //组装数据
+        router_header header;
+        header.len = length;
+        header.target_id = 0;
+        header.session_id = session_id;
+        header.context = (uint8_t)rpc_type::remote_call << 4 | flag;
+        //发送数据
+        sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len}};
+        m_mgr->sendv(m_token, items, _countof(items));
+        lua_pushinteger(L, length);
+        return 1;
     }
+    lua_pushinteger(L, 0);
+    return 1;
+}
+
+int lua_socket_node::forward_transfer(lua_State* L, uint32_t session_id, uint32_t target_id, uint8_t service_id) {
+    size_t data_len = 0;
+    char* data = (char*)m_codec->encode(L, 4, &data_len);
+    size_t length = data_len + sizeof(transfer_header);
+    if (length <= SOCKET_PACKET_MAX) {
+        //组装数据
+        transfer_header header;
+        header.len = length;
+        header.target_id = target_id;
+        header.service_id = service_id;
+        header.session_id = session_id;
+        header.context = (uint8_t)rpc_type::transfer_call << 4;
+        //发送数据
+        sendv_item items[] = { { &header, sizeof(transfer_header)}, {data, data_len}};
+        m_mgr->sendv(m_token, items, _countof(items));
+        lua_pushinteger(L, length);
+        return 1;
+    }
+    lua_pushinteger(L, 0);
+    return 1;
+}
+
+int lua_socket_node::forward_target(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t target_id) {
+    size_t data_len = 0;
+    char* data = (char*)m_codec->encode(L, 4, &data_len);
+    size_t length = data_len + sizeof(router_header);
+    if (length <= SOCKET_PACKET_MAX) {
+        //组装数据
+        router_header header;
+        header.len = length;
+        header.target_id = target_id;
+        header.session_id = session_id;
+        header.context = (uint8_t)rpc_type::forward_target << 4 | flag;
+        //发送数据
+        sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
+        m_mgr->sendv(m_token, items, _countof(items));
+        lua_pushinteger(L, length);
+        return 1;
+    }
+    lua_pushinteger(L, 0);
+    return 1;
+}
+
+int lua_socket_node::forward_hash(lua_State* L, uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash) {
+    size_t data_len = 0;
+    char* data = (char*)m_codec->encode(L, 5, &data_len);
+    size_t length = data_len + sizeof(router_header);
+    if (length <= SOCKET_PACKET_MAX) {
+        //组装数据
+        router_header header;
+        header.len = length;
+        header.session_id = session_id;
+        header.target_id = service_id << 16 | hash;
+        header.context = (uint8_t)rpc_type::forward_hash << 4 | flag;
+        //发送数据
+        sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
+        m_mgr->sendv(m_token, items, _countof(items));
+        lua_pushinteger(L, length);
+        return 1;
+    }
+    lua_pushinteger(L, 0);
+    return 1;
+}
+
+int lua_socket_node::transfer_call(lua_State* L, uint32_t session_id, uint32_t target_id) {
+    char* data;
+    size_t data_len = 0;
+    if (lua_type(L, 3) == LUA_TTABLE) {
+        slice* slice = lua_to_object<luakit::slice*>(L, 3);
+        data = (char*)slice->data(&data_len);
+    }
+    else {
+        data = (char*)lua_tolstring(L, 4, &data_len);
+    }
+    size_t length = data_len + sizeof(router_header);
+    if (length <= SOCKET_PACKET_MAX) {
+        //组装数据
+        router_header header;
+        header.len = length;
+        header.session_id = session_id;
+        header.context = (uint8_t)rpc_type::remote_call << 4 | 0x01;
+        header.target_id = target_id;
+        if (m_router->do_forward_target(&header, data, data_len)) {
+            lua_pushinteger(L, length);
+            return 1;
+        }
+    }
+    lua_pushinteger(L, 0);
+    return 0;
+}
+
+int lua_socket_node::transfer_hash(lua_State* L, uint32_t session_id, uint16_t service_id, uint16_t hash) {
+    size_t data_len = 0;
+    char* data = (char*)m_codec->encode(L, 4, &data_len);
+    size_t length = data_len + sizeof(router_header);
+    if (length <= SOCKET_PACKET_MAX) {
+        //组装数据
+        router_header header;
+        header.len = length;
+        header.session_id = session_id;
+        header.context = (uint8_t)rpc_type::remote_call << 4 | 0x01;
+        header.target_id = service_id << 16 | hash;
+        if (m_router->do_forward_hash(&header, data, data_len)) {
+            lua_pushinteger(L, length);
+            return 1;
+        }
+    }
+    lua_pushinteger(L, 0);
+    return 0;
 }
 
 void lua_socket_node::on_recv(slice* slice) {
@@ -178,10 +218,10 @@ void lua_socket_node::on_recv(slice* slice) {
     auto hdata = slice->peek(header_len);
     router_header* header = (router_header*)hdata;
     rpc_type msg = (rpc_type)(header->context >> 4);
-    if (msg == rpc_type::transfor_call) {
-        header_len = sizeof(transfor_header);
+    if (msg == rpc_type::transfer_call) {
+        header_len = sizeof(transfer_header);
     }
-    
+
     size_t data_len;
     slice->erase(header_len);
     auto data = (char*)slice->data(&data_len);
@@ -193,8 +233,8 @@ void lua_socket_node::on_recv(slice* slice) {
     case rpc_type::remote_call:
         on_call(header, slice);
         break;
-    case rpc_type::transfor_call:
-        on_transfor((transfor_header*)header, slice);
+    case rpc_type::transfer_call:
+        on_transfer((transfer_header*)header, slice);
         break;
     case rpc_type::forward_target:
         if (!m_router->do_forward_target(header, data, data_len))
@@ -223,31 +263,29 @@ void lua_socket_node::on_recv(slice* slice) {
 
 void lua_socket_node::on_forward_error(router_header* header, slice* slice) {
     if (header->session_id > 0) {
-        luakit::kit_state kit_state(m_lvm);
-        kit_state.object_call(this, "on_forward_error", nullptr, std::tie(), header->session_id, header->target_id, slice);
+        m_codec->set_slice(slice);
+        m_luakit->object_call(this, "on_forward_error", nullptr, m_codec, std::tie(), header->session_id, header->target_id);
     }
 }
 
 void lua_socket_node::on_forward_broadcast(router_header* header, size_t broadcast_num) {
     if (header->session_id > 0) {
-        luakit::kit_state kit_state(m_lvm);
-        kit_state.object_call(this, "on_forward_broadcast", nullptr, std::tie(), header->session_id, broadcast_num);
+        m_luakit->object_call(this, "on_forward_broadcast", nullptr, std::tie(), header->session_id, broadcast_num);
     }
 }
 
 void lua_socket_node::on_call(router_header* header, slice* slice) {
-    luakit::kit_state kit_state(m_lvm);
+    m_codec->set_slice(slice);
     uint8_t flag = header->context & 0xff;
     uint32_t session_id = header->session_id;
-    kit_state.object_call(this, "on_call", nullptr, std::tie(), header->len, session_id, flag, slice);
+    m_luakit->object_call(this, "on_call", nullptr, m_codec, std::tie(), header->len, session_id, flag);
 }
 
-void lua_socket_node::on_transfor(transfor_header* header, slice* slice) {
-    luakit::kit_state kit_state(m_lvm);
+void lua_socket_node::on_transfer(transfer_header* header, slice* slice) {
     uint8_t service_id = header->service_id;
     uint32_t target_id = header->target_id;
     uint32_t session_id = header->session_id;
-    kit_state.object_call(this, "on_transfor", nullptr, std::tie(), header->len, session_id, service_id, target_id, slice);
+    m_luakit->object_call(this, "on_transfer", nullptr, std::tie(), header->len, session_id, service_id, target_id, slice);
 }
 
 void lua_socket_node::on_call_head(slice* slice) {
@@ -261,17 +299,17 @@ void lua_socket_node::on_call_head(slice* slice) {
     uint32_t session_id = header->session_id;
     if (session_id > 0) session_id |= m_stoken;
     slice->erase(header_len);
-    luakit::kit_state kit_state(m_lvm);
-    kit_state.object_call(this, "on_call_head", nullptr, std::tie(), header->len, cmd_id, flag, type, crc8, session_id, slice);
+    std::string body((char*)slice->head(), slice->size());
+    m_luakit->object_call(this, "on_call_head", nullptr, std::tie(), header->len, cmd_id, flag, type, crc8, session_id, body);
 }
 
 void lua_socket_node::on_call_text(slice* slice) {
-    luakit::kit_state kit_state(m_lvm);
-    kit_state.object_call(this, "on_call_text", nullptr, std::tie(), slice->size(), slice);
+    std::string body((char*)slice->head(), slice->size());
+    m_luakit->object_call(this, "on_call_text", nullptr, std::tie(), body.size(), body);
 }
 
 void lua_socket_node::on_call_common(slice* slice) {
-    luakit::kit_state kit_state(m_lvm);
-    kit_state.object_call(this, "on_call_common", nullptr, std::tie(), slice->size(), slice);
+    std::string body((char*)slice->head(), slice->size());
+    m_luakit->object_call(this, "on_call_common", nullptr, std::tie(), body.size(), body);
 }
 

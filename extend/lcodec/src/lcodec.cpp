@@ -5,24 +5,19 @@
 namespace lcodec {
 
     thread_local ketama thread_ketama;
-    thread_local serializer thread_seri;
-    static slice* encode_slice(lua_State* L) {
-        return thread_seri.encode_slice(L);
-    }
-    static int decode_slice(lua_State* L, slice* buf) {
-        return thread_seri.decode_slice(L, buf);
-    }
+    thread_local luakit::luabuf thread_buff;
+    
     static int serialize(lua_State* L) {
-        return thread_seri.serialize(L);
+        return luakit::serialize(L, &thread_buff);
     }
     static int unserialize(lua_State* L) {
-        return thread_seri.unserialize(L);
+        return luakit::unserialize(L);
     }
     static int encode(lua_State* L) {
-        return thread_seri.encode(L);
+        return luakit::encode(L, &thread_buff);
     }
-    static int decode(lua_State* L, const char* buf, size_t len) {
-        return thread_seri.decode(L, buf, len);
+    static int decode(lua_State* L) {
+        return luakit::decode(L, &thread_buff);
     }
     static bool ketama_insert(std::string name, uint32_t node_id) {
         return thread_ketama.insert(name, node_id, 255);
@@ -89,8 +84,6 @@ namespace lcodec {
         llcodec.set_function("bitarray", lbarray);
         llcodec.set_function("serialize", serialize);
         llcodec.set_function("unserialize", unserialize);
-        llcodec.set_function("encode_slice", encode_slice);
-        llcodec.set_function("decode_slice", decode_slice);
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_string", guid_string);
         llcodec.set_function("guid_tostring", guid_tostring);

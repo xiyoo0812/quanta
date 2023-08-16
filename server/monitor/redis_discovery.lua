@@ -12,7 +12,7 @@ local json_decode   = json.decode
 local timer_mgr     = quanta.get("timer_mgr")
 local event_mgr     = quanta.get("event_mgr")
 local RedisDB       = import("driver/redis.lua")
-local PSRedis       = import("driver/psredis.lua")
+local PSRedis       = import("driver/redisps.lua")
 
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local EXPIRETIME    = quanta.enum("PeriodTime", "SECOND_30_S")

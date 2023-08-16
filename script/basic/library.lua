@@ -14,8 +14,8 @@ local librarys = {
     protobuf = require("pb"),
     --json库
     json = require("ljson"),
-    --Mongo驱动/bson库
-    mongo = require("lmongo"),
+    --bson库
+    bson = require("lbson"),
     --编码库
     codec = require("lcodec"),
     --加密解密库

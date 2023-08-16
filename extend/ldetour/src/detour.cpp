@@ -294,7 +294,7 @@ namespace ldetour {
         {
             // 射线可以到达的位置
             float t = 0;
-            nav_point hit_normal, hit_point;
+            nav_point hit_normal;
             status = nvquery->raycast(start_ref, start_pos, end_pos, &filter, &t, hit_normal, polys, &npolys, 64);
             pos[0] = end_pos[0];
             pos[1] = end_pos[1];

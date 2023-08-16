@@ -6,9 +6,14 @@ using namespace std;
 using namespace luakit;
 
 //https://bsonspec.org/spec.html
-namespace lmongo {
-    const uint8_t   max_bson_depth  = 64;
-    const uint32_t  max_bson_index = 1024;
+namespace lbson {
+    const uint8_t max_bson_depth    = 64;
+    const uint32_t max_bson_index   = 1024;
+
+    const uint32_t OP_MSG_CODE      = 2013;
+    const uint32_t OP_MSG_HLEN      = 4 * 5 + 1;
+    const uint32_t OP_CHECKSUM      = 1 << 0;
+    const uint32_t OP_MORE_COME     = 1 << 1;
 
     static char bson_numstrs[max_bson_index][4];
     static int bson_numstr_len[max_bson_index];
@@ -54,44 +59,34 @@ namespace lmongo {
     class bson {
     public:
         slice* encode_slice(lua_State* L) {
-            lua_settop(L, 1);
-            luaL_checktype(L, 1, LUA_TTABLE);
             m_buffer.clean();
             pack_dict(L, 0);
             return m_buffer.get_slice();
         }
 
-        bson_value* encode_sparse(lua_State* L) {
-            size_t data_len = 0;
-            m_sparse_mode = true;
-            slice* buf = encode_slice(L);
-            m_sparse_mode = false;
-            const char* data = (const char*)buf->data(&data_len);
-            return new bson_value(bson_type::BSON_DOCUMENT, data, data_len);
-        }
-
         int encode(lua_State* L) {
             size_t data_len = 0;
-            slice* buf = encode_slice(L);
-            const char* data = (const char*)buf->data(&data_len);
+            slice* slice = encode_slice(L);
+            const char* data = (const char*)slice->data(&data_len);
             lua_pushlstring(L, data, data_len);
-            lua_pushinteger(L, data_len);
-            return 2;
+            return 1;
         }
 
-        int decode_slice(lua_State* L, slice* buf) {
-            lua_settop(L, 0);
-            unpack_dict(L, buf, false);
-            return lua_gettop(L);
-        }
-
-        int decode(lua_State* L, const char* buf, size_t len) {
+        int decode(lua_State* L) {
             m_buffer.clean();
-            m_buffer.push_data((uint8_t*)buf, len);
+            size_t data_len = 0;
+            const char* buf = lua_tolstring(L, 1, &data_len);
+            m_buffer.push_data((uint8_t*)buf, data_len);
             return decode_slice(L, m_buffer.get_slice());
         }
 
-        slice* encode_order_slice(lua_State* L) {
+        int decode_slice(lua_State* L, slice* slice) {
+            lua_settop(L, 0);
+            unpack_dict(L, slice, false);
+            return lua_gettop(L);
+        }
+
+        int encode_order(lua_State* L) {
             int n = lua_gettop(L);
             if (n < 2 || n % 2 != 0) {
                 luaL_error(L, "Invalid ordered dict");
@@ -115,16 +110,20 @@ namespace lmongo {
             m_buffer.write<uint8_t>(0);
             uint32_t size = m_buffer.size() - offset;
             m_buffer.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
-            return m_buffer.get_slice();
-        }
-        
-        int encode_order(lua_State* L) {            
+            //返回结果
             size_t data_len = 0;
-            slice* buf = encode_order_slice(L);
-            const char* data = (const char*)buf->data(&data_len);
+            const char* data = (const char*)m_buffer.data(&data_len);
             lua_pushlstring(L, data, data_len);
-            lua_pushinteger(L, data_len);
-            return 2;
+            return 1;
+        }
+
+        template<typename T>
+        T read_val(lua_State* L, slice* slice) {
+            T* value = slice->read<T>();
+            if (value == nullptr) {
+                luaL_error(L, "decode can't unpack one value");
+            }
+            return *value;
         }
 
     protected:
@@ -193,9 +192,7 @@ namespace lmongo {
         }
 
         bson_type check_doctype(lua_State *L, size_t raw_len) {
-            if (m_sparse_mode) {
-                return bson_type::BSON_DOCUMENT;
-            }
+            if (raw_len == 0) return bson_type::BSON_DOCUMENT;
             lua_guard g(L);
             lua_pushnil(L);
             size_t cur_len = 0;
@@ -206,10 +203,7 @@ namespace lmongo {
                 cur_len++;
                 lua_pop(L, 1);
             }
-            if (cur_len > 0 && cur_len == raw_len) {
-                return bson_type::BSON_ARRAY;
-            }
-            return bson_type::BSON_DOCUMENT;
+            return cur_len == raw_len ? bson_type::BSON_ARRAY : bson_type::BSON_DOCUMENT;
         }
 
         void pack_table(lua_State *L, const char* key, size_t len, int depth) {
@@ -299,7 +293,7 @@ namespace lmongo {
                 pack_one(L, buf, sz, depth);
                 return;
             }
-            if (m_sparse_mode && lua_isinteger(L, -2)){
+            if (lua_isinteger(L, -2)){
                 char numkey[32];
                 size_t len = bson_index(numkey, lua_tointeger(L, -2));
                 pack_one(L, numkey, len, depth);
@@ -322,47 +316,38 @@ namespace lmongo {
             m_buffer.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
-        template<typename T>
-        T read_val(lua_State* L, slice* buff) {
-            T value = T();
-            if (buff->pop((uint8_t*)&value, sizeof(T)) == 0) {
-                luaL_error(L, "decode can't unpack one value");
-            }
-            return value;
-        }
-
-        const char* read_bytes(lua_State* L, slice* buf, size_t sz) {
-            const char* dst = (const char*)buf->peek(sz);
+        const char* read_bytes(lua_State* L, slice* slice, size_t sz) {
+            const char* dst = (const char*)slice->peek(sz);
             if (!dst) {
                 luaL_error(L, "Invalid bson string , length = %d", sz);
             }
-            buf->erase(sz);
+            slice->erase(sz);
             return dst;
         }
 
-        const char* read_string(lua_State* L, slice* buf, size_t& sz) {
-            sz = (size_t)read_val<uint32_t>(L, buf);
+        const char* read_string(lua_State* L, slice* slice, size_t& sz) {
+            sz = (size_t)read_val<uint32_t>(L, slice);
             if (sz <= 0) {
                 luaL_error(L, "Invalid bson string , length = %d", sz);
             }
             sz = sz - 1;
             const char* dst = "";
             if (sz > 0) {
-                dst = read_bytes(L, buf, sz);
+                dst = read_bytes(L, slice, sz);
             }
-            buf->erase(1);
+            slice->erase(1);
             return dst;
         }
 
-        const char* read_cstring(lua_State * L, slice * buf, size_t& l) {
+        const char* read_cstring(lua_State * L, slice* slice, size_t& l) {
             size_t sz;
-            const char* dst = (const char*)buf->data(&sz);
+            const char* dst = (const char*)slice->data(&sz);
             for (l = 0; l < sz; ++l) {
                 if (l == sz - 1) {
                     luaL_error(L, "Invalid bson block : cstring");
                 }
                 if (dst[l] == '\0') {
-                    buf->erase(l + 1);
+                    slice->erase(l + 1);
                     return dst;
                 }
             }
@@ -370,9 +355,9 @@ namespace lmongo {
             return "";
         }
 
-        void unpack_key(lua_State* L, slice* buf, bool isarray) {
+        void unpack_key(lua_State* L, slice* slice, bool isarray) {
             size_t klen = 0;
-            const char* key = read_cstring(L, buf, klen);
+            const char* key = read_cstring(L, slice, klen);
             if (isarray) {
                 lua_pushinteger(L, std::stoll(key, nullptr, 10) + 1);
                 return;
@@ -382,58 +367,58 @@ namespace lmongo {
             }
         }
 
-        void unpack_dict(lua_State* L, slice* buf, bool isarray) {
-            uint32_t sz = read_val<uint32_t>(L, buf);
-            if (buf->size() < sz - 4) {
+        void unpack_dict(lua_State* L, slice* slice, bool isarray) {
+            uint32_t sz = read_val<uint32_t>(L, slice);
+            if (slice->size() < sz - 4) {
                 luaL_error(L, "decode can't unpack one value");
             }
-            lua_newtable(L);
-            while (!buf->empty()) {
+            lua_createtable(L, 0, 8);
+            while (!slice->empty()) {
                 size_t klen = 0;
-                bson_type bt = (bson_type)read_val<uint8_t>(L, buf);
+                bson_type bt = (bson_type)read_val<uint8_t>(L, slice);
                 if (bt == bson_type::BSON_EOO) break;
-                unpack_key(L, buf, isarray);
+                unpack_key(L, slice, isarray);
                 switch (bt) {
                 case bson_type::BSON_REAL:
-                    lua_pushnumber(L, read_val<double>(L, buf));
+                    lua_pushnumber(L, read_val<double>(L, slice));
                     break;
                 case bson_type::BSON_BOOLEAN:
-                    lua_pushboolean(L, read_val<bool>(L, buf));
+                    lua_pushboolean(L, read_val<bool>(L, slice));
                     break;
                 case bson_type::BSON_INT32:
-                    lua_pushinteger(L, read_val<int32_t>(L, buf));
+                    lua_pushinteger(L, read_val<int32_t>(L, slice));
                     break;
                 case bson_type::BSON_DATE:
                 case bson_type::BSON_INT64:
                 case bson_type::BSON_TIMESTAMP:
-                    lua_pushinteger(L, read_val<int64_t>(L, buf));
+                    lua_pushinteger(L, read_val<int64_t>(L, slice));
                     break;
                 case bson_type::BSON_OBJECTID:{
-                        const char* s = read_bytes(L, buf, 12);
+                        const char* s = read_bytes(L, slice, 12);
                         lua_pushlstring(L, s, 12);
                     }
                     break;
                 case bson_type::BSON_JSCODE:
                 case bson_type::BSON_STRING:{
-                        const char* s = read_string(L, buf, klen);
+                        const char* s = read_string(L, slice, klen);
                         lua_pushlstring(L, s, klen);
                     }
                     break;
                 case bson_type::BSON_BINARY: {
-                        uint32_t sz = read_val<uint32_t>(L, buf);
-                        uint8_t subtype = read_val<uint8_t>(L, buf);
-                        const char* s = read_bytes(L, buf, sz);
+                        uint32_t sz = read_val<uint32_t>(L, slice);
+                        uint8_t subtype = read_val<uint8_t>(L, slice);
+                        const char* s = read_bytes(L, slice, sz);
                         lua_pushlstring(L, s, sz);
                     }
                     break;
                 case bson_type::BSON_REGEX:
-                    lua_push_object(L, new bson_value(bt, read_cstring(L, buf, klen), read_cstring(L, buf, klen)));
+                    lua_push_object(L, new bson_value(bt, read_cstring(L, slice, klen), read_cstring(L, slice, klen)));
                     break;
                 case bson_type::BSON_DOCUMENT:
-                    unpack_dict(L, buf, false);
+                    unpack_dict(L, slice, false);
                     break;
                 case bson_type::BSON_ARRAY:
-                    unpack_dict(L, buf, true);
+                    unpack_dict(L, slice, true);
                     break;
                 case bson_type::BSON_MINKEY:
                 case bson_type::BSON_MAXKEY:
@@ -447,7 +432,52 @@ namespace lmongo {
             }
         }
     private:
-        bool m_sparse_mode = false;
-        var_buffer m_buffer;
+        luabuf m_buffer;
+    };
+
+    class mgocodec : public luacodec {
+    public:
+        virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
+            m_buf.clean();
+            m_buf.write<uint32_t>(0);
+            m_buf.write<uint32_t>(lua_tointeger(L, 1));
+            m_buf.write<uint32_t>(0);
+            m_buf.write<uint32_t>(OP_MSG_CODE);
+            m_buf.write<uint32_t>(0);
+            m_buf.write<uint8_t>(0);
+            lua_remove(L, 1);
+            m_bson.encode_order(L);
+            uint8_t* data = m_buf.data(len);
+            m_buf.copy(0, (uint8_t*)len, sizeof(uint32_t));
+            return data;
+        }
+
+        virtual size_t decode(lua_State* L) {
+            if (!m_slice) {
+                luaL_error(L, "source slice is null");
+            }
+            //skip length + request_id
+            m_slice->erase(8);
+            uint32_t session_id = m_bson.read_val<uint32_t>(L, m_slice);
+            uint32_t opcode = m_bson.read_val<uint32_t>(L, m_slice);
+            if (opcode != OP_MSG_CODE) {
+                luaL_error(L, "Unsupported opcode: %d", opcode);
+            }
+            uint32_t flags = m_bson.read_val<uint32_t>(L, m_slice);
+            if (flags > 0 && ((flags & OP_CHECKSUM) != 0 || ((flags ^ OP_MORE_COME) != 0))) {
+                luaL_error(L, "Unsupported flags: %d", opcode);
+            }
+            uint32_t payload = m_bson.read_val<uint8_t>(L, m_slice);
+            if (payload != 0) {
+                luaL_error(L, "Unsupported payload: %d", opcode);
+            }
+            int otop = lua_gettop(L);
+            lua_pushinteger(L, session_id);
+            //m_slice->push_stack(L);
+            return lua_gettop(L) - otop;
+        }
+
+    protected:
+        bson m_bson;
     };
 }

@@ -175,8 +175,15 @@ end
 
 --群发消息
 function Gateway:rpc_groupcast_client(player_ids, cmd_id, data)
+    local sessions = {}
     for _, player_id in pairs(player_ids) do
-        self:rpc_forward_client(player_id, cmd_id, data)
+        local player = self:get_player(player_id)
+        if player then
+            sessions[#sessions + 1] = player:get_session()
+        end
+    end
+    if next(sessions) then
+        client_mgr:broadcast_groups(sessions, cmd_id, data)
     end
 end
 
@@ -190,8 +197,8 @@ function Gateway:rpc_broadcast_groupname(player_id, group_name, cmd_id, data)
     local player = self:get_player(player_id)
     if player then
         local group_id = player:get_group_id(group_name)
-        group_mgr:broadcast(group_id, cmd_id, data)
         router_mgr:call_gateway_all("rpc_broadcast_group", group_id, cmd_id, data)
+        group_mgr:broadcast(group_id, cmd_id, data)
     end
 end
 
@@ -217,7 +224,7 @@ function Gateway:on_heartbeat_req(session, cmd_id, body, session_id)
 end
 
 function Gateway:call_lobby(lobby, rpc, player_id, ...)
-    local result = tpack(router_mgr:hash_call(lobby, player_id, rpc, player_id, ...))
+    local result = tpack(router_mgr:call_target_hash(lobby, player_id, rpc, player_id, ...))
     if not result[1] then
         return FRAME_FAILED, result[2]
     end

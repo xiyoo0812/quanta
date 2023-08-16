@@ -103,13 +103,12 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     account:save_token(access_token)
     account:save_device_id(device_id)
     account:update_params(account_params)
-    event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id,
-                                device_id, session.ip, account_params.lang, account_params.dev_plat)
+    event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id, device_id, session.ip, account_params.lang, account_params.dev_plat)
     if not client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id) then
-        log_info("[LoginServlet][on_account_login_req] callback failed! open_id: %s, user_id：%s", open_id, account:get_user_id())
+        log_info("[LoginServlet][on_account_login_req] callback failed! open_id: %s, user_id: %s", open_id, account:get_user_id())
         return
     end
-    log_info("[LoginServlet][on_account_login_req] success! open_id: %s, user_id：%s", open_id, account:get_user_id())
+    log_info("[LoginServlet][on_account_login_req] success! open_id: %s, user_id: %s", open_id, account:get_user_id())
 end
 
 --创建角色

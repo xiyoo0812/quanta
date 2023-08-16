@@ -19,9 +19,6 @@
     <ClInclude Include="src\lcodec.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\serializer.h">
-      <Filter>inc</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lcodec.cpp">

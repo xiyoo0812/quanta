@@ -19,8 +19,8 @@ MYCFLAGS += -Wsign-compare
 MYCFLAGS += -Wno-sign-compare
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
-MYCFLAGS += -Wno-unknown-pragmas
 MYCFLAGS += -Wno-unused-but-set-parameter
+MYCFLAGS += -Wno-unknown-pragmas
 MYCFLAGS += -Wno-implicit-fallthrough
 
 #c标准库版本

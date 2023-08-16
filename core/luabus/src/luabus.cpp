@@ -80,12 +80,13 @@ namespace luabus {
             "call_slice", &lua_socket_node::call_slice,
             "set_nodelay", &lua_socket_node::set_nodelay,
             "set_timeout", &lua_socket_node::set_timeout,
-            "forward_call", &lua_socket_node::forward_call,
             "forward_hash", &lua_socket_node::forward_hash,
-            "transfor_call", &lua_socket_node::transfor_call,
+            "transfer_call", &lua_socket_node::transfer_call,
+            "transfer_hash", &lua_socket_node::transfer_hash,
             "forward_target", &lua_socket_node::forward_target,
             "get_route_count", &lua_socket_node::get_route_count,
             "build_session_id", &lua_socket_node::build_session_id,
+            "forward_transfer", &lua_socket_node::forward_transfer,
             "forward_master", &lua_socket_node::forward_by_group<rpc_type::forward_master>,
             "forward_broadcast", &lua_socket_node::forward_by_group<rpc_type::forward_broadcast>
             );

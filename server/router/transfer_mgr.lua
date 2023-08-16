@@ -1,6 +1,7 @@
 --transfer_mgr.lua
 
 local log_info          = logger.info
+local log_warn          = logger.warn
 local qfailed           = quanta.failed
 local name2sid          = service.name2sid
 local sid2name          = service.sid2name
@@ -14,7 +15,6 @@ local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local RPC_FAILED        = quanta.enum("KernCode", "RPC_FAILED")
 local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 
-local SERVICE_MAX       = 255
 local SERVICE_CACHE     = name2sid("cache")
 
 local TransferMgr = singleton()
@@ -29,7 +29,8 @@ function TransferMgr:__init()
     event_mgr:add_listener(self, "rpc_router_clean")
     event_mgr:add_listener(self, "rpc_login_service")
     --消息转发
-    event_mgr:add_listener(self, "on_transfor_rpc")
+    event_mgr:add_listener(self, "on_transfer_rpc")
+    event_mgr:add_listener(self, "on_boardcast_rpc")
     --初始化变量
     self.rpc_server = router_server:get_rpc_server()
 end
@@ -45,10 +46,13 @@ end
 
 --角色登录服务
 function TransferMgr:rpc_login_service(client, player_id, serv_name, serv_id)
-    if self:update_service(player_id, serv_name, serv_id) then
+    local routers = self:update_service(player_id, serv_name, serv_id)
+    if routers then
         log_info("[TransferMgr][rpc_login_service]: %s, service: %s-%s", player_id, serv_name, serv_id)
+        log_warn("[TransferMgr][rpc_login_service]: %s, routers: %s", player_id, routers)
         return SUCCESS
     end
+    log_warn("[TransferMgr][rpc_login_service]: %s, service: %s-%s failed!", player_id, serv_name, serv_id)
     return RPC_FAILED
 end
 
@@ -62,69 +66,95 @@ function TransferMgr:rpc_query_service(client, player_id, serv_name)
     return self:query_service(player_id, serv_name)
 end
 
-function TransferMgr:update_service(pla_id, serv_name, serv_id)
-    local router_id = NODE_ID
-    local sess_id = thread_mgr:build_session_id()
-    if serv_name == "lobby" and serv_id == 0 then
-        router_id = 0
-    end
-    local old_serv_id
-    if self.routers[pla_id] then
-        old_serv_id = self.routers[pla_id][serv_name]
-        self.routers[pla_id][serv_name] = serv_id
-    else
-        self.routers[pla_id] = {[serv_name] = serv_id}
-    end
-    local ok, code, routers = self.rpc_server:forward_hash(sess_id, SERVICE_CACHE, pla_id, "rpc_router_update", pla_id, router_id, serv_name, serv_id)
-    if qfailed(code, ok) then
-        self.routers[pla_id][serv_name] = old_serv_id
-        return
-    end
-    self.routers[pla_id] = routers
-    return routers
-end
-
-function TransferMgr:query_service(player_id, serv_name)
-    local routers = self.routers[player_id]
-    if routers then
-        return SUCCESS, routers[serv_name]
-    end
-    local sess_id = thread_mgr:build_session_id()
-    local ok, code, rrouters = self.rpc_server:forward_hash(sess_id, SERVICE_CACHE, player_id, "rpc_router_update", player_id, NODE_ID)
-    if qfailed(code, ok) then
-        return RPC_FAILED
-    end
-    self.routers[player_id] = rrouters
-    return SUCCESS, rrouters[serv_name]
-end
-
---转发消息
-function TransferMgr:on_transfor_rpc(client, session_id, service_id, player_id, slice)
-    if service_id == SERVICE_MAX then
-        self:boardcast_transfor(client, player_id, slice)
-        return
-    end
-    local _, server_id = self:query_service(player_id, sid2name(service_id))
-    if not server_id or server_id == 0 then
-        if session_id > 0 then
-            self.rpc_server:callback(client, session_id, false, PLAYER_NOT_EXIST)
-        end
-        return
-    end
-    self.rpc_server:forward_call(session_id, server_id, slice)
-end
-
 --转发广播
-function TransferMgr:boardcast_transfor(client, player_id, slice)
-    local routers = self.routers[player_id]
+function TransferMgr:on_boardcast_rpc(client, player_id, slice)
+    local routers = self:find_routers(player_id)
     if not routers then
-        routers = self:update_service(player_id)
+        slice = slice.string()
+        routers = self:query_routers(player_id, NODE_ID)
+    end
+    if not routers then
+        log_warn("[TransferMgr][on_boardcast_rpc]: %s find routers failed!", player_id)
+        return
     end
     for _, server_id in pairs(routers) do
         if client.id ~= server_id then
-            self.rpc_server:forward_call(0, server_id, slice)
+            self.rpc_server:transfer_call(0, server_id, slice)
         end
     end
+end
+
+--转发消息
+function TransferMgr:on_transfer_rpc(client, session_id, service_id, player_id, slice)
+    local serv_name = sid2name(service_id)
+    local routers = self:find_routers(player_id)
+    if not routers then
+        slice = slice.string()
+        routers = self:query_routers(player_id, NODE_ID)
+    end
+    if not routers or not routers[serv_name] or routers[serv_name] == 0 then
+        if session_id > 0 then
+            self.rpc_server:callback(client, session_id, false, PLAYER_NOT_EXIST)
+        end
+        log_warn("[TransferMgr][on_transfer_rpc]: %s, service: %s failed!", player_id, serv_name)
+        return
+    end
+    self.rpc_server:transfer_call(session_id, routers[serv_name], slice)
+end
+
+--本地函数
+-----------------------------------------------------------------
+function TransferMgr:update_service(pla_id, serv_name, serv_id)
+    local old_serv_id
+    local orouters = self.routers[pla_id]
+    if orouters then
+        old_serv_id = orouters[serv_name]
+        orouters[serv_name] = serv_id
+    else
+        self.routers[pla_id] = {[serv_name] = serv_id}
+    end
+    if old_serv_id == serv_id then
+        return orouters
+    end
+    local router_id = NODE_ID
+    if serv_name == "lobby" and serv_id == 0 then
+        router_id = 0
+    end
+    local routers = self:query_routers(pla_id, router_id, serv_name, serv_id)
+    if not routers then
+        self.routers[pla_id][serv_name] = old_serv_id
+        log_warn("[TransferMgr][update_service]: %s service: %s failed!", pla_id, serv_name)
+        return
+    end
+    return routers
+end
+
+--查询服务
+function TransferMgr:query_service(player_id, serv_name)
+    local routers = self.routers[player_id]
+    if routers then
+        return routers[serv_name]
+    end
+    local rrouters = self:query_routers(player_id, NODE_ID)
+    if not rrouters then
+        log_warn("[TransferMgr][query_service]: %s service: %s failed!", player_id, serv_name)
+        return RPC_FAILED
+    end
+    return SUCCESS, rrouters[serv_name]
+end
+
+function TransferMgr:find_routers(player_id)
+    return self.routers[player_id]
+end
+
+function TransferMgr:query_routers(player_id, router_id, serv_name, serv_id)
+    local sess_id = thread_mgr:build_session_id()
+    local ok, code, routers = self.rpc_server:transfer_hash(sess_id, SERVICE_CACHE, player_id, "rpc_router_update", player_id, router_id, serv_name, serv_id)
+    if qfailed(code, ok) then
+        return
+    end
+    self.routers[player_id] = routers
+    return routers
 end
 
 -- export

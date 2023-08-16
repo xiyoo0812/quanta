@@ -10,8 +10,10 @@ local qjoin         = qtable.join
 local tdelete       = qtable.delete
 local ssub          = string.sub
 local sgsub         = string.gsub
+local spack         = string.pack
 local sformat       = string.format
 local sgmatch       = string.gmatch
+local sunpack       = string.unpack
 local mrandom       = qmath.random
 local mtointeger    = math.tointeger
 local qhash         = codec.hash_code
@@ -20,17 +22,14 @@ local makechan      = quanta.make_channel
 
 local lmd5          = crypt.md5
 local lsha1         = crypt.sha1
+local mdecode       = bson.decode
+local mencode_o     = bson.encode_order
 local lrandomkey    = crypt.randomkey
 local lb64encode    = crypt.b64_encode
 local lb64decode    = crypt.b64_decode
 local lhmac_sha1    = crypt.hmac_sha1
 local lxor_byte     = crypt.xor_byte
 local lclock_ms     = timer.clock_ms
-local mreply        = mongo.reply_slice
-local mopmsg        = mongo.opmsg_slice
-local mdecode       = mongo.decode_slice
-local mencode_s     = mongo.encode_sparse
-local mencode_o     = mongo.encode_order_slice
 
 local eproto_type   = luabus.eproto_type
 
@@ -45,6 +44,11 @@ local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 9)
+
+local OP_MSG_CODE   = 2013;
+local OP_MSG_HLEN   = 4 * 5 + 1
+local OP_CHECKSUM   = 1 << 0;
+local OP_MORE_COME  = 1 << 1;
 
 local MongoDB = class()
 local prop = property(MongoDB)
@@ -67,7 +71,7 @@ function MongoDB:__init(conf, id)
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
-    self.cursor_id = mongo.int64(0)
+    self.cursor_id = bson.int64(0)
     self:set_options(conf.opts)
     self:setup_pool(conf.hosts)
     --attach_hour
@@ -274,7 +278,7 @@ function MongoDB:on_socket_error(sock, token, err)
     sock.sessions = {}
 end
 
-function MongoDB:decode_reply(succ, slice)
+function MongoDB:decode_reply(slice)
     local doc = mdecode(slice)
     if doc.writeErrors then
         return false, doc.writeErrors[1].errmsg
@@ -282,29 +286,47 @@ function MongoDB:decode_reply(succ, slice)
     if doc.writeConcernError then
         return false, doc.writeConcernError.errmsg
     end
-    if succ and doc.ok == 1 then
-        return succ, doc
+    if doc.ok == 1 then
+        return true, doc
     end
     return false, doc.errmsg or doc["$err"]
 end
 
-function MongoDB:on_slice_recv(sock, slice, token)
-    local ok, session_id = mreply(slice)
+function MongoDB:on_socket_recv(sock, token, buff)
+    if #buff <= OP_MSG_HLEN then
+        return
+    end
+    --skip length + request_id
+    local pos = 8 + 1
+    local session_id, opcode, flags, payload, xpos = sunpack("<I4I4I4B", buff, pos)
+    if opcode ~= OP_MSG_CODE then
+        log_warn("[MongoDB][on_socket_recv] Unsupported opcode %s)!", opcode)
+        return
+    end
+    if flags > 0 and (flags & OP_CHECKSUM ~= 0 or flags ^ OP_MORE_COME ~= 0) then
+        log_warn("[MongoDB][on_socket_recv] Unsupported OP_MSG flag %s)!", flags)
+        return
+    end
+    if payload ~= 0 then
+        log_warn("Unsupported OP_MSG payload type: %d", payload)
+        return
+    end
     if session_id > 0 then
         self.res_counter:count_increase()
-        local succ, doc = self:decode_reply(ok, slice)
+        local succ, doc = self:decode_reply(buff:sub(xpos))
         thread_mgr:response(session_id, succ, doc)
     end
 end
 
-function MongoDB:op_msg(sock, slice_bson, cmd)
+function MongoDB:op_msg(sock, bsonv, cmd)
     if not sock then
         return false, "db not connected"
     end
     local tick = lclock_ms()
+    local len = OP_MSG_HLEN + #bsonv
     local session_id = thread_mgr:build_session_id()
-    local slice = mopmsg(slice_bson, session_id, 0)
-    if not sock:send_slice(slice) then
+    local buff = spack("<I4I4I4I4I4B", len, session_id, 0, OP_MSG_CODE, 0, 0)
+    if not sock:send(buff .. bsonv) then
         return false, "send failed"
     end
     sock.sessions[session_id] = cmd
@@ -313,28 +335,28 @@ function MongoDB:op_msg(sock, slice_bson, cmd)
         sock.sessions[session_id] = nil
         local utime = lclock_ms() - tick
         if utime > FAST_MS then
-            log_warn("[MongoDB][on_slice_recv] cmd (%s:%s) execute so big %s!", cmd, session_id, utime)
+            log_warn("[MongoDB][op_msg] cmd (%s:%s) execute so big %s!", cmd, session_id, utime)
         end
     end)
     return thread_mgr:yield(session_id, sformat("mongo_op:%s", cmd), DB_TIMEOUT)
 end
 
 function MongoDB:adminCommand(sock, cmd, cmd_v, ...)
-    local slice_bson = mencode_o(cmd, cmd_v, "$db", "admin", ...)
-    return self:op_msg(sock, slice_bson, cmd)
+    local bsonv = mencode_o(cmd, cmd_v, "$db", "admin", ...)
+    return self:op_msg(sock, bsonv, cmd)
 end
 
 function MongoDB:runCommand(cmd, cmd_v, ...)
-    local slice_bson = mencode_o(cmd, cmd_v or 1, "$db", self.name, ...)
-    return self:op_msg(self.executer, slice_bson, cmd)
+    local bsonv = mencode_o(cmd, cmd_v or 1, "$db", self.name, ...)
+    return self:op_msg(self.executer, bsonv, cmd)
 end
 
 function MongoDB:sendCommand(cmd, cmd_v, ...)
     local sock = self.executer
     if sock then
-        local slice_bson = mencode_o(cmd, cmd_v or 1, "$db", self.name, "writeConcern", {w=0}, ...)
-        local pack = mopmsg(slice_bson, 0, 0)
-        sock:send(pack)
+        local bsonv = mencode_o(cmd, cmd_v or 1, "$db", self.name, "writeConcern", {w=0}, ...)
+        local buff = spack("<I4I4I4I4I4B", OP_MSG_HLEN + #bsonv, 0, 0, OP_MSG_CODE, 0, 0)
+        sock:send(buff .. bsonv)
     end
 end
 
@@ -361,11 +383,11 @@ function MongoDB:drop_indexes(co_name, index_name)
 end
 
 function MongoDB:insert(co_name, doc)
-    return self:runCommand("insert", co_name, "documents", { mencode_s(doc) })
+    return self:runCommand("insert", co_name, "documents", { doc })
 end
 
 function MongoDB:update(co_name, update, selector, upsert, multi)
-    local cmd_data = { q = selector, u = mencode_s(update), upsert = upsert, multi = multi }
+    local cmd_data = { q = selector, u = update, upsert = upsert, multi = multi }
     return self:runCommand("update", co_name, "updates", { cmd_data })
 end
 

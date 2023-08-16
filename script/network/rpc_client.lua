@@ -1,13 +1,10 @@
 -- rpc_client.lua
 
-local tpack             = table.pack
 local tunpack           = table.unpack
 local log_err           = logger.err
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
-local lencode           = codec.encode_slice
-local ldecode           = codec.decode_slice
 
 local event_mgr         = quanta.get("event_mgr")
 local timer_mgr         = quanta.get("timer_mgr")
@@ -82,46 +79,41 @@ function RpcClient:connect()
         return false, cerr
     end
     local token = socket.token
-    socket.on_call = function(recv_len, session_id, rpc_flag, slice)
-        local rpc_res = tpack(pcall(ldecode, slice))
-        if not rpc_res[1] then
-            log_err("[RpcClient][on_socket_rpc] decode failed %s!", rpc_res[2])
-            return
-        end
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
+    socket.on_call = function(recv_len, session_id, rpc_flag, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, recv_len, ...)
     end
     socket.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = socket.call(session_id, rpc_flag, lencode(quanta.id, rpc, ...))
+        local send_len = socket.call(session_id, rpc_flag, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
-    socket.transfor = function(rpc, session_id, target_id, service_id, ...)
-        local send_len = socket.transfor_call(session_id, target_id, service_id, lencode(quanta.id, rpc, ...))
+    socket.transfer = function(rpc, session_id, target_id, service_id, ...)
+        local send_len = socket.forward_transfer(session_id, target_id, service_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_target = function(rpc, session_id, target, ...)
-        local send_len = socket.forward_target(session_id, FLAG_REQ, target, lencode(quanta.id, rpc, ...))
+        local send_len = socket.forward_target(session_id, FLAG_REQ, target, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.callback_target = function(rpc, session_id, target, ...)
         if target == 0 then
-            local send_len = socket.call(session_id, FLAG_RES, lencode(quanta.id, rpc, ...))
+            local send_len = socket.call(session_id, FLAG_RES, quanta.id, rpc, ...)
             return self:on_call_router(rpc, token, send_len)
         else
-            local send_len = socket.forward_target(session_id, FLAG_RES, target, lencode(quanta.id, rpc, ...))
+            local send_len = socket.forward_target(session_id, FLAG_RES, target, quanta.id, rpc, ...)
             return self:on_call_router(rpc, token, send_len)
         end
     end
     socket.call_hash = function(rpc, session_id, service_id, hash_key, ...)
         local hash_value = hash_code(hash_key, 0xffff)
-        local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, lencode(quanta.id, rpc, ...))
+        local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_master = function(rpc, session_id, service_id, ...)
-        local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
+        local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_broadcast = function(rpc, session_id, service_id, ...)
-        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, lencode(quanta.id, rpc, ...))
+        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.on_error = function(stoken, err)
@@ -206,20 +198,13 @@ function RpcClient:forward_socket(method, rpc, session_id, ...)
 end
 
 --转发消息
-function RpcClient:transfor_call(target_id, service_id, rpc, ...)
+function RpcClient:forward_transfer(target_id, session_id, service_id, rpc, ...)
     if self.alive then
-        local session_id = thread_mgr:build_session_id()
-        if self.socket.transfor(rpc, session_id, target_id, service_id, ...) then
-            return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
+        if self.socket.transfer(rpc, session_id, target_id, service_id, ...) then
+            if session_id > 0 then
+                return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
+            end
         end
-        return true
-    end
-    return false, "socket not connected"
-end
-
-function RpcClient:transfor_send(target_id, service_id, rpc, ...)
-    if self.alive then
-        self.socket.transfor(rpc, 0, target_id, service_id, ...)
         return true
     end
     return false, "socket not connected"

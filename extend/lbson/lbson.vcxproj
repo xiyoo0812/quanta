@@ -8,17 +8,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\bson.h" />
-    <ClInclude Include="src\mongo.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lmongo.cpp" />
+    <ClCompile Include="src\lbson.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{E019DA7E-EC0A-AA36-71A6-A73542E75A70}</ProjectGuid>
-    <RootNamespace>lmongo</RootNamespace>
+    <ProjectGuid>{15BEA432-628B-E5CF-E5DE-A95D2DB86C4F}</ProjectGuid>
+    <RootNamespace>lbson</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>lmongo</ProjectName>
+    <ProjectName>lbson</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
@@ -37,7 +36,7 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
-    <TargetName>lmongo</TargetName>
+    <TargetName>lbson</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>

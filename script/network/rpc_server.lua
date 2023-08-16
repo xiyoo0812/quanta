@@ -1,7 +1,6 @@
 --rpc_server.lua
 
 local pairs             = pairs
-local tpack             = table.pack
 local tunpack           = table.unpack
 local signalquit        = signal.quit
 local log_err           = logger.err
@@ -10,8 +9,6 @@ local log_info          = logger.info
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
-local lencode           = codec.encode_slice
-local ldecode           = codec.decode_slice
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -23,6 +20,8 @@ local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+
+local SERVICE_MAX       = 255
 
 local RpcServer = singleton()
 
@@ -95,7 +94,7 @@ function RpcServer:on_socket_accept(client)
     self.clients[token] = client
     -- 绑定call/回调
     client.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = client.call(session_id, rpc_flag, lencode(0, rpc, ...))
+        local send_len = client.call(session_id, rpc_flag, 0, rpc, ...)
         if send_len < 0 then
             log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
             return false
@@ -103,21 +102,16 @@ function RpcServer:on_socket_accept(client)
         proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, SUCCESS
     end
-    client.on_call = function(recv_len, session_id, rpc_flag, slice)
-        local rpc_res = tpack(pcall(ldecode, slice))
-        if not rpc_res[1] then
-            log_err("[RpcServer][on_socket_accept] on_call decode failed %s!", rpc_res[2])
-            return
-        end
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, session_id, rpc_flag, recv_len, tunpack(rpc_res, 2))
+    client.on_call = function(recv_len, session_id, rpc_flag, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, session_id, rpc_flag, recv_len, ...)
     end
-    client.on_transfor = function(recv_len, session_id, service_id, target_id, slice)
+    client.on_transfer = function(recv_len, session_id, service_id, target_id, slice)
         local function dispatch_rpc_message()
-            if service_id > 0 then
-                event_mgr:notify_listener("on_transfor_rpc", client, session_id, service_id, target_id, slice.string())
+            if service_id < SERVICE_MAX then
+                event_mgr:notify_listener("on_transfer_rpc", client, session_id, service_id, target_id, slice)
                 return
             end
-            client.on_call(recv_len, session_id, FLAG_REQ, slice)
+            event_mgr:notify_listener("on_boardcast_rpc", client, target_id, slice)
         end
         thread_mgr:fork(dispatch_rpc_message)
     end
@@ -131,18 +125,17 @@ function RpcServer:on_socket_accept(client)
 end
 
 --直接调用路由hash
-function RpcServer:forward_call(session_id, target_id, slice)
-    self.listener.forward_call(session_id, target_id, 0, slice)
+function RpcServer:transfer_call(session_id, target_id, slice)
+    return self.listener.transfer_call(session_id, target_id, slice)
 end
 
 --直接调用路由hash
-function RpcServer:forward_hash(session_id, service_id, hash_key, ...)
-    local slice = lencode(0, ...)
+function RpcServer:transfer_hash(session_id, service_id, hash_key, rpc, ...)
     local hash_value = hash_code(hash_key, 0xffff)
-    local send_len = self.listener.forward_call(session_id, service_id, hash_value, slice:string())
+    local send_len = self.listener.transfer_hash(session_id, service_id, hash_value, 0, rpc, ...)
     if send_len > 0 then
         if session_id > 0 then
-            return thread_mgr:yield(session_id, "forward_call", RPC_CALL_TIMEOUT)
+            return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
         end
         return true
     end

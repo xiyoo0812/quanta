@@ -4,12 +4,9 @@
     <ClInclude Include="src\bson.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\mongo.h">
-      <Filter>inc</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lmongo.cpp">
+    <ClCompile Include="src\lbson.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

@@ -6,18 +6,18 @@
 using namespace std;
 using namespace luakit;
 
-const uint8_t max_encode_depth = 16;
-
 namespace ljson {
+    const uint8_t max_encode_depth = 16;
+
     class yyjson {
     public:
         int encode(lua_State* L) {
-            bool empty_as_array = (bool)luaL_optinteger(L, 2, 0);
+            bool empty_as_array = luaL_opt(L, lua_toboolean, 2, false);
             return encode_impl(L, YYJSON_WRITE_ALLOW_INVALID_UNICODE, empty_as_array);
         }
 
         int pretty(lua_State* L) {
-            bool empty_as_array = (bool)luaL_optinteger(L, 2, 0);
+            bool empty_as_array = luaL_opt(L, lua_toboolean, 2, false);
             yyjson_write_flag flag = YYJSON_WRITE_ALLOW_INVALID_UNICODE | YYJSON_WRITE_PRETTY;
             return encode_impl(L, flag, empty_as_array);
         }
@@ -39,7 +39,7 @@ namespace ljson {
             size_t len;
             yyjson_read_err err;
             const char* buf = luaL_checklstring(L, 1, &len);
-            bool numkeyable = (bool)luaL_optinteger(L, 2, 0);
+            bool numkeyable = luaL_opt(L, lua_toboolean, 2, false);
             yyjson_doc* doc = yyjson_read_opts((char*)buf, len, YYJSON_READ_ALLOW_INVALID_UNICODE, nullptr, &err);
             if (!doc) luaL_error(L, err.msg);
             decode_one(L, yyjson_doc_get_root(doc), numkeyable);

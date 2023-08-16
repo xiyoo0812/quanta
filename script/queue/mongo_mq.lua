@@ -1,7 +1,7 @@
 --mongo_mq.lua
 import("agent/mongo_agent.lua")
 
-local mdate         = mongo.date
+local bdate         = bson.date
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
@@ -59,7 +59,7 @@ function MongoMQ:send_message(target_id, event, args, ttl)
     local doc = { args = args, event = event, target_id = target_id, time = quanta.now_ms }
     if ttl then
         --设置过期ttl字段
-        doc.ttl = mdate(quanta.now + ttl)
+        doc.ttl = bdate(quanta.now + ttl)
     end
     local ok = mongo_agent:insert({ self.coll_name, doc }, target_id)
     if not ok then

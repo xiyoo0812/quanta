@@ -52,8 +52,8 @@ struct socket_stream : public socket_object
     socket_mgr* m_mgr = nullptr;
     socket_t m_socket = INVALID_SOCKET;
     eproto_type m_proto_type = eproto_type::proto_rpc;
-    std::shared_ptr<var_buffer> m_recv_buffer = std::make_shared<var_buffer>();
-    std::shared_ptr<var_buffer> m_send_buffer = std::make_shared<var_buffer>();
+    std::shared_ptr<luabuf> m_recv_buffer = std::make_shared<luabuf>();
+    std::shared_ptr<luabuf> m_send_buffer = std::make_shared<luabuf>();
 
     std::string m_node_name;
     std::string m_service_name;

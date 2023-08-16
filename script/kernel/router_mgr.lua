@@ -14,6 +14,7 @@ local monitor           = quanta.get("monitor")
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
+local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
@@ -106,19 +107,20 @@ function RouterMgr:hash_router(hash_key)
 end
 
 --发送router消息
-function RouterMgr:transfor_send(target_id, service_id, ...)
+function RouterMgr:forward_call(target_id, service_id, ...)
     local router = self:hash_router(target_id)
     if router then
-        return router:transfor_send(target_id, service_id, ...)
+        local session_id = thread_mgr:build_session_id()
+        return router:forward_transfer(target_id, session_id, service_id, ...)
     end
     return false, "router not connected"
 end
 
 --发送router消息
-function RouterMgr:transfor_call(target_id, service_id, ...)
+function RouterMgr:forward_send(target_id, service_id, ...)
     local router = self:hash_router(target_id)
     if router then
-        return router:transfor_call(target_id, service_id, ...)
+        return router:forward_transfer(target_id, 0, service_id, ...)
     end
     return false, "router not connected"
 end
@@ -166,7 +168,7 @@ function RouterMgr:call_target(target, rpc, ...)
 end
 
 --发送给指定目标
-function RouterMgr:hash_call(target, hash_key, rpc, ...)
+function RouterMgr:call_target_hash(target, hash_key, rpc, ...)
     if target == quanta.id then
         local res = event_mgr:notify_listener(rpc, ...)
         return tunpack(res)
@@ -185,7 +187,7 @@ function RouterMgr:send_target(target, rpc, ...)
 end
 
 --发送给指定目标
-function RouterMgr:hash_send(target, hash_key, rpc, ...)
+function RouterMgr:send_target_hash(target, hash_key, rpc, ...)
     if target == quanta.id then
         event_mgr:notify_listener(rpc, ...)
         return true
@@ -193,15 +195,15 @@ function RouterMgr:hash_send(target, hash_key, rpc, ...)
     return self:forward_target(self:hash_router(hash_key), "call_target", rpc, 0, target, ...)
 end
 
---指定路由发送给指定目标
-function RouterMgr:router_call(router_id, target, rpc, ...)
+--发送给路由
+function RouterMgr:call_router(hash_key, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    return self:forward_target(self:get_router(router_id), "call_target", rpc, session_id, target, ...)
+    return self:forward_target(self:hash_router(hash_key), "call_rpc", rpc, session_id, FLAG_REQ, ...)
 end
 
---指定路由发送给指定目标
-function RouterMgr:router_send(router_id, target, rpc, ...)
-    return self:forward_target(self:get_router(router_id), "call_target", rpc, 0, target, ...)
+--发送给路由
+function RouterMgr:send_router(hash_key, rpc, ...)
+    return self:forward_target(self:hash_router(hash_key), "call_rpc", rpc, 0, FLAG_REQ, ...)
 end
 
 --发送给指定service的hash

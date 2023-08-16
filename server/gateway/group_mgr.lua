@@ -1,6 +1,8 @@
 --group_mgr.lua
-local log_info  = logger.info
-local qtweak    = qtable.weak
+local log_info      = logger.info
+local qtweak        = qtable.weak
+
+local client_mgr    = quanta.get("client_mgr")
 
 --创建角色数据
 local GroupMgr = class()
@@ -14,11 +16,12 @@ end
 function GroupMgr:add_member(group_id, player_id, player)
     log_info("[GroupMgr][add_member] group_id(%s) player_id(%s)!", group_id, player_id)
     local group = self.groups[group_id]
+    local session = player:get_session()
     if not group then
-        self.groups[group_id] = qtweak({ [player_id] = player })
+        self.groups[group_id] = qtweak({ [player_id] = session })
         return
     end
-    group[player_id] = player
+    group[player_id] = session
 end
 
 --更新分组信息
@@ -32,9 +35,9 @@ end
 
 --广播消息
 function GroupMgr:broadcast(group_id, cmd_id, data)
-    local group = self.groups[group_id]
-    for _, player in pairs(group or {}) do
-        player:send_message(cmd_id, data, false)
+    local sessions = self.groups[group_id]
+    if sessions then
+        client_mgr:broadcast_groups(sessions, cmd_id, data)
     end
 end
 

@@ -45,13 +45,13 @@ end
 
 --通知连接断开
 function GatePlayer:notify_disconnect()
-    router_mgr:transfor_send(self.player_id, -1, "rpc_player_disconnect", self.player_id)
+    router_mgr:forward_send(self.player_id, -1, "rpc_player_disconnect", self.player_id)
 end
 
 --通知心跳
 function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
     -- 缓存服务
-    router_mgr:transfor_send(self.player_id, -1, "rpc_player_heartbeat", self.player_id)
+    router_mgr:forward_send(self.player_id, -1, "rpc_player_heartbeat", self.player_id)
     client_mgr:check_flow(session)
     client_mgr:callback_by_id(session, cmd_id, { time = quanta.now_ms }, session_id)
 end
@@ -67,7 +67,7 @@ end
 --转发消息
 function GatePlayer:notify_command(service_id, cmd_id, body, session_id, display)
     local pla_id = self.player_id
-    local ok, codeoe, res = router_mgr:transfor_call(pla_id, service_id, "rpc_player_command", pla_id, cmd_id, body)
+    local ok, codeoe, res = router_mgr:forward_call(pla_id, service_id, "rpc_player_command", pla_id, cmd_id, body)
     if qfailed(codeoe, ok) then
         log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", pla_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)

@@ -78,7 +78,7 @@ function Document:merge(primary_id)
             if value == "nil" then
                 self:unset_field(key)
             else
-                self:set_field(key, json_decode(value))
+                self:set_field(key, json_decode(value, 1))
             end
         end
         local conf = self.prototype

@@ -146,6 +146,19 @@ function NetServer:broadcast(cmd, data)
     return true
 end
 
+-- 广播数据
+function NetServer:broadcast_groups(sessions, cmd, data)
+    local body, cmd_id, pflag = self:encode(cmd, data, FLAG_REQ)
+    if not body then
+        log_fatal("[NetServer][broadcast_groups] encode failed! cmd_id:%s-(%s)", cmd_id, data)
+        return false
+    end
+    for _, session in pairs(sessions or {}) do
+        session.call_client(cmd_id, pflag, 0, body)
+    end
+    return true
+end
+
 -- 发送数据
 function NetServer:send(session, cmd_id, data)
     return self:write(session, cmd_id, data, 0, FLAG_REQ)
@@ -187,23 +200,22 @@ function NetServer:encode(cmd, data, flag)
     return en_data, cmd_id, flag
 end
 
-function NetServer:decode(cmd_id, slice, flag)
-    local de_data = slice.string()
+function NetServer:decode(cmd_id, buff, flag)
     if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
-        de_data = lz4_decode(de_data)
+        buff = lz4_decode(buff)
     end
     if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
         --解密处理
-        de_data = b64_decode(de_data)
+        buff = b64_decode(buff)
     end
-    return self.codec:decode(cmd_id, de_data)
+    return self.codec:decode(cmd_id, buff)
 end
 
 -- 收到远程调用回调
-function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, slice)
+function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, buff)
     -- 解码
-    local body, cmd_name = self:decode(cmd_id, slice, flag)
+    local body, cmd_name = self:decode(cmd_id, buff, flag)
     if not body then
         log_warn("[NetServer][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
         return

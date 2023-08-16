@@ -14,7 +14,7 @@ const int SOCKET_PACKET_MAX = 1024 * 1024 * 16; //16m
 
 namespace lworker {
 
-    static slice* read_slice(std::shared_ptr<var_buffer> buff, size_t* pack_len) {
+    static slice* read_slice(std::shared_ptr<luabuf> buff, size_t* pack_len) {
         uint8_t* plen = buff->peek_data(sizeof(uint32_t));
         if (plen) {
             uint32_t len = *(uint32_t*)plen;
@@ -45,8 +45,8 @@ namespace lworker {
     class worker;
     class ischeduler {
     public:
-        virtual void broadcast(slice* buf) = 0;
-        virtual bool call(std::string& name, slice* buf) = 0;
+        virtual int broadcast(lua_State* L) = 0;
+        virtual int call(lua_State* L, std::string& name) = 0;
         virtual void destory(std::string& name) = 0;
     };
 
@@ -68,12 +68,14 @@ namespace lworker {
             return getenv(key);
         }
 
-        bool call(slice* buf) {
+        bool call(lua_State* L) {
+            size_t data_len;
             std::unique_lock<spin_mutex> lock(m_mutex);
-            uint8_t* target = m_write_buf->peek_space(buf->size() + sizeof(uint32_t));
+            uint8_t* data = m_codec->encode(L, 2, &data_len);
+            uint8_t* target = m_write_buf->peek_space(data_len + sizeof(uint32_t));
             if (target) {
-                m_write_buf->write<uint32_t>(buf->size());
-                m_write_buf->push_data(buf->head(), buf->size());
+                m_write_buf->write<uint32_t>(data_len);
+                m_write_buf->push_data(data, data_len);
                 return true;
             }
             return false;
@@ -91,7 +93,8 @@ namespace lworker {
             const char* service = m_service.c_str();
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
-                m_lua->table_call(service, "on_worker", nullptr, std::tie(), slice);
+                m_codec->set_slice(slice);
+                m_lua->table_call(service, "on_worker", nullptr, m_codec.get(), std::tie());
                 m_read_buf->pop_size(plen);
                 slice = read_slice(m_read_buf, &plen);
                 if (ltimer::steady_ms() - clock_ms > 100) break;
@@ -104,11 +107,11 @@ namespace lworker {
 
         void run(){
             auto quanta = m_lua->new_table(m_service.c_str());
-            quanta.set("title", fmt::format("{}", m_name));
+            quanta.set("title", m_name);
             quanta.set_function("stop", [&]() { m_running = false; });
             quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
-            quanta.set_function("call", [&](std::string name, slice* buf) { return m_schedulor->call(name, buf); });
+            quanta.set_function("call", [&](lua_State* L, std::string name) { return m_schedulor->call(L, name); });
             m_lua->run_script(fmt::format("require '{}'", m_sandbox), [&](std::string err) {
                 printf("worker load %s failed, because: %s", m_sandbox.c_str(), err.c_str());
                 m_schedulor->destory(m_name);
@@ -142,8 +145,9 @@ namespace lworker {
         ischeduler* m_schedulor = nullptr;
         std::string m_name, m_entry, m_service, m_sandbox;
         std::shared_ptr<kit_state> m_lua = std::make_shared<kit_state>();
-        std::shared_ptr<var_buffer> m_read_buf = std::make_shared<var_buffer>();
-        std::shared_ptr<var_buffer> m_write_buf = std::make_shared<var_buffer>();
+        std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
+        std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();
+        std::shared_ptr<luacodec> m_codec = std::make_shared<luacodec>();
     };
 }
 

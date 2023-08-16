@@ -90,9 +90,12 @@ local value_func = {
         return sgsub(value, "\n", "\\n")
     end,
     ["map"] = function(value)
-        value = sgsub(value, '|', ']=')
-        value = sgsub(value, ',', ',[')
-        return '{[' .. value .. '}'
+        if sfind(value, '|') then
+            value = sgsub(value, '|', ']=')
+            value = sgsub(value, ',', ',[')
+            return '{[' .. value .. '}'
+        end
+        return '{}'
     end,
     ["smap"] = function(value)
         value = sgsub(value, '|', '=')

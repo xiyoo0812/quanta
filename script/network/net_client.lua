@@ -110,21 +110,20 @@ function NetClient:encode(cmd, data, flag)
     return en_data, cmd_id, flag
 end
 
-function NetClient:decode(cmd_id, slice, flag)
-    local decode_data = slice.string()
+function NetClient:decode(cmd_id, buff, flag)
     if flag & FLAG_ZIP == FLAG_ZIP then
         --解压处理
-        decode_data = lz4_decode(decode_data)
+        buff = lz4_decode(buff)
     end
     if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
         --解密处理
-        decode_data = b64_decode(decode_data)
+        buff = b64_decode(buff)
     end
-    return self.codec:decode(cmd_id, decode_data)
+    return self.codec:decode(cmd_id, buff)
 end
 
-function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, slice)
-    local body, cmd_name = self:decode(cmd_id, slice, flag)
+function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, buff)
+    local body, cmd_name = self:decode(cmd_id, buff, flag)
     if not body  then
         log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
         return

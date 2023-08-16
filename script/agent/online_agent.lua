@@ -13,11 +13,11 @@ end
 
 --执行远程rpc消息
 function OnlineAgent:login_service(pla_id, ser_name, ser_id)
-    return router_mgr:transfor_call(pla_id, 0, "rpc_login_service", pla_id, ser_name, ser_id)
+    return router_mgr:call_router(pla_id, "rpc_login_service", pla_id, ser_name, ser_id)
 end
 
 function OnlineAgent:is_online(pla_id)
-    local ok, code, lobby_id = router_mgr:transfor_call(pla_id, 0, "rpc_query_lobby", pla_id)
+    local ok, code, lobby_id = router_mgr:call_router(pla_id, "rpc_query_lobby", pla_id)
     if qfailed(code, ok) then
         return false
     end
@@ -25,7 +25,7 @@ function OnlineAgent:is_online(pla_id)
 end
 
 function OnlineAgent:query_lobby(pla_id)
-    local ok, code, lobby_id = router_mgr:transfor_call(pla_id, 0, "rpc_query_lobby", pla_id)
+    local ok, code, lobby_id = router_mgr:call_router(pla_id, "rpc_query_lobby", pla_id)
     if qfailed(code, ok) then
         return ok
     end
@@ -33,7 +33,7 @@ function OnlineAgent:query_lobby(pla_id)
 end
 
 function OnlineAgent:query_service(pla_id, serv_name)
-    local ok, code, service_id = router_mgr:transfor_call(pla_id, 0, "rpc_query_service", pla_id, serv_name)
+    local ok, code, service_id = router_mgr:call_router(pla_id, "rpc_query_service", pla_id, serv_name)
     if qfailed(code, ok) then
         return 0
     end
@@ -41,27 +41,27 @@ function OnlineAgent:query_service(pla_id, serv_name)
 end
 
 function OnlineAgent:call_lobby(pla_id, rpc, ...)
-    return router_mgr:transfor_call(pla_id, SERVICE_LOBBY, rpc, ...)
+    return router_mgr:forward_call(pla_id, SERVICE_LOBBY, rpc, ...)
 end
 
 function OnlineAgent:send_lobby(pla_id, rpc, ...)
-    return router_mgr:transfor_send(pla_id, SERVICE_LOBBY, rpc, ...)
+    return router_mgr:forward_send(pla_id, SERVICE_LOBBY, rpc, ...)
 end
 
 function OnlineAgent:send_gateway(pla_id, rpc, ...)
-    return router_mgr:transfor_send(pla_id, SERVICE_GATE, rpc, ...)
+    return router_mgr:forward_send(pla_id, SERVICE_GATE, rpc, ...)
 end
 
 function OnlineAgent:send_client(pla_id, ...)
-    return router_mgr:transfor_send(pla_id, SERVICE_GATE, "rpc_forward_client", ...)
+    return router_mgr:forward_send(pla_id, SERVICE_GATE, "rpc_forward_client", ...)
 end
 
 function OnlineAgent:call_service(pla_id, rpc, serv_name, ...)
-    return router_mgr:transfor_call(pla_id, name2sid(serv_name), rpc, ...)
+    return router_mgr:forward_call(pla_id, name2sid(serv_name), rpc, ...)
 end
 
 function OnlineAgent:send_service(pla_id, rpc, serv_name, ...)
-    return router_mgr:transfor_send(pla_id, name2sid(serv_name), rpc, ...)
+    return router_mgr:forward_send(pla_id, name2sid(serv_name), rpc, ...)
 end
 
 quanta.online = OnlineAgent()

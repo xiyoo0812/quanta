@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = lmongo
+PROJECT_NAME = lbson
 
 #目标名字
-TARGET_NAME = lmongo
+TARGET_NAME = lbson
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -19,8 +19,8 @@ MYCFLAGS += -Wsign-compare
 MYCFLAGS += -Wno-sign-compare
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
-MYCFLAGS += -Wno-unknown-pragmas
 MYCFLAGS += -Wno-unused-but-set-parameter
+MYCFLAGS += -Wno-unknown-pragmas
 
 #c标准库版本
 #gnu99/gnu11/gnu17

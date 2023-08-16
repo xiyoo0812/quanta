@@ -3,12 +3,9 @@
 local pcall         = pcall
 local log_err       = logger.err
 local tmove         = table.move
-local tpack         = table.pack
 local tinsert       = table.insert
 local tunpack       = table.unpack
 
-local lencode       = codec.encode_slice
-local ldecode       = codec.decode_slice
 local wbroadcast    = worker.broadcast
 local wupdate       = worker.update
 local wcall         = worker.call
@@ -39,7 +36,7 @@ function Scheduler:update(clock_ms)
     local all_datas = self.contexts
     for i, args in pairs(all_datas) do
         local name, session_id = args[1], args[2]
-        if not wcall(name, lencode(session_id, tunpack(args, 3))) then
+        if not wcall(name, session_id, tunpack(args, 3)) then
             if session_id > 0 then
                 thread_mgr:response(session_id, false, "send failed!")
             end
@@ -62,7 +59,7 @@ end
 
 --访问其他线程任务
 function Scheduler:broadcast(rpc, ...)
-    wbroadcast(lencode(0, FLAG_REQ, "master", rpc, ...))
+    wbroadcast(0, FLAG_REQ, "master", rpc, ...)
 end
 
 --访问其他线程任务
@@ -81,28 +78,16 @@ end
 local function notify_rpc(session_id, title, rpc, ...)
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        wcall(title, lencode(session_id, FLAG_RES, tunpack(rpc_datas)))
+        wcall(title, session_id, FLAG_RES, tunpack(rpc_datas))
     end
 end
 
---事件分发
-local function scheduler_rpc(session_id, flag, ...)
+function quanta.on_scheduler(session_id, flag, ...)
     if flag == FLAG_REQ then
-        notify_rpc(session_id, ...)
-    else
-        thread_mgr:response(session_id, ...)
-    end
-end
-
-function quanta.on_scheduler(slice)
-    local rpc_res = tpack(pcall(ldecode, slice))
-    if not rpc_res[1] then
-        log_err("[Scheduler][on_scheduler] decode failed %s!", rpc_res[2])
+        thread_mgr:fork(notify_rpc, session_id, ...)
         return
     end
-    thread_mgr:fork(function()
-        scheduler_rpc(tunpack(rpc_res, 2))
-    end)
+    thread_mgr:response(session_id, ...)
 end
 
 quanta.scheduler = Scheduler()
