@@ -55,9 +55,10 @@ namespace lbson {
         bson_value(bson_type t, string s, string o, uint8_t st = 0) : str(s), opt(s), stype(st), type(t) {}
         bson_value(bson_type t, const char* p, size_t l, uint8_t st = 0) : str(p, l), stype(st), type(t) {}
     };
-
+    class mgocodec;
     class bson {
     public:
+        friend mgocodec;
         slice* encode_slice(lua_State* L) {
             m_buffer.clean();
             pack_dict(L, 0);
@@ -86,13 +87,12 @@ namespace lbson {
             return lua_gettop(L);
         }
 
-        int encode_order(lua_State* L) {
+        uint8_t* encode_pairs(lua_State* L, size_t* data_len) {
             int n = lua_gettop(L);
             if (n < 2 || n % 2 != 0) {
                 luaL_error(L, "Invalid ordered dict");
             }
             size_t sz;
-            m_buffer.clean();
             size_t offset = m_buffer.size();
             m_buffer.write<uint32_t>(0);
             for (int i = 0; i < n; i += 2) {
@@ -111,19 +111,11 @@ namespace lbson {
             uint32_t size = m_buffer.size() - offset;
             m_buffer.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
             //返回结果
-            size_t data_len = 0;
-            const char* data = (const char*)m_buffer.data(&data_len);
-            lua_pushlstring(L, data, data_len);
-            return 1;
+            return m_buffer.data(data_len);
         }
 
-        template<typename T>
-        T read_val(lua_State* L, slice* slice) {
-            T* value = slice->read<T>();
-            if (value == nullptr) {
-                luaL_error(L, "decode can't unpack one value");
-            }
-            return *value;
+        luabuf* get_buffer() {
+            return &m_buffer;;
         }
 
     protected:
@@ -160,6 +152,15 @@ namespace lbson {
         void write_pair(bson_type type, const char* key, size_t len, T value) {
             write_key(type, key, len);
             m_buffer.write(value);
+        }
+
+        template<typename T>
+        T read_val(lua_State* L, slice* slice) {
+            T* value = slice->read<T>();
+            if (value == nullptr) {
+                luaL_error(L, "decode can't unpack one value");
+            }
+            return *value;
         }
 
         void write_number(lua_State *L, const char* key, size_t len) {
@@ -435,20 +436,20 @@ namespace lbson {
         luabuf m_buffer;
     };
 
-    class mgocodec : public luacodec {
+    class mgocodec : public codec_base {
     public:
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf.clean();
-            m_buf.write<uint32_t>(0);
-            m_buf.write<uint32_t>(lua_tointeger(L, 1));
-            m_buf.write<uint32_t>(0);
-            m_buf.write<uint32_t>(OP_MSG_CODE);
-            m_buf.write<uint32_t>(0);
-            m_buf.write<uint8_t>(0);
+            luabuf* buf = m_bson->get_buffer();
+            buf->clean();
+            buf->write<uint32_t>(0);
+            buf->write<uint32_t>(lua_tointeger(L, 1));
+            buf->write<uint32_t>(0);
+            buf->write<uint32_t>(OP_MSG_CODE);
+            buf->write<uint32_t>(0);
+            buf->write<uint8_t>(0);
             lua_remove(L, 1);
-            m_bson.encode_order(L);
-            uint8_t* data = m_buf.data(len);
-            m_buf.copy(0, (uint8_t*)len, sizeof(uint32_t));
+            uint8_t* data = m_bson->encode_pairs(L, len);
+            buf->copy(0, (uint8_t*)len, sizeof(uint32_t));
             return data;
         }
 
@@ -458,26 +459,30 @@ namespace lbson {
             }
             //skip length + request_id
             m_slice->erase(8);
-            uint32_t session_id = m_bson.read_val<uint32_t>(L, m_slice);
-            uint32_t opcode = m_bson.read_val<uint32_t>(L, m_slice);
+            uint32_t session_id = m_bson->read_val<uint32_t>(L, m_slice);
+            uint32_t opcode = m_bson->read_val<uint32_t>(L, m_slice);
             if (opcode != OP_MSG_CODE) {
                 luaL_error(L, "Unsupported opcode: %d", opcode);
             }
-            uint32_t flags = m_bson.read_val<uint32_t>(L, m_slice);
+            uint32_t flags = m_bson->read_val<uint32_t>(L, m_slice);
             if (flags > 0 && ((flags & OP_CHECKSUM) != 0 || ((flags ^ OP_MORE_COME) != 0))) {
                 luaL_error(L, "Unsupported flags: %d", opcode);
             }
-            uint32_t payload = m_bson.read_val<uint8_t>(L, m_slice);
+            uint32_t payload = m_bson->read_val<uint8_t>(L, m_slice);
             if (payload != 0) {
                 luaL_error(L, "Unsupported payload: %d", opcode);
             }
             int otop = lua_gettop(L);
             lua_pushinteger(L, session_id);
-            //m_slice->push_stack(L);
+            m_bson->unpack_dict(L, m_slice, false);
             return lua_gettop(L) - otop;
         }
 
+        void set_bson(bson* bson) {
+            m_bson = bson;
+        }
+
     protected:
-        bson m_bson;
+        bson* m_bson;
     };
 }

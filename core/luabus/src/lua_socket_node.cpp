@@ -39,8 +39,13 @@ void lua_socket_node::close() {
     }
 }
 
-int lua_socket_node::call_slice(slice* slice){
-    return call_text((const char*)slice->head(), slice->size());
+int lua_socket_node::call_data(lua_State* L) {
+    size_t data_len = 0;
+    char* data = (char*)m_codec->encode(L, 1, &data_len);
+    if (data_len > SOCKET_PACKET_MAX) return 0;
+    m_mgr->send(m_token, data, data_len);
+    lua_pushinteger(L, data_len);
+    return 1;
 }
 
 int lua_socket_node::call_text(const char* data, uint32_t data_len) {
@@ -309,7 +314,7 @@ void lua_socket_node::on_call_text(slice* slice) {
 }
 
 void lua_socket_node::on_call_common(slice* slice) {
-    std::string body((char*)slice->head(), slice->size());
-    m_luakit->object_call(this, "on_call_common", nullptr, std::tie(), body.size(), body);
+    m_codec->set_slice(slice);
+    m_luakit->object_call(this, "on_call_common", nullptr, m_codec, std::tie(), slice->size());
 }
 

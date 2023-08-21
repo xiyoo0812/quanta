@@ -10,10 +10,8 @@ local qjoin         = qtable.join
 local tdelete       = qtable.delete
 local ssub          = string.sub
 local sgsub         = string.gsub
-local spack         = string.pack
 local sformat       = string.format
 local sgmatch       = string.gmatch
-local sunpack       = string.unpack
 local mrandom       = qmath.random
 local mtointeger    = math.tointeger
 local qhash         = codec.hash_code
@@ -22,8 +20,6 @@ local makechan      = quanta.make_channel
 
 local lmd5          = crypt.md5
 local lsha1         = crypt.sha1
-local mdecode       = bson.decode
-local mencode_o     = bson.encode_order
 local lrandomkey    = crypt.randomkey
 local lb64encode    = crypt.b64_encode
 local lb64decode    = crypt.b64_decode
@@ -43,18 +39,14 @@ local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
-local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 9)
-
-local OP_MSG_CODE   = 2013;
-local OP_MSG_HLEN   = 4 * 5 + 1
-local OP_CHECKSUM   = 1 << 0;
-local OP_MORE_COME  = 1 << 1;
+local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
 
 local MongoDB = class()
 local prop = property(MongoDB)
 prop:reader("id", nil)          --id
 prop:reader("name", "")         --dbname
 prop:reader("user", nil)        --user
+prop:reader("codec", nil)       --codec
 prop:reader("passwd", nil)      --passwd
 prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
@@ -72,6 +64,7 @@ function MongoDB:__init(conf, id)
     self.user = conf.user
     self.passwd = conf.passwd
     self.cursor_id = bson.int64(0)
+    self.codec = bson.mongo_codec()
     self:set_options(conf.opts)
     self:setup_pool(conf.hosts)
     --attach_hour
@@ -164,7 +157,7 @@ end
 
 function MongoDB:login(socket)
     local id, ip, port = socket.id, socket.ip, socket.port
-    local ok, err = socket:connect(ip, port, eproto_type.common)
+    local ok, err = socket:connect(ip, port, eproto_type.common, self.codec)
     if not ok then
         log_err("[MongoDB][login] connect db(%s:%s:%s:%s) failed: %s!", ip, port, self.name, id, err)
         return false
@@ -278,56 +271,37 @@ function MongoDB:on_socket_error(sock, token, err)
     sock.sessions = {}
 end
 
-function MongoDB:decode_reply(slice)
-    local doc = mdecode(slice)
-    if doc.writeErrors then
-        return false, doc.writeErrors[1].errmsg
+function MongoDB:decode_reply(result)
+    if result.writeErrors then
+        return false, result.writeErrors[1].errmsg
     end
-    if doc.writeConcernError then
-        return false, doc.writeConcernError.errmsg
+    if result.writeConcernError then
+        return false, result.writeConcernError.errmsg
     end
-    if doc.ok == 1 then
-        return true, doc
+    if result.ok == 1 then
+        return true, result
     end
-    return false, doc.errmsg or doc["$err"]
+    return false, result.errmsg or result["$err"]
 end
 
-function MongoDB:on_socket_recv(sock, token, buff)
-    if #buff <= OP_MSG_HLEN then
-        return
-    end
-    --skip length + request_id
-    local pos = 8 + 1
-    local session_id, opcode, flags, payload, xpos = sunpack("<I4I4I4B", buff, pos)
-    if opcode ~= OP_MSG_CODE then
-        log_warn("[MongoDB][on_socket_recv] Unsupported opcode %s)!", opcode)
-        return
-    end
-    if flags > 0 and (flags & OP_CHECKSUM ~= 0 or flags ^ OP_MORE_COME ~= 0) then
-        log_warn("[MongoDB][on_socket_recv] Unsupported OP_MSG flag %s)!", flags)
-        return
-    end
-    if payload ~= 0 then
-        log_warn("Unsupported OP_MSG payload type: %d", payload)
-        return
-    end
+function MongoDB:on_socket_recv(sock, session_id, result)
     if session_id > 0 then
         self.res_counter:count_increase()
-        local succ, doc = self:decode_reply(buff:sub(xpos))
+        local succ, doc = self:decode_reply(result)
         thread_mgr:response(session_id, succ, doc)
     end
 end
 
-function MongoDB:op_msg(sock, bsonv, cmd)
+function MongoDB:op_msg(sock, session_id, cmd, ...)
     if not sock then
         return false, "db not connected"
     end
     local tick = lclock_ms()
-    local len = OP_MSG_HLEN + #bsonv
-    local session_id = thread_mgr:build_session_id()
-    local buff = spack("<I4I4I4I4I4B", len, session_id, 0, OP_MSG_CODE, 0, 0)
-    if not sock:send(buff .. bsonv) then
+    if not sock:send_data(session_id, cmd, ...) then
         return false, "send failed"
+    end
+    if session_id <= 0 then
+        return true
     end
     sock.sessions[session_id] = cmd
     self.req_counter:count_increase()
@@ -342,22 +316,17 @@ function MongoDB:op_msg(sock, bsonv, cmd)
 end
 
 function MongoDB:adminCommand(sock, cmd, cmd_v, ...)
-    local bsonv = mencode_o(cmd, cmd_v, "$db", "admin", ...)
-    return self:op_msg(sock, bsonv, cmd)
+    local session_id = thread_mgr:build_session_id()
+    return self:op_msg(sock, session_id, cmd, cmd_v, "$db", "admin", ...)
 end
 
 function MongoDB:runCommand(cmd, cmd_v, ...)
-    local bsonv = mencode_o(cmd, cmd_v or 1, "$db", self.name, ...)
-    return self:op_msg(self.executer, bsonv, cmd)
+    local session_id = thread_mgr:build_session_id()
+    return self:op_msg(self.executer, session_id, cmd, cmd_v or 1, "$db", self.name, ...)
 end
 
 function MongoDB:sendCommand(cmd, cmd_v, ...)
-    local sock = self.executer
-    if sock then
-        local bsonv = mencode_o(cmd, cmd_v or 1, "$db", self.name, "writeConcern", {w=0}, ...)
-        local buff = spack("<I4I4I4I4I4B", OP_MSG_HLEN + #bsonv, 0, 0, OP_MSG_CODE, 0, 0)
-        sock:send(buff .. bsonv)
-    end
+    self.executer:send_data(0, cmd, cmd_v or 1, "$db", self.name, "writeConcern", {w=0}, ...)
 end
 
 function MongoDB:drop_collection(co_name)

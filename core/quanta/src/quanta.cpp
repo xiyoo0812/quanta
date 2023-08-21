@@ -105,7 +105,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
     run();
 }
 
-void quanta_app::exception_handler(std::string msg, std::string& err) {
+void quanta_app::exception_handler(std::string_view msg, std::string_view err) {
     LOG_FATAL(fmt::format(msg, err));
 #if WIN32
     _getch();
@@ -132,7 +132,7 @@ void quanta_app::load(int argc, const char* argv[]) {
             luakit::kit_state lua;
             lua.set("platform", get_platform());
             lua.set_function("set_env", [&](lua_State* L) { return set_env(L); });
-            lua.run_file(argv[1], [&](std::string err) {
+            lua.run_file(argv[1], [&](std::string_view err) {
                 exception_handler("load lua config err: {}", err);
             });
             lua.close();
@@ -162,20 +162,20 @@ void quanta_app::run() {
         const char* env_service = get_env("QUANTA_SERVICE");
         logger::get_logger()->option(env_log_path, env_service, env_index);
     }
-    lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string err) {
+    lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string_view err) {
         exception_handler("load sandbox err: {}", err);
-    });
-    lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string err) {
+        });
+    lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string_view err) {
         exception_handler("load entry err: {}", err);
-    });
+        });
     const char* env_include = get_env("QUANTA_INCLUDE");
     if (env_include) {
-        lua.run_script(fmt::format("require '{}'", env_include), [&](std::string err) {
+        lua.run_script(fmt::format("require '{}'", env_include), [&](std::string_view err) {
             exception_handler("load includes err: {}", err);
         });
     }
     while (quanta.get_function("run")) {
-        quanta.call([&](std::string err) {
+        quanta.call([&](std::string_view err) {
             LOG_FATAL(fmt::format("quanta run err: {} ", err));
         });
         check_input(lua);

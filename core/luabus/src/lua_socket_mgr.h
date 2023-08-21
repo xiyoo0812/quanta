@@ -17,7 +17,6 @@ public:
     int listen(lua_State* L, const char* ip, int port);
     int connect(lua_State* L, const char* ip, const char* port, int timeout);
 
-    std::shared_ptr<luacodec> get_codec() { return m_codec; }
     std::shared_ptr<socket_router> get_router() { return m_router; }
 
 private:

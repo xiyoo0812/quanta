@@ -26,8 +26,8 @@ namespace lcurl {
             curlm = nullptr;
         }
 
-        void create(const string& url, size_t timeout_ms) {
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        void create(string_view url, size_t timeout_ms) {
+            curl_easy_setopt(curl, CURLOPT_URL, url.data());
             curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void*)this);
             curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error);
@@ -39,27 +39,27 @@ namespace lcurl {
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         }
 
-        bool call_get(const char* data) {
+        bool call_get(string_view data) {
             return request(data);
         }
 
-        bool call_post(const char* data) {
+        bool call_post(string_view data) {
             curl_easy_setopt(curl, CURLOPT_POST, 1L);
             return request(data, true);
         }
 
-        bool call_put(const char* data) {
+        bool call_put(string_view data) {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PUT");
             return request(data, true);
         }
 
-        bool call_del(const char* data) {
+        bool call_del(string_view data) {
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
             return request(data);
         }
 
-        void set_header(string value) {
-            header = curl_slist_append(header, value.c_str());
+        void set_header(string_view value) {
+            header = curl_slist_append(header, value.data());
         }
 
         int get_respond(lua_State* L) {
@@ -70,11 +70,11 @@ namespace lcurl {
         }
 
     private:
-        bool request(const char* data, bool body_field = false) {
+        bool request(string_view data, bool body_field = false) {
             if (header) {
                 curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header);
             }
-            int len = data ? strlen(data) : 0;
+            int len = data.size();
             if (body_field || len > 0) {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data);
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, len);
@@ -112,7 +112,7 @@ namespace lcurl {
             curl_global_cleanup();
         }
 
-        int create_request(lua_State* L, string url, size_t timeout_ms) {
+        int create_request(lua_State* L, string_view url, size_t timeout_ms) {
             CURL* curl = curl_easy_init();
             if (!curl) {
                 return 0;

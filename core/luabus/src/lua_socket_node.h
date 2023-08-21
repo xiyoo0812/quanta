@@ -18,9 +18,9 @@ public:
     uint32_t get_route_count() { return m_router->get_route_count(); }
     void set_timeout(int ms) { m_mgr->set_timeout(m_token, ms); }
     void set_nodelay(bool flag) { m_mgr->set_nodelay(m_token, flag); }
-    void set_codec(luacodec* codec) { m_codec = codec; }
+    void set_codec(codec_base* codec) { m_codec = codec; }
 
-    int call_slice(slice* slice);
+    int call_data(lua_State* L);
     int call_text(const char* data, uint32_t data_len);
     int call(lua_State* L, uint32_t session_id, uint8_t flag);
     int call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint8_t crc8, uint32_t session_id, const char* data, uint32_t data_len);
@@ -69,9 +69,9 @@ private:
     void on_forward_broadcast(router_header* header, size_t target_size);
     void on_forward_error(router_header* header, slice* slice);
 
-    eproto_type m_proto_type;
-    luacodec* m_codec = nullptr;
+    codec_base* m_codec = nullptr;
     std::shared_ptr<socket_mgr> m_mgr;
     std::shared_ptr<kit_state> m_luakit;
     std::shared_ptr<socket_router> m_router;
+    eproto_type m_proto_type;
 };

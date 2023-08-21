@@ -67,7 +67,7 @@ function Socket:listen(ip, port, ptype)
     return true
 end
 
-function Socket:connect(ip, port, ptype)
+function Socket:connect(ip, port, ptype, codec)
     if self.session then
         if self.alive then
             return true
@@ -88,7 +88,11 @@ function Socket:connect(ip, port, ptype)
     session.on_connect = function(res)
         local success = res == "ok"
         self.alive = success
-        if not success then
+        if success then
+            if codec then
+                session.set_codec(codec)
+            end
+        else
             self.token = nil
             self.session = nil
         end
@@ -97,8 +101,10 @@ function Socket:connect(ip, port, ptype)
     session.on_call_text = function(recv_len, buff)
         self:on_socket_recv(token, buff)
     end
-    session.on_call_common = function(recv_len, buff)
-        self:on_socket_recv(token, buff)
+    session.on_call_common = function(recv_len, session_id, ...)
+        thread_mgr:fork(function(...)
+            self.host:on_socket_recv(self, session_id, ...)
+        end, ...)
     end
     session.on_error = function(stoken, err)
         self:on_socket_error(stoken, err)
@@ -117,12 +123,8 @@ end
 
 function Socket:on_socket_recv(token, buff)
     thread_mgr:fork(function()
-        if self.proto_type == eproto_type.text then
-            self.recvbuf = self.recvbuf .. buff
-            self.host:on_socket_recv(self, self.token)
-        else
-            self.host:on_socket_recv(self, self.token, buff)
-        end
+        self.recvbuf = self.recvbuf .. buff
+        self.host:on_socket_recv(self, token)
     end)
 end
 
@@ -179,20 +181,20 @@ function Socket:pop(len)
     end
 end
 
-function Socket:send(data)
-    if self.alive and data then
-        local send_len = self.session.call_text(data, #data)
-        return self:on_send(self.session.token, send_len)
+function Socket:send(text)
+    if self.alive and text then
+        local send_len = self.session.call_text(text, #text)
+        return send_len > 0
     end
     return false, "socket not alive"
 end
 
---调用rpc后续处理
-function Socket:on_send(token, send_len)
-    if send_len > 0 then
-        return true
+function Socket:send_data(session_id, ...)
+    if self.alive then
+        local send_len = self.session.call_data(session_id, ...)
+        return send_len > 0
     end
-    return false
+    return false, "socket not alive"
 end
 
 return Socket

@@ -28,6 +28,7 @@
 using namespace std::chrono;
 using namespace std::filesystem;
 using sstring   = std::string;
+using vstring   = std::string_view;
 using cstring   = const std::string;
 
 template <class T>
@@ -105,15 +106,15 @@ namespace logger {
     class log_message {
     public:
         int line() const { return line_; }
-        cstring tag() const { return tag_; }
-        cstring msg() const { return msg_; }
-        cstring source() const { return source_; }
-        cstring feature() const { return feature_; }
+        vstring tag() const { return tag_; }
+        vstring msg() const { return msg_; }
+        vstring source() const { return source_; }
+        vstring feature() const { return feature_; }
         bool is_grow() const { return grow_; }
         void set_grow(bool grow) { grow_ = grow; }
         log_level level() const { return level_; }
         const log_time& get_log_time()const { return log_time_; }
-        void option(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line);
+        void option(log_level level, vstring msg, vstring tag, vstring feature, vstring source, int line);
 
     private:
         int                 line_ = 0;
@@ -156,7 +157,7 @@ namespace logger {
         virtual void flush() {};
         virtual void write(sptr<log_message> logmsg);
         virtual void set_clean_time(size_t clean_time) {}
-        virtual void raw_write(cstring& msg, log_level lvl) = 0;
+        virtual void raw_write(vstring msg, log_level lvl) = 0;
         virtual void ignore_prefix(bool prefix) { ignore_prefix_ = prefix; }
         virtual void ignore_suffix(bool suffix) { ignore_suffix_ = suffix; }
         virtual cstring build_prefix(sptr<log_message> logmsg);
@@ -169,7 +170,7 @@ namespace logger {
 
     class stdio_dest : public log_dest {
     public:
-        virtual void raw_write(cstring& msg, log_level lvl);
+        virtual void raw_write(vstring msg, log_level lvl);
     }; // class stdio_dest
 
     class log_file_base : public log_dest {
@@ -178,10 +179,10 @@ namespace logger {
         virtual ~log_file_base();
 
         const log_time& file_time() const;
-        virtual void raw_write(cstring& msg, log_level lvl);
+        virtual void raw_write(vstring msg, log_level lvl);
         virtual void flush();
 
-        void create(path file_path, cstring& file_name, const log_time& file_time);
+        void create(path file_path, vstring file_name, const log_time& file_time);
 
     protected:
         log_time        file_time_;
@@ -202,7 +203,7 @@ namespace logger {
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(path& log_path, cstring& namefix, size_t max_line = 10000, size_t clean_time = CLEAN_TIME);
+        log_rollingfile(path& log_path, vstring namefix, size_t max_line = 10000, size_t clean_time = CLEAN_TIME);
 
         virtual void write(sptr<log_message> logmsg);
         virtual void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
@@ -228,17 +229,17 @@ namespace logger {
         virtual void filter(log_level lv, bool on) = 0;
         virtual void set_max_line(size_t max_line) = 0;
         virtual void set_clean_time(size_t clean_time) = 0;
-        virtual void del_dest(cstring& feature) = 0;
+        virtual void del_dest(vstring feature) = 0;
         virtual void del_lvl_dest(log_level log_lvl) = 0;
         virtual bool add_lvl_dest(log_level log_lvl) = 0;
         virtual void set_rolling_type(rolling_type type) = 0;
-        virtual void ignore_prefix(cstring& feature, bool prefix) = 0;
-        virtual void ignore_suffix(cstring& feature, bool suffix) = 0;
-        virtual bool add_dest(cstring& feature, cstring& log_path) = 0;
-        virtual bool add_file_dest(cstring& feature, cstring& fname) = 0;
-        virtual void set_dest_clean_time(cstring& feature, size_t clean_time) = 0;
-        virtual void option(cstring& log_path, cstring& service, cstring& index) = 0;
-        virtual void output(log_level level, cstring& msg, cstring& tag, cstring& feature = "", cstring& source = "", int line = 0) = 0;
+        virtual void ignore_prefix(vstring feature, bool prefix) = 0;
+        virtual void ignore_suffix(vstring feature, bool suffix) = 0;
+        virtual bool add_dest(vstring feature, vstring log_path) = 0;
+        virtual bool add_file_dest(vstring feature, vstring fname) = 0;
+        virtual void set_dest_clean_time(vstring feature, size_t clean_time) = 0;
+        virtual void option(vstring log_path, vstring service, vstring index) = 0;
+        virtual void output(log_level level, vstring msg, vstring tag, vstring feature = "", vstring source = "", int line = 0) = 0;
     };
 
     class log_service : public logger {
@@ -247,30 +248,30 @@ namespace logger {
         void start();
 
         void daemon(bool status) { log_daemon_ = status; }
-        void option(cstring& log_path, cstring& service, cstring& index);
+        void option(vstring log_path, vstring service, vstring index);
 
-        bool add_file_dest(cstring& feature, cstring& fname);
-        bool add_dest(cstring& feature, cstring& log_path);
+        bool add_file_dest(vstring feature, vstring fname);
+        bool add_dest(vstring feature, vstring log_path);
         bool add_lvl_dest(log_level log_lvl);
 
-        void del_dest(cstring& feature);
+        void del_dest(vstring feature);
         void del_lvl_dest(log_level log_lvl);
 
-        void ignore_prefix(cstring& feature, bool prefix);
-        void ignore_suffix(cstring& feature, bool suffix);
+        void ignore_prefix(vstring feature, bool prefix);
+        void ignore_suffix(vstring feature, bool suffix);
 
         void set_max_line(size_t max_line) { max_line_ = max_line; }
         void set_rolling_type(rolling_type type) { rolling_type_ = type; }
         void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
-        void set_dest_clean_time(cstring& feature, size_t clean_time);
+        void set_dest_clean_time(vstring feature, size_t clean_time);
 
         bool is_filter(log_level lv) { return log_filter_.is_filter(lv); }
         void filter(log_level lv, bool on) { log_filter_.filter(lv, on); }
 
-        void output(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line);
+        void output(log_level level, vstring msg, vstring tag, vstring feature, vstring source, int line);
 
     protected:
-        path build_path(cstring& feature, cstring& fpath);
+        path build_path(vstring feature, vstring fpath);
         void flush();
         void run();
 
@@ -284,8 +285,8 @@ namespace logger {
         sptr<log_message> stop_msg_ = nullptr;
         sptr<log_message_queue> logmsgque_ = nullptr;
         sptr<log_message_pool> message_pool_ = nullptr;
-        std::unordered_map<log_level, sptr<log_dest>> dest_lvls_;
-        std::unordered_map<sstring, sptr<log_dest>> dest_features_;
+        std::map<log_level, sptr<log_dest>> dest_lvls_;
+        std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
         size_t max_line_ = MAX_LINE, clean_time_ = CLEAN_TIME;
         bool log_daemon_ = false, ignore_postfix_ = true;
         rolling_type rolling_type_ = rolling_type::DAYLY;

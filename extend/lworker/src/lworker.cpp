@@ -11,14 +11,14 @@ namespace lworker {
         llworker.set_function("shutdown", []() { schedulor.shutdown(); });
         llworker.set_function("update", [&](uint64_t clock_ms) { schedulor.update(clock_ms); });
         llworker.set_function("broadcast", [&](lua_State* L) { return schedulor.broadcast(L); });
-        llworker.set_function("setup", [](lua_State* L, std::string service, std::string sandbox) {
+        llworker.set_function("setup", [](lua_State* L, std::string_view service, std::string_view sandbox) {
             schedulor.setup(L, service, sandbox);
             return 0;
         });
-        llworker.set_function("startup", [](std::string name, std::string entry) {
+        llworker.set_function("startup", [](std::string_view name, std::string_view entry) {
             return schedulor.startup(name, entry);
         });
-        llworker.set_function("call", [](lua_State* L, std::string name) {
+        llworker.set_function("call", [](lua_State* L, std::string_view name) {
             return schedulor.call(L, name);
         });
         return llworker;

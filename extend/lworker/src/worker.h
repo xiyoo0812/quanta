@@ -46,14 +46,14 @@ namespace lworker {
     class ischeduler {
     public:
         virtual int broadcast(lua_State* L) = 0;
-        virtual int call(lua_State* L, std::string& name) = 0;
-        virtual void destory(std::string& name) = 0;
+        virtual int call(lua_State* L, std::string_view name) = 0;
+        virtual void destory(std::string_view name) = 0;
     };
 
     class worker
     {
     public:
-        worker(ischeduler* schedulor, std::string& name, std::string& entry, std::string& service, std::string& sandbox)
+        worker(ischeduler* schedulor, std::string_view name, std::string_view entry, std::string_view service, std::string_view sandbox)
             : m_schedulor(schedulor), m_name(name), m_entry(entry), m_service(service), m_sandbox(sandbox) { }
 
         ~worker() {
@@ -111,14 +111,14 @@ namespace lworker {
             quanta.set_function("stop", [&]() { m_running = false; });
             quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
-            quanta.set_function("call", [&](lua_State* L, std::string name) { return m_schedulor->call(L, name); });
-            m_lua->run_script(fmt::format("require '{}'", m_sandbox), [&](std::string err) {
-                printf("worker load %s failed, because: %s", m_sandbox.c_str(), err.c_str());
+            quanta.set_function("call", [&](lua_State* L, std::string_view name) { return m_schedulor->call(L, name); });
+            m_lua->run_script(fmt::format("require '{}'", m_sandbox), [&](std::string_view err) {
+                printf("worker load %s failed, because: %s", m_sandbox.c_str(), err.data());
                 m_schedulor->destory(m_name);
                 return;
             });
-            m_lua->run_script(fmt::format("require '{}'", m_entry), [&](std::string err) {
-                printf("worker load %s failed, because: %s", m_entry.c_str(), err.c_str());
+            m_lua->run_script(fmt::format("require '{}'", m_entry), [&](std::string_view err) {
+                printf("worker load %s failed, because: %s", m_entry.c_str(), err.data());
                 m_schedulor->destory(m_name);
                 return;
             });
@@ -147,7 +147,7 @@ namespace lworker {
         std::shared_ptr<kit_state> m_lua = std::make_shared<kit_state>();
         std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
         std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();
-        std::shared_ptr<luacodec> m_codec = std::make_shared<luacodec>();
+        std::shared_ptr<codec_base> m_codec = std::make_shared<luacodec>();
     };
 }
 

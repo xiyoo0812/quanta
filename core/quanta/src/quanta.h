@@ -15,7 +15,7 @@ public:
     void set_signal(uint32_t n, bool b = true);
 
 protected:
-    void exception_handler(std::string msg, std::string& err);
+    void exception_handler(std::string_view msg, std::string_view err);
     const char* get_env(const char* key);
     int set_env(lua_State* L);
 

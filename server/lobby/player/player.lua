@@ -61,6 +61,11 @@ function Player:on_db_player_load(data)
     return false
 end
 
+-- 更新路由
+function Player:update_router(name, id)
+    self.routers[name] = id
+end
+
 function Player:find_router(name)
     return self.routers[name] or 0
 end
