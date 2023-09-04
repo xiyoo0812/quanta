@@ -14,7 +14,7 @@ end
 --db_query: { cmd, ...}
 function RedisAgent:execute(db_query, hash_key, db_id)
     local key = hash_key or mrandom()
-    return router_mgr:call_redis_hash(key, "rpc_redis_execute", db_id or MAIN_DBID, key, tunpack(db_query))
+    return router_mgr:call_redis_hash(key, "rpc_redis_execute", db_id or MAIN_DBID, tunpack(db_query))
 end
 
 ------------------------------------------------------------------

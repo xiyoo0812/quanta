@@ -83,7 +83,11 @@ namespace lbson {
 
         int decode_slice(lua_State* L, slice* slice) {
             lua_settop(L, 0);
-            unpack_dict(L, slice, false);
+            try {
+                unpack_dict(L, slice, false);
+            } catch (const exception& e){
+                luaL_error(L, e.what());
+            }
             return lua_gettop(L);
         }
 
@@ -130,11 +134,11 @@ namespace lbson {
         void write_binary(bson_value* value) {
             m_buffer.write<uint32_t>(value->str.size() + 1);
             m_buffer.write<uint8_t>(value->stype);
-            m_buffer.write(value->str.c_str(), value->str.size());
+            m_buffer.write(value->str);
         }
 
         void write_cstring(const char* buf, size_t len) {
-            m_buffer.write(buf, len);
+            m_buffer.push_data((uint8_t*)buf, len);
             m_buffer.write<char>('\0');
         }
 
@@ -242,7 +246,7 @@ namespace lbson {
             case bson_type::BSON_JSCODE:
             case bson_type::BSON_DOCUMENT:
             case bson_type::BSON_OBJECTID:
-                m_buffer.write(value->str.c_str(), value->str.size());
+                m_buffer.write(value->str);
                 break;
             case bson_type::BSON_REGEX:
                 write_cstring(value->str.c_str(), value->str.size());
@@ -320,7 +324,7 @@ namespace lbson {
         const char* read_bytes(lua_State* L, slice* slice, size_t sz) {
             const char* dst = (const char*)slice->peek(sz);
             if (!dst) {
-                luaL_error(L, "Invalid bson string , length = %d", sz);
+                throw length_error("invalid bson string , length = " + sz);
             }
             slice->erase(sz);
             return dst;
@@ -329,7 +333,7 @@ namespace lbson {
         const char* read_string(lua_State* L, slice* slice, size_t& sz) {
             sz = (size_t)read_val<uint32_t>(L, slice);
             if (sz <= 0) {
-                luaL_error(L, "Invalid bson string , length = %d", sz);
+                throw length_error("invalid bson string , length = " + sz);
             }
             sz = sz - 1;
             const char* dst = "";
@@ -345,14 +349,14 @@ namespace lbson {
             const char* dst = (const char*)slice->data(&sz);
             for (l = 0; l < sz; ++l) {
                 if (l == sz - 1) {
-                    luaL_error(L, "Invalid bson block : cstring");
+                    throw invalid_argument("invalid bson block : cstring");
                 }
                 if (dst[l] == '\0') {
                     slice->erase(l + 1);
                     return dst;
                 }
             }
-            luaL_error(L, "Invalid bson block : cstring");
+            throw invalid_argument("invalid bson block : cstring");
             return "";
         }
 
@@ -371,7 +375,7 @@ namespace lbson {
         void unpack_dict(lua_State* L, slice* slice, bool isarray) {
             uint32_t sz = read_val<uint32_t>(L, slice);
             if (slice->size() < sz - 4) {
-                luaL_error(L, "decode can't unpack one value");
+                throw length_error("decode can't unpack one value");
             }
             lua_createtable(L, 0, 8);
             while (!slice->empty()) {
@@ -427,7 +431,7 @@ namespace lbson {
                     lua_push_object(L, new bson_value(bt, 0));
                     break;
                 default:
-                    luaL_error(L, "Invalid bson type : %d", bt);
+                    throw invalid_argument("invalid bson type:" + (int)bt);
                 }
                 lua_rawset(L, -3);
             }
@@ -454,27 +458,30 @@ namespace lbson {
         }
 
         virtual size_t decode(lua_State* L) {
-            if (!m_slice) {
-                luaL_error(L, "source slice is null");
-            }
+            if (!m_slice) return 0;
             //skip length + request_id
             m_slice->erase(8);
             uint32_t session_id = m_bson->read_val<uint32_t>(L, m_slice);
             uint32_t opcode = m_bson->read_val<uint32_t>(L, m_slice);
             if (opcode != OP_MSG_CODE) {
-                luaL_error(L, "Unsupported opcode: %d", opcode);
+                throw invalid_argument("unsupported opcode:" + opcode);
             }
             uint32_t flags = m_bson->read_val<uint32_t>(L, m_slice);
             if (flags > 0 && ((flags & OP_CHECKSUM) != 0 || ((flags ^ OP_MORE_COME) != 0))) {
-                luaL_error(L, "Unsupported flags: %d", opcode);
+                throw invalid_argument("unsupported flags:" + flags);
             }
             uint32_t payload = m_bson->read_val<uint8_t>(L, m_slice);
             if (payload != 0) {
-                luaL_error(L, "Unsupported payload: %d", opcode);
+                throw invalid_argument("unsupported payload:" + payload);
             }
             int otop = lua_gettop(L);
             lua_pushinteger(L, session_id);
-            m_bson->unpack_dict(L, m_slice, false);
+            try {
+                m_bson->unpack_dict(L, m_slice, false);
+            } catch (const exception& e){
+                lua_settop(L, otop);
+                throw e;
+            }
             return lua_gettop(L) - otop;
         }
 

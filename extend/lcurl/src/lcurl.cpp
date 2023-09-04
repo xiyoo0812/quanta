@@ -29,8 +29,8 @@ namespace lcurl {
         curlm_mgr* curl_mgr = new curlm_mgr(curlm, curle);
         luacurl.set("curlm_mgr", curl_mgr);
         //函数导出
-        luacurl.set_function("url_encode", [&](lua_State* L, string str){
-            char* output = curl_easy_escape(curle, str.c_str(), str.size());
+        luacurl.set_function("url_encode", [&](lua_State* L, string_view str){
+            char* output = curl_easy_escape(curle, str.data(), str.size());
             if (output) {
                 lua_pushstring(L, output);
                 curl_free(output);

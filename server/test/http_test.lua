@@ -9,18 +9,28 @@ local http_client   = quanta.get("http_client")
 local data = {aaa = 123}
 
 if quanta.index == 1 then
-    local on_post = function(path, body, request)
-        log_debug("on_post: %s, %s, %s", path, body, request.get_headers())
+    local on_post = function(path, body, params)
+        log_debug("on_post: %s, %s, %s", path, body, params)
         return data
     end
-    local on_get = function(path, query, request)
-        log_debug("on_get: %s, %s, %s", path, query, request.get_headers())
+    local on_get = function(path, params)
+        log_debug("on_get: %s, %s", path, params)
+        return data
+    end
+    local on_put = function(path, body, params)
+        log_debug("on_put: %s, %s, %s", path, body, params)
+        return data
+    end
+    local on_del = function(path, params)
+        log_debug("on_del: %s, %s", path, params)
         return data
     end
     local HttpServer = import("network/http_server.lua")
     local server = HttpServer("0.0.0.0:8888")
     server:register_get("*", on_get)
     server:register_post("*", on_post)
+    server:register_put("*", on_put)
+    server:register_del("*", on_del)
     quanta.server = server
 elseif quanta.index == 2 then
     for i = 1, 1 do

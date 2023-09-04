@@ -102,14 +102,14 @@ function MongoDB:setup_pool(hosts)
         log_err("[MongoDB][setup_pool] mongo config err: hosts is empty")
         return
     end
-    local count = POOL_COUNT
-    while count > 0 do
-        for ip, port in pairs(hosts) do
-            local socket = Socket(self, ip, port)
+    local count = 1
+    for _, host in pairs(hosts) do
+        for c = 1, POOL_COUNT do
+            local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
             socket.sessions = {}
             socket:set_id(count)
-            count = count - 1
+            count = count + 1
         end
     end
     self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
@@ -157,11 +157,12 @@ end
 
 function MongoDB:login(socket)
     local id, ip, port = socket.id, socket.ip, socket.port
-    local ok, err = socket:connect(ip, port, eproto_type.common, self.codec)
+    local ok, err = socket:connect(ip, port, eproto_type.mongo)
     if not ok then
         log_err("[MongoDB][login] connect db(%s:%s:%s:%s) failed: %s!", ip, port, self.name, id, err)
         return false
     end
+    socket:set_codec(self.codec)
     if self.user and self.passwd then
         local aok, aerr = self:auth(socket, self.user, self.passwd)
         if not aok then
@@ -299,9 +300,6 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
     local tick = lclock_ms()
     if not sock:send_data(session_id, cmd, ...) then
         return false, "send failed"
-    end
-    if session_id <= 0 then
-        return true
     end
     sock.sessions[session_id] = cmd
     self.req_counter:count_increase()

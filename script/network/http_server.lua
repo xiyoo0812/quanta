@@ -3,32 +3,29 @@ local Socket        = import("driver/socket.lua")
 
 local type          = type
 local pcall         = pcall
-local pairs         = pairs
-local tostring      = tostring
 local log_err       = logger.err
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
 local tunpack       = table.unpack
 local signalquit    = signal.quit
-local json_encode   = json.encode
 local saddr         = qstring.addr
-
-local thread_mgr    = quanta.get("thread_mgr")
 
 local HttpServer = class()
 local prop = property(HttpServer)
-prop:reader("listener", nil)        --网络连接对象
 prop:reader("ip", nil)              --http server地址
 prop:reader("port", 8080)           --http server端口
+prop:reader("codec", nil)           --codec
+prop:reader("listener", nil)        --网络连接对象
 prop:reader("clients", {})          --clients
-prop:reader("requests", {})         --requests
 prop:reader("get_handlers", {})     --get_handlers
 prop:reader("put_handlers", {})     --put_handlers
 prop:reader("del_handlers", {})     --del_handlers
 prop:reader("post_handlers", {})    --post_handlers
 
 function HttpServer:__init(http_addr)
+    local jcodec = json.jsoncodec()
+    self.codec = codec.httpcodec(jcodec)
     self:setup(http_addr)
 end
 
@@ -46,7 +43,6 @@ end
 
 function HttpServer:close(token, socket)
     self.clients[token] = nil
-    self.requests[token] = nil
     socket:close()
 end
 
@@ -58,40 +54,28 @@ function HttpServer:on_socket_error(socket, token, err)
     end
     log_debug("[HttpServer][on_socket_error] client(token:%s) close!", token)
     self.clients[token] = nil
-    self.requests[token] = nil
 end
 
 function HttpServer:on_socket_accept(socket, token)
     --log_debug("[HttpServer][on_socket_accept] client(token:%s) connected!", token)
     self.clients[token] = socket
+    socket:set_codec(self.codec)
 end
 
-function HttpServer:on_socket_recv(socket, token)
-    local request = self.requests[token]
-    if not request then
-        request = http.create_request()
-        self.requests[token] = request
+function HttpServer:on_socket_recv(socket, method, url, params, body)
+    log_debug("[HttpServer][on_socket_recv] recv: %s, %s, %s, %s!", method, url, params, body)
+    if method == "GET" then
+        return self:on_http_request(self.get_handlers, socket, url, params)
     end
-    local buf = socket:get_recvbuf()
-    if not request.parse(buf) then
-        return
+    if method == "POST" then
+        return self:on_http_request(self.post_handlers, socket, url, body, params)
     end
-    socket:pop(#buf)
-    thread_mgr:fork(function()
-        local method = request.method
-        if method == "GET" then
-            return self:on_http_request(self.get_handlers, socket, request.url, request.get_params(), request)
-        end
-        if method == "POST" then
-            return self:on_http_request(self.post_handlers, socket, request.url, request.body, request)
-        end
-        if method == "PUT" then
-            return self:on_http_request(self.put_handlers, socket, request.url, request.body, request)
-        end
-        if method == "DELETE" then
-            return self:on_http_request(self.del_handlers, socket, request.url, request.get_params(), request)
-        end
-    end)
+    if method == "PUT" then
+        return self:on_http_request(self.put_handlers, socket, url, body, params)
+    end
+    if method == "DELETE" then
+        return self:on_http_request(self.del_handlers, socket, url, params)
+    end
 end
 
 --注册get回调
@@ -156,23 +140,14 @@ function HttpServer:response(socket, status, response, headers)
     if not token or not response then
         return
     end
-    local new_resp = http.create_response()
-    for key, value in pairs(headers or {}) do
-        new_resp.set_header(key, value)
+    if not headers then
+        headers = { ["Content-Type"] = "application/json" }
     end
-    if type(response) == "table" then
-        new_resp.set_header("Content-Type", "application/json")
-        new_resp.content = json_encode(response)
-    elseif type(response) == "string" then
-        new_resp.content = response
+    if type(response) == "string" then
         local html = response:find("<html")
-        new_resp.set_header("Content-Type", html and "text/html" or "text/plain")
-    else
-        new_resp.set_header("Content-Type", "text/plain")
-        new_resp.content = tostring(response)
+        headers["Content-Type"] = html and "text/html" or "text/plain"
     end
-    new_resp.status = status
-    socket:send(new_resp.serialize())
+    socket:send_data(status, headers, response)
     self:close(token, socket)
 end
 

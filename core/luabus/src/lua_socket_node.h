@@ -21,7 +21,6 @@ public:
     void set_codec(codec_base* codec) { m_codec = codec; }
 
     int call_data(lua_State* L);
-    int call_text(const char* data, uint32_t data_len);
     int call(lua_State* L, uint32_t session_id, uint8_t flag);
     int call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint8_t crc8, uint32_t session_id, const char* data, uint32_t data_len);
     int forward_target(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t target_id);
@@ -60,10 +59,10 @@ public:
     uint16_t m_sindex = 1;
 
 private:
-    void on_recv(slice* slice);
-    void on_call_head(slice* slice);
-    void on_call_text(slice* slice);
-    void on_call_common(slice* slice);
+    int on_recv(slice* slice);
+    int on_call_head(slice* slice);
+    int on_call_text(slice* slice);
+    int on_call_data(slice* slice);
     void on_call(router_header* header, slice* slice);
     void on_transfer(transfer_header* header, slice* slice);
     void on_forward_broadcast(router_header* header, size_t target_size);

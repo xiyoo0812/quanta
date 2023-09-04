@@ -73,4 +73,13 @@ function Entity:destory()
     self:unload()
 end
 
+--reset
+function Entity:reset()
+    self:unload()
+    self.dynamic = false
+    self.release = false
+    self.active_time = 0
+    self.load_success = false
+end
+
 return Entity

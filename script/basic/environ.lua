@@ -61,9 +61,9 @@ local function parse_hosts(value)
     local hosts = {}
     local strs = ssplit(value, ",")
     for _, str in pairs(strs) do
-        local k, v = usplit(str, ":")
+        local k, v = saddr(str)
         if k then
-            hosts[k] = v
+            hosts[#hosts + 1] = { k, v }
         end
     end
     return hosts

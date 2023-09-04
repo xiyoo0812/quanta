@@ -1,5 +1,5 @@
 -- accord_mgr.lua
-local log_warn       = logger.warn
+local log_warn      = logger.warn
 local log_debug     = logger.debug
 local jdecode       = json.decode
 
@@ -149,7 +149,7 @@ end
 -- http 回调
 ----------------------------------------------------------------------
 -- accord_html
-function AccordMgr:on_accord_page(url, body, request)
+function AccordMgr:on_accord_page(url, body)
     if self.load_db_status then
         return self.accord_html, {
             ["Access-Control-Allow-Origin"] = "*"
@@ -169,45 +169,41 @@ function AccordMgr:on_accord_page(url, body, request)
 end
 
 -- accord_css
-function AccordMgr:on_accord_css(url, body, request)
+function AccordMgr:on_accord_css(url, body)
     return self.accord_css, {
         ["Access-Control-Allow-Origin"] = "*"
     }
 end
 
 -- 拉取日志
-function AccordMgr:on_message(url, body, request)
-    local open_id = request.get_param("open_id")
+function AccordMgr:on_message(url, params)
     --log_debug("[AccordMgr][on_message] open_id: %s", open_id)
-    return robot_mgr:get_accord_message(open_id)
+    return robot_mgr:get_accord_message(params.open_id)
 end
 
 -- monitor拉取
-function AccordMgr:on_create(url, body, request)
-    local jbody = jdecode(body)
+function AccordMgr:on_create(url, body)
     log_debug("[AccordMgr][on_create] body: %s", body)
-    return robot_mgr:create_robot(jbody.ip, jbody.port, jbody.open_id, jbody.passwd)
+    return robot_mgr:create_robot(body.ip, body.port, body.open_id, body.passwd)
 end
 
 -- 后台GM调用，字符串格式
-function AccordMgr:on_destory(url, body, request)
-    local jbody = jdecode(body)
+function AccordMgr:on_destory(url, body)
     log_debug("[AccordMgr][on_destory] body: %s", body)
-    return robot_mgr:destory_robot(jbody.open_id)
+    return robot_mgr:destory_robot(body.open_id)
 end
 
 -- 服务器列表
-function AccordMgr:on_server_list(url, body, request)
+function AccordMgr:on_server_list(url, body)
     log_debug("[AccordMgr][on_server_list] body: %s", body)
     return { code = 0, server_list = self.server_list}
 end
 
 -- 编辑服务器
-function AccordMgr:on_server_edit(url, body, request)
+function AccordMgr:on_server_edit(url, body)
     log_debug("[AccordMgr][on_server_edit] body: %s", body)
-    local jbody = jdecode(body)
-    if jbody and jbody.data then
-        local data = jbody.data
+    if body.data then
+        local data = body.data
         if self.server_list[data.name] then
             accord_dao:save_server(data)
         else
@@ -220,11 +216,10 @@ function AccordMgr:on_server_edit(url, body, request)
 end
 
 -- 删除服务器
-function AccordMgr:on_server_del(url, body, request)
+function AccordMgr:on_server_del(url, body)
     log_debug("[AccordMgr][on_server_del] body: %s", body)
-    local jbody = jdecode(body)
-    if jbody and jbody.data then
-        local data = jbody.data
+    if body.data then
+        local data = body.data
         self.server_list[data.name] = nil
         accord_dao:del_server(data.name)
         return { code = 0}
@@ -233,17 +228,16 @@ function AccordMgr:on_server_del(url, body, request)
 end
 
 -- 协议列表
-function AccordMgr:on_accord_list(url, body, request)
+function AccordMgr:on_accord_list(url, body)
     log_debug("[AccordMgr][on_accord_list] body: %s", body)
     return { code = 0, accord_list = self.accord_list}
 end
 
 -- 编辑协议
-function AccordMgr:on_accord_edit(url, body, request)
+function AccordMgr:on_accord_edit(url, body)
     log_debug("[AccordMgr][on_accord_edit] body: %s", body)
-    local jbody = jdecode(body)
-    if jbody and jbody.data then
-        local data = jbody.data
+    if body.data then
+        local data = body.data
         local accords = data.accords
         local low_name = data.low_name
         local clone = data.clone
@@ -264,11 +258,10 @@ function AccordMgr:on_accord_edit(url, body, request)
 end
 
 -- 删除协议
-function AccordMgr:on_accord_del(url, body, request)
+function AccordMgr:on_accord_del(url, body)
     log_debug("[AccordMgr][on_accord_del] body: %s", body)
-    local jbody = jdecode(body)
-    if jbody and jbody.data then
-        local data = jbody.data
+    if body.data then
+        local data = body.data
         self.accord_list[data.name] = nil
         accord_dao:del_accord_conf(data.name)
         return { code = 0}
@@ -277,11 +270,10 @@ function AccordMgr:on_accord_del(url, body, request)
 end
 
 -- 客户端上传用例
-function AccordMgr:on_upload(url, body, request)
-    local jbody = jdecode(body)
+function AccordMgr:on_upload(url, body)
     log_debug("[AccordMgr][on_upload] body: %s", body)
-    if jbody and jbody.data then
-        local data = jdecode(jbody.data);
+    if body.data then
+        local data = jdecode(body.data);
         local add = false
         if not self.accord_list[data.name] then
             add = true
@@ -298,11 +290,10 @@ function AccordMgr:on_upload(url, body, request)
 end
 
 -- 编辑协议选项
-function AccordMgr:on_proto_edit(url, body, request)
+function AccordMgr:on_proto_edit(url, body)
     log_debug("[AccordMgr][on_proto_edit] body: %s", body)
-    local jbody = jdecode(body)
-    if jbody and jbody.data then
-        local data = jbody.data
+    if body.data then
+        local data = body.data
         local accord = self.accord_list[data.name]
         if not accord then
             return { code = -1, msg = "不存在的协议配置,请重新创建!"}
@@ -315,11 +306,10 @@ function AccordMgr:on_proto_edit(url, body, request)
 end
 
 -- 删除协议选项
-function AccordMgr:on_proto_del(url, body, request)
+function AccordMgr:on_proto_del(url, body)
     log_debug("[AccordMgr][on_proto_del] body: %s", body)
-    local jbody = jdecode(body)
-    if jbody and jbody.data then
-        local data = jbody.data
+    if body.data then
+        local data = body.data
         local accord = self.accord_list[data.accord_name]
         if not accord then
             return { code = -1, msg = "不存在的协议配置!"}
@@ -331,19 +321,17 @@ function AccordMgr:on_proto_del(url, body, request)
 end
 
 -- 后台GM调用，table格式
-function AccordMgr:on_run(url, body, request)
-    local jbody = jdecode(body)
-    if jbody.cmd_id ~= 1001 then
+function AccordMgr:on_run(url, body)
+    if body.cmd_id ~= 1001 then
         log_debug("[AccordMgr][on_run] body: %s", body)
     end
-    return robot_mgr:run_accord_message(jbody.open_id, jbody.cmd_id, jbody.data)
+    return robot_mgr:run_accord_message(body.open_id, body.cmd_id, body.data)
 end
 
 -- 后台GM调用，table格式
-function AccordMgr:on_runall(url, body, request)
-    local jbody = jdecode(body)
+function AccordMgr:on_runall(url, body)
     log_debug("[AccordMgr][on_runall] body: %s", body)
-    return robot_mgr:run_accord_messages(jbody.open_id, jbody.data)
+    return robot_mgr:run_accord_messages(body.open_id, body.data)
 end
 
 quanta.accord_mgr = AccordMgr()

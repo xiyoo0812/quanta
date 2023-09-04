@@ -237,7 +237,7 @@ return [[
                 url: url,
                 type: "POST",
                 dataType: "json",
-                contentType: "utf-8",
+                contentType: "application/json",
                 data: result.data,
                 success: function (res) {
                     var result = res.msg

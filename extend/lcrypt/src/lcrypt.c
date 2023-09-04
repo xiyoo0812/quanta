@@ -455,6 +455,41 @@ static int lrsa_private_decrypt(lua_State* L) {
     return 2;
 }
 
+static int lcrc8(lua_State* L) {
+    size_t len;
+    const char* key = lua_tolstring(L, 1, &len);
+    lua_pushinteger(L, crc8_lsb(key, len));
+    return 1;
+}
+
+static int lcrc8_msb(lua_State* L) {
+    size_t len;
+    const char* key = lua_tolstring(L, 1, &len);
+    lua_pushinteger(L, crc8_msb(key, len));
+    return 1;
+}
+
+static int lcrc16(lua_State* L) {
+    size_t len;
+    const char* key = lua_tolstring(L, 1, &len);
+    lua_pushinteger(L, crc16(key, len));
+    return 1;
+}
+
+static int lcrc32(lua_State* L) {
+    size_t len;
+    const char* key = lua_tolstring(L, 1, &len);
+    lua_pushinteger(L, crc32(key, len));
+    return 1;
+}
+
+static int lcrc64(lua_State* L) {
+    size_t len;
+    const char* key = lua_tolstring(L, 1, &len);
+    lua_pushinteger(L, (int64_t)crc64(key, len));
+    return 1;
+}
+
 static const luaL_Reg lcrypt_funcs[] = {
     { "md5", lmd5 },
     { "sha1", lsha1 },
@@ -462,6 +497,11 @@ static const luaL_Reg lcrypt_funcs[] = {
     { "sha256", lsha256 },
     { "sha384", lsha384 },
     { "sha512", lsha512 },
+    { "crc8", lcrc8 },
+    { "crc64", lcrc64 },
+    { "crc32", lcrc32 },
+    { "crc16", lcrc16 },
+    { "crc8_msb", lcrc8_msb },
     { "hmac_sha1", lhmac_sha1 },
     { "hmac_sha224", lhmac_sha224 },
     { "hmac_sha256", lhmac_sha256 },

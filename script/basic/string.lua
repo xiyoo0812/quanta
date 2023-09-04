@@ -52,24 +52,6 @@ function qstring.split(str, token)
     return t
 end
 
-function qstring.split_pos(str, token)
-    if #str > 0 then
-        local elem = {}
-        local pos, t = 0, { cur = 0 }
-        for st, sp in function() return sfind(str, token, pos, true) end do
-            if st > 1 then
-                elem[#elem + 1] = {ssub(str, pos, st - 1), sp }
-            end
-            pos = sp + 1
-        end
-        if pos <= #str then
-            elem[#elem + 1] = { ssub(str, pos), #str }
-        end
-        t.elem = elem
-        return t
-    end
-end
-
 function qstring.ends_with(str, ending)
     return str:sub(-#ending) == ending
 end

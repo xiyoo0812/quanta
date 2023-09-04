@@ -10,7 +10,6 @@ local sformat           = string.format
 local tunpack           = table.unpack
 local tinsert           = table.insert
 local make_sid          = service.make_sid
-local jdecode           = json.decode
 local guid_index        = codec.guid_index
 
 local online            = quanta.get("online")
@@ -160,18 +159,18 @@ end
 --http 回调
 ----------------------------------------------------------------------
 --gm_page
-function GM_Mgr:on_gm_page(url, body, request)
+function GM_Mgr:on_gm_page(url, params)
     return self.gm_page, {["Access-Control-Allow-Origin"] = "*"}
 end
 
 --gm列表
-function GM_Mgr:on_gmlist(url, body, request)
+function GM_Mgr:on_gmlist(url, params)
     return { text = "GM指令", nodes = cmdline:get_displays() }
 end
 
 --monitor拉取
-function GM_Mgr:on_monitors(url, body, request)
-    log_debug("[GM_Mgr][on_monitors] body: %s", body)
+function GM_Mgr:on_monitors(url, params)
+    log_debug("[GM_Mgr][on_monitors] body: %s", params)
     local nodes = {}
     for _, addr in pairs(self.monitors) do
         tinsert(nodes, { text = addr, tag = "log" })
@@ -180,17 +179,15 @@ function GM_Mgr:on_monitors(url, body, request)
 end
 
 --后台GM调用，字符串格式
-function GM_Mgr:on_command(url, body, request)
+function GM_Mgr:on_command(url, body)
     log_debug("[GM_Mgr][on_command] body: %s", body)
-    local cmd_req = jdecode(body)
-    return self:exec_command(cmd_req.data)
+    return self:exec_command(body.data)
 end
 
 --后台GM调用，table格式
-function GM_Mgr:on_message(url, body, request)
+function GM_Mgr:on_message(url, body)
     log_debug("[GM_Mgr][on_message] body: %s", body)
-    local cmd_req = jdecode(body)
-    return self:exec_message(cmd_req.data)
+    return self:exec_message(body.data)
 end
 
 -------------------------------------------------------------------------

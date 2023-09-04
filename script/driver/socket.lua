@@ -1,10 +1,7 @@
 --socket.lua
 
-local ssub          = string.sub
 local log_err       = logger.err
 local log_info      = logger.info
-local ends_with     = qstring.ends_with
-local split_pos     = qstring.split_pos
 local qxpcall       = quanta.xpcall
 
 local eproto_type   = luabus.eproto_type
@@ -25,7 +22,6 @@ prop:reader("alive", false)
 prop:reader("proto_type", eproto_type.text)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
-prop:reader("recvbuf", "")
 prop:accessor("id", 0)
 
 function Socket:__init(host, ip, port)
@@ -67,7 +63,13 @@ function Socket:listen(ip, port, ptype)
     return true
 end
 
-function Socket:connect(ip, port, ptype, codec)
+function Socket:set_codec(codec)
+    if self.session then
+        self.session.set_codec(codec)
+    end
+end
+
+function Socket:connect(ip, port, ptype)
     if self.session then
         if self.alive then
             return true
@@ -88,23 +90,14 @@ function Socket:connect(ip, port, ptype, codec)
     session.on_connect = function(res)
         local success = res == "ok"
         self.alive = success
-        if success then
-            if codec then
-                session.set_codec(codec)
-            end
-        else
+        if not success then
             self.token = nil
             self.session = nil
         end
         thread_mgr:response(block_id, success, res)
     end
-    session.on_call_text = function(recv_len, buff)
-        self:on_socket_recv(token, buff)
-    end
-    session.on_call_common = function(recv_len, session_id, ...)
-        thread_mgr:fork(function(...)
-            self.host:on_socket_recv(self, session_id, ...)
-        end, ...)
+    session.on_call_data = function(recv_len, ...)
+        self:on_socket_recv(token, ...)
     end
     session.on_error = function(stoken, err)
         self:on_socket_error(stoken, err)
@@ -121,11 +114,10 @@ function Socket:on_socket_accept(session)
     socket:accept(session, session.ip, self.port)
 end
 
-function Socket:on_socket_recv(token, buff)
-    thread_mgr:fork(function()
-        self.recvbuf = self.recvbuf .. buff
-        self.host:on_socket_recv(self, token)
-    end)
+function Socket:on_socket_recv(token, ...)
+    thread_mgr:fork(function(...)
+        self.host:on_socket_recv(self, ...)
+    end, ...)
 end
 
 function Socket:on_socket_error(token, err)
@@ -143,8 +135,8 @@ end
 function Socket:accept(session, ip, port)
     local token = session.token
     session.set_timeout(NETWORK_TIMEOUT)
-    session.on_call_text = function(recv_len, buff)
-        self:on_socket_recv(token, buff)
+    session.on_call_data = function(recv_len, ...)
+        self:on_socket_recv(token, ...)
     end
     session.on_error = function(stoken, err)
         self:on_socket_error(stoken, err)
@@ -156,42 +148,9 @@ function Socket:accept(session, ip, port)
     self.host:on_socket_accept(self, token)
 end
 
-function Socket:peek(len, offset)
-    offset = offset or 0
-    if offset + len <= #self.recvbuf then
-        return ssub(self.recvbuf, offset + 1, offset + len)
-    end
-end
-
-function Socket:peek_lines(split_char)
-    if #self.recvbuf >= #split_char then
-        if ends_with(self.recvbuf, split_char) then
-            return split_pos(self.recvbuf, split_char)
-        end
-    end
-end
-
-function Socket:pop(len)
-    if len > 0 then
-        if #self.recvbuf > len then
-            self.recvbuf = ssub(self.recvbuf, len + 1)
-        else
-            self.recvbuf = ""
-        end
-    end
-end
-
-function Socket:send(text)
-    if self.alive and text then
-        local send_len = self.session.call_text(text, #text)
-        return send_len > 0
-    end
-    return false, "socket not alive"
-end
-
-function Socket:send_data(session_id, ...)
+function Socket:send_data(...)
     if self.alive then
-        local send_len = self.session.call_data(session_id, ...)
+        local send_len = self.session.call_data(...)
         return send_len > 0
     end
     return false, "socket not alive"

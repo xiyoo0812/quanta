@@ -84,7 +84,7 @@ end
 
 function RedisDiscovery:on_subscribe_alive()
     log_debug("[RedisDiscovery][on_subscribe_alive]")
-    self.subscriber:psubscribe(CHANNEL_PT)
+    self.subscriber:execute("psubscribe", CHANNEL_PT)
     self:load_services()
 end
 
@@ -156,8 +156,8 @@ function RedisDiscovery:query_instances()
     local now = quanta.now
     repeat
         local ok, next_cur, datas = self.redis:execute("HSCAN", SERVICE_KEY, cur, "count", 200)
-        if not ok or not cur or not datas then
-            log_err("[RedisDiscovery][query_instances] query failed: cur:%s, datas:%s", cur, datas)
+        if not ok or not next_cur or not datas then
+            log_err("[RedisDiscovery][query_instances] query failed: cur:%s, datas:%s", next_cur, datas)
             return
         end
         for node_data, score in pairs(datas) do
@@ -173,13 +173,13 @@ end
 -- 注册实例
 function RedisDiscovery:regi_instance(node_data)
     self.redis:execute("HSET", SERVICE_KEY, node_data, quanta.now)
-    self.subscriber:publish(CHANNEL_UP, node_data)
+    self.redis:execute("publish", CHANNEL_UP, node_data)
 end
 
 -- 删除实例
 function RedisDiscovery:del_instance(node_data)
     self.redis:execute("HDEL", SERVICE_KEY, node_data)
-    self.subscriber:publish(CHANNEL_DN, node_data)
+    self.redis:execute("publish", CHANNEL_DN, node_data)
 end
 
 return RedisDiscovery

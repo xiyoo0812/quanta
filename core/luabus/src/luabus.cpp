@@ -45,7 +45,8 @@ namespace luabus {
             "rpc", eproto_type::proto_rpc,
             "head", eproto_type::proto_head,
             "text", eproto_type::proto_text,
-            "common", eproto_type::proto_common
+            "mongo", eproto_type::proto_mongo,
+            "mysql", eproto_type::proto_mysql
         );
         kit_state.new_class<socket_udp>(
             "send", &socket_udp::send,
@@ -78,7 +79,6 @@ namespace luabus {
             "set_codec", &lua_socket_node::set_codec,
             "call_head", &lua_socket_node::call_head,
             "call_data", &lua_socket_node::call_data,
-            "call_text", &lua_socket_node::call_text,
             "set_nodelay", &lua_socket_node::set_nodelay,
             "set_timeout", &lua_socket_node::set_timeout,
             "forward_hash", &lua_socket_node::forward_hash,

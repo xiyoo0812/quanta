@@ -4,6 +4,9 @@
     <ClInclude Include="src\base64.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\crc.h">
+      <Filter>inc</Filter>
+    </ClInclude>
     <ClInclude Include="src\des56.h">
       <Filter>inc</Filter>
     </ClInclude>
@@ -31,6 +34,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\base64.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\crc.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\des56.c">

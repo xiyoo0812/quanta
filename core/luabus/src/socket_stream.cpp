@@ -410,7 +410,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
             return;
         }
         total_send += send_len;
-        m_send_buffer->pop_space((size_t)send_len);
+        m_send_buffer->pop_size((size_t)send_len);
     }
     if (is_eof || max_len == 0) {
         on_error("connection-lost");
@@ -496,13 +496,21 @@ void socket_stream::dispatch_package() {
             }
             package_size = header->len;
         }
-        else if (eproto_type::proto_common == m_proto_type) {
+        else if (eproto_type::proto_mongo == m_proto_type) {
             uint32_t* length = (uint32_t*)m_recv_buffer->peek_data(sizeof(uint32_t));
             if (!length) {
                 break;
             }
-            //头长度只包含内容，不包括长度
+            //package_size = length + contents
             package_size = *length;
+        }
+        else if (eproto_type::proto_mysql == m_proto_type) {
+            uint32_t* length = (uint32_t*)m_recv_buffer->peek_data(sizeof(uint32_t));
+            if (!length) {
+                break;
+            }
+            //package_size = length + serialize_id + contents
+            package_size = ((*length) >> 8) + sizeof(uint32_t);
         }
         else if (eproto_type::proto_text == m_proto_type) {
             package_size = m_recv_buffer->size();
@@ -518,9 +526,18 @@ void socket_stream::dispatch_package() {
         }
         // 数据包还没有收完整
         if (data_len < package_size) break;
-        m_package_cb(m_recv_buffer->get_slice(package_size));
+        int read_size = m_package_cb(m_recv_buffer->get_slice(package_size));
+        // 数据包还没有收完整
+        if (read_size == 0) {
+            break;
+        }
+        // 数据包解析失败
+        if (read_size < 0) {
+            on_error("package-read-err");
+            break;
+        }
         // 接收缓冲读游标调整
-        m_recv_buffer->pop_size(package_size);
+        m_recv_buffer->pop_size(read_size);
         m_last_recv_time = ltimer::steady_ms();
         // 防止单个连接处理太久，不能大于100ms
         if (m_last_recv_time - now > 100) break;

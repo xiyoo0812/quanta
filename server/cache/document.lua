@@ -8,8 +8,6 @@ local tclone        = qtable.deep_copy
 local sformat       = string.format
 local mrandom       = math.random
 local makechan      = quanta.make_channel
-local json_encode   = json.encode
-local json_decode   = json.decode
 
 local redis_mgr     = quanta.get("redis_mgr")
 local mongo_mgr     = quanta.get("mongo_mgr")
@@ -62,23 +60,24 @@ function Document:load()
         return code
     end
     self.datas = res or {}
-    return self:merge(pid)
+    return self:merge()
 end
 
 --合并
-function Document:merge(primary_id)
-    local code, res = redis_mgr:execute(MAIN_DBID, primary_id, "HGETALL", self.hotkey)
+function Document:merge()
+    local code, res = redis_mgr:execute(MAIN_DBID, "HGETALL", self.hotkey)
     if qfailed(code) then
         log_err("[Document][merge] failed: %s=> table: %s", res, self.coll_name)
         return code
     end
     if next(res) then
         for key, value in pairs(res) do
+            local field_data = value.val
             self.count = self.count - 1
-            if value == "nil" then
+            if field_data == "nil" then
                 self:unset_field(key)
             else
-                self:set_field(key, json_decode(value, 1))
+                self:set_field(key, field_data)
             end
         end
         local conf = self.prototype
@@ -98,7 +97,7 @@ function Document:destory()
         log_err("[Document][destory] del failed: %s=> table: %s", res, self.coll_name)
         return false, code
     end
-    local rcode, rres = redis_mgr:execute(MAIN_DBID, self.primary_id, "DEL", self.hotkey)
+    local rcode, rres = redis_mgr:execute(MAIN_DBID, "DEL", self.hotkey)
     if qfailed(rcode) then
         log_err("[Document][destory] del failed: %s=> hotkey: %s", rres, self.hotkey)
         return false, code
@@ -116,11 +115,10 @@ end
 
 --保存数据库
 function Document:update()
-    local pid = self.primary_id
     local channel = makechan("doc update")
     --清理缓存
     channel:push(function()
-        local rcode, rres = redis_mgr:execute(MAIN_DBID, pid, "DEL", self.hotkey)
+        local rcode, rres = redis_mgr:execute(MAIN_DBID, "DEL", self.hotkey)
         if qfailed(rcode) then
             log_err("[Document][update] del failed: %s=> hotkey: %s", rres, self.hotkey)
             return false, rcode
@@ -129,8 +127,8 @@ function Document:update()
         return true, SUCCESS
     end)
     channel:push(function()
-        local selector = { [self.primary_key] = pid }
-        local code, res = mongo_mgr:update(MAIN_DBID, pid, self.coll_name, self.datas, selector, true)
+        local selector = { [self.primary_key] = self.primary_id }
+        local code, res = mongo_mgr:update(MAIN_DBID, self.primary_id, self.coll_name, self.datas, selector, true)
         if qfailed(code) then
             log_err("[Document][update] update failed: %s=> table: %s", res, self.coll_name)
             return false, code
@@ -165,9 +163,6 @@ function Document:update_redis(fields)
         cursor = cursor[name]
     end
     event_mgr:fire_frame(function()
-        if cursor then
-            cursor = json_encode(cursor)
-        end
         self:cmomit_redis(key, cursor or "nil")
     end)
 end
@@ -243,7 +238,7 @@ end
 
 --记录缓存
 function Document:cmomit_redis(field, value)
-    local code, res = redis_mgr:execute(MAIN_DBID, self.primary_id, "HSET", self.hotkey, field, value)
+    local code, res = redis_mgr:execute(MAIN_DBID, "HSET", self.hotkey, field, { val = value })
     if qfailed(code) then
         log_err("[Document][cmomit_redis] failed: %s=> hotkey: %s", res, self.hotkey)
         self:flush()

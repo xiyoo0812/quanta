@@ -19,6 +19,7 @@ extern "C" {
 #define LZ_MAX_SIZE_CHUNK 65536
 
 #include "lz4.h"
+#include "crc.h"
 #include "md5.h"
 #include "rsa.h"
 #include "sha1.h"

@@ -58,10 +58,10 @@ function PSRedis:setup_pool(hosts)
         log_err("[PSRedis][setup_pool] redis config err: hosts is empty")
         return
     end
-    for ip, port in pairs(hosts) do
-        local socket = Socket(self, ip, port)
+    for _, host in pairs(hosts) do
+        local socket = Socket(self, host[1], host[2])
         self.connections[1] = socket
-        socket.task_queue = QueueFIFO()
+        socket.cmd_queue = QueueFIFO()
         socket:set_id(1)
         break
     end
@@ -69,15 +69,12 @@ end
 
 function PSRedis:on_socket_alive()
     for channel in pairs(self.subscribes) do
-        self:subscribe(channel)
+        self:execute("subscribe", channel)
     end
     for channel in pairs(self.psubscribes) do
-        self:psubscribes(channel)
+        self:execute("psubscribes", channel)
     end
     event_mgr:notify_trigger("on_subscribe_alive")
-end
-
-function PSRedis:on_hour()
 end
 
 function PSRedis:do_socket_recv(res)

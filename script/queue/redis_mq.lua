@@ -4,8 +4,6 @@ import("agent/redis_agent.lua")
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
-local json_encode   = json.encode
-local json_decode   = json.decode
 local sformat       = string.format
 local qsuccess      = quanta.success
 
@@ -42,9 +40,6 @@ function RedisMQ:list_message(target_id)
     local zset_name = sformat("%s:%s", self.prefix, target_id)
     local ok, code, result = redis_agent:execute({ "ZRANGE", zset_name, 0, -1 }, target_id)
     if qsuccess(code, ok) then
-        for i, msg in ipairs(result) do
-            result[i] = json_decode(msg)
-        end
         return result
     end
     return {}
@@ -62,7 +57,7 @@ function RedisMQ:send_message(target_id, event, args, ttl)
     local timestamp = quanta.now_ms
     local doc = { args = args, event = event, time = timestamp }
     local zset_name = sformat("%s:%s", self.prefix, target_id)
-    local ok, code = redis_agent:execute({ "ZADD", zset_name, timestamp, json_encode(doc) }, target_id)
+    local ok, code = redis_agent:execute({ "ZADD", zset_name, timestamp, doc }, target_id)
     if qsuccess(code, ok) then
         if ttl then
             redis_agent:execute( { "EXPIRE", zset_name, ttl }, target_id)

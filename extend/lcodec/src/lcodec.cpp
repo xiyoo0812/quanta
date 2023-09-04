@@ -5,8 +5,22 @@
 namespace lcodec {
 
     thread_local ketama thread_ketama;
+    thread_local rdscodec thread_rds;
+    thread_local httpcodec thread_http;
     thread_local luakit::luabuf thread_buff;
-    
+
+    static rdscodec* rds_codec(codec_base* codec) {
+        thread_rds.set_codec(codec);
+        thread_rds.set_buff(&thread_buff);
+        return &thread_rds;
+    }
+
+    static httpcodec* http_codec(codec_base* codec) {
+        thread_http.set_codec(codec);
+        thread_http.set_buff(&thread_buff);
+        return &thread_http;
+    }
+        
     static int serialize(lua_State* L) {
         return luakit::serialize(L, &thread_buff);
     }
@@ -41,41 +55,6 @@ namespace lcodec {
         return barray;
     }
 
-    static int lcrc8(lua_State* L) {
-        size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
-        lua_pushinteger(L, crc8_lsb(key, len));
-        return 1;
-    }
-
-    static int lcrc8_msb(lua_State* L) {
-        size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
-        lua_pushinteger(L, crc8_msb(key, len));
-        return 1;
-    }
-
-    static int lcrc16(lua_State* L) {
-        size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
-        lua_pushinteger(L, crc16(key, len));
-        return 1;
-    }
-
-    static int lcrc32(lua_State* L) {
-        size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
-        lua_pushinteger(L, crc32(key, len));
-        return 1;
-    }
-
-    static int lcrc64(lua_State* L) {
-        size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
-        lua_pushinteger(L, (int64_t)crc64(key, len));
-        return 1;
-    }
-
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llcodec = kit_state.new_table();
@@ -103,11 +82,9 @@ namespace lcodec {
         llcodec.set_function("ketama_remove", ketama_remove);
         llcodec.set_function("ketama_next", ketama_next);
         llcodec.set_function("ketama_map", ketama_map);
-        llcodec.set_function("crc8_msb", lcrc8_msb);
-        llcodec.set_function("crc64", lcrc64);
-        llcodec.set_function("crc32", lcrc32);
-        llcodec.set_function("crc16", lcrc16);
-        llcodec.set_function("crc8", lcrc8);
+        llcodec.set_function("rediscodec", rds_codec);
+        llcodec.set_function("httpcodec", http_codec);
+        
         kit_state.new_class<bitarray>(
             "flip", &bitarray::flip,
             "fill", &bitarray::fill,
@@ -140,7 +117,7 @@ namespace lcodec {
 
 extern "C" {
     LUALIB_API int luaopen_lcodec(lua_State* L) {
-        auto lluabus = lcodec::open_lcodec(L);
-        return lluabus.push_stack();
+        auto llcodec = lcodec::open_lcodec(L);
+        return llcodec.push_stack();
     }
 }

@@ -4,16 +4,14 @@ local QueueFIFO     = import("container/queue_fifo.lua")
 
 local tonumber      = tonumber
 local log_err       = logger.err
-local log_warn      = logger.warn
 local log_info      = logger.info
-local ssub          = string.sub
-local slower        = string.lower
+local log_debug     = logger.debug
 local sformat       = string.format
+local slower        = string.lower
 local tinsert       = table.insert
 local mrandom       = qmath.random
-local tjoin         = qtable.join
+local crc16         = crypt.crc16
 local tdelete       = qtable.delete
-local is_array      = qtable.is_array
 local qhash         = codec.hash_code
 local makechan      = quanta.make_channel
 
@@ -22,120 +20,12 @@ local thread_mgr    = quanta.get("thread_mgr")
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
-local LineTitle     = "\r\n"
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
-local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 5)
-
-local function _next_line(resp)
-    local nindex = resp.cur + 1
-    local elem = resp.elem[nindex]
-    if elem then
-        resp.cur = nindex
-        return elem[1]
-    end
-end
-
-local function _parse_offset(resp)
-    return resp.elem[resp.cur][2]
-end
-
-local _redis_proto_parser = {}
-_redis_proto_parser["+"] = function(body)
-    --simple string
-    return true, true, body
-end
-
-_redis_proto_parser["-"] = function(body)
-    -- error reply
-    return true, false, body
-end
-
-_redis_proto_parser[":"] = function(body)
-    -- integer reply
-    return true, true, tonumber(body)
-end
-
-local function _parse_packet(packet, istext)
-    local line = _next_line(packet)
-    if not line then
-        return false, "packet isn't complete"
-    end
-    if istext then
-        return true, true, line
-    end
-    local prefix, body = ssub(line, 1, 1), ssub(line, 2)
-    local prefix_func = _redis_proto_parser[prefix]
-    if prefix_func then
-        return prefix_func(body, packet)
-    end
-    return false, "packet format err"
-end
-
-_redis_proto_parser["$"] = function(body, packet)
-    -- bulk string
-    if tonumber(body) < 0 then
-        return true, true
-    end
-    return _parse_packet(packet, true)
-end
-
-_redis_proto_parser["*"] = function(body, packet)
-    -- array
-    local length = tonumber(body)
-    if length < 0 then
-        return true, true
-    end
-    local array = {}
-    for i = 1, length do
-        local ok, err, value = _parse_packet(packet)
-        if not ok then
-            return false, err
-        end
-        array[i] = value
-    end
-    return true, true, array
-end
-
-local function _compose_bulk_string(value)
-    if not value then
-        return "\r\n$-1"
-    end
-    if type(value) ~= "string" then
-        value = tostring(value)
-    end
-    return sformat("\r\n$%d\r\n%s", #value, value)
-end
-
-local function _format_args(...)
-    local args = {}
-    for _, arg in pairs({ ... }) do
-        if type(arg) ~= "table" then
-            tinsert(args, arg)
-        else
-            if is_array(arg) then
-                tjoin(arg, args)
-            else
-                for key, value in pairs(arg) do
-                    tinsert(args, key)
-                    tinsert(args, value)
-                end
-            end
-        end
-    end
-    return args
-end
-
-local function _compose_args(cmd, ...)
-    local args = _format_args(...)
-    local buff = sformat("*%d%s", #args + 1, _compose_bulk_string(cmd))
-    for _, arg in ipairs(args) do
-        buff = sformat("%s%s", buff, _compose_bulk_string(arg))
-    end
-    return sformat("%s\r\n", buff)
-end
+local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
+local REDIS_SLOT    = 16384
 
 local function _tomap(value)
     if (type(value) == 'table') then
@@ -149,8 +39,7 @@ local function _tomap(value)
 end
 
 local function _toboolean(value)
-    value = tostring(value)
-    if value == '1' or value == 'true' or value == 'TRUE' then
+    if value == 1 or value == 'true' or value == 'TRUE' then
         return true
     end
     return false
@@ -158,157 +47,69 @@ end
 
 local function _toscan(value)
     if (type(value) == 'table') then
+        return tonumber(value[1]), value[2]
+    end
+    return 0, {}
+end
+
+local function _tohscan(value)
+    if (type(value) == 'table') then
         return tonumber(value[1]), _tomap(value[2])
     end
     return 0, {}
 end
 
-local redis_commands = {
-    del         = { cmd = "DEL"     },
-    set         = { cmd = "SET"     },
-    keys        = { cmd = "KEYS"    },
-    type        = { cmd = "TYPE"    },
-    incr        = { cmd = "INCR"    },
-    incrby      = { cmd = "INCRBY", },
-    rename      = { cmd = "RENAME"  },
-    ttl         = { cmd = "TTL"     },
-    dbsize      = { cmd = "DBSIZE"  },
-    pttl        = { cmd = "PTTL"    },      -- >= 2.6
-    setex       = { cmd = "SETEX"   },      -- >= 2.0
-    psetex      = { cmd = "PSETEX"  },      -- >= 2.6
-    get         = { cmd = "GET"     },
-    mget        = { cmd = "MGET"    },
-    getset      = { cmd = "GETSET"  },
-    decr        = { cmd = "DECR"    },
-    decrby      = { cmd = "DECRBY"  },
-    append      = { cmd = "APPEND"  },      -- >= 2.0
-    substr      = { cmd = "SUBSTR"  },      -- >= 2.0
-    strlen      = { cmd = "STRLEN"  },      -- >= 2.2
-    setrange    = { cmd = "SETRANGE"},      -- >= 2.2
-    getrange    = { cmd = "GETRANGE"},      -- >= 2.2
-    setbit      = { cmd = "SETBIT"  },      -- >= 2.2
-    getbit      = { cmd = "GETBIT"  },      -- >= 2.2
-    bitop       = { cmd = "BITOP"   },      -- >= 2.6
-    bitcount    = { cmd = "BITCOUNT"},      -- >= 2.6
-    rpush       = { cmd = "RPUSH"   },
-    lpush       = { cmd = "LPUSH"   },
-    llen        = { cmd = "LLEN"    },
-    lrange      = { cmd = "LRANGE"  },
-    ltrim       = { cmd = "LTRIM"   },
-    lindex      = { cmd = "LINDEX"  },
-    lset        = { cmd = "LSET"    },
-    lrem        = { cmd = "LREM"    },
-    lpop        = { cmd = "LPOP"    },
-    rpop        = { cmd = "RPOP"    },
-    blpop       = { cmd = "BLPOP"   },      -- >= 2.0
-    brpop       = { cmd = "BRPOP"   },      -- >= 2.0
-    rpushx      = { cmd = "RPUSHX"  },      -- >= 2.2
-    lpushx      = { cmd = "LPUSHX"  },      -- >= 2.2
-    linsert     = { cmd = "LINSERT" },      -- >= 2.2
-    sadd        = { cmd = "SADD"    },
-    srem        = { cmd = "SREM"    },
-    spop        = { cmd = "SPOP"    },
-    scard       = { cmd = "SCARD"   },
-    sinter      = { cmd = "SINTER"  },
-    sunion      = { cmd = "SUNION"  },
-    sdiff       = { cmd = "SDIFF"   },
-    zadd        = { cmd = "ZADD"    },
-    zrem        = { cmd = "ZREM"    },
-    zcount      = { cmd = "ZCOUNT"  },
-    zcard       = { cmd = "ZCARD"   },
-    zscore      = { cmd = "ZSCORE"  },
-    zrank       = { cmd = "ZRANK"   },      -- >= 2.0
-    zrevrank    = { cmd = "ZREVRANK"},      -- >= 2.0
-    hget        = { cmd = "HGET"    },      -- >= 2.0
-    hdel        = { cmd = "HDEL"    },      -- >= 2.0
-    hlen        = { cmd = "HLEN"    },      -- >= 2.0
-    hkeys       = { cmd = "HKEYS"   },      -- >= 2.0
-    hvals       = { cmd = "HVALS"   },      -- >= 2.0
-    hincrby     = { cmd = "HINCRBY" },      -- >= 2.0
-    echo        = { cmd = "ECHO"    },
-    select      = { cmd = "SELECT"  },
-    multi       = { cmd = "MULTI"   },      -- >= 2.0
-    exec        = { cmd = "EXEC"    },      -- >= 2.0
-    discard     = { cmd = "DISCARD" },      -- >= 2.0
-    watch       = { cmd = "WATCH"   },      -- >= 2.2
-    unwatch     = { cmd = "UNWATCH" },      -- >= 2.2
-    eval        = { cmd = "EVAL"    },      -- >= 2.6
-    evalsha     = { cmd = "EVALSHA" },      -- >= 2.6
-    script      = { cmd = "SCRIPT"  },      -- >= 2.6
-    time        = { cmd = "TIME"    },      -- >= 2.6
-    client      = { cmd = "CLIENT"  },      -- >= 2.4
-    slaveof     = { cmd = "SLAVEOF" },
-    save        = { cmd = "SAVE"    },
-    bgsave      = { cmd = "BGSAVE"  },
-    lastsave    = { cmd = "LASTSAVE"},
-    flushdb     = { cmd = "FLUSHDB" },
-    flushall    = { cmd = "FLUSHALL"},
-    monitor     = { cmd = "MONITOR" },
-    hmset       = { cmd = "HMSET"   },      -- >= 2.0
-    hmget       = { cmd = "HMGET"   },      -- >= 2.0
-    sort        = { cmd = "SORT"    },
-    mset        = { cmd = "MSET"    },
-    publish     = { cmd = "PUBLISH"     },  -- >= 2.0
-    sinterstore = { cmd = "SINTERSTORE" },
-    sunionstore = { cmd = "SUNIONSTORE" },
-    sdiffstore  = { cmd = "SDIFFSTORE"  },
-    smembers    = { cmd = "SMEMBERS"    },
-    srandmember = { cmd = "SRANDMEMBER" },
-    rpoplpush   = { cmd = "RPOPLPUSH"   },
-    randomkey   = { cmd = "RANDOMKEY"   },
-    brpoplpush  = { cmd = "BRPOPLPUSH"  },  -- >= 2.2
-    bgrewriteaof= { cmd = "BGREWRITEAOF"},
-    zrange      = { cmd = "ZRANGE",     },
-    zrevrange   = { cmd = "ZREVRANGE"   },
-    zrangebyscore   = { cmd = "ZRANGEBYSCORE"       },
-    zrevrangebyscore= { cmd = "ZREVRANGEBYSCORE"    },  -- >= 2.2
-    zunionstore     = { cmd = "ZUNIONSTORE"         },  -- >= 2.0
-    zinterstore     = { cmd = "ZINTERSTORE"         },  -- >= 2.0
-    zremrangebyscore= { cmd = "ZREMRANGEBYSCORE"    },
-    zremrangebyrank = { cmd = "ZREMRANGEBYRANK"     },  -- >= 2.0
-    scan            = { cmd = "SCAN",           convertor = _toscan     },  -- >= 2.8
-    hscan           = { cmd = "HSCAN",          convertor = _toscan     },  -- >= 2.8
-    sscan           = { cmd = "SSCAN",          convertor = _toscan     },  -- >= 2.8
-    zscan           = { cmd = "ZSCAN",          convertor = _toscan     },  -- >= 2.8
-    zincrby         = { cmd = "ZINCRBY",        convertor = tonumber    },
-    incrbyfloat     = { cmd = "INCRBYFLOAT",    convertor = tonumber    },
-    hincrbyfloat    = { cmd = "HINCRBYFLOAT",   convertor = tonumber    },  -- >= 2.6
-    setnx           = { cmd = "SETNX",          convertor = _toboolean  },
-    exists          = { cmd = "EXISTS",         convertor = _toboolean  },
-    renamenx        = { cmd = "RENAMENX",       convertor = _toboolean  },
-    expire          = { cmd = "EXPIRE",         convertor = _toboolean  },
-    pexpire         = { cmd = "PEXPIRE",        convertor = _toboolean  },  -- >= 2.6
-    expireat        = { cmd = "EXPIREAT",       convertor = _toboolean  },
-    pexpireat       = { cmd = "PEXPIREAT",      convertor = _toboolean  },  -- >= 2.6
-    move            = { cmd = "MOVE",           convertor = _toboolean  },
-    persist         = { cmd = "PERSIST",        convertor = _toboolean  },  -- >= 2.2
-    smove           = { cmd = "SMOVE",          convertor = _toboolean  },
-    sismember       = { cmd = "SISMEMBER",      convertor = _toboolean  },
-    hset            = { cmd = "HSET",           convertor = _toboolean  },  -- >= 2.0
-    hsetnx          = { cmd = "HSETNX",         convertor = _toboolean  },  -- >= 2.0
-    hexists         = { cmd = "HEXISTS",        convertor = _toboolean  },  -- >= 2.0
-    msetnx          = { cmd = "MSETNX",         convertor = _toboolean  },
-    hgetall         = { cmd = "HGETALL",        convertor = _tomap      },  -- >= 2.0
-    config          = { cmd = "CONFIG",         convertor = _tomap      },  -- >= 2.0
+local rconvertors = {
+    scan            =   _toscan,
+    sscan           =   _toscan,
+    hscan           =   _tohscan,
+    zscan           =   _tohscan,
+    zincrby         =   tonumber,
+    incrbyfloat     =   tonumber,
+    hincrbyfloat    =   tonumber,
+    setnx           =   _toboolean,
+    exists          =   _toboolean,
+    renamenx        =   _toboolean,
+    expire          =   _toboolean,
+    pexpire         =   _toboolean,
+    expireat        =   _toboolean,
+    pexpireat       =   _toboolean,
+    move            =   _toboolean,
+    persist         =   _toboolean,
+    smove           =   _toboolean,
+    sismember       =   _toboolean,
+    hset            =   _toboolean,
+    hsetnx          =   _toboolean,
+    hexists         =   _toboolean,
+    msetnx          =   _toboolean,
+    hgetall         =   _tomap,
+    config          =   _tomap,
 }
 
 local RedisDB = class()
 local prop = property(RedisDB)
 prop:reader("id", nil)              --id
+prop:reader("codec", nil)           --codec
 prop:reader("passwd", nil)          --passwd
-prop:reader("executer", nil)        --执行者
 prop:reader("timer_id", nil)        --timer_id
 prop:reader("connections", {})      --connections
+prop:reader("clusters", {})         --clusters
 prop:reader("alives", {})           --alives
+prop:reader("slots", {})            --slots
 prop:reader("req_counter", nil)
 prop:reader("res_counter", nil)
 prop:reader("subscrible", false)
+prop:reader("cluster", false)       --cluster
 
 function RedisDB:__init(conf, id)
     self.id = id
     self.passwd = conf.passwd
+    self:set_options(conf.opts)
     --attach_hour
     update_mgr:attach_hour(self)
+    --codec
+    local jcodec = json.jsoncodec()
+    self.codec = codec.rediscodec(jcodec)
     --setup
     self:setup(conf)
 end
@@ -333,17 +134,8 @@ function RedisDB:setup(conf)
     self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
         self:check_alive()
     end)
-    self:setup_command()
     self.req_counter = quanta.make_sampling(sformat("redis %s req", self.id))
     self.res_counter = quanta.make_sampling(sformat("redis %s res", self.id))
-end
-
-function RedisDB:setup_command()
-    for cmd, param in pairs(redis_commands) do
-        RedisDB[cmd] = function(this, ...)
-            return this:commit(self.executer, param, ...)
-        end
-    end
 end
 
 function RedisDB:setup_pool(hosts)
@@ -351,29 +143,43 @@ function RedisDB:setup_pool(hosts)
         log_err("[RedisDB][setup_pool] redis config err: hosts is empty")
         return
     end
-    local count = POOL_COUNT
-    while count > 0 do
-        for ip, port in pairs(hosts) do
-            local socket = Socket(self, ip, port)
+    local count = 1
+    for _, host in pairs(hosts) do
+        for c = 1, POOL_COUNT do
+            local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
-            socket.task_queue = QueueFIFO()
+            socket.cmd_queue = QueueFIFO()
             socket:set_id(count)
-            count = count - 1
+            count = count + 1
         end
     end
 end
 
-function RedisDB:set_executer(id)
+function RedisDB:choose_node(key)
+    if self.cluster and type(key) == "string" then
+        local index = crc16(key) % REDIS_SLOT
+        for _, cluster in pairs(self.clusters) do
+            if index >= cluster.min and index <= cluster.max then
+                local count = #cluster.alives
+                if count > 0 then
+                    return cluster.alives[(index % count) + 1]
+                end
+            end
+        end
+        return
+    end
     local count = #self.alives
     if count > 0 then
-        local index = qhash(id or mrandom(), count)
-        self.executer = self.alives[index]
-        return true
+        local index = qhash(key or mrandom(), count)
+        return self.alives[index]
     end
-    return false
 end
 
 function RedisDB:set_options(opts)
+    if opts.cluster then
+        log_debug("[RedisDB][set_options] cluster status open")
+        self.cluster = true
+    end
 end
 
 function RedisDB:available()
@@ -382,8 +188,34 @@ end
 
 function RedisDB:on_hour()
     for _, sock in pairs(self.alives) do
-        self.executer = sock
-        self:send({ cmd = "PING" })
+        self:direct_send(sock, "PING")
+    end
+end
+
+function RedisDB:check_clusters()
+    if self.cluster then
+        local _, socket = next(self.alives)
+        if not socket then
+            return
+        end
+        local ok, res = self:commit(socket, "cluster", "slots")
+        if not ok then
+            log_err("[RedisDB][check_clusters] load cluster slots failed! because: %s", res)
+            return
+        end
+        for i, info in pairs(res) do
+            for j = 3, #info do
+                self.slots[info[j][2]] = i
+            end
+            self.clusters[i] = { min = info[1], max = info[2], alives = {} }
+        end
+        for _, sock in pairs(self.alives) do
+            local index = self.slots[sock.port] or 0
+            local cluster = self.clusters[index]
+            if cluster then
+                tinsert(cluster.alives, sock)
+            end
+        end
     end
 end
 
@@ -398,8 +230,8 @@ function RedisDB:check_alive()
             end
             if channel:execute(true) then
                 timer_mgr:set_period(self.timer_id, SECOND_10_MS)
+                self:check_clusters()
             end
-            self:set_executer()
         end)
     end
 end
@@ -410,6 +242,7 @@ function RedisDB:login(socket)
         log_err("[RedisDB][login] connect db(%s:%s:%s) failed!", ip, port, id)
         return false
     end
+    socket:set_codec(self.codec)
     if self.passwd and #self.passwd > 0 then
         local ok, res = self:auth(socket)
         if not ok or res ~= "OK" then
@@ -428,110 +261,95 @@ function RedisDB:login(socket)
     return true, SUCCESS
 end
 
+function RedisDB:auth(sock)
+    return self:commit(sock, "AUTH", self.passwd)
+end
+
 function RedisDB:on_socket_alive()
 end
 
-function RedisDB:auth(sock)
-    return self:commit(sock, { cmd = "AUTH" }, self.passwd)
-end
-
 function RedisDB:delive(sock)
+    if self.cluster then
+        local index = self.slots[sock.port] or 0
+        local cluster = self.clusters[index]
+        if cluster then
+            tdelete(cluster.alives, sock)
+        end
+    end
     tdelete(self.alives, sock)
     self.connections[sock.id] = sock
 end
 
 function RedisDB:on_socket_error(sock, token, err)
-    --清空状态
-    if sock == self.executer then
-        self.executer = nil
-        self:set_executer()
-    end
     --设置重连
     self:delive(sock)
     timer_mgr:set_period(self.timer_id, SECOND_MS)
     event_mgr:fire_second(function()
         self:check_alive()
     end)
-    local task_queue = sock.task_queue
-    local session_id = task_queue:pop()
+    local cmd_queue = sock.cmd_queue
+    local session_id = cmd_queue:pop()
     while session_id do
         if session_id > 0 then
             thread_mgr:response(session_id, false, err)
         end
-        session_id = task_queue:pop()
+        session_id = cmd_queue:pop()
     end
 end
 
-function RedisDB:on_socket_recv(sock, token)
-    while true do
-        local packet = sock:peek_lines(LineTitle)
-        if not packet then
-            break
-        end
-        local ok, succ, rdsucc, res = pcall(_parse_packet, packet)
-        if not ok then
-            log_err("[RedisDB][on_socket_recv] exec parse failed: %s", succ)
-            break
-        end
-        if not succ then
-            log_warn("[RedisDB][on_socket_recv] parse failed: %s", rdsucc)
-            break
-        end
-        sock:pop(_parse_offset(packet))
-        if self.subscrible then
-            self:do_socket_recv(res)
-        end
-        local session_id = sock.task_queue:pop()
-        if session_id and session_id > 0 then
-            self.res_counter:count_increase()
-            thread_mgr:response(session_id, rdsucc, res)
-        end
+function RedisDB:on_socket_recv(sock, succ, res)
+    if self.subscrible then
+        self:do_socket_recv(res)
+    end
+    local session_id = sock.cmd_queue:pop()
+    if session_id and session_id > 0 then
+        self.res_counter:count_increase()
+        thread_mgr:response(session_id, succ, res)
     end
 end
 
-function RedisDB:do_socket_recv(res)
-end
-
-function RedisDB:wait_response(socket, session_id, packet, param)
-    if not socket then
-        return false, "db not connected"
-    end
-    if not socket:send(packet) then
+function RedisDB:wait_response(socket, session_id, cmd, ...)
+    if not socket:send_data(cmd, ...) then
         return false, "send request failed"
     end
     self.req_counter:count_increase()
-    socket.task_queue:push(session_id)
-    local ok, res = thread_mgr:yield(session_id, sformat("redis_comit:%s", param.cmd), DB_TIMEOUT)
+    socket.cmd_queue:push(session_id)
+    local ok, res = thread_mgr:yield(session_id, sformat("redis_comit:%s", cmd), DB_TIMEOUT)
     if not ok then
-        log_err("[RedisDB][wait_response] exec cmd %s failed: %s", param.cmd, res)
+        log_err("[RedisDB][wait_response] exec cmd %s failed: %s", cmd, res)
         return ok, res
     end
-    local convertor = param.convertor
+    local convertor = rconvertors[slower(cmd)]
     if convertor then
         return ok, convertor(res)
     end
     return ok, res
 end
 
-function RedisDB:commit(sock, param, ...)
+function RedisDB:commit(sock, cmd, ...)
     local session_id = thread_mgr:build_session_id()
-    local packet = _compose_args(param.cmd, ...)
-    return self:wait_response(sock, session_id, packet, param)
+    return self:wait_response(sock, session_id, cmd, ...)
 end
 
-function RedisDB:send(param, ...)
-    local sock = self.executer
-    if sock and sock:send(_compose_args(param.cmd, ...)) then
-        sock.task_queue:push(0)
+function RedisDB:send(cmd, key, ...)
+    local sock = self:choose_node(key)
+    if sock and sock:send_data(cmd, key, ...) then
+        sock.cmd_queue:push(0)
     end
 end
 
-function RedisDB:execute(cmd, ...)
-    local lcmd = slower(cmd)
-    if RedisDB[lcmd] then
-        return self[lcmd](self, ...)
+function RedisDB:direct_send(sock, cmd, ...)
+    if sock:send_data(cmd, ...) then
+        sock.cmd_queue:push(0)
     end
-    return self:commit(self.executer,{ cmd = cmd }, ...)
+end
+
+function RedisDB:execute(cmd, key, ...)
+    local sock = self:choose_node(key)
+    if not sock then
+        return false, "db not connected"
+    end
+    return self:commit(sock, cmd, key, ...)
 end
 
 return RedisDB

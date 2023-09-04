@@ -26,8 +26,6 @@ local librarys = {
 if qgetenv("QUANTA_MODE") then
     --aoi解析
     librarys.aoi = require("laoi")
-    --http解析
-    librarys.http = require("lhttp")
     --Curl库
     librarys.curl = require("lcurl")
     --网络库

@@ -49,7 +49,6 @@ function TransferMgr:rpc_login_service(client, player_id, serv_name, serv_id)
     local routers = self:update_service(player_id, serv_name, serv_id)
     if routers then
         log_info("[TransferMgr][rpc_login_service]: %s, service: %s-%s", player_id, serv_name, serv_id)
-        log_warn("[TransferMgr][rpc_login_service]: %s, routers: %s", player_id, routers)
         return SUCCESS
     end
     log_warn("[TransferMgr][rpc_login_service]: %s, service: %s-%s failed!", player_id, serv_name, serv_id)

@@ -311,8 +311,6 @@ namespace luakit {
         if (lua_istable(L, idx)) {
             lua_getfield(L, idx, "__pointer__");
             T obj = (T)lua_touserdata(L, -1);
-            const char* meta_name2 = lua_get_meta_name<T>();
-            size_t pkey2 = lua_get_object_key(obj);
             lua_pop(L, 1);
             return obj;
         }

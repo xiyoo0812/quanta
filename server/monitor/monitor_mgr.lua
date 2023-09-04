@@ -8,7 +8,6 @@ local env_addr      = environ.addr
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
-local jdecode       = json.decode
 local signal_quit   = signal.quit
 
 local timer_mgr     = quanta.get("timer_mgr")
@@ -114,15 +113,14 @@ function MonitorMgr:broadcast(service_id, rpc, ...)
 end
 
 -- command处理
-function MonitorMgr:on_monitor_command(url, body, request)
+function MonitorMgr:on_monitor_command(url, body)
     log_debug("[MonitorMgr][on_monitor_command]: %s", body)
     --执行函数
     local function handler_cmd(jbody)
-        local data_req = jdecode(jbody)
-        if data_req.token then
-            return self:call(data_req.token, data_req.rpc, data_req.data)
+        if body.token then
+            return self:call(body.token, body.rpc, body.data)
         end
-        return self:broadcast(data_req.service_id, data_req.rpc, data_req.data)
+        return self:broadcast(body.service_id, body.rpc, body.data)
     end
     --开始执行
     local ok, res = pcall(handler_cmd, body)
