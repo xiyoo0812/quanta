@@ -23,11 +23,12 @@ enum class elink_status : int
 enum class eproto_type : int
 {
     proto_rpc       = 0,    // rpc协议，根据协议头解析
-    proto_head      = 1,    // head协议，根据协议头解析
-    proto_text      = 2,    // text协议，文本协议
-    proto_mongo     = 3,    // mongo协议，协议前4个字节为长度
-    proto_mysql     = 4,    // mysql协议，协议前3个字节为长度
-    proto_max       = 5,    // max 
+    proto_wss       = 1,    // wss协议，协议前n个字节带长度
+    proto_head      = 2,    // head协议，根据协议头解析
+    proto_text      = 3,    // text协议，文本协议
+    proto_mongo     = 4,    // mongo协议，协议前4个字节为长度
+    proto_mysql     = 5,    // mysql协议，协议前3个字节为长度
+    proto_max       = 6,    // max 
 };
 
 struct sendv_item
@@ -49,10 +50,11 @@ struct socket_object
     virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }
     virtual void sendv(const sendv_item items[], int count) { };
-    virtual void set_accept_callback(const std::function<void(int, eproto_type)>& cb) { }
+    virtual void set_proto_type(eproto_type type) { m_proto_type = type; }
+    virtual void set_accept_callback(const std::function<void(int)>& cb) { }
     virtual void set_connect_callback(const std::function<void(bool, const char*)>& cb) { }
     virtual void set_error_callback(const std::function<void(const char*)>& cb) { }
-    virtual void set_package_callback(const std::function<int(slice*)>& cb) { }
+    virtual void set_package_callback(const std::function<int(slice*, eproto_type)>& cb) { }
 
 #ifdef _MSC_VER
     virtual void on_complete(WSAOVERLAPPED* ovl) = 0;
@@ -64,6 +66,7 @@ struct socket_object
 #endif
 
 protected:
+    eproto_type m_proto_type = eproto_type::proto_rpc;
     elink_status m_link_status = elink_status::link_init;
 };
 
@@ -81,8 +84,8 @@ public:
 
     int wait(int64_t now, int timeout);
 
-    int listen(std::string& err, const char ip[], int port, eproto_type proto_type);
-    int connect(std::string& err, const char node_name[], const char service_name[], int timeout, eproto_type proto_type);
+    int listen(std::string& err, const char ip[], int port);
+    int connect(std::string& err, const char node_name[], const char service_name[], int timeout);
 
     int get_sendbuf_size(uint32_t token);
     int get_recvbuf_size(uint32_t token);
@@ -92,10 +95,10 @@ public:
     void sendv(uint32_t token, const sendv_item items[], int count);
     void close(uint32_t token);
     bool get_remote_ip(uint32_t token, std::string& ip);
-
-    void set_accept_callback(uint32_t token, const std::function<void(uint32_t, eproto_type eproto_type)>& cb);
+    void set_proto_type(uint32_t token, eproto_type type);
+    void set_accept_callback(uint32_t token, const std::function<void(int)>& cb);
     void set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb);
-    void set_package_callback(uint32_t token, const std::function<int(slice*)>& cb);
+    void set_package_callback(uint32_t token, const std::function<int(slice*, eproto_type)>& cb);
     void set_error_callback(uint32_t token, const std::function<void(const char*)>& cb);
 
     bool watch_listen(socket_t fd, socket_object* object);
@@ -103,7 +106,7 @@ public:
     bool watch_connecting(socket_t fd, socket_object* object);
     bool watch_connected(socket_t fd, socket_object* object);
     bool watch_send(socket_t fd, socket_object* object, bool enable);
-    int accept_stream(socket_t fd, const char ip[], const std::function<void(int, eproto_type)>& cb, eproto_type proto_type = eproto_type::proto_rpc);
+    int accept_stream(socket_t fd, const char ip[], eproto_type proto_type);
 
     void increase_count() { m_count++; }
     void decrease_count() { m_count--; }

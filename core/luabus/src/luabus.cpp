@@ -43,6 +43,7 @@ namespace luabus {
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
             "rpc", eproto_type::proto_rpc,
+            "wss", eproto_type::proto_wss,
             "head", eproto_type::proto_head,
             "text", eproto_type::proto_text,
             "mongo", eproto_type::proto_mongo,
@@ -85,6 +86,7 @@ namespace luabus {
             "transfer_call", &lua_socket_node::transfer_call,
             "transfer_hash", &lua_socket_node::transfer_hash,
             "forward_target", &lua_socket_node::forward_target,
+            "set_proto_type", &lua_socket_node::set_proto_type,
             "get_route_count", &lua_socket_node::get_route_count,
             "build_session_id", &lua_socket_node::build_session_id,
             "forward_transfer", &lua_socket_node::forward_transfer,

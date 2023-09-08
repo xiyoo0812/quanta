@@ -19,7 +19,6 @@ prop:reader("port", 0)
 prop:reader("host", nil)
 prop:reader("token", nil)
 prop:reader("alive", false)
-prop:reader("proto_type", eproto_type.text)
 prop:reader("session", nil)          --连接成功对象
 prop:reader("listener", nil)
 prop:accessor("id", 0)
@@ -47,16 +46,14 @@ function Socket:listen(ip, port, ptype)
     if self.listener then
         return true
     end
-    if ptype then
-        self.proto_type = ptype
-    end
-    self.listener = socket_mgr.listen(ip, port, self.proto_type)
+    self.listener = socket_mgr.listen(ip, port)
     if not self.listener then
-        log_err("[Socket][listen] failed to listen: %s:%d type=%d", ip, port, self.proto_type)
+        log_err("[Socket][listen] failed to listen: %s:%d", ip, port)
         return false
     end
     self.ip, self.port = ip, port
-    log_info("[Socket][listen] start listen at: %s:%d type=%d", ip, port, self.proto_type)
+    self.listener.set_proto_type(ptype or eproto_type.text)
+    log_info("[Socket][listen] start listen at: %s:%d", ip, port)
     self.listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session, ip, port)
     end
@@ -76,14 +73,12 @@ function Socket:connect(ip, port, ptype)
         end
         return false, "socket in connecting"
     end
-    if ptype then
-        self.proto_type = ptype
-    end
-    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, self.proto_type)
+    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT)
     if not session then
-        log_err("[Socket][connect] failed to connect: %s:%d type=%d, err=%s", ip, port, self.proto_type, cerr)
+        log_err("[Socket][connect] failed to connect: %s:%d err=%s", ip, port, cerr)
         return false, cerr
     end
+    session.set_proto_type(ptype or eproto_type.text)
     --设置阻塞id
     local token = session.token
     local block_id = thread_mgr:build_session_id()

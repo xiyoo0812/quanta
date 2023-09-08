@@ -16,6 +16,7 @@ public:
     int map_token(uint32_t node_id, uint32_t token);
     int listen(lua_State* L, const char* ip, int port);
     int connect(lua_State* L, const char* ip, const char* port, int timeout);
+    void set_proto_type(uint32_t token, eproto_type type);
 
     std::shared_ptr<socket_router> get_router() { return m_router; }
 

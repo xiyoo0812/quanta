@@ -16,13 +16,12 @@ int lua_socket_mgr::listen(lua_State* L, const char* ip, int port) {
     }
 
     std::string err;
-    eproto_type proto_type = (eproto_type)luaL_optinteger(L, 3, 0);
-    int token = m_mgr->listen(err, ip, port, proto_type);
+    int token = m_mgr->listen(err, ip, port);
     if (token == 0) {
         return luakit::variadic_return(L, nullptr, err);
     }
 
-    auto listener = new lua_socket_node(token, L, m_mgr, m_router, true, proto_type);
+    auto listener = new lua_socket_node(token, L, m_mgr, m_router, true);
     listener->set_codec(m_codec.get());
     return luakit::variadic_return(L, listener, "ok");
 }
@@ -33,13 +32,12 @@ int lua_socket_mgr::connect(lua_State* L, const char* ip, const char* port, int 
     }
 
     std::string err;
-    eproto_type proto_type = (eproto_type)luaL_optinteger(L, 4, 0);
-    int token = m_mgr->connect(err, ip, port, timeout, proto_type);
+    int token = m_mgr->connect(err, ip, port, timeout);
     if (token == 0) {
         return luakit::variadic_return(L, nullptr, err);
     }
 
-    auto socket_node = new lua_socket_node(token, L, m_mgr, m_router, false, proto_type);
+    auto socket_node = new lua_socket_node(token, L, m_mgr, m_router, false);
     socket_node->set_codec(m_codec.get());
     return luakit::variadic_return(L, socket_node, "ok");
 }
@@ -52,7 +50,10 @@ int lua_socket_mgr::get_recvbuf_size(uint32_t token) {
     return m_mgr->get_recvbuf_size(token);
 }
 
+void lua_socket_mgr::set_proto_type(uint32_t token, eproto_type type) {
+    return m_mgr->set_proto_type(token, type);
+}
+
 int lua_socket_mgr::map_token(uint32_t node_id, uint32_t token) {
     return m_router->map_token(node_id, token);
 }
-

@@ -75,7 +75,24 @@ return [[
 <div class="container gm-container">
     <!-- gm dump -->
     <div class="gmDumpContainer">
-        <div id="consoleTree" class=""></div>
+        <!-- 服务器列表 -->
+        <div id="consoleTree1" class="list-group-item node-consoleTree">
+            服务器:
+            <input id="curServer" type="text" list="curServerList" style="border-radius:5px;" onchange="changeServer()" onfocus="onfocusServer()"/>
+            <datalist id="curServerList" class="padding: 10px 15px;" >
+                <option selected hidden disabled value="">下拉选择服务器</option>
+                <option value ="10.96.8.100">inner</option>
+                <option value ="10.98.8.59">ycg</option>
+                <option value ="10.98.8.60">wp</option>
+                <option value="10.98.8.171">zby</option>
+                <option value="10.98.8.97">ly</option>
+            </datalist>
+        </div>
+        <div id="consoleTree" class="">
+            <ul class="list-group">
+                <li>请选择服务器</li>
+            </ul>
+        </div>
     </div>
     <!-- 消息内容 -->
     <div class="gmContainer">
@@ -100,7 +117,20 @@ return [[
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js"></script>
 <script type="text/javascript">
+
+    function changeServer(){
+        var tx = "http://" + document.getElementById("curServer").value + ":10301"
+        window.open(tx, "_self");
+    }
+
+    function onfocusServer(){
+        document.getElementById("curServer").value = "";
+    }
+
     window.onload = function(){
+        var host = window.location.host ;
+        var selectDiv = document.getElementById("curServer");
+        selectDiv.value = host
         var gmconsole = new GMConsole();
         gmconsole.init();
     };
@@ -111,10 +141,10 @@ return [[
             var that = this;
             var cmd_index = 0;
             var historyCmds = [];
-            var treeNodes = [ {}, {} ];
+            var treeNodes = [{}];
             // 加载命令列表
             $.ajax({
-                url:"/gmlist",
+                url: "/gmlist",
                 type: "GET",
                 dataType: "json",
                 contentType: "utf-8",
@@ -127,27 +157,12 @@ return [[
                 }
             });
 
-            // 加载JSON接口列表
-            $.ajax({
-                url:"/monitors",
-                type: "GET",
-                dataType: "json",
-                contentType: "utf-8",
-                success: function (res) {
-                    treeNodes[1] = res;
-                    that._showConsole(treeNodes);
-                },
-                error: function(status) {
-                    document.write(JSON.stringify(status));
-                }
-            });
-
             //sendMsg事件
             document.getElementById('send').addEventListener('click', function(){
                 that._sendCommand(historyCmds);
                 cmd_index = historyCmds.length
             }, false);
-            
+
             //inputMsg事件
             document.getElementById('inputMsg').addEventListener('keyup', function(e){
                 if (e.keyCode == 13 && e.ctrlKey){
@@ -194,7 +209,7 @@ return [[
                 }
             });
         },
-        
+
         _isJson(data){
             try{
                 JSON.parse(data);
@@ -234,7 +249,7 @@ return [[
             }
             var url = result.cmdType == "cmd" ? "/command" : "/message";
             $.ajax({
-                url: url,
+                url:  url,
                 type: "POST",
                 dataType: "json",
                 contentType: "application/json",

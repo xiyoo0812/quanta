@@ -6,9 +6,9 @@
 struct socket_stream : public socket_object
 {
 #ifdef _MSC_VER
-    socket_stream(socket_mgr* mgr, LPFN_CONNECTEX connect_func, eproto_type proto_type = eproto_type::proto_rpc);
+    socket_stream(socket_mgr* mgr, LPFN_CONNECTEX connect_func);
 #endif
-    socket_stream(socket_mgr* mgr, eproto_type proto_type = eproto_type::proto_rpc);
+    socket_stream(socket_mgr* mgr);
 
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
@@ -18,10 +18,10 @@ struct socket_stream : public socket_object
     bool do_connect();
     void try_connect();
     void close() override;
-    void set_accept_callback(const std::function<void(int, eproto_type)>& cb) override { m_accept_cb = cb; }
-    void set_package_callback(const std::function<int(slice*)>& cb) override { m_package_cb = cb; }
+    void set_accept_callback(const std::function<void(int)>& cb) override { m_accept_cb = cb; }
     void set_error_callback(const std::function<void(const char*)>& cb) override { m_error_cb = cb; }
     void set_connect_callback(const std::function<void(bool, const char*)>& cb) override { m_connect_cb = cb; }
+    void set_package_callback(const std::function<int(slice*, eproto_type)>& cb) override { m_package_cb = cb; }
     void set_timeout(int duration) override { m_timeout = duration; }
     void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
 
@@ -51,7 +51,6 @@ struct socket_stream : public socket_object
     int token = 0;
     socket_mgr* m_mgr = nullptr;
     socket_t m_socket = INVALID_SOCKET;
-    eproto_type m_proto_type = eproto_type::proto_rpc;
     std::shared_ptr<luabuf> m_recv_buffer = std::make_shared<luabuf>();
     std::shared_ptr<luabuf> m_send_buffer = std::make_shared<luabuf>();
 
@@ -72,8 +71,8 @@ struct socket_stream : public socket_object
     int m_ovl_ref = 0;
 #endif
 
-    std::function<int(slice*)> m_package_cb = nullptr;
+    std::function<void(int)> m_accept_cb = nullptr;
     std::function<void(const char*)> m_error_cb = nullptr;
-    std::function<void(int, eproto_type)> m_accept_cb = nullptr;
     std::function<void(bool, const char*)> m_connect_cb = nullptr;
+    std::function<int(slice*, eproto_type)> m_package_cb = nullptr;
 };

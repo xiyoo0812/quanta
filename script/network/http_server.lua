@@ -62,19 +62,19 @@ function HttpServer:on_socket_accept(socket, token)
     socket:set_codec(self.codec)
 end
 
-function HttpServer:on_socket_recv(socket, method, url, params, body)
-    log_debug("[HttpServer][on_socket_recv] recv: %s, %s, %s, %s!", method, url, params, body)
+function HttpServer:on_socket_recv(socket, method, url, params, headers, body)
+    log_debug("[HttpServer][on_socket_recv] recv: %s, %s, %s, %s, %s!", method, url, params, headers, body)
     if method == "GET" then
-        return self:on_http_request(self.get_handlers, socket, url, params)
+        return self:on_http_request(self.get_handlers, socket, url, params, headers)
     end
     if method == "POST" then
-        return self:on_http_request(self.post_handlers, socket, url, body, params)
+        return self:on_http_request(self.post_handlers, socket, url, body, params, headers)
     end
     if method == "PUT" then
-        return self:on_http_request(self.put_handlers, socket, url, body, params)
+        return self:on_http_request(self.put_handlers, socket, url, body, params, headers)
     end
     if method == "DELETE" then
-        return self:on_http_request(self.del_handlers, socket, url, params)
+        return self:on_http_request(self.del_handlers, socket, url, params, headers)
     end
 end
 

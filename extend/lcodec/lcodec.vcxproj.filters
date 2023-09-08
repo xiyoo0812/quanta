@@ -19,7 +19,13 @@
     <ClInclude Include="src\lcodec.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\mysql.h">
+      <Filter>inc</Filter>
+    </ClInclude>
     <ClInclude Include="src\redis.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\websocket.h">
       <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>

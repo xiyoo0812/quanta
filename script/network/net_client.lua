@@ -48,13 +48,13 @@ function NetClient:connect(block)
     if self.socket then
         return true
     end
-    local proto_type = 1
-    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, proto_type)
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT)
     if not socket then
-        log_err("[NetClient][connect] failed to connect: %s:%s type=%s, err=%s", self.ip, self.port, proto_type, cerr)
+        log_err("[NetClient][connect] failed to connect: %s:%s err=%s", self.ip, self.port, cerr)
         return false, cerr
     end
     --设置阻塞id
+    socket.set_proto_type(luabus.eproto_type.head);
     local block_id = block and thread_mgr:build_session_id()
     -- 调用成功，开始安装回调函数
     socket.on_connect = function(res)

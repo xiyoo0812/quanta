@@ -57,17 +57,17 @@ function NetServer:setup(ip, port, induce)
         signalquit()
         return
     end
-    local listen_proto_type = 1
     local real_port = induce and (port + quanta.order - 1) or port
-    self.listener = socket_mgr.listen(ip, real_port, listen_proto_type)
+    self.listener = socket_mgr.listen(ip, real_port)
     if not self.listener then
-        log_err("[NetServer][setup] failed to listen: %s:%d type=%d", ip, real_port, listen_proto_type)
+        log_err("[NetServer][setup] failed to listen: %s:%d", ip, real_port)
         signalquit()
         return
     end
     self.ip, self.port = ip, real_port
-    log_info("[NetServer][setup] start listen at: %s:%d type=%d", ip, real_port, listen_proto_type)
+    log_info("[NetServer][setup] start listen at: %s:%d", ip, real_port)
     -- 安装回调
+    self.listener.set_proto_type(luabus.eproto_type.head)
     self.listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session)
     end

@@ -8,4 +8,5 @@
 #include "hash.h"
 #include "redis.h"
 #include "ketama.h"
+#include "websocket.h"
 #include "bitarray.h"

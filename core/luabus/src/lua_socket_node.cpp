@@ -1,14 +1,14 @@
 #include "stdafx.h"
 #include "lua_socket_node.h"
 
-lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<socket_router>& router
-    , bool blisten, eproto_type proto_type) : m_token(token), m_mgr(mgr), m_router(router), m_proto_type(proto_type) {
+lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<socket_router>& router, bool blisten) 
+    : m_token(token), m_mgr(mgr), m_router(router) {
     m_stoken = (m_token & 0xffff) << 16;
     m_luakit = std::make_shared<luakit::kit_state>(L);
     m_mgr->get_remote_ip(m_token, m_ip);
     if (blisten) {
-        m_mgr->set_accept_callback(token, [=](uint32_t steam_token, eproto_type proto_type) {
-            auto node = new lua_socket_node(steam_token, m_luakit->L(), m_mgr, m_router, false, proto_type);
+        m_mgr->set_accept_callback(token, [=](uint32_t steam_token) {
+            auto node = new lua_socket_node(steam_token, m_luakit->L(), m_mgr, m_router, false);
             node->set_codec(m_codec);
             m_luakit->object_call(this, "on_accept", nullptr, std::tie(), node);
         });
@@ -23,8 +23,8 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<s
         m_luakit->object_call(this, "on_error", nullptr, std::tie(), token, err);
     });
 
-    m_mgr->set_package_callback(token, [=](slice* data){
-        return on_recv(data);
+    m_mgr->set_package_callback(token, [=](slice* data, eproto_type proto_type){
+        return on_recv(data, proto_type);
     });
 }
 
@@ -199,14 +199,14 @@ int lua_socket_node::transfer_hash(lua_State* L, uint32_t session_id, uint16_t s
     return 0;
 }
 
-int lua_socket_node::on_recv(slice* slice) {
-    if (eproto_type::proto_head == m_proto_type) {
+int lua_socket_node::on_recv(slice* slice, eproto_type proto_type) {
+    if (eproto_type::proto_head == proto_type) {
         return on_call_head(slice);
     }
-    if (eproto_type::proto_text == m_proto_type) {
+    if (eproto_type::proto_text == proto_type) {
         return on_call_text(slice);
     }
-    if (eproto_type::proto_rpc != m_proto_type) {
+    if (eproto_type::proto_rpc != proto_type) {
         return on_call_data(slice);
     }
 

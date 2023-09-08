@@ -160,7 +160,7 @@ end
 ----------------------------------------------------------------------
 --gm_page
 function GM_Mgr:on_gm_page(url, params)
-    return self.gm_page, {["Access-Control-Allow-Origin"] = "*"}
+    return self.gm_page, {["Access-Control-Allow-Origin"] = "*", ["X-Frame-Options"]= "ALLOW_FROM"}
 end
 
 --gm列表

@@ -1,0 +1,1784 @@
+{
+    "files": [
+        {
+            "filename": "robot.proto",
+            "package": "ncmd_cs",
+            "syntax": 3,
+            "dependency": [],
+            "enums": [
+                {
+                    "name": "BtNodeId",
+                    "full_name": "ncmd_cs.BtNodeId",
+                    "extend": {
+                        "desc": [
+                            "BtNodeId"
+                        ]
+                    },
+                    "alias": "BtNodeId",
+                    "values": [
+                        {
+                            "name": "BT_ZERO",
+                            "full_name": "ncmd_cs.BT_ZERO",
+                            "number": 0,
+                            "extend": {},
+                            "alias": "BT_ZERO"
+                        },
+                        {
+                            "name": "BT_LOGIN",
+                            "full_name": "ncmd_cs.BT_LOGIN",
+                            "number": 1001,
+                            "extend": {
+                                "desc": [
+                                    "login",
+                                    "登陆"
+                                ]
+                            },
+                            "alias": "BT_LOGIN"
+                        },
+                        {
+                            "name": "BT_LOGIN_UNIT",
+                            "full_name": "ncmd_cs.BT_LOGIN_UNIT",
+                            "number": 1002,
+                            "extend": {
+                                "desc": [
+                                    "登陆单元测试"
+                                ]
+                            },
+                            "alias": "BT_LOGIN_UNIT"
+                        },
+                        {
+                            "name": "BT_LOGOUT",
+                            "full_name": "ncmd_cs.BT_LOGOUT",
+                            "number": 1003,
+                            "extend": {
+                                "desc": [
+                                    "登出"
+                                ]
+                            },
+                            "alias": "BT_LOGOUT"
+                        },
+                        {
+                            "name": "BT_LOGIN_WAIT",
+                            "full_name": "ncmd_cs.BT_LOGIN_WAIT",
+                            "number": 1004,
+                            "extend": {
+                                "desc": [
+                                    "登陆"
+                                ]
+                            },
+                            "alias": "BT_LOGIN_WAIT"
+                        }
+                    ]
+                }
+            ],
+            "messages": []
+        },
+        {
+            "filename": "ncmd_cs.proto",
+            "package": "ncmd_cs",
+            "syntax": 3,
+            "dependency": [],
+            "enums": [
+                {
+                    "name": "NCmdId",
+                    "full_name": "ncmd_cs.NCmdId",
+                    "extend": {
+                        "desc": [
+                            "NCmdId"
+                        ]
+                    },
+                    "alias": "NCmdId",
+                    "values": [
+                        {
+                            "name": "NID_QUANTA_ZERO",
+                            "full_name": "ncmd_cs.NID_QUANTA_ZERO",
+                            "number": 0,
+                            "extend": {},
+                            "alias": "NID_QUANTA_ZERO"
+                        },
+                        {
+                            "name": "NID_HEARTBEAT_REQ",
+                            "full_name": "ncmd_cs.NID_HEARTBEAT_REQ",
+                            "number": 1001,
+                            "extend": {},
+                            "alias": "NID_HEARTBEAT_REQ"
+                        },
+                        {
+                            "name": "NID_HEARTBEAT_RES",
+                            "full_name": "ncmd_cs.NID_HEARTBEAT_RES",
+                            "number": 1002,
+                            "extend": {},
+                            "alias": "NID_HEARTBEAT_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ACCOUNT_LOGIN_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ACCOUNT_LOGIN_REQ",
+                            "number": 10001,
+                            "extend": {
+                                "desc": [
+                                    "登陆系统10001-10100",
+                                    "登陆账号请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ACCOUNT_LOGIN_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ACCOUNT_LOGIN_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ACCOUNT_LOGIN_RES",
+                            "number": 10002,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ACCOUNT_LOGIN_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ACCOUNT_RELOAD_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ACCOUNT_RELOAD_REQ",
+                            "number": 10003,
+                            "extend": {
+                                "desc": [
+                                    "重登账号请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ACCOUNT_RELOAD_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ACCOUNT_RELOAD_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ACCOUNT_RELOAD_RES",
+                            "number": 10004,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ACCOUNT_RELOAD_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_RANDOM_NAME_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_RANDOM_NAME_REQ",
+                            "number": 10005,
+                            "extend": {
+                                "desc": [
+                                    "随机名字请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_RANDOM_NAME_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_RANDOM_NAME_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_RANDOM_NAME_RES",
+                            "number": 10006,
+                            "extend": {},
+                            "alias": "NID_LOGIN_RANDOM_NAME_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_CREATE_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_CREATE_REQ",
+                            "number": 10007,
+                            "extend": {
+                                "desc": [
+                                    "创建角色请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ROLE_CREATE_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_CREATE_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_CREATE_RES",
+                            "number": 10008,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ROLE_CREATE_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_CHOOSE_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_CHOOSE_REQ",
+                            "number": 10009,
+                            "extend": {
+                                "desc": [
+                                    "选择角色请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ROLE_CHOOSE_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_CHOOSE_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_CHOOSE_RES",
+                            "number": 10010,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ROLE_CHOOSE_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_DELETE_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_DELETE_REQ",
+                            "number": 10011,
+                            "extend": {
+                                "desc": [
+                                    "删除角色请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ROLE_DELETE_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_DELETE_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_DELETE_RES",
+                            "number": 10012,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ROLE_DELETE_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_LOGIN_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_LOGIN_REQ",
+                            "number": 10013,
+                            "extend": {
+                                "desc": [
+                                    "登陆角色请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ROLE_LOGIN_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_LOGIN_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_LOGIN_RES",
+                            "number": 10014,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ROLE_LOGIN_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_LOGOUT_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_LOGOUT_REQ",
+                            "number": 10015,
+                            "extend": {
+                                "desc": [
+                                    "登出角色请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ROLE_LOGOUT_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_LOGOUT_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_LOGOUT_RES",
+                            "number": 10016,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ROLE_LOGOUT_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_RELOAD_REQ",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_RELOAD_REQ",
+                            "number": 10017,
+                            "extend": {
+                                "desc": [
+                                    "重登角色请求"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ROLE_RELOAD_REQ"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_RELOAD_RES",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_RELOAD_RES",
+                            "number": 10018,
+                            "extend": {},
+                            "alias": "NID_LOGIN_ROLE_RELOAD_RES"
+                        },
+                        {
+                            "name": "NID_LOGIN_ROLE_KICKOUT_NTF",
+                            "full_name": "ncmd_cs.NID_LOGIN_ROLE_KICKOUT_NTF",
+                            "number": 10019,
+                            "extend": {
+                                "desc": [
+                                    "踢玩家下线通知"
+                                ]
+                            },
+                            "alias": "NID_LOGIN_ROLE_KICKOUT_NTF"
+                        }
+                    ]
+                }
+            ],
+            "messages": []
+        },
+        {
+            "filename": "login.proto",
+            "package": "ncmd_cs",
+            "syntax": 3,
+            "dependency": [],
+            "enums": [
+                {
+                    "name": "platform_type",
+                    "full_name": "ncmd_cs.platform_type",
+                    "extend": {
+                        "desc": [
+                            "平台定义"
+                        ]
+                    },
+                    "alias": "platform_type",
+                    "values": [
+                        {
+                            "name": "PLATFORM_GUEST",
+                            "full_name": "ncmd_cs.PLATFORM_GUEST",
+                            "number": 0,
+                            "extend": {
+                                "desc": [
+                                    "游客"
+                                ]
+                            },
+                            "alias": "PLATFORM_GUEST"
+                        },
+                        {
+                            "name": "PLATFORM_PASSWORD",
+                            "full_name": "ncmd_cs.PLATFORM_PASSWORD",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "PASSWORD"
+                                ]
+                            },
+                            "alias": "PLATFORM_PASSWORD"
+                        }
+                    ]
+                }
+            ],
+            "messages": [
+                {
+                    "name": "role_info",
+                    "full_name": "ncmd_cs.role_info",
+                    "extend": {
+                        "desc": [
+                            "角色信息"
+                        ]
+                    },
+                    "alias": "role_info",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "role_id",
+                            "full_name": "ncmd_cs.role_info.role_id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "角色id"
+                                ]
+                            },
+                            "alias": "role_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "name",
+                            "full_name": "ncmd_cs.role_info.name",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "角色名字"
+                                ]
+                            },
+                            "alias": "name"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "gender",
+                            "full_name": "ncmd_cs.role_info.gender",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "角色性别"
+                                ]
+                            },
+                            "alias": "gender"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "model",
+                            "full_name": "ncmd_cs.role_info.model",
+                            "number": 4,
+                            "extend": {
+                                "desc": [
+                                    "模型ID"
+                                ]
+                            },
+                            "alias": "model"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_account_login_req",
+                    "full_name": "ncmd_cs.login_account_login_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ACCOUNT_LOGIN_REQ"
+                        ]
+                    },
+                    "alias": "login_account_login_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "openid",
+                            "full_name": "ncmd_cs.login_account_login_req.openid",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "第三方账号openid"
+                                ]
+                            },
+                            "alias": "openid"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "session",
+                            "full_name": "ncmd_cs.login_account_login_req.session",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "第三方账号登陆验证session"
+                                ]
+                            },
+                            "alias": "session"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_ENUM",
+                            "type_name": "ncmd_cs.platform_type",
+                            "name": "platform",
+                            "full_name": "ncmd_cs.login_account_login_req.platform",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "平台类型"
+                                ]
+                            },
+                            "alias": "platform"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "device_id",
+                            "full_name": "ncmd_cs.login_account_login_req.device_id",
+                            "number": 9,
+                            "extend": {
+                                "desc": [
+                                    "设备id"
+                                ]
+                            },
+                            "alias": "device_id"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_account_login_res",
+                    "full_name": "ncmd_cs.login_account_login_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ACCOUNT_LOGIN_RES"
+                        ]
+                    },
+                    "alias": "login_account_login_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_account_login_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "user_id",
+                            "full_name": "ncmd_cs.login_account_login_res.user_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "第三方账号openid"
+                                ]
+                            },
+                            "alias": "user_id"
+                        },
+                        {
+                            "is_repeated": true,
+                            "type": "TYPE_MESSAGE",
+                            "type_name": "ncmd_cs.role_info",
+                            "name": "roles",
+                            "full_name": "ncmd_cs.login_account_login_res.roles",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "账号角色列表"
+                                ]
+                            },
+                            "alias": "roles"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_account_reload_req",
+                    "full_name": "ncmd_cs.login_account_reload_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ACCOUNT_RELOAD_REQ"
+                        ]
+                    },
+                    "alias": "login_account_reload_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "openid",
+                            "full_name": "ncmd_cs.login_account_reload_req.openid",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "第三方账号openid"
+                                ]
+                            },
+                            "alias": "openid"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "session",
+                            "full_name": "ncmd_cs.login_account_reload_req.session",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "第三方账号登陆验证session"
+                                ]
+                            },
+                            "alias": "session"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "device_id",
+                            "full_name": "ncmd_cs.login_account_reload_req.device_id",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "设备id"
+                                ]
+                            },
+                            "alias": "device_id"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_account_reload_res",
+                    "full_name": "ncmd_cs.login_account_reload_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ACCOUNT_RELOAD_RES"
+                        ]
+                    },
+                    "alias": "login_account_reload_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_account_reload_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "user_id",
+                            "full_name": "ncmd_cs.login_account_reload_res.user_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "角色账号ID"
+                                ]
+                            },
+                            "alias": "user_id"
+                        },
+                        {
+                            "is_repeated": true,
+                            "type": "TYPE_MESSAGE",
+                            "type_name": "ncmd_cs.role_info",
+                            "name": "roles",
+                            "full_name": "ncmd_cs.login_account_reload_res.roles",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "账号角色列表"
+                                ]
+                            },
+                            "alias": "roles"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_random_name_req",
+                    "full_name": "ncmd_cs.login_random_name_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_RANDOM_NAME_REQ"
+                        ]
+                    },
+                    "alias": "login_random_name_req",
+                    "fields": []
+                },
+                {
+                    "name": "login_random_name_res",
+                    "full_name": "ncmd_cs.login_random_name_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_RANDOM_NAME_RES"
+                        ]
+                    },
+                    "alias": "login_random_name_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_random_name_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "name",
+                            "full_name": "ncmd_cs.login_random_name_res.name",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "随机名字"
+                                ]
+                            },
+                            "alias": "name"
+                        }
+                    ]
+                },
+                {
+                    "name": "rolemodel",
+                    "full_name": "ncmd_cs.rolemodel",
+                    "extend": {
+                        "desc": [
+                            "捏脸数据定义"
+                        ]
+                    },
+                    "alias": "rolemodel",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "model",
+                            "full_name": "ncmd_cs.rolemodel.model",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "模型ID"
+                                ]
+                            },
+                            "alias": "model"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "color",
+                            "full_name": "ncmd_cs.rolemodel.color",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "肤色"
+                                ]
+                            },
+                            "alias": "color"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "head",
+                            "full_name": "ncmd_cs.rolemodel.head",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "头模ID"
+                                ]
+                            },
+                            "alias": "head"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_create_req",
+                    "full_name": "ncmd_cs.login_role_create_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_CREATE_REQ"
+                        ]
+                    },
+                    "alias": "login_role_create_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "user_id",
+                            "full_name": "ncmd_cs.login_role_create_req.user_id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "账号id"
+                                ]
+                            },
+                            "alias": "user_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "name",
+                            "full_name": "ncmd_cs.login_role_create_req.name",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "名字"
+                                ]
+                            },
+                            "alias": "name"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "gender",
+                            "full_name": "ncmd_cs.login_role_create_req.gender",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "性别"
+                                ]
+                            },
+                            "alias": "gender"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_BYTES",
+                            "type_name": "bytes",
+                            "name": "custom",
+                            "full_name": "ncmd_cs.login_role_create_req.custom",
+                            "number": 4,
+                            "extend": {
+                                "desc": [
+                                    "捏脸数据，rolemodel"
+                                ]
+                            },
+                            "alias": "custom"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_create_res",
+                    "full_name": "ncmd_cs.login_role_create_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_CREATE_RES"
+                        ]
+                    },
+                    "alias": "login_role_create_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_role_create_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_MESSAGE",
+                            "type_name": "ncmd_cs.role_info",
+                            "name": "role",
+                            "full_name": "ncmd_cs.login_role_create_res.role",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "新角色信息"
+                                ]
+                            },
+                            "alias": "role"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_choose_req",
+                    "full_name": "ncmd_cs.login_role_choose_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_CHOOSE_REQ"
+                        ]
+                    },
+                    "alias": "login_role_choose_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "user_id",
+                            "full_name": "ncmd_cs.login_role_choose_req.user_id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "账号id"
+                                ]
+                            },
+                            "alias": "user_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "role_id",
+                            "full_name": "ncmd_cs.login_role_choose_req.role_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "角色id"
+                                ]
+                            },
+                            "alias": "role_id"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_choose_res",
+                    "full_name": "ncmd_cs.login_role_choose_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_CHOOSE_RES"
+                        ]
+                    },
+                    "alias": "login_role_choose_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_role_choose_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": true,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "addrs",
+                            "full_name": "ncmd_cs.login_role_choose_res.addrs",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "gateway ips"
+                                ]
+                            },
+                            "alias": "addrs"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "port",
+                            "full_name": "ncmd_cs.login_role_choose_res.port",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "gateway port"
+                                ]
+                            },
+                            "alias": "port"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "lobby",
+                            "full_name": "ncmd_cs.login_role_choose_res.lobby",
+                            "number": 4,
+                            "extend": {
+                                "desc": [
+                                    "lobby id"
+                                ]
+                            },
+                            "alias": "lobby"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "token",
+                            "full_name": "ncmd_cs.login_role_choose_res.token",
+                            "number": 5,
+                            "extend": {
+                                "desc": [
+                                    "验证token"
+                                ]
+                            },
+                            "alias": "token"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_delete_req",
+                    "full_name": "ncmd_cs.login_role_delete_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_DELETE_REQ"
+                        ]
+                    },
+                    "alias": "login_role_delete_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "user_id",
+                            "full_name": "ncmd_cs.login_role_delete_req.user_id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "账号id"
+                                ]
+                            },
+                            "alias": "user_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "role_id",
+                            "full_name": "ncmd_cs.login_role_delete_req.role_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "角色id"
+                                ]
+                            },
+                            "alias": "role_id"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_delete_res",
+                    "full_name": "ncmd_cs.login_role_delete_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_DELETE_RES"
+                        ]
+                    },
+                    "alias": "login_role_delete_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_role_delete_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_login_req",
+                    "full_name": "ncmd_cs.login_role_login_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_LOGIN_REQ"
+                        ]
+                    },
+                    "alias": "login_role_login_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "open_id",
+                            "full_name": "ncmd_cs.login_role_login_req.open_id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "open_id"
+                                ]
+                            },
+                            "alias": "open_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "role_id",
+                            "full_name": "ncmd_cs.login_role_login_req.role_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "角色id"
+                                ]
+                            },
+                            "alias": "role_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "lobby",
+                            "full_name": "ncmd_cs.login_role_login_req.lobby",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "lobby id"
+                                ]
+                            },
+                            "alias": "lobby"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "token",
+                            "full_name": "ncmd_cs.login_role_login_req.token",
+                            "number": 4,
+                            "extend": {
+                                "desc": [
+                                    "验证token"
+                                ]
+                            },
+                            "alias": "token"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_login_res",
+                    "full_name": "ncmd_cs.login_role_login_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_LOGIN_RES"
+                        ]
+                    },
+                    "alias": "login_role_login_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_role_login_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "token",
+                            "full_name": "ncmd_cs.login_role_login_res.token",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "重连token"
+                                ]
+                            },
+                            "alias": "token"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_logout_req",
+                    "full_name": "ncmd_cs.login_role_logout_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_LOGOUT_REQ"
+                        ]
+                    },
+                    "alias": "login_role_logout_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "role_id",
+                            "full_name": "ncmd_cs.login_role_logout_req.role_id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "角色id"
+                                ]
+                            },
+                            "alias": "role_id"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_logout_res",
+                    "full_name": "ncmd_cs.login_role_logout_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_LOGOUT_RES"
+                        ]
+                    },
+                    "alias": "login_role_logout_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_role_logout_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_reload_req",
+                    "full_name": "ncmd_cs.login_role_reload_req",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_RELOAD_REQ"
+                        ]
+                    },
+                    "alias": "login_role_reload_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "open_id",
+                            "full_name": "ncmd_cs.login_role_reload_req.open_id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "open_id"
+                                ]
+                            },
+                            "alias": "open_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "role_id",
+                            "full_name": "ncmd_cs.login_role_reload_req.role_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "角色id"
+                                ]
+                            },
+                            "alias": "role_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "lobby",
+                            "full_name": "ncmd_cs.login_role_reload_req.lobby",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "lobby id"
+                                ]
+                            },
+                            "alias": "lobby"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "token",
+                            "full_name": "ncmd_cs.login_role_reload_req.token",
+                            "number": 4,
+                            "extend": {
+                                "desc": [
+                                    "验证token"
+                                ]
+                            },
+                            "alias": "token"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_reload_res",
+                    "full_name": "ncmd_cs.login_role_reload_res",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_RELOAD_RES"
+                        ]
+                    },
+                    "alias": "login_role_reload_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.login_role_reload_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "token",
+                            "full_name": "ncmd_cs.login_role_reload_res.token",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "重连token"
+                                ]
+                            },
+                            "alias": "token"
+                        }
+                    ]
+                },
+                {
+                    "name": "login_role_kickout_ntf",
+                    "full_name": "ncmd_cs.login_role_kickout_ntf",
+                    "extend": {
+                        "desc": [
+                            "NID_LOGIN_ROLE_KICKOUT_NTF"
+                        ]
+                    },
+                    "alias": "login_role_kickout_ntf",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "reason",
+                            "full_name": "ncmd_cs.login_role_kickout_ntf.reason",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "原因"
+                                ]
+                            },
+                            "alias": "reason"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "filename": "errorcode.proto",
+            "package": "ncmd_cs",
+            "syntax": 3,
+            "dependency": [],
+            "enums": [
+                {
+                    "name": "ErrorCode",
+                    "full_name": "ncmd_cs.ErrorCode",
+                    "extend": {
+                        "desc": [
+                            "ErrorCode"
+                        ]
+                    },
+                    "alias": "ErrorCode",
+                    "values": [
+                        {
+                            "name": "FRAME_SUCCESS",
+                            "full_name": "ncmd_cs.FRAME_SUCCESS",
+                            "number": 0,
+                            "extend": {
+                                "desc": [
+                                    "框架错误码",
+                                    "成功"
+                                ]
+                            },
+                            "alias": "FRAME_SUCCESS"
+                        },
+                        {
+                            "name": "FRAME_FAILED",
+                            "full_name": "ncmd_cs.FRAME_FAILED",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "系统错误，请重试"
+                                ]
+                            },
+                            "alias": "FRAME_FAILED"
+                        },
+                        {
+                            "name": "FRAME_TOOFAST",
+                            "full_name": "ncmd_cs.FRAME_TOOFAST",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "请求太频繁"
+                                ]
+                            },
+                            "alias": "FRAME_TOOFAST"
+                        },
+                        {
+                            "name": "FRAME_PARAMS",
+                            "full_name": "ncmd_cs.FRAME_PARAMS",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "参数错误，请重试"
+                                ]
+                            },
+                            "alias": "FRAME_PARAMS"
+                        },
+                        {
+                            "name": "FRAME_UPHOLD",
+                            "full_name": "ncmd_cs.FRAME_UPHOLD",
+                            "number": 4,
+                            "extend": {
+                                "desc": [
+                                    "服务维护"
+                                ]
+                            },
+                            "alias": "FRAME_UPHOLD"
+                        },
+                        {
+                            "name": "LOGIN_PLATFORM_ERROR",
+                            "full_name": "ncmd_cs.LOGIN_PLATFORM_ERROR",
+                            "number": 1001,
+                            "extend": {
+                                "desc": [
+                                    "登陆错误码",
+                                    "平台错误"
+                                ]
+                            },
+                            "alias": "LOGIN_PLATFORM_ERROR"
+                        },
+                        {
+                            "name": "LOGIN_VERIFY_FAILED",
+                            "full_name": "ncmd_cs.LOGIN_VERIFY_FAILED",
+                            "number": 1002,
+                            "extend": {
+                                "desc": [
+                                    "验证失败"
+                                ]
+                            },
+                            "alias": "LOGIN_VERIFY_FAILED"
+                        },
+                        {
+                            "name": "LOGIN_SERVER_UPHOLD",
+                            "full_name": "ncmd_cs.LOGIN_SERVER_UPHOLD",
+                            "number": 1003,
+                            "extend": {
+                                "desc": [
+                                    "服务器维护"
+                                ]
+                            },
+                            "alias": "LOGIN_SERVER_UPHOLD"
+                        },
+                        {
+                            "name": "LOGIN_ACCOUTN_BANS",
+                            "full_name": "ncmd_cs.LOGIN_ACCOUTN_BANS",
+                            "number": 1004,
+                            "extend": {
+                                "desc": [
+                                    "账号被封"
+                                ]
+                            },
+                            "alias": "LOGIN_ACCOUTN_BANS"
+                        },
+                        {
+                            "name": "LOGIN_ACCOUTN_INLINE",
+                            "full_name": "ncmd_cs.LOGIN_ACCOUTN_INLINE",
+                            "number": 1005,
+                            "extend": {
+                                "desc": [
+                                    "账号已经登陆"
+                                ]
+                            },
+                            "alias": "LOGIN_ACCOUTN_INLINE"
+                        },
+                        {
+                            "name": "LOGIN_ACCOUTN_OFFLINE",
+                            "full_name": "ncmd_cs.LOGIN_ACCOUTN_OFFLINE",
+                            "number": 1006,
+                            "extend": {
+                                "desc": [
+                                    "账号未登陆"
+                                ]
+                            },
+                            "alias": "LOGIN_ACCOUTN_OFFLINE"
+                        },
+                        {
+                            "name": "LOGIN_ROLE_NOT_EXIST",
+                            "full_name": "ncmd_cs.LOGIN_ROLE_NOT_EXIST",
+                            "number": 1007,
+                            "extend": {
+                                "desc": [
+                                    "角色不存在"
+                                ]
+                            },
+                            "alias": "LOGIN_ROLE_NOT_EXIST"
+                        },
+                        {
+                            "name": "LOGIN_ROLE_NUM_LIMIT",
+                            "full_name": "ncmd_cs.LOGIN_ROLE_NUM_LIMIT",
+                            "number": 1008,
+                            "extend": {
+                                "desc": [
+                                    "角色数量超过上限"
+                                ]
+                            },
+                            "alias": "LOGIN_ROLE_NUM_LIMIT"
+                        },
+                        {
+                            "name": "LOGIN_ROLE_NAME_EXIST",
+                            "full_name": "ncmd_cs.LOGIN_ROLE_NAME_EXIST",
+                            "number": 1009,
+                            "extend": {
+                                "desc": [
+                                    "角色名字重复"
+                                ]
+                            },
+                            "alias": "LOGIN_ROLE_NAME_EXIST"
+                        },
+                        {
+                            "name": "LOGIN_ROLE_IS_INLINE",
+                            "full_name": "ncmd_cs.LOGIN_ROLE_IS_INLINE",
+                            "number": 1020,
+                            "extend": {
+                                "desc": [
+                                    "角色已经登陆"
+                                ]
+                            },
+                            "alias": "LOGIN_ROLE_IS_INLINE"
+                        },
+                        {
+                            "name": "LOGIN_ROLE_IS_OFFLINE",
+                            "full_name": "ncmd_cs.LOGIN_ROLE_IS_OFFLINE",
+                            "number": 1021,
+                            "extend": {
+                                "desc": [
+                                    "角色未登陆"
+                                ]
+                            },
+                            "alias": "LOGIN_ROLE_IS_OFFLINE"
+                        },
+                        {
+                            "name": "LOGIN_ROLE_TOKEN_ERR",
+                            "full_name": "ncmd_cs.LOGIN_ROLE_TOKEN_ERR",
+                            "number": 1022,
+                            "extend": {
+                                "desc": [
+                                    "TOKEN验证失败"
+                                ]
+                            },
+                            "alias": "LOGIN_ROLE_TOKEN_ERR"
+                        },
+                        {
+                            "name": "KICK_DEVICE_REPLACE",
+                            "full_name": "ncmd_cs.KICK_DEVICE_REPLACE",
+                            "number": 1051,
+                            "extend": {
+                                "desc": [
+                                    "踢出错误码",
+                                    "其他设备登陆"
+                                ]
+                            },
+                            "alias": "KICK_DEVICE_REPLACE"
+                        },
+                        {
+                            "name": "KICK_SERVER_UPHOLD",
+                            "full_name": "ncmd_cs.KICK_SERVER_UPHOLD",
+                            "number": 1052,
+                            "extend": {
+                                "desc": [
+                                    "服务器维护"
+                                ]
+                            },
+                            "alias": "KICK_SERVER_UPHOLD"
+                        },
+                        {
+                            "name": "KICK_ACCOUTN_BANS",
+                            "full_name": "ncmd_cs.KICK_ACCOUTN_BANS",
+                            "number": 1053,
+                            "extend": {
+                                "desc": [
+                                    "账号被封"
+                                ]
+                            },
+                            "alias": "KICK_ACCOUTN_BANS"
+                        }
+                    ]
+                }
+            ],
+            "messages": []
+        },
+        {
+            "filename": "common.proto",
+            "package": "ncmd_cs",
+            "syntax": 3,
+            "dependency": [],
+            "enums": [],
+            "messages": [
+                {
+                    "name": "heartbeat_req",
+                    "full_name": "ncmd_cs.heartbeat_req",
+                    "extend": {
+                        "desc": [
+                            "NID_HEARTBEAT_REQ"
+                        ]
+                    },
+                    "alias": "heartbeat_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "serial",
+                            "full_name": "ncmd_cs.heartbeat_req.serial",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "心跳序列号"
+                                ]
+                            },
+                            "alias": "serial"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "time",
+                            "full_name": "ncmd_cs.heartbeat_req.time",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "客户端时间"
+                                ]
+                            },
+                            "alias": "time"
+                        }
+                    ]
+                },
+                {
+                    "name": "heartbeat_res",
+                    "full_name": "ncmd_cs.heartbeat_res",
+                    "extend": {
+                        "desc": [
+                            "NID_HEARTBEAT_RES"
+                        ]
+                    },
+                    "alias": "heartbeat_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "serial",
+                            "full_name": "ncmd_cs.heartbeat_res.serial",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "心跳序列号"
+                                ]
+                            },
+                            "alias": "serial"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "time",
+                            "full_name": "ncmd_cs.heartbeat_res.time",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "服务器时间"
+                                ]
+                            },
+                            "alias": "time"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "indexs": {
+        "file_idxs": {
+            "common.proto": 4,
+            "errorcode.proto": 3,
+            "login.proto": 2,
+            "ncmd_cs.proto": 1,
+            "robot.proto": 0
+        },
+        "enum_idxs": {
+            "ncmd_cs.BtNodeId": [
+                0,
+                0
+            ],
+            "ncmd_cs.ErrorCode": [
+                3,
+                0
+            ],
+            "ncmd_cs.NCmdId": [
+                1,
+                0
+            ],
+            "ncmd_cs.platform_type": [
+                2,
+                0
+            ]
+        },
+        "message_idxs": {
+            "ncmd_cs.heartbeat_req": [
+                4,
+                0
+            ],
+            "ncmd_cs.heartbeat_res": [
+                4,
+                1
+            ],
+            "ncmd_cs.login_account_login_req": [
+                2,
+                1
+            ],
+            "ncmd_cs.login_account_login_res": [
+                2,
+                2
+            ],
+            "ncmd_cs.login_account_reload_req": [
+                2,
+                3
+            ],
+            "ncmd_cs.login_account_reload_res": [
+                2,
+                4
+            ],
+            "ncmd_cs.login_random_name_req": [
+                2,
+                5
+            ],
+            "ncmd_cs.login_random_name_res": [
+                2,
+                6
+            ],
+            "ncmd_cs.login_role_choose_req": [
+                2,
+                10
+            ],
+            "ncmd_cs.login_role_choose_res": [
+                2,
+                11
+            ],
+            "ncmd_cs.login_role_create_req": [
+                2,
+                8
+            ],
+            "ncmd_cs.login_role_create_res": [
+                2,
+                9
+            ],
+            "ncmd_cs.login_role_delete_req": [
+                2,
+                12
+            ],
+            "ncmd_cs.login_role_delete_res": [
+                2,
+                13
+            ],
+            "ncmd_cs.login_role_kickout_ntf": [
+                2,
+                20
+            ],
+            "ncmd_cs.login_role_login_req": [
+                2,
+                14
+            ],
+            "ncmd_cs.login_role_login_res": [
+                2,
+                15
+            ],
+            "ncmd_cs.login_role_logout_req": [
+                2,
+                16
+            ],
+            "ncmd_cs.login_role_logout_res": [
+                2,
+                17
+            ],
+            "ncmd_cs.login_role_reload_req": [
+                2,
+                18
+            ],
+            "ncmd_cs.login_role_reload_res": [
+                2,
+                19
+            ],
+            "ncmd_cs.role_info": [
+                2,
+                0
+            ],
+            "ncmd_cs.rolemodel": [
+                2,
+                7
+            ]
+        }
+    }
+}

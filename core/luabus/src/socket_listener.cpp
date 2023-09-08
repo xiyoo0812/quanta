@@ -4,7 +4,7 @@
 
 #ifdef _MSC_VER
 socket_listener::socket_listener(socket_mgr* mgr,
-    LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func, eproto_type proto_type) : m_proto_type(proto_type) {
+    LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) {
     mgr->increase_count();
     m_mgr = mgr;
     m_accept_func = accept_func;
@@ -17,8 +17,7 @@ socket_listener::socket_listener(socket_mgr* mgr,
 #endif
 
 #if defined(__linux) || defined(__APPLE__)
-socket_listener::socket_listener(socket_mgr* mgr, eproto_type proto_type) :
-    m_proto_type(proto_type) {
+socket_listener::socket_listener(socket_mgr* mgr) {
     mgr->increase_count();
     m_mgr = mgr;
 }
@@ -103,12 +102,12 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
 
     set_no_block(node->fd);
 
-    auto token = m_mgr->accept_stream(node->fd, ip, m_accept_cb, m_proto_type);
+    auto token = m_mgr->accept_stream(node->fd, ip, m_proto_type);
     if (token == 0) {
         closesocket(node->fd);
     }
     else {
-        m_accept_cb(token, m_proto_type);
+        m_accept_cb(token);
     }
 
     node->fd = INVALID_SOCKET;
@@ -164,7 +163,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
         get_ip_string(ip, sizeof(ip), remote_addr, (size_t)remote_addr_len);
 
-        auto token = m_mgr->accept_stream(node->fd, ip, m_accept_cb, m_proto_type);
+        auto token = m_mgr->accept_stream(node->fd, ip, m_proto_type);
         if (token == 0) {
             closesocket(node->fd);
             node->fd = INVALID_SOCKET;
@@ -174,7 +173,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         }
 
         node->fd = INVALID_SOCKET;
-        m_accept_cb(token, m_proto_type);
+        m_accept_cb(token);
     }
 }
 #endif
@@ -202,7 +201,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
         set_no_delay(fd, 1);
         set_close_on_exec(fd);
 
-        auto token = m_mgr->accept_stream(fd, ip, m_accept_cb, m_proto_type);
+        auto token = m_mgr->accept_stream(fd, ip);
         if (token != 0) {
             m_accept_cb(token, m_proto_type);
         }
