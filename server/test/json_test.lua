@@ -9,10 +9,10 @@ local bencode       = bson.encode
 local bdecode       = bson.decode
 local cencode       = cjson.encode
 local cdecode       = cjson.decode
-local lencode       = codec.encode
-local ldecode       = codec.decode
 local log_debug     = logger.debug
 local new_guid      = codec.guid_new
+local lencode       = luakit.encode
+local ldecode       = luakit.decode
 
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 

@@ -33,9 +33,9 @@ luaext:
 	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
+	cd extend/luapb; make SOLUTION_DIR=$(CUR_DIR) -f luapb.mak;
 	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 	cd extend/lworker; make SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
-	cd extend/protobuf; make SOLUTION_DIR=$(CUR_DIR) -f lua-protobuf.mak;
 
 share:
 	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;

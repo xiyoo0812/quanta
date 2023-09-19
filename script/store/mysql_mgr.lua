@@ -15,6 +15,8 @@ prop:reader("mysql_dbs", {})    -- mysql_dbs
 function MysqlMgr:__init()
     self:setup()
     -- 注册事件
+    event_mgr:add_listener(self, "rpc_mysql_query", "query")
+    event_mgr:add_listener(self, "rpc_mysql_prepare", "prepare")
     event_mgr:add_listener(self, "rpc_mysql_execute", "execute")
 end
 
@@ -24,7 +26,7 @@ function MysqlMgr:setup()
     local drivers = environ.driver("QUANTA_MYSQL_URLS")
     for i, conf in ipairs(drivers) do
         local mysql_db = MysqlDB(conf, i)
-        self.mysql_dbs[conf.id] = mysql_db
+        self.mysql_dbs[i] = mysql_db
     end
 end
 
@@ -33,12 +35,36 @@ function MysqlMgr:get_db(db_id)
     return self.mysql_dbs[db_id or MAIN_DBID]
 end
 
-function MysqlMgr:execute(db_id, sql)
+function MysqlMgr:query(db_id, primary_id, sql)
     local mysqldb = self:get_db(db_id)
-    if mysqldb then
+    if mysqldb and mysqldb:set_executer(primary_id) then
         local ok, res_oe = mysqldb:query(sql)
         if not ok then
-            log_err("[MysqlMgr][execute] execute %s failed, because: %s", sql, res_oe)
+            log_err("[MysqlMgr][query] query %s failed, because: %s", sql, res_oe)
+        end
+        return ok and SUCCESS or MYSQL_FAILED, res_oe
+    end
+    return MYSQL_FAILED, "mysql db not exist"
+end
+
+function MysqlMgr:execute(db_id, primary_id, stmt, ...)
+    local mysqldb = self:get_db(db_id)
+    if mysqldb and mysqldb:set_executer(primary_id) then
+        local ok, res_oe = mysqldb:execute(stmt, ...)
+        if not ok then
+            log_err("[MysqlMgr][execute] execute %s failed, because: %s", stmt, res_oe)
+        end
+        return ok and SUCCESS or MYSQL_FAILED, res_oe
+    end
+    return MYSQL_FAILED, "mysql db not exist"
+end
+
+function MysqlMgr:prepare(db_id, sql)
+    local mysqldb = self:get_db(db_id)
+    if mysqldb and mysqldb:set_executer() then
+        local ok, res_oe = mysqldb:prepare(sql)
+        if not ok then
+            log_err("[MysqlMgr][prepare] prepare %s failed, because: %s", sql, res_oe)
         end
         return ok and SUCCESS or MYSQL_FAILED, res_oe
     end

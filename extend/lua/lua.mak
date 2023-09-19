@@ -19,6 +19,7 @@ MYCFLAGS += -Wsign-compare
 MYCFLAGS += -Wno-sign-compare
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
+MYCFLAGS += -Wno-unused-but-set-variable
 MYCFLAGS += -Wno-unused-but-set-parameter
 MYCFLAGS += -Wno-unknown-pragmas
 

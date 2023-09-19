@@ -30,7 +30,7 @@ function TransferMgr:__init()
     event_mgr:add_listener(self, "rpc_login_service")
     --消息转发
     event_mgr:add_listener(self, "on_transfer_rpc")
-    event_mgr:add_listener(self, "on_boardcast_rpc")
+    event_mgr:add_listener(self, "on_broadcast_rpc")
     --初始化变量
     self.rpc_server = router_server:get_rpc_server()
 end
@@ -66,14 +66,14 @@ function TransferMgr:rpc_query_service(client, player_id, serv_name)
 end
 
 --转发广播
-function TransferMgr:on_boardcast_rpc(client, player_id, slice)
+function TransferMgr:on_broadcast_rpc(client, player_id, slice)
     local routers = self:find_routers(player_id)
     if not routers then
         slice = slice.string()
         routers = self:query_routers(player_id, NODE_ID)
     end
     if not routers then
-        log_warn("[TransferMgr][on_boardcast_rpc]: %s find routers failed!", player_id)
+        log_warn("[TransferMgr][on_broadcast_rpc]: %s find routers failed!", player_id)
         return
     end
     for _, server_id in pairs(routers) do

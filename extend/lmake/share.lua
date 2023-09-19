@@ -16,6 +16,7 @@ FLAGS = {
     "Wno-sign-compare",
     "Wno-unused-variable",
     "Wno-unused-parameter",
+    "Wno-unused-but-set-variable",
     "Wno-unused-but-set-parameter",
     "Wno-unknown-pragmas"
 }

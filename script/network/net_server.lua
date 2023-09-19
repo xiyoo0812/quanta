@@ -7,10 +7,8 @@ local log_fatal         = logger.fatal
 local signalquit        = signal.quit
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
-local b64_encode        = crypt.b64_encode
-local b64_decode        = crypt.b64_decode
-local lz4_encode        = crypt.lz4_encode
-local lz4_decode        = crypt.lz4_decode
+
+local proto_pb          = luabus.eproto_type.pb
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -20,15 +18,11 @@ local proxy_agent       = quanta.get("proxy_agent")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
-local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
-local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local FAST_MS           = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local TOO_FAST          = quanta.enum("KernCode", "TOO_FAST")
 
-local OUT_PRESS         = environ.status("QUANTA_OUT_PRESS")
-local OUT_ENCRYPT       = environ.status("QUANTA_OUT_ENCRYPT")
 local FLOW_CTRL         = environ.status("QUANTA_FLOW_CTRL")
 local FC_PACKETS        = environ.number("QUANTA_FLOW_CTRL_PACKAGE")
 local FC_BYTES          = environ.number("QUANTA_FLOW_CTRL_BYTES")
@@ -42,11 +36,12 @@ prop:reader("sessions", {})             --会话列表
 prop:reader("session_type", "default")  --会话类型
 prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
-prop:accessor("codec", nil)             --编解码器
+prop:reader("broadcast_token", nil)     --监听器
+prop:reader("codec", nil)               --编解码器
 
 function NetServer:__init(session_type)
     self.session_type = session_type
-    self.codec =  protobuf_mgr
+    self.codec = protobuf.pbcodec("ncmd_cs", "ncmd_cs.NCmdId")
 end
 
 --induce：根据 order 推导port
@@ -58,19 +53,21 @@ function NetServer:setup(ip, port, induce)
         return
     end
     local real_port = induce and (port + quanta.order - 1) or port
-    self.listener = socket_mgr.listen(ip, real_port)
-    if not self.listener then
+    local listener = socket_mgr.listen(ip, real_port, proto_pb)
+    if not listener then
         log_err("[NetServer][setup] failed to listen: %s:%d", ip, real_port)
         signalquit()
         return
     end
-    self.ip, self.port = ip, real_port
     log_info("[NetServer][setup] start listen at: %s:%d", ip, real_port)
     -- 安装回调
-    self.listener.set_proto_type(luabus.eproto_type.head)
-    self.listener.on_accept = function(session)
+    listener.set_codec(self.codec)
+    listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session)
     end
+    self.listener = listener
+    self.ip, self.port = ip, real_port
+    self.broadcast_token = listener.token
 end
 
 -- 连接回调
@@ -87,14 +84,14 @@ function NetServer:on_socket_accept(session)
     self:add_session(session)
     -- 绑定call回调
     session.call_client = function(cmd_id, flag, session_id, body)
-        local send_len = session.call_head(cmd_id, flag, 0, 0, session_id, body, #body)
+        local send_len = session.call_pb(session_id, cmd_id, flag, 0, 0, body)
         if send_len <= 0 then
-            log_err("[NetServer][call_client] call_head failed! code:%s", send_len)
+            log_err("[NetServer][call_client] call_pb failed! code:%s", send_len)
             return false
         end
         return true
     end
-    session.on_call_head = function(recv_len, cmd_id, flag, type, crc8, session_id, slice)
+    session.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
         local now_ms = quanta.now_ms
         if session.lc_crc == crc8 and now_ms - session.lc_time < FAST_MS then
             self:callback_errcode(session, cmd_id, TOO_FAST, session_id)
@@ -107,7 +104,7 @@ function NetServer:on_socket_accept(session)
             session.fc_bytes  = session.fc_bytes  + recv_len
         end
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, slice)
+        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, body)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(stoken, err)
@@ -122,41 +119,17 @@ function NetServer:write(session, cmd, data, session_id, flag)
         log_fatal("[NetServer][write] session lost! cmd_id:%s-(%s)", cmd, data)
         return false
     end
-    local body, cmd_id, pflag = self:encode(cmd, data, flag)
-    if not body then
-        log_fatal("[NetServer][write] encode failed! cmd_id:%s-(%s)", cmd, data)
-        return false
-    end
-    if session_id > 0 then
-        session_id = session_id & 0xffff
-    end
-    return session.call_client(cmd_id, pflag, session_id, body)
+    return session.call_client(cmd, flag, session_id, data)
 end
 
 -- 广播数据
-function NetServer:broadcast(cmd, data)
-    local body, cmd_id, pflag = self:encode(cmd, data, FLAG_REQ)
-    if not body then
-        log_fatal("[NetServer][broadcast] encode failed! cmd_id:%s-(%s)", cmd_id, data)
-        return false
-    end
-    for _, session in pairs(self.sessions) do
-        session.call_client(cmd_id, pflag, 0, body)
-    end
-    return true
+function NetServer:broadcast(cmd_id, data)
+    socket_mgr.broadcast(self.codec, self.broadcast_token, cmd_id, FLAG_REQ, 0, 0, data)
 end
 
 -- 广播数据
-function NetServer:broadcast_groups(sessions, cmd, data)
-    local body, cmd_id, pflag = self:encode(cmd, data, FLAG_REQ)
-    if not body then
-        log_fatal("[NetServer][broadcast_groups] encode failed! cmd_id:%s-(%s)", cmd_id, data)
-        return false
-    end
-    for _, session in pairs(sessions or {}) do
-        session.call_client(cmd_id, pflag, 0, body)
-    end
-    return true
+function NetServer:broadcast_groups(tokens, cmd_id, data)
+    socket_mgr.broadgroup(self.codec, tokens, cmd_id, FLAG_REQ, 0, 0, data)
 end
 
 -- 发送数据
@@ -182,48 +155,12 @@ function NetServer:callback_errcode(session, cmd_id, code, session_id)
     return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
 end
 
-function NetServer:encode(cmd, data, flag)
-    local en_data, cmd_id = self.codec:encode(cmd, data)
-    if not en_data then
-        return
-    end
-    -- 加密处理
-    if OUT_ENCRYPT then
-        en_data = b64_encode(en_data)
-        flag = flag | FLAG_ENCRYPT
-    end
-    -- 压缩处理
-    if OUT_PRESS then
-        en_data = lz4_encode(en_data)
-        flag = flag | FLAG_ZIP
-    end
-    return en_data, cmd_id, flag
-end
-
-function NetServer:decode(cmd_id, buff, flag)
-    if flag & FLAG_ZIP == FLAG_ZIP then
-        --解压处理
-        buff = lz4_decode(buff)
-    end
-    if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
-        --解密处理
-        buff = b64_decode(buff)
-    end
-    return self.codec:decode(cmd_id, buff)
-end
-
 -- 收到远程调用回调
-function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, buff)
-    -- 解码
-    local body, cmd_name = self:decode(cmd_id, buff, flag)
-    if not body then
-        log_warn("[NetServer][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
-        return
-    end
+function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
-        local function dispatch_rpc_message(_session, typ, cmd, bd)
-            local _<close> = qeval(cmd_name)
-            local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, bd, session_id)
+        local function dispatch_rpc_message(_session, typ, cmd, cbody)
+            local _<close> = qeval(cmd_id)
+            local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, cbody, session_id)
             if not result[1] then
                 log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:%s", cmd_id)
             end

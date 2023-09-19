@@ -16,12 +16,12 @@ end
 function GroupMgr:add_member(group_id, player_id, player)
     log_info("[GroupMgr][add_member] group_id(%s) player_id(%s)!", group_id, player_id)
     local group = self.groups[group_id]
-    local session = player:get_session()
+    local token = player:get_session_token()
     if not group then
-        self.groups[group_id] = qtweak({ [player_id] = session })
+        self.groups[group_id] = qtweak({ [player_id] = token })
         return
     end
-    group[player_id] = session
+    group[player_id] = token
 end
 
 --更新分组信息
@@ -35,9 +35,9 @@ end
 
 --广播消息
 function GroupMgr:broadcast(group_id, cmd_id, data)
-    local sessions = self.groups[group_id]
-    if sessions then
-        client_mgr:broadcast_groups(sessions, cmd_id, data)
+    local tokens = self.groups[group_id]
+    if tokens then
+        client_mgr:broadcast_groups(tokens, cmd_id, data)
     end
 end
 

@@ -11,7 +11,7 @@ local librarys = {
     --定时器库
     timer = require("ltimer"),
     --PB解析库
-    protobuf = require("pb"),
+    protobuf = require("luapb"),
     --json库
     json = require("ljson"),
     --bson库

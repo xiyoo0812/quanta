@@ -7,6 +7,7 @@
 #include "http.h"
 #include "hash.h"
 #include "redis.h"
+#include "mysql.h"
 #include "ketama.h"
 #include "websocket.h"
 #include "bitarray.h"

@@ -324,7 +324,7 @@ namespace lbson {
         const char* read_bytes(lua_State* L, slice* slice, size_t sz) {
             const char* dst = (const char*)slice->peek(sz);
             if (!dst) {
-                throw length_error("invalid bson string , length = " + sz);
+                throw invalid_argument("invalid bson string , length = " + sz);
             }
             slice->erase(sz);
             return dst;
@@ -333,7 +333,7 @@ namespace lbson {
         const char* read_string(lua_State* L, slice* slice, size_t& sz) {
             sz = (size_t)read_val<uint32_t>(L, slice);
             if (sz <= 0) {
-                throw length_error("invalid bson string , length = " + sz);
+                throw invalid_argument("invalid bson string , length = " + sz);
             }
             sz = sz - 1;
             const char* dst = "";
@@ -344,16 +344,16 @@ namespace lbson {
             return dst;
         }
 
-        const char* read_cstring(lua_State * L, slice* slice, size_t& l) {
+        const char* read_cstring(slice* slice, size_t& l) {
             size_t sz;
             const char* dst = (const char*)slice->data(&sz);
             for (l = 0; l < sz; ++l) {
-                if (l == sz - 1) {
-                    throw invalid_argument("invalid bson block : cstring");
-                }
                 if (dst[l] == '\0') {
                     slice->erase(l + 1);
                     return dst;
+                }
+                if (l == sz - 1) {
+                    throw invalid_argument("invalid bson block : cstring");
                 }
             }
             throw invalid_argument("invalid bson block : cstring");
@@ -362,7 +362,7 @@ namespace lbson {
 
         void unpack_key(lua_State* L, slice* slice, bool isarray) {
             size_t klen = 0;
-            const char* key = read_cstring(L, slice, klen);
+            const char* key = read_cstring(slice, klen);
             if (isarray) {
                 lua_pushinteger(L, std::stoll(key, nullptr, 10) + 1);
                 return;
@@ -375,7 +375,7 @@ namespace lbson {
         void unpack_dict(lua_State* L, slice* slice, bool isarray) {
             uint32_t sz = read_val<uint32_t>(L, slice);
             if (slice->size() < sz - 4) {
-                throw length_error("decode can't unpack one value");
+                throw invalid_argument("decode can't unpack one value");
             }
             lua_createtable(L, 0, 8);
             while (!slice->empty()) {
@@ -417,7 +417,7 @@ namespace lbson {
                     }
                     break;
                 case bson_type::BSON_REGEX:
-                    lua_push_object(L, new bson_value(bt, read_cstring(L, slice, klen), read_cstring(L, slice, klen)));
+                    lua_push_object(L, new bson_value(bt, read_cstring(slice, klen), read_cstring(slice, klen)));
                     break;
                 case bson_type::BSON_DOCUMENT:
                     unpack_dict(L, slice, false);
@@ -442,6 +442,17 @@ namespace lbson {
 
     class mgocodec : public codec_base {
     public:
+        virtual int load_packet(size_t data_len) {
+            if (!m_slice) return 0;
+            uint32_t* packet_len = (uint32_t*)m_slice->peek(sizeof(uint32_t));
+            if (!packet_len) return 0;
+            m_packet_len = *packet_len;
+            if (m_packet_len > 0xffffff) return -1;
+            if (m_packet_len > data_len) return 0;
+            if (!m_slice->peek(m_packet_len)) return 0;
+            return m_packet_len;
+        }
+
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             luabuf* buf = m_bson->get_buffer();
             buf->clean();

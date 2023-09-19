@@ -175,15 +175,15 @@ end
 
 --群发消息
 function Gateway:rpc_groupcast_client(player_ids, cmd_id, data)
-    local sessions = {}
+    local tokens = {}
     for _, player_id in pairs(player_ids) do
         local player = self:get_player(player_id)
         if player then
-            sessions[#sessions + 1] = player:get_session()
+            tokens[#tokens + 1] = player:get_session_token()
         end
     end
-    if next(sessions) then
-        client_mgr:broadcast_groups(sessions, cmd_id, data)
+    if next(tokens) then
+        client_mgr:broadcast_groups(tokens, cmd_id, data)
     end
 end
 

@@ -24,6 +24,10 @@ function GatePlayer:__init(session, open_id, player_id)
     self.player_id = player_id
 end
 
+function GatePlayer:get_session_token()
+    return self.session.token
+end
+
 --查询组ID
 function GatePlayer:get_group_id(group_name)
     return self.groups[group_name]

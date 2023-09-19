@@ -4,25 +4,15 @@ local log_err           = logger.err
 local log_fatal         = logger.fatal
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
-local env_status        = environ.status
-local b64_encode        = crypt.b64_encode
-local b64_decode        = crypt.b64_decode
-local lz4_encode        = crypt.lz4_encode
-local lz4_decode        = crypt.lz4_decode
-local lcrc8             = codec.crc8
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
-local protobuf_mgr      = quanta.get("protobuf_mgr")
 local proxy_agent       = quanta.get("proxy_agent")
 
-local out_press         = env_status("QUANTA_OUT_PRESS")
-local out_encrypt       = env_status("QUANTA_OUT_ENCRYPT")
+local proto_pb          = luabus.eproto_type.pb
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
-local FLAG_ZIP          = quanta.enum("FlagMask", "ZIP")
-local FLAG_ENCRYPT      = quanta.enum("FlagMask", "ENCRYPT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
@@ -30,17 +20,17 @@ local NetClient = class()
 local prop = property(NetClient)
 prop:reader("ip", nil)
 prop:reader("port", nil)
+prop:reader("codec", nil)
 prop:reader("alive", false)
 prop:reader("socket", nil)          --连接成功对象
 prop:reader("holder", nil)          --持有者
 prop:reader("wait_list", {})        --等待协议列表
-prop:accessor("codec", nil)         --编解码器
 
 function NetClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
     self.holder = holder
-    self.codec = protobuf_mgr
+    self.codec = protobuf.pbcodec("ncmd_cs", "ncmd_cs.NCmdId")
 end
 
 -- 发起连接
@@ -48,15 +38,15 @@ function NetClient:connect(block)
     if self.socket then
         return true
     end
-    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT)
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, proto_pb)
     if not socket then
         log_err("[NetClient][connect] failed to connect: %s:%s err=%s", self.ip, self.port, cerr)
         return false, cerr
     end
     --设置阻塞id
-    socket.set_proto_type(luabus.eproto_type.head);
     local block_id = block and thread_mgr:build_session_id()
     -- 调用成功，开始安装回调函数
+    socket.set_codec(self.codec)
     socket.on_connect = function(res)
         local success = (res == "ok")
         thread_mgr:fork(function()
@@ -71,9 +61,9 @@ function NetClient:connect(block)
             thread_mgr:response(block_id, success, res)
         end
     end
-    socket.on_call_head = function(recv_len, cmd_id, flag, type, crc8, session_id, slice)
+    socket.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, type, session_id, slice)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, type, session_id, body)
     end
     socket.on_error = function(token, err)
         thread_mgr:fork(function()
@@ -92,47 +82,12 @@ function NetClient:get_token()
     return self.socket and self.socket.token
 end
 
-function NetClient:encode(cmd, data, flag)
-    local en_data, cmd_id = self.codec:encode(cmd, data)
-    if not en_data then
-        return
-    end
-    -- 加密处理
-    if out_encrypt then
-        en_data = b64_encode(en_data)
-        flag = flag | FLAG_ENCRYPT
-    end
-    -- 压缩处理
-    if out_press then
-        en_data = lz4_encode(en_data)
-        flag = flag | FLAG_ZIP
-    end
-    return en_data, cmd_id, flag
-end
-
-function NetClient:decode(cmd_id, buff, flag)
-    if flag & FLAG_ZIP == FLAG_ZIP then
-        --解压处理
-        buff = lz4_decode(buff)
-    end
-    if flag & FLAG_ENCRYPT == FLAG_ENCRYPT then
-        --解密处理
-        buff = b64_decode(buff)
-    end
-    return self.codec:decode(cmd_id, buff)
-end
-
-function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, buff)
-    local body, cmd_name = self:decode(cmd_id, buff, flag)
-    if not body  then
-        log_err("[NetClient][on_socket_rpc] decode failed! cmd_id:%s", cmd_id)
-        return
-    end
+function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, body)
     event_mgr:notify_trigger("on_message_recv", cmd_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
-            local _<close> = qeval(cmd_name)
+            local _<close> = qeval(cmd_id)
             self.holder:on_socket_rpc(self, cmd_id, body, session_id)
         end
         thread_mgr:fork(dispatch_rpc_message)
@@ -167,9 +122,9 @@ function NetClient:write(cmd, data, type, session_id, flag)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_head(cmd_id, pflag, type or 0, lcrc8(body), session_id or 0, body, #body)
+    local send_len = self.socket.call_pb(cmd_id, pflag, type, session_id, data)
     if send_len < 0 then
-        log_err("[NetClient][write] call_head failed! code:%s", send_len)
+        log_err("[NetClient][write] call_pb failed! code:%s", send_len)
         return false
     end
     proxy_agent:statistics("on_proto_send", cmd_id, send_len)
@@ -178,7 +133,7 @@ end
 
 -- 发送数据
 function NetClient:send(cmd_id, data, type)
-    return self:write(cmd_id, data, type, 0, FLAG_REQ)
+    return self:write(cmd_id, data, type or 0, 0, FLAG_REQ)
 end
 
 -- 发起远程命令
@@ -187,7 +142,7 @@ function NetClient:call(cmd_id, data, type)
         return false
     end
     local session_id = self.socket.build_session_id()
-    if not self:write(cmd_id, data, type, session_id, FLAG_REQ) then
+    if not self:write(cmd_id, data, type or 0, session_id, FLAG_REQ) then
         return false
     end
     return thread_mgr:yield(session_id, cmd_id, RPC_CALL_TIMEOUT)

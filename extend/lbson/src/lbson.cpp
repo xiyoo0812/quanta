@@ -5,7 +5,6 @@
 namespace lbson {
 
     thread_local bson thread_bson;
-    thread_local mgocodec thread_codec;
 
     static int encode(lua_State* L) {
         return thread_bson.encode(L);
@@ -38,11 +37,12 @@ namespace lbson {
             bson_numstr_len[i] = sprintf(tmp, "%d", i);
             memcpy(bson_numstrs[i], tmp, bson_numstr_len[i]);
         }
-        thread_codec.set_bson(&thread_bson);
     }
 
     static codec_base* mongo_codec() {
-        return &thread_codec;
+        mgocodec* codec = new mgocodec();
+        codec->set_bson(&thread_bson);
+        return codec;
     }
 
     luakit::lua_table open_lbson(lua_State* L) {
@@ -52,7 +52,7 @@ namespace lbson {
         llbson.set_function("decode", decode);
         llbson.set_function("encode_slice", encode_slice);
         llbson.set_function("decode_slice", decode_slice);
-        llbson.set_function("mongo_codec", mongo_codec);
+        llbson.set_function("mongocodec", mongo_codec);
         llbson.set_function("timestamp", timestamp);
         llbson.set_function("int32", int32);
         llbson.set_function("int64", int64);

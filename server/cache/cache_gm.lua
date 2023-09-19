@@ -5,7 +5,7 @@ local log_info      = logger.info
 local log_err       = logger.err
 local sformat       = string.format
 local qfailed       = quanta.failed
-local unserialize   = codec.unserialize
+local unserialize   = luakit.unserialize
 
 local gm_agent      = quanta.get("gm_agent")
 local cache_mgr     = quanta.get("cache_mgr")

@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = pb
+PROJECT_NAME = luapb
 
 #目标名字
-TARGET_NAME = pb
+TARGET_NAME = luapb
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -19,6 +19,7 @@ MYCFLAGS += -Wsign-compare
 MYCFLAGS += -Wno-sign-compare
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
+MYCFLAGS += -Wno-unused-but-set-variable
 MYCFLAGS += -Wno-unused-but-set-parameter
 MYCFLAGS += -Wno-unknown-pragmas
 
@@ -32,6 +33,7 @@ STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../lua/lua
+MYCFLAGS += -I../luakit/include
 
 #需要定义的选项
 
@@ -40,7 +42,7 @@ LDFLAGS =
 
 
 #源文件路径
-SRC_DIR = lua-protobuf
+SRC_DIR = src
 
 #需要排除的源文件,目录基于$(SRC_DIR)
 EXCLUDE =
@@ -95,11 +97,10 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 OBJS =
-#根目录
-OBJS += $(patsubst $(SRC_DIR)/%.c, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.c)))
-OBJS += $(patsubst $(SRC_DIR)/%.m, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.m)))
-OBJS += $(patsubst $(SRC_DIR)/%.cc, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cc)))
-OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cpp)))
+COBJS = $(patsubst %.c, $(INT_DIR)/%.o, luapb.cpp)
+MOBJS = $(patsubst %.m, $(INT_DIR)/%.o, $(COBJS))
+CCOBJS = $(patsubst %.cc, $(INT_DIR)/%.o, $(MOBJS))
+OBJS = $(patsubst %.cpp, $(INT_DIR)/%.o, $(CCOBJS))
 
 # 编译所有源文件
 $(INT_DIR)/%.o : $(SRC_DIR)/%.c

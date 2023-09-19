@@ -5,41 +5,35 @@
 namespace lcodec {
 
     thread_local ketama thread_ketama;
-    thread_local rdscodec thread_rds;
-    thread_local wsscodec thread_wss;
-    thread_local httpcodec thread_http;
     thread_local luakit::luabuf thread_buff;
 
-    static rdscodec* rds_codec(codec_base* codec) {
-        thread_rds.set_codec(codec);
-        thread_rds.set_buff(&thread_buff);
-        return &thread_rds;
+    static codec_base* rds_codec(codec_base* codec) {
+        rdscodec* rcodec = new rdscodec();
+        rcodec->set_codec(codec);
+        rcodec->set_buff(&thread_buff);
+        return rcodec;
     }
 
-    static wsscodec* wss_codec(codec_base* codec) {
-        thread_wss.set_codec(codec);
-        thread_wss.set_buff(&thread_buff);
-        return &thread_wss;
+    static codec_base* wss_codec(codec_base* codec) {
+        wsscodec* wcodec = new wsscodec();
+        wcodec->set_codec(codec);
+        wcodec->set_buff(&thread_buff);
+        return wcodec;
     }
 
-    static httpcodec* http_codec(codec_base* codec) {
-        thread_http.set_codec(codec);
-        thread_http.set_buff(&thread_buff);
-        return &thread_http;
+    static codec_base* http_codec(codec_base* codec) {
+        httpcodec* hcodec = new httpcodec();
+        hcodec->set_codec(codec);
+        hcodec->set_buff(&thread_buff);
+        return hcodec;
     }
-        
-    static int serialize(lua_State* L) {
-        return luakit::serialize(L, &thread_buff);
+
+    static codec_base* mysql_codec(size_t session_id) {
+        mysqlscodec* codec = new mysqlscodec(session_id);
+        codec->set_buff(&thread_buff);
+        return codec;
     }
-    static int unserialize(lua_State* L) {
-        return luakit::unserialize(L);
-    }
-    static int encode(lua_State* L) {
-        return luakit::encode(L, &thread_buff);
-    }
-    static int decode(lua_State* L) {
-        return luakit::decode(L, &thread_buff);
-    }
+
     static bool ketama_insert(std::string name, uint32_t node_id) {
         return thread_ketama.insert(name, node_id, 255);
     }
@@ -65,11 +59,7 @@ namespace lcodec {
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llcodec = kit_state.new_table();
-        llcodec.set_function("encode", encode);
-        llcodec.set_function("decode", decode);
         llcodec.set_function("bitarray", lbarray);
-        llcodec.set_function("serialize", serialize);
-        llcodec.set_function("unserialize", unserialize);
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_string", guid_string);
         llcodec.set_function("guid_tostring", guid_tostring);
@@ -89,10 +79,11 @@ namespace lcodec {
         llcodec.set_function("ketama_remove", ketama_remove);
         llcodec.set_function("ketama_next", ketama_next);
         llcodec.set_function("ketama_map", ketama_map);
+        llcodec.set_function("mysqlcodec", mysql_codec);
         llcodec.set_function("rediscodec", rds_codec);
         llcodec.set_function("httpcodec", http_codec);
         llcodec.set_function("wsscodec", wss_codec);
-        
+
         kit_state.new_class<bitarray>(
             "flip", &bitarray::flip,
             "fill", &bitarray::fill,

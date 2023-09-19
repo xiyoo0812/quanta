@@ -22,13 +22,10 @@ enum class elink_status : int
 // 协议类型
 enum class eproto_type : int
 {
-    proto_rpc       = 0,    // rpc协议，根据协议头解析
-    proto_wss       = 1,    // wss协议，协议前n个字节带长度
-    proto_head      = 2,    // head协议，根据协议头解析
-    proto_text      = 3,    // text协议，文本协议
-    proto_mongo     = 4,    // mongo协议，协议前4个字节为长度
-    proto_mysql     = 5,    // mysql协议，协议前3个字节为长度
-    proto_max       = 6,    // max 
+    proto_pb        = 0,    // pb协议，pb
+    proto_rpc       = 1,    // rpc协议，rpc
+    proto_text      = 2,    // text协议，mysql/mongo/http/wss/redis
+    proto_max       = 3,    // max 
 };
 
 struct sendv_item
@@ -50,11 +47,14 @@ struct socket_object
     virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }
     virtual void sendv(const sendv_item items[], int count) { };
-    virtual void set_proto_type(eproto_type type) { m_proto_type = type; }
-    virtual void set_accept_callback(const std::function<void(int)>& cb) { }
-    virtual void set_connect_callback(const std::function<void(bool, const char*)>& cb) { }
-    virtual void set_error_callback(const std::function<void(const char*)>& cb) { }
-    virtual void set_package_callback(const std::function<int(slice*, eproto_type)>& cb) { }
+    virtual void set_kind(uint32_t kind) { m_kind = kind; }
+    virtual void set_token(uint32_t token) { m_token = token; }
+    virtual void set_codec(codec_base* codec) { m_codec = codec; }
+    virtual void set_accept_callback(const std::function<void(int)> cb) { }
+    virtual void set_connect_callback(const std::function<void(bool, const char*)> cb) { }
+    virtual void set_error_callback(const std::function<void(const char*)> cb) { }
+    virtual void set_package_callback(const std::function<void(slice*)> cb) { }
+    virtual bool is_same_kind(uint32_t kind) { return m_kind == kind; }
 
 #ifdef _MSC_VER
     virtual void on_complete(WSAOVERLAPPED* ovl) = 0;
@@ -66,7 +66,9 @@ struct socket_object
 #endif
 
 protected:
-    eproto_type m_proto_type = eproto_type::proto_rpc;
+    uint32_t m_kind = 0;
+    uint32_t m_token = 0;
+    codec_base* m_codec = nullptr;
     elink_status m_link_status = elink_status::link_init;
 };
 
@@ -93,20 +95,22 @@ public:
     void set_nodelay(uint32_t token, int flag);
     void send(uint32_t token, const void* data, size_t data_len);
     void sendv(uint32_t token, const sendv_item items[], int count);
+    void broadcast(size_t kind, const void* data, size_t data_len);
+    void broadgroup(std::vector<uint32_t>& groups, const void* data, size_t data_len);
     void close(uint32_t token);
+    void set_codec(uint32_t token, codec_base* codec);
     bool get_remote_ip(uint32_t token, std::string& ip);
-    void set_proto_type(uint32_t token, eproto_type type);
-    void set_accept_callback(uint32_t token, const std::function<void(int)>& cb);
-    void set_connect_callback(uint32_t token, const std::function<void(bool, const char*)>& cb);
-    void set_package_callback(uint32_t token, const std::function<int(slice*, eproto_type)>& cb);
-    void set_error_callback(uint32_t token, const std::function<void(const char*)>& cb);
+    void set_accept_callback(uint32_t token, const std::function<void(int)> cb);
+    void set_error_callback(uint32_t token, const std::function<void(const char*)> cb);
+    void set_connect_callback(uint32_t token, const std::function<void(bool, const char*)> cb);
+    void set_package_callback(uint32_t token, const std::function<void(slice*)> cb);
 
     bool watch_listen(socket_t fd, socket_object* object);
     bool watch_accepted(socket_t fd, socket_object* object);
     bool watch_connecting(socket_t fd, socket_object* object);
     bool watch_connected(socket_t fd, socket_object* object);
     bool watch_send(socket_t fd, socket_object* object, bool enable);
-    int accept_stream(socket_t fd, const char ip[], eproto_type proto_type);
+    int accept_stream(uint32_t ltoken, socket_t fd, const char ip[]);
 
     void increase_count() { m_count++; }
     void decrease_count() { m_count--; }

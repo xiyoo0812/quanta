@@ -5,9 +5,12 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local lsha1         = crypt.sha1
 local lb64encode    = crypt.b64_encode
+local jsoncodec     = json.jsoncodec
+local wsscodec      = codec.wsscodec
+local httpcodec     = codec.httpcodec
 local qxpcall       = quanta.xpcall
 
-local eproto_type   = luabus.eproto_type
+local proto_text    = luabus.eproto_type.text
 
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -19,6 +22,7 @@ local prop = property(WebSocket)
 prop:reader("ip", nil)
 prop:reader("host", nil)
 prop:reader("token", nil)
+prop:reader("jcodec", nil)           --codec
 prop:reader("wcodec", nil)           --codec
 prop:reader("hcodec", nil)           --codec
 prop:reader("alive", false)
@@ -28,9 +32,9 @@ prop:reader("port", 0)
 
 function WebSocket:__init(host)
     self.host = host
-    local jcodec = json.jsoncodec()
-    self.wcodec = codec.wsscodec(jcodec)
-    self.hcodec = codec.httpcodec(jcodec)
+    self.jcodec = jsoncodec()
+    self.wcodec = wsscodec(self.jcodec)
+    self.hcodec = httpcodec(self.jcodec)
 end
 
 function WebSocket:close()
@@ -49,17 +53,18 @@ function WebSocket:listen(ip, port, ptype)
     if self.listener then
         return true
     end
-    self.listener = socket_mgr.listen(ip, port)
-    if not self.listener then
+    local listener = socket_mgr.listen(ip, port, proto_text)
+    if not listener then
         log_err("[WebSocket][listen] failed to listen: %s:%d", ip, port)
         return false
     end
-    self.ip, self.port = ip, port
-    self.listener.set_proto_type(ptype or eproto_type.text)
+    listener.set_codec(self.hcodec)
     log_info("[WebSocket][listen] start listen at: %s:%d", ip, port)
-    self.listener.on_accept = function(session)
+    listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session, ip, port)
     end
+    self.ip, self.port = ip, port
+    self.listener = listener
     return true
 end
 
@@ -91,7 +96,7 @@ function WebSocket:on_socket_recv(session, token, opcode, message)
             self:send_frame(0xA, "PONG")
             return
         end
-        if opcode <= 0X02 then
+        if opcode <= 0x02 then
             self.host:on_socket_recv(self, token, message)
         end
     end)
@@ -112,7 +117,6 @@ function WebSocket:accept(session, ip, port)
     session.on_error = function(stoken, err)
         self:on_socket_error(stoken, err)
     end
-    session.set_codec(self.hcodec)
     self.ip, self.port = ip, port
 end
 
@@ -149,7 +153,7 @@ function WebSocket:on_handshake(session, token, url, params, headers, body)
     self.session = session
     self:send_data(101, cbheaders, "")
     self.host:on_socket_accept(self, token)
-    self.session.set_codec(self.wcodec)
+    session.set_codec(self.wcodec)
     return true
 end
 

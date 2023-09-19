@@ -1,15 +1,16 @@
 --工程名字
-PROJECT_NAME = "pb"
+PROJECT_NAME = "luapb"
 
 --目标名字
-TARGET_NAME = "pb"
+TARGET_NAME = "luapb"
 
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
 --需要的include目录
 INCLUDES = {
-    "../lua/lua"
+    "../lua/lua",
+    "../luakit/include"
 }
 
 
@@ -18,12 +19,16 @@ WINDOWS_DEFINES = {
     "LUA_BUILD_AS_DLL"
 }
 
---源文件路径
-SRC_DIR = "lua-protobuf"
+--源文件路径v
+SRC_DIR = "src"
 
 --需要连接的库文件
 LIBS = {
     "lua"
+}
+
+OBJS = {
+    "luapb.cpp"
 }
 
 --依赖项目

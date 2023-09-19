@@ -27,8 +27,6 @@ local lhmac_sha1    = crypt.hmac_sha1
 local lxor_byte     = crypt.xor_byte
 local lclock_ms     = timer.clock_ms
 
-local eproto_type   = luabus.eproto_type
-
 local timer_mgr     = quanta.get("timer_mgr")
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -46,7 +44,6 @@ local prop = property(MongoDB)
 prop:reader("id", nil)          --id
 prop:reader("name", "")         --dbname
 prop:reader("user", nil)        --user
-prop:reader("codec", nil)       --codec
 prop:reader("passwd", nil)      --passwd
 prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
@@ -64,7 +61,7 @@ function MongoDB:__init(conf, id)
     self.user = conf.user
     self.passwd = conf.passwd
     self.cursor_id = bson.int64(0)
-    self.codec = bson.mongo_codec()
+    self.codec = bson.mongocodec()
     self:set_options(conf.opts)
     self:setup_pool(conf.hosts)
     --attach_hour
@@ -157,7 +154,7 @@ end
 
 function MongoDB:login(socket)
     local id, ip, port = socket.id, socket.ip, socket.port
-    local ok, err = socket:connect(ip, port, eproto_type.mongo)
+    local ok, err = socket:connect(ip, port)
     if not ok then
         log_err("[MongoDB][login] connect db(%s:%s:%s:%s) failed: %s!", ip, port, self.name, id, err)
         return false

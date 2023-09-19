@@ -62,6 +62,9 @@ void socket_stream::close() {
         m_link_status = elink_status::link_closed;
         return;
     }
+    if (m_codec) {
+        m_codec = nullptr;
+    }
     shutdown(m_socket, SD_RECEIVE);
     m_link_status = elink_status::link_colsing;
 }
@@ -459,85 +462,36 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
 void socket_stream::dispatch_package() {
     int64_t now = ltimer::steady_ms();
     while (m_link_status == elink_status::link_connected) {
-        size_t data_len = 0, package_size = 0;
+        if (!m_codec){
+            on_error("codec-is-bnull");
+            break;
+        }
+        size_t data_len;
         auto* data = m_recv_buffer->data(&data_len);
         if (data_len == 0) break;
-        switch (m_proto_type) {
-        case eproto_type::proto_rpc: {
-                size_t header_len = sizeof(router_header);
-                if (!m_recv_buffer->peek_data(header_len)) return;
-                // 当前包长小于headlen, 关闭连接
-                router_header* header = (router_header*)data;
-                if (header->len < header_len) {
-                    on_error("package-length-err");
-                    break;
-                }
-                package_size = header->len;
-            }
-            break;
-        case eproto_type::proto_head: {
-                size_t header_len = sizeof(socket_header);
-                if (!m_recv_buffer->peek_data(header_len)) return;
-                // 当前包长小于headlen, 关闭连接
-                socket_header* header = (socket_header*)data;
-                if (header->len < header_len) {
-                    on_error("package-length-err");
-                    return;
-                }
-                package_size = header->len;
-            }
-            break;
-        case eproto_type::proto_mongo: {
-                uint32_t* length = (uint32_t*)m_recv_buffer->peek_data(sizeof(uint32_t));
-                 if (!length) return;
-                //package_size = length + contents
-                package_size = *length;
-            }
-            break;
-        case eproto_type::proto_mysql: {
-                uint32_t* length = (uint32_t*)m_recv_buffer->peek_data(sizeof(uint32_t));
-                if (!length) return;
-                //package_size = length + serialize_id + contents
-                package_size = ((*length) >> 8) + sizeof(uint32_t);
-            }
-            break;
-        case eproto_type::proto_wss: {
-                uint16_t* length = (uint16_t*)m_recv_buffer->peek_data(sizeof(uint16_t));
-                if (!length) return;
-                uint16_t payload = (*length) & 0x7f;
-                if (payload < 0x7e) {
-                    package_size = payload + sizeof(uint16_t);
-                } else {
-                    size_t* length = (size_t*)m_recv_buffer->peek_data((payload == 0x7f) ? 8 : 2, sizeof(uint16_t));
-                    if (!length) return;
-                    package_size = (*length) + sizeof(uint16_t);
-                }
-            }
-            break;
-        case eproto_type::proto_text:
-            package_size = data_len;
-            break;
-        default:
-            on_error("proto-type-not-suppert!");
-            return;
-        }
-        //当前包头标识的数据超过最大长度, 关闭连接
-        if (package_size > SOCKET_PACKET_MAX) {
+        slice* slice = m_recv_buffer->get_slice();
+        m_codec->set_slice(slice);
+        //解析数据包头长度
+        int32_t package_size = m_codec->load_packet(data_len);
+        //当前包头长度解析失败, 关闭连接
+        if (package_size < 0){
             on_error("package-length-err");
             break;
         }
         // 数据包还没有收完整
-        if (data_len < package_size) break;
-        int read_size = m_package_cb(m_recv_buffer->get_slice(package_size), m_proto_type);
-        // 数据包还没有收完整
-        if (read_size == 0) {
-            break;
-        }
+        if (package_size == 0) break;
+        // 数据回调
+        slice->attach(data, package_size);
+        m_package_cb(slice);
+        if (!m_codec) break;
         // 数据包解析失败
-        if (read_size < 0) {
-            on_error("package-read-err");
+        if (m_codec->failed()) {
+            on_error(m_codec->err());
             break;
         }
+        size_t read_size = m_codec->get_packet_len();
+        // 数据包还没有收完整
+        if (read_size == 0) break;
         // 接收缓冲读游标调整
         m_recv_buffer->pop_size(read_size);
         m_last_recv_time = ltimer::steady_ms();

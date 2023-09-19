@@ -42,12 +42,9 @@ namespace luabus {
         lluabus.set_function("dns", gethostbydomain);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
+            "pb", eproto_type::proto_pb,
             "rpc", eproto_type::proto_rpc,
-            "wss", eproto_type::proto_wss,
-            "head", eproto_type::proto_head,
-            "text", eproto_type::proto_text,
-            "mongo", eproto_type::proto_mongo,
-            "mysql", eproto_type::proto_mysql
+            "text", eproto_type::proto_text
         );
         kit_state.new_class<socket_udp>(
             "send", &socket_udp::send,
@@ -69,6 +66,8 @@ namespace luabus {
             "listen", &lua_socket_mgr::listen,
             "connect", &lua_socket_mgr::connect,
             "map_token", &lua_socket_mgr::map_token,
+            "broadcast", &lua_socket_mgr::broadcast,
+            "broadgroup", &lua_socket_mgr::broadgroup,
             "get_sendbuf_size", &lua_socket_mgr::get_sendbuf_size,
             "get_recvbuf_size", &lua_socket_mgr::get_recvbuf_size
             );
@@ -77,16 +76,15 @@ namespace luabus {
             "token", &lua_socket_node::m_token,
             "call", &lua_socket_node::call,
             "close", &lua_socket_node::close,
-            "set_codec", &lua_socket_node::set_codec,
-            "call_head", &lua_socket_node::call_head,
+            "call_pb", &lua_socket_node::call_pb,
             "call_data", &lua_socket_node::call_data,
+            "set_codec", &lua_socket_node::set_codec,
             "set_nodelay", &lua_socket_node::set_nodelay,
             "set_timeout", &lua_socket_node::set_timeout,
             "forward_hash", &lua_socket_node::forward_hash,
             "transfer_call", &lua_socket_node::transfer_call,
             "transfer_hash", &lua_socket_node::transfer_hash,
             "forward_target", &lua_socket_node::forward_target,
-            "set_proto_type", &lua_socket_node::set_proto_type,
             "get_route_count", &lua_socket_node::get_route_count,
             "build_session_id", &lua_socket_node::build_session_id,
             "forward_transfer", &lua_socket_node::forward_transfer,

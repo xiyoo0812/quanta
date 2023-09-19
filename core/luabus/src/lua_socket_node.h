@@ -8,23 +8,37 @@
 class lua_socket_node
 {
 public:
-    lua_socket_node(uint32_t token, lua_State* L, std::shared_ptr<socket_mgr>& mgr, std::shared_ptr<socket_router>& router, bool blisten = false);
+    lua_socket_node(uint32_t token, lua_State* L, stdsptr<socket_mgr> mgr, stdsptr<socket_router> router, eproto_type type);
     ~lua_socket_node();
 
     void close();
 
-    uint32_t build_session_id() { return m_stoken | m_sindex++; }
-    uint32_t get_route_count() { return m_router->get_route_count(); }
-    void set_codec(codec_base* codec) { m_codec = codec; }
-    void set_timeout(int ms) { m_mgr->set_timeout(m_token, ms); }
-    void set_nodelay(bool flag) { m_mgr->set_nodelay(m_token, flag); }
-    void set_proto_type(eproto_type proto_type) { m_mgr->set_proto_type(m_token, proto_type); }
+    uint32_t build_session_id() {
+        return m_stoken | m_sindex++;
+    }
+    uint32_t get_route_count() {
+        return m_router->get_route_count();
+    }
+    void set_timeout(int ms) {
+        m_mgr->set_timeout(m_token, ms);
+    }
+    void set_nodelay(bool flag) {
+        m_mgr->set_nodelay(m_token, flag);
+    }
+    void set_codec(codec_base* codec) {
+        m_codec = codec;
+        m_mgr->set_codec(m_token, codec);
+    }
+    void create_codec() {
+        m_codec = m_lvm->create_codec();
+        m_mgr->set_codec(m_token, m_codec);
+    }
 
     int call_data(lua_State* L);
+    int call_pb(lua_State* L, uint32_t session_id);
     int call(lua_State* L, uint32_t session_id, uint8_t flag);
-    int call_head(uint16_t cmd_id, uint8_t flag, uint8_t type, uint8_t crc8, uint32_t session_id, const char* data, uint32_t data_len);
-    int forward_target(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t target_id);
 
+    int forward_target(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t target_id);
     int forward_hash(lua_State* L, uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash);
 
     int forward_transfer(lua_State* L, uint32_t session_id, uint32_t target_id, uint8_t service_id);
@@ -59,17 +73,17 @@ public:
     uint16_t m_sindex = 1;
 
 private:
-    int on_call_head(slice* slice);
-    int on_call_text(slice* slice);
-    int on_call_data(slice* slice);
-    int on_recv(slice* slice, eproto_type proto_type);
+    void on_recv(slice* slice);
+    void on_call_pb(slice* slice);
+    void on_call_data(slice* slice);
     void on_call(router_header* header, slice* slice);
     void on_transfer(transfer_header* header, slice* slice);
     void on_forward_broadcast(router_header* header, size_t target_size);
     void on_forward_error(router_header* header, slice* slice);
 
-    codec_base* m_codec = nullptr;
-    std::shared_ptr<socket_mgr> m_mgr;
-    std::shared_ptr<kit_state> m_luakit;
-    std::shared_ptr<socket_router> m_router;
+    eproto_type m_type;
+    codec_base* m_codec;
+    stdsptr<kit_state> m_lvm;
+    stdsptr<socket_mgr> m_mgr;
+    stdsptr<socket_router> m_router;
 };

@@ -4,15 +4,15 @@ local log_debug     = logger.debug
 local log_dump      = logger.dump
 local lhex_encode   = crypt.hex_encode
 
-local encode        = codec.encode
-local decode        = codec.decode
-local serialize     = codec.serialize
-local unserialize   = codec.unserialize
+local crc8          = codec.crc8
 local hash_code     = codec.hash_code
 local fnv_32a       = codec.fnv_1a_32
 local fnv_32        = codec.fnv_1_32
 local jumphash      = codec.jumphash
-local crc8          = codec.crc8
+local encode        = luakit.encode
+local decode        = luakit.decode
+local serialize     = luakit.serialize
+local unserialize   = luakit.unserialize
 
 --ketama
 --[[

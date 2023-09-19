@@ -217,7 +217,7 @@ function AttrComponent:on_attr_sync()
         self:send("NID_ENTITY_ATTR_UPDATE_NTF", { id = self.id, attrs = attrs })
     end
     if self.range > 1 and next(battrs) then
-        self:boardcast_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = self.id, attrs = battrs })
+        self:broadcast_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = self.id, attrs = battrs })
     end
     self.sync_attrs = {}
 end

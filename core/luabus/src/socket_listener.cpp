@@ -102,7 +102,7 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
 
     set_no_block(node->fd);
 
-    auto token = m_mgr->accept_stream(node->fd, ip, m_proto_type);
+    auto token = m_mgr->accept_stream(m_token, node->fd, ip);
     if (token == 0) {
         closesocket(node->fd);
     }
@@ -163,7 +163,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
         get_ip_string(ip, sizeof(ip), remote_addr, (size_t)remote_addr_len);
 
-        auto token = m_mgr->accept_stream(node->fd, ip, m_proto_type);
+        auto token = m_mgr->accept_stream(m_token, node->fd, ip);
         if (token == 0) {
             closesocket(node->fd);
             node->fd = INVALID_SOCKET;
@@ -201,9 +201,9 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
         set_no_delay(fd, 1);
         set_close_on_exec(fd);
 
-        auto token = m_mgr->accept_stream(fd, ip);
+        auto token = m_mgr->accept_stream(m_token, fd, ip);
         if (token != 0) {
-            m_accept_cb(token, m_proto_type);
+            m_accept_cb(token);
         }
         else {
             closesocket(fd);

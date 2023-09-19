@@ -10,7 +10,7 @@ local sformat       = string.format
 local lwarn         = log.warn
 local lfilter       = log.filter
 local lis_filter    = log.is_filter
-local serialize     = codec.serialize
+local serialize     = luakit.serialize
 
 local LOG_LEVEL     = log.LOG_LEVEL
 

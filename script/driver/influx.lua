@@ -8,7 +8,7 @@ local tconcat       = table.concat
 local sgsub         = string.gsub
 local sformat       = string.format
 local ssplit        = qstring.split
-local serialize     = codec.serialize
+local serialize     = luakit.serialize
 
 local http_client   = quanta.get("http_client")
 local WEEK_S        = quanta.enum("PeriodTime", "WEEK_S")

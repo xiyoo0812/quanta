@@ -10,12 +10,15 @@ local log_debug     = logger.debug
 local tunpack       = table.unpack
 local signalquit    = signal.quit
 local saddr         = qstring.addr
+local jsoncodec     = json.jsoncodec
+local httpcodec     = codec.httpcodec
 
 local HttpServer = class()
 local prop = property(HttpServer)
 prop:reader("ip", nil)              --http server地址
 prop:reader("port", 8080)           --http server端口
-prop:reader("codec", nil)           --codec
+prop:reader("hcodec", nil)          --codec
+prop:reader("jcodec", nil)          --codec
 prop:reader("listener", nil)        --网络连接对象
 prop:reader("clients", {})          --clients
 prop:reader("get_handlers", {})     --get_handlers
@@ -24,8 +27,8 @@ prop:reader("del_handlers", {})     --del_handlers
 prop:reader("post_handlers", {})    --post_handlers
 
 function HttpServer:__init(http_addr)
-    local jcodec = json.jsoncodec()
-    self.codec = codec.httpcodec(jcodec)
+    self.jcodec = jsoncodec()
+    self.hcodec = httpcodec(self.jcodec)
     self:setup(http_addr)
 end
 
@@ -37,6 +40,7 @@ function HttpServer:setup(http_addr)
         signalquit(1)
         return
     end
+    socket:set_codec(self.hcodec)
     log_info("[HttpServer][setup] listen(%s:%s) success!", self.ip, self.port)
     self.listener = socket
 end
@@ -52,14 +56,13 @@ function HttpServer:on_socket_error(socket, token, err)
         self.listener = nil
         return
     end
-    log_debug("[HttpServer][on_socket_error] client(token:%s) close!", token)
+    log_debug("[HttpServer][on_socket_error] client(token:%s) close(%s)!", token, err)
     self.clients[token] = nil
 end
 
 function HttpServer:on_socket_accept(socket, token)
     --log_debug("[HttpServer][on_socket_accept] client(token:%s) connected!", token)
     self.clients[token] = socket
-    socket:set_codec(self.codec)
 end
 
 function HttpServer:on_socket_recv(socket, method, url, params, headers, body)

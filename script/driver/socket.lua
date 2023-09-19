@@ -1,10 +1,10 @@
 --socket.lua
 
-local log_err       = logger.err
-local log_info      = logger.info
-local qxpcall       = quanta.xpcall
+local log_err           = logger.err
+local log_info          = logger.info
+local qxpcall           = quanta.xpcall
 
-local eproto_type   = luabus.eproto_type
+local proto_text        = luabus.eproto_type.text
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -17,6 +17,7 @@ local prop = property(Socket)
 prop:reader("ip", nil)
 prop:reader("port", 0)
 prop:reader("host", nil)
+prop:reader("codec", nil)
 prop:reader("token", nil)
 prop:reader("alive", false)
 prop:reader("session", nil)          --连接成功对象
@@ -38,21 +39,21 @@ function Socket:close()
         self.session.close()
         self.alive = false
         self.session = nil
+        self.codec = nil
         self.token = nil
     end
 end
 
-function Socket:listen(ip, port, ptype)
+function Socket:listen(ip, port)
     if self.listener then
         return true
     end
-    self.listener = socket_mgr.listen(ip, port)
+    self.listener = socket_mgr.listen(ip, port, proto_text)
     if not self.listener then
         log_err("[Socket][listen] failed to listen: %s:%d", ip, port)
         return false
     end
     self.ip, self.port = ip, port
-    self.listener.set_proto_type(ptype or eproto_type.text)
     log_info("[Socket][listen] start listen at: %s:%d", ip, port)
     self.listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session, ip, port)
@@ -62,7 +63,12 @@ end
 
 function Socket:set_codec(codec)
     if self.session then
+        self.codec = codec
         self.session.set_codec(codec)
+    end
+    if self.listener then
+        self.codec = codec
+        self.listener.set_codec(codec)
     end
 end
 
@@ -73,12 +79,11 @@ function Socket:connect(ip, port, ptype)
         end
         return false, "socket in connecting"
     end
-    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT)
+    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_text)
     if not session then
-        log_err("[Socket][connect] failed to connect: %s:%d err=%s", ip, port, cerr)
+        log_err("[Socket][connect] failed to connect: %s:%s err=%s", ip, port, cerr)
         return false, cerr
     end
-    session.set_proto_type(ptype or eproto_type.text)
     --设置阻塞id
     local token = session.token
     local block_id = thread_mgr:build_session_id()

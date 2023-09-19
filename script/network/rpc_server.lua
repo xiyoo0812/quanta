@@ -26,11 +26,11 @@ local SERVICE_MAX       = 255
 local RpcServer = singleton()
 
 local prop = property(RpcServer)
-prop:reader("ip", "")                     --监听ip
-prop:reader("port", 0)                    --监听端口
+prop:reader("ip", "")           --监听ip
+prop:reader("port", 0)          --监听端口
 prop:reader("clients", {})
 prop:reader("listener", nil)
-prop:reader("holder", nil)                  --持有者
+prop:reader("holder", nil)      --持有者
 
 --induce：根据 order 推导port
 function RpcServer:__init(holder, ip, port, induce)
@@ -46,13 +46,13 @@ function RpcServer:__init(holder, ip, port, induce)
         signalquit()
         return
     end
+    listener.on_accept = function(client)
+        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
+    end
     self.holder = holder
     self.listener = listener
     self.ip, self.port = ip, real_port
     log_info("[RpcServer][setup] now listen %s:%s success!", ip, real_port)
-    self.listener.on_accept = function(client)
-        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
-    end
     event_mgr:add_listener(self, "rpc_heartbeat")
     event_mgr:add_listener(self, "rpc_register")
 end
@@ -111,7 +111,7 @@ function RpcServer:on_socket_accept(client)
                 event_mgr:notify_listener("on_transfer_rpc", client, session_id, service_id, target_id, slice)
                 return
             end
-            event_mgr:notify_listener("on_boardcast_rpc", client, target_id, slice)
+            event_mgr:notify_listener("on_broadcast_rpc", client, target_id, slice)
         end
         thread_mgr:fork(dispatch_rpc_message)
     end
@@ -166,6 +166,7 @@ function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
         client.call_rpc(rpc, 0, FLAG_REQ, ...)
     end
+    socket_mgr:broadgroup()
 end
 
 --broadcast接口，注册后才转发

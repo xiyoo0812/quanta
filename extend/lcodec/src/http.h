@@ -34,6 +34,11 @@ namespace lcodec {
 
     class httpcodec : public codec_base {
     public:
+        virtual int load_packet(size_t data_len) {
+            if (!m_slice) return 0;
+            return data_len;
+        }
+
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             m_buf->clean();
             //status (http begining)
@@ -63,16 +68,13 @@ namespace lcodec {
             size_t osize = m_slice->size();
             string_view buf = m_slice->contents();
             parse_http_packet(L, buf);
-            m_slice->erase(osize - buf.size());
+            m_packet_len = osize - buf.size();
+            m_slice->erase(m_packet_len);
             return lua_gettop(L) - top;
         }
 
         void set_codec(codec_base* codec) {
             m_jcodec = codec;
-        }
-
-        void set_buff(luabuf* buf) {
-            m_buf = buf;
         }
 
     protected:
@@ -159,12 +161,18 @@ namespace lcodec {
                         contentlenable = true;
                         mslice = m_buf->get_slice();
                         size_t content_size = atol(header.data());
+                        if (buf.size() < content_size) {
+                            throw length_error("http text not full");
+                        }
                         mslice->attach((uint8_t*)buf.data(), content_size);
                         buf.remove_prefix(content_size);
                     }
                     else if (!strncasecmp(key.data(), "Transfer-Encoding", key.size()) && !strncasecmp(header.data(), "chunked", header.size())) {
                         contentlenable = true;
                         size_t pos = buf.find(CRLF2);
+                        if (pos == string_view::npos) {
+                            throw length_error("http text not full");
+                        }
                         string_view chunk_data = buf.substr(0, pos);
                         buf.remove_prefix(pos + LCRLF2);
                         vector<string_view> chunks;
@@ -186,9 +194,15 @@ namespace lcodec {
                 }
             }
             if (!contentlenable) {
-                mslice = m_buf->get_slice();
-                mslice->attach((uint8_t*)buf.data(), buf.size());
-                buf.remove_prefix(buf.size());
+                if (!buf.empty()) {
+                    mslice = m_buf->get_slice();
+                    mslice->attach((uint8_t*)buf.data(), buf.size());
+                    buf.remove_prefix(buf.size());
+                }
+            }
+            if (!mslice || mslice->empty()) {
+                lua_pushnil(L);
+                return;
             }
             if (jsonable) {
                 m_jcodec->set_slice(mslice);
@@ -222,7 +236,6 @@ namespace lcodec {
         }
 
     protected:
-        luabuf*     m_buf = nullptr;
         codec_base* m_jcodec = nullptr;
     };
 }

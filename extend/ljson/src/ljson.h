@@ -213,6 +213,12 @@ namespace ljson {
 
     class jsoncodec : public codec_base {
     public:
+        virtual int load_packet(size_t data_len) {
+            if (!m_slice) return 0;
+            m_packet_len = data_len;
+            return data_len;
+        }
+
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             yyjson_write_err err;
             yyjson_mut_doc* doc = yyjson_mut_doc_new(nullptr);

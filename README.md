@@ -53,18 +53,16 @@ cd bin
 
 # 依赖
 - lua
-- bson
-- mongo
+- lbson
 - luabt
-- lhttp
 - lcurl
+- ljson
 - luabus
 - lcrypt
-- lcjson
 - lstdfs
 - luakit
 - lualog
-- lbuffer
+- lcodec
 - luaxlsx
 - lua-protobuf
 

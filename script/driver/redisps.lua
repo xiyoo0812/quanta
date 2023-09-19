@@ -6,7 +6,6 @@ local event_mgr     = quanta.get("event_mgr")
 
 local Redis         = import("driver/redis.lua")
 local Socket        = import("driver/socket.lua")
-local QueueFIFO     = import("container/queue_fifo.lua")
 
 local subscribe_commands = {
     subscribe       = { cmd = "SUBSCRIBE"   },  -- >= 2.0
@@ -61,7 +60,6 @@ function PSRedis:setup_pool(hosts)
     for _, host in pairs(hosts) do
         local socket = Socket(self, host[1], host[2])
         self.connections[1] = socket
-        socket.cmd_queue = QueueFIFO()
         socket:set_id(1)
         break
     end

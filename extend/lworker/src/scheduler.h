@@ -15,6 +15,7 @@ namespace lworker {
             m_service = service;
             m_sandbox = sandbox;
             m_lua = std::make_shared<kit_state>(L);
+            m_codec = m_lua->create_codec();
         }
 
         std::shared_ptr<worker> find_worker(std::string_view name) {
@@ -86,7 +87,11 @@ namespace lworker {
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
                 m_codec->set_slice(slice);
-                m_lua->table_call(service, "on_scheduler", nullptr, m_codec.get(), std::tie());
+                m_lua->table_call(service, "on_scheduler", nullptr, m_codec, std::tie());
+                if (m_codec->failed()){
+                    m_read_buf->clean();
+                    break;
+                }
                 m_read_buf->pop_size(plen);
                 if (ltimer::steady_ms() - clock_ms > 100) break;
                 slice = read_slice(m_read_buf, &plen);
@@ -111,11 +116,11 @@ namespace lworker {
 
     private:
         spin_mutex m_mutex;
+        codec_base* m_codec = nullptr;
         std::string m_service, m_sandbox;
         std::shared_ptr<kit_state> m_lua = nullptr;
         std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
         std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();
-        std::shared_ptr<codec_base> m_codec = std::make_shared<luacodec>();
         std::map<std::string, std::shared_ptr<worker>, std::less<>> m_worker_map;
     };
 }

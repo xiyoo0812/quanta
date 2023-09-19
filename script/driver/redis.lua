@@ -1,6 +1,5 @@
 --redis.lua
 local Socket        = import("driver/socket.lua")
-local QueueFIFO     = import("container/queue_fifo.lua")
 
 local tonumber      = tonumber
 local log_err       = logger.err
@@ -14,6 +13,8 @@ local crc16         = crypt.crc16
 local tdelete       = qtable.delete
 local qhash         = codec.hash_code
 local makechan      = quanta.make_channel
+local jsoncodec     = json.jsoncodec
+local rediscodec    = codec.rediscodec
 
 local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -89,8 +90,8 @@ local rconvertors = {
 local RedisDB = class()
 local prop = property(RedisDB)
 prop:reader("id", nil)              --id
-prop:reader("codec", nil)           --codec
 prop:reader("passwd", nil)          --passwd
+prop:reader("jcodec", nil)          --jcodec
 prop:reader("timer_id", nil)        --timer_id
 prop:reader("connections", {})      --connections
 prop:reader("clusters", {})         --clusters
@@ -108,8 +109,7 @@ function RedisDB:__init(conf, id)
     --attach_hour
     update_mgr:attach_hour(self)
     --codec
-    local jcodec = json.jsoncodec()
-    self.codec = codec.rediscodec(jcodec)
+    self.jcodec = jsoncodec()
     --setup
     self:setup(conf)
 end
@@ -148,7 +148,6 @@ function RedisDB:setup_pool(hosts)
         for c = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
-            socket.cmd_queue = QueueFIFO()
             socket:set_id(count)
             count = count + 1
         end
@@ -242,7 +241,7 @@ function RedisDB:login(socket)
         log_err("[RedisDB][login] connect db(%s:%s:%s) failed!", ip, port, id)
         return false
     end
-    socket:set_codec(self.codec)
+    socket:set_codec(rediscodec(self.jcodec))
     if self.passwd and #self.passwd > 0 then
         local ok, res = self:auth(socket)
         if not ok or res ~= "OK" then
@@ -287,36 +286,27 @@ function RedisDB:on_socket_error(sock, token, err)
     event_mgr:fire_second(function()
         self:check_alive()
     end)
-    local cmd_queue = sock.cmd_queue
-    local session_id = cmd_queue:pop()
-    while session_id do
-        if session_id > 0 then
-            thread_mgr:response(session_id, false, err)
-        end
-        session_id = cmd_queue:pop()
-    end
 end
 
-function RedisDB:on_socket_recv(sock, succ, res)
+function RedisDB:on_socket_recv(sock, session_id, succ, res)
     if self.subscrible then
         self:do_socket_recv(res)
     end
-    local session_id = sock.cmd_queue:pop()
-    if session_id and session_id > 0 then
+    if session_id > 0 then
         self.res_counter:count_increase()
         thread_mgr:response(session_id, succ, res)
     end
 end
 
-function RedisDB:wait_response(socket, session_id, cmd, ...)
-    if not socket:send_data(cmd, ...) then
+function RedisDB:commit(socket, cmd, ...)
+    local session_id = thread_mgr:build_session_id()
+    if not socket:send_data(session_id, cmd, ...) then
         return false, "send request failed"
     end
     self.req_counter:count_increase()
-    socket.cmd_queue:push(session_id)
     local ok, res = thread_mgr:yield(session_id, sformat("redis_comit:%s", cmd), DB_TIMEOUT)
     if not ok then
-        log_err("[RedisDB][wait_response] exec cmd %s failed: %s", cmd, res)
+        log_err("[RedisDB][commit] exec cmd %s failed: %s", cmd, res)
         return ok, res
     end
     local convertor = rconvertors[slower(cmd)]
@@ -326,22 +316,15 @@ function RedisDB:wait_response(socket, session_id, cmd, ...)
     return ok, res
 end
 
-function RedisDB:commit(sock, cmd, ...)
-    local session_id = thread_mgr:build_session_id()
-    return self:wait_response(sock, session_id, cmd, ...)
-end
-
 function RedisDB:send(cmd, key, ...)
     local sock = self:choose_node(key)
-    if sock and sock:send_data(cmd, key, ...) then
-        sock.cmd_queue:push(0)
+    if sock then
+        sock:send_data(0, cmd, key, ...)
     end
 end
 
 function RedisDB:direct_send(sock, cmd, ...)
-    if sock:send_data(cmd, ...) then
-        sock.cmd_queue:push(0)
-    end
+    sock:send_data(0, cmd, ...)
 end
 
 function RedisDB:execute(cmd, key, ...)
