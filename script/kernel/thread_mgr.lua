@@ -114,13 +114,13 @@ function ThreadMgr:create_co(f)
     local co = pool:pop()
     if co == nil then
         co = co_create(function(...)
-            qxpcall(f, "[ThreadMgr][co_create] fork error: %s", ...)
+            qxpcall(f, "[ThreadMgr][co_create] fork error: {}", ...)
             while true do
                 f = nil
                 pool:push(co)
                 f = co_yield()
                 if type(f) == "function" then
-                    qxpcall(f, "[ThreadMgr][co_create] fork error: %s", co_yield())
+                    qxpcall(f, "[ThreadMgr][co_create] fork error: {}", co_yield())
                 end
             end
         end)
@@ -143,7 +143,7 @@ end
 function ThreadMgr:response(session_id, ...)
     local context = self.coroutine_yields[session_id]
     if not context then
-        log_warn("[ThreadMgr][response] unknown session_id(%s) response!", session_id)
+        log_warn("[ThreadMgr][response] unknown session_id({}) response!", session_id)
         return
     end
     self.coroutine_yields[session_id] = nil
@@ -213,7 +213,7 @@ function ThreadMgr:on_second(clock_ms)
             local session_id = context.session_id
             self.coroutine_yields[session_id] = nil
             if context.title then
-                log_err("[ThreadMgr][on_second] session_id(%s:%s) timeout!", session_id, context.title)
+                log_err("[ThreadMgr][on_second] session_id({}:{}) timeout!", session_id, context.title)
             end
             self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
         end

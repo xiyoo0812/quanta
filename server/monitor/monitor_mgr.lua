@@ -66,7 +66,7 @@ end
 
 function MonitorMgr:on_client_register(client, node)
     local token = client.token
-    log_debug("[MonitorMgr][on_service_register] node:%s, token: %s", node.name, token)
+    log_debug("[MonitorMgr][on_service_register] node:{}, token: {}", node.name, token)
     self.discovery:register(node)
     self.monitor_nodes[token] = node
     --返回所有服务
@@ -80,7 +80,7 @@ end
 
 -- 会话关闭回调
 function MonitorMgr:on_client_error(client, token, err)
-    log_info("[MonitorMgr][on_client_error] node:%s, token:%s", client.name, token)
+    log_info("[MonitorMgr][on_client_error] node:{}, token:{}", client.name, token)
     local node = self.monitor_nodes[token]
     if node then
         self.discovery:unregister(client.id)
@@ -114,7 +114,7 @@ end
 
 -- command处理
 function MonitorMgr:on_monitor_command(url, body)
-    log_debug("[MonitorMgr][on_monitor_command]: %s", body)
+    log_debug("[MonitorMgr][on_monitor_command]: {}", body)
     --执行函数
     local function handler_cmd(jbody)
         if body.token then
@@ -125,7 +125,7 @@ function MonitorMgr:on_monitor_command(url, body)
     --开始执行
     local ok, res = pcall(handler_cmd, body)
     if not ok then
-        log_warn("[MonitorMgr:on_monitor_post] pcall: %s", res)
+        log_warn("[MonitorMgr:on_monitor_post] pcall: {}", res)
         return {code = 1, msg = res}
     end
     return res
@@ -138,7 +138,7 @@ function MonitorMgr:on_server_shutdown(url, body, request)
     self:broadcast_all("rpc_server_shutdown")
     -- 关闭会话连接
     timer_mgr:loop(SECOND_10_MS, function()
-        log_warn("[MonitorMgr][on_server_shutdown]->service:%s", quanta.name)
+        log_warn("[MonitorMgr][on_server_shutdown]->service:{}", quanta.name)
         signal_quit()
     end)
 

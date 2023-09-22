@@ -27,7 +27,7 @@ function Group:load(primary_id, gconfs)
             local doc = Document(conf, primary_id)
             local code = doc:load()
             if qfailed(code) then
-                log_err("[Group][load] load doc failed: tab_name=%s", sheet)
+                log_err("[Group][load] load doc failed: tab_name={}", sheet)
                 return false, code
             end
             self.documents[sheet] = doc

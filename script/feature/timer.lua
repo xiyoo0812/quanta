@@ -10,7 +10,6 @@ function Timer:__init()
 end
 
 function Timer:__release()
-    logger.debug("==============================")
     self:unregister()
 end
 

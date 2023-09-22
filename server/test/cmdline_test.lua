@@ -33,7 +33,7 @@ for _, command in pairs(commands) do
         for i, value in ipairs(result.args) do
             local atype = type(value)
             local name = result.info[i]
-            log_debug("parse command %s args->(%s, %s[%s])", command.name, name, value, atype)
+            log_debug("parse command {} args->({}, {}[{}])", command.name, name, value, atype)
         end
     end
     local result2 = cmdline:parser_data(command.data)
@@ -41,7 +41,7 @@ for _, command in pairs(commands) do
         for i, value in ipairs(result2.args) do
             local atype = type(value)
             local name = result2.info[i]
-            log_debug("parse data %s args->(%s, %s[%s])", command.name, name, value, atype)
+            log_debug("parse data {} args->({}, {}[{}])", command.name, name, value, atype)
         end
     end
 end

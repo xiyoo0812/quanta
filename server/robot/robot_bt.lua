@@ -25,15 +25,15 @@ function RobotBT:__init(conf, index)
     local tree_id = env_number("QUANTA_TREE_ID", conf.tree_id)
     local node = node_factory:create(tree_id)
     if not node then
-        log_err("[RobotBT][init] robot(%s) create tree(%s) failed!", index, tree_id)
+        log_err("[RobotBT][init] robot({}) create tree({}) failed!", index, tree_id)
         return
     end
     self.lua_tree = LuaBT(self, node)
     --设置行为树参数
     if conf.args then
-        local ok, args = pcall(load(sformat("return %s", conf.args)))
+        local ok, args = pcall(load(sformat("return {}", conf.args)))
         if not ok then
-            log_err("[RobotBT][init] robot(%s) load args failed: %s", index, args)
+            log_err("[RobotBT][init] robot({}) load args failed: {}", index, args)
             return
         end
         if args and args[index] then

@@ -146,7 +146,7 @@ function UpdateMgr:update_by_time(now, clock_ms)
     if cur_hour == 4 then
         collectgarbage("collect")
     end
-    log_info("[UpdateMgr][update]now lua mem: %s!", collectgarbage("count"))
+    log_info("[UpdateMgr][update]now lua mem: {}!", collectgarbage("count"))
 end
 
 function UpdateMgr:check_signal(scheduler)
@@ -179,7 +179,7 @@ end
 --添加对象到小时更新循环
 function UpdateMgr:attach_hour(obj)
     if not obj.on_hour then
-        log_warn("[UpdateMgr][attach_hour] obj(%s) isn't on_hour method!", obj:source())
+        log_warn("[UpdateMgr][attach_hour] obj({}) isn't on_hour method!", obj:source())
         return
     end
     self.hour_objs[obj] = true
@@ -192,7 +192,7 @@ end
 --添加对象到分更新循环
 function UpdateMgr:attach_minute(obj)
     if not obj.on_minute then
-        log_warn("[UpdateMgr][attach_minute] obj(%s) isn't on_minute method!", obj:source())
+        log_warn("[UpdateMgr][attach_minute] obj({}) isn't on_minute method!", obj:source())
         return
     end
     self.minute_objs[obj] = true
@@ -205,7 +205,7 @@ end
 --添加对象到秒更新循环
 function UpdateMgr:attach_second(obj)
     if not obj.on_second then
-        log_warn("[UpdateMgr][attach_second] obj(%s) isn't on_second method!", obj:source())
+        log_warn("[UpdateMgr][attach_second] obj({}) isn't on_second method!", obj:source())
         return
     end
     self.second_objs[obj] = obj:address()
@@ -218,7 +218,7 @@ end
 --添加对象到5秒更新循环
 function UpdateMgr:attach_second5(obj)
     if not obj.on_second5 then
-        log_warn("[UpdateMgr][attach_second5] obj(%s) isn't on_second5 method!", obj:source())
+        log_warn("[UpdateMgr][attach_second5] obj({}) isn't on_second5 method!", obj:source())
         return
     end
     self.second5_objs[obj] = true
@@ -231,7 +231,7 @@ end
 --添加对象到30秒更新循环
 function UpdateMgr:attach_second30(obj)
     if not obj.on_second30 then
-        log_warn("[UpdateMgr][attach_second30] obj(%s) isn't on_second30 method!", obj:source())
+        log_warn("[UpdateMgr][attach_second30] obj({}) isn't on_second30 method!", obj:source())
         return
     end
     self.second30_objs[obj] = true
@@ -244,7 +244,7 @@ end
 --添加对象到帧更新循环
 function UpdateMgr:attach_frame(obj)
     if not obj.on_frame then
-        log_warn("[UpdateMgr][attach_frame] obj(%s) isn't on_frame method!", obj:source())
+        log_warn("[UpdateMgr][attach_frame] obj({}) isn't on_frame method!", obj:source())
         return
     end
     self.frame_objs[obj] = obj:address()
@@ -257,7 +257,7 @@ end
 --添加对象到快帧更新循环
 function UpdateMgr:attach_fast(obj)
     if not obj.on_fast then
-        log_warn("[UpdateMgr][attach_fast] obj(%s) isn't on_fast method!", obj:source())
+        log_warn("[UpdateMgr][attach_fast] obj({}) isn't on_fast method!", obj:source())
         return
     end
     self.fast_objs[obj] = obj:address()
@@ -270,7 +270,7 @@ end
 --添加对象到程序退出通知列表
 function UpdateMgr:attach_quit(obj)
     if not obj.on_quit then
-        log_warn("[UpdateMgr][attach_quit] obj(%s) isn't on_quit method!", obj)
+        log_warn("[UpdateMgr][attach_quit] obj({}) isn't on_quit method!", obj)
         return
     end
     self.quit_objs[obj] = true

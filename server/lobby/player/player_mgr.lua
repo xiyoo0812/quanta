@@ -87,7 +87,7 @@ end
 function PlayerMgr:load_account(open_id, player_id)
     local account = Account(open_id)
     if not account:load() then
-        log_err("[PlayerMgr][load_account] (%s-%s)load account failed", open_id, player_id)
+        log_err("[PlayerMgr][load_account] ({}-{})load account failed", open_id, player_id)
         return
     end
     return account
@@ -102,7 +102,7 @@ end
 
 --群发信息
 function PlayerMgr:group_message(players, cmd_id, data)
-    log_debug("[PlayerMgr][group_message] players: %s, cmdid: %s", players, cmd_id)
+    log_debug("[PlayerMgr][group_message] players: {}, cmdid: {}", players, cmd_id)
     for _, player_id in pairs(players) do
         local player = self:get_entity(player_id)
         if player then

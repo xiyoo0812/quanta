@@ -81,7 +81,7 @@ end
 
 function ReportMgr:dump_event(event, data)
     local avg_time = data.total_time / data.number
-    log_info("%s=>avg:%.2fms, min:%dms, max:%dms, succ:%d/%d", event, avg_time, data.min_time, data.max_time, data.number, data.total)
+    log_info("{}=>avg:{}ms, min:{}ms, max:{}ms, succ:{}/{}", event, avg_time, data.min_time, data.max_time, data.number, data.total)
 end
 
 function ReportMgr:dump(whole)
@@ -99,7 +99,7 @@ function ReportMgr:dump(whole)
             for event, data in pairs(robot_data) do
                 output = sformat("%s %s=%.3f", output, event, data.tick / 1000)
             end
-            log_info("robot-%s=>%s", robot_id, output)
+            log_info("robot-{}=>{}", robot_id, output)
         end
         log_info("----------------------------------------------------")
     end

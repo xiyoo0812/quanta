@@ -67,7 +67,7 @@ function AccordMgr:load_db_data()
                 self.server_list[tostring(server.name)] = server
             end
         else
-            log_warn("[AccordMgr][load_db_data] load_server_list fail ok(%s)", svr_ok)
+            log_warn("[AccordMgr][load_db_data] load_server_list fail ok({}})", svr_ok)
         end
 
         local cf_ok, cf_dbdata = accord_dao.load_accord_conf()
@@ -88,7 +88,7 @@ function AccordMgr:load_db_data()
                 end
             end
         else
-            log_warn("[AccordMgr][load_db_data] load_accord_conf fail ok(%s)", cf_ok)
+            log_warn("[AccordMgr][load_db_data] load_accord_conf fail ok({}})", cf_ok)
         end
 
         if svr_ok and cf_ok then
@@ -116,7 +116,7 @@ function AccordMgr:load_html()
         self.accord_html = file:read("*a")
         file:close()
     else
-        log_warn("Unable to open file(file_path=bin/%s)", file_path)
+        log_warn("Unable to open file(file_path=bin/{}})", file_path)
     end
 end
 
@@ -131,17 +131,12 @@ function AccordMgr:load_css()
         self.accord_css = file:read("*a")
         file:close()
     else
-        log_warn("Unable to open file(file_path=bin/%s)", file_path)
+        log_warn("Unable to open file(file_path=bin/{}})", file_path)
     end
 end
 
 -- 定时更新
 function AccordMgr:on_second()
-    -- local message_name = ".ncmd_cs.custom_status"
-    -- -- 使用迭代器获取字段信息
-    -- for name, number, type, cpp_type, tag, message in pb.fields(message_name) do
-    --     print(string.format("Name: %s, Number: %d, Type: %s cpp_type：%s tag：%s message：%s", name, number, type, cpp_type, tag, message))
-    -- end
     self:load_html()
     self:load_css()
 end
@@ -177,31 +172,31 @@ end
 
 -- 拉取日志
 function AccordMgr:on_message(url, params)
-    --log_debug("[AccordMgr][on_message] open_id: %s", open_id)
+    --log_debug("[AccordMgr][on_message] open_id: {}}", open_id)
     return robot_mgr:get_accord_message(params.open_id)
 end
 
 -- monitor拉取
 function AccordMgr:on_create(url, body)
-    log_debug("[AccordMgr][on_create] body: %s", body)
+    log_debug("[AccordMgr][on_create] body: {}}", body)
     return robot_mgr:create_robot(body.ip, body.port, body.open_id, body.passwd)
 end
 
 -- 后台GM调用，字符串格式
 function AccordMgr:on_destory(url, body)
-    log_debug("[AccordMgr][on_destory] body: %s", body)
+    log_debug("[AccordMgr][on_destory] body: {}}", body)
     return robot_mgr:destory_robot(body.open_id)
 end
 
 -- 服务器列表
 function AccordMgr:on_server_list(url, body)
-    log_debug("[AccordMgr][on_server_list] body: %s", body)
+    log_debug("[AccordMgr][on_server_list] body: {}}", body)
     return { code = 0, server_list = self.server_list}
 end
 
 -- 编辑服务器
 function AccordMgr:on_server_edit(url, body)
-    log_debug("[AccordMgr][on_server_edit] body: %s", body)
+    log_debug("[AccordMgr][on_server_edit] body: {}}", body)
     if body.data then
         local data = body.data
         if self.server_list[data.name] then
@@ -217,7 +212,7 @@ end
 
 -- 删除服务器
 function AccordMgr:on_server_del(url, body)
-    log_debug("[AccordMgr][on_server_del] body: %s", body)
+    log_debug("[AccordMgr][on_server_del] body: {}}", body)
     if body.data then
         local data = body.data
         self.server_list[data.name] = nil
@@ -229,13 +224,13 @@ end
 
 -- 协议列表
 function AccordMgr:on_accord_list(url, body)
-    log_debug("[AccordMgr][on_accord_list] body: %s", body)
+    log_debug("[AccordMgr][on_accord_list] body: {}}", body)
     return { code = 0, accord_list = self.accord_list}
 end
 
 -- 编辑协议
 function AccordMgr:on_accord_edit(url, body)
-    log_debug("[AccordMgr][on_accord_edit] body: %s", body)
+    log_debug("[AccordMgr][on_accord_edit] body: {}}", body)
     if body.data then
         local data = body.data
         local accords = data.accords
@@ -259,7 +254,7 @@ end
 
 -- 删除协议
 function AccordMgr:on_accord_del(url, body)
-    log_debug("[AccordMgr][on_accord_del] body: %s", body)
+    log_debug("[AccordMgr][on_accord_del] body: {}}", body)
     if body.data then
         local data = body.data
         self.accord_list[data.name] = nil
@@ -271,7 +266,7 @@ end
 
 -- 客户端上传用例
 function AccordMgr:on_upload(url, body)
-    log_debug("[AccordMgr][on_upload] body: %s", body)
+    log_debug("[AccordMgr][on_upload] body: {}}", body)
     if body.data then
         local data = jdecode(body.data);
         local add = false
@@ -291,7 +286,7 @@ end
 
 -- 编辑协议选项
 function AccordMgr:on_proto_edit(url, body)
-    log_debug("[AccordMgr][on_proto_edit] body: %s", body)
+    log_debug("[AccordMgr][on_proto_edit] body: {}}", body)
     if body.data then
         local data = body.data
         local accord = self.accord_list[data.name]
@@ -307,7 +302,7 @@ end
 
 -- 删除协议选项
 function AccordMgr:on_proto_del(url, body)
-    log_debug("[AccordMgr][on_proto_del] body: %s", body)
+    log_debug("[AccordMgr][on_proto_del] body: {}}", body)
     if body.data then
         local data = body.data
         local accord = self.accord_list[data.accord_name]
@@ -323,14 +318,14 @@ end
 -- 后台GM调用，table格式
 function AccordMgr:on_run(url, body)
     if body.cmd_id ~= 1001 then
-        log_debug("[AccordMgr][on_run] body: %s", body)
+        log_debug("[AccordMgr][on_run] body: {}}", body)
     end
     return robot_mgr:run_accord_message(body.open_id, body.cmd_id, body.data)
 end
 
 -- 后台GM调用，table格式
 function AccordMgr:on_runall(url, body)
-    log_debug("[AccordMgr][on_runall] body: %s", body)
+    log_debug("[AccordMgr][on_runall] body: {}}", body)
     return robot_mgr:run_accord_messages(body.open_id, body.data)
 end
 

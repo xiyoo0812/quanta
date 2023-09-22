@@ -37,7 +37,7 @@ function ConfigTable:setup(name, ...)
         self.indexs = {...}
         import(sformat("config/%s_cfg.lua", name))
     else
-        log_err("[ConfigTable][setup] keys len illegal. name=%s, size=%s", name, size)
+        log_err("[ConfigTable][setup] keys len illegal. name={}, size={}", name, size)
     end
 end
 
@@ -51,7 +51,7 @@ function ConfigTable:upsert(row)
         tinsert(row_indexs, row[index])
     end
     if #row_indexs ~= #self.indexs then
-        log_err("[ConfigTable][upsert] table %s row index lost. row=%s, indexs=%s", self.name, row, self.indexs)
+        log_err("[ConfigTable][upsert] table {} row index lost. row={}, indexs={}", self.name, row, self.indexs)
         return
     end
     local row_index = self:build_index(tunpack(row_indexs))
@@ -83,12 +83,12 @@ end
 function ConfigTable:find_one(...)
     local row_index = self:build_index(...)
     if not row_index then
-        log_warn("[ConfigTable][find_one] table %s row index is nil.", self.name)
+        log_warn("[ConfigTable][find_one] table {} row index is nil.", self.name)
         return
     end
     local row = self.rows[row_index]
     if not row then
-        log_warn("[ConfigTable][find_one] table %s row data not found. index=%s", self.name, row_index)
+        log_warn("[ConfigTable][find_one] table {} row data not found. index={}", self.name, row_index)
     end
     return row
 end
@@ -148,7 +148,7 @@ function ConfigTable:find_group(key, gkey)
     local group_key = gkey or self.group_key
     local dgroup = self.groups[group_key]
     if not dgroup then
-        log_warn("[ConfigTable][find_group] table %s group %s data empty.", self.name, group_key)
+        log_warn("[ConfigTable][find_group] table {} group {} data empty.", self.name, group_key)
     end
     return dgroup[key]
 end

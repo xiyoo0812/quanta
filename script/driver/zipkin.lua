@@ -22,7 +22,7 @@ function Zipkin:__init()
     if ip and port then
         self.enable = true
         self.addr = sformat("http://%s:%s/api/v2/spans", ip, port)
-        log_info("[Zipkin][setup] setup (%s) success!", self.addr)
+        log_info("[Zipkin][setup] setup ({}) success!", self.addr)
     end
 end
 
@@ -49,7 +49,7 @@ function Zipkin:general(name, trace_id, parent_id)
         self.spans[trace_id] = { }
     end
     trace_span[#trace_span + 1] = span
-    log_info("[Zipkin][general] new span name:%s, id:%s, trace_id:%s, parent_id:%s!", name, span_id, trace_id, parent_id)
+    log_info("[Zipkin][general] new span name:{}, id:{}, trace_id:{}, parent_id:{}!", name, span_id, trace_id, parent_id)
     return span
 end
 
@@ -115,7 +115,7 @@ function Zipkin:finish_span(span)
             end
             local ok, status, res = http_client:call_post(self.addr, span_list)
             if not ok or status >= 300 then
-                log_err("[Zipkin][finish_span] post failed! code: %s, err: %s", status, res)
+                log_err("[Zipkin][finish_span] post failed! code: {}, err: {}", status, res)
             end
             self.spans[span.traceId] = nil
         end)

@@ -14,7 +14,7 @@ end
 
 --更新服务网关
 function GroupMgr:add_member(group_id, player_id, player)
-    log_info("[GroupMgr][add_member] group_id(%s) player_id(%s)!", group_id, player_id)
+    log_info("[GroupMgr][add_member] group_id({}) player_id({})!", group_id, player_id)
     local group = self.groups[group_id]
     local token = player:get_session_token()
     if not group then
@@ -26,7 +26,7 @@ end
 
 --更新分组信息
 function GroupMgr:remove_member(group_id, player_id)
-    log_info("[GroupMgr][remove_member] group_id(%s) player_id(%s)!", group_id, player_id)
+    log_info("[GroupMgr][remove_member] group_id({}) player_id({})!", group_id, player_id)
     local group = self.groups[group_id]
     if group then
         group[player_id] = nil

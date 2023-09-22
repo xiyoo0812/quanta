@@ -74,21 +74,21 @@ end
 
 -- 添加协议屏蔽(多个)
 function CenterGM:add_proto_shield(start_cmd_id, count)
-    log_info("[CenterGM][add_proto_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
+    log_info("[CenterGM][add_proto_shield] start_cmd_id={} count={}", start_cmd_id, count)
     -- 通知服务
     self:call_command_service(start_cmd_id, "rpc_add_proto_shield", start_cmd_id, count)
 end
 
 -- 删除协议屏蔽(多个)
 function CenterGM:del_proto_shield(start_cmd_id, count)
-    log_info("[CenterGM][del_proto_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
+    log_info("[CenterGM][del_proto_shield] start_cmd_id={} count={}", start_cmd_id, count)
     -- 通知服务
     self:call_command_service(start_cmd_id, "rpc_del_proto_shield", start_cmd_id, count)
 end
 
 -- 屏蔽服务协议
 function CenterGM:shield_service_proto(service_type, status)
-    log_info("[CenterGM][shield_service_proto] service_type: %s, status:%s", service_type, status)
+    log_info("[CenterGM][shield_service_proto] service_type: {}, status:{}", service_type, status)
     -- 通知服务
     if service_type ~= 0 then
         router_mgr:call_gateway_all("rpc_shield_service_proto", service_type, status)
@@ -100,7 +100,7 @@ end
 
 -- 设置日志等级
 function CenterGM:set_logger_level(service_id, level)
-    log_info("[CenterGM][set_logger_level] service_id: %s, level:%s", service_id, level)
+    log_info("[CenterGM][set_logger_level] service_id: {}, level:{}", service_id, level)
     -- 通知服务
     router_mgr:broadcast(service_id, "rpc_set_logger_level", level)
 end

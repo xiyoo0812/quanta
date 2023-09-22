@@ -1,5 +1,4 @@
 --library.lua
-local sformat   = string.format
 local qgetenv   = quanta.getenv
 
 --加载全局扩展库，使用顶级域名
@@ -48,7 +47,7 @@ end
 --newindex
 local function _glib_newindex(o, k, v)
     if librarys[k] then
-        log.warn(sformat("[quanta][library] try modify quanta library [%s] namespace", k))
+        logger.warn("[quanta][library] try modify quanta library [{}] namespace", k)
         return
     end
     rawset(o, k, v)

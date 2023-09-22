@@ -26,7 +26,7 @@ end
 function LoginDao:get_autoinc_id(user_id)
     local aok, acode, role_id = redis_agent:execute({ "INCR", AUTOINCKEY })
     if qfailed(acode, aok) then
-        log_err("[LoginDao][get_autoinc_id] user_id: %s get_autoinc_id failed! code: %s, res: %s", user_id, acode, role_id)
+        log_err("[LoginDao][get_autoinc_id] user_id: {} get_autoinc_id failed! code: {}, res: {}", user_id, acode, role_id)
         return false
     end
     return true, SUCCESS, BENCHMARK + role_id
@@ -35,7 +35,7 @@ end
 function LoginDao:check_name_exist(name)
     local ok, code, udata = mongo_agent:find_one({ "player", { nick = name }, { nick = 1 } })
     if qfailed(code, ok) then
-        log_err("[LoginDao][check_name_exist] name: %s find failed! code: %s, res: %s", name, code, udata)
+        log_err("[LoginDao][check_name_exist] name: {} find failed! code: {}, res: {}", name, code, udata)
         return false
     end
     return (udata ~= nil)
@@ -53,7 +53,7 @@ function LoginDao:create_player(open_id, player_id, data)
     }
     local ok, code, udata = mongo_agent:insert({ "player", pdata })
     if qfailed(code, ok) then
-        log_err("[LoginDao][create_player] player_id: %s create failed! code: %s, res: %s", player_id, code, udata)
+        log_err("[LoginDao][create_player] player_id: {} create failed! code: {}, res: {}", player_id, code, udata)
         return false
     end
     return true
@@ -66,7 +66,7 @@ function LoginDao:check_player(user_id, name)
         local check_res = event_mgr:notify_listener("on_safe_text", user_id, name)
         local check_ok, code, result_name = tunpack(check_res)
         if qfailed(code, check_ok) then
-            log_err("[LoginDao][check_player] user_id:%s ok:%s code:%s result_name:%s", user_id, check_ok, code, result_name)
+            log_err("[LoginDao][check_player] user_id:{} ok:{} code:{} result_name:{}", user_id, check_ok, code, result_name)
         end
         return check_ok, code
     end)

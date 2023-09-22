@@ -37,18 +37,18 @@ end
 
 --其他服务器节点关闭
 function RouterServer:on_client_error(client, client_token, err)
-    log_info("[RouterServer][on_client_error] %s lost: %s", client.name, err)
+    log_info("[RouterServer][on_client_error] {} lost: {}", client.name, err)
     local new_master = socket_mgr.map_token(client.id)
-    log_info("[RouterServer][on_socket_error] %s master --> %s", client.service_name, new_master)
+    log_info("[RouterServer][on_socket_error] {} master --> {}", client.service_name, new_master)
 end
 
 --accept事件
 function RouterServer:on_client_accept(client)
-    log_info("[RouterServer][on_client_accept] new connection, token=%s", client.token)
+    log_info("[RouterServer][on_client_accept] new connection, token={}", client.token)
     client.on_forward_error = function(session_id, target_id, source_id, rpc)
         thread_mgr:fork(function()
             local target, source =  id2name(target_id), id2name(source_id)
-            log_err("[RouterServer][on_client_accept] on_forward_error, ssid:%s, tar:%s, src:%s, rpc:%s)", session_id, target, source, rpc)
+            log_err("[RouterServer][on_client_accept] on_forward_error, ssid:{}, tar:{}, src:{}, rpc:{})", session_id, target, source, rpc)
             self.rpc_server:callback(client, session_id, false, UNREACHABLE, "router con't find target!")
         end)
     end
@@ -63,9 +63,9 @@ end
 ------------------------------------------------------------------
 --注册服务器
 function RouterServer:on_client_register(client, node, client_id)
-    log_info("[RouterServer][on_client_register] service: %s", client.name)
+    log_info("[RouterServer][on_client_register] service: {}", client.name)
     local new_master = socket_mgr.map_token(client_id, client.token)
-    log_info("[RouterServer][on_client_register] %s master --> %s", client.service_name, new_master)
+    log_info("[RouterServer][on_client_register] {} master --> {}", client.service_name, new_master)
 end
 
 -- 会话信息

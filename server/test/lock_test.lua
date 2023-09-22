@@ -7,30 +7,30 @@ local thread_mgr = quanta.get("thread_mgr")
 local function test_a(index)
     local _<close> = thread_mgr:lock("sync_lock_test", true)
     thread_mgr:sleep(10)
-    log_debug("test_a:%s", index)
+    log_debug("test_a:{}", index)
 end
 
 local function test_b(index)
     local _<close> = thread_mgr:lock("sync_lock_test", true)
     thread_mgr:sleep(10)
     test_a(index)
-    log_debug("test_b:%s", index)
+    log_debug("test_b:{}", index)
 end
 
 local function test_c(index)
     local _<close> = thread_mgr:lock("sync_lock_test", true)
     thread_mgr:sleep(10)
     test_b(index)
-    log_debug("test_c:%s", index)
+    log_debug("test_c:{}", index)
 end
 
 local function test_loop_lock(index)
-    log_debug("lock:%s", index)
+    log_debug("lock:{}", index)
     local _<close> = thread_mgr:lock("test_loop", true)
     if 1 == index then
         thread_mgr:sleep(10)
     end
-    log_debug("unlock:%s", index)
+    log_debug("unlock:{}", index)
 end
 
 local function test1()

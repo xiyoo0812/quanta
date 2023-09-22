@@ -238,14 +238,14 @@ end
 function RedisDB:login(socket)
     local id, ip, port = socket.id, socket.ip, socket.port
     if not socket:connect(ip, port) then
-        log_err("[RedisDB][login] connect db(%s:%s:%s) failed!", ip, port, id)
+        log_err("[RedisDB][login] connect db({}:{}:{}) failed!", ip, port, id)
         return false
     end
     socket:set_codec(rediscodec(self.jcodec))
     if self.passwd and #self.passwd > 0 then
         local ok, res = self:auth(socket)
         if not ok or res ~= "OK" then
-            log_err("[RedisDB][login] auth db(%s:%s:%s) auth failed! because: %s", ip, port, id, res)
+            log_err("[RedisDB][login] auth db({}:{}:{}) auth failed! because: {}", ip, port, id, res)
             self:delive(socket)
             socket:close()
             return false
@@ -253,7 +253,7 @@ function RedisDB:login(socket)
     end
     self.connections[id] = nil
     tinsert(self.alives, socket)
-    log_info("[RedisDB][login] login db(%s:%s:%s) success!", ip, port, id)
+    log_info("[RedisDB][login] login db({}:{}:{}) success!", ip, port, id)
     event_mgr:fire_frame(function()
         self:on_socket_alive()
     end)
@@ -304,9 +304,9 @@ function RedisDB:commit(socket, cmd, ...)
         return false, "send request failed"
     end
     self.req_counter:count_increase()
-    local ok, res = thread_mgr:yield(session_id, sformat("redis_comit:%s", cmd), DB_TIMEOUT)
+    local ok, res = thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
     if not ok then
-        log_err("[RedisDB][commit] exec cmd %s failed: %s", cmd, res)
+        log_err("[RedisDB][commit] exec cmd {} failed: {}", cmd, res)
         return ok, res
     end
     local convertor = rconvertors[slower(cmd)]

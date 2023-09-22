@@ -60,7 +60,7 @@ end
 function ConfigMgr:get_table(name)
     local conf_tab = self.table_list[name]
     if not conf_tab then
-        log_warn("[ConfigMgr][get_table] table %s not init.", name)
+        log_warn("[ConfigMgr][get_table] table {} not init.", name)
     end
     return conf_tab
 end

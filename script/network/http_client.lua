@@ -97,7 +97,7 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     local fmt_url = self:format_url(url, querys)
     local request, curl_handle = curlm_mgr.create_request(fmt_url, to)
     if not request then
-        log_err("[HttpClient][send_request] failed : %s", curl_handle)
+        log_err("[HttpClient][send_request] failed : {}", curl_handle)
         return false
     end
     if not headers then
@@ -112,7 +112,7 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     end
     local ok, err = request[method](datas or "")
     if not ok then
-        log_err("[HttpClient][send_request] curl %s failed: %s!", method, err)
+        log_err("[HttpClient][send_request] curl {} failed: {}!", method, err)
         return false
     end
     local session_id = thread_mgr:build_session_id()

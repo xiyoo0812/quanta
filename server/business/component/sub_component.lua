@@ -21,7 +21,7 @@ function SubComponent:register_subhandler(trigger, event, handler)
     local func_name = handler or event
     local callback_func = trigger[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[SubComponent][register_subhandler] event(%s) handler is nil!", event)
+        log_warn("[SubComponent][register_subhandler] event({}) handler is nil!", event)
         return
     end
     self.subhandlers[event] = { trigger, func_name }
@@ -67,7 +67,7 @@ function SubComponent:pub_event(serv_name, event, ...)
     end
     local hand_info = self.subhandlers[event]
     if not hand_info then
-        log_warn("[SubComponent][pub_event] event(%s) subhandlers is nil!", event)
+        log_warn("[SubComponent][pub_event] event({}) subhandlers is nil!", event)
         return
     end
     local taigger, func_name = tunpack(hand_info)

@@ -45,7 +45,7 @@ function Robot:on_second5()
 end
 
 function Robot:push_message(cmd_id, msg)
-    log_debug("recv server msg:%d %s",cmd_id, msg)
+    log_debug("recv server msg:{} {}",cmd_id, msg)
     msg.cmd_id = cmd_id
     self.messages:push(msg)
 end

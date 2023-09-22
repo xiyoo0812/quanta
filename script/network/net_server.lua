@@ -48,22 +48,22 @@ end
 function NetServer:setup(ip, port, induce)
     -- 开启监听
     if not ip or not port then
-        log_err("[NetServer][setup] ip:%s or port:%s is nil", ip, port)
+        log_err("[NetServer][setup] ip:{} or port:{} is nil", ip, port)
         signalquit()
         return
     end
     local real_port = induce and (port + quanta.order - 1) or port
     local listener = socket_mgr.listen(ip, real_port, proto_pb)
     if not listener then
-        log_err("[NetServer][setup] failed to listen: %s:%d", ip, real_port)
+        log_err("[NetServer][setup] failed to listen: {}:{}", ip, real_port)
         signalquit()
         return
     end
-    log_info("[NetServer][setup] start listen at: %s:%d", ip, real_port)
+    log_info("[NetServer][setup] start listen at: {}:{}", ip, real_port)
     -- 安装回调
     listener.set_codec(self.codec)
     listener.on_accept = function(session)
-        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session)
+        qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session)
     end
     self.listener = listener
     self.ip, self.port = ip, real_port
@@ -86,7 +86,7 @@ function NetServer:on_socket_accept(session)
     session.call_client = function(cmd_id, flag, session_id, body)
         local send_len = session.call_pb(session_id, cmd_id, flag, 0, 0, body)
         if send_len <= 0 then
-            log_err("[NetServer][call_client] call_pb failed! code:%s", send_len)
+            log_err("[NetServer][call_client] call_pb failed! code:{}", send_len)
             return false
         end
         return true
@@ -104,7 +104,7 @@ function NetServer:on_socket_accept(session)
             session.fc_bytes  = session.fc_bytes  + recv_len
         end
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_recv, "on_socket_recv: %s", self, session, cmd_id, flag, type, session_id, body)
+        qxpcall(self.on_socket_recv, "on_socket_recv: {}", self, session, cmd_id, flag, type, session_id, body)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(stoken, err)
@@ -116,7 +116,7 @@ end
 
 function NetServer:write(session, cmd, data, session_id, flag)
     if session.token == 0 then
-        log_fatal("[NetServer][write] session lost! cmd_id:%s-(%s)", cmd, data)
+        log_fatal("[NetServer][write] session lost! cmd_id:{}-({})", cmd, data)
         return false
     end
     return session.call_client(cmd, flag, session_id, data)
@@ -162,7 +162,7 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body)
             local _<close> = qeval(cmd_id)
             local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, cbody, session_id)
             if not result[1] then
-                log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:%s", cmd_id)
+                log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd_id)
             end
         end
         thread_mgr:fork(dispatch_rpc_message, session, type, cmd_id, body)

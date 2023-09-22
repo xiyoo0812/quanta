@@ -1,7 +1,6 @@
 --net_client.lua
 
 local log_err           = logger.err
-local log_fatal         = logger.fatal
 local qeval             = quanta.eval
 local qxpcall           = quanta.xpcall
 
@@ -40,7 +39,7 @@ function NetClient:connect(block)
     end
     local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, proto_pb)
     if not socket then
-        log_err("[NetClient][connect] failed to connect: %s:%s err=%s", self.ip, self.port, cerr)
+        log_err("[NetClient][connect] failed to connect: {}:{} err={}", self.ip, self.port, cerr)
         return false, cerr
     end
     --设置阻塞id
@@ -63,7 +62,7 @@ function NetClient:connect(block)
     end
     socket.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
         proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, cmd_id, flag, type, session_id, body)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, cmd_id, flag, type, session_id, body)
     end
     socket.on_error = function(token, err)
         thread_mgr:fork(function()
@@ -112,17 +111,12 @@ function NetClient:close()
     end
 end
 
-function NetClient:write(cmd, data, type, session_id, flag)
+function NetClient:write(cmd_id, data, type, session_id, flag)
     if not self.alive then
         return false
     end
-    local body, cmd_id, pflag = self:encode(cmd, data, flag)
-    if not body then
-        log_fatal("[NetClient][write] encode failed! data (%s-%s)", cmd_id, body)
-        return false
-    end
     -- call lbus
-    local send_len = self.socket.call_pb(cmd_id, pflag, type, session_id, data)
+    local send_len = self.socket.call_pb(cmd_id, flag, type, session_id, data)
     if send_len < 0 then
         log_err("[NetClient][write] call_pb failed! code:%s", send_len)
         return false

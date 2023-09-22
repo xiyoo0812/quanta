@@ -19,7 +19,7 @@ function Listener:add_trigger(trigger, event, handler)
     local func_name = handler or event
     local callback_func = trigger[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[Listener][add_trigger] event(%s) handler not define", event)
+        log_warn("[Listener][add_trigger] event({}) handler not define", event)
         return
     end
     local trigger_map = self._triggers[event]
@@ -39,13 +39,13 @@ end
 
 function Listener:add_listener(listener, event, handler)
     if self._listeners[event] then
-        log_warn("[Listener][add_listener] event(%s) repeat!", event)
+        log_warn("[Listener][add_listener] event({}) repeat!", event)
         return
     end
     local func_name = handler or event
     local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[Listener][add_listener] event(%s) callback not define!", event)
+        log_warn("[Listener][add_listener] event({}) callback not define!", event)
         return
     end
     self._listeners[event] = qtweak({ [listener] = func_name })
@@ -57,13 +57,13 @@ end
 
 function Listener:add_cmd_listener(listener, cmd, handler)
     if self._commands[cmd] then
-        log_warn("[Listener][add_cmd_listener] cmd(%s) repeat!", cmd)
+        log_warn("[Listener][add_cmd_listener] cmd({}) repeat!", cmd)
         return
     end
     local func_name = handler
     local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[Listener][add_cmd_listener] cmd(%s) handler not define!", cmd)
+        log_warn("[Listener][add_cmd_listener] cmd({}) handler not define!", cmd)
         return
     end
     self._commands[cmd] = qtweak({ [listener] = func_name })
@@ -79,7 +79,7 @@ function Listener:notify_trigger(event, ...)
         local callback_func = trigger[func_name]
         local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)
         if not ok then
-            log_fatal("[Listener][notify_trigger] xpcall [%s:%s] failed: %s!", trigger:source(), func_name, ret)
+            log_fatal("[Listener][notify_trigger] xpcall [{}:{}] failed: {}!", trigger:source(), func_name, ret)
         end
     end
 end
@@ -90,14 +90,14 @@ function Listener:notify_listener(event, ...)
         local callback_func = listener[func_name]
         local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
         if not result[1] then
-            log_fatal("[Listener][notify_listener] xpcall [%s:%s] failed: %s", listener:source(), func_name, result[2])
+            log_fatal("[Listener][notify_listener] xpcall [{}:{}] failed: {}", listener:source(), func_name, result[2])
             result[2] = sformat("event %s execute failed!", event)
         end
         return result
     end
     if not self._ignores[event] then
         self._ignores[event] = true
-        log_warn("[Listener][notify_listener] event (%s-%s) handler is nil! ", event, {...})
+        log_warn("[Listener][notify_listener] event ({}-{}) handler is nil! ", event, {...})
     end
     return tpack(false, "event handler is nil")
 end
@@ -109,13 +109,13 @@ function Listener:notify_command(cmd, ...)
         local callback_func = listener[func_name]
         local result = tpack(xpcall(callback_func, dtraceback, listener, ...))
         if not result[1] then
-            log_fatal("[Listener][notify_command] xpcall [%s:%s] failed: %s!", listener:source(), func_name, result[2])
+            log_fatal("[Listener][notify_command] xpcall [{}:{}] failed: {}!", listener:source(), func_name, result[2])
             result[2] = sformat("cmd %s execute failed!", cmd)
         end
         return result
     end
     if not self._ignores[cmd] then
-        log_warn("[Listener][notify_command] command %s handler is nil!", cmd)
+        log_warn("[Listener][notify_command] command {} handler is nil!", cmd)
         self._ignores[cmd] = true
     end
     return tpack(false, "command handler is nil")

@@ -27,15 +27,15 @@ end
 
 --客户端连上
 function LoginMgr:on_socket_accept(session)
-    log_debug("[LoginMgr][on_socket_accept] %s connected!", session.token)
+    log_debug("[LoginMgr][on_socket_accept] {} connected!", session.token)
 end
 
 --客户端连接断开
 function LoginMgr:on_socket_error(session, token, err)
-    log_debug("[LoginMgr][on_socket_error] %s lost, because: %s!", token, err)
+    log_debug("[LoginMgr][on_socket_error] {} lost, because: {}!", token, err)
     local account = session.account
     if account then
-        log_debug("[LoginMgr][on_socket_error] (t:%s-o:%s-u:%s) lost, because: %s!", token, account.open_id, account.user_id, err)
+        log_debug("[LoginMgr][on_socket_error] (t:{}-o:{}-u:{}) lost, because: {}!", token, account.open_id, account.user_id, err)
     end
 end
 
@@ -43,7 +43,7 @@ end
 function LoginMgr:on_socket_cmd(session, service_type, cmd_id, body, session_id)
     local result = event_mgr:notify_listener("on_proto_filter", cmd_id, service_type)
     if result[1] and result[2] then
-        log_warn("[LoginMgr][on_socket_cmd] on_proto_filter false, cmd_id=%s", cmd_id)
+        log_warn("[LoginMgr][on_socket_cmd] on_proto_filter false, cmd_id={}", cmd_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_UPHOLD, session_id)
         return
     end

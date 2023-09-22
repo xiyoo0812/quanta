@@ -22,7 +22,7 @@ end
 function RedisMQ:setup(coll_name)
     self.coll_name = coll_name
     self.prefix = sformat("RELIABLE:%s:%s", NAMESPACE, coll_name)
-    log_info("[RedisMQ][setup] init rmsg coll: %s", coll_name)
+    log_info("[RedisMQ][setup] init rmsg coll: {}", coll_name)
 end
 
 -- 获取消息长度
@@ -47,7 +47,7 @@ end
 
 -- 删除消息
 function RedisMQ:delete_message(target_id, timestamp)
-    log_info("[RedisMQ][delete_message] delete message: %s-%s", target_id, timestamp)
+    log_info("[RedisMQ][delete_message] delete message: {}-{}", target_id, timestamp)
     local zset_name = sformat("%s:%s", self.prefix, target_id)
     return redis_agent:execute({ "ZREMRANGEBYSCORE", zset_name, 0, timestamp }, target_id)
 end
@@ -62,10 +62,10 @@ function RedisMQ:send_message(target_id, event, args, ttl)
         if ttl then
             redis_agent:execute( { "EXPIRE", zset_name, ttl }, target_id)
         end
-        log_debug("[RedisMQ][send_message] send message succeed: %s, %s", target_id, doc)
+        log_debug("[RedisMQ][send_message] send message succeed: {}, {}", target_id, doc)
         return true
     end
-    log_err("[RedisMQ][send_message] send message failed: %s, %s", target_id, doc)
+    log_err("[RedisMQ][send_message] send message failed: {}, {}", target_id, doc)
     return false
 end
 

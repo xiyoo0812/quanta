@@ -45,43 +45,43 @@ local vv = {
     detail = protobuf_mgr:encode_byname("ncmd_cs.login_account_login_res", value)
 }
 
-log_debug("%s, %s", #vv.detail, vv.detail)
+log_debug("{}, {}", #vv.detail, vv.detail)
 
 local c = jpretty(vv)
-log_debug("json_encode: %s", c)
+log_debug("json_encode: {}", c)
 
 local d = jdecode(c)
-log_debug("json_decode: %s", d)
+log_debug("json_decode: {}", d)
 
 local dd = protobuf_mgr:decode_byname("ncmd_cs.login_account_login_res", d.detail)
-log_debug("decode_byname: %s", dd)
+log_debug("decode_byname: {}", dd)
 
 local a = jencode(test, 1)
-log_debug("json_encode: %s", a)
+log_debug("json_encode: {}", a)
 
 local b = jdecode(a, 1)
 log_debug(type(b.tid), b.tid)
 log_debug(type(b.player_id), b.player_id)
-log_debug("json_decode: %s", b)
+log_debug("json_decode: {}", b)
 
-log_debug("%s", b.c)
-log_debug("%s, %s", type(b.tid), b.tid)
-log_debug("%s, %s", type(b.player_id), b.player_id)
+log_debug("{}", b.c)
+log_debug("{}, {}", type(b.tid), b.tid)
+log_debug("{}, {}", type(b.player_id), b.player_id)
 for k, v in pairs(b.c) do
-    log_debug("c %s, %s", type(k), k)
-    log_debug("c %s, %s", type(v), v)
+    log_debug("c {}, {}", type(k), k)
+    log_debug("c {}, {}", type(v), v)
 end
 
 local x1 = jencode(test)
-log_debug("tt1:%s%s", x1, #x1)
+log_debug("tt1:{}", x1, #x1)
 
 local aaa = lencode(test)
 local bbb = ldecode(aaa)
-log_debug("tt22:%s%s", bbb, #aaa)
+log_debug("tt22:{}", bbb, #aaa)
 
 local aaa1 = bencode(test)
 local bbb1 = bdecode(aaa1)
-log_debug("tt23:%s%s", bbb1, #aaa1)
+log_debug("tt23:{}", bbb1, #aaa1)
 
 local tt1 = ltime()
 for i = 1, 100000 do
@@ -112,7 +112,7 @@ local tt7 = ltime()
 for i = 1, 100000 do
     local x = bdecode(aaa1)
     if i == 10000 then
-        log_debug("tt24:%s", x)
+        log_debug("tt24:{}", x)
     end
 end
 local tt8 = ltime()
@@ -121,5 +121,5 @@ for i = 1, 100000 do
 end
 local tt9 = ltime()
 
-log_debug("tt1:%s, tt2:%s, tt3:%s, tt4:%s", tt2 - tt1, tt3 - tt2, tt4 - tt3, tt5 - tt4)
-log_debug("tt5:%s, tt6:%s, tt7:%s, tt8:%s", tt6 - tt5, tt7 - tt6, tt8 - tt7, tt9 - tt8)
+log_debug("tt1:{}, tt2:{}, tt3:{}, tt4:{}", tt2 - tt1, tt3 - tt2, tt4 - tt3, tt5 - tt4)
+log_debug("tt5:{}, tt6:{}, tt7:{}, tt8:{}", tt6 - tt5, tt7 - tt6, tt8 - tt7, tt9 - tt8)

@@ -33,7 +33,7 @@ function AttributeAgent:on_attr_writeback(player, player_id)
     local write_attrs = player:get_write_attrs()
     local ok, code = player:call_lobby("rpc_attr_writeback", write_attrs, quanta.service)
     if qfailed(code, ok) then
-        log_err("[AttributeAgent][on_attr_writeback] writeback failed attrs=%s, player=%s, code=%s", write_attrs, player_id, code)
+        log_err("[AttributeAgent][on_attr_writeback] writeback failed attrs={}, player={}, code={}", write_attrs, player_id, code)
     end
     player:set_write_attrs({})
 end
@@ -44,13 +44,13 @@ end
 function AttributeAgent:rpc_attr_relay(player_id, attrs, service_id)
     local player  = player_mgr:get_entity(player_id)
     if not player then
-        log_err("[AttributeAgent][rpc_attr_relay] player not exist attrs=%s, player_id=%s", attrs, player_id)
+        log_err("[AttributeAgent][rpc_attr_relay] player not exist attrs={}, player_id={}", attrs, player_id)
         return ROLE_NOT_EXIST
     end
     for attr_id, value in pairs(attrs) do
         player:set_attr(attr_id, value, service_id)
     end
-    log_debug("[AttributeAgent][rpc_attr_relay] success player_id=%s, attrs=%s", player_id, attrs)
+    log_debug("[AttributeAgent][rpc_attr_relay] success player_id={}, attrs={}", player_id, attrs)
     return FRAME_SUCCESS
 end
 

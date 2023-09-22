@@ -62,7 +62,7 @@ function RpcClient:on_call_router(rpc, token, send_len)
         proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, send_len
     end
-    log_err("[RpcClient][on_call_router] rpc %s call failed! code:%s", rpc, send_len)
+    log_err("[RpcClient][on_call_router] rpc {} call failed! code:{}", rpc, send_len)
     return false
 end
 
@@ -75,12 +75,12 @@ function RpcClient:connect()
     --开始连接
     local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT)
     if not socket then
-        log_err("[RpcClient][connect] failed to connect: %s:%s err=%s", self.ip, self.port, cerr)
+        log_err("[RpcClient][connect] failed to connect: {}:{} err={}", self.ip, self.port, cerr)
         return false, cerr
     end
     local token = socket.token
     socket.on_call = function(recv_len, session_id, rpc_flag, ...)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, socket, session_id, rpc_flag, recv_len, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, session_id, rpc_flag, recv_len, ...)
     end
     socket.call_rpc = function(rpc, session_id, rpc_flag, ...)
         local send_len = socket.call(session_id, rpc_flag, quanta.id, rpc, ...)
@@ -121,7 +121,7 @@ function RpcClient:connect()
     end
     socket.on_connect = function(res)
         if res == "ok" then
-            qxpcall(self.on_socket_connect, "on_socket_connect: %s", self, socket, res)
+            qxpcall(self.on_socket_connect, "on_socket_connect: {}", self, socket, res)
         else
             self:on_socket_error(token, res)
         end
@@ -131,7 +131,7 @@ end
 
 -- 主动关闭连接
 function RpcClient:close()
-    log_err("[RpcClient][close] socket %s:%s!", self.ip, self.port)
+    log_err("[RpcClient][close] socket {}:{}!", self.ip, self.port)
     if self.socket then
         self.socket.close()
         self.alive = false
@@ -162,7 +162,7 @@ end
 --错误处理
 function RpcClient:on_socket_error(token, err)
     thread_mgr:fork(function()
-        log_err("[RpcClient][on_socket_error] socket %s:%s %s!", self.ip, self.port, err)
+        log_err("[RpcClient][on_socket_error] socket {}:{} {}!", self.ip, self.port, err)
         self.socket = nil
         self.alive = false
         if self.holder then
@@ -176,7 +176,7 @@ end
 
 --连接成功
 function RpcClient:on_socket_connect(socket)
-    --log_info("[RpcClient][on_socket_connect] connect to %s:%s success!", self.ip, self.port)
+    --log_info("[RpcClient][on_socket_connect] connect to {}:{} success!", self.ip, self.port)
     thread_mgr:fork(function()
         self.alive = true
         self.holder:on_socket_connect(self)

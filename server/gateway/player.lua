@@ -35,7 +35,7 @@ end
 
 --更新分组信息
 function GatePlayer:update_group(group_name, group_id)
-    log_info("[GatePlayer][update_group] player(%d) group(%s) id(%s)!", self.player_id, group_name, group_id)
+    log_info("[GatePlayer][update_group] player({}) group({}) id({})!", self.player_id, group_name, group_id)
     local old_group = self.groups[group_name]
     self.groups[group_name] = group_id
     --管理 玩家 group 信息
@@ -64,7 +64,7 @@ end
 function GatePlayer:send_message(cmd_id, data, display)
     client_mgr:send(self.session, cmd_id, data)
     if display then
-        log_debug("[GatePlayer][send_message] player(%s) send message(%s-%s) !", self.player_id, cmd_id, data)
+        log_debug("[GatePlayer][send_message] player({}) send message({}-{}) !", self.player_id, cmd_id, data)
     end
 end
 
@@ -73,12 +73,12 @@ function GatePlayer:notify_command(service_id, cmd_id, body, session_id, display
     local pla_id = self.player_id
     local ok, codeoe, res = router_mgr:forward_call(pla_id, service_id, "rpc_player_command", pla_id, cmd_id, body)
     if qfailed(codeoe, ok) then
-        log_err("[GatePlayer][notify_command] player(%s) rpc_player_command(%s) code %s, failed: %s", pla_id, cmd_id, codeoe, res)
+        log_err("[GatePlayer][notify_command] player({}) rpc_player_command({}) code {}, failed: {}", pla_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
         return
     end
     if display then
-        log_debug("[GatePlayer][notify_command] player(%s) response message(%s-%s) !", pla_id, cmd_id, res)
+        log_debug("[GatePlayer][notify_command] player({}) response message({}-{}) !", pla_id, cmd_id, res)
     end
     client_mgr:callback_by_id(self.session, cmd_id, res, session_id)
 end

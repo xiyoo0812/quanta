@@ -18,7 +18,7 @@ function EventComponent:watch_event(watcher, event, handler)
     local func_name = handler or event
     local callback_func = watcher[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[EventComponent][watch_event] event(%s) handler not define!", event)
+        log_warn("[EventComponent][watch_event] event({}) handler not define!", event)
         return
     end
     local watcher_map = self.events[event]
@@ -44,7 +44,7 @@ function EventComponent:notify_event(event, ...)
         local callback_func = watcher[func_name]
         local ok, ret = xpcall(callback_func, dtraceback, watcher, ...)
         if not ok then
-            log_fatal("[EventComponent][notify_event] xpcall [%s:%s] failed: %s!", watcher:source(), func_name, ret)
+            log_fatal("[EventComponent][notify_event] xpcall [{}:{}] failed: {}!", watcher:source(), func_name, ret)
         end
     end
 end

@@ -59,7 +59,7 @@ end
 --invalidate
 function EventMgr:invalidate(obj, func)
     if not obj[func] then
-        log_warn("[EventMgr][invalidate] obj(%s) isn't %s method!", obj:source(), func)
+        log_warn("[EventMgr][invalidate] obj({}) isn't {} method!", obj:source(), func)
         return
     end
     self.invalidates[obj] = func

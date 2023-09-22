@@ -56,7 +56,7 @@ function Document:load()
     local query = { [self.primary_key] = pid }
     local code, res = mongo_mgr:find_one(MAIN_DBID, pid, self.coll_name, query, { _id = 0 })
     if qfailed(code) then
-        log_err("[Document][load] failed: %s=> table: %s", res, self.coll_name)
+        log_err("[Document][load] failed: {}=> table: {}", res, self.coll_name)
         return code
     end
     self.datas = res or {}
@@ -67,7 +67,7 @@ end
 function Document:merge()
     local code, res = redis_mgr:execute(MAIN_DBID, "HGETALL", self.hotkey)
     if qfailed(code) then
-        log_err("[Document][merge] failed: %s=> table: %s", res, self.coll_name)
+        log_err("[Document][merge] failed: {}=> table: {}", res, self.coll_name)
         return code
     end
     if next(res) then
@@ -94,12 +94,12 @@ function Document:destory()
     local query = { [self.primary_key] = self.primary_id }
     local code, res = mongo_mgr:delete(MAIN_DBID, self.primary_id, self.coll_name, query, true)
     if qfailed(code) then
-        log_err("[Document][destory] del failed: %s=> table: %s", res, self.coll_name)
+        log_err("[Document][destory] del failed: {}=> table: {}", res, self.coll_name)
         return false, code
     end
     local rcode, rres = redis_mgr:execute(MAIN_DBID, "DEL", self.hotkey)
     if qfailed(rcode) then
-        log_err("[Document][destory] del failed: %s=> hotkey: %s", rres, self.hotkey)
+        log_err("[Document][destory] del failed: {}=> hotkey: {}", rres, self.hotkey)
         return false, code
     end
     return true, SUCCESS
@@ -120,7 +120,7 @@ function Document:update()
     channel:push(function()
         local rcode, rres = redis_mgr:execute(MAIN_DBID, "DEL", self.hotkey)
         if qfailed(rcode) then
-            log_err("[Document][update] del failed: %s=> hotkey: %s", rres, self.hotkey)
+            log_err("[Document][update] del failed: {}=> hotkey: {}", rres, self.hotkey)
             return false, rcode
         end
         self.flushing = false
@@ -130,7 +130,7 @@ function Document:update()
         local selector = { [self.primary_key] = self.primary_id }
         local code, res = mongo_mgr:update(MAIN_DBID, self.primary_id, self.coll_name, self.datas, selector, true)
         if qfailed(code) then
-            log_err("[Document][update] update failed: %s=> table: %s", res, self.coll_name)
+            log_err("[Document][update] update failed: {}=> table: {}", res, self.coll_name)
             return false, code
         end
         return true, SUCCESS
@@ -240,7 +240,7 @@ end
 function Document:cmomit_redis(field, value)
     local code, res = redis_mgr:execute(MAIN_DBID, "HSET", self.hotkey, field, { val = value })
     if qfailed(code) then
-        log_err("[Document][cmomit_redis] failed: %s=> hotkey: %s", res, self.hotkey)
+        log_err("[Document][cmomit_redis] failed: {}=> hotkey: {}", res, self.hotkey)
         self:flush()
         return
     end

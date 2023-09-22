@@ -21,19 +21,19 @@ function NodeFactory:__init()
 end
 
 function NodeFactory:register(id, func)
-    log_info("[NodeFactory][register] Node %s register!", id)
+    log_info("[NodeFactory][register] Node {} register!", id)
     self.nodes[id] = func
 end
 
 function NodeFactory:register_factory(factory)
-    log_info("[NodeFactory][register] factory %s register!", factory)
+    log_info("[NodeFactory][register] factory {} register!", factory)
     tinsert(self.factorys, factory)
 end
 
 function NodeFactory:create(id)
     local func = self.nodes[id]
     if not func then
-        log_err("[NodeFactory][create] Node %s not define!", id)
+        log_err("[NodeFactory][create] Node {} not define!", id)
         return
     end
     return func()

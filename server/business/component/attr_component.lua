@@ -61,7 +61,7 @@ end
 
 --加载db数据
 function AttrComponent:on_db_player_attr_load(data)
-    log_debug("[AttrComponent][on_db_player_attr_load] data(%s)", data)
+    log_debug("[AttrComponent][on_db_player_attr_load] data({})", data)
     if data.player_id then
         self:load_attrs(data.attrs or {})
         return true
@@ -75,11 +75,11 @@ end
 function AttrComponent:set_attr(attr_id, value, service_id)
     local attr = self.attr_set[attr_id]
     if not attr then
-        log_warn("[AttrComponent][set_attr] attr(%s) not define", attr_id)
+        log_warn("[AttrComponent][set_attr] attr({}) not define", attr_id)
         return false
     end
     if not value then
-        log_warn("[AttrComponent][set_attr] attr(%s) value is nil", attr_id)
+        log_warn("[AttrComponent][set_attr] attr({}) value is nil", attr_id)
         return false
     end
     local cur_val = self.attrs[attr_id]
@@ -176,7 +176,7 @@ function AttrComponent:load_attrs(attrs)
     for attr_id, value in pairs(attrs) do
         local attr = self.attr_set[attr_id]
         if not attr then
-            log_warn("[AttrComponent][load_attrs] attr(%s) not define", attr_id)
+            log_warn("[AttrComponent][load_attrs] attr({}) not define", attr_id)
         end
         self:set_attrs_field(attr_id, value)
     end

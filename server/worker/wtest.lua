@@ -13,7 +13,7 @@ function WorkerTest:__init()
 end
 
 function WorkerTest:test_worker_rpc(a, b, c, d)
-    log_debug("[WorkerTest][test_worker_rpc] %s, %s, %s, %s", a, b, c, d)
+    log_debug("[WorkerTest][test_worker_rpc] {}, {}, {}, {}", a, b, c, d)
     return a + b, c + d
 end
 
@@ -23,9 +23,9 @@ quanta.startup(function()
     timer_mgr:loop(2000, function()
         local ok, res1, res2 = quanta.call_master("test_master_rpc", 1, 2, 3, 4)
         if not ok then
-            log_err("[worker][call_master] test_master_rpc failed: %s", res1)
+            log_err("[worker][call_master] test_master_rpc failed: {}", res1)
             return
         end
-        log_debug("[worker][call_master] test_master_rpc success: %s, %s", res1, res2)
+        log_debug("[worker][call_master] test_master_rpc success: {}, {}", res1, res2)
     end)
 end)

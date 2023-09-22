@@ -62,7 +62,7 @@ function GameDAO:load_impl(primary_id, sheet_name)
     if USE_CACHE then
         local code, adata = cache_agent:load(primary_id, sheet_name)
         if qfailed(code) then
-            log_err("[GameDAO][load_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
+            log_err("[GameDAO][load_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
             return false
         end
         return true, adata
@@ -77,7 +77,7 @@ function GameDAO:load_mongo(sheet_name, primary_id)
     end
     local ok, code, adata = mongo_agent:find_one({ sheet_name, { [primary_key] = primary_id }, { _id = 0 } })
     if qfailed(code, ok) then
-        log_err("[GameDAO][load_mongo_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
+        log_err("[GameDAO][load_mongo_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
         return false
     end
     return true, adata or {}
@@ -118,7 +118,7 @@ function GameDAO:update_field(primary_id, sheet_name, field, field_data)
     if USE_CACHE then
         local code, adata = cache_agent:update_field(primary_id, sheet_name, field, field_data)
         if qfailed(code) then
-            log_err("[GameDAO][update_field_%s] primary_id: %s find failed! code: %s, res: %s", sheet_name, primary_id, code, adata)
+            log_err("[GameDAO][update_field_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
             return false
         end
         return true, SUCCESS
@@ -139,7 +139,7 @@ function GameDAO:update_mongo_field(sheet_name, primary_id, field, field_data)
     end
     local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
     if qfailed(code, ok) then
-        log_err("[GameDAO][update_mongo_field_%s] update (%s) failed! primary_id(%s), code(%s), res(%s)", sheet_name, field, primary_id, code, res)
+        log_err("[GameDAO][update_mongo_field_{}] update ({}) failed! primary_id({}), code({}), res({})", sheet_name, field, primary_id, code, res)
         return false
     end
     return true, SUCCESS
@@ -149,7 +149,7 @@ function GameDAO:remove_field(primary_id, sheet_name, field)
     if USE_CACHE then
         local code, res = cache_agent:remove_field(primary_id, sheet_name, field)
         if qfailed(code) then
-            log_err("[GameDAO][remove_field_%s] remove (%s) failed primary_id(%s), code: %s, res: %s!", sheet_name, field, primary_id, code, res)
+            log_err("[GameDAO][remove_field_{}] remove ({}) failed primary_id({}), code: {}, res: {}!", sheet_name, field, primary_id, code, res)
             return false
         end
         return true, SUCCESS
@@ -165,7 +165,7 @@ function GameDAO:remove_mongo_field(sheet_name, primary_id, field)
     local udata = { ["$unset"] = { [field] = 1 } }
     local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
     if qfailed(code, ok) then
-        log_err("[GameDAO][remove_field_%s] remove (%s) failed primary_id(%s), code: %s, res: %s!", sheet_name, field, primary_id, code, res)
+        log_err("[GameDAO][remove_field_{}] remove ({}) failed primary_id({}), code: {}, res: {}!", sheet_name, field, primary_id, code, res)
         return false
     end
     return true, SUCCESS
@@ -176,7 +176,7 @@ function GameDAO:delete(primary_id, sheet_name)
         if USE_CACHE then
             local code, res = cache_agent:delete(primary_id, sheet_name)
             if qfailed(code) then
-                log_err("[GameDAO][delete] delete (%s) failed primary_id(%s), code: %s, res: %s!",  sheet_name, primary_id, code, res)
+                log_err("[GameDAO][delete] delete ({}) failed primary_id({}), code: {}, res: {}!",  sheet_name, primary_id, code, res)
                 return false
             end
             return true, SUCCESS
@@ -192,21 +192,21 @@ function GameDAO:delete_mongo(sheet_name, primary_id)
     end
     local ok, code, res = mongo_agent:delete({ sheet_name, { [primary_key] = primary_id }, true })
     if qfailed(code, ok) then
-        log_err("[GameDAO][delete_mongo_%s] delete failed primary_id(%s), code: %s, res: %s!", sheet_name, primary_id, code, res)
+        log_err("[GameDAO][delete_mongo_{}] delete failed primary_id({}), code: {}, res: {}!", sheet_name, primary_id, code, res)
         return false
     end
     return true, SUCCESS
 end
 
 function GameDAO:on_db_prop_update(primary_id, sheet_name, db_key, value)
-    log_debug("[GameDAO][on_db_prop_update] %s db_key: %s.%s", primary_id, sheet_name, db_key)
+    log_debug("[GameDAO][on_db_prop_update] {} db_key: {}.{}", primary_id, sheet_name, db_key)
     self.recv_channel:push(function()
         return self:update_field(primary_id, sheet_name, db_key, value)
     end)
 end
 
 function GameDAO:on_db_prop_remove(primary_id, sheet_name, db_key)
-    log_debug("[GameDAO][on_db_prop_remove] %s db_key: %s.%s", primary_id, sheet_name, db_key)
+    log_debug("[GameDAO][on_db_prop_remove] {} db_key: {}.{}", primary_id, sheet_name, db_key)
     self.recv_channel:push(function()
         return self:remove_field(primary_id, sheet_name, db_key)
     end)
@@ -228,7 +228,7 @@ end
 function GameDAO:execute(primary_id, cmd, ...)
     local ok, code, result = redis_agent:execute({ cmd, ... }, primary_id)
     if qfailed(code, ok) then
-        log_err("[GameDAO][execute] execute (%s) failed: code: %s, res: %s!",  cmd, code, result)
+        log_err("[GameDAO][execute] execute ({}) failed: code: {}, res: {}!",  cmd, code, result)
         return code
     end
     return code, result

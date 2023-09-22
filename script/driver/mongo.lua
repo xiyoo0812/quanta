@@ -156,14 +156,14 @@ function MongoDB:login(socket)
     local id, ip, port = socket.id, socket.ip, socket.port
     local ok, err = socket:connect(ip, port)
     if not ok then
-        log_err("[MongoDB][login] connect db(%s:%s:%s:%s) failed: %s!", ip, port, self.name, id, err)
+        log_err("[MongoDB][login] connect db({}:{}:{}:{}) failed: {}!", ip, port, self.name, id, err)
         return false
     end
     socket:set_codec(self.codec)
     if self.user and self.passwd then
         local aok, aerr = self:auth(socket, self.user, self.passwd)
         if not aok then
-            log_err("[MongoDB][login] auth db(%s:%s:%s:%s) failed! because: %s", ip, port, self.name, id, aerr)
+            log_err("[MongoDB][login] auth db({}:{}:{}:{}) failed! because: {}", ip, port, self.name, id, aerr)
             self:delive(socket)
             socket:close()
             return false
@@ -171,7 +171,7 @@ function MongoDB:login(socket)
     end
     self.connections[id] = nil
     tinsert(self.alives, socket)
-    log_info("[MongoDB][login] connect db(%s:%s:%s:%s) success!", ip, port,self.name, id)
+    log_info("[MongoDB][login] connect db({}:{}:{}:{}) success!", ip, port,self.name, id)
     return true, SUCCESS
 end
 
@@ -263,7 +263,7 @@ function MongoDB:on_socket_error(sock, token, err)
         self:check_alive()
     end)
     for session_id, cmd in pairs(sock.sessions) do
-        log_warn("[MongoDB][on_socket_error] drop cmd %s-%s)!", cmd, session_id)
+        log_warn("[MongoDB][on_socket_error] drop cmd {}-{})!", cmd, session_id)
         thread_mgr:response(session_id, false, err)
     end
     sock.sessions = {}
@@ -304,10 +304,10 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
         sock.sessions[session_id] = nil
         local utime = lclock_ms() - tick
         if utime > FAST_MS then
-            log_warn("[MongoDB][op_msg] cmd (%s:%s) execute so big %s!", cmd, session_id, utime)
+            log_warn("[MongoDB][op_msg] cmd ({}:{}) execute so big {}!", cmd, session_id, utime)
         end
     end)
-    return thread_mgr:yield(session_id, sformat("mongo_op:%s", cmd), DB_TIMEOUT)
+    return thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
 end
 
 function MongoDB:adminCommand(sock, cmd, cmd_v, ...)

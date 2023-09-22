@@ -17,7 +17,7 @@ function MaterTest:__init()
 end
 
 function MaterTest:test_master_rpc(a, b, c, d)
-    log_debug("[MaterTest][test_master_rpc] %s, %s, %s, %s", a, b, c, d)
+    log_debug("[MaterTest][test_master_rpc] {}, {}, {}, {}", a, b, c, d)
     return a + b, c + d
 end
 
@@ -26,8 +26,8 @@ quanta.master_test = MaterTest()
 timer_mgr:loop(2000, function()
     local ok, res1, res2 = scheduler:call("wtest", "test_worker_rpc", 1, 2, 3, 4)
     if not ok then
-        log_err("[scheduler][call] test_worker_rpc failed: %s", res1)
+        log_err("[scheduler][call] test_worker_rpc failed: {}", res1)
         return
     end
-    log_debug("[scheduler][call] test_worker_rpc success: %s, %s", res1, res2)
+    log_debug("[scheduler][call] test_worker_rpc success: {}, {}", res1, res2)
 end)

@@ -35,7 +35,7 @@ function quanta.check_endless_loop()
     local debug_hook = function()
         local now = otime()
         if now - quanta.now >= 10 then
-            log_err("check_endless_loop:%s", dtraceback())
+            log_err("check_endless_loop:{}", dtraceback())
         end
     end
     dsethook(debug_hook, "l")
@@ -49,7 +49,7 @@ function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then
         local info = dgetinfo(2, "S")
-        log_err("[quanta][get] %s not initial! source(%s:%s)", name, info.short_src, info.linedefined)
+        log_err("[quanta][get] {} not initial! source({}:{})", name, info.short_src, info.linedefined)
         return
     end
     return global_obj
@@ -60,13 +60,13 @@ function quanta.enum(ename, ekey)
     local eobj = enum(ename)
     if not eobj then
         local info = dgetinfo(2, "S")
-        log_err("[quanta][enum] %s not initial! source(%s:%s)", ename, info.short_src, info.linedefined)
+        log_err("[quanta][enum] {} not initial! source({}:{})", ename, info.short_src, info.linedefined)
         return
     end
     local eval = eobj[ekey]
     if not eval then
         local info = dgetinfo(2, "S")
-        log_err("[quanta][enum] %s.%s not defined! source(%s:%s)", ename, ekey, info.short_src, info.linedefined)
+        log_err("[quanta][enum] {}.{} not defined! source({}:{})", ename, ekey, info.short_src, info.linedefined)
         return
     end
     return eval

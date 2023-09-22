@@ -134,6 +134,6 @@ quanta.run = function()
     local io_ms = clock_ms - sclock_ms
     local work_ms = lclock_ms() - sclock_ms
     if work_ms > HALF_MS or io_ms > FAST_MS then
-        log_warn("[quanta][run] last frame too long => all:%d, net:%d)!", work_ms, io_ms)
+        log_warn("[quanta][run] last frame too long => all:{}, net:{})!", work_ms, io_ms)
     end
 end

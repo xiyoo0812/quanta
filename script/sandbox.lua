@@ -6,11 +6,12 @@ local loadfile      = loadfile
 local iopen         = io.open
 local mabs          = math.abs
 local ogetenv       = os.getenv
-local log_info      = log.info
-local log_err       = log.error
+local lprint        = log.print
 local sformat       = string.format
 local traceback     = debug.traceback
 local file_time     = stdfs.last_write_time
+
+local LOG_LEVEL     = log.LOG_LEVEL
 
 local FEATURE       = "devops"
 local TITLE         = quanta.title
@@ -18,11 +19,11 @@ local TITLE         = quanta.title
 local load_status = "success"
 local log_error = function(content)
     load_status = "failed"
-    log_err(content, TITLE, FEATURE)
+    lprint(LOG_LEVEL.ERROR, 0, TITLE, FEATURE, content)
 end
 
 local log_output = function(content)
-    log_info(content, TITLE)
+    lprint(LOG_LEVEL.INFO, 0, TITLE, FEATURE, content)
 end
 
 local function ssplit(str, token)
@@ -112,9 +113,9 @@ function quanta.report(type)
     local divider = "----------------------------------------------------------------------------------------"
     local fmt = '{"type":"%s","pid":"%s","state":"%s","time":%s,"service":"%s"}'
     local str = sformat(fmt, type, quanta.pid, load_status, os.time(),  quanta.name)
-    log_info(divider, TITLE, FEATURE)
-    log_info(str, TITLE, FEATURE)
-    log_info(divider, TITLE, FEATURE)
+    log_output(divider)
+    log_output(str)
+    log_output(divider)
 end
 
 function quanta.reload()

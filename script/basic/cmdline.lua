@@ -99,7 +99,7 @@ end
 --command = "player_id|integer aa|table bb|string dd|number"
 function Cmdline:register_command(name, command, desc, cmd_type, group, tip, example, service)
     if self.commands[name] then
-        log_warn("[Cmdline][register_command] command (%s) repeat registered!", name)
+        log_warn("[Cmdline][register_command] command ({}) repeat registered!", name)
         return false
     end
     local def_args = {}
@@ -112,7 +112,7 @@ function Cmdline:register_command(name, command, desc, cmd_type, group, tip, exa
     --组织显示结构
     local nodes = self:find_group(group)
     tinsert(nodes, { text = desc, name = name, command = command, tip = tip, example = example, tag = "gm" })
-    log_info("[Cmdline][register_command] command (%s) registered!", name)
+    log_info("[Cmdline][register_command] command ({}) registered!", name)
     return true
 end
 
@@ -123,7 +123,7 @@ function Cmdline:parser_data(cmd_data)
     local cmd_name = cmd_data.name
     local cmd_define = self.commands[cmd_name]
     if not cmd_define then
-        log_err("[Cmdline][parser_data] invalid command (%s): isn't registered!", cmd_name)
+        log_err("[Cmdline][parser_data] invalid command ({}): isn't registered!", cmd_name)
         return nil, "invalid command: isn't registered"
     end
     local define_args = cmd_define.args
@@ -132,7 +132,7 @@ function Cmdline:parser_data(cmd_data)
         local arg = cmd_data[def_arg.name]
         if not arg then
             local err = sformat("invalid command: argument %s is not exist", def_arg.name)
-            log_err("[Cmdline][parser_data] (%s) %s!", cmd_name, err)
+            log_err("[Cmdline][parser_data] ({}) {}!", cmd_name, err)
             return nil, err
         end
         tinsert(fmtinfos, def_arg.name)
@@ -154,12 +154,12 @@ function Cmdline:parser_command(argument)
     local pattern = "([%a%d%_]+)"
     local cmd_name = smatch(argument, pattern)
     if not cmd_name then
-        log_err("[Cmdline][parser_command] invalid command (%s): name parse error!", argument)
+        log_err("[Cmdline][parser_command] invalid command ({}): name parse error!", argument)
         return nil, "invalid command: name parse error"
     end
     local cmd_define = self.commands[cmd_name]
     if not cmd_define then
-        log_err("[Cmdline][parser_command] invalid command (%s): isn't registered!", argument)
+        log_err("[Cmdline][parser_command] invalid command ({}): isn't registered!", argument)
         return nil, "invalid command: isn't registered"
     end
     local define_args = cmd_define.args
@@ -168,13 +168,13 @@ function Cmdline:parser_command(argument)
     end
     local argsfunc = sgmatch(argument .. " ", pattern .. blank)
     if not argsfunc then
-        log_err("[Cmdline][parser_command] invalid command (%s): format error!", argument)
+        log_err("[Cmdline][parser_command] invalid command ({}): format error!", argument)
         return nil, "invalid command: format error"
     end
     local args = tpack(argsfunc())
     if #args ~= (#define_args + 1) then
         local err = sformat("invalid command: argument need %d but get %d", #define_args, #args)
-        log_err("[Cmdline][parser_command] (%s): %s!", argument, err)
+        log_err("[Cmdline][parser_command] ({}): {}!", argument, err)
         return nil, err
     end
     return convert_args(args, cmd_define)

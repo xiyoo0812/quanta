@@ -51,7 +51,7 @@ function LobbyServlet:check_login_token(open_id, token)
 end
 
 function LobbyServlet:rpc_update_login_token(open_id, token)
-    log_debug("[LobbyServlet][rpc_update_login_token] open_id(%s) token(%s)!", open_id, token)
+    log_debug("[LobbyServlet][rpc_update_login_token] open_id({}) token({})!", open_id, token)
     self.login_tokens[open_id] = { token, quanta.now + MINUTE_5_S }
     return FRAME_SUCCESS
 end
@@ -68,7 +68,7 @@ end
 function LobbyServlet:rpc_player_disconnect(player_id)
     local player = player_mgr:get_entity(player_id)
     if player then
-        log_warn("[LobbyServlet][rpc_player_disconnect] player(%s) offline", player_id)
+        log_warn("[LobbyServlet][rpc_player_disconnect] player({}) offline", player_id)
         player:offline()
     end
 end
@@ -85,7 +85,7 @@ end
 function LobbyServlet:rpc_player_command(player_id, cmd_id, message)
     local player = player_mgr:get_entity(player_id)
     if not player then
-        log_err("[LobbyServlet][rpc_player_command] need login cmd_id=%s, player_id=%s", cmd_id, player_id)
+        log_err("[LobbyServlet][rpc_player_command] need login cmd_id={}, player_id={}", cmd_id, player_id)
         return ROLE_NOT_EXIST
     end
     local result = event_mgr:notify_command(cmd_id, player, player_id, message)
@@ -96,7 +96,7 @@ function LobbyServlet:rpc_player_command(player_id, cmd_id, message)
 end
 
 function LobbyServlet:rpc_player_login(player_id, open_id, token)
-    log_debug("[LobbyServlet][rpc_player_login] open_id(%s) player(%s) token(%s)  login req!", open_id, player_id, token)
+    log_debug("[LobbyServlet][rpc_player_login] open_id({}) player({}) token({})  login req!", open_id, player_id, token)
     local account = player_mgr:load_account(open_id, player_id)
     if not account then
         return ROLE_TOKEN_ERR
@@ -104,12 +104,12 @@ function LobbyServlet:rpc_player_login(player_id, open_id, token)
     --验证token
     local ok, login_token = self:check_login_token(open_id, token)
     if not ok then
-        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, login_token)
+        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, login_token)
         return ROLE_TOKEN_ERR
     end
     local player = player_mgr:load_player(account, player_id)
     if not player then
-        log_err("[LobbyServlet][rpc_player_login] load_player failed! player:%s", player_id)
+        log_err("[LobbyServlet][rpc_player_login] load_player failed! player:{}", player_id)
         return FRAME_FAILED
     end
     --通知登陆成功
@@ -122,23 +122,23 @@ function LobbyServlet:rpc_player_login(player_id, open_id, token)
         --通知登陆成功
         event_mgr:notify_trigger("on_login_success", player_id, player)
     end)
-    log_info("[LobbyServlet][rpc_player_login] player(%s) login success!", player_id)
+    log_info("[LobbyServlet][rpc_player_login] player({}) login success!", player_id)
     return FRAME_SUCCESS, new_token
 end
 
 function LobbyServlet:rpc_player_logout(player_id)
-    log_debug("[LobbyServlet][rpc_player_logout] player(%s) logout req!", player_id)
+    log_debug("[LobbyServlet][rpc_player_logout] player({}) logout req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
         return ROLE_NOT_EXIST
     end
     player_mgr:remove_entity(player, player_id)
-    log_info("[LobbyServlet][rpc_player_logout] player(%s) logout success!", player_id)
+    log_info("[LobbyServlet][rpc_player_logout] player({}) logout success!", player_id)
     return FRAME_SUCCESS
 end
 
 function LobbyServlet:rpc_player_reload(player_id, token)
-    log_debug("[LobbyServlet][rpc_player_reload] player(%s) reload req!", player_id)
+    log_debug("[LobbyServlet][rpc_player_reload] player({}) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
         return ROLE_NOT_EXIST
@@ -150,14 +150,14 @@ function LobbyServlet:rpc_player_reload(player_id, token)
     --验证token
     local old_token = account:get_reload_token()
     if token ~= old_token then
-        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:%s, token: %s-%s", player_id, token, old_token)
+        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, old_token)
         return ROLE_TOKEN_ERR
     end
     player:relive()
     local new_token = mrandom()
     account:set_reload_token(new_token)
     event_mgr:notify_trigger("on_reload_success", player_id, player)
-    log_debug("[LobbyServlet][rpc_player_reload] player(%s) reload success!", player_id)
+    log_debug("[LobbyServlet][rpc_player_reload] player({}) reload success!", player_id)
     return FRAME_SUCCESS, new_token
 end
 

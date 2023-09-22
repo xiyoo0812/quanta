@@ -3,18 +3,14 @@
 
 local pcall         = pcall
 local pairs         = pairs
-local tpack         = table.pack
 local tunpack       = table.unpack
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
-local lwarn         = log.warn
+local lprint        = log.print
 local lfilter       = log.filter
-local lis_filter    = log.is_filter
-local serialize     = luakit.serialize
 
 local LOG_LEVEL     = log.LOG_LEVEL
 
-local dispatching   = false
 local title         = quanta.title
 local monitors      = _ENV.monitors or {}
 
@@ -54,59 +50,53 @@ function logger.filter(level)
     end
 end
 
-local function logger_output(feature, notify, lvl, lvl_name, fmt, log_conf, ...)
-    if lis_filter(lvl) then
+local function logger_format(flag, feature, lvl, lvl_name, fmt, ...)
+    local ok, msg = pcall(sformat, fmt, ...)
+    if not ok then
+        local info = dgetinfo(4, "S")
+        local wfmt = "[logger][{}] format failed: {}, source({}:{})"
+        lprint(LOG_LEVEL.WARN, 0, title, feature, wfmt, lvl_name, msg, info.short_src, info.linedefined)
         return
     end
-    local content
-    local lvl_func, extend, swline = tunpack(log_conf)
-    if extend then
-        local args = tpack(...)
-        for i, arg in pairs(args) do
-            if type(arg) == "table" then
-                args[i] = serialize(arg, swline and 1 or 0)
-            end
-        end
-        content = sformat(fmt, tunpack(args, 1, args.n))
-    else
-        content = sformat(fmt, ...)
+    lprint(lvl, flag, title, feature, msg)
+end
+
+local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
+    if not fmt:find("{") then
+        return logger_format(flag, feature, lvl, lvl_name, fmt, ...)
     end
-    lvl_func(content, title, feature)
-    if notify and not dispatching then
-        --防止重入
-        dispatching = true
-        for monitor, mlvl in pairs(monitors) do
-            if lvl >= mlvl then
-                monitor:dispatch_log(content, lvl_name)
-            end
-        end
-        dispatching = false
+    local ok, msg = pcall(lprint, lvl, flag, title, feature, fmt, ...)
+    if not ok then
+        local info = dgetinfo(3, "S")
+        local wfmt = "[logger][{}] format failed: {}, source({}:{})"
+        lprint(LOG_LEVEL.WARN, 0, title, feature, wfmt, lvl_name, msg, info.short_src, info.linedefined)
+        return
     end
+    return msg
 end
 
 local LOG_LEVEL_OPTIONS = {
-    [LOG_LEVEL.INFO]    = { "info",  { log.info,  false, false } },
-    [LOG_LEVEL.WARN]    = { "warn",  { log.warn,  true,  false } },
-    [LOG_LEVEL.DUMP]    = { "dump",  { log.dump,  true,  true  } },
-    [LOG_LEVEL.DEBUG]   = { "debug", { log.debug, true,  false } },
-    [LOG_LEVEL.ERROR]   = { "err",   { log.error, true,  false } },
-    [LOG_LEVEL.FATAL]   = { "fatal", { log.fatal, true,  false } }
+    [LOG_LEVEL.INFO]    = { "info",  0x00 },
+    [LOG_LEVEL.WARN]    = { "warn",  0x01 },
+    [LOG_LEVEL.DEBUG]   = { "debug", 0x01 },
+    [LOG_LEVEL.ERROR]   = { "err",   0x01 },
+    [LOG_LEVEL.FATAL]   = { "fatal", 0x01 },
+    [LOG_LEVEL.DUMP]    = { "dump",  0x01 | 0x02 },
 }
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
-    local lvl_name, log_conf = tunpack(conf)
+    local lvl_name, flag = tunpack(conf)
     logger[lvl_name] = function(fmt, ...)
-        local ok, res = pcall(logger_output, "", true, lvl, lvl_name, fmt, log_conf, ...)
-        if not ok then
-            local info = dgetinfo(2, "S")
-            lwarn(sformat("[logger][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
-            return false
+        local msg = logger_output(flag, "", lvl, lvl_name, fmt, ...)
+        if msg then
+            for monitor in pairs(monitors) do
+                monitor:dispatch_log(msg, lvl_name)
+            end
         end
-        return res
     end
 end
 
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
-    local lvl_name, log_conf = tunpack(conf)
+    local lvl_name, flag = tunpack(conf)
     logfeature[lvl_name] = function(feature, path, prefix, clean_time)
         log.add_dest(feature, path)
         log.ignore_prefix(feature, prefix)
@@ -114,13 +104,7 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
             log.set_dest_clean_time(feature, clean_time)
         end
         return function(fmt, ...)
-            local ok, res = pcall(logger_output, feature, false, lvl, lvl_name, fmt, log_conf, ...)
-            if not ok then
-                local info = dgetinfo(2, "S")
-                lwarn(sformat("[logfeature][%s] format failed: %s, source(%s:%s)", lvl_name, res, info.short_src, info.linedefined))
-                return false
-            end
-            return res
+            logger_output(flag, feature, lvl, lvl_name, fmt, ...)
         end
     end
 end

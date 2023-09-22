@@ -36,12 +36,12 @@ end
 -- 初始化
 function Entity:setup(conf)
     if not self:load(conf) then
-        log_warn("[Entity][setup] entity %s load faild!", self.id)
+        log_warn("[Entity][setup] entity {} load faild!", self.id)
         return false
     end
     local setup_ok = self:collect("_setup")
     if not setup_ok then
-        log_warn("[Entity][setup] entity %s setup faild!", self.id)
+        log_warn("[Entity][setup] entity {} setup faild!", self.id)
         return setup_ok
     end
     return setup_ok

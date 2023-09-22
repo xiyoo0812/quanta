@@ -85,7 +85,7 @@ function Player:load(conf)
     self:invoke("_load", channel, self.id)
     local ok, code =  channel:execute()
     if not ok then
-        log_warn("[Player][load] player(%s) failed: %s!", self.id, code)
+        log_warn("[Player][load] player({}) failed: {}!", self.id, code)
     end
     return ok
 end
@@ -127,7 +127,7 @@ function Player:check(now)
     if self.status == ONL_LOADING then
         --加载失败
         if now_ms - self.active_time > SECOND_5_MS then
-            log_warn("[Player][check] player(%s) load too long, will be destory!", self.id)
+            log_warn("[Player][check] player({}) load too long, will be destory!", self.id)
             self:set_release(true)
             self.status = ONL_CLOSE
         end
@@ -136,7 +136,7 @@ function Player:check(now)
     if self.status == ONL_OFFLINE then
         --掉线清理
         if now_ms - self.active_time > OFFTIMEOUT then
-            log_warn("[Player][check] player(%s) offline too long, will be destory!", self.id)
+            log_warn("[Player][check] player({}) offline too long, will be destory!", self.id)
             self:set_release(true)
             self.status = ONL_CLOSE
         end
@@ -161,7 +161,7 @@ function Player:online()
     --load success
     self:save_login_time(quanta.now)
     self.load_success = true
-    log_info("[Player][online] player(%s) is online!", self.id)
+    log_info("[Player][online] player({}) is online!", self.id)
 end
 
 --掉线
@@ -170,7 +170,7 @@ function Player:offline()
     self.active_time = quanta.now_ms
     --invoke
     self:invoke("_offline")
-    log_warn("[Player][offline] player(%s) is offline!", self.id)
+    log_warn("[Player][offline] player({}) is offline!", self.id)
 end
 
 function Player:relive()
@@ -179,7 +179,7 @@ function Player:relive()
     self.active_time = quanta.now_ms
     --invoke
     self:invoke("_relive")
-    log_warn("[Player][relive] player(%s) is relive!", self.id)
+    log_warn("[Player][relive] player({}) is relive!", self.id)
 end
 
 --unload

@@ -34,11 +34,11 @@ function RobotMgr:load_robot()
     local robot_db = config_mgr:init_table("robot", "index")
     local conf = robot_db:find_one(index)
     if not conf then
-        log_err("[RobotMgr][setup] robot config(%s) is empty", index)
+        log_err("[RobotMgr][setup] robot config({}) is empty", index)
         signalquit()
         return
     end
-    log_debug("[RobotMgr][setup] robot config(%s) is loading!", index)
+    log_debug("[RobotMgr][setup] robot config({}) is loading!", index)
     local ip, port = env_addr("QUANTA_ROBOT_ADDR")
     local robot_count = env_number("QUANTA_COUNT", conf.count)
     --指定账号模式，只能一个机器人
@@ -57,7 +57,7 @@ end
 
 -- setup
 function RobotMgr:create_robot_bt(ip, port, conf, index)
-    log_debug("[RobotMgr][create_robot_bt]: %s:%s %s(%s)", ip, port, index, conf)
+    log_debug("[RobotMgr][create_robot_bt]: {}:{} {}({})", ip, port, index, conf)
     local robot = RobotBT(conf, index)
     if conf.openid_type == RRANDOM then
         robot:set_open_id(guid_string())
@@ -84,7 +84,7 @@ end
 
 -- setup
 function RobotMgr:create_robot(ip, port, open_id, passwd)
-    log_debug("[RobotMgr][create_robot]: %s:%s %s(%s)", ip, port, open_id, passwd)
+    log_debug("[RobotMgr][create_robot]: {}:{} {}({})", ip, port, open_id, passwd)
     local robot = Robot()
     robot:set_ip(ip)
     robot:set_port(port)

@@ -41,10 +41,10 @@ function RedisMgr:execute(db_id, cmd, ...)
     if redisdb then
         local res = tpack(redisdb:execute(cmd, ...))
         if not res[1] then
-            log_err("[RedisMgr][execute] execute %s (%s) failed, because: %s", cmd, {...}, res[2])
+            log_err("[RedisMgr][execute] execute {} ({}) failed, because: {}", cmd, {...}, res[2])
             return res[1] and SUCCESS or REDIS_FAILED, res[2]
         end
-        log_debug("[RedisMgr][execute]: cmd %s, args: %s", cmd, {...})
+        log_debug("[RedisMgr][execute]: cmd {}, args: {}", cmd, {...})
         return SUCCESS, tunpack(res, 2)
     end
     return REDIS_FAILED, "redis db not exist"

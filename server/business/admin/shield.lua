@@ -37,7 +37,7 @@ function Shield:rpc_add_proto_shield(start_cmd_id, count)
     for cmd_id = start_cmd_id, end_cmd_id do
         self.filters[cmd_id] = true
     end
-    log_info("[Shield][rpc_add_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
+    log_info("[Shield][rpc_add_shield] start_cmd_id={} count={}", start_cmd_id, count)
 end
 
 -- 删除协议过滤
@@ -46,12 +46,12 @@ function Shield:rpc_del_proto_shield(start_cmd_id, count)
     for cmd_id = start_cmd_id, end_cmd_id do
         self.filters[cmd_id] = nil
     end
-    log_info("[Shield][rpc_del_shield] start_cmd_id=%s count=%s", start_cmd_id, count)
+    log_info("[Shield][rpc_del_shield] start_cmd_id={} count={}", start_cmd_id, count)
 end
 
 -- 清理过滤协议
 function Shield:rpc_shield_service_proto(service_type, status)
-    log_info("[Shield][rpc_shield_service_proto] service_type=%s status=%s", service_type, status)
+    log_info("[Shield][rpc_shield_service_proto] service_type={} status={}", service_type, status)
     self.services[service_type] = status
 end
 

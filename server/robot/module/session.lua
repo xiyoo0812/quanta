@@ -33,12 +33,12 @@ end
 
 -- 连接成回调
 function SessionModule:on_socket_connect(client)
-    log_debug("[SessionModule][on_socket_connect] %s", self:get_title())
+    log_debug("[SessionModule][on_socket_connect] {}", self:get_title())
 end
 
 -- 连接关闭回调
 function SessionModule:on_socket_error(client, token, err)
-    log_debug("[SessionModule][on_socket_error] %s, err:%s", self:get_title(), err)
+    log_debug("[SessionModule][on_socket_error] {}, err:{}", self:get_title(), err)
 end
 
 --消息回调
@@ -50,7 +50,7 @@ end
 function SessionModule:on_socket_rpc(client, cmd_id, body)
     local doer = self.cmd_doers[cmd_id]
     if not doer then
-        log_warn("[SessionModule][on_socket_rpc] cmd %s hasn't register doer!, msg=%s", cmd_id, body)
+        log_warn("[SessionModule][on_socket_rpc] cmd {} hasn't register doer!, msg={}", cmd_id, body)
         return
     end
     local module, handler = tunpack(doer)

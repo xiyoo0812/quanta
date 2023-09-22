@@ -46,7 +46,7 @@ function MongoMgr:get_db(db_id)
 end
 
 function MongoMgr:find(db_id, primary_id, coll_name, selector, fields, sortor, limit)
-    log_debug("[MongoMgr][find]: %s, selector:%s", coll_name, selector)
+    log_debug("[MongoMgr][find]: {}, selector:{}", coll_name, selector)
     local mongodb = self:get_db(db_id)
     if mongodb and mongodb:set_executer(primary_id) then
         mongodb:set_executer(primary_id)
@@ -57,7 +57,7 @@ function MongoMgr:find(db_id, primary_id, coll_name, selector, fields, sortor, l
 end
 
 function MongoMgr:find_one(db_id, primary_id, coll_name, selector, fields)
-    log_debug("[MongoMgr][find_one]: %s, selector:%s", coll_name, selector)
+    log_debug("[MongoMgr][find_one]: {}, selector:{}", coll_name, selector)
     local mongodb = self:get_db(db_id)
     if mongodb and mongodb:set_executer(primary_id) then
         local ok, res_oe = mongodb:find_one(coll_name, selector, fields or {_id = 0})
@@ -67,7 +67,7 @@ function MongoMgr:find_one(db_id, primary_id, coll_name, selector, fields)
 end
 
 function MongoMgr:insert(db_id, primary_id, coll_name, obj)
-    log_debug("[MongoMgr][insert]: %s, obj:%s", coll_name, obj)
+    log_debug("[MongoMgr][insert]: {}, obj:{}", coll_name, obj)
     local mongodb = self:get_db(db_id)
     if mongodb and mongodb:set_executer(primary_id) then
         local ok, res_oe = mongodb:insert(coll_name, obj)
@@ -77,7 +77,7 @@ function MongoMgr:insert(db_id, primary_id, coll_name, obj)
 end
 
 function MongoMgr:update(db_id, primary_id, coll_name, obj, selector, upsert, multi)
-    log_debug("[MongoMgr][update]: %s, obj:%s, selector:%s", coll_name, obj, selector)
+    log_debug("[MongoMgr][update]: {}, obj:{}, selector:{}", coll_name, obj, selector)
     local mongodb = self:get_db(db_id)
     if mongodb and mongodb:set_executer(primary_id) then
         local ok, res_oe = mongodb:update(coll_name, obj, selector, upsert, multi)
@@ -87,7 +87,7 @@ function MongoMgr:update(db_id, primary_id, coll_name, obj, selector, upsert, mu
 end
 
 function MongoMgr:delete(db_id, primary_id, coll_name, selector, onlyone)
-    log_debug("[MongoMgr][delete]: %s, selector:%s", coll_name, selector)
+    log_debug("[MongoMgr][delete]: {}, selector:{}", coll_name, selector)
     local mongodb = self:get_db(db_id)
     if mongodb and mongodb:set_executer(primary_id) then
         local ok, res_oe = mongodb:delete(coll_name, selector, onlyone)

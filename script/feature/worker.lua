@@ -126,15 +126,15 @@ quanta.run = function()
         local io_ms = clock_ms - sclock_ms
         local work_ms = lclock_ms() - sclock_ms
         if work_ms > HALF_MS or io_ms > FAST_MS then
-            log_warn("[worker][run] last frame too long => all:%d, net:%d)!", work_ms, io_ms)
+            log_warn("[worker][run] last frame too long => all:{}, net:{})!", work_ms, io_ms)
         end
-    end, "worker run err: %s")
+    end, "worker run err: {}")
 end
 
 --事件分发
 local function notify_rpc(session_id, title, rpc, ...)
     if rpc == "on_reload" then
-        log_info("[Worker][on_reload]worker:%s reload for signal !", TITLE)
+        log_info("[Worker][on_reload]worker:{} reload for signal !", TITLE)
         --重新加载脚本
         quanta.reload()
         --事件通知

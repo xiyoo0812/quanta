@@ -76,7 +76,7 @@ end
 
 --清理缓存
 function CacheMgr:on_cache_load(group_name, primary_id)
-    log_debug("[CacheMgr][on_cache_load] group_name=%s, primary=%s", group_name, primary_id)
+    log_debug("[CacheMgr][on_cache_load] group_name={}, primary={}", group_name, primary_id)
     local groups = self.caches[group_name]
     if groups then
         groups:del(primary_id)
@@ -178,7 +178,7 @@ function CacheMgr:load_group(coll_name, primary_id)
     local Group = import("cache/group.lua")
     local group = Group(group_name)
     if not group:load(primary_id, gconfs) then
-        log_err("[CacheMgr][load_group] group load failed! coll_name=%s, primary=%s", group_name, primary_id)
+        log_err("[CacheMgr][load_group] group load failed! coll_name={}, primary={}", group_name, primary_id)
         return DB_LOAD_ERR
     end
     local groups = self.caches[group_name]
@@ -204,10 +204,10 @@ end
 function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
     local group_name = self.collections[ROUTER_COL]
     local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
-    log_debug("[CacheMgr][rpc_router_update] router_id=%s, primary=%s, service: %s-%s", router_id, primary_id, serv_name, serv_id)
+    log_debug("[CacheMgr][rpc_router_update] router_id={}, primary={}, service: {}-{}", router_id, primary_id, serv_name, serv_id)
     local ccode, doc = self:load_document(ROUTER_COL, primary_id)
     if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_router_update] load_document failed! primary=%s", primary_id)
+        log_err("[CacheMgr][rpc_router_update] load_document failed! primary={}", primary_id)
         return ccode
     end
     if serv_name and serv_id then
@@ -240,10 +240,10 @@ function CacheMgr:rpc_cache_load(primary_id, coll_name)
     local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
-        log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name=%s, primary=%s", coll_name, primary_id)
+        log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
     end
-    log_debug("[CacheMgr][rpc_cache_load] coll_name=%s, primary=%s", coll_name, primary_id)
+    log_debug("[CacheMgr][rpc_cache_load] coll_name={}, primary={}", coll_name, primary_id)
     return code, doc:get_datas()
 end
 
@@ -252,10 +252,10 @@ function CacheMgr:rpc_cache_update_field(primary_id, coll_name, field, field_dat
     local _<close> = thread_mgr:lock(primary_id, true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_cache_update_field] load_document failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
+        log_err("[CacheMgr][rpc_cache_update_field] load_document failed! coll_name={}, primary={}, field={}", coll_name, primary_id, field)
         return ccode
     end
-    log_debug("[CacheMgr][rpc_cache_update_field] coll_name=%s, primary=%s, field=%s, data:%s", coll_name, primary_id, field, field_data)
+    log_debug("[CacheMgr][rpc_cache_update_field] coll_name={}, primary={}, field={}, data:{}", coll_name, primary_id, field, field_data)
     doc:update_field(field, field_data)
     return SUCCESS
 end
@@ -266,11 +266,11 @@ function CacheMgr:rpc_cache_remove_field(primary_id, coll_name, field)
     local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_cache_remove_field] load_document failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
+        log_err("[CacheMgr][rpc_cache_remove_field] load_document failed! coll_name={}, primary={}, field={}", coll_name, primary_id, field)
         return ccode
     end
     doc:remove_field(field)
-    log_debug("[CacheMgr][rpc_cache_remove_field] coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
+    log_debug("[CacheMgr][rpc_cache_remove_field] coll_name={}, primary={}, field={}", coll_name, primary_id, field)
     return SUCCESS
 end
 
@@ -280,27 +280,27 @@ function CacheMgr:rpc_cache_delete(primary_id, coll_name)
     local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_cache_delete] load_document failed! coll_name=%s, primary=%s", coll_name, primary_id)
+        log_err("[CacheMgr][rpc_cache_delete] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return ccode
     end
     local ok, code = doc:destory()
     if qfailed(code, ok) then
         self.del_documents[doc] = true
-        log_err("[CacheMgr][rpc_cache_delete] delete failed! coll_name=%s, primary=%s", coll_name, primary_id)
+        log_err("[CacheMgr][rpc_cache_delete] delete failed! coll_name={}, primary={}", coll_name, primary_id)
         return DELETE_FAILD
     end
-    log_debug("[CacheMgr][rpc_cache_delete] coll_name=%s, primary=%s", coll_name, primary_id)
+    log_debug("[CacheMgr][rpc_cache_delete] coll_name={}, primary={}", coll_name, primary_id)
     return SUCCESS
 end
 
 --复制缓存
 function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
-    log_debug("[CacheMgr][rpc_cache_copy] coll_name=%s, src_id=%s, to_id=%s", coll_name, src_id, to_id)
+    log_debug("[CacheMgr][rpc_cache_copy] coll_name={}, src_id={}, to_id={}", coll_name, src_id, to_id)
     local group_name = self.collections[coll_name]
     local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, to_id), true)
     local src_code, src_doc, from_mem = self:load_document(coll_name, src_id)
     if qfailed(src_code) then
-        log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name=%s, src_id=%s", coll_name, src_id)
+        log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name={}, src_id={}", coll_name, src_id)
         return src_code
     end
     --原表是否为空
@@ -312,7 +312,7 @@ function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
     end
     local to_code, doc = self:load_document(coll_name, to_id)
     if qfailed(to_code) then
-        log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name=%s, to_id=%s", coll_name, to_id)
+        log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name={}, to_id={}", coll_name, to_id)
         if not from_mem then
             self:clear_document(coll_name, src_id)
         end
@@ -333,10 +333,10 @@ function CacheMgr:rpc_cache_signed(primary_id, coll_name)
     local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_cache_signed] load_document failed! coll_name=%s, primary=%s, field=%s", coll_name, primary_id, field)
+        log_err("[CacheMgr][rpc_cache_signed] load_document failed! coll_name={}, primary={}, field={}", coll_name, primary_id, field)
         return ccode
     end
-    log_debug("[CacheMgr][rpc_cache_signed] coll_name=%s, primary=%s, field=%s, data:%s", coll_name, primary_id, field, field_data)
+    log_debug("[CacheMgr][rpc_cache_signed] coll_name={}, primary={}, field={}, data:{}", coll_name, primary_id, field, field_data)
     doc:update_field(field, field_data)
     --强制落库
     doc:update()

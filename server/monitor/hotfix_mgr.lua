@@ -35,10 +35,10 @@ function HotfixMgr:setup()
         thread_mgr:fork(function()
             self.config = import("hotfix/version.lua")
             self.dictionary = import("hotfix/dictionary.lua")
-            log_debug("[HotfixMgr][init_nacos] versions:%s", self.config)
+            log_debug("[HotfixMgr][init_nacos] versions:{}", self.config)
             --回调函数
             local config_changed = function(data_id, group, md5, cvalue)
-                log_debug("[HotfixMgr][config_changed]: dataid:%s md5:%s", data_id, md5)
+                log_debug("[HotfixMgr][config_changed]: dataid:{} md5:{}", data_id, md5)
                 self:hotfix_callback(group, md5, cvalue)
             end
             nacos:listen_config(self.config.data_id, self.config.group, self.config.md5, config_changed)
@@ -76,11 +76,11 @@ end
 function HotfixMgr:update_config(data_id, group, path)
     local content = nacos:get_config(data_id, group);
     if not content then
-        log_warn("[HotfixMgr][update_config] update script:%s failed!", path)
+        log_warn("[HotfixMgr][update_config] update script:{} failed!", path)
         return
     end
     self:encrypt(path, content)
-    log_debug("[HotfixMgr][update_config] update script: %s success!", path)
+    log_debug("[HotfixMgr][update_config] update script: {} success!", path)
 end
 
 --热更
@@ -88,7 +88,7 @@ function HotfixMgr:hotfix_callback(group, md5, cvalue)
     --加载字典文件
     local dic_func, err = load(cvalue)
     if not dic_func then
-        log_warn("[HotfixMgr][hotfix_callback] load dictionary failed: %s !", err)
+        log_warn("[HotfixMgr][hotfix_callback] load dictionary failed: {} !", err)
         return
     end
     --更新版本配置

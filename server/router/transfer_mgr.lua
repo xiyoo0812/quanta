@@ -39,7 +39,7 @@ end
 ------------------------------------------------------------------------------
 --踢出玩家
 function TransferMgr:rpc_router_clean(client, player_id)
-    log_info("[TransferMgr][rpc_router_clean] player_id : %s", player_id)
+    log_info("[TransferMgr][rpc_router_clean] player_id : {}", player_id)
     self.routers[player_id] = nil
     return SUCCESS
 end
@@ -48,10 +48,10 @@ end
 function TransferMgr:rpc_login_service(client, player_id, serv_name, serv_id)
     local routers = self:update_service(player_id, serv_name, serv_id)
     if routers then
-        log_info("[TransferMgr][rpc_login_service]: %s, service: %s-%s", player_id, serv_name, serv_id)
+        log_info("[TransferMgr][rpc_login_service]: {}, service: {}-{}", player_id, serv_name, serv_id)
         return SUCCESS
     end
-    log_warn("[TransferMgr][rpc_login_service]: %s, service: %s-%s failed!", player_id, serv_name, serv_id)
+    log_warn("[TransferMgr][rpc_login_service]: {}, service: {}-{} failed!", player_id, serv_name, serv_id)
     return RPC_FAILED
 end
 
@@ -73,7 +73,7 @@ function TransferMgr:on_broadcast_rpc(client, player_id, slice)
         routers = self:query_routers(player_id, NODE_ID)
     end
     if not routers then
-        log_warn("[TransferMgr][on_broadcast_rpc]: %s find routers failed!", player_id)
+        log_warn("[TransferMgr][on_broadcast_rpc]: {} find routers failed!", player_id)
         return
     end
     for _, server_id in pairs(routers) do
@@ -95,7 +95,7 @@ function TransferMgr:on_transfer_rpc(client, session_id, service_id, player_id, 
         if session_id > 0 then
             self.rpc_server:callback(client, session_id, false, PLAYER_NOT_EXIST)
         end
-        log_warn("[TransferMgr][on_transfer_rpc]: %s, service: %s failed!", player_id, serv_name)
+        log_warn("[TransferMgr][on_transfer_rpc]: {}, service: {} failed!", player_id, serv_name)
         return
     end
     self.rpc_server:transfer_call(session_id, routers[serv_name], slice)
@@ -122,7 +122,7 @@ function TransferMgr:update_service(pla_id, serv_name, serv_id)
     local routers = self:query_routers(pla_id, router_id, serv_name, serv_id)
     if not routers then
         self.routers[pla_id][serv_name] = old_serv_id
-        log_warn("[TransferMgr][update_service]: %s service: %s failed!", pla_id, serv_name)
+        log_warn("[TransferMgr][update_service]: {} service: {} failed!", pla_id, serv_name)
         return
     end
     return routers
@@ -136,7 +136,7 @@ function TransferMgr:query_service(player_id, serv_name)
     end
     local rrouters = self:query_routers(player_id, NODE_ID)
     if not rrouters then
-        log_warn("[TransferMgr][query_service]: %s service: %s failed!", player_id, serv_name)
+        log_warn("[TransferMgr][query_service]: {} service: {} failed!", player_id, serv_name)
         return RPC_FAILED
     end
     return SUCCESS, rrouters[serv_name]

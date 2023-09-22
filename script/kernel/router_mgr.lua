@@ -34,7 +34,7 @@ end
 
 --服务关闭
 function RouterMgr:on_service_close(id, name)
-    log_debug("[RouterMgr][on_service_close] node: %s-%s", name, id)
+    log_debug("[RouterMgr][on_service_close] node: {}-{}", name, id)
     local router = self.routers[id]
     if router then
         router:set_holder(nil)
@@ -43,13 +43,13 @@ end
 
 --服务上线
 function RouterMgr:on_service_ready(id, name, info)
-    log_debug("[RouterMgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
+    log_debug("[RouterMgr][on_service_ready] node: {}-{}, info: {}", name, id, info)
     self:add_router(info.id, info.ip, info.port)
 end
 
 --服务被踢下线
 function RouterMgr:rpc_service_kickout(router_id, reason)
-    log_err("[RouterMgr][rpc_service_kickout] reason:%s router_id:%s", reason, router_id)
+    log_err("[RouterMgr][rpc_service_kickout] reason:{} router_id:{}", reason, router_id)
     signal_quit()
 end
 
@@ -66,13 +66,13 @@ end
 
 --错误处理
 function RouterMgr:on_socket_error(client, token, err)
-    log_err("[RouterMgr][on_socket_error] router lost %s:%s, err=%s", client.ip, client.port, err)
+    log_err("[RouterMgr][on_socket_error] router lost {}:{}, err={}", client.ip, client.port, err)
     self:check_router()
 end
 
 --连接成功
 function RouterMgr:on_socket_connect(client, res)
-    log_info("[RouterMgr][on_socket_connect] router %s:%s success!", client.ip, client.port)
+    log_info("[RouterMgr][on_socket_connect] router {}:{} success!", client.ip, client.port)
     client:register()
     self:check_router()
 end

@@ -36,12 +36,12 @@ function HttpServer:setup(http_addr)
     self.ip, self.port = saddr(http_addr)
     local socket = Socket(self)
     if not socket:listen(self.ip, self.port) then
-        log_err("[HttpServer][setup] now listen %s failed", http_addr)
+        log_err("[HttpServer][setup] now listen {} failed", http_addr)
         signalquit(1)
         return
     end
     socket:set_codec(self.hcodec)
-    log_info("[HttpServer][setup] listen(%s:%s) success!", self.ip, self.port)
+    log_info("[HttpServer][setup] listen({}:{}) success!", self.ip, self.port)
     self.listener = socket
 end
 
@@ -52,21 +52,21 @@ end
 
 function HttpServer:on_socket_error(socket, token, err)
     if socket == self.listener then
-        log_info("[HttpServer][on_socket_error] listener(%s:%s) close!", self.ip, self.port)
+        log_info("[HttpServer][on_socket_error] listener({}:{}) close!", self.ip, self.port)
         self.listener = nil
         return
     end
-    log_debug("[HttpServer][on_socket_error] client(token:%s) close(%s)!", token, err)
+    log_debug("[HttpServer][on_socket_error] client(token:{}) close({})!", token, err)
     self.clients[token] = nil
 end
 
 function HttpServer:on_socket_accept(socket, token)
-    --log_debug("[HttpServer][on_socket_accept] client(token:%s) connected!", token)
+    --log_debug("[HttpServer][on_socket_accept] client(token:{}) connected!", token)
     self.clients[token] = socket
 end
 
 function HttpServer:on_socket_recv(socket, method, url, params, headers, body)
-    log_debug("[HttpServer][on_socket_recv] recv: %s, %s, %s, %s, %s!", method, url, params, headers, body)
+    log_debug("[HttpServer][on_socket_recv] recv: {}, {}, {}, {}, {}!", method, url, params, headers, body)
     if method == "GET" then
         return self:on_http_request(self.get_handlers, socket, url, params, headers)
     end
@@ -83,25 +83,25 @@ end
 
 --注册get回调
 function HttpServer:register_get(url, handler, target)
-    log_debug("[HttpServer][register_get] url: %s", url)
+    log_debug("[HttpServer][register_get] url: {}", url)
     self.get_handlers[url] = { handler, target }
 end
 
 --注册post回调
 function HttpServer:register_post(url, handler, target)
-    log_debug("[HttpServer][register_post] url: %s", url)
+    log_debug("[HttpServer][register_post] url: {}", url)
     self.post_handlers[url] = { handler, target }
 end
 
 --注册put回调
 function HttpServer:register_put(url, handler, target)
-    log_debug("[HttpServer][register_put] url: %s", url)
+    log_debug("[HttpServer][register_put] url: {}", url)
     self.put_handlers[url] = { handler, target }
 end
 
 --注册del回调
 function HttpServer:register_del(url, handler, target)
-    log_debug("[HttpServer][register_del] url: %s", url)
+    log_debug("[HttpServer][register_del] url: {}", url)
     self.del_handlers[url] = { handler, target }
 end
 
@@ -126,7 +126,7 @@ function HttpServer:on_http_request(handlers, socket, url, ...)
             if type(handler) == "function" then
                 local ok, response, headers = pcall(handler, target, url, ...)
                 if not ok then
-                    log_err("[HttpServer][on_http_request] ok:%s, response:%s", ok, response)
+                    log_err("[HttpServer][on_http_request] ok:{}, response:{}", ok, response)
                     response = { code = 1, msg = response }
                 end
                 self:response(socket, 200, response, headers)
@@ -134,7 +134,7 @@ function HttpServer:on_http_request(handlers, socket, url, ...)
             end
         end
     end
-    log_warn("[HttpServer][on_http_request] request %s hasn't process!", url)
+    log_warn("[HttpServer][on_http_request] request {} hasn't process!", url)
     self:response(socket, 404, "this http request hasn't process!")
 end
 

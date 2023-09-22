@@ -240,7 +240,7 @@ end
 function GM_Mgr:exec_global_cmd(service_id, cmd_name, ...)
     local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_global_cmd] rpc_command_execute failed! service_id:%s, cmd_name=%s", service_id, cmd_name)
+        log_err("[GM_Mgr][exec_global_cmd] rpc_command_execute failed! service_id:{}, cmd_name={}", service_id, cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
@@ -252,7 +252,7 @@ function GM_Mgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
     local quanta_id = make_sid(service_id, index)
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_command_execute" , cmd_name, target_id, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_system_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        log_err("[GM_Mgr][exec_system_cmd] rpc_command_execute failed! cmd_name={}", cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
@@ -262,7 +262,7 @@ end
 function GM_Mgr:exec_service_cmd(service_id, cmd_name, ...)
     local ok, codeoe = router_mgr:broadcast(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_service_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        log_err("[GM_Mgr][exec_service_cmd] rpc_command_execute failed! cmd_name={}", cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = "success" }
@@ -272,7 +272,7 @@ end
 function GM_Mgr:exec_hash_cmd(service_id, cmd_name, target_id, ...)
     local ok, codeoe, res = router_mgr:call_hash(service_id, target_id, "rpc_command_execute", cmd_name, target_id, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_hash_cmd] rpc_command_execute failed! cmd_name=%s", cmd_name)
+        log_err("[GM_Mgr][exec_hash_cmd] rpc_command_execute failed! cmd_name={}", cmd_name)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
@@ -286,16 +286,16 @@ end
 
 --兼容在线和离线的玩家指令
 function GM_Mgr:exec_offline_cmd(service_id, cmd_name, player_id, ...)
-    log_debug("[GM_Mgr][exec_offline_cmd] cmd_name:%s player_id:%s", cmd_name, player_id)
+    log_debug("[GM_Mgr][exec_offline_cmd] cmd_name:{} player_id:{}", cmd_name, player_id)
     local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+        log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
         return { code = 1, msg = codeoe }
     end
     if codeoe == PLAYER_NOT_EXIST then
         ok, codeoe, res = router_mgr:call_lobby_hash(player_id, "rpc_command_execute", cmd_name, player_id, ...)
         if not ok then
-            log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! player_id:%s, cmd_name=%s", player_id, cmd_name)
+            log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! player_id:{}, cmd_name={}", player_id, cmd_name)
             return { code = 1, msg = codeoe }
         end
         return { code = codeoe, msg = res }
@@ -308,14 +308,14 @@ function GM_Mgr:exec_player_cmd(service_id, cmd_name, player_id, ...)
     if player_id == 0 then
         local ok, codeoe, res = router_mgr:call_lobby_random("rpc_command_execute", cmd_name, player_id, ...)
         if not ok then
-            log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+            log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
             return { code = 1, msg = codeoe }
         end
         return { code = codeoe, msg = res }
     end
     local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name=%s player_id=%s", cmd_name, player_id)
+        log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }

@@ -52,7 +52,7 @@ end
 function Scheduler:startup(name, entry)
     local ok, err = pcall(worker.startup, name, entry)
     if not ok then
-        log_err("[Scheduler][startup] startup failed: %s", err)
+        log_err("[Scheduler][startup] startup failed: {}", err)
     end
     return ok
 end

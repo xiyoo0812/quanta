@@ -21,9 +21,9 @@ function MongoMQ:setup(coll_name)
     local query = { coll_name, { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } } }
     local ok, code = mongo_agent:create_indexes(query)
     if qsuccess(code, ok) then
-        log_info("[MongoMQ][setup] rmsg table %s build due index success")
+        log_info("[MongoMQ][setup] rmsg table {} build due index success")
     end
-    log_info("[MongoMQ][setup] init rmsg coll: %s", coll_name)
+    log_info("[MongoMQ][setup] init rmsg coll: {}", coll_name)
 end
 
 -- 获取消息长度
@@ -49,7 +49,7 @@ end
 
 -- 删除消息
 function MongoMQ:delete_message(target_id, timestamp)
-    log_info("[MongoMQ][delete_message] delete message: %s", target_id)
+    log_info("[MongoMQ][delete_message] delete message: {}", target_id)
     local selecter = { ["$and"] = { { target_id = target_id }, { time = {["$lte"] = timestamp } }}}
     return mongo_agent:delete({ self.coll_name, selecter }, target_id)
 end
@@ -63,10 +63,10 @@ function MongoMQ:send_message(target_id, event, args, ttl)
     end
     local ok = mongo_agent:insert({ self.coll_name, doc }, target_id)
     if not ok then
-        log_err("[MongoMQ][send_message] send message failed: %s, %s", target_id, args)
+        log_err("[MongoMQ][send_message] send message failed: {}, {}", target_id, args)
         return ok
     end
-    log_debug("[MongoMQ][send_message] send message succeed: %s, %s", target_id, args)
+    log_debug("[MongoMQ][send_message] send message succeed: {}, {}", target_id, args)
     return ok
 end
 

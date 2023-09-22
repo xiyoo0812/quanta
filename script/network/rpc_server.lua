@@ -35,24 +35,24 @@ prop:reader("holder", nil)      --持有者
 --induce：根据 order 推导port
 function RpcServer:__init(holder, ip, port, induce)
     if not ip or not port then
-        log_err("[RpcServer][setup] ip:%s or port:%s is nil", ip, port)
+        log_err("[RpcServer][setup] ip:{} or port:{} is nil", ip, port)
         signalquit()
         return
     end
     local real_port = induce and (port + quanta.order - 1) or port
     local listener = socket_mgr.listen(ip, real_port)
     if not listener then
-        log_err("[RpcServer][setup] now listen %s:%s failed", ip, real_port)
+        log_err("[RpcServer][setup] now listen {}:{} failed", ip, real_port)
         signalquit()
         return
     end
     listener.on_accept = function(client)
-        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, client)
+        qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, client)
     end
     self.holder = holder
     self.listener = listener
     self.ip, self.port = ip, real_port
-    log_info("[RpcServer][setup] now listen %s:%s success!", ip, real_port)
+    log_info("[RpcServer][setup] now listen {}:{} success!", ip, real_port)
     event_mgr:add_listener(self, "rpc_heartbeat")
     event_mgr:add_listener(self, "rpc_register")
 end
@@ -96,14 +96,14 @@ function RpcServer:on_socket_accept(client)
     client.call_rpc = function(rpc, session_id, rpc_flag, ...)
         local send_len = client.call(session_id, rpc_flag, 0, rpc, ...)
         if send_len < 0 then
-            log_err("[RpcServer][call_rpc] call failed! code:%s", send_len)
+            log_err("[RpcServer][call_rpc] call failed! code:{}", send_len)
             return false
         end
         proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, SUCCESS
     end
     client.on_call = function(recv_len, session_id, rpc_flag, ...)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: %s", self, client, session_id, rpc_flag, recv_len, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, client, session_id, rpc_flag, recv_len, ...)
     end
     client.on_transfer = function(recv_len, session_id, service_id, target_id, slice)
         local function dispatch_rpc_message()
@@ -220,7 +220,7 @@ function RpcServer:rpc_register(client, node)
         if eclient then
             eclient.id = nil
             self:send(eclient, "rpc_service_kickout", quanta.id, "service replace")
-            log_warn("[RpcServer][rpc_heartbeat] client(%s) be kickout, service replace!", eclient.name)
+            log_warn("[RpcServer][rpc_heartbeat] client({}) be kickout, service replace!", eclient.name)
         end
         -- 通知注册
         client.id = client_id

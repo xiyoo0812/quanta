@@ -119,13 +119,13 @@ end
 
 --复制缓存数据
 function CacheGM:copy_cache(to_player_id, player_id, coll_name)
-    log_info("[CacheGM][copy_cache] to_player_id=%s, player_id=%s, coll_name=%s", to_player_id, player_id, coll_name)
+    log_info("[CacheGM][copy_cache] to_player_id={}, player_id={}, coll_name={}", to_player_id, player_id, coll_name)
     local coll_cfg = cache_db:find_one(coll_name)
     if not coll_cfg then
-        return sformat("%s not found cache", coll_name)
+        return sformat("{} not found cache", coll_name)
     end
     if not coll_cfg.copyable then
-        return sformat("%s cant copy", coll_name)
+        return sformat("{} cant copy", coll_name)
     end
 
     local ok = cache_mgr:rpc_cache_copy(to_player_id, player_id,  coll_name)
@@ -137,7 +137,7 @@ end
 
 --删除缓存
 function CacheGM:del_cache(player_id, coll_name)
-    log_info("[CacheGM][del_cache] player_id=%s coll_name=%s", player_id, coll_name)
+    log_info("[CacheGM][del_cache] player_id={} coll_name={}", player_id, coll_name)
     -- 通知服务
     local ok = cache_mgr:rpc_cache_delete(player_id, coll_name)
     if not ok then
@@ -148,29 +148,29 @@ end
 
 --更新缓存
 function CacheGM:update_cache(player_id, coll_name, field, field_data)
-    log_info("[CacheGM][update_cache] player_id:%s coll_name=%s field:%s, field_data:%s", player_id, coll_name, field, field_data)
+    log_info("[CacheGM][update_cache] player_id:{} coll_name={} field:{}, field_data:{}", player_id, coll_name, field, field_data)
 
     local pok, datas = pcall(unserialize, field_data)
     if not pok or not datas then
-        return sformat("parse failed. field_data:%s", field_data)
+        return sformat("parse failed. field_data:{}", field_data)
     end
 
     local ok = cache_mgr:rpc_cache_update_field(player_id, coll_name, field, datas)
     if not ok then
-        return sformat("failed code:%s", ok)
+        return sformat("failed code:{}", ok)
     end
     return "success"
 end
 
 --查询缓存
 function CacheGM:query_cache(player_id, coll_name)
-    log_info("[CacheGM][query_cache] player_id=%s coll_name=%s", player_id, coll_name)
+    log_info("[CacheGM][query_cache] player_id={} coll_name={}", player_id, coll_name)
     -- 通知服务
     local ok, doc = cache_mgr:load_document(coll_name, player_id)
     if not ok or not doc then
         return "cache not find"
     end
-    log_info("[CacheGM][query_cache] player_id=%s coll_name=%s datas:%s", player_id, coll_name, doc:get_datas())
+    log_info("[CacheGM][query_cache] player_id={} coll_name={} datas:{}", player_id, coll_name, doc:get_datas())
     return doc:get_datas()
 end
 

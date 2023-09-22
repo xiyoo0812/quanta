@@ -50,13 +50,13 @@ function Socket:listen(ip, port)
     end
     self.listener = socket_mgr.listen(ip, port, proto_text)
     if not self.listener then
-        log_err("[Socket][listen] failed to listen: %s:%d", ip, port)
+        log_err("[Socket][listen] failed to listen: {}:{}", ip, port)
         return false
     end
     self.ip, self.port = ip, port
-    log_info("[Socket][listen] start listen at: %s:%d", ip, port)
+    log_info("[Socket][listen] start listen at: {}:{}", ip, port)
     self.listener.on_accept = function(session)
-        qxpcall(self.on_socket_accept, "on_socket_accept: %s", self, session, ip, port)
+        qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session, ip, port)
     end
     return true
 end
@@ -81,7 +81,7 @@ function Socket:connect(ip, port, ptype)
     end
     local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_text)
     if not session then
-        log_err("[Socket][connect] failed to connect: %s:%s err=%s", ip, port, cerr)
+        log_err("[Socket][connect] failed to connect: {}:{} err={}", ip, port, cerr)
         return false, cerr
     end
     --设置阻塞id
@@ -126,7 +126,7 @@ function Socket:on_socket_error(token, err)
             self.token = nil
             self.session = nil
             self.alive = false
-            log_err("[Socket][on_socket_error] err: %s - %s!", err, token)
+            log_err("[Socket][on_socket_error] err: {} - {}!", err, token)
             self.host:on_socket_error(self, token, err)
         end
     end)

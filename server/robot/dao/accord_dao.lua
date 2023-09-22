@@ -23,7 +23,7 @@ end
 function AccordDao:add_accord_conf(data)
     local code, res = mongo_mgr:insert(1, mrandom(), "accord_conf", data,nil)
     if code ~= SUCCESS then
-        log_err("[AccordDao][add_accord_conf] name:%s", data.name, code, res)
+        log_err("[AccordDao][add_accord_conf] name:{}", data.name, code, res)
         return false
     end
     return true
@@ -34,7 +34,7 @@ function AccordDao:save_accord_conf(data)
     local udata = { ["$set"] = data }
     local code, res = mongo_mgr:update(1, mrandom(), "accord_conf", udata, { name = data.name })
     if code ~= SUCCESS then
-        log_err("[AccordDao][save_accord_conf] name:%s", data.name, code, res)
+        log_err("[AccordDao][save_accord_conf] name:{}", data.name, code, res)
         return false
     end
     return true
@@ -44,7 +44,7 @@ end
 function AccordDao:del_accord_conf(name)
     local code, res = mongo_mgr:delete(1, mrandom(), "accord_conf", { name = name })
     if code ~= SUCCESS then
-        log_err("[AccordDao][del_accord_conf] name:%s", name, code, res)
+        log_err("[AccordDao][del_accord_conf] name:{}", name, code, res)
         return false
     end
     return true
@@ -63,7 +63,7 @@ end
 function AccordDao:add_server(data)
     local code, res = mongo_mgr:insert(1, mrandom(), "accord_server", data)
     if code ~= SUCCESS then
-        log_err("[AccordDao][add_server] name:%s", data.name, code, res)
+        log_err("[AccordDao][add_server] name:{}", data.name, code, res)
         return false
     end
     return true
@@ -74,7 +74,7 @@ function AccordDao:save_server(data)
     local udata = { ["$set"] = data }
     local code, res = mongo_mgr:update(1, mrandom(), "accord_server", udata, { name = data.name })
     if code ~= SUCCESS then
-        log_err("[AccordDao][save_server] name:%s", data.name, code, res)
+        log_err("[AccordDao][save_server] name:{}", data.name, code, res)
         return false
     end
     return true
@@ -84,7 +84,7 @@ end
 function AccordDao:del_server(name)
     local code, res = mongo_mgr:delete(1, mrandom(), "accord_server", { name = name })
     if code ~= SUCCESS then
-        log_err("[AccordDao][del_server] name:%s", name, code, res)
+        log_err("[AccordDao][del_server] name:{}", name, code, res)
         return false
     end
     return true

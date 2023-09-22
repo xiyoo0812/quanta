@@ -93,7 +93,7 @@ function RedisDiscovery:on_subscribe_ready(channel, data)
     local node_id = node_data.id
     local sname = sid2name(node_id)
     if channel == CHANNEL_UP then
-        log_debug("[RedisDiscovery][quanta_register] data:%s", data)
+        log_debug("[RedisDiscovery][quanta_register] data:{}", data)
         if sname == "router" then
             self.routers[node_id] = node_data
             self.trigger:broadcast("rpc_service_changed", sname, { [node_id] = node_data }, {})
@@ -103,7 +103,7 @@ function RedisDiscovery:on_subscribe_ready(channel, data)
         self.trigger:broadcast_legal("rpc_service_changed", sname, { [node_id] = node_data }, {})
     end
     if channel == CHANNEL_DN then
-        log_debug("[RedisDiscovery][quanta_unregister] data:%s", data)
+        log_debug("[RedisDiscovery][quanta_unregister] data:{}", data)
         if sname == "router" then
             self.routers[node_id] = nil
             self.trigger:broadcast("rpc_service_changed", sname, {}, { [node_id] = node_data })
@@ -142,7 +142,7 @@ function RedisDiscovery:unregister(node_id)
     local sdata = self.locals[node_id]
     if sdata then
         self.locals[node_id] = nil
-        log_debug("[RedisDiscovery][unregister] node %s", node_id)
+        log_debug("[RedisDiscovery][unregister] node {}", node_id)
         self:del_instance(sdata)
     end
 end
@@ -157,7 +157,7 @@ function RedisDiscovery:query_instances()
     repeat
         local ok, next_cur, datas = self.redis:execute("HSCAN", SERVICE_KEY, cur, "count", 200)
         if not ok or not next_cur or not datas then
-            log_err("[RedisDiscovery][query_instances] query failed: cur:%s, datas:%s", next_cur, datas)
+            log_err("[RedisDiscovery][query_instances] query failed: cur:{}, datas:{}", next_cur, datas)
             return
         end
         for node_data, score in pairs(datas) do

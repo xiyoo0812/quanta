@@ -17,7 +17,7 @@ if not mesh then
 end
 
 local tiles = mesh.get_max_tiles()
-log_debug("load navmesh success, tiles : %s!", tiles)
+log_debug("load navmesh success, tiles : {}!", tiles)
 local query = mesh.create_query(64, 1)
 if not query then
     log_err("create navmesh query failed!")
@@ -29,17 +29,17 @@ for i = 1, 33000 do
     local x1, y1, z1 = query.random_point()
     local x2, y2, z2 = query.random_point()
     if (not query.point_valid(x1, y1, z1)) then
-        log_err('point (%s, %s, %s) is not valid', x1, y1, z1)
+        log_err('point ({}, {}, {}) is not valid', x1, y1, z1)
     end
     query.find_path(x1, y1, z1, x2, y2, z2)
 end
 local t2 = timer.time()
-log_debug("find_path  : %s!", t2 - t1)
+log_debug("find_path  : {}!", t2 - t1)
 
 local pos_x, pos_y, pos_z = query.random_point()
--- log_debug('pos: %s', { x = pos_x, y = pos_y, z = pos_z, })
+-- log_debug('pos: {}', { x = pos_x, y = pos_y, z = pos_z, })
 local rnd_x, rnd_y, rnd_z = query.around_point(pos_x, pos_y, pos_z, 30)
--- log_debug('rnd: %s', { x = rnd_x, y = rnd_y, z = rnd_z, })
+-- log_debug('rnd: {}', { x = rnd_x, y = rnd_y, z = rnd_z, })
 if (not query.point_valid(rnd_x, rnd_y, rnd_z)) then
-    log_err('point (%s, %s, %s) is not valid', rnd_x, rnd_y, rnd_z)
+    log_err('point ({}, {}, {}) is not valid', rnd_x, rnd_y, rnd_z)
 end

@@ -56,7 +56,7 @@ end
 --账号登陆
 function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     local open_id, access_token, platform = body.openid, body.session, body.platform
-    log_debug("[LoginServlet][on_account_login_req] open_id(%s) token(%s) body:%s login req!", open_id, access_token, body)
+    log_debug("[LoginServlet][on_account_login_req] open_id({}) token({}) body:{} login req!", open_id, access_token, body)
     if session.account then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
     end
@@ -68,7 +68,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         local ok, code, sdk_open_id, sdk_device_id = tunpack(result)
         local login_failed, login_code = qfailed(code, ok)
         if login_failed then
-            log_err("[LoginServlet][on_account_login_req] verify failed! open_id: %s token:%s code:%s", open_id, access_token, login_code)
+            log_err("[LoginServlet][on_account_login_req] verify failed! open_id: {} token:{} code:{}", open_id, access_token, login_code)
             client_mgr:callback_errcode(session, cmd_id, login_code, session_id)
             return false
         end
@@ -78,25 +78,25 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     --加载账号信息
     local account = login_dao:load_account(open_id)
     if not account then
-        log_err("[LoginServlet][on_account_login_req] load account failed! open_id: %s token:%s", open_id, access_token)
+        log_err("[LoginServlet][on_account_login_req] load account failed! open_id: {} token:{}", open_id, access_token)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     --创建账号
     if account:is_newbee() then
         if not account:create(access_token, device_id, account_params) then
-            log_err("[LoginServlet][on_account_login_req] open_id(%s) create account failed!", open_id)
+            log_err("[LoginServlet][on_account_login_req] open_id({}) create account failed!", open_id)
             return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         end
         session.account = account
         event_mgr:notify_listener("on_account_create", account, device_id, session.ip,
                                     account_params.lang, account_params.dev_plat)
         client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id)
-        log_info("[LoginServlet][on_account_login_req] newbee success! open_id: %s", open_id)
+        log_info("[LoginServlet][on_account_login_req] newbee success! open_id: {}", open_id)
         return
     end
     --密码验证
     if platform == PLATFORM_PASSWORD and account:get_token() ~= access_token then
-        log_err("[LoginServlet][on_password_login] verify failed! open_id: %s token: %s-%s", open_id, access_token, account:get_token())
+        log_err("[LoginServlet][on_password_login] verify failed! open_id: {} token: {}-{}", open_id, access_token, account:get_token())
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     session.account = account
@@ -105,144 +105,144 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     account:update_params(account_params)
     event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id, device_id, session.ip, account_params.lang, account_params.dev_plat)
     if not client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id) then
-        log_info("[LoginServlet][on_account_login_req] callback failed! open_id: %s, user_id: %s", open_id, account:get_user_id())
+        log_info("[LoginServlet][on_account_login_req] callback failed! open_id: {}, user_id: {}", open_id, account:get_user_id())
         return
     end
-    log_info("[LoginServlet][on_account_login_req] success! open_id: %s, user_id: %s", open_id, account:get_user_id())
+    log_info("[LoginServlet][on_account_login_req] success! open_id: {}, user_id: {}", open_id, account:get_user_id())
 end
 
 --创建角色
 function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     local user_id, name = body.user_id, body.name
-    log_debug("[LoginServlet][on_role_create_req] user(%s) name(%s) create role req!", user_id, name)
+    log_debug("[LoginServlet][on_role_create_req] user({}) name({}) create role req!", user_id, name)
     local account = session.account
     if not account or account.user_id ~= user_id then
-        log_err("[LoginServlet][on_role_create_req] user_id(%s) need login!", user_id)
+        log_err("[LoginServlet][on_role_create_req] user_id({}) need login!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
     end
     if account:get_role_count() > 1 then
-        log_err("[LoginServlet][on_role_create_req] user_id(%s) role num limit!", user_id)
+        log_err("[LoginServlet][on_role_create_req] user_id({}) role num limit!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NUM_LIMIT, session_id)
     end
     --检查名称合法性
     local ok, codatas = login_dao:check_player(user_id, name)
-    log_debug("[LoginServlet][on_role_create_req] ok:%s codatas:%s", ok, codatas)
+    log_debug("[LoginServlet][on_role_create_req] ok:{} codatas:{}", ok, codatas)
     if not ok then
         return client_mgr:callback_errcode(session, cmd_id, codatas, session_id)
     end
     --创建角色
     local role_id = codatas[3]
     if not login_dao:create_player(account:get_open_id(), role_id, body) then
-        log_err("[LoginServlet][on_role_create_req] user_id(%s) create role failed!", user_id)
+        log_err("[LoginServlet][on_role_create_req] user_id({}) create role failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     account:save_roles_field(role_id, body)
     event_mgr:notify_listener("on_role_create", user_id, role_id, body)
     local rdata = { role_id = role_id, gender = body.gender, name = body.name }
     if not client_mgr:callback_by_id(session, cmd_id, { error_code = 0, role = rdata }, session_id) then
-        log_info("[LoginServlet][on_role_create_req] user_id(%s) create role %s callback failed!", user_id, name)
+        log_info("[LoginServlet][on_role_create_req] user_id({}) create role {} callback failed!", user_id, name)
         return
     end
-    log_info("[LoginServlet][on_role_create_req] user_id(%s) create role %s success!", user_id, name)
+    log_info("[LoginServlet][on_role_create_req] user_id({}) create role {} success!", user_id, name)
 end
 
 --选择角色
 function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
     local user_id, role_id = body.user_id, body.role_id
-    log_debug("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose req!", user_id, role_id)
+    log_debug("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) choose req!", user_id, role_id)
     local account = session.account
     if not account then
-        log_err("[LoginServlet][on_role_choose_req] user_id(%s) need login!", user_id)
+        log_err("[LoginServlet][on_role_choose_req] user_id({}) need login!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
     end
     local role = account:get_role(role_id)
     if not role then
-        log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) role nit exist!", user_id, role_id)
+        log_err("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) role nit exist!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NOT_EXIST, session_id)
     end
     local fok, gateway = self:find_gateway(account)
-    log_debug("[LoginServlet][on_role_choose_req] choose gateway(%s)!", gateway)
+    log_debug("[LoginServlet][on_role_choose_req] choose gateway({})!", gateway)
     if not fok then
-        log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) server uphold!", user_id, role_id)
+        log_err("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) server uphold!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
     end
     local ok, code = router_mgr:call_target(gateway.lobby, "rpc_update_login_token", account.open_id, gateway.token)
     if qfailed(code, ok) then
-        log_err("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) update token failed!", user_id, role_id)
+        log_err("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) update token failed!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, SERVER_UPHOLD, session_id)
     end
     account:save_lobby(gateway.lobby)
     if not client_mgr:callback_by_id(session, cmd_id, gateway, session_id) then
-        log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) callback failed!", user_id, role_id)
+        log_info("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) callback failed!", user_id, role_id)
         return
     end
-    log_info("[LoginServlet][on_role_choose_req] user_id(%s) role_id(%s) choose success!", user_id, role_id)
+    log_info("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) choose success!", user_id, role_id)
 end
 
 --删除角色
 function LoginServlet:on_role_delete_req(session, cmd_id, body, session_id)
     local user_id, role_id = body.user_id, body.role_id
-    log_debug("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete req!", user_id, role_id)
+    log_debug("[LoginServlet][on_role_delete_req] user_id({}) role_id({}) delete req!", user_id, role_id)
     local account = session.account
     if not account or account:get_user_id() ~= user_id then
-        log_err("[LoginServlet][on_role_delete_req] user_id(%s) need login!", user_id)
+        log_err("[LoginServlet][on_role_delete_req] user_id({}) need login!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
     end
     if not account:del_role(role_id) then
-        log_err("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) role nit exist!", user_id, role_id)
+        log_err("[LoginServlet][on_role_delete_req] user_id({}) role_id({}) role nit exist!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NOT_EXIST, session_id)
     end
     if not client_mgr:callback_errcode(session, cmd_id, FRAME_SUCCESS, session_id) then
-        log_info("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) callback failed!", user_id, role_id)
+        log_info("[LoginServlet][on_role_delete_req] user_id({}) role_id({}) callback failed!", user_id, role_id)
         return
     end
-    log_info("[LoginServlet][on_role_delete_req] user_id(%s) role_id(%s) delete success!", user_id, role_id)
+    log_info("[LoginServlet][on_role_delete_req] user_id({}) role_id({}) delete success!", user_id, role_id)
 end
 
 --账号重登
 function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
     local open_id, token, device_id = body.openid, body.session, body.device_id
-    log_debug("[LoginServlet][on_account_reload_req] openid(%s) token(%s) reload req!", open_id, token)
+    log_debug("[LoginServlet][on_account_reload_req] openid({}) token({}) reload req!", open_id, token)
     if session.account then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
     end
     --验证token
     local account = login_dao:load_account(open_id)
     if not account then
-        log_err("[LoginServlet][on_account_login_req] load account failed! open_id: %s token:%s", open_id, token)
+        log_err("[LoginServlet][on_account_login_req] load account failed! open_id: {} token:{}", open_id, token)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     if account:is_newbee() then
-        log_err("[LoginServlet][on_account_reload_req] open_id(%s) load account status failed!", open_id)
+        log_err("[LoginServlet][on_account_reload_req] open_id({}) load account status failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     local old_token = account:get_token()
     if token ~= old_token or device_id ~= account:get_device_id() then
-        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: %s, token: %s-%s", open_id, token, old_token)
+        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: {}, token: {}-{}", open_id, token, old_token)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     session.account = account
     if not client_mgr:callback_by_id(session, cmd_id, account:pack2client(), session_id) then
-        log_info("[LoginServlet][on_account_reload_req] callback failed! open_id: %s", open_id)
+        log_info("[LoginServlet][on_account_reload_req] callback failed! open_id: {}", open_id)
         return
     end
-    log_info("[LoginServlet][on_account_reload_req] success! open_id: %s, user_id: %s", open_id, account:get_user_id())
+    log_info("[LoginServlet][on_account_reload_req] success! open_id: {}, user_id: {}", open_id, account:get_user_id())
 end
 
 --随机名字
 function LoginServlet:on_random_name_req(session, cmd_id, body, session_id)
     local rname = guid_encode()
-    log_debug("[LoginServlet][on_random_name_req] open_id(%s) randname: %s!", session.open_id, rname)
+    log_debug("[LoginServlet][on_random_name_req] open_id({}) randname: {}!", session.open_id, rname)
     local callback_data = { error_code = 0, name = rname }
     if not client_mgr:callback_by_id(session, cmd_id, callback_data, session_id) then
-        log_info("[LoginServlet][on_random_name_req] callback failed! open_id: %s", session.open_id)
+        log_info("[LoginServlet][on_random_name_req] callback failed! open_id: {}", session.open_id)
     end
 end
 
 --网关和lobby相关接口
 ----------------------------------------------------------------
 function LoginServlet:on_service_close(id, name, info)
-    log_debug("[LoginServlet][on_service_close] node: %s-%s", name, id)
+    log_debug("[LoginServlet][on_service_close] node: {}-{}", name, id)
     if name == "lobby" then
         self.lobbys[id] = nil
         return
@@ -258,7 +258,7 @@ function LoginServlet:on_service_close(id, name, info)
 end
 
 function LoginServlet:on_service_ready(id, name, info)
-    log_debug("[LoginServlet][on_service_ready] node: %s-%s, info: %s", name, id, info)
+    log_debug("[LoginServlet][on_service_ready] node: {}-{}, info: {}", name, id, info)
     if name == "lobby" then
         self.lobbys[id] = info
         return
