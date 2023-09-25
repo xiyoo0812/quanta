@@ -13,6 +13,7 @@ local LOG_LEVEL     = log.LOG_LEVEL
 
 local title         = quanta.title
 local monitors      = _ENV.monitors or {}
+local dispatch      = false
 
 logger = {}
 logfeature = {}
@@ -87,10 +88,14 @@ for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, flag = tunpack(conf)
     logger[lvl_name] = function(fmt, ...)
         local msg = logger_output(flag, "", lvl, lvl_name, fmt, ...)
-        if msg then
-            for monitor in pairs(monitors) do
-                monitor:dispatch_log(msg, lvl_name)
-            end
+        if msg and (not dispatch) then
+            dispatch = true
+            pcall(function ()
+                for monitor in pairs(monitors) do
+                    monitor:dispatch_log(msg, lvl_name)
+                end
+            end)
+            dispatch = false
         end
     end
 end

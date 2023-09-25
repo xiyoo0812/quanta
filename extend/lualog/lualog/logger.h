@@ -114,7 +114,7 @@ namespace logger {
         void set_grow(bool grow) { grow_ = grow; }
         log_level level() const { return level_; }
         const log_time& get_log_time()const { return log_time_; }
-        void option(log_level level, vstring msg, vstring tag, vstring feature, vstring source, int line);
+        void option(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line);
 
     private:
         int                 line_ = 0;
@@ -239,7 +239,7 @@ namespace logger {
         virtual bool add_file_dest(vstring feature, vstring fname) = 0;
         virtual void set_dest_clean_time(vstring feature, size_t clean_time) = 0;
         virtual void option(vstring log_path, vstring service, vstring index) = 0;
-        virtual void output(log_level level, vstring msg, vstring tag, vstring feature = "", vstring source = "", int line = 0) = 0;
+        virtual void output(log_level level, cstring& msg, cstring& tag, cstring& feature = "", cstring& source = "", int line = 0) = 0;
     };
 
     class log_service : public logger {
@@ -268,7 +268,7 @@ namespace logger {
         bool is_filter(log_level lv) { return log_filter_.is_filter(lv); }
         void filter(log_level lv, bool on) { log_filter_.filter(lv, on); }
 
-        void output(log_level level, vstring msg, vstring tag, vstring feature, vstring source, int line);
+        void output(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line);
 
     protected:
         path build_path(vstring feature, vstring fpath);

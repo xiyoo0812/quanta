@@ -32,17 +32,18 @@ namespace logger {
         return "unsuppert data type";
     }
 
-    int zformat(lua_State* L, log_level lvl, vstring tag, vstring feature, vstring msg) {
-        get_logger()->output(lvl, msg, tag, feature);
+    int zformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& msg) {
         if (lvl == log_level::LOG_LEVEL_FATAL) {
-            lua_pushlstring(L, msg.data(), msg.size());
+            lua_pushlstring(L, msg.c_str(), msg.size());
+            get_logger()->output(lvl, msg, tag, feature);
             return 1;
         }
+        get_logger()->output(lvl, msg, tag, feature);
         return 0;
     }
 
     template<size_t... integers>
-    int tformat(lua_State* L, log_level lvl, vstring tag, vstring feature, int flag, vstring vfmt, std::index_sequence<integers...>&&) {
+    int tformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, int flag, vstring vfmt, std::index_sequence<integers...>&&) {
         try {
             auto msg = fmt::format(vfmt, read_args(L, flag, integers + 6)...);
             return zformat(L, lvl, tag, feature, msg);
@@ -68,12 +69,12 @@ namespace logger {
             log_level lvl = (log_level)lua_tointeger(L, 1);
             if (get_logger()->is_filter(lvl)) return 0;
             size_t flag = lua_tointeger(L, 2);
-            vstring tag = lua_to_native<vstring>(L, 3);
-            vstring feature = lua_to_native<vstring>(L, 4);
+            sstring tag = lua_to_native<sstring>(L, 3);
+            sstring feature = lua_to_native<sstring>(L, 4);
             vstring vfmt = lua_to_native<vstring>(L, 5);
             int arg_num = lua_gettop(L) - 5;
             switch (arg_num) {
-            case 0: return zformat(L, lvl, tag, feature, vfmt);
+            case 0: return zformat(L, lvl, tag, feature, string(vfmt.data(), vfmt.size()));
             case 1: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<1>{});
             case 2: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<2>{});
             case 3: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<3>{});

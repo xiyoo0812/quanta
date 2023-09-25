@@ -35,8 +35,9 @@ namespace luapb {
             pb_header* header =(pb_header*)m_slice->peek(sizeof(pb_header));
             if (!header) return 0;
             m_packet_len = header->len;
+            if (m_packet_len < sizeof(pb_header)) return -1;
+            if (m_packet_len >= 0xffff) return -1;
             if (!m_slice->peek(m_packet_len)) return 0;
-            if (m_packet_len > 0xffff) return -1;
             if (m_packet_len > data_len) return 0;
             return m_packet_len;
         }

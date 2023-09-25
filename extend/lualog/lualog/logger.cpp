@@ -26,14 +26,14 @@ namespace logger {
 
     // class log_message
     // --------------------------------------------------------------------------------
-    void log_message::option(log_level level, vstring msg, vstring tag, vstring feature, vstring source, int line) {
+    void log_message::option(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
         log_time_ = log_time::now();
-        feature_ = feature;
-        source_ = source;
+        feature_ = std::move(feature);
+        source_ = std::move(source);
+        msg_ = std::move(msg);
+        tag_ = std::move(tag);
         level_ = level;
         line_ = line;
-        msg_ = msg;
-        tag_ = tag;
     }
 
     // class log_message_pool
@@ -367,7 +367,7 @@ namespace logger {
         }
     }
 
-    void log_service::output(log_level level, vstring msg, vstring tag, vstring feature, vstring source, int line) {
+    void log_service::output(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
         if (!log_filter_.is_filter(level)) {
             auto logmsg_ = message_pool_->allocate();
             logmsg_->option(level, msg, tag, feature, source, line);
