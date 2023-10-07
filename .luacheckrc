@@ -14,24 +14,20 @@ max_cyclomatic_complexity = 13
 max_code_line_length = 160
 max_comment_line_length = 160
 exclude_files = {
-    "script/luabt/*.*",
-    "script/luaoop/*.*",
-    "script/luabt/luaoop/*.*",
-    "script/luabt/LICENSE",
-    "script/luaoop/LICENSE",
-    "script/luabt/luaoop/LICENSE",
-    "server/robot/accord/page/*",
-    "extend/lmake/share.lua"
+    "extend/lmake/share.lua",
+    "server/robot/accord/page/*"
 }
 include_files = {
-    "script/*",
-    "server/*",
-    "worker/*",
-    "bin/proto/*.lua",
-    "tools/encrypt/*",
-    "tools/excel2lua/*",
+    "script/*.lua",
+    "server/*.lua",
+    "script/*/*.lua",
+    "server/*/*.lua",
+    "script/*/*/*.lua",
+    "server/*/*/*.lua",
+    "script/*/*/*/*.lua",
+    "server/*/*/*/*.lua",
     "extend/lmake/*.lua",
-    "extend/lmake/ltemplate/*.lua",
+    "tools/*/*.lua",
 }
 ignore = {"212", "213", "512"}
 

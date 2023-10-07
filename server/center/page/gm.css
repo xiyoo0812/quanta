@@ -1,0 +1,58 @@
+html,body,div,h1,h2,h3,h4,h5,h6,p,span{
+    padding: 0;
+    margin: 0;
+}
+body{
+    padding-top: 10px;
+    overflow: auto;
+}
+.gmDumpContainer {
+    float: left;
+    border: 1px solid black;
+    height: 800px;
+    width: 30%;
+    margin-top:30px;
+    overflow: auto;
+}
+.gmContainer {
+    padding: 2px;
+    border: 1px solid black;
+    margin-top:30px;
+    height: 800px;
+    width: 70%;
+    overflow: auto;
+}
+.historyMsg{
+    top: 5px;
+    border: 1px solid black;
+    height: 660px;
+    padding: 3px;
+    overflow: auto;
+}
+.newMsg{
+    text-align: left;
+    margin-top: 5px;
+}
+.myMsg{
+    background-color: grey;
+    color: white;
+    text-align: left;
+    margin-top: 5px;
+}
+.control{
+    border: 1px solid black;
+    height: 130px;
+}
+.control-row{
+    margin-top: 10px;
+}
+.inputMsg{
+    height: 110px !important;
+    resize: none;
+}
+.sendBtn{
+    height: 100px;
+}
+footer{
+    text-align: center;
+}

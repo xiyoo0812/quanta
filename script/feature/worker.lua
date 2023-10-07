@@ -30,6 +30,7 @@ local function init_core()
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
     import("kernel/config_mgr.lua")
+    import("kernel/perfeval_mgr.lua")
 end
 
 --初始化网络
@@ -37,12 +38,6 @@ local function init_network()
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
     socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
-end
-
---初始化统计
-local function init_statis()
-    import("agent/proxy_agent.lua")
-    import("kernel/perfeval_mgr.lua")
 end
 
 --协程改造
@@ -75,6 +70,7 @@ end
 local function init_mainloop()
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
+    import("driver/webhook.lua")
     event_mgr = quanta.get("event_mgr")
     thread_mgr = quanta.get("thread_mgr")
     update_mgr = quanta.get("update_mgr")
@@ -88,7 +84,6 @@ function quanta.init()
     --主循环
     init_coroutine()
     init_mainloop()
-    init_statis()
     --网络
     init_network()
     --加载协议

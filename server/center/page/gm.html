@@ -1,0 +1,61 @@
+-- luacheck: ignore
+return [[
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="quanta">
+    <meta name="description" content="quanta console">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>GM Console</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css">
+</head>
+<style>
+{{%= GM_CSS %}}
+</style>
+<body>
+<div class="container gm-container">
+    <!-- gm dump -->
+    <div class="gmDumpContainer">
+        <!-- 服务器列表 -->
+        <div id="consoleTree1" class="list-group-item node-consoleTree">
+            服务器:
+            <input id="curServer" type="text" list="curServerList" style="border-radius:5px;" onchange="changeServer()" onfocus="onfocusServer()"/>
+            <datalist id="curServerList" class="padding: 10px 15px;" >
+                <option selected hidden disabled value="">下拉选择服务器</option>
+            </datalist>
+        </div>
+        <div id="consoleTree" class="">
+            <ul class="list-group">
+                <li>请选择服务器</li>
+            </ul>
+        </div>
+    </div>
+    <!-- 消息内容 -->
+    <div class="gmContainer">
+        <div class="col-md-12 col-sm-12 historyMsg" id="historyMsg">
+        </div>
+        <div class="col-md-12 col-sm-12 control">
+            <div class="row control-row">
+                <div class="col-md-10 col-sm-10">
+                    <textarea id="inputMsg" class="inputMsg form-control"></textarea>
+                </div>
+                <div class="col-md-2 col-sm-2" style="padding:5px">
+                    <button id="send" class="form-control sendBtn btn btn-primary">send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<footer>
+    <small>Designed and built by <a href="https://github.com/xiyoo0812/quanta" target="_blank">quanta</a></small>
+</footer>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js"></script>
+<script type="text/javascript">
+{{%= GM_SCRIPT %}}
+</script>
+</html>
+]]

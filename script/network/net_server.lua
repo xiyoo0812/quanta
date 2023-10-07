@@ -14,7 +14,6 @@ local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
-local proxy_agent       = quanta.get("proxy_agent")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -93,7 +92,7 @@ function NetServer:on_socket_accept(session)
     end
     session.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
         local now_ms = quanta.now_ms
-        if session.lc_crc == crc8 and now_ms - session.lc_time < FAST_MS then
+        if crc8 > 0 and session.lc_crc == crc8 and now_ms - session.lc_time < FAST_MS then
             self:callback_errcode(session, cmd_id, TOO_FAST, session_id)
             return
         end
@@ -103,7 +102,7 @@ function NetServer:on_socket_accept(session)
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len
         end
-        proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
+        --proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_recv, "on_socket_recv: {}", self, session, cmd_id, flag, type, session_id, body)
     end
     -- 绑定网络错误回调（断开）
@@ -221,7 +220,7 @@ function NetServer:add_session(session)
     if not self.sessions[token] then
         self.sessions[token] = session
         self.session_count = self.session_count + 1
-        proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
+        --proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
     end
     return token
 end
@@ -232,7 +231,7 @@ function NetServer:remove_session(token)
     if session then
         self.sessions[token] = nil
         self.session_count = self.session_count - 1
-        proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
+        --proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
         return session
     end
 end

@@ -13,7 +13,6 @@ local hash_code         = codec.hash_code
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
-local proxy_agent       = quanta.get("proxy_agent")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
@@ -59,7 +58,7 @@ end
 
 --rpc事件
 function RpcServer:on_socket_rpc(client, session_id, rpc_flag, recv_len, source, rpc, ...)
-    proxy_agent:statistics("on_rpc_recv", rpc, recv_len)
+    --proxy_agent:statistics("on_rpc_recv", rpc, recv_len)
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
             local _<close> = qeval(rpc)
@@ -99,7 +98,7 @@ function RpcServer:on_socket_accept(client)
             log_err("[RpcServer][call_rpc] call failed! code:{}", send_len)
             return false
         end
-        proxy_agent:statistics("on_rpc_send", rpc, send_len)
+        --proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, SUCCESS
     end
     client.on_call = function(recv_len, session_id, rpc_flag, ...)

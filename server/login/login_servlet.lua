@@ -64,6 +64,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     local account_params = {}
     if platform >= PLATFORM_PASSWORD then
         --登录验证
+        body.ip = session.ip
         local result = event_mgr:notify_listener("on_platform_login", platform, open_id, access_token, body, account_params)
         local ok, code, sdk_open_id, sdk_device_id = tunpack(result)
         local login_failed, login_code = qfailed(code, ok)

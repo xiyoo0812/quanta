@@ -4,8 +4,8 @@
 local KernCode = enum("KernCode", 0)
 KernCode.SUCCESS            = 0     --成功
 KernCode.FAILED             = 1     --系统错误，请重试
-KernCode.PARAM_ERROR        = 2     --业务参数错误
-KernCode.TOO_FAST           = 3     --操作太快
+KernCode.TOO_FAST           = 2     --操作太快
+KernCode.PARAM_ERROR        = 3     --业务参数错误
 KernCode.UPHOLD             = 4     --服务维护
 KernCode.RPC_FAILED         = 5     --RPC调用失败
 KernCode.OPERATOR_SELF      = 6     --不能对自己操作

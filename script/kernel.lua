@@ -24,6 +24,7 @@ local function init_core()
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
     import("kernel/config_mgr.lua")
+    import("kernel/perfeval_mgr.lua")
 end
 
 --初始化网络
@@ -64,14 +65,9 @@ local function init_mainloop()
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
     import("feature/scheduler.lua")
+    import("driver/webhook.lua")
     update_mgr = quanta.get("update_mgr")
     scheduler = quanta.get("scheduler")
-end
-
---初始化统计
-local function init_statis()
-    import("agent/proxy_agent.lua")
-    import("kernel/perfeval_mgr.lua")
 end
 
 function quanta.init()
@@ -86,7 +82,6 @@ function quanta.init()
     init_coroutine()
     init_mainloop()
     init_network()
-    init_statis()
     --其他模式
     if quanta.mode <= QuantaMode.ROUTER then
         --加载monitor

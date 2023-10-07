@@ -6,8 +6,6 @@ local env_status    = environ.status
 local tclock_ms     = timer.clock_ms
 local qdefer        = quanta.defer
 
-local proxy_agent   = quanta.get("proxy_agent")
-
 local PerfevalMgr = singleton()
 local prop = property(PerfevalMgr)
 prop:reader("eval_id", 0)
@@ -75,8 +73,8 @@ function PerfevalMgr:start(eval_name)
 end
 
 function PerfevalMgr:stop(eval_data)
-    local clock_ms = tclock_ms()
-    proxy_agent:statistics("on_perfeval", eval_data, clock_ms)
+    --local clock_ms = tclock_ms()
+    --proxy_agent:statistics("on_perfeval", eval_data, clock_ms)
     self.eval_list[eval_data.co][eval_data.eval_id] = nil
 end
 

@@ -51,7 +51,7 @@ local function generate_js(input_path, ouput_path)
         --创建索引，默认升序
         idx_file:write(sformat("db.getCollection(\"%s\").createIndex({%s: 1}, {name: \"%s\",unique: true});\n", sheet, key, key))
         if key2 then
-            idx_file:write(sformat("db.getCollection(\"%s\").createIndex({%s: 1}, {name: \"%s\",unique: true});\n", sheet, key2, key2)) 
+            idx_file:write(sformat("db.getCollection(\"%s\").createIndex({%s: 1}, {name: \"%s\",unique: true});\n", sheet, key2, key2))
         end
         idx_file:write("//------------------------------------------------------------------------\n\n")
     end

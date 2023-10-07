@@ -164,12 +164,11 @@ local function render(content, env)
     return nil, chunk
 end
 
---导出文件模板
+--根据配置导出文件模板
 --tpl_f: 文件模板
 --tpl_out_f: 输出文件
 --tpl_env: 环境变量
---tpl_var_f: 环境变量文件
-local function render_file(tpl_f, tpl_out_f, tpl_env, tpl_var_f)
+local function render_file(tpl_f, tpl_out_f, tpl_env)
     if not tpl_f or not tpl_out_f or not tpl_env then
         error("render template file params error!")
         return
@@ -182,19 +181,6 @@ local function render_file(tpl_f, tpl_out_f, tpl_env, tpl_var_f)
     tpl_env.NAME = tpl_f
     local content = template_file:read("*all")
     template_file:close()
-    if tpl_var_f then
-        setmetatable(tpl_env, { __index = function(t, k) return _G[k] end })
-        local func, err = loadfile(tpl_var_f, "bt", tpl_env)
-        if not func then
-            error(sformat("open template variable file %s failed :%s", tpl_var_f, err))
-            return
-        end
-        local ok, res = pcall(func)
-        if not ok then
-            error(sformat("load template variable file %s failed :%s", tpl_var_f, res))
-            return
-        end
-    end
     local out_file = iopen(tpl_out_f, "w")
     if not out_file then
         error(sformat("open template out file %s failed!", tpl_out_f))
@@ -214,13 +200,52 @@ local function render_file(tpl_f, tpl_out_f, tpl_env, tpl_var_f)
     print(sformat("render template file %s to %s success!", tpl_f, tpl_out_f))
 end
 
+--输入参数
+local arg_num = select("#", ...)
+
 --工具用法
 --tpl_f: 模板文件路径
 --tpl_out_f：输出文件路径
 --tpl_var_f：环境变量配置文件
-if select("#", ...) == 3 then
+if arg_num == 3 then
+    local tpl_env = {}
     local tpl_f, tpl_out_f, tpl_var_f = select(1, ...)
-    render_file(tpl_f, tpl_out_f, {}, tpl_var_f)
+    if tpl_var_f then
+        setmetatable(tpl_env, { __index = function(t, k) return _G[k] end })
+        local func, err = loadfile(tpl_var_f, "bt", tpl_env)
+        if not func then
+            error(sformat("open template variable file %s failed :%s", tpl_var_f, err))
+            return
+        end
+        local ok, res = pcall(func)
+        if not ok then
+            error(sformat("load template variable file %s failed :%s", tpl_var_f, res))
+            return
+        end
+    end
+    render_file(tpl_f, tpl_out_f, tpl_env)
+end
+
+--工具用法
+--tpl_f: 模板文件路径
+--tpl_out_f：输出文件路径
+--key：文件索引, filename：文件名, ...
+if arg_num > 3 then
+    local tpl_env = {}
+    local args = { ... }
+    local filenum = (arg_num - 2) // 2
+    for i = 1, filenum do
+        local key = args[2 + i * 2 - 1]
+        local filename = args[2 + i * 2]
+        local args_file = iopen(filename, "r")
+        if not args_file then
+            error(sformat("open args file %s failed!", filename))
+            return
+        end
+        tpl_env[key] = args_file:read("*all")
+        args_file:close()
+    end
+    render_file(args[1], args[2], tpl_env)
 end
 
 return {

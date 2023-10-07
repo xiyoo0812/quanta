@@ -7,7 +7,6 @@ local qxpcall           = quanta.xpcall
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
-local proxy_agent       = quanta.get("proxy_agent")
 
 local proto_pb          = luabus.eproto_type.pb
 
@@ -61,7 +60,7 @@ function NetClient:connect(block)
         end
     end
     socket.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
-        proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
+        --:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, cmd_id, flag, type, session_id, body)
     end
     socket.on_error = function(token, err)
@@ -116,12 +115,12 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
         return false
     end
     -- call lbus
-    local send_len = self.socket.call_pb(cmd_id, flag, type, session_id, data)
+    local send_len = self.socket.call_pb(session_id, cmd_id, flag, type, 0, data)
     if send_len < 0 then
         log_err("[NetClient][write] call_pb failed! code:%s", send_len)
         return false
     end
-    proxy_agent:statistics("on_proto_send", cmd_id, send_len)
+    --proxy_agent:statistics("on_proto_send", cmd_id, send_len)
     return true
 end
 
