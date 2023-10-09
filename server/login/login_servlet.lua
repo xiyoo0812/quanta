@@ -60,9 +60,9 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     if session.account then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
     end
-    local device_id = body.device_id
     local account_params = {}
-    if platform >= PLATFORM_PASSWORD then
+    local device_id = body.device_id
+    if platform ~= PLATFORM_PASSWORD then
         --登录验证
         body.ip = session.ip
         local result = event_mgr:notify_listener("on_platform_login", platform, open_id, access_token, body, account_params)
@@ -74,7 +74,8 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
             return false
         end
         -- 三方信息
-        open_id, device_id = sdk_open_id, sdk_device_id
+        open_id = sdk_open_id
+        device_id = sdk_device_id
     end
     --加载账号信息
     local account = login_dao:load_account(open_id)
