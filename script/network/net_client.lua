@@ -117,7 +117,7 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
     -- call lbus
     local send_len = self.socket.call_pb(session_id, cmd_id, flag, type, 0, data)
     if send_len < 0 then
-        log_err("[NetClient][write] call_pb failed! code:%s", send_len)
+        log_err("[NetClient][write] call_pb failed! code:{}", send_len)
         return false
     end
     --proxy_agent:statistics("on_proto_send", cmd_id, send_len)

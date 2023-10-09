@@ -134,25 +134,25 @@ end
 
 --执行gm, command：string
 function GM_Mgr:rpc_execute_command(command)
-    log_debug("[GM_Mgr][rpc_execute_command] command: %s", command)
+    log_debug("[GM_Mgr][rpc_execute_command] command: {}", command)
     local res = self:exec_command(command)
     return SUCCESS, res
 end
 
 --执行gm, message: table
 function GM_Mgr:rpc_execute_message(message)
-    log_debug("[GM_Mgr][rpc_execute_message] message: %s", message)
+    log_debug("[GM_Mgr][rpc_execute_message] message: {}", message)
     local res = self:exec_message(message)
     return SUCCESS, res
 end
 
 function GM_Mgr:on_service_close(id, name)
-    log_debug("[GM_Mgr][on_service_close] node: %s-%s", name, id)
+    log_debug("[GM_Mgr][on_service_close] node: {}-{}", name, id)
     self.monitors[id] = nil
 end
 
 function GM_Mgr:on_service_ready(id, name, info)
-    log_debug("[GM_Mgr][on_service_ready] node: %s-%s, info: %s", name, id, info)
+    log_debug("[GM_Mgr][on_service_ready] node: {}-{}, info: {}", name, id, info)
     self.monitors[id] = sformat("%s:%s", info.ip, info.port)
 end
 
@@ -170,7 +170,7 @@ end
 
 --monitor拉取
 function GM_Mgr:on_monitors(url, params)
-    log_debug("[GM_Mgr][on_monitors] body: %s", params)
+    log_debug("[GM_Mgr][on_monitors] body: {}", params)
     local nodes = {}
     for _, addr in pairs(self.monitors) do
         tinsert(nodes, { text = addr, tag = "log" })
@@ -180,13 +180,13 @@ end
 
 --后台GM调用，字符串格式
 function GM_Mgr:on_command(url, body)
-    log_debug("[GM_Mgr][on_command] body: %s", body)
+    log_debug("[GM_Mgr][on_command] body: {}", body)
     return self:exec_command(body.data)
 end
 
 --后台GM调用，table格式
 function GM_Mgr:on_message(url, body)
-    log_debug("[GM_Mgr][on_message] body: %s", body)
+    log_debug("[GM_Mgr][on_message] body: {}", body)
     return self:exec_message(body.data)
 end
 

@@ -199,7 +199,7 @@ function RedisDB:check_clusters()
         end
         local ok, res = self:commit(socket, "cluster", "slots")
         if not ok then
-            log_err("[RedisDB][check_clusters] load cluster slots failed! because: %s", res)
+            log_err("[RedisDB][check_clusters] load cluster slots failed! because: {}", res)
             return
         end
         for i, info in pairs(res) do

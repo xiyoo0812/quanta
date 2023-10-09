@@ -497,7 +497,7 @@ body {
 }
 
 .log-half {
-    width: calc(100% - 440px);
+    width: calc(100% - 450px);
     height: calc(100% - 20px);
     overflow-y: auto;
     float: left;
@@ -926,7 +926,7 @@ body {
 }
 
 .checkbox {
-    display: flex;
+    /* display: flex; */
     flex-direction: row;
 }
 
@@ -958,4 +958,54 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px;
     cursor: pointer;
+}
+
+.checke{
+    position: relative;
+    -webkit-appearance: none;
+    width:40px;
+    height: 20px;
+    line-height: 10px;
+    background: #eee;
+    border-radius: 30px;
+    outline: none;
+}
+.checke:before{
+    position: absolute;
+    left: 0;
+    content: '';
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0px 0px 5px #ddd;
+    transition: all 0.2s linear;
+}
+.checke:checked{
+   background: rgb(39, 217, 159);
+}
+.checke:checked:before{
+    left: 20px;
+    transition: all 0.2s linear;
+}
+
+.log-fast-btn {
+    height: 50px;
+    width: 55px;
+    padding: 0px 10px;
+    margin-left: 50px;
+    background-color: rgb(39, 217, 159);
+    border: 1px solid #ccc;
+    cursor: pointer;
+    opacity: .3;
+    transition: opacity 0.5s;
+    border-radius: 50px;
+}
+.log-fast-btn:hover {
+    opacity: 1;
+    cursor: pointer;
+}
+
+.pre-text { 
+    white-space: pre-wrap;
 }

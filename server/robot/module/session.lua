@@ -50,6 +50,7 @@ end
 function SessionModule:on_socket_rpc(client, cmd_id, body)
     local doer = self.cmd_doers[cmd_id]
     if not doer then
+        self:push_message(cmd_id, body)
         log_warn("[SessionModule][on_socket_rpc] cmd {} hasn't register doer!, msg={}", cmd_id, body)
         return
     end
@@ -81,8 +82,19 @@ function SessionModule:send(cmdid, data)
 end
 
 function SessionModule:call(cmdid, data)
+    if type(cmdid) == "string" then
+        cmdid = protobuf_mgr:msg_id(cmdid)
+    end
     if self.client then
-        local ok, resp = self.client:call(cmdid, data, self:conv_type(cmdid))
+        local srv_type = self:conv_type(cmdid)
+        local ok, resp = self.client:call(cmdid, data, srv_type)
+        log_debug("call cmdid:{} data:{} srv_type:{} ok:{} resp:{}",cmdid, data, srv_type, ok, resp)
+        if srv_type == 0 and cmdid ~= 1001 then
+            if resp then
+                resp.req_cmd_id = cmdid
+            end
+            self:push_message(cmdid+1, resp)
+        end
         return ok, resp
     end
     return false

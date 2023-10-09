@@ -7,6 +7,7 @@ local LoginModule   = import("robot/module/login.lua")
 local SessionModule = import("robot/module/session.lua")
 
 local update_mgr    = quanta.get("update_mgr")
+local msg_mgr       = quanta.get("msg_mgr")
 
 local Robot = class(nil, SessionModule, LoginModule)
 local prop = property(Robot)
@@ -47,7 +48,8 @@ end
 function Robot:push_message(cmd_id, msg)
     log_debug("recv server msg:{} {}",cmd_id, msg)
     msg.cmd_id = cmd_id
-    self.messages:push(msg)
+    local c_msg = msg_mgr:args_convert(cmd_id, msg)
+    self.messages:push(c_msg)
 end
 
 function Robot:get_messages()

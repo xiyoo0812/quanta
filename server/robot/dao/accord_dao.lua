@@ -1,5 +1,5 @@
 
-local log_err       = logger.err
+local log_debug     = logger.debug
 local mrandom       = qmath.random
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
@@ -10,81 +10,42 @@ local AccordDao = singleton()
 function AccordDao:__init()
 end
 
--- 加载协议配置
-function AccordDao:load_accord_conf()
-    local code, data = mongo_mgr:find(1, mrandom(), "accord_conf", {})
+-- 加载数据
+function AccordDao:load_data(document)
+    local code, data = mongo_mgr:find(1, mrandom(), document, {})
     if code ~= SUCCESS then
+        log_debug("[AccordDao][load_data] document:{} code:{}", document, code)
         return false, code
     end
     return true, data
 end
 
--- 添加协议配置
-function AccordDao:add_accord_conf(data)
-    local code, res = mongo_mgr:insert(1, mrandom(), "accord_conf", data,nil)
+-- 插入数据
+function AccordDao:insert(document, data)
+    local code = mongo_mgr:insert(1, mrandom(), document, data)
     if code ~= SUCCESS then
-        log_err("[AccordDao][add_accord_conf] name:{}", data.name, code, res)
+        log_debug("[AccordDao][insert] document:{} code:{}", document, code)
         return false
     end
     return true
 end
 
--- 存储协议配置
-function AccordDao:save_accord_conf(data)
+-- 更新数据
+function AccordDao:update(document, data)
     local udata = { ["$set"] = data }
-    local code, res = mongo_mgr:update(1, mrandom(), "accord_conf", udata, { name = data.name })
+    local code = mongo_mgr:update(1, mrandom(), document, udata, { id = data.id })
     if code ~= SUCCESS then
-        log_err("[AccordDao][save_accord_conf] name:{}", data.name, code, res)
+        log_debug("[AccordDao][update] document:{} code:{}", document, code)
         return false
     end
     return true
 end
 
--- 删除协议配置
-function AccordDao:del_accord_conf(name)
-    local code, res = mongo_mgr:delete(1, mrandom(), "accord_conf", { name = name })
+-- 删除数据
+function AccordDao:delete(document, id)
+    local code = mongo_mgr:delete(1, mrandom(), document, {id=id})
     if code ~= SUCCESS then
-        log_err("[AccordDao][del_accord_conf] name:{}", name, code, res)
-        return false
-    end
-    return true
-end
-
--- 加载服务器配置
-function AccordDao:load_server_list()
-    local code, data = mongo_mgr:find(1, mrandom(), "accord_server", {})
-    if code ~= SUCCESS then
-        return false, code
-    end
-    return true, data
-end
-
--- 添加服务配置
-function AccordDao:add_server(data)
-    local code, res = mongo_mgr:insert(1, mrandom(), "accord_server", data)
-    if code ~= SUCCESS then
-        log_err("[AccordDao][add_server] name:{}", data.name, code, res)
-        return false
-    end
-    return true
-end
-
--- 保存服务配置
-function AccordDao:save_server(data)
-    local udata = { ["$set"] = data }
-    local code, res = mongo_mgr:update(1, mrandom(), "accord_server", udata, { name = data.name })
-    if code ~= SUCCESS then
-        log_err("[AccordDao][save_server] name:{}", data.name, code, res)
-        return false
-    end
-    return true
-end
-
--- 删除服务配置
-function AccordDao:del_server(name)
-    local code, res = mongo_mgr:delete(1, mrandom(), "accord_server", { name = name })
-    if code ~= SUCCESS then
-        log_err("[AccordDao][del_server] name:{}", name, code, res)
+        log_debug("[AccordDao][delete] document:{} code:{}", document, code)
         return false
     end
     return true

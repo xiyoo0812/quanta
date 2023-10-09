@@ -170,7 +170,7 @@ function LoginModule:choose_role_req()
     }
     local ok, res = self:call("NID_LOGIN_ROLE_CHOOSE_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][choose_role_req] robot:{}, ok={}, res={}", self:get_title(), ok, res)
+        log_warn("[LoginModule][choose_role_req] robot:{}, ok={}, res={} req_data={}", self:get_title(), ok, res, req_data)
         return false
     end
     self.lobby = res.lobby

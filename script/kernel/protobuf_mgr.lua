@@ -67,7 +67,7 @@ function ProtobufMgr:enum(ename, ekey)
     local value = emun[ekey]
     if not value then
         local info = dgetinfo(2, "S")
-        log_warn("[ProtobufMgr][enum] %s.%s not defined! source({}:{})", ename, ekey, info.short_src, info.linedefined)
+        log_warn("[ProtobufMgr][enum] {}.{} not defined! source({}:{})", ename, ekey, info.short_src, info.linedefined)
         return
     end
     return value

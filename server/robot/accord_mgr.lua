@@ -1,58 +1,55 @@
 -- accord_mgr.lua
-local log_warn      = logger.warn
-local log_debug     = logger.debug
-local jdecode       = json.decode
+local log_warn     = logger.warn
+local log_debug    = logger.debug
+local jdecode      = json.decode
+local json_pretty  = json.pretty
 
-local HttpServer    = import("network/http_server.lua")
+local HttpServer   = import("network/http_server.lua")
 
-local robot_mgr     = quanta.get("robot_mgr")
-local update_mgr    = quanta.get("update_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
-local accord_dao    = quanta.get("accord_dao")
+local robot_mgr    = quanta.get("robot_mgr")
+local update_mgr   = quanta.get("update_mgr")
+local thread_mgr   = quanta.get("thread_mgr")
+local accord_dao   = quanta.get("accord_dao")
+local msg_mgr      = quanta.get("msg_mgr")
 
 -- 时间单位
-local SECOND_3_MS   = quanta.enum("PeriodTime", "SECOND_3_MS")
+local SECOND_3_MS  = quanta.enum("PeriodTime", "SECOND_3_MS")
 
-local AccordMgr = singleton()
-local prop = property(AccordMgr)
+local AccordMgr    = singleton()
+local prop         = property(AccordMgr)
 prop:reader("http_server", nil)
-prop:reader("accord_html", "")
-prop:reader("accord_css", "")
-prop:reader("server_list", {})
-prop:reader("accord_list", {})
+prop:reader("accord_list", {}) -- 协议列表(添加的数据)
+prop:reader("case_group", {})  -- 用例分组
 prop:reader("load_db_status", false)
+prop:reader("srvlist_api", environ.get("QUANTA_SRVLIST_API")) -- 服务器列表api
 
 function AccordMgr:__init()
     -- 创建HTTP服务器
     local server = HttpServer(environ.get("QUANTA_ACCORD_HTTP"))
     server:register_get("/", "on_accord_page", self)
-    server:register_get("/style", "on_accord_css", self)
     server:register_get("/message", "on_message", self)
     server:register_post("/create", "on_create", self)
     server:register_post("/destory", "on_destory", self)
-    server:register_post("/runall", "on_runall", self)
     server:register_post("/run", "on_run", self)
-
-    -- 服务器操作
-    server:register_post("/server_list", "on_server_list", self)
-    server:register_post("/server_edit", "on_server_edit", self)
-    server:register_post("/server_del", "on_server_del", self)
+    server:register_post("/get_config", "on_get_config", self)
 
     -- 协议操作
+    server:register_post("/case_group", "on_case_group", self)
+    server:register_post("/case_group_edit", "on_case_group_edit", self)
+    server:register_post("/case_group_del", "on_case_group_del", self)
+    server:register_post("/accord_group", "on_accord_group", self)
     server:register_post("/accord_list", "on_accord_list", self)
     server:register_post("/accord_edit", "on_accord_edit", self)
     server:register_post("/accord_del", "on_accord_del", self)
-    server:register_post("/upload", "on_upload", self)
     server:register_post("/proto_edit", "on_proto_edit", self)
     server:register_post("/proto_del", "on_proto_del", self)
 
     service.make_node(server:get_port())
     self.http_server = server
     -- 定时更新
-    update_mgr:attach_second(self)
-    -- 加载数据
+    update_mgr:attach_second5(self)
+    self:on_second5()
     self:load_db_data()
-    self:on_second()
 end
 
 -- 加载db数据
@@ -61,84 +58,55 @@ function AccordMgr:load_db_data()
         return
     end
     thread_mgr:success_call(SECOND_3_MS, function()
-        local svr_ok, srv_dbdata = accord_dao.load_server_list()
-        if svr_ok then
-            for _,server in pairs(srv_dbdata) do
-                self.server_list[tostring(server.name)] = server
+        -- 用例分组
+        local cgp_ok, cgp_dbdata = accord_dao:load_data("case_group")
+        if cgp_ok then
+            for _, group in pairs(cgp_dbdata) do
+                self.case_group[group.id] = group
             end
         else
-            log_warn("[AccordMgr][load_db_data] load_server_list fail ok({}})", svr_ok)
+            log_warn("[AccordMgr][load_db_data] case_group fail ok:{}", cgp_ok)
         end
 
-        local cf_ok, cf_dbdata = accord_dao.load_accord_conf()
+        -- 协议配置
+        local cf_ok, cf_dbdata = accord_dao:load_data("accord_conf")
         if cf_ok then
-            for _,conf in pairs(cf_dbdata) do
-                local name = tostring(conf.name)
-                self.accord_list[name] = {
-                    name = name,
+            for _, conf in pairs(cf_dbdata) do
+                self.accord_list[conf.id] = {
+                    id = conf.id,
+                    name = tostring(conf.name),
                     openid = tostring(conf.openid),
                     passwd = tostring(conf.passwd),
                     server = conf.server or "",
                     rpt_att = conf.rpt_att,
-                    protocols = {}
+                    protocols = {},
+                    time = conf.time or 0,
+                    casegroup = conf.casegroup or ""
                 }
                 -- 解析proto
-                for _,proto in pairs(conf.protocols) do
-                    self.accord_list[name].protocols[tostring(proto.name)] = proto
+                for _, proto in pairs(conf.protocols) do
+                    self.accord_list[conf.id].protocols[tonumber(proto.id)] = proto
                 end
             end
         else
-            log_warn("[AccordMgr][load_db_data] load_accord_conf fail ok({}})", cf_ok)
+            log_warn("[AccordMgr][load_db_data] accord_conf fail ok:{}", cf_ok)
         end
 
-        if svr_ok and cf_ok then
+        if cgp_ok and cf_ok then
             self.load_db_status = true
         end
-        return svr_ok and cf_ok
+        return cgp_ok and cf_ok
     end)
 end
 
--- 加载页面
+-- 加载资源
 function AccordMgr:load_html()
-    self.accord_html = [[
-        <html>
-            <head>
-            </head>
-            <body>
-                <h1>Failed to load the html file. Please check the html file(filePath:bin\accord\page.html)</h1>
-            </body>
-        </html>
-    ]]
-    local currentDir = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
-    local file_path = currentDir .. "accord/page/page.html"
-    local file = io.open(file_path, "r")
-    if file then
-        self.accord_html = file:read("*a")
-        file:close()
-    else
-        log_warn("Unable to open file(file_path=bin/{}})", file_path)
-    end
-end
-
--- 加载页面
-function AccordMgr:load_css()
-    self.accord_css = [[
-    ]]
-    local currentDir = debug.getinfo(1, "S").source:sub(2):match("(.*/)")
-    local file_path = currentDir .. "accord/page/css/style.css"
-    local file = io.open(file_path, "r")
-    if file then
-        self.accord_css = file:read("*a")
-        file:close()
-    else
-        log_warn("Unable to open file(file_path=bin/{}})", file_path)
-    end
+    self.accord_html = import("../server/robot/accord/index.lua")
 end
 
 -- 定时更新
-function AccordMgr:on_second()
+function AccordMgr:on_second5()
     self:load_html()
-    self:load_css()
 end
 
 -- http 回调
@@ -163,170 +131,189 @@ function AccordMgr:on_accord_page(url, body)
     }
 end
 
--- accord_css
-function AccordMgr:on_accord_css(url, body)
-    return self.accord_css, {
-        ["Access-Control-Allow-Origin"] = "*"
-    }
+-- 获取资源名称
+function AccordMgr:get_src_name(src_path)
+    local match = string.match(src_path, "[^/\\]+$")
+    local src_name = string.sub(match, 1, -5)
+    return src_name
 end
 
 -- 拉取日志
 function AccordMgr:on_message(url, params)
-    --log_debug("[AccordMgr][on_message] open_id: {}}", open_id)
+    -- log_debug("[AccordMgr][on_message] open_id: {}", params.open_id)
     return robot_mgr:get_accord_message(params.open_id)
 end
 
 -- monitor拉取
-function AccordMgr:on_create(url, body)
-    log_debug("[AccordMgr][on_create] body: {}}", body)
+function AccordMgr:on_create(url, body, params)
+    log_debug("[AccordMgr][on_create] params:{}", params)
     return robot_mgr:create_robot(body.ip, body.port, body.open_id, body.passwd)
 end
 
 -- 后台GM调用，字符串格式
-function AccordMgr:on_destory(url, body)
-    log_debug("[AccordMgr][on_destory] body: {}}", body)
+function AccordMgr:on_destory(url, body, params)
+    log_debug("[AccordMgr][on_destory] body:{}", body)
     return robot_mgr:destory_robot(body.open_id)
 end
 
--- 服务器列表
-function AccordMgr:on_server_list(url, body)
-    log_debug("[AccordMgr][on_server_list] body: {}}", body)
-    return { code = 0, server_list = self.server_list}
+-- 协议分组
+function AccordMgr:on_accord_group(url, body)
+    log_debug("[AccordMgr][on_accord_group] body:{}", body)
+    return {
+        code = 0,
+        accord_group = msg_mgr.accord_group
+    }, {
+        ["Access-Control-Allow-Origin"] = "*"
+    }
 end
 
--- 编辑服务器
-function AccordMgr:on_server_edit(url, body)
-    log_debug("[AccordMgr][on_server_edit] body: {}}", body)
+-- 分组列表
+function AccordMgr:on_case_group(url, body)
+    log_debug("[AccordMgr][on_case_group] body:{}", body)
+    return { code = 0, case_group = self.case_group }
+end
+
+-- 编辑用例分组
+function AccordMgr:on_case_group_edit(url, body)
+    log_debug("[AccordMgr][on_case_group_edit] body:{}", body)
     if body.data then
-        local data = body.data
-        if self.server_list[data.name] then
-            accord_dao:save_server(data)
+        local data = body.data.case_group
+        local id = data.id
+        if self.case_group[id] then
+            accord_dao:update("case_group", data)
         else
-            accord_dao:add_server(data)
+            accord_dao:insert("case_group", data)
         end
-        self.server_list[data.name] = data
-        return { code = 0}
+        self.case_group[id] = data
+        return { code = 0 }
     end
-    return { code = -1, msg = "数据格式不正确!"}
+    return { code = -1, msg = "数据格式不正确!" }
 end
 
--- 删除服务器
-function AccordMgr:on_server_del(url, body)
-    log_debug("[AccordMgr][on_server_del] body: {}}", body)
+-- 删除用例分组
+function AccordMgr:on_case_group_del(url, body)
+    log_debug("[AccordMgr][on_case_group_del] body:{}", body)
     if body.data then
         local data = body.data
-        self.server_list[data.name] = nil
-        accord_dao:del_server(data.name)
-        return { code = 0}
+        local id = data.id
+        local group = self.case_group[id]
+        if not group then
+            return { code = 0 }
+        end
+        for aid, accord in pairs(self.accord_list) do
+            if group.name == accord.casegroup then
+                accord_dao:delete("accord_conf", aid)
+            end
+        end
+        self.case_group[id] = nil
+        accord_dao:delete("case_group", id)
+        return { code = 0 }
     end
-    return { code = -1, msg = "数据格式不正确!"}
+    return { code = -1, msg = "数据格式不正确!" }
 end
 
 -- 协议列表
 function AccordMgr:on_accord_list(url, body)
-    log_debug("[AccordMgr][on_accord_list] body: {}}", body)
-    return { code = 0, accord_list = self.accord_list}
+    log_debug("[AccordMgr][on_accord_list] body:{}", body)
+    return { code = 0, accord_list = self.accord_list }
 end
 
 -- 编辑协议
 function AccordMgr:on_accord_edit(url, body)
-    log_debug("[AccordMgr][on_accord_edit] body: {}}", body)
+    log_debug("[AccordMgr][on_accord_edit] body:{}", body)
     if body.data then
         local data = body.data
-        local accords = data.accords
-        local low_name = data.low_name
-        local clone = data.clone
-        -- 删除原数据
-        if not clone and low_name ~= accords.name then
-            self.accord_list[low_name] = nil
-            accord_dao:del_accord_conf(low_name)
+        local id = data.id
+        local new = false
+        local accord = self.accord_list[id]
+        if not accord then
+            new = true
+            accord = {}
+            accord.protocols = {}
         end
-        if self.accord_list[accords.name] then
-            accord_dao:save_accord_conf(accords)
+        accord.id = data.id
+        accord.name = data.name
+        accord.openid = data.openid
+        accord.passwd = data.passwd
+        accord.server = data.server
+        accord.rpt_att = data.rpt_att
+        accord.casegroup = data.casegroup
+        if data.protocols then
+            accord.protocols = data.protocols
+        end
+        accord.time = data.time
+
+        if new == false then
+            accord_dao:update("accord_conf", accord)
         else
-            accord_dao:add_accord_conf(accords)
+            accord_dao:insert("accord_conf", accord)
         end
-        self.accord_list[accords.name] = accords
-        return { code = 0}
+        self.accord_list[id] = accord
+        return { code = 0 }
     end
-    return { code = -1, msg = "数据格式不正确!"}
+    return { code = -1, msg = "数据格式不正确!" }
 end
 
 -- 删除协议
 function AccordMgr:on_accord_del(url, body)
-    log_debug("[AccordMgr][on_accord_del] body: {}}", body)
+    log_debug("[AccordMgr][on_accord_del] body:{}", body)
     if body.data then
         local data = body.data
-        self.accord_list[data.name] = nil
-        accord_dao:del_accord_conf(data.name)
-        return { code = 0}
+        self.accord_list[data.id] = nil
+        accord_dao:delete("accord_conf", data.id)
+        return { code = 0 }
     end
-    return { code = -1, msg = "数据格式不正确!"}
-end
-
--- 客户端上传用例
-function AccordMgr:on_upload(url, body)
-    log_debug("[AccordMgr][on_upload] body: {}}", body)
-    if body.data then
-        local data = jdecode(body.data);
-        local add = false
-        if not self.accord_list[data.name] then
-            add = true
-        end
-        self.accord_list[data.name] = data
-        if add then
-            accord_dao:add_accord_conf(data)
-        else
-            accord_dao:save_accord_conf(data)
-        end
-        return { code = 0, data=data}
-    end
-    return { code = -1, msg = "数据格式不正确!"}
+    return { code = -1, msg = "数据格式不正确!" }
 end
 
 -- 编辑协议选项
 function AccordMgr:on_proto_edit(url, body)
-    log_debug("[AccordMgr][on_proto_edit] body: {}}", body)
-    if body.data then
+    log_debug("[AccordMgr][on_proto_edit] body:{}", body)
+if body and body.data then
         local data = body.data
-        local accord = self.accord_list[data.name]
+        local accord = self.accord_list[data.id]
         if not accord then
-            return { code = -1, msg = "不存在的协议配置,请重新创建!"}
+            return { code = -1, msg = "不存在的协议配置,请重新创建!" }
         end
         local proto = data.data
-        accord.protocols[proto.name] = proto
-        accord_dao:save_accord_conf(accord)
+        -- 解析json
+        proto.args = jdecode(proto.args);
+        -- 格式json字符串
+        proto.args = json_pretty(proto.args)
+        accord.protocols[tonumber(proto.id)] = proto
+        accord_dao:update("accord_conf", accord)
     end
-    return { code = -1, msg = "数据格式不正确!"}
+    return { code = 0}
 end
 
 -- 删除协议选项
 function AccordMgr:on_proto_del(url, body)
-    log_debug("[AccordMgr][on_proto_del] body: {}}", body)
+    log_debug("[AccordMgr][on_proto_del] body:{}", body)
     if body.data then
         local data = body.data
-        local accord = self.accord_list[data.accord_name]
+        local accord = self.accord_list[data.id]
         if not accord then
-            return { code = -1, msg = "不存在的协议配置!"}
+            return { code = -1, msg = "不存在的协议配置!" }
         end
-        accord.protocols[data.proto_name] = nil
-        accord_dao:save_accord_conf(accord)
+        accord.protocols[tonumber(data.proto_id)] = nil
+        accord_dao:update("accord_conf", accord)
     end
-    return { code = -1, msg = "数据格式不正确!"}
+    return { code = 0}
 end
 
 -- 后台GM调用，table格式
 function AccordMgr:on_run(url, body)
+    local data = body.data
     if body.cmd_id ~= 1001 then
-        log_debug("[AccordMgr][on_run] body: {}}", body)
+        data = jdecode(body.data)
+        log_debug("[AccordMgr][on_run] body:{}", body)
     end
-    return robot_mgr:run_accord_message(body.open_id, body.cmd_id, body.data)
+    return robot_mgr:run_accord_message(body.open_id, body.cmd_id, data)
 end
 
--- 后台GM调用，table格式
-function AccordMgr:on_runall(url, body)
-    log_debug("[AccordMgr][on_runall] body: {}}", body)
-    return robot_mgr:run_accord_messages(body.open_id, body.data)
+-- 获取配置
+function AccordMgr:on_get_config(url, body)
+    return { code = 0, srvlist_api=self.srvlist_api}
 end
 
 quanta.accord_mgr = AccordMgr()

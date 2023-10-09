@@ -92,7 +92,7 @@ function CacheGM:signed(player_id)
     --加载open_id
     local code, doc = cache_mgr:load_document("player", player_id)
     if qfailed(code) then
-        log_err("[CacheGM][signed] load_document failed! player_id=%s", player_id)
+        log_err("[CacheGM][signed] load_document failed! player_id={}", player_id)
         return "failed"
     end
     local open_id = doc:get_datas().open_id

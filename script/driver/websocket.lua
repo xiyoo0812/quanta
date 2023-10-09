@@ -12,6 +12,7 @@ local qxpcall       = quanta.xpcall
 
 local proto_text    = luabus.eproto_type.text
 
+local event_mgr     = quanta.get("event_mgr")
 local socket_mgr    = quanta.get("socket_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -152,7 +153,9 @@ function WebSocket:on_handshake(session, token, url, params, headers, body)
     self.session = session
     self:send_data(101, cbheaders, "")
     self.host:on_socket_accept(self, token)
-    session.set_codec(self.wcodec)
+    event_mgr:fire_frame(function()
+        session.set_codec(self.wcodec)
+    end)
     return true
 end
 
