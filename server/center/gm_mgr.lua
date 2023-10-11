@@ -159,17 +159,17 @@ end
 --http 回调
 ----------------------------------------------------------------------
 --gm_page
-function GM_Mgr:on_gm_page(url, params)
+function GM_Mgr:on_gm_page(url, body, params)
     return self.gm_page, {["Access-Control-Allow-Origin"] = "*", ["X-Frame-Options"]= "ALLOW_FROM"}
 end
 
 --gm列表
-function GM_Mgr:on_gmlist(url, params)
+function GM_Mgr:on_gmlist(url, body, params)
     return { text = "GM指令", nodes = cmdline:get_displays() }
 end
 
 --monitor拉取
-function GM_Mgr:on_monitors(url, params)
+function GM_Mgr:on_monitors(url, body, params)
     log_debug("[GM_Mgr][on_monitors] body: {}", params)
     local nodes = {}
     for _, addr in pairs(self.monitors) do

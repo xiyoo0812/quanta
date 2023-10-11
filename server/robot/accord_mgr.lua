@@ -139,7 +139,7 @@ function AccordMgr:get_src_name(src_path)
 end
 
 -- 拉取日志
-function AccordMgr:on_message(url, params)
+function AccordMgr:on_message(url, body, params)
     -- log_debug("[AccordMgr][on_message] open_id: {}", params.open_id)
     return robot_mgr:get_accord_message(params.open_id)
 end

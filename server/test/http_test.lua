@@ -13,7 +13,7 @@ if quanta.index == 1 then
         log_debug("on_post: {}, {}, {}", path, body, params)
         return data
     end
-    local on_get = function(path, params)
+    local on_get = function(path, body, params)
         log_debug("on_get: {}, {}", path, params)
         return data
     end
@@ -21,7 +21,7 @@ if quanta.index == 1 then
         log_debug("on_put: {}, {}, {}", path, body, params)
         return data
     end
-    local on_del = function(path, params)
+    local on_del = function(path, body, params)
         log_debug("on_del: {}, {}", path, params)
         return data
     end
