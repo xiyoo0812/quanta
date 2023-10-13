@@ -33,6 +33,10 @@ function Entity:is_resource()
     return false
 end
 
+function Entity:can_relive()
+    return true
+end
+
 -- 初始化
 function Entity:setup(conf)
     if not self:load(conf) then

@@ -1,10 +1,9 @@
 --convertor.lua
+local ljson     = require("ljson")
 local lstdfs    = require("lstdfs")
 local lexcel    = require("luaxlsx")
 
-local type          = type
 local pairs         = pairs
-local tostring      = tostring
 local iopen         = io.open
 local ldir          = lstdfs.dir
 local lmkdir        = lstdfs.mkdir
@@ -12,14 +11,17 @@ local lappend       = lstdfs.append
 local lconcat       = lstdfs.concat
 local lfilename     = lstdfs.filename
 local lcurdir       = lstdfs.current_path
+local jpretty       = ljson.pretty
+local serialize     = luakit.serialize
+local unserialize   = luakit.unserialize
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch
-local tsort         = table.sort
 local tconcat       = table.concat
 local tunpack       = table.unpack
 local tinsert       = table.insert
+local tsort         = table.sort
 local mfloor        = math.floor
 local mtointeger    = math.tointeger
 local slower        = string.lower
@@ -86,49 +88,55 @@ local value_func = {
         return value == "1"
     end,
     ["string"] = function(value)
-        value = "'" .. value .. "'"
+        value = value
         return sgsub(value, "\n", "\\n")
+    end,
+    ["struct"] = function(value)
+        return unserialize(value)
     end,
     ["map"] = function(value)
         if sfind(value, '|') then
             value = sgsub(value, '|', ']=')
             value = sgsub(value, ',', ',[')
-            return '{[' .. value .. '}'
+            return unserialize('{[' .. value .. '}')
         end
-        return '{}'
+        return {}
     end,
     ["smap"] = function(value)
         value = sgsub(value, '|', '=')
-        return '{' .. value .. '}'
+        return unserialize('{' .. value .. '}')
     end,
     ["array"] = function(value)
         value = sgsub(value, '|', ',')
         if sfind(value, '[(]') then
             -- 替换'('&')' 为 '{' & '}'
-            return sgsub(value, '[(.*)]', function (s)
+            local array = sgsub(value, '[(.*)]', function (s)
                 return s == '(' and '{' or '}'
             end)
+            return unserialize(array)
         end
         if sfind(value, '[{]') then
-            return value
+            return unserialize(value)
         end
-        return '{' .. value .. '}'
+        return unserialize('{' .. value .. '}')
     end,
     ["sarray"] = function(value)
         value = sgsub(value, '|', ',')
         value = sgsub(value, ',', "','")
         if sfind(value, '[(]') then
             -- 替换'('&')' 为 '{' & '}'
-            return sgsub(value, '[(.*)]', function (s)
+            local array = sgsub(value, '[(.*)]', function (s)
                 return s == '(' and "{'" or "'}"
             end)
+            return unserialize(array)
         end
         if sfind(value, '[{]') then
-            return sgsub(value, '[{.*}]', function (s)
+            local array = sgsub(value, '[{.*}]', function (s)
                 return s == '{' and "{'" or "'}"
             end)
+            return unserialize(array)
         end
-        return "{'" .. value .. "'}"
+        return unserialize("{'" .. value .. "'}")
     end,
 }
 
@@ -160,34 +168,8 @@ local function mapsort(src)
     return dst
 end
 
---格式化Table
-local function serialize(tab, prefix)
-    local function table2str(t, lines, tprefix)
-        local tt = mapsort(t)
-        for _, info in pairs(tt) do
-            local k, v = tunpack(info)
-            if type(v) == "table" then
-                tinsert(lines, sformat("%s[%s] = {\n", tprefix, k))
-                table2str(v, lines, tprefix .. "    ")
-                tinsert(lines, sformat("%s},\n", tprefix))
-            else
-                local key = mtointeger(k)
-                if key then
-                    tinsert(lines, sformat("%s[%s] = %s,\n", tprefix, key, v))
-                else
-                    tinsert(lines, sformat("%s%s = %s,\n", tprefix, k, v))
-                end
-            end
-        end
-    end
-    local lines = {"{\n"}
-    table2str(tab, lines, prefix .. "    ")
-    tinsert(lines, prefix .. "}")
-    return tconcat(lines)
-end
-
 -- 合并记录
-local function merge_record(record, prefix)
+local function merge_record(record)
     local rec, merge = {}, {}
     for _, info in ipairs(record) do
         local key, value = tunpack(info)
@@ -198,12 +180,13 @@ local function merge_record(record, prefix)
             field, index, sfield = func2()
         end
         if not field or not index then
-            tinsert(rec, info)
+            rec[info[1]] = info[2]
             goto continue
         end
         if not merge[field] then
             merge[field] = {}
         end
+        index = conv_integer(index)
         if sfield then
             if not merge[field][index] then
                 merge[field][index] = {}
@@ -215,14 +198,25 @@ local function merge_record(record, prefix)
         :: continue ::
     end
     for key, value in pairs(merge) do
-        tinsert(rec, { key, serialize(value, prefix), "struct" })
+        rec[key] = value
     end
     return rec
 end
 
+--构建数据记录
+local function build_records(records)
+    local result = {}
+    for _, rec in pairs(records) do
+        if #rec > 0 then
+            tinsert(result, merge_record(rec))
+        end
+    end
+    return result
+end
+
 --导出到lua
 --使用configmgr结构
-local function export_records_to_struct(output, title, records)
+local function export_records_to_conf(output, title, records)
     local table_name = sformat("%s_cfg", title)
     local filename = lappend(output, lconcat(table_name, ".lua"))
     local export_file = iopen(filename, "w")
@@ -238,17 +232,7 @@ local function export_records_to_struct(output, title, records)
 
     tinsert(lines, "--导出配置内容")
     for _, rec in pairs(records) do
-        if #rec > 0 then
-            local record = merge_record(rec, "    ")
-            for index, info in ipairs(record) do
-                local key, value = tunpack(info)
-                if index == 1 then
-                    tinsert(lines, sformat("%s:upsert({", title))
-                end
-                tinsert(lines, sformat("    %s = %s,", key, tostring(value)))
-            end
-            tinsert(lines, "})\n")
-        end
+        tinsert(lines, sformat("%s:upsert(%s)\n", title, serialize(rec, 1, mapsort)))
     end
     tinsert(lines, sformat("%s:update()\n", title))
     export_file:write(tconcat(lines, "\n"))
@@ -257,7 +241,7 @@ end
 
 --导出到lua
 --使用luatable
-local function export_records_to_table(output, title, records)
+local function export_records_to_lua(output, title, records)
     local table_name = sformat("%s_cfg", title)
     local filename = lappend(output, lconcat(table_name, ".lua"))
     local export_file = iopen(filename, "w")
@@ -268,26 +252,25 @@ local function export_records_to_table(output, title, records)
     local lines = {}
     tinsert(lines, sformat("--%s.lua", table_name))
     tinsert(lines, "--luacheck: ignore 631\n")
-
     tinsert(lines, "--导出配置内容")
-    tinsert(lines, sformat('local %s = {', title))
-    for _, rec in pairs(records) do
-        if #rec > 0 then
-            local record = merge_record(rec, "        ")
-            for index, info in ipairs(record) do
-                local key, value = tunpack(info)
-                if index == 1 then
-                    tinsert(lines,  "    {")
-                end
-                tinsert(lines, sformat("        %s = %s,", key, tostring(value)))
-            end
-            tinsert(lines, "    },")
-        end
-    end
-    tinsert(lines, sformat('}\n\nreturn %s\n', title))
+    tinsert(lines, sformat('local %s = %s', title, serialize(records, 1, mapsort)))
+    tinsert(lines, sformat('\n\nreturn %s\n', title))
 
     local output_data = tconcat(lines, "\n")
     export_file:write(output_data)
+    export_file:close()
+end
+
+--导出到json
+local function export_records_to_json(output, title, records)
+    local table_name = sformat("%s_cfg", title)
+    local filename = lappend(output, lconcat(table_name, ".json"))
+    local export_file = iopen(filename, "w")
+    if not export_file then
+        print(sformat("open output file %s failed!", filename))
+        return
+    end
+    export_file:write(jpretty(records, 1))
     export_file:close()
 end
 
@@ -304,8 +287,8 @@ local function find_sheet_data_struct(sheet)
     return header, field_type
 end
 
---导出到lua table
-local function export_sheet_to_table(sheet, output, fullname, title)
+--导出到目标文件
+local function export_sheet_to_output(sheet, output, fullname, title)
     local header, field_type = find_sheet_data_struct(sheet)
     if tsize(field_type) == 1 then
         --未定义数据定义，不导出此sheet
@@ -346,7 +329,7 @@ local function export_sheet_to_table(sheet, output, fullname, title)
         end
         tinsert(records, record)
     end
-    export_method(output, title, records)
+    export_method(output, title, build_records(records))
     print(sformat("export file: %s sheet: %s success!", fullname, title))
 end
 
@@ -400,7 +383,7 @@ local function export_excel(input, output)
                     print(sformat("export excel %s sheet %s empty!", fullname, title))
                     goto next
                 end
-                export_sheet_to_table(sheet, output, fullname, title)
+                export_sheet_to_output(sheet, output, fullname, title)
                 :: next ::
             end
         end
@@ -436,9 +419,12 @@ local function export_config()
         start_line = mtointeger(env_staline)
     end
     local env_format = ogetenv("QUANTA_FORMAT")
-    export_method = export_records_to_struct
-    if env_format and env_format == "table" then
-        export_method = export_records_to_table
+    if env_format == "lua" then
+        export_method = export_records_to_lua
+    elseif env_format == "json" then
+        export_method = export_records_to_json
+    else
+        export_method = export_records_to_conf
     end
     return input, output
 end
