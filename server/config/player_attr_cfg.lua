@@ -23,11 +23,11 @@ player_attr:upsert({
 })
 
 player_attr:upsert({
-    key = 'ATTR_STANIMA',
+    key = 'ATTR_STAMINA',
     range = 1,
     save = true,
     back = false,
-    limit = 'ATTR_STANIMA_MAX',
+    limit = 'ATTR_STAMINA_MAX',
 })
 
 player_attr:upsert({
@@ -53,7 +53,7 @@ player_attr:upsert({
 })
 
 player_attr:upsert({
-    key = 'ATTR_STANIMA_MAX',
+    key = 'ATTR_STAMINA_MAX',
     range = 1,
     save = false,
     back = false,

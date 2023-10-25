@@ -24,8 +24,8 @@ attribute:upsert({
 
 attribute:upsert({
     id = 3,
-    enum_key = 'ATTR_STANIMA',
-    nick = 'stanima',
+    enum_key = 'ATTR_STAMINA',
+    nick = 'stamina',
     type = 'int',
     increase = true,
 })
@@ -56,8 +56,8 @@ attribute:upsert({
 
 attribute:upsert({
     id = 7,
-    enum_key = 'ATTR_STANIMA_MAX',
-    nick = 'stanima_max',
+    enum_key = 'ATTR_STAMINA_MAX',
+    nick = 'stamina_max',
     type = 'int',
     increase = true,
 })

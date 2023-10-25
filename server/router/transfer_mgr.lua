@@ -132,7 +132,7 @@ end
 function TransferMgr:query_service(player_id, serv_name)
     local routers = self.routers[player_id]
     if routers then
-        return routers[serv_name]
+        return SUCCESS, routers[serv_name]
     end
     local rrouters = self:query_routers(player_id, NODE_ID)
     if not rrouters then
