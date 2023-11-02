@@ -6,6 +6,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_warn      = logger.warn
 local tinsert       = table.insert
+local tunpack       = table.unpack
 local qjoin         = qtable.join
 local tdelete       = qtable.delete
 local ssub          = string.sub
@@ -20,6 +21,7 @@ local makechan      = quanta.make_channel
 
 local lmd5          = crypt.md5
 local lsha1         = crypt.sha1
+local bsonpairs     = bson.pairs
 local lrandomkey    = crypt.randomkey
 local lb64encode    = crypt.b64_encode
 local lb64decode    = crypt.b64_decode
@@ -49,8 +51,8 @@ prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
 prop:reader("timer_id", nil)    --timer_id
 prop:reader("cursor_id", nil)   --cursor_id
+prop:reader("sort_doc", nil)    --sort_doc
 prop:reader("connections", {})  --connections
-prop:reader("readpref", nil)    --readPreference
 prop:reader("alives", {})       --alives
 prop:reader("req_counter", nil)
 prop:reader("res_counter", nil)
@@ -60,6 +62,7 @@ function MongoDB:__init(conf, id)
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
+    self.sort_doc = bson.doc()
     self.cursor_id = bson.int64(0)
     self.codec = bson.mongocodec()
     self:set_options(conf.opts)
@@ -87,11 +90,6 @@ function MongoDB:close()
 end
 
 function MongoDB:set_options(opts)
-    for key, value in pairs(opts) do
-        if key == "readPreference" then
-            self.readpref = { mode = value }
-        end
-    end
 end
 
 function MongoDB:setup_pool(hosts)
@@ -329,8 +327,12 @@ function MongoDB:drop_collection(co_name)
 end
 
 -- 参数说明
--- indexes={{key={open_id=1,platform_id=1},name="open_id-platform_id",unique=true}, }
+-- indexes: {{key={open_id=1}, name="open_id", unique=true} }
+-- indexes: {{key={open_id,1,platform_id,1}, name="open_id-platform_id", unique=true} }
 function MongoDB:create_indexes(co_name, indexes)
+    for _, index in pairs(indexes) do
+        index.key = self:format_pairs(index.key)
+    end
     local succ, doc = self:runCommand("createIndexes", co_name, "indexes", indexes)
     if not succ then
         return succ, doc
@@ -369,7 +371,7 @@ function MongoDB:count(co_name, query, limit, skip)
 end
 
 function MongoDB:find_one(co_name, query, projection)
-    local succ, reply = self:runCommand("find", co_name, "$readPreference", self.readpref, "filter", query, "projection", projection, "limit", 1)
+    local succ, reply = self:runCommand("find", co_name, "filter", query, "projection", projection, "limit", 1)
     if not succ then
         return succ, reply
     end
@@ -380,9 +382,23 @@ function MongoDB:find_one(co_name, query, projection)
     return succ
 end
 
+function MongoDB:format_pairs(args, doc)
+    if args then
+        if type(next(args)) == "string" then
+            return args
+        end
+        if doc then
+            tinsert(args, doc)
+        end
+        return bsonpairs(tunpack(args))
+    end
+end
+
+-- 参数说明
+--sort: {k1=1} / {k1,1,k2,-1,k3,-1}
 function MongoDB:find(co_name, query, projection, sortor, limit, skip)
-    local succ, reply = self:runCommand("find", co_name, "$readPreference", self.readpref, "filter",
-                query, "projection", projection, "sort", sortor, "limit", limit, "skip", skip)
+    local fsortor = self:format_pairs(sortor, self.sort_doc)
+    local succ, reply = self:runCommand("find", co_name, "filter", query, "projection", projection, "sort", fsortor, "limit", limit, "skip", skip)
     if not succ then
         return succ, reply
     end
