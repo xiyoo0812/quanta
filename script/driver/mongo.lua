@@ -427,4 +427,11 @@ function MongoDB:find_and_modify(co_name, update, selector, upsert, fields, new)
     return self:runCommand("findAndModify", co_name, "query", selector, "update", update, "fields", fields, "upsert", upsert, "new", new)
 end
 
+-- https://docs.mongodb.com/manual/reference/command/aggregate/
+-- pipeline: { { ["$match"]={pid = 123456} }, { ["$group"]={_id="date",count={["$sum"]=1}} } }
+-- options: { [key, value] ... }
+function MongoDB:aggregate(co_name, pipeline, options)
+    return self:runCommand("aggregate", co_name, "pipeline", pipeline, tunpack(options))
+end
+
 return MongoDB

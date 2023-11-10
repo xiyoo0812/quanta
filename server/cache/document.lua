@@ -115,6 +115,7 @@ end
 
 --保存数据库
 function Document:update()
+    self.flushing = false
     local channel = makechan("doc update")
     --清理缓存
     channel:push(function()
@@ -123,7 +124,6 @@ function Document:update()
             log_err("[Document][update] del failed: {}=> hotkey: {}", rres, self.hotkey)
             return false, rcode
         end
-        self.flushing = false
         return true, SUCCESS
     end)
     channel:push(function()

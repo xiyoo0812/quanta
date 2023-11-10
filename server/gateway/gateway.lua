@@ -3,8 +3,6 @@ local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
 local log_debug         = logger.debug
-local tpack             = table.pack
-local tunpack           = table.unpack
 local qfailed           = quanta.failed
 local sformat           = string.format
 local name2sid          = service.name2sid
@@ -224,11 +222,11 @@ function Gateway:on_heartbeat_req(session, cmd_id, body, session_id)
 end
 
 function Gateway:call_lobby(lobby, rpc, player_id, ...)
-    local result = tpack(router_mgr:call_target_hash(lobby, player_id, rpc, player_id, ...))
-    if not result[1] then
-        return FRAME_FAILED, result[2]
+    local ok, codeore, res = router_mgr:call_target_hash(lobby, player_id, rpc, player_id, ...)
+    if not ok then
+        return FRAME_FAILED, codeore
     end
-    return tunpack(result, 2)
+    return codeore, res
 end
 
 --玩家登陆

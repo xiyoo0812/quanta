@@ -46,6 +46,12 @@ function MongoAgent:find_and_modify(db_query, hash_key, db_id)
     return router_mgr:call_mongo_hash(key, "rpc_mongo_find_and_modify", db_id or MAIN_DBID, key, tunpack(db_query))
 end
 
+--db_query: {pipeline, cursor, [xxkey, xxvalue] ...}
+function MongoAgent:aggregate(db_query, hash_key, db_id)
+    local key = hash_key or mrandom()
+    return router_mgr:call_mongo_hash(key, "rpc_mongo_aggregate", db_id or MAIN_DBID, key, tunpack(db_query))
+end
+
 --db_query: {coll_name, selector}
 function MongoAgent:count(db_query, hash_key, db_id)
     return router_mgr:call_mongo_hash(hash_key or mrandom(), "rpc_mongo_count", db_id or MAIN_DBID, tunpack(db_query))

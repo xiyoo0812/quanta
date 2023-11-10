@@ -85,7 +85,7 @@ end
 
 --需要更新的表
 function CacheMgr:save_doc(document)
-    self.save_documents[document] = true
+    self.save_documents[document] = quanta.frame
 end
 
 function CacheMgr:build_fields(field)
@@ -112,13 +112,15 @@ function CacheMgr:on_frame()
     --保存数据
     if next(self.save_documents) then
         local count = 0
-        for document in pairs(self.save_documents) do
+        for doc, frame in pairs(self.save_documents) do
             channel:push(function()
-                local ok, code = document:update()
+                local ok, code = doc:update()
                 if qfailed(code, ok) then
                     return false
                 end
-                self.save_documents[document] = nil
+                if frame == self.save_documents[doc] then
+                    self.save_documents[doc] = nil
+                end
                 return true, code
             end)
             count = count + 1

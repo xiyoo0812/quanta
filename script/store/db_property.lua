@@ -20,7 +20,13 @@ local function on_db_prop_remove(primary_id, sheet, db_key)
     event_mgr:notify_listener("on_db_prop_remove", primary_id, sheet, db_key)
 end
 
-local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
+local function db_prop_op_sheet_key(class, sheet, sheetkey, sheetroot, sheetprimary)
+    class["flush_" .. sheet .. "_db"] = function(self)
+        on_db_prop_update(self[sheetroot][sheetprimary], sheet, self[sheetkey], self:pack2db())
+    end
+end
+
+local function db_root_prop_op_sheet_key(class, sheet, sheetkey, sheetprimary)
     class["load_" .. sheet .. "_db"] = function(self, primary_key, data)
         self[sheetkey] = ""
         self[sheetprimary] = primary_key
@@ -190,7 +196,9 @@ function db_property(class, sheet, root)
         store_objects = property_accessor_objects
     }
     if root then
-        db_prop_op_sheet_key(prop.__class, sheet, prop.__key, prop.__primary)
+        db_root_prop_op_sheet_key(prop.__class, sheet, prop.__key, prop.__primary)
+    else
+        db_prop_op_sheet_key(prop.__class, sheet, prop.__key, prop.__root, prop.__primary)
     end
     return prop
 end

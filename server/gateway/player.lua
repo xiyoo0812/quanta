@@ -7,6 +7,9 @@ local qfailed       = quanta.failed
 local group_mgr     = quanta.get("group_mgr")
 local router_mgr    = quanta.get("router_mgr")
 local client_mgr    = quanta.get("client_mgr")
+local protobuf_mgr  = quanta.get("protobuf_mgr")
+
+local FRAME_FAILED  = protobuf_mgr:error_code("FRAME_FAILED")
 
 --创建角色数据
 local GatePlayer = class()
@@ -72,6 +75,10 @@ end
 function GatePlayer:notify_command(service_id, cmd_id, body, session_id, display)
     local pla_id = self.player_id
     local ok, codeoe, res = router_mgr:forward_call(pla_id, service_id, "rpc_player_command", pla_id, cmd_id, body)
+    if not ok then
+        log_err("[GatePlayer][notify_command] player({}) rpc_player_command({}) failed: {}", pla_id, cmd_id, codeoe)
+        return FRAME_FAILED, codeoe
+    end
     if qfailed(codeoe, ok) then
         log_err("[GatePlayer][notify_command] player({}) rpc_player_command({}) code {}, failed: {}", pla_id, cmd_id, codeoe, res)
         client_mgr:callback_errcode(self.session, cmd_id, codeoe, session_id)
