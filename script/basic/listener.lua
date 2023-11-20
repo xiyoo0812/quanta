@@ -85,6 +85,10 @@ function Listener:notify_trigger(event, ...)
 end
 
 function Listener:notify_listener(event, ...)
+    if not event then
+        log_fatal("[Listener][notify_listener] event is nil, args: {}", { ... })
+        return
+    end
     local listener_map = self._listeners[event] or {}
     for listener, func_name in pairs(listener_map) do
         local callback_func = listener[func_name]

@@ -25,8 +25,8 @@ function service.make_node(port, domain)
         id = quanta.id,
         name = quanta.name,
         index = quanta.index,
-        group = quanta.group,
         region = quanta.region,
+        cluster = quanta.cluster,
         service = quanta.service,
         port = port or quanta.index,
         host = domain or quanta.host,
@@ -46,26 +46,21 @@ function service.init()
     end
     --初始化服务信息
     local index = environ.number("QUANTA_INDEX", 1)
-    local group = environ.number("QUANTA_GROUP", 1)
+    local cluster = environ.number("QUANTA_CLUSTER", 1)
     local region = environ.number("QUANTA_REGION", 1)
     local service_name = environ.get("QUANTA_SERVICE")
     local service_id = SERVICES[service_name]
     quanta.index = index
-    quanta.group = group
     quanta.region = region
+    quanta.cluster = cluster
     quanta.service = service_id
     quanta.service_name = service_name
     quanta.host = environ.get("QUANTA_HOST_IP")
     quanta.order = environ.number("QUANTA_PORT", 1)
     quanta.id = service.make_sid(service_id, index)
     quanta.name = sformat("%s_%s", service_name, index)
-    quanta.cluster = environ.get("QUANTA_CLUSTER", "develop")
+    quanta.env = environ.get("QUANTA_ENVIRON", "develop")
     service.make_node()
-end
-
---生成节点id
-function service.make_id(group, region, service, index)
-    return (group << 26) | (region << 16) | (service << 10) | index
 end
 
 --生成服务id

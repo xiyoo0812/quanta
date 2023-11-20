@@ -4,17 +4,20 @@ local mrandom       = qmath.random
 
 local router_mgr    = quanta.get("router_mgr")
 
-local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
-
 local RedisAgent = singleton()
 function RedisAgent:__init()
 end
 
 --发送数据库请求
 --db_query: { cmd, ...}
-function RedisAgent:execute(db_query, hash_key, db_id)
+function RedisAgent:execute(db_query, hash_key)
     local key = hash_key or mrandom()
-    return router_mgr:call_redis_hash(key, "rpc_redis_execute", db_id or MAIN_DBID, tunpack(db_query))
+    return router_mgr:call_redis_hash(key, "rpc_redis_execute", tunpack(db_query))
+end
+
+
+function RedisAgent:autoinc_id()
+    return router_mgr:call_redis_hash(mrandom(), "rpc_redis_autoinc_id")
 end
 
 ------------------------------------------------------------------

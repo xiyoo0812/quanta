@@ -32,7 +32,6 @@ local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 local GM_Mgr = singleton()
 local prop = property(GM_Mgr)
 prop:reader("http_server", nil)
-prop:reader("cluster", "local")
 prop:reader("services", {})
 prop:reader("monitors", {})
 prop:reader("gm_page", "")
@@ -49,7 +48,7 @@ function GM_Mgr:__init()
     service.make_node(server:get_port())
     self.http_server = server
     --是否开启GM功能
-    if environ.status("QUANTA_GM_WEB") then
+    if environ.status("QUANTA_GM_SERVER") then
         self.gm_status = true
         self:register_webgm()
     end

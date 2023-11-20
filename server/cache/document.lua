@@ -16,8 +16,7 @@ local cache_mgr     = quanta.get("cache_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
-local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
-local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
+local REGION        = environ.get("QUANTA_REGION")
 
 local Document = class()
 local prop = property(Document)
@@ -43,7 +42,7 @@ function Document:__init(conf, primary_id)
     self.depth_min = conf.depth_min
     self.depth_max = conf.depth_max
     self.time = conf.time + quanta.now
-    self.hotkey = sformat("CACHE:%s:%s:%s", NAMESPACE, conf.sheet, primary_id)
+    self.hotkey = sformat("CACHE:%s:%s:%s", REGION, conf.sheet, primary_id)
 end
 
 function Document:get(key)
@@ -54,7 +53,7 @@ end
 function Document:load()
     local pid = self.primary_id
     local query = { [self.primary_key] = pid }
-    local code, res = mongo_mgr:find_one(MAIN_DBID, pid, self.coll_name, query, { _id = 0 })
+    local code, res = mongo_mgr:find_one(pid, self.coll_name, query, { _id = 0 })
     if qfailed(code) then
         log_err("[Document][load] failed: {}=> table: {}", res, self.coll_name)
         return code
@@ -65,7 +64,7 @@ end
 
 --合并
 function Document:merge()
-    local code, res = redis_mgr:execute(MAIN_DBID, "HGETALL", self.hotkey)
+    local code, res = redis_mgr:execute("HGETALL", self.hotkey)
     if qfailed(code) then
         log_err("[Document][merge] failed: {}=> table: {}", res, self.coll_name)
         return code
@@ -92,12 +91,12 @@ end
 function Document:destory()
     self.datas = {}
     local query = { [self.primary_key] = self.primary_id }
-    local code, res = mongo_mgr:delete(MAIN_DBID, self.primary_id, self.coll_name, query, true)
+    local code, res = mongo_mgr:delete(self.primary_id, self.coll_name, query, true)
     if qfailed(code) then
         log_err("[Document][destory] del failed: {}=> table: {}", res, self.coll_name)
         return false, code
     end
-    local rcode, rres = redis_mgr:execute(MAIN_DBID, "DEL", self.hotkey)
+    local rcode, rres = redis_mgr:execute("DEL", self.hotkey)
     if qfailed(rcode) then
         log_err("[Document][destory] del failed: {}=> hotkey: {}", rres, self.hotkey)
         return false, code
@@ -119,7 +118,7 @@ function Document:update()
     local channel = makechan("doc update")
     --清理缓存
     channel:push(function()
-        local rcode, rres = redis_mgr:execute(MAIN_DBID, "DEL", self.hotkey)
+        local rcode, rres = redis_mgr:execute("DEL", self.hotkey)
         if qfailed(rcode) then
             log_err("[Document][update] del failed: {}=> hotkey: {}", rres, self.hotkey)
             return false, rcode
@@ -128,7 +127,7 @@ function Document:update()
     end)
     channel:push(function()
         local selector = { [self.primary_key] = self.primary_id }
-        local code, res = mongo_mgr:update(MAIN_DBID, self.primary_id, self.coll_name, self.datas, selector, true)
+        local code, res = mongo_mgr:update(self.primary_id, self.coll_name, self.datas, selector, true)
         if qfailed(code) then
             log_err("[Document][update] update failed: {}=> table: {}", res, self.coll_name)
             return false, code
@@ -238,7 +237,7 @@ end
 
 --记录缓存
 function Document:cmomit_redis(field, value)
-    local code, res = redis_mgr:execute(MAIN_DBID, "HSET", self.hotkey, field, { val = value })
+    local code, res = redis_mgr:execute("HSET", self.hotkey, field, { val = value })
     if qfailed(code) then
         log_err("[Document][cmomit_redis] failed: {}=> hotkey: {}", res, self.hotkey)
         self:flush()

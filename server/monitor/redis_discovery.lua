@@ -16,11 +16,12 @@ local PSRedis       = import("driver/redisps.lua")
 
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local EXPIRETIME    = quanta.enum("PeriodTime", "SECOND_30_S")
-local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
-local SERVICE_KEY   = sformat("QUANTA:service:%s", NAMESPACE)
-local CHANNEL_DN    = sformat("%s.unregister", NAMESPACE)
-local CHANNEL_UP    = sformat("%s.register", NAMESPACE)
-local CHANNEL_PT    = sformat("%s.*", NAMESPACE)
+
+local CLUSTER       = environ.get("QUANTA_CLUSTER")
+local SERVICE_KEY   = sformat("QUANTA:service:%s", CLUSTER)
+local CHANNEL_DN    = sformat("%s.unregister", CLUSTER)
+local CHANNEL_UP    = sformat("%s.register", CLUSTER)
+local CHANNEL_PT    = sformat("%s.*", CLUSTER)
 
 local RedisDiscovery = class()
 local prop = property(RedisDiscovery)
@@ -43,12 +44,9 @@ function RedisDiscovery:__init(trigger)
 end
 
 function RedisDiscovery:setup()
-    local drivers = environ.driver("QUANTA_REDIS_URLS")
-    for i, conf in ipairs(drivers) do
-        self.redis = RedisDB(conf, i)
-        self.subscriber = PSRedis(conf, i)
-        break
-    end
+    local driver = environ.driver("QUANTA_REDIS_URL")
+    self.redis = RedisDB(driver)
+    self.subscriber = PSRedis(driver)
     if not self.redis then
         log_err("[RedisDiscovery][setup] discovery config err: driver is empty")
         return

@@ -1,7 +1,6 @@
 --environ.lua
 local tonumber  = tonumber
 local tunpack   = table.unpack
-local sgsub     = string.gsub
 local sgmatch   = string.gmatch
 local qgetenv   = quanta.getenv
 local saddr     = qstring.addr
@@ -96,13 +95,6 @@ end
 function environ.driver(key)
     local value = qgetenv(key)
     if value then
-        local drivers = {}
-        local value1 = sgsub(value, " ", "")
-        local value2 = sgsub(value1, "\n", "")
-        local strs = ssplit(value2, ";")
-        for i, str in ipairs(strs) do
-            drivers[i] = parse_driver(str)
-        end
-        return drivers
+        return parse_driver(value)
     end
 end

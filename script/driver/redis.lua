@@ -5,7 +5,6 @@ local tonumber      = tonumber
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
-local sformat       = string.format
 local slower        = string.lower
 local tinsert       = table.insert
 local mrandom       = qmath.random
@@ -89,7 +88,6 @@ local rconvertors = {
 
 local RedisDB = class()
 local prop = property(RedisDB)
-prop:reader("id", nil)              --id
 prop:reader("passwd", nil)          --passwd
 prop:reader("jcodec", nil)          --jcodec
 prop:reader("timer_id", nil)        --timer_id
@@ -102,8 +100,7 @@ prop:reader("res_counter", nil)
 prop:reader("subscrible", false)
 prop:reader("cluster", false)       --cluster
 
-function RedisDB:__init(conf, id)
-    self.id = id
+function RedisDB:__init(conf)
     self.passwd = conf.passwd
     self:set_options(conf.opts)
     --attach_hour
@@ -134,8 +131,8 @@ function RedisDB:setup(conf)
     self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
         self:check_alive()
     end)
-    self.req_counter = quanta.make_sampling(sformat("redis %s req", self.id))
-    self.res_counter = quanta.make_sampling(sformat("redis %s res", self.id))
+    self.req_counter = quanta.make_sampling("redis req")
+    self.res_counter = quanta.make_sampling("redis res")
 end
 
 function RedisDB:setup_pool(hosts)

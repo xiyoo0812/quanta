@@ -1,22 +1,22 @@
 -- accord_mgr.lua
-local log_warn     = logger.warn
-local log_debug    = logger.debug
-local jdecode      = json.decode
-local json_pretty  = json.pretty
+local log_warn      = logger.warn
+local log_debug     = logger.debug
+local jdecode       = json.decode
+local json_pretty   = json.pretty
 
-local HttpServer   = import("network/http_server.lua")
+local HttpServer    = import("network/http_server.lua")
 
-local robot_mgr    = quanta.get("robot_mgr")
-local update_mgr   = quanta.get("update_mgr")
-local thread_mgr   = quanta.get("thread_mgr")
-local accord_dao   = quanta.get("accord_dao")
-local msg_mgr      = quanta.get("msg_mgr")
+local robot_mgr     = quanta.get("robot_mgr")
+local update_mgr    = quanta.get("update_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+local accord_dao    = quanta.get("accord_dao")
+local msg_mgr       = quanta.get("msg_mgr")
 
 -- 时间单位
-local SECOND_3_MS  = quanta.enum("PeriodTime", "SECOND_3_MS")
+local SECOND_3_MS   = quanta.enum("PeriodTime", "SECOND_3_MS")
 
-local AccordMgr    = singleton()
-local prop         = property(AccordMgr)
+local AccordMgr = singleton()
+local prop = property(AccordMgr)
 prop:reader("http_server", nil)
 prop:reader("accord_list", {}) -- 协议列表(添加的数据)
 prop:reader("case_group", {})  -- 用例分组

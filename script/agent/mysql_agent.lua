@@ -7,8 +7,6 @@ local router_mgr    = quanta.get("router_mgr")
 
 local PARAM_ERROR   = quanta.enum("KernCode", "PARAM_ERROR")
 
-local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
-
 local MysqlAgent = singleton()
 function MysqlAgent:__init()
 end
@@ -50,43 +48,43 @@ function MysqlAgent:format_query_sql(fields)
 end
 
 -- 更新
-function MysqlAgent:update(db_id, table_name, columns, conditions)
+function MysqlAgent:update(table_name, columns, conditions)
     if not next(columns) or not next(conditions) then
         return false, PARAM_ERROR
     end
     local sql = sformat("update %s set %s where %s", table_name, self:format_update_sql(columns), self:format_condition_sql(conditions))
-    return self:excute(sql, db_id)
+    return self:excute(sql)
 end
 
 -- 插入
-function MysqlAgent:insert(db_id, table_name, columns)
+function MysqlAgent:insert(table_name, columns)
     if not next(columns) then
         return false, PARAM_ERROR
     end
     local sql = sformat("insert into %s %s", table_name, self:format_insert_sql(columns))
-    return self:excute(sql, db_id)
+    return self:excute(sql)
 end
 
 -- 重复插入(存在则更新，不存在则插入)
-function MysqlAgent:insert_or_update(db_id, table_name, columns)
+function MysqlAgent:insert_or_update(table_name, columns)
     if not next(columns) then
         return false, PARAM_ERROR
     end
     local sql = sformat("insert into %s %s on duplicate key update %s", table_name, self:format_insert_sql(columns), self:format_update_sql(columns))
-    return self:excute(sql, db_id)
+    return self:excute(sql)
 end
 
 -- 替换
-function MysqlAgent:replace(db_id, table_name, columns)
+function MysqlAgent:replace(table_name, columns)
     if not next(columns) then
         return false, PARAM_ERROR
     end
     local sql = sformat("replace into %s %s", table_name, self:format_insert_sql(columns))
-    return self:excute(sql, db_id)
+    return self:excute(sql)
 end
 
 -- 查询
-function MysqlAgent:query(db_id, table_name, conditions, fields)
+function MysqlAgent:query(table_name, conditions, fields)
     local query_sql = "*"
     if fields and #fields > 0 then
         query_sql = self:format_query_sql(fields)
@@ -94,32 +92,32 @@ function MysqlAgent:query(db_id, table_name, conditions, fields)
     if conditions and next(conditions) then
         -- 带条件查询
         local sql = sformat("select %s from %s where %s", table_name, query_sql, self:format_condition_sql(conditions))
-        return self:excute(sql, db_id)
+        return self:excute(sql)
     else
         -- 不带条件查询
         local sql = sformat("select %s from %s", table_name, query_sql)
-        return self:excute(sql, db_id)
+        return self:excute(sql)
     end
 end
 
 -- 删除
-function MysqlAgent:delete(db_id, table_name, conditions)
+function MysqlAgent:delete(table_name, conditions)
     if not next(conditions) then
         return false, PARAM_ERROR
     end
     local sql = sformat("delete from %s where %s", table_name, self:format_condition_sql(conditions))
-    return self:excute(sql, db_id)
+    return self:excute(sql)
 end
 
 -- 清空整张表
-function MysqlAgent:truncate(db_id, table_name)
+function MysqlAgent:truncate(table_name)
     local sql = sformat("truncate table %s", table_name)
-    return self:excute(sql, db_id)
+    return self:excute(sql)
 end
 
 --发送数据库请求
-function MysqlAgent:execute(sql, db_id, hash_key)
-    return router_mgr:call_mysql_hash(hash_key or mrandom(), "rpc_mysql_execute", db_id or MAIN_DBID, sql)
+function MysqlAgent:execute(sql, hash_key)
+    return router_mgr:call_mysql_hash(hash_key or mrandom(), "rpc_mysql_execute", sql)
 end
 
 ------------------------------------------------------------------

@@ -24,7 +24,7 @@ prop:reader("notify_limit", {})     --控制同样消息的发送频率
 
 function Webhook:__init()
     local mode = environ.get("QUANTA_WEBHOOK_MODE")
-    if mode then
+    if mode ~= "null" then
         --添加webhook功能
         self.mode = mode
         logger.add_monitor(self)

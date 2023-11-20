@@ -43,7 +43,6 @@ local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
 
 local MongoDB = class()
 local prop = property(MongoDB)
-prop:reader("id", nil)          --id
 prop:reader("name", "")         --dbname
 prop:reader("user", nil)        --user
 prop:reader("passwd", nil)      --passwd
@@ -57,8 +56,7 @@ prop:reader("alives", {})       --alives
 prop:reader("req_counter", nil)
 prop:reader("res_counter", nil)
 
-function MongoDB:__init(conf, id)
-    self.id = id
+function MongoDB:__init(conf)
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
@@ -70,8 +68,8 @@ function MongoDB:__init(conf, id)
     --attach_hour
     update_mgr:attach_hour(self)
     --counter
-    self.req_counter = quanta.make_sampling(sformat("mongo %s req", self.id))
-    self.res_counter = quanta.make_sampling(sformat("mongo %s res", self.id))
+    self.req_counter = quanta.make_sampling("mongo req")
+    self.res_counter = quanta.make_sampling("mongo res")
 end
 
 function MongoDB:__release()

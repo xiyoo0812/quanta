@@ -6,11 +6,9 @@ local event_mgr     = quanta.get("event_mgr")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local MYSQL_FAILED  = quanta.enum("KernCode", "MYSQL_FAILED")
 
-local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
-
 local MysqlMgr = singleton()
 local prop = property(MysqlMgr)
-prop:reader("mysql_dbs", {})    -- mysql_dbs
+prop:reader("mysql_db", nil)    --mysql_db
 
 function MysqlMgr:__init()
     self:setup()
@@ -23,20 +21,12 @@ end
 --初始化
 function MysqlMgr:setup()
     local MysqlDB = import("driver/mysql.lua")
-    local drivers = environ.driver("QUANTA_MYSQL_URLS")
-    for i, conf in ipairs(drivers) do
-        local mysql_db = MysqlDB(conf, i)
-        self.mysql_dbs[i] = mysql_db
-    end
-end
-
---查找mysql db
-function MysqlMgr:get_db(db_id)
-    return self.mysql_dbs[db_id or MAIN_DBID]
+    local driver = environ.driver("QUANTA_MYSQL_URL")
+    self.mysql_db = MysqlDB(driver)
 end
 
 function MysqlMgr:query(db_id, primary_id, sql)
-    local mysqldb = self:get_db(db_id)
+    local mysqldb = self.mysql_db
     if mysqldb and mysqldb:set_executer(primary_id) then
         local ok, res_oe = mysqldb:query(sql)
         if not ok then
@@ -47,8 +37,8 @@ function MysqlMgr:query(db_id, primary_id, sql)
     return MYSQL_FAILED, "mysql db not exist"
 end
 
-function MysqlMgr:execute(db_id, primary_id, stmt, ...)
-    local mysqldb = self:get_db(db_id)
+function MysqlMgr:execute(primary_id, stmt, ...)
+    local mysqldb = self.mysql_db
     if mysqldb and mysqldb:set_executer(primary_id) then
         local ok, res_oe = mysqldb:execute(stmt, ...)
         if not ok then
@@ -59,8 +49,8 @@ function MysqlMgr:execute(db_id, primary_id, stmt, ...)
     return MYSQL_FAILED, "mysql db not exist"
 end
 
-function MysqlMgr:prepare(db_id, sql)
-    local mysqldb = self:get_db(db_id)
+function MysqlMgr:prepare(sql)
+    local mysqldb = self.mysql_db
     if mysqldb and mysqldb:set_executer() then
         local ok, res_oe = mysqldb:prepare(sql)
         if not ok then

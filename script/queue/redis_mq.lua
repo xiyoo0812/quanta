@@ -8,7 +8,8 @@ local sformat       = string.format
 local qsuccess      = quanta.success
 
 local redis_agent   = quanta.get("redis_agent")
-local NAMESPACE     = environ.get("QUANTA_NAMESPACE")
+
+local REGION        = environ.get("QUANTA_REGION")
 
 local RedisMQ = class()
 local prop = property(RedisMQ)
@@ -21,7 +22,7 @@ end
 
 function RedisMQ:setup(coll_name)
     self.coll_name = coll_name
-    self.prefix = sformat("RELIABLE:%s:%s", NAMESPACE, coll_name)
+    self.prefix = sformat("RELIABLE:%s:%s", REGION, coll_name)
     log_info("[RedisMQ][setup] init rmsg coll: {}", coll_name)
 end
 

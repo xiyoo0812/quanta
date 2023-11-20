@@ -40,7 +40,7 @@ local prop = property(PSRedis)
 prop:reader("subscribes", {})
 prop:reader("psubscribes", {})
 
-function PSRedis:__init(conf, id)
+function PSRedis:__init(conf)
     self.subscrible = true
 end
 

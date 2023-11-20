@@ -11,6 +11,7 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local LOGIC_FAILED  = quanta.enum("KernCode", "LOGIC_FAILED")
+local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 
 local Listener      = import("basic/listener.lua")
 
@@ -79,9 +80,9 @@ end
 function GMAgent:on_service_ready(id, service_name)
     log_info("[GMAgent][on_service_ready]->id:{}, service_name:{}", id, service_name)
     -- 上报gm列表
-    thread_mgr:success_call(2000, function()
+    thread_mgr:success_call(SECOND_MS, function()
         return self:report_command(id)
-    end)
+    end, SECOND_MS)
 end
 
 quanta.gm_agent = GMAgent()

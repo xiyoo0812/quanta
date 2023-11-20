@@ -16,12 +16,10 @@ local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local redis_agent   = quanta.get("redis_agent")
-local mongo_agent   = quanta.get("mongo_agent")
 local cache_agent   = quanta.get("cache_agent")
 
 local cache_db      = config_mgr:init_table("cache", "sheet")
 
-local USE_CACHE     = environ.status("QUANTA_DB_USE_CACHE")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local GameDAO = singleton()
@@ -59,28 +57,12 @@ function GameDAO:find_group(group_name)
 end
 
 function GameDAO:load_impl(primary_id, sheet_name)
-    if USE_CACHE then
-        local code, adata = cache_agent:load(primary_id, sheet_name)
-        if qfailed(code) then
-            log_err("[GameDAO][load_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
-            return false
-        end
-        return true, adata
-    end
-    return self:load_mongo(sheet_name, primary_id)
-end
-
-function GameDAO:load_mongo(sheet_name, primary_id)
-    local primary_key = cache_db:find_value(sheet_name, "key")
-    if not primary_key then
+    local code, adata = cache_agent:load(primary_id, sheet_name)
+    if qfailed(code) then
+        log_err("[GameDAO][load_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
         return false
     end
-    local ok, code, adata = mongo_agent:find_one({ sheet_name, { [primary_key] = primary_id }, { _id = 0 } })
-    if qfailed(code, ok) then
-        log_err("[GameDAO][load_mongo_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
-        return false
-    end
-    return true, adata or {}
+    return true, adata
 end
 
 function GameDAO:load(entity, primary_id, sheet_name)
@@ -115,56 +97,17 @@ function GameDAO:load_group(entity, primary_id, group)
 end
 
 function GameDAO:update_field(primary_id, sheet_name, field, field_data)
-    if USE_CACHE then
-        local code, adata = cache_agent:update_field(primary_id, sheet_name, field, field_data)
-        if qfailed(code) then
-            log_err("[GameDAO][update_field_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
-            return false
-        end
-        return true, SUCCESS
-    end
-    return self:update_mongo_field(sheet_name, primary_id, field, field_data)
-end
-
-function GameDAO:update_mongo_field(sheet_name, primary_id, field, field_data)
-    local primary_key = cache_db:find_value(sheet_name, "key")
-    if not primary_key then
-        return false
-    end
-    local udata = field_data
-    if #field == 0 then
-        udata[primary_key] = primary_id
-    else
-        udata = { ["$set"] = { [field] = field_data } }
-    end
-    local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
-    if qfailed(code, ok) then
-        log_err("[GameDAO][update_mongo_field_{}] update ({}) failed! primary_id({}), code({}), res({})", sheet_name, field, primary_id, code, res)
+    local code, adata = cache_agent:update_field(primary_id, sheet_name, field, field_data)
+    if qfailed(code) then
+        log_err("[GameDAO][update_field_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
         return false
     end
     return true, SUCCESS
 end
 
 function GameDAO:remove_field(primary_id, sheet_name, field)
-    if USE_CACHE then
-        local code, res = cache_agent:remove_field(primary_id, sheet_name, field)
-        if qfailed(code) then
-            log_err("[GameDAO][remove_field_{}] remove ({}) failed primary_id({}), code: {}, res: {}!", sheet_name, field, primary_id, code, res)
-            return false
-        end
-        return true, SUCCESS
-    end
-    return self:remove_mongo_field(sheet_name, primary_id, field)
-end
-
-function GameDAO:remove_mongo_field(sheet_name, primary_id, field)
-    local primary_key = cache_db:find_value(sheet_name, "key")
-    if not primary_key then
-        return false
-    end
-    local udata = { ["$unset"] = { [field] = 1 } }
-    local ok, code, res = mongo_agent:update({ sheet_name, udata, { [primary_key] = primary_id }, true })
-    if qfailed(code, ok) then
+    local code, res = cache_agent:remove_field(primary_id, sheet_name, field)
+    if qfailed(code) then
         log_err("[GameDAO][remove_field_{}] remove ({}) failed primary_id({}), code: {}, res: {}!", sheet_name, field, primary_id, code, res)
         return false
     end
@@ -173,29 +116,13 @@ end
 
 function GameDAO:delete(primary_id, sheet_name)
     self.recv_channel:push(function()
-        if USE_CACHE then
-            local code, res = cache_agent:delete(primary_id, sheet_name)
-            if qfailed(code) then
-                log_err("[GameDAO][delete] delete ({}) failed primary_id({}), code: {}, res: {}!",  sheet_name, primary_id, code, res)
-                return false
-            end
-            return true, SUCCESS
+        local code, res = cache_agent:delete(primary_id, sheet_name)
+        if qfailed(code) then
+            log_err("[GameDAO][delete] delete ({}) failed primary_id({}), code: {}, res: {}!",  sheet_name, primary_id, code, res)
+            return false
         end
-        return self:delete_mongo(sheet_name, primary_id)
+        return true, SUCCESS
     end)
-end
-
-function GameDAO:delete_mongo(sheet_name, primary_id)
-    local primary_key = cache_db:find_value(sheet_name, "key")
-    if not primary_key then
-        return false
-    end
-    local ok, code, res = mongo_agent:delete({ sheet_name, { [primary_key] = primary_id }, true })
-    if qfailed(code, ok) then
-        log_err("[GameDAO][delete_mongo_{}] delete failed primary_id({}), code: {}, res: {}!", sheet_name, primary_id, code, res)
-        return false
-    end
-    return true, SUCCESS
 end
 
 function GameDAO:on_db_prop_update(primary_id, sheet_name, db_key, value)

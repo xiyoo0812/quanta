@@ -95,13 +95,13 @@ function AttributeRelay:on_attr_relay(player, player_id)
             end
         end
         if next(attrs) then
+            player:set_relay_attrs({})
             local ok, code =  player:call_service(service_name, "rpc_attr_relay", attrs, quanta.service)
             if qfailed(code, ok) then
                 log_err("[AttributeRelay][on_attr_relay] sync failed attrs={}, player_id={}, code={}", attrs, player_id, code)
             end
         end
     end
-    player:set_relay_attrs({})
 end
 
 quanta.attr_relay = AttributeRelay()

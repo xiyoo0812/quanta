@@ -6,41 +6,34 @@ local tunpack       = table.unpack
 
 local event_mgr     = quanta.get("event_mgr")
 
+local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
+local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "COUNTER:QUANTA:AUTOINC")
+
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local REDIS_FAILED  = quanta.enum("KernCode", "REDIS_FAILED")
 
-local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
-
 local RedisMgr = singleton()
 local prop = property(RedisMgr)
-prop:reader("redis_dbs", {})    -- redis_dbs
+prop:reader("redis_db", nil)    --redis_db
 
 function RedisMgr:__init()
     self:setup()
     -- 注册事件
     event_mgr:add_listener(self, "rpc_redis_execute", "execute")
+    event_mgr:add_listener(self, "rpc_redis_autoinc_id", "autoinc_id")
 end
 
 --初始化
 function RedisMgr:setup()
     local RedisDB = import("driver/redis.lua")
-    local drivers = environ.driver("QUANTA_REDIS_URLS")
-    for i, conf in ipairs(drivers) do
-        local redis_db = RedisDB(conf, i)
-        self.redis_dbs[i] = redis_db
-    end
+    local driver = environ.driver("QUANTA_REDIS_URL")
+    self.redis_db = RedisDB(driver)
 end
 
---查找redis db
-function RedisMgr:get_db(db_id)
-    return self.redis_dbs[db_id or MAIN_DBID]
-end
-
-function RedisMgr:execute(db_id, cmd, ...)
-    local redisdb = self:get_db(db_id)
-    if redisdb then
+function RedisMgr:execute(cmd, ...)
+    if self.redis_db then
         log_debug("[RedisMgr][execute]: cmd {}, args: {}", cmd, {...})
-        local res = tpack(redisdb:execute(cmd, ...))
+        local res = tpack(self.redis_db:execute(cmd, ...))
         if not res[1] then
             log_err("[RedisMgr][execute] execute {} ({}) failed, because: {}", cmd, {...}, res[2])
             return res[1] and SUCCESS or REDIS_FAILED, res[2]
@@ -50,12 +43,22 @@ function RedisMgr:execute(db_id, cmd, ...)
     return REDIS_FAILED, "redis db not exist"
 end
 
-function RedisMgr:available(db_id)
-    local redisdb = self:get_db(db_id)
-    if not redisdb then
+function RedisMgr:autoinc_id()
+    local aok, origin_id = self.redis_db:execute("INCR", AUTOINCKEY)
+    if not aok then
+        return REDIS_FAILED, origin_id
+    end
+    if BENCHMARK then
+        return SUCCESS, BENCHMARK + origin_id
+    end
+    return SUCCESS, origin_id
+end
+
+function RedisMgr:available()
+    if not self.redis_db then
         return false
     end
-    return redisdb:available()
+    return self.redis_db:available()
 end
 
 quanta.redis_mgr = RedisMgr()

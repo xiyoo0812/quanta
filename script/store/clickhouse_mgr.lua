@@ -6,11 +6,9 @@ local event_mgr     = quanta.get("event_mgr")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local MYSQL_FAILED  = quanta.enum("KernCode", "MYSQL_FAILED")
 
-local MAIN_DBID     = environ.number("QUANTA_DB_MAIN_ID")
-
 local ClickHouseMgr = singleton()
 local prop = property(ClickHouseMgr)
-prop:reader("clickhouse_dbs", {})   -- clickhouse_dbs
+prop:reader("clickhouse_db", nil)   --clickhouse_db
 
 function ClickHouseMgr:__init()
     self:setup()
@@ -21,20 +19,12 @@ end
 --初始化
 function ClickHouseMgr:setup()
     local MysqlDB = import("driver/mysql.lua")
-    local drivers = environ.driver("QUANTA_MYSQL_URLS")
-    for i, conf in ipairs(drivers) do
-        local clickhouse_db = MysqlDB(conf, i)
-        self.clickhouse_dbs[i] = clickhouse_db
-    end
+    local driver = environ.driver("QUANTA_MYSQL_URL")
+    self.clickhouse_db = MysqlDB(driver)
 end
 
---查找clickhouse db
-function ClickHouseMgr:get_db(db_id)
-    return self.clickhouse_dbs[db_id or MAIN_DBID]
-end
-
-function ClickHouseMgr:query(db_id, primary_id, sql)
-    local clickhouse_db = self:get_db(db_id)
+function ClickHouseMgr:query(primary_id, sql)
+    local clickhouse_db = self.clickhouse_db
     if clickhouse_db and clickhouse_db:set_executer(primary_id) then
         local ok, res_oe = clickhouse_db:query(sql)
         if not ok then

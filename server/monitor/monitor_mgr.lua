@@ -1,5 +1,4 @@
 --monitor_mgr.lua
-import("driver/nacos.lua")
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
 
@@ -11,8 +10,6 @@ local log_debug     = logger.debug
 local signal_quit   = signal.quit
 
 local timer_mgr     = quanta.get("timer_mgr")
-
-local DISCOVERY     = environ.get("QUANTA_DISCOVERY", "redis")
 
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 
@@ -43,12 +40,7 @@ function MonitorMgr:__init()
 end
 
 function MonitorMgr:load_discovery()
-    local Discovery
-    if DISCOVERY == "redis" then
-        Discovery = import("monitor/redis_discovery.lua")
-    else
-        Discovery = import("monitor/nacos_discovery.lua")
-    end
+    local Discovery = import("monitor/redis_discovery.lua")
     self.discovery = Discovery(self.rpc_server)
 end
 

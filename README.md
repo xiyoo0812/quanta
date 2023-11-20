@@ -67,11 +67,9 @@ cd bin
 - lua-protobuf
 
 # 数据库支持
-- etcd
 - mongo
 - mysql
 - redis
-- influx
 - clickhouse
 
 # 支持功能
@@ -98,7 +96,8 @@ cd bin
 - 星型分布式服务器框架
 
 # 辅助工具
-- graylog日志系统
+- GMWeb工具
+- 协议测试Web工具
+- redis服务发现系统
 - zipkin/jager调用链系统
-- nacos配置管理和服务发现系统
 - dingding/wechat/lark等webhook通知

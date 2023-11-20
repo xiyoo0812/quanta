@@ -10,9 +10,6 @@ local mongo_agent   = quanta.get("mongo_agent")
 local redis_agent   = quanta.get("redis_agent")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
-local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
-local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "COUNTER:QUANTA:ROLE")
-
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
 
@@ -24,12 +21,12 @@ function LoginDao:__init()
 end
 
 function LoginDao:get_autoinc_id(user_id)
-    local aok, acode, role_id = redis_agent:execute({ "INCR", AUTOINCKEY })
+    local aok, acode, role_id = redis_agent:autoinc_id()
     if qfailed(acode, aok) then
         log_err("[LoginDao][get_autoinc_id] user_id: {} get_autoinc_id failed! code: {}, res: {}", user_id, acode, role_id)
         return false
     end
-    return true, SUCCESS, BENCHMARK + role_id
+    return true, SUCCESS, role_id
 end
 
 function LoginDao:check_name_exist(name)
