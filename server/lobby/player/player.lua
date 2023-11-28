@@ -4,7 +4,7 @@ local log_info      = logger.info
 local qedition      = quanta.edition
 local makechan      = quanta.make_channel
 
-local game_dao      = quanta.get("game_dao")
+local store_mgr     = quanta.get("store_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
 local attr_db       = config_mgr:init_table("player_attr", "key")
@@ -77,10 +77,10 @@ function Player:load(conf)
     self:init_attrset(attr_db, 1)
     local channel = makechan("load_player")
     channel:push(function()
-        return game_dao:load_group(self, self.id, "player")
+        return store_mgr:load_group(self, self.id, "player")
     end)
     channel:push(function()
-        return game_dao:load_group(self, self.id, "lobby")
+        return store_mgr:load_group(self, self.id, "lobby")
     end)
     self:invoke("_load", channel, self.id)
     local ok, code =  channel:execute()

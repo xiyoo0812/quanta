@@ -4,6 +4,7 @@ local qfailed       = quanta.failed
 
 local thread_mgr    = quanta.get("thread_mgr")
 
+local RPC_FAILED    = quanta.enum("KernCode", "RPC_FAILED")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
 
 local Channel = class()
@@ -17,6 +18,10 @@ end
 
 function Channel:clear()
     self.executers = {}
+end
+
+function Channel:isfull(count)
+    return (#self.executers >= count)
 end
 
 function Channel:empty()
@@ -56,7 +61,11 @@ function Channel:execute(all_back)
             return false, code
         end
     end
+    local time = quanta.clock_ms
     while count > 0 do
+        if quanta.clock_ms - time > RPC_TIMEOUT then
+            return false, RPC_FAILED
+        end
         local sok, corerr = thread_mgr:yield(session_id, self.title, RPC_TIMEOUT)
         local efailed, code = qfailed(corerr, sok)
         count = count - 1

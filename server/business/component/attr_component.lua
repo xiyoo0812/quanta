@@ -4,6 +4,7 @@ local log_warn      = logger.warn
 local log_debug     = logger.debug
 local tinsert       = table.insert
 local sformat       = string.format
+local qmerge        = qtable.merge
 
 local event_mgr     = quanta.get("event_mgr")
 local config_mgr    = quanta.get("config_mgr")
@@ -56,7 +57,6 @@ function AttrComponent:init_attrset(type_attr_db, range)
         self.attr_set[attr_id] = attr_def
         self.attrs[attr_id] = attr_type == "int" and 0 or ""
     end
-    self:watch_event(self, "on_attr_sync")
 end
 
 --加载db数据
@@ -82,26 +82,24 @@ function AttrComponent:set_attr(attr_id, value, service_id)
         log_warn("[AttrComponent][set_attr] attr({}) value is nil", attr_id)
         return false
     end
+    --检查限制
+    if (not service_id) and attr.limit_id then
+        local limit = self:get_attr(attr.limit_id)
+        if limit > 0 and limit < value then
+            value = limit
+        end
+    end
     local cur_val = self.attrs[attr_id]
-    if cur_val ~= value then
-        --检查限制
-        if not service_id then
-            if attr.limit_id then
-                local limit = self:get_attr(attr.limit_id)
-                if limit > 0 and limit < value then
-                    value = limit
-                end
-            end
-        end
-        --修改属性
-        if attr.save then
-            self:save_attrs_field(attr_id, value)
-        else
-            self:set_attrs_field(attr_id, value)
-        end
-        self:on_attr_changed(attr_id, attr, value, service_id)
+    if cur_val == value then
         return true
     end
+    --修改属性
+    if attr.save then
+        self:save_attrs_field(attr_id, value)
+    else
+        self:set_attrs_field(attr_id, value)
+    end
+    self:on_attr_changed(attr_id, attr, value, service_id)
     return true
 end
 
@@ -119,12 +117,13 @@ function AttrComponent:on_attr_changed(attr_id, attr, value, service_id)
         --回写判定
         if self.wbackable and attr.back and (not service_id) then
             self.write_attrs[attr_id] = value
-            event_mgr:publish_frame(self, "on_attr_writeback", self.id)
+            event_mgr:publish_frame(self, "on_attr_writeback")
         end
         --转发判定
         if self.relayable then
             self.relay_attrs[attr_id] = { value, service_id }
-            event_mgr:publish_frame(self, "on_attr_relay", self.id)
+            log_warn("[AttrComponent][on_attr_changed] relay_attrs={}", self.relay_attrs)
+            event_mgr:publish_frame(self, "on_attr_relay")
         end
         --同步属性
         if attr.range > 0 and self.range >= attr.range then
@@ -182,6 +181,17 @@ function AttrComponent:load_attrs(attrs)
     end
 end
 
+function AttrComponent:load_relay_attrs()
+    local attrs = self.relay_attrs
+    self.relay_attrs = {}
+    return attrs
+end
+
+function AttrComponent:merge_relay_attrs(attrs)
+    local nattrs = self.relay_attrs
+    self.relay_attrs = qmerge(attrs, nattrs)
+end
+
 function AttrComponent:encode_attr(attr_id, attr)
     local value = self.attrs[attr_id]
     if attr.type == "int" then
@@ -202,6 +212,14 @@ function AttrComponent:package_attrs(range)
         end
     end
     return attrs
+end
+
+function AttrComponent:on_attr_writeback()
+    self:notify_event("on_attr_writeback", self, self.id)
+end
+
+function AttrComponent:on_attr_relay()
+    self:notify_event("on_attr_relay", self, self.id)
 end
 
 function AttrComponent:on_attr_sync()

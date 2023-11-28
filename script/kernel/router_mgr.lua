@@ -77,6 +77,10 @@ function RouterMgr:on_socket_connect(client, res)
     self:check_router()
 end
 
+function RouterMgr:available()
+    return #self.candidates > 0
+end
+
 --检查可用router
 function RouterMgr:check_router()
     local candidates = {}

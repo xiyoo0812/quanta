@@ -7,15 +7,15 @@ local utility = config_mgr:get_table("utility")
 
 --导出配置内容
 utility:upsert({
-    ID = 1,
-    key = 'flush_day_hour',
-    value = '5',
+    ID=1,
+    key='flush_day_hour',
+    value='5'
 })
 
 utility:upsert({
-    ID = 2,
-    key = 'flush_week_day',
-    value = '1',
+    ID=2,
+    key='flush_week_day',
+    value='1'
 })
 
 utility:update()

@@ -123,6 +123,30 @@ local function tdiff(src, dst)
     return add, del
 end
 
+--合并table
+local function tmerge(src, new, vnull)
+    for key, value in pairs(new) do
+        if type(value) ~= "table" then
+            if vnull and value == vnull then
+                src[key] = nil
+                goto continue
+            end
+            src[key] = value
+            goto continue
+        end
+        if next(value) then
+            if not src[key] or type(src[key]) ~= "table" then
+                src[key] = {}
+            end
+            tmerge(src[key], value, vnull)
+        else
+            src[key] = value
+        end
+        :: continue ::
+    end
+    return src
+end
+
 -- map中的value抽出来变成array (会丢失key信息)
 local function tarray(src)
     local dst = {}
@@ -197,6 +221,7 @@ qtable.join         = tjoin
 qtable.map          = tmap
 qtable.push         = tpush
 qtable.diff         = tdiff
+qtable.merge        = tmerge
 qtable.array        = tarray
 qtable.tkarray      = tkarray
 qtable.kvarray      = tkvarray

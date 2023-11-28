@@ -1,7 +1,11 @@
 --event_mgr.lua
+local xpcall        = xpcall
+local log_warn      = logger.warn
+local log_fatal     = logger.fatal
+local qtweak        = qtable.weak
 local tinsert       = table.insert
 local tunpack       = table.unpack
-local log_warn      = logger.warn
+local dtraceback    = debug.traceback
 
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -9,11 +13,11 @@ local Listener      = import("basic/listener.lua")
 
 local EventMgr = singleton(Listener)
 local prop = property(EventMgr)
+prop:reader("hooks", {})            -- hooks set
 prop:reader("fevent_set", {})       -- frame event set
 prop:reader("sevent_set", {})       -- second event set
 prop:reader("fevent_map", {})       -- frame event map
 prop:reader("sevent_map", {})       -- second event map
-prop:reader("invalidates", {})      -- invalidates
 function EventMgr:__init()
 end
 
@@ -23,21 +27,15 @@ function EventMgr:on_frame()
     for _, handler in pairs(handlers) do
         thread_mgr:fork(handler)
     end
-    for obj, events in pairs(self.fevent_map) do
-        for event, args in pairs(events) do
+    local mhandlers = self.fevent_map
+    self.fevent_map = {}
+    for obj, events in pairs(mhandlers) do
+        for event in pairs(events) do
             thread_mgr:fork(function()
-                obj:notify_event(event, obj, tunpack(args))
+                obj[event](obj)
             end)
         end
     end
-    self.fevent_map = {}
-    local tick = quanta.now
-    for obj, func in pairs(self.invalidates) do
-        thread_mgr:fork(function()
-            obj[func](obj, tick)
-        end)
-    end
-    self.invalidates = {}
 end
 
 function EventMgr:on_second()
@@ -46,39 +44,56 @@ function EventMgr:on_second()
     for _, handler in pairs(handlers) do
         thread_mgr:fork(handler)
     end
-    for obj, events in pairs(self.sevent_map) do
-        for event, args in pairs(events) do
+    local mhandlers = self.sevent_map
+    self.sevent_map = {}
+    for obj, events in pairs(mhandlers) do
+        for event in pairs(events) do
             thread_mgr:fork(function()
-                obj:notify_event(event, obj, tunpack(args))
+                obj[event](obj)
             end)
         end
     end
-    self.sevent_map = {}
 end
 
---invalidate
-function EventMgr:invalidate(obj, func)
-    if not obj[func] then
-        log_warn("[EventMgr][invalidate] obj({}) isn't {} method!", obj:source(), func)
+function EventMgr:register_hook(listener, name, handler)
+    if self.hooks[name] then
+        log_warn("[EventMgr][register_hook] hook({}) repeat!", name)
         return
     end
-    self.invalidates[obj] = func
+    local func_name = handler
+    local callback_func = listener[func_name]
+    if not callback_func or type(callback_func) ~= "function" then
+        log_warn("[EventMgr][register_hook] hook({}) handler not define!", name)
+        return
+    end
+    self.hooks[name] = qtweak({ [listener] = func_name })
+end
+
+function EventMgr:execute_hook(name, ...)
+    local hooker_map = self.hooks[name] or {}
+    for hooker, func_name in pairs(hooker_map) do
+        local callback_func = hooker[func_name]
+        local ok, ret = xpcall(callback_func, dtraceback, hooker, name, ...)
+        if not ok then
+            log_fatal("[EventMgr][notify_trigger] xpcall [{}:{}] failed: {}!", hooker:source(), func_name, ret)
+        end
+    end
 end
 
 --下一帧发布
-function EventMgr:publish_frame(obj, event, ...)
+function EventMgr:publish_frame(obj, event)
     if not self.fevent_map[obj] then
-        self.fevent_map[obj] = {[event] = { ... }}
+        self.fevent_map[obj] = {[event] = true}
     end
-    self.fevent_map[obj][event] = { ... }
+    self.fevent_map[obj][event] = true
 end
 
 --下一秒发布
-function EventMgr:publish_second(obj, event, ...)
+function EventMgr:publish_second(obj, event)
     if not self.sevent_map[obj] then
-        self.sevent_map[obj] = {[event] = { ... }}
+        self.sevent_map[obj] = {[event] = true}
     end
-    self.sevent_map[obj][event] = { ... }
+    self.sevent_map[obj][event] = true
 end
 
 --延迟一帧事件

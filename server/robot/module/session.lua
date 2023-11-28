@@ -41,11 +41,6 @@ function SessionModule:on_socket_error(client, token, err)
     log_debug("[SessionModule][on_socket_error] {}, err:{}", self:get_title(), err)
 end
 
---消息回调
-function SessionModule:on_message_recv(cmd_id, body)
-    self:push_message(cmd_id, body)
-end
-
 -- ntf消息回调
 function SessionModule:on_socket_rpc(client, cmd_id, body)
     local doer = self.cmd_doers[cmd_id]

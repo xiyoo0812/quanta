@@ -6,7 +6,7 @@ local signalquit        = signal.quit
 local log_err           = logger.err
 local log_warn          = logger.warn
 local log_info          = logger.info
-local qeval             = quanta.eval
+local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
 
@@ -57,11 +57,11 @@ function RpcServer:__init(holder, ip, port, induce)
 end
 
 --rpc事件
-function RpcServer:on_socket_rpc(client, session_id, rpc_flag, recv_len, source, rpc, ...)
-    --proxy_agent:statistics("on_rpc_recv", rpc, recv_len)
+function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ...)
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
-            local _<close> = qeval(rpc)
+            local hook<close> = qdefer()
+            event_mgr:execute_hook(rpc, hook, ...)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
                 client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))
@@ -102,7 +102,7 @@ function RpcServer:on_socket_accept(client)
         return true, SUCCESS
     end
     client.on_call = function(recv_len, session_id, rpc_flag, ...)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, client, session_id, rpc_flag, recv_len, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, client, session_id, rpc_flag, ...)
     end
     client.on_transfer = function(recv_len, session_id, service_id, target_id, slice)
         local function dispatch_rpc_message()

@@ -2,7 +2,7 @@
 
 local tunpack           = table.unpack
 local log_err           = logger.err
-local qeval             = quanta.eval
+local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
 
@@ -143,10 +143,14 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source,
     if rpc == "on_heartbeat" then
         return
     end
-    --proxy_agent:statistics("on_rpc_recv", rpc, recv_len)
+    if not rpc then
+        log_err("[RpcClient][on_socket_rpc] rpc is nil, args :{}!", { ... })
+        return
+    end
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
-            local _<close> = qeval(rpc)
+            local hook<close> = qdefer()
+            event_mgr:execute_hook(rpc, hook, ...)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
                 socket.callback_target(rpc, session_id, source, tunpack(rpc_datas))

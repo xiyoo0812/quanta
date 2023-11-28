@@ -7,283 +7,283 @@ local attribute = config_mgr:get_table("attribute")
 
 --导出配置内容
 attribute:upsert({
-    id = 1,
-    enum_key = 'ATTR_HP',
-    nick = 'hp',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_HP',
+    id=1,
+    increase=true,
+    nick='hp',
+    type='int'
 })
 
 attribute:upsert({
-    id = 2,
-    enum_key = 'ATTR_MP',
-    nick = 'mp',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_MP',
+    id=2,
+    increase=true,
+    nick='mp',
+    type='int'
 })
 
 attribute:upsert({
-    id = 3,
-    enum_key = 'ATTR_STAMINA',
-    nick = 'stamina',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_STAMINA',
+    id=3,
+    increase=true,
+    nick='stamina',
+    type='int'
 })
 
 attribute:upsert({
-    id = 4,
-    enum_key = 'ATTR_EXP',
-    nick = 'exp',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_EXP',
+    id=4,
+    increase=true,
+    nick='exp',
+    type='int'
 })
 
 attribute:upsert({
-    id = 5,
-    enum_key = 'ATTR_HP_MAX',
-    nick = 'hp_max',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_HP_MAX',
+    id=5,
+    increase=true,
+    nick='hp_max',
+    type='int'
 })
 
 attribute:upsert({
-    id = 6,
-    enum_key = 'ATTR_MP_MAX',
-    nick = 'mp_max',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_MP_MAX',
+    id=6,
+    increase=true,
+    nick='mp_max',
+    type='int'
 })
 
 attribute:upsert({
-    id = 7,
-    enum_key = 'ATTR_STAMINA_MAX',
-    nick = 'stamina_max',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_STAMINA_MAX',
+    id=7,
+    increase=true,
+    nick='stamina_max',
+    type='int'
 })
 
 attribute:upsert({
-    id = 8,
-    enum_key = 'ATTR_EXP_MAX',
-    nick = 'exp_max',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_EXP_MAX',
+    id=8,
+    increase=true,
+    nick='exp_max',
+    type='int'
 })
 
 attribute:upsert({
-    id = 9,
-    enum_key = 'ATTR_LEVEL',
-    nick = 'level',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_LEVEL',
+    id=9,
+    increase=false,
+    nick='level',
+    type='int'
 })
 
 attribute:upsert({
-    id = 10,
-    enum_key = 'ATTR_COIN',
-    nick = 'coin',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_COIN',
+    id=10,
+    increase=true,
+    nick='coin',
+    type='int'
 })
 
 attribute:upsert({
-    id = 11,
-    enum_key = 'ATTR_NAME',
-    nick = 'name',
-    type = 'string',
-    increase = false,
+    enum_key='ATTR_NAME',
+    id=11,
+    increase=false,
+    nick='name',
+    type='string'
 })
 
 attribute:upsert({
-    id = 12,
-    enum_key = 'ATTR_DIAMOND',
-    nick = 'diamond',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_DIAMOND',
+    id=12,
+    increase=true,
+    nick='diamond',
+    type='int'
 })
 
 attribute:upsert({
-    id = 13,
-    enum_key = 'ATTR_PROTO_ID',
-    nick = 'proto_id',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_PROTO_ID',
+    id=13,
+    increase=false,
+    nick='proto_id',
+    type='int'
 })
 
 attribute:upsert({
-    id = 14,
-    enum_key = 'ATTR_LUCKY',
-    nick = 'lucky',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_LUCKY',
+    id=14,
+    increase=true,
+    nick='lucky',
+    type='int'
 })
 
 attribute:upsert({
-    id = 15,
-    enum_key = 'ATTR_GENDER',
-    nick = 'gender',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_GENDER',
+    id=15,
+    increase=false,
+    nick='gender',
+    type='int'
 })
 
 attribute:upsert({
-    id = 16,
-    enum_key = 'ATTR_CUSTOM',
-    nick = 'custom',
-    type = 'bytes',
-    increase = false,
+    enum_key='ATTR_CUSTOM',
+    id=16,
+    increase=false,
+    nick='custom',
+    type='bytes'
 })
 
 attribute:upsert({
-    id = 17,
-    enum_key = 'ATTR_VERSION',
-    nick = 'version',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_VERSION',
+    id=17,
+    increase=false,
+    nick='version',
+    type='int'
 })
 
 attribute:upsert({
-    id = 18,
-    enum_key = 'ATTR_ONLINE_TIME',
-    nick = 'online_time',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_ONLINE_TIME',
+    id=18,
+    increase=true,
+    nick='online_time',
+    type='int'
 })
 
 attribute:upsert({
-    id = 21,
-    enum_key = 'ATTR_ATTACK',
-    nick = 'attack',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_ATTACK',
+    id=21,
+    increase=true,
+    nick='attack',
+    type='int'
 })
 
 attribute:upsert({
-    id = 22,
-    enum_key = 'ATTR_DEFENCE',
-    nick = 'defence',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_DEFENCE',
+    id=22,
+    increase=true,
+    nick='defence',
+    type='int'
 })
 
 attribute:upsert({
-    id = 23,
-    enum_key = 'ATTR_CRITICAL_RATE',
-    nick = 'critical_rate',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_CRITICAL_RATE',
+    id=23,
+    increase=true,
+    nick='critical_rate',
+    type='int'
 })
 
 attribute:upsert({
-    id = 24,
-    enum_key = 'ATTR_CRITICAL_HURT',
-    nick = 'critical_hurt',
-    type = 'int',
-    increase = true,
+    enum_key='ATTR_CRITICAL_HURT',
+    id=24,
+    increase=true,
+    nick='critical_hurt',
+    type='int'
 })
 
 attribute:upsert({
-    id = 51,
-    enum_key = 'ATTR_HEAD',
-    nick = 'head',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_HEAD',
+    id=51,
+    increase=false,
+    nick='head',
+    type='int'
 })
 
 attribute:upsert({
-    id = 52,
-    enum_key = 'ATTR_FACE',
-    nick = 'face',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_FACE',
+    id=52,
+    increase=false,
+    nick='face',
+    type='int'
 })
 
 attribute:upsert({
-    id = 53,
-    enum_key = 'ATTR_CLOTH',
-    nick = 'cloth',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_CLOTH',
+    id=53,
+    increase=false,
+    nick='cloth',
+    type='int'
 })
 
 attribute:upsert({
-    id = 54,
-    enum_key = 'ATTR_TROUSERS',
-    nick = 'trousers',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_TROUSERS',
+    id=54,
+    increase=false,
+    nick='trousers',
+    type='int'
 })
 
 attribute:upsert({
-    id = 55,
-    enum_key = 'ATTR_SHOES',
-    nick = 'shoes',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_SHOES',
+    id=55,
+    increase=false,
+    nick='shoes',
+    type='int'
 })
 
 attribute:upsert({
-    id = 56,
-    enum_key = 'ATTR_WEAPON',
-    nick = 'weapon',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_WEAPON',
+    id=56,
+    increase=false,
+    nick='weapon',
+    type='int'
 })
 
 attribute:upsert({
-    id = 57,
-    enum_key = 'ATTR_NECK',
-    nick = 'neck',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_NECK',
+    id=57,
+    increase=false,
+    nick='neck',
+    type='int'
 })
 
 attribute:upsert({
-    id = 58,
-    enum_key = 'ATTR_RING',
-    nick = 'ring',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_RING',
+    id=58,
+    increase=false,
+    nick='ring',
+    type='int'
 })
 
 attribute:upsert({
-    id = 101,
-    enum_key = 'ATTR_MAP_ID',
-    nick = 'map_id',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_MAP_ID',
+    id=101,
+    increase=false,
+    nick='map_id',
+    type='int'
 })
 
 attribute:upsert({
-    id = 102,
-    enum_key = 'ATTR_POS_X',
-    nick = 'pos_x',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_POS_X',
+    id=102,
+    increase=false,
+    nick='pos_x',
+    type='int'
 })
 
 attribute:upsert({
-    id = 103,
-    enum_key = 'ATTR_POS_Y',
-    nick = 'pos_y',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_POS_Y',
+    id=103,
+    increase=false,
+    nick='pos_y',
+    type='int'
 })
 
 attribute:upsert({
-    id = 104,
-    enum_key = 'ATTR_POS_Z',
-    nick = 'pos_z',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_POS_Z',
+    id=104,
+    increase=false,
+    nick='pos_z',
+    type='int'
 })
 
 attribute:upsert({
-    id = 105,
-    enum_key = 'ATTR_LINE',
-    nick = 'line',
-    type = 'int',
-    increase = false,
+    enum_key='ATTR_LINE',
+    id=105,
+    increase=false,
+    nick='line',
+    type='int'
 })
 
 attribute:update()

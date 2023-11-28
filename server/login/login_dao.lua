@@ -1,5 +1,8 @@
 --login.lua
 
+import("agent/mongo_agent.lua")
+import("agent/redis_agent.lua")
+
 local log_err       = logger.err
 local tunpack       = table.unpack
 local qfailed       = quanta.failed

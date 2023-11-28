@@ -1,6 +1,6 @@
 --account.lua
 
-local game_dao  = quanta.get("game_dao")
+local store_mgr = quanta.get("store_mgr")
 
 local Account = class()
 local prop = property(Account)
@@ -20,7 +20,7 @@ function Account:__init(open_id)
 end
 
 function Account:load()
-    return game_dao:load(self, self.open_id, "account")
+    return store_mgr:load(self, self.open_id, "account")
 end
 
 function Account:on_db_account_load(data)

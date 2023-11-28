@@ -18,7 +18,7 @@ local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local EXPIRETIME    = quanta.enum("PeriodTime", "SECOND_30_S")
 
 local CLUSTER       = environ.get("QUANTA_CLUSTER")
-local SERVICE_KEY   = sformat("QUANTA:service:%s", CLUSTER)
+local SERVICE_KEY   = sformat("QUANTA:%s:SERVICE", CLUSTER)
 local CHANNEL_DN    = sformat("%s.unregister", CLUSTER)
 local CHANNEL_UP    = sformat("%s.register", CLUSTER)
 local CHANNEL_PT    = sformat("%s.*", CLUSTER)

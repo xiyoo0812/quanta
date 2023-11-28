@@ -22,20 +22,10 @@ function CacheAgent:load(primary_id, sheet_name)
 end
 
 -- 修改fields
-function CacheAgent:update_field(primary_id, sheet_name, field, field_data)
-    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_update_field", primary_id, sheet_name, field, field_data)
+function CacheAgent:update(primary_id, sheet_name, datas, flush)
+    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_update", primary_id, sheet_name, datas, flush)
     if qfailed(code, ok) then
-        log_err("[CacheAgent][update_field] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
-        return ok and code or RPC_FAILED
-    end
-    return code
-end
-
--- 删除fields
-function CacheAgent:remove_field(primary_id, sheet_name, field)
-    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_remove_field", primary_id, sheet_name, field)
-    if qfailed(code, ok) then
-        log_err("[CacheAgent][remove_field] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
+        log_err("[CacheAgent][update] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
         return ok and code or RPC_FAILED
     end
     return code

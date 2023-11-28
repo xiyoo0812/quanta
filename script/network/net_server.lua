@@ -5,7 +5,7 @@ local log_info          = logger.info
 local log_warn          = logger.warn
 local log_fatal         = logger.fatal
 local signalquit        = signal.quit
-local qeval             = quanta.eval
+local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 
 local proto_pb          = luabus.eproto_type.pb
@@ -102,7 +102,6 @@ function NetServer:on_socket_accept(session)
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len
         end
-        --proxy_agent:statistics("on_proto_recv", cmd_id, recv_len)
         qxpcall(self.on_socket_recv, "on_socket_recv: {}", self, session, cmd_id, flag, type, session_id, body)
     end
     -- 绑定网络错误回调（断开）
@@ -158,7 +157,8 @@ end
 function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(_session, typ, cmd, cbody)
-            local _<close> = qeval(cmd_id)
+            local hook<close> = qdefer()
+            event_mgr:execute_hook(cmd_id, hook, body)
             local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, cbody, session_id)
             if not result[1] then
                 log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd_id)

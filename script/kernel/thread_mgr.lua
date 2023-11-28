@@ -1,6 +1,5 @@
 --thread_mgr.lua
 local select        = select
-
 local tsort         = table.sort
 local tunpack       = table.unpack
 local sformat       = string.format
@@ -10,12 +9,12 @@ local co_resume     = coroutine.resume
 local co_running    = coroutine.running
 local qxpcall       = quanta.xpcall
 local qdefer        = quanta.defer
+local synclock      = quanta.synclock
 local mrandom       = qmath.random
 local tsize         = qtable.size
 local log_warn      = logger.warn
 local log_err       = logger.err
 
-local SyncLock      = import("feature/sync_lock.lua")
 local QueueFIFO     = import("container/queue_fifo.lua")
 
 local MINUTE_MS     = quanta.enum("PeriodTime", "MINUTE_MS")
@@ -66,18 +65,18 @@ function ThreadMgr:lock(key, waiting)
     queue.ttl = quanta.clock_ms + MINUTE_MS
     local head = queue:head()
     if not head then
-        local lock = SyncLock(self, key)
+        local lock = synclock(key)
         queue:push(lock)
         return lock
     end
     if head.co == co_running() then
         --防止重入
-        head:increase()
+        head:lock()
         return head
     end
     if waiting then
         --等待则挂起
-        local lock = SyncLock(self, key)
+        local lock = synclock(key)
         queue:push(lock)
         co_yield()
         return lock
@@ -194,7 +193,7 @@ function ThreadMgr:on_second(clock_ms)
     --处理锁超时
     for key, queue in pairs(self.syncqueue_map) do
         local head = queue:head()
-        if head and head.timeout <= clock_ms then
+        if head and head:is_timeout(clock_ms) then
             self:unlock(key, true)
         end
     end

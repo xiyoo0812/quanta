@@ -1,7 +1,7 @@
 --net_client.lua
 
 local log_err           = logger.err
-local qeval             = quanta.eval
+local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 
 local event_mgr         = quanta.get("event_mgr")
@@ -60,8 +60,7 @@ function NetClient:connect(block)
         end
     end
     socket.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
-        --:statistics("on_proto_recv", cmd_id, recv_len)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, cmd_id, flag, type, session_id, body)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, cmd_id, flag, session_id, body)
     end
     socket.on_error = function(token, err)
         thread_mgr:fork(function()
@@ -80,21 +79,21 @@ function NetClient:get_token()
     return self.socket and self.socket.token
 end
 
-function NetClient:on_socket_rpc(socket, cmd_id, flag, type, session_id, body)
-    event_mgr:notify_trigger("on_message_recv", cmd_id, body)
+function NetClient:on_socket_rpc(cmd_id, flag, session_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
-            local _<close> = qeval(cmd_id)
+            local hook<close> = qdefer()
+            event_mgr:execute_hook(cmd_id, hook, body)
             self.holder:on_socket_rpc(self, cmd_id, body, session_id)
+            --等待协议处理
+            local wait_session_id = self.wait_list[cmd_id]
+            if wait_session_id then
+                self.wait_list[cmd_id] = nil
+                thread_mgr:response(wait_session_id, true)
+            end
         end
         thread_mgr:fork(dispatch_rpc_message)
-        --等待协议处理
-        local wait_session_id = self.wait_list[cmd_id]
-        if wait_session_id then
-            self.wait_list[cmd_id] = nil
-            thread_mgr:response(wait_session_id, true)
-        end
         return
     end
     --异步回执

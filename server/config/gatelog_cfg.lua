@@ -7,8 +7,8 @@ local gatelog = config_mgr:get_table("gatelog")
 
 --导出配置内容
 gatelog:upsert({
-    id = 1,
-    name = 'NID_HEARTBEAT_REQ',
+    id=1,
+    name='NID_HEARTBEAT_REQ'
 })
 
 gatelog:update()

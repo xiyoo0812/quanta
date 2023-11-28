@@ -246,7 +246,7 @@ GMConsole.prototype = {
         for (i = 0; i < res.data.length; i++) {
             var option = new Option();
             option.innerHTML = res.data[i].name;
-            option.value = res.data[i].web;
+            option.value = "http://"+ res.data[i].host+":" + res.data[i].gm_port;
 
             curServerList.appendChild(option);
             console.log(option.value)

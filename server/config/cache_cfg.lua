@@ -7,43 +7,37 @@ local cache = config_mgr:get_table("cache")
 
 --导出配置内容
 cache:upsert({
-    id = 1,
-    group = 'account',
-    sheet = 'account',
-    key = 'open_id',
-    inertable = false,
-    count = 100,
-    time = 600,
-    depth_min = 0,
-    depth_max = 1,
-    copyable = false,
+    copyable=false,
+    count=100,
+    group='account',
+    id=1,
+    inertable=false,
+    key='open_id',
+    sheet='account',
+    time=600
 })
 
 cache:upsert({
-    id = 2,
-    group = 'player',
-    sheet = 'player',
-    key = 'player_id',
-    inertable = false,
-    count = 100,
-    time = 600,
-    depth_min = 0,
-    depth_max = 1,
-    copyable = true,
-    key2 = 'nick',
+    copyable=true,
+    count=100,
+    group='player',
+    id=2,
+    inertable=false,
+    key='player_id',
+    key2='nick',
+    sheet='player',
+    time=600
 })
 
 cache:upsert({
-    id = 3,
-    group = 'lobby',
-    sheet = 'player_attr',
-    key = 'player_id',
-    inertable = false,
-    count = 200,
-    time = 600,
-    depth_min = 1,
-    depth_max = 2,
-    copyable = true,
+    copyable=true,
+    count=200,
+    group='lobby',
+    id=3,
+    inertable=false,
+    key='player_id',
+    sheet='player_attr',
+    time=600
 })
 
 cache:update()

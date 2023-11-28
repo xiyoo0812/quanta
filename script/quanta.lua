@@ -88,6 +88,11 @@ function quanta.make_mq()
     return Driver()
 end
 
+function quanta.synclock(key)
+    local SyncLock = import("feature/sync_lock.lua")
+    return SyncLock(key)
+end
+
 function quanta.defer(handler)
     local Defer = import("feature/defer.lua")
     return Defer(handler)

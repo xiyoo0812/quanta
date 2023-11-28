@@ -6,11 +6,8 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local tsort         = table.sort
 local tinsert       = table.insert
-local ssplit        = qstring.split
-local sformat       = string.format
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
-local convint       = qmath.conv_integer
 
 local event_mgr     = quanta.get("event_mgr")
 local redis_mgr     = quanta.get("redis_mgr")
@@ -39,20 +36,25 @@ prop:reader("groups", {})           -- groups
 prop:reader("collections", {})      -- collections
 prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
-prop:reader("kindexs", {})          -- kindexs
 prop:reader("counter", nil)
 
 function CacheMgr:__init()
     -- 监听rpc事件
     event_mgr:add_listener(self, "rpc_cache_load")
     event_mgr:add_listener(self, "rpc_cache_copy")
+    event_mgr:add_listener(self, "rpc_cache_update")
     event_mgr:add_listener(self, "rpc_cache_delete")
     event_mgr:add_listener(self, "rpc_cache_signed")
-    event_mgr:add_listener(self, "rpc_cache_update_field")
-    event_mgr:add_listener(self, "rpc_cache_remove_field")
     event_mgr:add_listener(self, "rpc_router_update")
     -- 事件监听
-    event_mgr:add_listener(self, "on_cache_load")
+    event_mgr:add_listener(self, "on_cache_ready")
+    -- 事件hook
+    event_mgr:register_hook(self, "rpc_cache_load", "on_cache_hook")
+    event_mgr:register_hook(self, "rpc_cache_copy", "on_cache_hook")
+    event_mgr:register_hook(self, "rpc_cache_update", "on_cache_hook")
+    event_mgr:register_hook(self, "rpc_cache_delete", "on_cache_hook")
+    event_mgr:register_hook(self, "rpc_cache_signed", "on_cache_hook")
+    event_mgr:register_hook(self, "rpc_router_update", "on_cache_hook")
     --counter
     self.counter = quanta.make_sampling("cache req")
     --定时器
@@ -74,9 +76,17 @@ function CacheMgr:__init()
     end
 end
 
+--RPC hook
+function CacheMgr:on_cache_hook(rpc, hook, primary_id)
+    hook:register(function()
+        thread_mgr:unlock(primary_id)
+    end)
+    thread_mgr:lock(primary_id, true)
+end
+
 --清理缓存
-function CacheMgr:on_cache_load(group_name, primary_id)
-    log_debug("[CacheMgr][on_cache_load] group_name={}, primary={}", group_name, primary_id)
+function CacheMgr:on_cache_ready(group_name, primary_id)
+    log_debug("[CacheMgr][on_cache_ready] group_name={}, primary={}", group_name, primary_id)
     local groups = self.caches[group_name]
     if groups then
         groups:del(primary_id)
@@ -85,19 +95,7 @@ end
 
 --需要更新的表
 function CacheMgr:save_doc(document)
-    self.save_documents[document] = quanta.frame
-end
-
-function CacheMgr:build_fields(field)
-    local fields = self.kindexs[field]
-    if not fields then
-        fields = ssplit(field, ".")
-        for i, sfield in ipairs(fields) do
-            fields[i] = convint(sfield)
-        end
-        self.kindexs[field] = fields
-    end
-    return fields, #fields
+    self.save_documents[document] = true
 end
 
 --更新数据
@@ -108,46 +106,40 @@ function CacheMgr:on_frame()
     if not mongo_mgr:available() then
         return
     end
-    local channel = makechan("flush cache")
     --保存数据
-    if next(self.save_documents) then
-        local count = 0
-        for doc, frame in pairs(self.save_documents) do
-            channel:push(function()
-                local ok, code = doc:update()
-                if qfailed(code, ok) then
-                    return false
-                end
-                if frame == self.save_documents[doc] then
-                    self.save_documents[doc] = nil
-                end
-                return true, code
-            end)
-            count = count + 1
-            if count == CACHE_FLUSH then
-                break
+    local save_channel = makechan("save cache")
+    for doc in pairs(self.save_documents) do
+        save_channel:push(function()
+            local ok, code = doc:update()
+            if qfailed(code, ok) then
+                self.save_documents[doc] = true
+                return false
             end
+            return true, code
+        end)
+        self.save_documents[doc] = nil
+        if save_channel:isfull(CACHE_FLUSH) then
+            break
         end
     end
-    if next(self.del_documents) then
-        --删除数据
-        local count = 0
-        for document in pairs(self.del_documents) do
-            channel:push(function()
-                local ok, code = document:destory()
-                if qfailed(code, ok) then
-                    return false
-                end
-                self.del_documents[document] = nil
-                return true, code
-            end)
-            count = count + 1
-            if count == CACHE_FLUSH then
-                break
+    --删除数据
+    local del_channel = makechan("save cache")
+    for doc in pairs(self.del_documents) do
+        del_channel:push(function()
+            local ok, code = doc:destory()
+            if qfailed(code, ok) then
+                self.del_documents[doc] = true
+                return false
             end
+            return true, code
+        end)
+        self.del_documents[doc] = nil
+        if del_channel:isfull(CACHE_FLUSH) then
+            break
         end
     end
-    channel:execute(true)
+    save_channel:execute(true)
+    del_channel:execute(true)
 end
 
 --查找文档
@@ -185,7 +177,7 @@ function CacheMgr:load_group(coll_name, primary_id)
     end
     local groups = self.caches[group_name]
     groups:set(primary_id, group)
-    router_mgr:call_cache_all("on_cache_load", group_name, primary_id)
+    router_mgr:call_cache_all("on_cache_ready", group_name, primary_id)
     return SUCCESS, group
 end
 
@@ -204,8 +196,6 @@ function CacheMgr:load_document(coll_name, primary_id)
 end
 
 function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
-    local group_name = self.collections[ROUTER_COL]
-    local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     log_debug("[CacheMgr][rpc_router_update] router_id={}, primary={}, service: {}-{}", router_id, primary_id, serv_name, serv_id)
     local ccode, doc = self:load_document(ROUTER_COL, primary_id)
     if qfailed(ccode) then
@@ -222,11 +212,10 @@ function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
             end
         end
         if router_id == 0 then
-            doc:update_field("routers", {})
+            doc:update_data({routers = {}}, false)
         else
             local old_svr_id = routers[serv_name]
-            doc:update_field("routers.router", router_id)
-            doc:update_field(sformat("routers.%s", serv_name), serv_id)
+            doc:update_data({ routers = {router = router_id, [serv_name] = serv_id } }, false)
             --通知节点改变
             if old_svr_id and old_svr_id ~= serv_id then
                 router_mgr:send_target(old_svr_id, "rpc_service_svr_changed", primary_id)
@@ -238,48 +227,29 @@ end
 
 function CacheMgr:rpc_cache_load(primary_id, coll_name)
     self.counter:count_increase()
-    local group_name = self.collections[coll_name]
-    local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
     end
-    log_debug("[CacheMgr][rpc_cache_load] coll_name={}, primary={}", coll_name, primary_id)
+    log_debug("[CacheMgr][rpc_cache_load] coll_name={}, primary={}, {}", coll_name, primary_id, doc:get_datas())
     return code, doc:get_datas()
 end
 
---更新缓存kv
-function CacheMgr:rpc_cache_update_field(primary_id, coll_name, field, field_data)
-    local _<close> = thread_mgr:lock(primary_id, true)
+--更新缓存
+function CacheMgr:rpc_cache_update(primary_id, coll_name, data, flush)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_cache_update_field] load_document failed! coll_name={}, primary={}, field={}", coll_name, primary_id, field)
+        log_err("[CacheMgr][rpc_cache_update] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return ccode
     end
-    log_debug("[CacheMgr][rpc_cache_update_field] coll_name={}, primary={}, field={}, data:{}", coll_name, primary_id, field, field_data)
-    doc:update_field(field, field_data)
-    return SUCCESS
-end
-
---更新缓存kv
-function CacheMgr:rpc_cache_remove_field(primary_id, coll_name, field)
-    local group_name = self.collections[coll_name]
-    local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
-    local ccode, doc = self:load_document(coll_name, primary_id)
-    if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_cache_remove_field] load_document failed! coll_name={}, primary={}, field={}", coll_name, primary_id, field)
-        return ccode
-    end
-    doc:remove_field(field)
-    log_debug("[CacheMgr][rpc_cache_remove_field] coll_name={}, primary={}, field={}", coll_name, primary_id, field)
+    log_debug("[CacheMgr][rpc_cache_update] coll_name={}, primary={}, data:{}, flush:{}", coll_name, primary_id, data, flush)
+    doc:update_data(data, flush)
     return SUCCESS
 end
 
 --删除缓存，通常由运维指令执行
 function CacheMgr:rpc_cache_delete(primary_id, coll_name)
-    local group_name = self.collections[coll_name]
-    local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_delete] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
@@ -298,8 +268,6 @@ end
 --复制缓存
 function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
     log_debug("[CacheMgr][rpc_cache_copy] coll_name={}, src_id={}, to_id={}", coll_name, src_id, to_id)
-    local group_name = self.collections[coll_name]
-    local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, to_id), true)
     local src_code, src_doc, from_mem = self:load_document(coll_name, src_id)
     if qfailed(src_code) then
         log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name={}, src_id={}", coll_name, src_id)
@@ -331,8 +299,6 @@ end
 function CacheMgr:rpc_cache_signed(primary_id, coll_name)
     local field = "del_time"
     local field_data = quanta.now
-    local group_name = self.collections[coll_name]
-    local _<close> = thread_mgr:lock(sformat("%s.%s", group_name, primary_id), true)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_signed] load_document failed! coll_name={}, primary={}, field={}", coll_name, primary_id, field)

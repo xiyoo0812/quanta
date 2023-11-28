@@ -7,7 +7,7 @@ local tunpack       = table.unpack
 local event_mgr     = quanta.get("event_mgr")
 
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
-local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "COUNTER:QUANTA:AUTOINC")
+local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local REDIS_FAILED  = quanta.enum("KernCode", "REDIS_FAILED")
