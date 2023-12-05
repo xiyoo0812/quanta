@@ -117,13 +117,12 @@ function AttrComponent:on_attr_changed(attr_id, attr, value, service_id)
         --回写判定
         if self.wbackable and attr.back and (not service_id) then
             self.write_attrs[attr_id] = value
-            event_mgr:publish_frame(self, "on_attr_writeback")
+            event_mgr:notify_frame(self, "on_attr_writeback", self.id)
         end
         --转发判定
         if self.relayable then
             self.relay_attrs[attr_id] = { value, service_id }
-            log_warn("[AttrComponent][on_attr_changed] relay_attrs={}", self.relay_attrs)
-            event_mgr:publish_frame(self, "on_attr_relay")
+            event_mgr:notify_frame(self, "on_attr_relay", self.id)
         end
         --同步属性
         if attr.range > 0 and self.range >= attr.range then
@@ -212,14 +211,6 @@ function AttrComponent:package_attrs(range)
         end
     end
     return attrs
-end
-
-function AttrComponent:on_attr_writeback()
-    self:notify_event("on_attr_writeback", self, self.id)
-end
-
-function AttrComponent:on_attr_relay()
-    self:notify_event("on_attr_relay", self, self.id)
 end
 
 function AttrComponent:on_attr_sync()

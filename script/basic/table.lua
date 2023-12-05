@@ -3,6 +3,7 @@ local type          = type
 local pairs         = pairs
 local tsort         = table.sort
 local mrandom       = math.random
+local tunpack       = table.unpack
 local tremove       = table.remove
 local setmetatable  = setmetatable
 
@@ -123,30 +124,6 @@ local function tdiff(src, dst)
     return add, del
 end
 
---合并table
-local function tmerge(src, new, vnull)
-    for key, value in pairs(new) do
-        if type(value) ~= "table" then
-            if vnull and value == vnull then
-                src[key] = nil
-                goto continue
-            end
-            src[key] = value
-            goto continue
-        end
-        if next(value) then
-            if not src[key] or type(src[key]) ~= "table" then
-                src[key] = {}
-            end
-            tmerge(src[key], value, vnull)
-        else
-            src[key] = value
-        end
-        :: continue ::
-    end
-    return src
-end
-
 -- map中的value抽出来变成array (会丢失key信息)
 local function tarray(src)
     local dst = {}
@@ -172,6 +149,16 @@ local function tkvarray(src)
         dst[#dst + 1] = { key, value }
     end
     return dst
+end
+
+-- 展开table的kv
+local function tunfold(src)
+    local dst = {}
+    for key, value in pairs(src or {}) do
+        dst[#dst + 1] = key
+        dst[#dst + 1] = value
+    end
+    return tunpack(dst)
 end
 
 -- {key,value}array转为map
@@ -221,8 +208,8 @@ qtable.join         = tjoin
 qtable.map          = tmap
 qtable.push         = tpush
 qtable.diff         = tdiff
-qtable.merge        = tmerge
 qtable.array        = tarray
+qtable.unfold       = tunfold
 qtable.tkarray      = tkarray
 qtable.kvarray      = tkvarray
 qtable.mapsort      = tmapsort

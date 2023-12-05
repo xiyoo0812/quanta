@@ -4,6 +4,7 @@ local pairs             = pairs
 local log_err           = logger.err
 local log_info          = logger.info
 local log_debug         = logger.debug
+local tsort             = table.sort
 local tunpack           = table.unpack
 local sformat           = string.format
 local qsuccess          = quanta.success
@@ -61,7 +62,7 @@ function RouterMgr:add_router(router_id, host, port)
         return
     end
     local RpcClient = import("network/rpc_client.lua")
-    self.routers[router_id] = RpcClient(self, host, port)
+    self.routers[router_id] = RpcClient(self, host, port, router_id)
 end
 
 --错误处理
@@ -89,6 +90,7 @@ function RouterMgr:check_router()
             candidates[#candidates + 1] = client
         end
     end
+    tsort(candidates, function(a, b) return a.id < b.id end)
     self.candidates = candidates
     if not self.startup then
         self.startup = true

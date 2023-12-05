@@ -9,28 +9,27 @@ local function build_sheet_keys(parentkeys, ...)
     return tpush(newkeys, ...)
 end
 
-local function db_prop_op_sheet_key(class, sheet, sheetkey)
-    local storekey = "__" .. sheet .. "_store"
+local function db_prop_op_sheet_key(class, sheet, sheetkey, storekey)
     class["load_" .. sheet .. "_db"] = function(self, store, data)
         self[sheetkey] = {}
         self[storekey] = store
         self["__" .. sheet .. "_loaded"] = true
         self["on_db_" .. sheet .. "_load"](self, data)
+        store:bind_target(self)
     end
     class["flush_" .. sheet .. "_db"] = function(self)
-        self[storekey]:update(self["serialize_" .. sheet](self))
+        self[storekey]:flush(self)
     end
     class["is_" .. sheet .. "_loaded"] = function(self)
         return self["__" .. sheet .. "_flushing"]
     end
 end
 
-local function db_prop_op_value(class, sheet, sheetkey, sheetroot, name, default)
+local function db_prop_op_value(class, sheetkey, storekey, name, default)
     class.__props[name] = { default }
     class["get_" .. name] = function(self)
         return self[name]
     end
-    local storekey = "__" .. sheet .. "_store"
     class["set_" .. name] = function(self, value)
         if self[name] ~= value or type(value) == "table" then
             self[name] = value
@@ -41,14 +40,13 @@ local function db_prop_op_value(class, sheet, sheetkey, sheetroot, name, default
             self[name] = value
             local sheetkeys = self[sheetkey]
             if sheetkeys then
-                local root = self[sheetroot] or self
-                root[storekey]:update_value(sheetkeys, name, value)
+                self[storekey]:update_value(sheetkeys, name, value)
             end
         end
     end
 end
 
-local function db_prop_op_values(class, sheet, sheetkey, sheetroot, name, default)
+local function db_prop_op_values(class, sheetkey, storekey, name, default)
     class.__props[name] = { default or {} }
     class["get_" .. name] = function(self, key)
         if key then
@@ -61,14 +59,12 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, name, defaul
             self[name] = values
         end
     end
-    local storekey = "__" .. sheet .. "_store"
     class["save_" .. name] = function(self, values)
         if self[name] ~= values or type(values) == "table" then
             self[name] = values
             local sheetkeys = self[sheetkey]
             if sheetkeys then
-                local root = self[sheetroot] or self
-                root[storekey]:update_value(sheetkeys, name, values)
+                self[storekey]:update_field(sheetkeys, name, nil, values)
             end
         end
     end
@@ -82,8 +78,7 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, name, defaul
             self[name][key] = value
             local sheetkeys = self[sheetkey]
             if sheetkeys then
-                local root = self[sheetroot] or self
-                root[storekey]:update_field(sheetkeys, name, key, value)
+                self[storekey]:update_field(sheetkeys, name, key, value)
             end
         end
     end
@@ -92,14 +87,13 @@ local function db_prop_op_values(class, sheet, sheetkey, sheetroot, name, defaul
             self[name][key] = nil
             local sheetkeys = self[sheetkey]
             if sheetkeys then
-                local root = self[sheetroot] or self
-                root[storekey]:update_field(sheetkeys, name, key)
+                self[storekey]:update_field(sheetkeys, name, key)
             end
         end
     end
 end
 
-local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, name, default)
+local function db_prop_op_objects(class, sheetkey, storekey, name, default)
     class.__props[name] = { default or {} }
     class["get_" .. name] = function(self, key)
         if key then
@@ -107,25 +101,21 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, name, defau
         end
         return self[name]
     end
-    local storekey = "__" .. sheet .. "_store"
     class["set_" .. name .. "_elem"] = function(self, key, value)
         self[name][key] = value
         local sheetkeys = self[sheetkey]
         if sheetkeys then
-            local root = self[sheetroot] or self
-            value[sheetroot] = root
+            value[storekey] = self[storekey]
             value[sheetkey] = build_sheet_keys(sheetkeys, name, key)
-            return sheetkeys, self[sheetroot] or self
         end
     end
     class["save_" .. name .. "_elem"] = function(self, key, value)
         self[name][key] = value
         local sheetkeys = self[sheetkey]
         if sheetkeys then
-            local root = self[sheetroot] or self
-            value[sheetroot] = root
+            value[storekey] = self[storekey]
             value[sheetkey] = build_sheet_keys(sheetkeys, name, key)
-            root[storekey]:update_field(sheetkeys, name, key, value:pack2db())
+            self[storekey]:update_field(sheetkeys, name, key, value:serialize())
         end
     end
     class["del_" .. name .. "_elem"] = function(self, key)
@@ -134,9 +124,8 @@ local function db_prop_op_objects(class, sheet, sheetkey, sheetroot, name, defau
             self[name][key] = nil
             local sheetkeys = self[sheetkey]
             if sheetkeys then
-                local root = self[sheetroot] or self
-                root[storekey]:update_field(sheetkeys, name, key)
-                value[sheetroot] = nil
+                self[storekey]:update_field(sheetkeys, name, key)
+                value[storekey] = nil
                 value[sheetkey] = nil
             end
         end
@@ -145,17 +134,17 @@ end
 
 local property_accessor_value = function(prop, name, default)
     prop.__reflect[name] = true
-    db_prop_op_value(prop.__class, prop.__sheet, prop.__key, prop.__root, name, default)
+    db_prop_op_value(prop.__class, prop.__key, prop.__store, name, default)
 end
 
 local property_accessor_values = function(prop, name, default)
     prop.__reflect[name] = true
-    db_prop_op_values(prop.__class, prop.__sheet, prop.__key, prop.__root, name, default)
+    db_prop_op_values(prop.__class, prop.__key, prop.__store, name, default)
 end
 
 local property_accessor_objects = function(prop, name, default)
     prop.__reflect[name] = false
-    db_prop_op_objects(prop.__class, prop.__sheet, prop.__key, prop.__root, name, default)
+    db_prop_op_objects(prop.__class, prop.__key, prop.__store, name, default)
 end
 
 function db_property(class, sheet, root)
@@ -163,18 +152,24 @@ function db_property(class, sheet, root)
         __class = class,
         __sheet = sheet,
         __key = "__key_" .. sheet,
-        __root = "__root_" .. sheet,
+        __store = "__store_" .. sheet,
         store_value = property_accessor_value,
         store_values = property_accessor_values,
         store_objects = property_accessor_objects,
     }
     prop.__reflect = {}
-    db_prop_op_sheet_key(prop.__class, sheet, prop.__key, prop.__root)
+    db_prop_op_sheet_key(prop.__class, sheet, prop.__key, prop.__store)
     local func_name = root and "serialize_" .. sheet or "serialize"
     class[func_name] = function (obj)
         local value = {}
-        if class.__super then
-            value = class.__super[func_name](obj)
+        local super = class.__super
+        if super and super[func_name] then
+            value = super[func_name](obj)
+        end
+        if not root then
+            if obj["pack2db"] then
+                return obj:pack2db()
+            end
         end
         for key, leaf in pairs(prop.__reflect) do
             if leaf then

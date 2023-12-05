@@ -35,7 +35,6 @@ function qstring.untitle(value)
     return slower(ssub(value, 1, 1)) .. ssub(value, 2, #value)
 end
 
-
 function qstring.split(str, token)
     local pos, t = 0, {}
     if #str > 0 then
@@ -50,6 +49,10 @@ function qstring.split(str, token)
         end
     end
     return t
+end
+
+function qstring.start_with(str, start)
+    return str:sub(1, #start) == start
 end
 
 function qstring.ends_with(str, ending)

@@ -18,6 +18,8 @@ prop:reader("fevent_set", {})       -- frame event set
 prop:reader("sevent_set", {})       -- second event set
 prop:reader("fevent_map", {})       -- frame event map
 prop:reader("sevent_map", {})       -- second event map
+prop:reader("fnotify_map", {})      -- frame notify map
+prop:reader("snotify_map", {})      -- second notify map
 function EventMgr:__init()
 end
 
@@ -36,6 +38,15 @@ function EventMgr:on_frame()
             end)
         end
     end
+    local nhandlers = self.fnotify_map
+    self.fnotify_map = {}
+    for obj, events in pairs(nhandlers) do
+        for event, args in pairs(events) do
+            thread_mgr:fork(function()
+                obj:notify_event(event, obj, tunpack(args))
+            end)
+        end
+    end
 end
 
 function EventMgr:on_second()
@@ -50,6 +61,15 @@ function EventMgr:on_second()
         for event in pairs(events) do
             thread_mgr:fork(function()
                 obj[event](obj)
+            end)
+        end
+    end
+    local nhandlers = self.snotify_map
+    self.snotify_map = {}
+    for obj, events in pairs(nhandlers) do
+        for event, args in pairs(events) do
+            thread_mgr:fork(function()
+                obj:notify_event(event, obj, tunpack(args))
             end)
         end
     end
@@ -118,6 +138,22 @@ function EventMgr:fire_second(event, ...)
     tinsert(self.sevent_set, function()
         self:notify_trigger(event, tunpack(args))
     end)
+end
+
+--下一帧发布
+function EventMgr:notify_frame(obj, event, ...)
+    if not self.fnotify_map[obj] then
+        self.fnotify_map[obj] = {[event] = {...}}
+    end
+    self.fnotify_map[obj][event] = {...}
+end
+
+--下一秒发布
+function EventMgr:notify_second(obj, event, ...)
+    if not self.snotify_map[obj] then
+        self.snotify_map[obj] = {[event] = {...}}
+    end
+    self.snotify_map[obj][event] = {...}
 end
 
 -- export

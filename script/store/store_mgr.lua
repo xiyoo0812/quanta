@@ -17,17 +17,20 @@ local cache_agent   = quanta.get("cache_agent")
 local cache_db      = config_mgr:init_table("cache", "sheet")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local STORE_FLUSH   = environ.number("QUANTA_STORE_FLUSH")
+local STORE_INCRE   = environ.number("QUANTA_STORE_FLUSH")
+local STORE_WHOLE   = STORE_INCRE // 10
 
 local StoreMgr = singleton()
 local prop = property(StoreMgr)
 prop:reader("groups", {})       -- groups
-prop:reader("stores", {})       -- stores
+prop:reader("wholes", {})       -- wholes
+prop:reader("increases", {})    -- increases
 
 function StoreMgr:__init()
     cache_db:add_group("group")
     --通知监听
     update_mgr:attach_fast(self)
+    update_mgr:attach_second(self)
 end
 
 function StoreMgr:find_group(group_name)
@@ -98,36 +101,41 @@ function StoreMgr:delete(object, primary_id, sheet_name)
     end)
 end
 
-function StoreMgr:save_store(store, flush)
-    if not self.stores[store] then
-        self.stores[store] = flush
-    end
+function StoreMgr:save_wholes(store)
+    self.wholes[store] = true
+end
+
+function StoreMgr:save_increases(store)
+    self.increases[store] = true
 end
 
 function StoreMgr:on_fast()
     if not router_mgr:available() then
         return
     end
-    local channel = makechan("store_mgr")
-    for stroe, flush in pairs(self.stores) do
-        channel:push(function()
-            local sheet_name = stroe:get_sheet()
-            local save_data = stroe:load_datas()
-            local primary_id = stroe:get_primary_id()
-            local code, adata = cache_agent:update(primary_id, sheet_name, save_data, flush)
-            if qfailed(code) then
-                stroe:merge_datas(save_data)
-                self.stores[stroe] = flush
-                log_err("[StoreMgr][update_{}] primary_id: {} update failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
-                return false
-            end
-            return true, SUCCESS
-        end)
-        if channel:isfull(STORE_FLUSH) then
+    local channel = makechan("increases store")
+    for stroe in pairs(self.increases) do
+        stroe:sync_increase(channel)
+        if channel:isfull(STORE_INCRE) then
             break
         end
     end
-    self.stores = {}
+    self.increases = {}
+    channel:execute(true)
+end
+
+function StoreMgr:on_second()
+    if not router_mgr:available() then
+        return
+    end
+    local channel = makechan("increases store")
+    for stroe in pairs(self.wholes) do
+        stroe:sync_whole(channel)
+        if channel:isfull(STORE_WHOLE) then
+            break
+        end
+    end
+    self.wholes = {}
     channel:execute(true)
 end
 

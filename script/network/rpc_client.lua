@@ -21,16 +21,18 @@ local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 
 local RpcClient = class()
 local prop = property(RpcClient)
+prop:reader("id", 0)
 prop:reader("ip", nil)
 prop:reader("port", nil)
 prop:reader("alive", false)
 prop:reader("socket", nil)
 prop:accessor("holder", nil)    --持有者
 
-function RpcClient:__init(holder, ip, port)
+function RpcClient:__init(holder, ip, port, id)
     self.ip = ip
     self.port = port
     self.holder = holder
+    self.id = id or 0
     self.timer_id = timer_mgr:loop(SECOND_MS, function()
         self:check_heartbeat()
     end)

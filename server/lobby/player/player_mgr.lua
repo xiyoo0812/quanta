@@ -56,7 +56,7 @@ function PlayerMgr:kick_out(player, player_id)
 end
 
 --创建玩家
-function PlayerMgr:load_player(account, player_id, gateway)
+function PlayerMgr:load_player(account, player_id)
     local player = self:get_entity(player_id)
     if not player then
         local Player = import("lobby/player/player.lua")

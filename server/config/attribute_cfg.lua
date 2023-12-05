@@ -183,6 +183,14 @@ attribute:upsert({
 })
 
 attribute:upsert({
+    enum_key='ATTR_LOGIN_TIME',
+    id=33,
+    increase=false,
+    nick='login_time',
+    type='int'
+})
+
+attribute:upsert({
     enum_key='ATTR_HEAD',
     id=51,
     increase=false,

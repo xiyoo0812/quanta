@@ -2,9 +2,12 @@
 
 local log_err       = logger.err
 local qfailed       = quanta.failed
-local qmerge        = qtable.merge
+local qunfold       = qtable.unfold
 local tclone        = qtable.deep_copy
+local sstart        = qstring.start_with
 local sformat       = string.format
+local tunpack       = table.unpack
+local tconcat       = table.concat
 local mrandom       = math.random
 
 local redis_mgr     = quanta.get("redis_mgr")
@@ -23,9 +26,11 @@ prop:reader("primary_key", nil)     -- primary key
 prop:reader("primary_id", nil)      -- primary id
 prop:reader("prototype", nil)       -- prototype
 prop:reader("flushing", false)      -- flushing
+prop:reader("hmsets", {})           -- hmsets
+prop:reader("wholes", {})           -- wholes
+prop:reader("indexs", {})           -- indexs
+prop:reader("hdels", {})            -- hdels
 prop:reader("hotkey", "")           -- hotkey
-prop:reader("increases", {})        -- increases
-prop:reader("datas", {})            -- datas
 prop:reader("count", 0)             -- count
 prop:reader("time", 0)              -- time
 
@@ -41,7 +46,21 @@ function Document:__init(conf, primary_id)
 end
 
 function Document:get(key)
-    return self.datas[key]
+    return self.wholes[key]
+end
+
+--确保有主键
+function Document:check_primary()
+    if not self.wholes[self.primary_key] then
+        self.wholes[self.primary_key] = self.primary_id
+    end
+end
+
+function Document:load_wholes()
+    if next(self.wholes) then
+        self:check_primary()
+    end
+    return self.wholes
 end
 
 --从数据库加载
@@ -52,33 +71,43 @@ function Document:load()
         log_err("[Document][load] failed: {}=> table: {}", res, self.coll_name)
         return code
     end
-    return self:merge(res or {})
+    self.wholes = res or {}
+    return self:merge()
 end
 
 --合并
-function Document:merge(datas)
-    local code, res = redis_mgr:execute("GET", self.hotkey)
+function Document:merge()
+    local code, res = redis_mgr:execute("HGETALL", self.hotkey)
     if qfailed(code) then
         log_err("[Document][merge] failed: {}=> table: {}", res, self.coll_name)
         return code
     end
-    if res then
-        self.increases = res
-        self.count = self.count - 1
-        qmerge(datas, res, "null")
-        self:check_primary(datas, self.primary_key)
+    if next(res) then
+        for field, field_data in pairs(res) do
+            self.indexs[field] = true
+            local cur_data = self.wholes
+            local pkeys, size = cache_mgr:build_fields(field)
+            for i = 1, size - 1 do
+                local cfield = pkeys[i]
+                if not cur_data[cfield] then
+                    cur_data[cfield] = {}
+                end
+                cur_data = cur_data[cfield]
+            end
+            local value = field_data[1]
+            cur_data[pkeys[size]] = (value ~= "nil") and value or nil
+            self.count = self.count - 1
+        end
     end
-    self.datas = datas
-    local conf = self.prototype
-    self.time = quanta.now + mrandom(0, conf.time // 2)
-    self.count = self.count - mrandom(0, conf.count // 2)
+    self.time = quanta.now + mrandom(0, self.prototype.time // 2)
+    self.count = self.count - mrandom(0, self.prototype.count // 2)
     self:check_flush()
     return SUCCESS
 end
 
 --删除数据
 function Document:destory()
-    self.datas = {}
+    self.wholes = {}
     local query = { [self.primary_key] = self.primary_id }
     local code, res = mongo_mgr:delete(self.primary_id, self.coll_name, query, true)
     if qfailed(code) then
@@ -97,7 +126,7 @@ end
 function Document:copy(datas)
     local copy_data = tclone(datas)
     copy_data[self.primary_key] = self.primary_id
-    self.datas = copy_data
+    self.wholes = copy_data
     self:update()
 end
 
@@ -105,58 +134,133 @@ end
 function Document:update()
     self.flushing = false
     --存储DB
-    self:check_primary(self.datas, self.primary_key)
+    self:check_primary()
     local selector = { [self.primary_key] = self.primary_id }
-    local code, res = mongo_mgr:update(self.primary_id, self.coll_name, self.datas, selector, true)
+    local code, res = mongo_mgr:update(self.primary_id, self.coll_name, self.wholes, selector, true)
     if qfailed(code) then
         log_err("[Document][update] update failed: {}=> table: {}", res, self.coll_name)
         return false, code
     end
-    self.increases = {}
     --清理缓存
+    self.indexs, self.hmsets, self.hdels = {}, {}, {}
     local rcode, rres = redis_mgr:execute("DEL", self.hotkey)
     if qfailed(rcode) then
         log_err("[Document][update] del failed: {}=> hotkey: {}", rres, self.hotkey)
         return false, rcode
     end
     --重置时间和次数
-    local conf = self.prototype
-    self.time = quanta.now + conf.time
-    self.count = conf.count
+    self.time = quanta.now + self.prototype.time
+    self.count = self.prototype.count
     return true, SUCCESS
 end
 
-function Document:update_data(datas, flush)
-    --合并数据
-    qmerge(self.datas, datas, "null")
-    qmerge(self.increases, datas)
+--全量更新
+function Document:update_wholes(wholes)
+    self.wholes = wholes
+    self:flush()
+end
+
+--增量更新
+function Document:update_commits(commits)
+    for _, commit in pairs(commits) do
+        self:merge_commit(commit)
+    end
     --提交数据库
     if self.flushing then
-        return
-    end
-    if flush then
-        self:flush()
         return
     end
     event_mgr:publish_frame(self, "cmomit_redis")
 end
 
---确保有主键
-function Document:check_primary(datas, primary_key)
-    if not datas[primary_key] then
-        datas[primary_key] = self.primary_id
+function Document:update_commit(commit)
+    self:merge_commit(commit)
+    --提交数据库
+    if self.flushing then
+        return
+    end
+    event_mgr:publish_frame(self, "cmomit_redis")
+end
+
+--合并提交
+function Document:merge_commit(commit)
+    local cur_data = self.wholes
+    local pkeys, field, cvalues, full = tunpack(commit, 1, 4)
+    for _, cfield in ipairs(pkeys) do
+        if not cur_data[cfield] then
+            cur_data[cfield] = {}
+        end
+        cur_data = cur_data[cfield]
+    end
+    if full then
+        pkeys[#pkeys + 1] = field
+        cur_data[field] = (cvalues ~= "nil") and cvalues or nil
+        self:build_redis_cache(pkeys, cvalues)
+        return
+    end
+    if field then
+        if not cur_data[field] then
+            cur_data[field] = {}
+        end
+        cur_data = cur_data[field]
+        pkeys[#pkeys + 1] = field
+    end
+    for key, value in pairs(cvalues) do
+        cur_data[key] = (value ~= "nil") and value or nil
+        pkeys[#pkeys + 1] = key
+        self:build_redis_cache(pkeys, value)
+        pkeys[#pkeys] = nil
     end
 end
 
---记录缓存
-function Document:cmomit_redis()
-    local code, res = redis_mgr:execute("SET", self.hotkey, self.increases)
-    if qfailed(code) then
-        log_err("[Document][cmomit_redis] failed: {}=> hotkey: {}", res, self.hotkey)
-        self:flush()
-        return
+function Document:build_redis_cache(pkeys, value)
+    local ckey = tconcat(pkeys, ".")
+    self.indexs[ckey] = true
+    self.hmsets[ckey] = {value}
+    for rkey in pairs(self.indexs) do
+        if #rkey > #ckey then
+            if sstart(rkey, ckey .. ".") then
+                self.hdels[#self.hdels + 1] = rkey
+                self.indexs[rkey] = nil
+            end
+        end
+        if #rkey < #ckey then
+            if sstart(ckey, rkey .. ".") then
+                local cvalue = self.wholes
+                local rkeys = cache_mgr:build_fields(rkey)
+                for _, cfield in ipairs(rkeys) do
+                    cvalue = cvalue[cfield]
+                end
+                self.hmsets[rkey] = {cvalue or "nil"}
+                self.hmsets[ckey] = nil
+                self.indexs[ckey] = nil
+            end
+        end
     end
-    self:check_flush()
+end
+
+--提交redis
+function Document:cmomit_redis()
+    if next(self.hmsets) then
+        local hmsets = self.hmsets
+        self.hmsets = {}
+        local code, res = redis_mgr:execute("HMSET", self.hotkey, qunfold(hmsets))
+        if qfailed(code) then
+            log_err("[Document][cmomit_redis] HMSET failed: {}=> hotkey: {}", res, self.hotkey)
+            self:flush()
+            return
+        end
+    end
+    if next(self.hdels) then
+        local hdels = self.hdels
+        self.hdels = {}
+        local code, res = redis_mgr:execute("HDEL", self.hotkey, tunpack(hdels))
+        if qfailed(code) then
+            log_err("[Document][cmomit_redis] HDEL failed: {}=> hotkey: {}", res, self.hotkey)
+            self:flush()
+            return
+        end
+        self:check_flush()
+    end
 end
 
 function Document:check_flush()

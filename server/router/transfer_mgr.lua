@@ -39,8 +39,10 @@ end
 ------------------------------------------------------------------------------
 --踢出玩家
 function TransferMgr:rpc_router_clean(client, player_id)
-    log_info("[TransferMgr][rpc_router_clean] player_id : {}", player_id)
-    self.routers[player_id] = nil
+    if self.routers[player_id] then
+        log_info("[TransferMgr][rpc_router_clean] player_id : {}", player_id)
+        self.routers[player_id] = nil
+    end
     return SUCCESS
 end
 

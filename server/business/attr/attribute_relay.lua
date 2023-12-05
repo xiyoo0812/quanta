@@ -82,7 +82,6 @@ end
 --属性转发
 function AttributeRelay:on_attr_relay(player, player_id)
     local relay_attrs = player:load_relay_attrs()
-    log_err("[AttributeRelay][on_attr_relay] relay_attrs={}", relay_attrs)
     local relay_agents = self.relay_agents[player_id] or {}
     for service_name, agent_attrs in pairs(relay_agents) do
         local attrs = {}

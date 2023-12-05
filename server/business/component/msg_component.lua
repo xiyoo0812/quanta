@@ -5,6 +5,7 @@ local tunpack       = table.unpack
 local qmake_mq      = quanta.make_mq
 
 local online        = quanta.get("online")
+local ONL_INLINE    = quanta.enum("OnlineStatus", "INLINE")
 
 local MsgComponent = mixin()
 local prop = property(MsgComponent)
@@ -68,7 +69,7 @@ end
 
 --通过gateway转发消息给client
 function MsgComponent:send(cmd_id, data)
-    if self.load_success then
+    if self.status == ONL_INLINE then
         online:send_client(self.id, self.id, cmd_id, data)
     end
 end

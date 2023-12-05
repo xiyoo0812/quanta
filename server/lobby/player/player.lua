@@ -37,7 +37,6 @@ prop:accessor("account", nil)       --account
 local dprop = db_property(Player, "player", true)
 dprop:store_value("nick", "")       --nick
 dprop:store_value("facade", "")     --nick
-dprop:store_value("login_time", 0)  --login_time
 dprop:store_value("upgrade_time", 0)--upgrade_time
 dprop:store_value("energy_tick", 0)--下次能量恢复时间
 function Player:__init(id)
@@ -48,7 +47,6 @@ function Player:on_db_player_load(data)
         self.nick = data.nick
         self.facade = data.facade
         self.create_time = data.create_time
-        self.login_time = data.login_time or 0
         self.upgrade_time = data.upgrade_time or 0
         self.energy_tick = data.energy_tick or quanta.now
         self.routers = data.routers or {}
@@ -105,7 +103,7 @@ end
 
 --是否新玩家
 function Player:is_newbee()
-    return self.login_time == 0
+    return self:get_login_time() == 0
 end
 
 --day_update
@@ -159,7 +157,7 @@ function Player:online()
     --invoke
     self:invoke("_online")
     --load success
-    self:save_login_time(quanta.now)
+    self:set_login_time(quanta.now)
     self.load_success = true
     log_info("[Player][online] player({}) is online!", self.id)
 end
@@ -187,8 +185,8 @@ function Player:unload()
     self:invoke("_unload")
     self.account:save_lobby(0)
     --计算在线时间
-    self:add_online_time(quanta.now - self.login_time)
-    self:save_login_time(quanta.now)
+    self:add_online_time(quanta.now - self:get_login_time())
+    self:set_login_time(quanta.now)
     return true
 end
 

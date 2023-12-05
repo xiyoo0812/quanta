@@ -248,4 +248,11 @@ player_attr:upsert({
     save=true
 })
 
+player_attr:upsert({
+    back=false,
+    key='ATTR_LOGIN_TIME',
+    range=0,
+    save=true
+})
+
 player_attr:update()

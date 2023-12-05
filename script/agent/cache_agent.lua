@@ -21,9 +21,19 @@ function CacheAgent:load(primary_id, sheet_name)
     return code, row_data
 end
 
--- 修改fields
-function CacheAgent:update(primary_id, sheet_name, datas, flush)
-    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_update", primary_id, sheet_name, datas, flush)
+-- flush
+function CacheAgent:flush(primary_id, sheet_name, wholes)
+    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_flush", primary_id, sheet_name, wholes)
+    if qfailed(code, ok) then
+        log_err("[CacheAgent][flush] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
+        return ok and code or RPC_FAILED
+    end
+    return code
+end
+
+-- update
+function CacheAgent:update(primary_id, sheet_name, commits)
+    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_update", primary_id, sheet_name, commits)
     if qfailed(code, ok) then
         log_err("[CacheAgent][update] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
         return ok and code or RPC_FAILED

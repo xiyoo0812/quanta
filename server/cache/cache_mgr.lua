@@ -6,7 +6,9 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local tsort         = table.sort
 local tinsert       = table.insert
+local ssplit        = qstring.split
 local qfailed       = quanta.failed
+local convint       = qmath.conv_integer
 local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
@@ -33,6 +35,7 @@ local CacheMgr = singleton()
 local prop = property(CacheMgr)
 prop:reader("caches", {})           -- caches
 prop:reader("groups", {})           -- groups
+prop:reader("kindexs", {})          -- kindexs
 prop:reader("collections", {})      -- collections
 prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
@@ -42,6 +45,7 @@ function CacheMgr:__init()
     -- 监听rpc事件
     event_mgr:add_listener(self, "rpc_cache_load")
     event_mgr:add_listener(self, "rpc_cache_copy")
+    event_mgr:add_listener(self, "rpc_cache_flush")
     event_mgr:add_listener(self, "rpc_cache_update")
     event_mgr:add_listener(self, "rpc_cache_delete")
     event_mgr:add_listener(self, "rpc_cache_signed")
@@ -74,6 +78,18 @@ function CacheMgr:__init()
             self.groups[group_name] = sgroup
         end
     end
+end
+
+function CacheMgr:build_fields(field)
+    local fields = self.kindexs[field]
+    if not fields then
+        fields = ssplit(field, ".")
+        for i, sfield in ipairs(fields) do
+            fields[i] = convint(sfield)
+        end
+        self.kindexs[field] = fields
+    end
+    return fields, #fields
 end
 
 --RPC hook
@@ -212,10 +228,10 @@ function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
             end
         end
         if router_id == 0 then
-            doc:update_data({routers = {}}, false)
+            doc:update_commit({{}, "routers", {}, true})
         else
             local old_svr_id = routers[serv_name]
-            doc:update_data({ routers = {router = router_id, [serv_name] = serv_id } }, false)
+            doc:update_commit({{}, "routers", {router = router_id, [serv_name] = serv_id }})
             --通知节点改变
             if old_svr_id and old_svr_id ~= serv_id then
                 router_mgr:send_target(old_svr_id, "rpc_service_svr_changed", primary_id)
@@ -232,19 +248,31 @@ function CacheMgr:rpc_cache_load(primary_id, coll_name)
         log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
     end
-    log_debug("[CacheMgr][rpc_cache_load] coll_name={}, primary={}, {}", coll_name, primary_id, doc:get_datas())
-    return code, doc:get_datas()
+    log_debug("[CacheMgr][rpc_cache_load] coll_name={}, primary={}, {}", coll_name, primary_id, doc:load_wholes())
+    return code, doc:load_wholes()
 end
 
 --更新缓存
-function CacheMgr:rpc_cache_update(primary_id, coll_name, data, flush)
+function CacheMgr:rpc_cache_flush(primary_id, coll_name, wholes)
+    local ccode, doc = self:load_document(coll_name, primary_id)
+    if qfailed(ccode) then
+        log_err("[CacheMgr][rpc_cache_flush] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
+        return ccode
+    end
+    log_debug("[CacheMgr][rpc_cache_flush] coll_name={}, primary={}, wholes:{}", coll_name, primary_id, wholes)
+    doc:update_wholes(wholes)
+    return SUCCESS
+end
+
+--更新缓存
+function CacheMgr:rpc_cache_update(primary_id, coll_name, commits)
     local ccode, doc = self:load_document(coll_name, primary_id)
     if qfailed(ccode) then
         log_err("[CacheMgr][rpc_cache_update] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return ccode
     end
-    log_debug("[CacheMgr][rpc_cache_update] coll_name={}, primary={}, data:{}, flush:{}", coll_name, primary_id, data, flush)
-    doc:update_data(data, flush)
+    log_debug("[CacheMgr][rpc_cache_update] coll_name={}, primary={}, commits:{}", coll_name, primary_id, commits)
+    doc:update_commits(commits)
     return SUCCESS
 end
 
