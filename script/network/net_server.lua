@@ -35,12 +35,12 @@ prop:reader("sessions", {})             --会话列表
 prop:reader("session_type", "default")  --会话类型
 prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
-prop:reader("broadcast_token", nil)     --监听器
+prop:reader("broad_token", nil)         --监听器
 prop:reader("codec", nil)               --编解码器
 
 function NetServer:__init(session_type)
     self.session_type = session_type
-    self.codec = protobuf.pbcodec("ncmd_cs", "ncmd_cs.NCmdId")
+    self.codec = protobuf.pbcodec()
 end
 
 --induce：根据 order 推导port
@@ -66,7 +66,7 @@ function NetServer:setup(ip, port, induce)
     end
     self.listener = listener
     self.ip, self.port = ip, real_port
-    self.broadcast_token = listener.token
+    self.broad_token = listener.token
 end
 
 -- 连接回调
@@ -92,6 +92,9 @@ function NetServer:on_socket_accept(session)
     end
     session.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
         local now_ms = quanta.now_ms
+        if session_id > 0 then
+            session_id = session.stoken | session_id
+        end
         if crc8 > 0 and session.lc_crc == crc8 and now_ms - session.lc_time < FAST_MS then
             self:callback_errcode(session, cmd_id, TOO_FAST, session_id)
             return
@@ -122,12 +125,12 @@ end
 
 -- 广播数据
 function NetServer:broadcast(cmd_id, data)
-    socket_mgr.broadcast(self.codec, self.broadcast_token, cmd_id, FLAG_REQ, 0, 0, data)
+    socket_mgr.broadcast(self.codec, self.broad_token, 0, cmd_id, FLAG_REQ, 0, 0, data)
 end
 
 -- 广播数据
 function NetServer:broadcast_groups(tokens, cmd_id, data)
-    socket_mgr.broadgroup(self.codec, tokens, cmd_id, FLAG_REQ, 0, 0, data)
+    socket_mgr.broadgroup(self.codec, tokens, 0, cmd_id, FLAG_REQ, 0, 0, data)
 end
 
 -- 发送数据

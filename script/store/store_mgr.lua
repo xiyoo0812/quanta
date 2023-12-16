@@ -89,16 +89,13 @@ function StoreMgr:load_group(entity, primary_id, group)
     return true, SUCCESS
 end
 
-function StoreMgr:delete(object, primary_id, sheet_name)
-    self.channel:push(function()
-        local code, res = cache_agent:delete(primary_id, sheet_name)
-        if qfailed(code) then
-            log_err("[StoreMgr][delete] delete ({}) failed primary_id({}), code: {}, res: {}!",  sheet_name, primary_id, code, res)
-            object["set_" .. sheet_name .. "_flushing"](object, true)
-            return false
-        end
-        return true, SUCCESS
-    end)
+function StoreMgr:delete(primary_id, sheet_name)
+    local code, res = cache_agent:delete(primary_id, sheet_name)
+    if qfailed(code) then
+        log_err("[StoreMgr][delete] delete ({}) failed primary_id({}), code: {}, res: {}!",  sheet_name, primary_id, code, res)
+        return false
+    end
+    return true, SUCCESS
 end
 
 function StoreMgr:save_wholes(store)

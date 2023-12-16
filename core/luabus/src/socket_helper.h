@@ -5,17 +5,6 @@
 const int SOCKET_RECV_LEN   = 4096;
 const int SOCKET_PACKET_MAX = 1024 * 1024 * 16; //16m
 
-#pragma pack(1)
-struct socket_header {
-    uint16_t    len;            // 整个包的长度
-    uint8_t     flag;           // 标志位
-    uint8_t     type;           // 消息类型
-    uint16_t    cmd_id;         // 协议ID
-    uint16_t    session_id;     // sessionId
-    uint8_t     crc8;           // crc8
-};
-#pragma pack()
-
 #if defined(__linux) || defined(__APPLE__)
 #include <errno.h>
 #include <unistd.h>

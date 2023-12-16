@@ -213,13 +213,19 @@ end
 
 function RpcServer:rpc_register(client, node)
     if not client.id then
+        -- 检查错误注册
+        if node.cluster ~= quanta.cluster then
+            log_warn("[RpcServer][rpc_register] illegal client({}-{}-{}) register!", node.name, node.host, node.cluster)
+            return
+        end
         -- 检查重复注册
         local client_id = node.id
         local eclient = self:get_client_by_id(client_id)
         if eclient then
             eclient.id = nil
             self:send(eclient, "rpc_service_kickout", quanta.id, "service replace")
-            log_warn("[RpcServer][rpc_heartbeat] client({}) be kickout, service replace!", eclient.name)
+            log_warn("[RpcServer][rpc_register] client({}-{}) is replace will be kickout!", eclient.name, eclient.host)
+            log_warn("[RpcServer][rpc_register] client({}-{}) is online!", node.name, node.host)
         end
         -- 通知注册
         client.id = client_id

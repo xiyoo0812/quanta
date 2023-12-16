@@ -216,7 +216,7 @@ end
 
 --导出到lua
 --使用configmgr结构
-local function export_records_to_conf(output, title, records)
+local function export_records_to_conf(output, title, fname, records)
     local table_name = sformat("%s_cfg", title)
     local filename = lappend(output, lconcat(table_name, ".lua"))
     local export_file = iopen(filename, "w")
@@ -226,6 +226,7 @@ local function export_records_to_conf(output, title, records)
     end
     local lines = {}
     tinsert(lines, sformat("--%s.lua", table_name))
+    tinsert(lines, sformat("--source: %s", fname))
     tinsert(lines, "--luacheck: ignore 631\n")
     tinsert(lines, '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")')
     tinsert(lines, sformat('local %s = config_mgr:get_table("%s")\n', title, title))
@@ -241,7 +242,7 @@ end
 
 --导出到lua
 --使用luatable
-local function export_records_to_lua(output, title, records)
+local function export_records_to_lua(output, title, fname, records)
     local table_name = sformat("%s_cfg", title)
     local filename = lappend(output, lconcat(table_name, ".lua"))
     local export_file = iopen(filename, "w")
@@ -251,6 +252,7 @@ local function export_records_to_lua(output, title, records)
     end
     local lines = {}
     tinsert(lines, sformat("--%s.lua", table_name))
+    tinsert(lines, sformat("--source: %s", fname))
     tinsert(lines, "--luacheck: ignore 631\n")
     tinsert(lines, "--导出配置内容")
     tinsert(lines, sformat('local %s = %s', title, serialize(records, 1, mapsort)))
@@ -262,7 +264,7 @@ local function export_records_to_lua(output, title, records)
 end
 
 --导出到json
-local function export_records_to_json(output, title, records)
+local function export_records_to_json(output, title, fname, records)
     local table_name = sformat("%s_cfg", title)
     local filename = lappend(output, lconcat(table_name, ".json"))
     local export_file = iopen(filename, "w")
@@ -288,11 +290,11 @@ local function find_sheet_data_struct(sheet)
 end
 
 --导出到目标文件
-local function export_sheet_to_output(sheet, output, fullname, title)
+local function export_sheet_to_output(sheet, output, fname, title)
     local header, field_type = find_sheet_data_struct(sheet)
     if tsize(field_type) == 1 then
         --未定义数据定义，不导出此sheet
-        print(sformat("export excel %s sheet %s not need export!", fullname, title))
+        print(sformat("export excel %s sheet %s not need export!", fname, title))
         return
     end
     --定位起始行
@@ -329,8 +331,8 @@ local function export_sheet_to_output(sheet, output, fullname, title)
         end
         tinsert(records, record)
     end
-    export_method(output, title, build_records(records))
-    print(sformat("export file: %s sheet: %s success!", fullname, title))
+    export_method(output, title, fname, build_records(records))
+    print(sformat("export file: %s sheet: %s success!", fname, title))
 end
 
 local function is_excel_file(file)
@@ -367,6 +369,7 @@ local function export_excel(input, output)
             goto continue
         end
         if is_excel_file(fullname) then
+            local fname = lfilename(fullname)
             local workbook = lexcel.open(fullname)
             if not workbook then
                 print(sformat("open excel %s failed!", fullname))
@@ -383,7 +386,7 @@ local function export_excel(input, output)
                     print(sformat("export excel %s sheet %s empty!", fullname, title))
                     goto next
                 end
-                export_sheet_to_output(sheet, output, fullname, title)
+                export_sheet_to_output(sheet, output, fname, title)
                 :: next ::
             end
         end

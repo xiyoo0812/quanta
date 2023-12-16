@@ -21,7 +21,7 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, storekey)
         self[storekey]:flush(self)
     end
     class["is_" .. sheet .. "_loaded"] = function(self)
-        return self["__" .. sheet .. "_flushing"]
+        return self["__" .. sheet .. "_loaded"]
     end
 end
 

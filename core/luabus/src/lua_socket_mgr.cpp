@@ -64,11 +64,7 @@ int lua_socket_mgr::map_token(uint32_t node_id, uint32_t token) {
 int lua_socket_mgr::broadcast(lua_State* L, codec_base* codec, uint32_t kind) {
     size_t data_len = 0;
     char* data = (char*)codec->encode(L, 3, &data_len);
-    socket_header* header = (socket_header*)data;
     if (data_len <= USHRT_MAX) {
-        //组装数据
-        header->len = data_len;
-        header->session_id = 0;
         //发送数据
         m_mgr->broadcast(kind, data, data_len);
         lua_pushboolean(L, true);
@@ -86,11 +82,7 @@ int lua_socket_mgr::broadgroup(lua_State* L, codec_base* codec) {
         return 1;
     }
     char* data = (char*)codec->encode(L, 3, &data_len);
-    socket_header* header = (socket_header*)data;
     if (data_len <= USHRT_MAX) {
-        //组装数据
-        header->len = data_len;
-        header->session_id = 0;
         //发送数据
         m_mgr->broadgroup(groups, data, data_len);
         lua_pushboolean(L, true);

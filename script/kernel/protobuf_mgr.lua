@@ -13,6 +13,7 @@ local lextension    = stdfs.extension
 local pb_enum_id    = protobuf.enum
 local pb_decode     = protobuf.decode
 local pb_encode     = protobuf.encode
+local pb_bind_cmd   = protobuf.bind_cmd
 local tunpack       = table.unpack
 local supper        = string.upper
 local ssplit        = qstring.split
@@ -188,9 +189,10 @@ function ProtobufMgr:define_command(full_name, proto_name)
                     self.pb_callbacks[msg_id] = msg_res_id
                 end
             end
+            pb_bind_cmd(msg_id, msg_name, full_name)
             return
         end
-        --log_warn("[ProtobufMgr][define_command] proto_name: [{}] can't find msg enum:[{}] !", proto_name, msg_name)
+        log_warn("[ProtobufMgr][define_command] proto_name: [{}] can't find msg enum:[{}] !", proto_name, msg_name)
     end
 end
 

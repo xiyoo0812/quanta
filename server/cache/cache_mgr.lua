@@ -302,7 +302,7 @@ function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
         return src_code
     end
     --原表是否为空
-    if not next(src_doc:get_datas()) then
+    if not next(src_doc:get_wholes()) then
         if not from_mem then
             self:clear_document(coll_name, src_id)
         end
@@ -316,7 +316,7 @@ function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
         end
         return to_code
     end
-    doc:copy(src_doc:get_datas())
+    doc:copy(src_doc:get_wholes())
     if not from_mem then
         self:clear_document(coll_name, src_id)
     end

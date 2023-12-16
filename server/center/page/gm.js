@@ -1,17 +1,5 @@
 
-function changeServer(){
-    var tx = document.getElementById("curServer").value;
-    window.open(tx, "_self");
-}
-
-function onfocusServer(){
-    document.getElementById("curServer").value = "";
-}
-
 window.onload = function(){
-    var host = window.location.host ;
-    var selectDiv = document.getElementById("curServer");
-    selectDiv.value = host
     var gmconsole = new GMConsole();
     gmconsole.init();
 };
@@ -25,8 +13,6 @@ GMConsole.prototype = {
         var cmd_index = 0;
         var historyCmds = [];
         var treeNodes = [{}];
-        //获取服务器列表
-        var fusion_url = "http://183.66.202.114:18080/server_mgr/query";
 
         // 加载命令列表
         $.ajax({
@@ -37,21 +23,6 @@ GMConsole.prototype = {
             success: function (res) {
                 treeNodes[0] = res;
                 that._showConsole(treeNodes);
-            },
-            error: function(status) {
-                document.write(JSON.stringify(status));
-            }
-        });
-
-        // 加载命令列表
-        $.ajax({
-            url: fusion_url,
-            type: "GET",
-            dataType: "json",
-            contentType: "utf-8",
-            success: function (res) {
-                console.log(JSON.stringify(res));
-                that._showServers(res);
             },
             error: function(status) {
                 document.write(JSON.stringify(status));
@@ -121,23 +92,6 @@ GMConsole.prototype = {
         return true;
     },
 
-    _showServers: function(res){
-        var curServerList = document.getElementById('curServerList');
-        curServerList.value = "";
-
-        var host = window.location.host ;
-        var selectDiv = document.getElementById("curServer");
-        selectDiv.value = host
-
-        for (i = 0; i < res.data.length; i++) {
-            var option = new Option();
-            option.innerHTML = res.data[i].name;
-            option.value = "http://"+ res.data[i].host+":" + res.data[i].gm_port;
-
-            curServerList.appendChild(option);
-            console.log(option.value)
-         }
-    },
 
     _inputMsgTrim(historyCmds){
         var that = this;

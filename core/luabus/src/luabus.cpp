@@ -74,6 +74,7 @@ namespace luabus {
         kit_state.new_class<lua_socket_node>(
             "ip", &lua_socket_node::m_ip,
             "token", &lua_socket_node::m_token,
+            "stoken", &lua_socket_node::m_stoken,
             "call", &lua_socket_node::call,
             "close", &lua_socket_node::close,
             "call_pb", &lua_socket_node::call_pb,

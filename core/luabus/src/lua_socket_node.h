@@ -34,8 +34,8 @@ public:
         m_mgr->set_codec(m_token, m_codec);
     }
 
+    int call_pb(lua_State* L);
     int call_data(lua_State* L);
-    int call_pb(lua_State* L, uint32_t session_id);
     int call(lua_State* L, uint32_t session_id, uint8_t flag);
 
     int forward_target(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t target_id);

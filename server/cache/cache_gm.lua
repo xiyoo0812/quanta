@@ -45,9 +45,9 @@ function CacheGM:register()
             gm_type = HASHKEY,
             group = "数据",
             desc = "更新缓存数据",
-            args = "player_id|integer coll_name|string field|string, field_data|string",
-            example = "update_cache 1130045456 player nick nickxxx",
-            tip = "示例中，1130045456为玩家ID, player为表名 filed为全路径field, field_data为对应value"
+            args = "player_id|integer coll_name|string datas|string",
+            example = "update_cache 1130045456 player {xxx=xxx}",
+            tip = "示例中，1130045456为玩家ID, player为表名 datas为新数据"
         },
         {
             name = "copy_cache",
@@ -89,19 +89,14 @@ end
 
 --删除角色
 function CacheGM:signed(player_id)
-    --加载open_id
     local code, doc = cache_mgr:load_document("player", player_id)
     if qfailed(code) then
         log_err("[CacheGM][signed] load_document failed! player_id={}", player_id)
         return "failed"
     end
-    local open_id = doc:get_datas().open_id
-    --标记account中的roles信息
-    local ok =  cache_mgr:rpc_cache_remove_field(open_id, "account", sformat("roles.%s", player_id))
-    if not ok then
-        return "failed"
-    end
-
+    local wholes = doc:get_wholes()
+    wholes.roles = {}
+    doc:update_wholes(wholes)
     cache_mgr:rpc_cache_signed(player_id, "player")
     cache_mgr:rpc_cache_delete(player_id, "player_mirror")
     return "success"
@@ -147,18 +142,18 @@ function CacheGM:del_cache(player_id, coll_name)
 end
 
 --更新缓存
-function CacheGM:update_cache(player_id, coll_name, field, field_data)
-    log_info("[CacheGM][update_cache] player_id:{} coll_name={} field:{}, field_data:{}", player_id, coll_name, field, field_data)
-
-    local pok, datas = pcall(unserialize, field_data)
-    if not pok or not datas then
-        return sformat("parse failed. field_data:{}", field_data)
+function CacheGM:update_cache(player_id, coll_name, datas)
+    log_info("[CacheGM][update_cache] player_id:{} coll_name={} datas:{}", player_id, coll_name, datas)
+    local pok, wdatas = pcall(unserialize, datas)
+    if not pok or not wdatas then
+        return sformat("parse failed. field_data:{}", wdatas)
     end
-
-    local ok = cache_mgr:rpc_cache_update_field(player_id, coll_name, field, datas)
-    if not ok then
-        return sformat("failed code:{}", ok)
+    local code, doc = cache_mgr:load_document(coll_name, player_id)
+    if qfailed(code) then
+        log_err("[CacheGM][update_cache] load_document failed! player_id={}", player_id)
+        return "failed"
     end
+    doc:update_wholes(wdatas)
     return "success"
 end
 
@@ -170,8 +165,8 @@ function CacheGM:query_cache(player_id, coll_name)
     if not ok or not doc then
         return "cache not find"
     end
-    log_info("[CacheGM][query_cache] player_id={} coll_name={} datas:{}", player_id, coll_name, doc:get_datas())
-    return doc:get_datas()
+    log_info("[CacheGM][query_cache] player_id={} coll_name={} datas:{}", player_id, coll_name, doc:get_wholes())
+    return doc:get_wholes()
 end
 
 -- export

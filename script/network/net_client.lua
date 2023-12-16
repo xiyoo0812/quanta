@@ -28,7 +28,7 @@ function NetClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
     self.holder = holder
-    self.codec = protobuf.pbcodec("ncmd_cs", "ncmd_cs.NCmdId")
+    self.codec = protobuf.pbcodec()
 end
 
 -- 发起连接
@@ -60,6 +60,9 @@ function NetClient:connect(block)
         end
     end
     socket.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
+        if session_id > 0 then
+            session_id = socket.stoken | session_id
+        end
         qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, cmd_id, flag, session_id, body)
     end
     socket.on_error = function(token, err)

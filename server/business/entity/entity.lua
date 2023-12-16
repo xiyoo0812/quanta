@@ -25,6 +25,10 @@ function Entity:is_npc()
     return false
 end
 
+function Entity:is_sight()
+    return false
+end
+
 function Entity:is_monster()
     return false
 end

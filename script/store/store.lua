@@ -4,6 +4,7 @@ local log_debug     = logger.debug
 local tinsert       = table.insert
 local tconcat       = table.concat
 local tunpack       = table.unpack
+local tremove       = table.remove
 local qfailed       = quanta.failed
 local qtweak        = qtable.weak
 
@@ -79,12 +80,26 @@ function Store:update_field(parentkeys, field, key, value)
     cur_data[field] = value
 end
 
+local function clean_repeat(commits, parents, field)
+    for i = #commits, 1, -1 do
+        local info = commits[i]
+        if info[4] and info[1] == parents and info[2] == field then
+            tremove(commits, i)
+        end
+    end
+end
+
 function Store:build_commits()
     local commits = {}
     local cvalues, lastkeys, lastfield = {}, nil, nil
     for _, increase in ipairs(self.increases) do
         local parents, value, key, field = tunpack(increase)
         if not key then
+            if lastkeys then
+                tinsert(commits, { lastkeys, lastfield, cvalues })
+            end
+            --清理重复
+            clean_repeat(commits, parents, field)
             --全量更新
             tinsert(commits, { parents, field, value or "nil", true })
             cvalues, lastkeys, lastfield = {}, nil, nil

@@ -52,15 +52,11 @@ int lua_socket_node::call_data(lua_State* L) {
     return 1;
 }
 
-int lua_socket_node::call_pb(lua_State* L, uint32_t session_id) {
+int lua_socket_node::call_pb(lua_State* L) {
     if (m_codec) {
         size_t data_len = 0;
-        char* data = (char*)m_codec->encode(L, 2, &data_len);
-        socket_header* header = (socket_header*)data;
+        char* data = (char*)m_codec->encode(L, 1, &data_len);
         if (data_len <= USHRT_MAX) {
-            //组装数据
-            header->len = data_len;
-            header->session_id = (session_id & 0xffff);
             //发送数据
             m_mgr->send(m_token, data, data_len);
             lua_pushinteger(L, data_len);
@@ -291,10 +287,7 @@ void lua_socket_node::on_transfer(transfer_header* header, slice* slice) {
 }
 
 void lua_socket_node::on_call_pb(slice* slice) {
-    socket_header* header = (socket_header*)slice->peek(sizeof(socket_header));
-    uint32_t session_id = header->session_id;
-    if (session_id > 0) session_id |= m_stoken;
-    m_lvm->object_call(this, "on_call_pb", nullptr, m_codec, std::tie(), header->len, session_id);
+    m_lvm->object_call(this, "on_call_pb", nullptr, m_codec, std::tie());
 }
 
 void lua_socket_node::on_call(router_header* header, slice* slice) {

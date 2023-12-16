@@ -76,18 +76,7 @@ footer{
     <!-- gm dump -->
     <div class="gmDumpContainer">
         <!-- 服务器列表 -->
-        <div id="consoleTree1" class="list-group-item node-consoleTree">
-            服务器:
-            <input id="curServer" type="text" list="curServerList" style="border-radius:5px;" onchange="changeServer()" onfocus="onfocusServer()"/>
-            <datalist id="curServerList" class="padding: 10px 15px;" >
-                <option selected hidden disabled value="">下拉选择服务器</option>
-            </datalist>
-        </div>
-        <div id="consoleTree" class="">
-            <ul class="list-group">
-                <li>请选择服务器</li>
-            </ul>
-        </div>
+        <div id="consoleTree" class=""></div>
     </div>
     <!-- 消息内容 -->
     <div class="gmContainer">
@@ -113,19 +102,7 @@ footer{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js"></script>
 <script type="text/javascript">
 
-function changeServer(){
-    var tx = document.getElementById("curServer").value;
-    window.open(tx, "_self");
-}
-
-function onfocusServer(){
-    document.getElementById("curServer").value = "";
-}
-
 window.onload = function(){
-    var host = window.location.host ;
-    var selectDiv = document.getElementById("curServer");
-    selectDiv.value = host
     var gmconsole = new GMConsole();
     gmconsole.init();
 };
@@ -139,8 +116,6 @@ GMConsole.prototype = {
         var cmd_index = 0;
         var historyCmds = [];
         var treeNodes = [{}];
-        //获取服务器列表
-        var fusion_url = "http://183.66.202.114:18080/server_mgr/query";
 
         // 加载命令列表
         $.ajax({
@@ -151,21 +126,6 @@ GMConsole.prototype = {
             success: function (res) {
                 treeNodes[0] = res;
                 that._showConsole(treeNodes);
-            },
-            error: function(status) {
-                document.write(JSON.stringify(status));
-            }
-        });
-
-        // 加载命令列表
-        $.ajax({
-            url: fusion_url,
-            type: "GET",
-            dataType: "json",
-            contentType: "utf-8",
-            success: function (res) {
-                console.log(JSON.stringify(res));
-                that._showServers(res);
             },
             error: function(status) {
                 document.write(JSON.stringify(status));
@@ -235,23 +195,6 @@ GMConsole.prototype = {
         return true;
     },
 
-    _showServers: function(res){
-        var curServerList = document.getElementById('curServerList');
-        curServerList.value = "";
-
-        var host = window.location.host ;
-        var selectDiv = document.getElementById("curServer");
-        selectDiv.value = host
-
-        for (i = 0; i < res.data.length; i++) {
-            var option = new Option();
-            option.innerHTML = res.data[i].name;
-            option.value = "http://"+ res.data[i].host+":" + res.data[i].gm_port;
-
-            curServerList.appendChild(option);
-            console.log(option.value)
-         }
-    },
 
     _inputMsgTrim(historyCmds){
         var that = this;
