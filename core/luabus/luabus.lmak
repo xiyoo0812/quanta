@@ -8,7 +8,7 @@ TARGET_NAME = "luabus"
 PROJECT_TYPE = "dynamic"
 
 --是否生效
-ENABLE = false
+ENABLE = true
 
 --需要的include目录
 INCLUDES = {

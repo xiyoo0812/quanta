@@ -62,6 +62,7 @@ temp
 bin/quanta
 bin/lua
 bin/luac
+bin/configs
 .gitignore
 .DS_Store
 /.idea/

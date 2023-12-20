@@ -107,9 +107,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
 
 void quanta_app::exception_handler(std::string_view msg, std::string_view err) {
     LOG_FATAL(fmt::format(msg, err));
-#if WIN32
-    _getch();
-#endif
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     exit(1);
 }
 

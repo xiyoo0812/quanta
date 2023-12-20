@@ -5,19 +5,15 @@ setlocal enabledelayedexpansion
 
 set /p CONF=please input your conf name:
 
-set RootDir=%~dp0
+rmdir /Q /S configs
+md configs
 
-set ConfDir=%RootDir%quanta
-rmdir /Q /S %ConfDir%
-md %ConfDir%
-
-set TplDir=%RootDir%template
-cd %TplDir%
+cd template
 
 set SCRIPT=../../extend/lmake/ltemplate.lua
 set ENVIRON=../config/%CONF%.conf
 for %%i in (*.conf) do (
-    ..\lua.exe %SCRIPT% %%i %ConfDir%\%%i %ENVIRON%
+    ..\lua.exe %SCRIPT% %%i ..\configs\%%i %ENVIRON%
 )
 
 pause

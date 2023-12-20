@@ -204,6 +204,7 @@ end
 function Gateway:rpc_service_svr_changed(player_id)
     local player = self:get_player(player_id)
     if player then
+        log_debug("[Gateway][rpc_service_svr_changed] player({}) switch gateway, will kickout!", player_id)
         self:kickout_client(player, player_id, DEVICE_REPLACE)
     end
 end

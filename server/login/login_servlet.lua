@@ -49,8 +49,15 @@ function LoginServlet:__init()
     monitor:watch_service_close(self, "gateway")
     monitor:watch_service_ready(self, "lobby")
     monitor:watch_service_close(self, "lobby")
+    --添加事件监听
+    event_mgr:add_listener(self, "on_safe_text")
     --定时器
     update_mgr:attach_minute(self)
+end
+
+--屏蔽词库校验
+function LoginServlet:on_safe_text(user_id, text)
+    return FRAME_SUCCESS, text
 end
 
 --账号登陆

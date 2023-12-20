@@ -39,8 +39,7 @@ end
 
 function Listener:add_listener(listener, event, handler)
     if self._listeners[event] then
-        log_warn("[Listener][add_listener] event({}) repeat!", event)
-        return
+        log_warn("[Listener][add_listener] event({}) will be replace!", event)
     end
     local func_name = handler or event
     local callback_func = listener[func_name]

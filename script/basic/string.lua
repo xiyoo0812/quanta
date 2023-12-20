@@ -6,6 +6,7 @@ local tostring  = tostring
 local tunpack   = table.unpack
 local ssub      = string.sub
 local sfind     = string.find
+local sgsub     = string.gsub
 local supper    = string.upper
 local slower    = string.lower
 local sformat   = string.format
@@ -26,6 +27,9 @@ function qstring.parse(str)
     return code and ret or {}
 end
 
+function qstring.trim(value)
+    return sgsub(value, " ", "")
+end
 
 function qstring.title(value)
     return supper(ssub(value, 1, 1)) .. ssub(value, 2, #value)
@@ -33,6 +37,18 @@ end
 
 function qstring.untitle(value)
     return slower(ssub(value, 1, 1)) .. ssub(value, 2, #value)
+end
+
+function qstring.count(value, chl)
+    local c, p = 0, 0
+    while true do
+        p = sfind(value, chl, p + 1, 0)
+        if not p then
+            break
+        end
+        c = c + 1
+    end
+    return c
 end
 
 function qstring.split(str, token)

@@ -233,7 +233,7 @@ function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
             local old_svr_id = routers[serv_name]
             doc:update_commit({{}, "routers", {router = router_id, [serv_name] = serv_id }})
             --通知节点改变
-            if old_svr_id and old_svr_id ~= serv_id then
+            if old_svr_id and old_svr_id > 0 and old_svr_id ~= serv_id then
                 router_mgr:send_target(old_svr_id, "rpc_service_svr_changed", primary_id)
             end
         end

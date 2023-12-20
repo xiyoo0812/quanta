@@ -36,11 +36,25 @@ MIMALLOC = false
 ./lua lmake_dir/lmake.lua solution_dir
 ```
 
-# 执行测试代码
-测试代码位于server/test，入口文件为server/test.lua
+# 体验引擎
+- 配置
+在bin/config目录下，仿造quanta.conf生成配置实例，然后在bin目录执行configure.bat/configure.sh，会自动生成项目配置
 ```shell
-cd bin
-./quanta ./test.conf
+#linux
+#需要加参数配置文件名
+configure.sh quanta
+#windows
+configure.bat
+#然后输入配置文件名
+#>>quanta
+```
+- 执行
+可以bin下的quanta.bat/quanta.sh, test.bat/test.sh体验
+```shell
+#linux
+quanta.sh
+#windows
+quanta.bat
 ```
 
 # 基础服务

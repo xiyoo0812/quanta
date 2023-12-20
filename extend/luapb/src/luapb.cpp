@@ -99,13 +99,13 @@ namespace luapb {
             if (lua_type(L, index) == LUA_TNUMBER) {
                 header->cmd_id = lua_tointeger(L, index);
                 auto it = pb_cmd_ids.find(header->cmd_id);
-                if (it == pb_cmd_ids.end()) throw invalid_argument("invalid pb cmdid: " + header->cmd_id);
+                if (it == pb_cmd_ids.end()) luaL_error(L, "invalid pb cmd: %d", header->cmd_id);
                 return lpb_type(L, LS, pb_lslice(it->second.c_str(), it->second.size()));
             }
             if (lua_type(L, index) == LUA_TSTRING) {
                 std::string cmd_name = lua_tostring(L, index);
                 auto it = pb_cmd_names.find(cmd_name);
-                if (it == pb_cmd_names.end()) throw invalid_argument("invalid pb cmd: " + cmd_name);
+                if (it == pb_cmd_names.end()) luaL_error(L, "invalid pb cmd_name: %s", cmd_name.c_str());
                 header->cmd_id = pb_cmd_indexs[cmd_name];
                 return lpb_type(L, LS, pb_lslice(it->second.c_str(), it->second.size()));
             }
