@@ -152,11 +152,20 @@ local function tkvarray(src)
 end
 
 -- 展开table的kv
-local function tunfold(src)
+local function tunfold(src, only_key)
     local dst = {}
     for key, value in pairs(src or {}) do
         dst[#dst + 1] = key
         dst[#dst + 1] = value
+    end
+    return tunpack(dst)
+end
+
+-- 展开table的k
+local function tkeys(src)
+    local dst = {}
+    for key, value in pairs(src or {}) do
+        dst[#dst + 1] = key
     end
     return tunpack(dst)
 end
@@ -206,6 +215,7 @@ qtable.deep_copy    = tdeep_copy
 qtable.delete       = tdelete
 qtable.join         = tjoin
 qtable.map          = tmap
+qtable.keys         = tkeys
 qtable.push         = tpush
 qtable.diff         = tdiff
 qtable.array        = tarray

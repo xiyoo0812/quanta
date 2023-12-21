@@ -2,6 +2,7 @@
 
 local log_err       = logger.err
 local qfailed       = quanta.failed
+local qkeys         = qtable.keys
 local qunfold       = qtable.unfold
 local tclone        = qtable.deep_copy
 local sstart        = qstring.start_with
@@ -162,7 +163,7 @@ end
 
 --增量更新
 function Document:update_commits(commits)
-    for _, commit in pairs(commits) do
+    for _, commit in ipairs(commits) do
         self:merge_commit(commit)
     end
     --提交数据库
@@ -219,8 +220,9 @@ function Document:build_redis_cache(pkeys, value)
     for rkey in pairs(self.indexs) do
         if #rkey > #ckey then
             if sstart(rkey, ckey .. ".") then
-                self.hdels[#self.hdels + 1] = rkey
+                self.hdels[rkey] = true
                 self.indexs[rkey] = nil
+                self.hmsets[rkey] = nil
             end
         end
         if #rkey < #ckey then
@@ -233,6 +235,7 @@ function Document:build_redis_cache(pkeys, value)
                 self.hmsets[rkey] = {cvalue or "nil"}
                 self.hmsets[ckey] = nil
                 self.indexs[ckey] = nil
+                self.hdels[ckey] = true
             end
         end
     end
@@ -253,7 +256,7 @@ function Document:cmomit_redis()
     if next(self.hdels) then
         local hdels = self.hdels
         self.hdels = {}
-        local code, res = redis_mgr:execute("HDEL", self.hotkey, tunpack(hdels))
+        local code, res = redis_mgr:execute("HDEL", self.hotkey, qkeys(hdels))
         if qfailed(code) then
             log_err("[Document][cmomit_redis] HDEL failed: {}=> hotkey: {}", res, self.hotkey)
             self:flush()

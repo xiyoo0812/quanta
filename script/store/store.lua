@@ -4,7 +4,6 @@ local log_debug     = logger.debug
 local tinsert       = table.insert
 local tconcat       = table.concat
 local tunpack       = table.unpack
-local tremove       = table.remove
 local qfailed       = quanta.failed
 local qtweak        = qtable.weak
 
@@ -41,7 +40,7 @@ end
 function Store:update_value(parentkeys, key, value)
     log_debug("[Store][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), key, value)
     if not self.wholes then
-        tinsert(self.increases, {parentkeys, value, key})
+        tinsert(self.increases, {parentkeys, value or "nil", key})
         store_mgr:save_increases(self)
         return
     end
@@ -58,7 +57,7 @@ end
 function Store:update_field(parentkeys, field, key, value)
     log_debug("[Store][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), field, key, value)
     if not self.wholes then
-        tinsert(self.increases, {parentkeys, value, key, field })
+        tinsert(self.increases, {parentkeys, value or "nil", key, field })
         store_mgr:save_increases(self)
         return
     end
@@ -80,41 +79,65 @@ function Store:update_field(parentkeys, field, key, value)
     cur_data[field] = value
 end
 
-local function clean_repeat(commits, parents, field)
-    for i = #commits, 1, -1 do
-        local info = commits[i]
-        if info[4] and info[1] == parents and info[2] == field then
-            tremove(commits, i)
-        end
+function Store:can_merge(increase, commit)
+    --parents
+    if increase[1] ~= commit[1] then
+        return false
     end
+    --field
+    if increase[4] ~= commit[2]  then
+        return false
+    end
+    return true
 end
 
-function Store:build_commits()
+function Store:alike(increase, commit)
+    local max = #increase > #commit and #increase or #commit
+    for i = 1, max do
+        if increase[i] and commit[i] and increase[i] ~= commit[i] then
+            return false
+        end
+    end
+    return true
+end
+
+function Store:break_merge(increase, commit)
+    if self:alike(increase[1], commit[1]) then
+        if #increase[1] ~= #commit[1] then
+            return true
+        end
+        if increase[4] ~= commit[2]  then
+            return true
+        end
+    end
+    return false
+end
+
+function Store:merge_commits()
     local commits = {}
-    local cvalues, lastkeys, lastfield = {}, nil, nil
     for _, increase in ipairs(self.increases) do
         local parents, value, key, field = tunpack(increase)
-        if not key then
-            if lastkeys then
-                tinsert(commits, { lastkeys, lastfield, cvalues })
+        for i = #commits, 1, -1 do
+            local commit = commits[i]
+            if self:break_merge(increase, commit) then
+                break
             end
-            --清理重复
-            clean_repeat(commits, parents, field)
-            --全量更新
-            tinsert(commits, { parents, field, value or "nil", true })
-            cvalues, lastkeys, lastfield = {}, nil, nil
-            goto continue
+            if self:can_merge(increase, commit) then
+                if commit[3] == "nil" then
+                    commit[3] = key and {[key] = value } or value
+                    goto continue
+                end
+                if key then
+                    commit[3][key] = value
+                    goto continue
+                end
+                commit[3] = value
+                commit[4] = true
+                goto continue
+            end
         end
-        if lastkeys and (lastkeys ~= parents or lastfield ~= field) then
-            tinsert(commits, { lastkeys, lastfield, cvalues })
-            cvalues = {}
-        end
-        lastkeys, lastfield = parents, field
-        cvalues[key] = value or "nil"
+        tinsert(commits, { parents, field,  key and {[key] = value } or value, (key == nil) and true or nil })
         :: continue ::
-    end
-    if lastkeys then
-        tinsert(commits, { lastkeys, lastfield, cvalues })
     end
     self.increases = {}
     return commits
@@ -124,7 +147,7 @@ function Store:sync_increase(channel)
     if self.wholes then
         return
     end
-    local commits = self:build_commits()
+    local commits = self:merge_commits()
     channel:push(function()
         local code, adata = cache_agent:update(self.primary_id, self.sheet, commits)
         if qfailed(code) then
