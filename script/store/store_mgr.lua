@@ -7,6 +7,7 @@ local log_err       = logger.err
 local tsort         = table.sort
 local tinsert       = table.insert
 local qfailed       = quanta.failed
+local qxpcall       = quanta.xpcall
 local makechan      = quanta.make_channel
 
 local router_mgr    = quanta.get("router_mgr")
@@ -63,10 +64,14 @@ end
 function StoreMgr:load(entity, primary_id, sheet_name)
     local ok, data, store = self:load_impl(primary_id, sheet_name)
     if not ok then
-        return ok
+        return ok, data
     end
-    entity["load_" .. sheet_name .. "_db"](entity, store, data)
-    return ok, SUCCESS
+    local func = entity["load_" .. sheet_name .. "_db"]
+    local ok2, err = qxpcall(func, "[StoreMgr][load] failed: {}", entity, store, data)
+    if not ok2 then
+        return ok2, err
+    end
+    return ok, SUCCESS, data
 end
 
 function StoreMgr:load_group(entity, primary_id, group)
@@ -74,13 +79,7 @@ function StoreMgr:load_group(entity, primary_id, group)
     local sheets = self:find_group(group)
     for _, conf in ipairs(sheets) do
         channel:push(function()
-            local ok, data, store = self:load_impl(primary_id, conf.sheet)
-            if not ok then
-                log_err("[StoreMgr][load_{}] primary_id: {} failed! code: {}", conf.sheet, primary_id, data)
-                return false, data
-            end
-            entity["load_" .. conf.sheet .. "_db"](entity, store, data)
-            return ok, SUCCESS, data
+            return self:load(entity, primary_id, conf.sheet)
         end)
     end
     if not channel:execute() then

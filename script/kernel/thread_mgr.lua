@@ -131,22 +131,18 @@ end
 
 function ThreadMgr:try_response(session_id, ...)
     local context = self.coroutine_yields[session_id]
-    if context then
-        self.coroutine_yields[session_id] = nil
-        self:resume(context.co, ...)
-        return true
-    end
-    return false
-end
-
-function ThreadMgr:response(session_id, ...)
-    local context = self.coroutine_yields[session_id]
     if not context then
-        log_warn("[ThreadMgr][response] unknown session_id({}) response!", session_id)
-        return
+        return false
     end
     self.coroutine_yields[session_id] = nil
     self:resume(context.co, ...)
+    return true
+end
+
+function ThreadMgr:response(session_id, ...)
+    if not self:try_response(session_id, ...) then
+        log_warn("[ThreadMgr][response] unknown session_id({}) response!", session_id)
+    end
 end
 
 function ThreadMgr:resume(co, ...)
@@ -210,11 +206,11 @@ function ThreadMgr:on_second(clock_ms)
         tsort(timeout_coroutines, function(a, b) return a.to < b.to end)
         for _, context in ipairs(timeout_coroutines) do
             local session_id = context.session_id
-            self.coroutine_yields[session_id] = nil
-            if context.title then
-                log_err("[ThreadMgr][on_second] session_id({}:{}) timeout!", session_id, context.title)
+            if self:try_response(session_id, false, sformat("%s timeout", context.title), session_id) then
+                if context.title then
+                    log_err("[ThreadMgr][on_second] session_id({}:{}) timeout!", session_id, context.title)
+                end
             end
-            self:resume(context.co, false, sformat("%s timeout", context.title), session_id)
         end
     end
 end

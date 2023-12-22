@@ -20,7 +20,6 @@ local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
 local prop = property(RouterMgr)
-prop:reader("startup", false)
 prop:reader("routers", {})
 prop:reader("candidates", {})
 
@@ -76,6 +75,7 @@ function RouterMgr:on_socket_connect(client, res)
     log_info("[RouterMgr][on_socket_connect] router {}:{} success!", client.ip, client.port)
     client:register()
     self:check_router()
+    event_mgr:notify_trigger("on_router_connected")
 end
 
 function RouterMgr:available()
@@ -92,10 +92,6 @@ function RouterMgr:check_router()
     end
     tsort(candidates, function(a, b) return a.id < b.id end)
     self.candidates = candidates
-    if not self.startup then
-        self.startup = true
-        event_mgr:notify_trigger("on_router_connected")
-    end
 end
 
 --查找指定router

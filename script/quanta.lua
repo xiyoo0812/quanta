@@ -18,6 +18,7 @@ function quanta.xpcall(func, fmt, ...)
     if not ok then
         log_fatal(fmt, err)
     end
+    return ok, err
 end
 
 function quanta.try_call(func, time, ...)

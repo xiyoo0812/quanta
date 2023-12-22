@@ -21,6 +21,8 @@ local RPC_FAILED    = quanta.enum("KernCode", "RPC_FAILED")
 local MonitorAgent = singleton()
 local prop = property(MonitorAgent)
 prop:reader("client", nil)
+prop:reader("startup", false)
+prop:reader("register", false)
 prop:reader("ready_watchers", {})
 prop:reader("close_watchers", {})
 
@@ -39,8 +41,14 @@ function MonitorAgent:__init()
 end
 
 function MonitorAgent:on_router_connected()
-    self.client:register()
-    event_mgr:notify_trigger("on_service_startup")
+    if not self.register then
+        self.register = true
+        self.client:register()
+    end
+    if not self.startup then
+        self.startup = true
+        event_mgr:fire_frame("on_service_startup")
+    end
 end
 
 --监听服务断开
@@ -62,6 +70,7 @@ end
 -- 连接关闭回调
 function MonitorAgent:on_socket_error(client, token, err)
     log_info("[MonitorAgent][on_socket_error]: connect lost!")
+    self.register = false
 end
 
 -- 连接成回调
