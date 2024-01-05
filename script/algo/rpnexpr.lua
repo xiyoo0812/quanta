@@ -4,6 +4,7 @@ local mceil     = math.ceil
 local mfloor    = math.floor
 local qrand     = qmath.rand
 local sgsub     = string.gsub
+local tunpack   = table.unpack
 local qcount    = qstring.count
 
 local Stack     = import("container/stack.lua")
@@ -23,6 +24,7 @@ local OperatorType = enum("OperatorType", 0,
     "OP_NS",        -- 负号,-,negative sign
     "OP_FLOOR",     -- 向下取整
     "OP_CEIL",      -- 向下取整
+    "OP_LEN",       -- 取长度
     "OP_POW",       -- 幂函数, ^
     "OP_MUL",       -- 乘,*,multiplication
     "OP_DIV",       -- 除,/,division
@@ -69,6 +71,7 @@ local OperatorMap = {
     [ "+"] = OperatorType.OP_ADD,
     [ "-"] = OperatorType.OP_SUB,
     [ "&"] = OperatorType.OP_AND,
+    ["LEN"] = OperatorType.OP_LEN,
     ["MIN"] = OperatorType.OP_MIN,
     ["MAX"] = OperatorType.OP_MAX,
     ["AND"] = OperatorType.OP_AND,
@@ -88,6 +91,7 @@ local PriorityMap = {
     [OperatorType.OP_FLOOR] = 3,
     [OperatorType.OP_CEIL] = 3,
     [OperatorType.OP_RAND] = 3,
+    [OperatorType.OP_LEN] = 3,
     [OperatorType.OP_MUL] = 4,
     [OperatorType.OP_DIV] = 4,
     [OperatorType.OP_MOD] = 4,
@@ -173,25 +177,29 @@ local function calc_elem_value(tokens, vt)
     if elem.type ~= OperandType.VARIABLE then
         return elem.value
     end
-    return vt:calc_value(elem.value)
+    if vt.calc_value and type(vt.calc_value) == "function" then
+        return vt:calc_value(elem.value)
+    end
+    return vt[elem.value]
 end
 
 --公式解析器
 ----------------------------------------------------------------------
-local RpnExpr = class()
+local RpnExpr = singleton()
 local prop = property(RpnExpr)
 prop:reader("expr_tokens", {})
 
 function RpnExpr:__init()
 end
 
---加载公式
-function RpnExpr:load_expr(attr_id)
-    return self.expr_tokens[attr_id]
-end
-
 --解析公式
 function RpnExpr:parse(expr, attr_id)
+    if attr_id then
+        local tokens = self.expr_tokens[attr_id]
+        if tokens then
+            return true, tunpack(tokens)
+        end
+    end
     --是否合法
     if not is_valid(expr) then
         return false
@@ -292,7 +300,9 @@ function RpnExpr:parse(expr, attr_id)
         tokens:push(elem)
         operands:pop()
     end
-    self.expr_tokens[attr_id] = { tokens, depends }
+    if attr_id then
+        self.expr_tokens[attr_id] = { tokens, depends }
+    end
     return true, tokens, depends
 end
 
@@ -351,6 +361,11 @@ local OP_CALC_FUNCS = {
     [OperatorType.OP_FLOOR] = function(opds, vt)
         local vv = calc_elem_value(opds, vt)
         opds:push({ value = mfloor(vv), type = OperandType.EVALUATE })
+    end,
+    [OperatorType.OP_LEN] = function(opds, vt)
+        local vv = calc_elem_value(opds, vt)
+        local canlen = (type(vv) == "table" or type(vv) == "string")
+        opds:push({ value = (canlen and #vv or 0), type = OperandType.EVALUATE })
     end,
     [OperatorType.OP_CEIL] = function(opds, vt)
         local vv = calc_elem_value(opds, vt)
@@ -443,6 +458,7 @@ function RpnExpr:calculation(vt, prototype)
     return value
 end
 
+quanta.rpnexpr = RpnExpr()
 --[[
 local log_debug = logger.debug
 
@@ -452,7 +468,7 @@ local VT = {
     end
 }
 
-local p = RpnExpr()
+local p = quanta.rpnexpr
 local function test(xxx, vt)
     setmetatable(vt, {__index = VT})
     local ok, tokens, depends = p:parse(xxx)

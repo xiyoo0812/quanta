@@ -17,7 +17,7 @@ local log_err       = logger.err
 
 local QueueFIFO     = import("container/queue_fifo.lua")
 
-local MINUTE_MS     = quanta.enum("PeriodTime", "MINUTE_MS")
+local SECOND_30_MS  = quanta.enum("PeriodTime", "SECOND_30_MS")
 local SYNC_PERFRAME = 10
 
 local ThreadMgr = singleton()
@@ -49,7 +49,7 @@ function ThreadMgr:entry(key, func)
         local _<close> = qdefer(function()
             self.entry_map[key] = nil
         end)
-        self.entry_map[key] = quanta.clock_ms + MINUTE_MS
+        self.entry_map[key] = quanta.clock_ms + SECOND_30_MS
         func()
     end)
     return true
@@ -62,7 +62,7 @@ function ThreadMgr:lock(key, waiting)
         queue.sync_num = 0
         self.syncqueue_map[key] = queue
     end
-    queue.ttl = quanta.clock_ms + MINUTE_MS
+    queue.ttl = quanta.clock_ms + SECOND_30_MS
     local head = queue:head()
     if not head then
         local lock = synclock(key)

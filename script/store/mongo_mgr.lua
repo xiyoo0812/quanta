@@ -34,15 +34,16 @@ end
 function MongoMgr:setup()
     local MongoDB = import("driver/mongo.lua")
     local driver = environ.driver("QUANTA_MONGO_URL")
+
     self.mongo_db = MongoDB(driver)
 end
 
-function MongoMgr:find(primary_id, coll_name, selector, fields, sortor, limit)
+function MongoMgr:find(primary_id, coll_name, selector, fields, sortor, limit, skip)
     log_debug("[MongoMgr][find]: {}, selector:{}", coll_name, selector)
     local mongodb = self.mongo_db
     if mongodb and mongodb:set_executer(primary_id) then
         mongodb:set_executer(primary_id)
-        local ok, res_oe = mongodb:find(coll_name, selector, fields or {_id = 0}, sortor, limit)
+        local ok, res_oe = mongodb:find(coll_name, selector, fields or {_id = 0}, sortor, limit, skip)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"

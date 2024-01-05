@@ -15,3 +15,16 @@ message heartbeat_res
     uint32 serial           = 1;        // 心跳序列号
     uint64 time             = 2;        // 服务器时间
 }
+
+//NID_UTILITY_GM_COMMAND_REQ
+message utility_gm_command_req
+{
+    string command                  = 1;    // 指令
+}
+
+//NID_UTILITY_GM_COMMAND_RES
+message utility_gm_command_res
+{
+    uint32 error_code               = 1;    // 错误码
+    string error_msg                = 2;    // 错误信息
+}

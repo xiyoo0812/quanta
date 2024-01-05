@@ -29,4 +29,12 @@ enum NCmdId
     NID_LOGIN_ROLE_RELOAD_REQ           = 10017;    //重登角色请求
     NID_LOGIN_ROLE_RELOAD_RES           = 10018;    
     NID_LOGIN_ROLE_KICKOUT_NTF          = 10019;    //踢玩家下线通知
+
+    //实体系统&12101-12150
+    NID_ENTITY_ENTER_SCENE_NTF          = 12101;    //实体进入场景通知
+    NID_ENTITY_LEAVE_SCENE_NTF          = 12102;    //实体离开场景通知
+    
+    //杂项&11001-11050
+    NID_UTILITY_GM_COMMAND_REQ          = 11001;    //GM命令
+    NID_UTILITY_GM_COMMAND_RES          = 11002;
 }

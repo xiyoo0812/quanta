@@ -3,16 +3,12 @@ import("basic/basic.lua")
 
 local log_info      = logger.info
 local log_warn      = logger.warn
-local tpack         = table.pack
 local tunpack       = table.unpack
 local qxpcall       = quanta.xpcall
-local raw_yield     = coroutine.yield
-local raw_resume    = coroutine.resume
 local lclock_ms     = timer.clock_ms
 local ltime         = timer.time
 
 local event_mgr     = quanta.load("event_mgr")
-local co_hookor     = quanta.load("co_hookor")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
 local thread_mgr    = quanta.load("thread_mgr")
@@ -40,30 +36,14 @@ local function init_network()
     quanta.socket_mgr = socket_mgr
 end
 
---协程改造
 local function init_coroutine()
-    coroutine.yield = function(...)
-        if co_hookor then
-            co_hookor:yield()
-        end
-        return raw_yield(...)
-    end
-    coroutine.resume = function(co, ...)
-        if co_hookor then
-            co_hookor:yield()
-            co_hookor:resume(co)
-        end
-        local args = tpack(raw_resume(co, ...))
-        if co_hookor then
-            co_hookor:resume()
-        end
-        return tunpack(args)
-    end
-    quanta.eval = function(name)
-        if co_hookor then
-            return co_hookor:eval(name)
-        end
-    end
+    import("basic/coroutine.lua")
+    quanta.init_coroutine()
+end
+
+local function init_listener()
+    event_mgr:add_listener(quanta, "on_append")
+    event_mgr:add_listener(quanta, "on_reload")
 end
 
 --初始化loop
@@ -77,22 +57,35 @@ local function init_mainloop()
 end
 
 function quanta.init()
+    --协程初始化
+    init_coroutine()
     --核心加载
     init_core()
     --初始化基础模块
     service.init()
     --主循环
-    init_coroutine()
     init_mainloop()
     --网络
     init_network()
+    --事件
+    init_listener()
     --加载协议
     import("kernel/protobuf_mgr.lua")
 end
 
-function quanta.hook_coroutine(hooker)
-    co_hookor = hooker
-    quanta.co_hookor = hooker
+--热更新
+quanta.on_reload = function()
+    log_info("[quanta][on_reload] worker:{} reload for signal !", TITLE)
+    --重新加载脚本
+    quanta.reload()
+    --事件通知
+    event_mgr:notify_trigger("on_reload")
+end
+
+--附件文件
+quanta.on_append = function(_, file)
+    log_info("[quanta][on_append] worker:{} append {}!", TITLE, file)
+    import(file)
 end
 
 --启动
@@ -104,6 +97,7 @@ function quanta.startup(entry)
     math.randomseed(quanta.now_ms)
     --初始化quanta
     quanta.init()
+    --注册系统事件
     --启动服务器
     entry()
 end
@@ -128,14 +122,6 @@ end
 
 --事件分发
 local function notify_rpc(session_id, title, rpc, ...)
-    if rpc == "on_reload" then
-        log_info("[Worker][on_reload]worker:{} reload for signal !", TITLE)
-        --重新加载脚本
-        quanta.reload()
-        --事件通知
-        event_mgr:notify_trigger("on_reload")
-        return
-    end
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
         quanta.call(title, session_id, FLAG_RES, tunpack(rpc_datas))

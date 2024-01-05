@@ -27,7 +27,7 @@ end
 local function tindexof(tab, val)
     for i, v in pairs(tab) do
         if v == val then
-            return i
+            return i, v
         end
     end
 end

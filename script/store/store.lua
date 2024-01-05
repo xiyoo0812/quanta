@@ -30,10 +30,14 @@ function Store:bind_target(obj)
     self.targets[obj] = true
 end
 
-function Store:flush(obj)
+function Store:flush(obj, timely)
     self.increases = {}
-    store_mgr:save_wholes(self)
     self.wholes = obj["serialize_" .. self.sheet](obj)
+    if timely then
+        self:sync_whole()
+    else
+        store_mgr:save_wholes(self)
+    end
     log_debug("[Store][flush] {}.{}={}", self.primary_id, self.sheet, self.wholes)
 end
 
@@ -143,40 +147,30 @@ function Store:merge_commits()
     return commits
 end
 
-function Store:sync_increase(channel)
-    if self.wholes then
-        return
-    end
+function Store:sync_increase()
     local commits = self:merge_commits()
-    channel:push(function()
-        local code, adata = cache_agent:update(self.primary_id, self.sheet, commits)
-        if qfailed(code) then
-            log_err("[StoreMgr][sync_increase] update {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
-            for obj in pairs(self.targets) do
-                self:flush(obj)
-            end
-            return false
+    local code, adata = cache_agent:update(self.primary_id, self.sheet, commits)
+    if qfailed(code) then
+        log_err("[StoreMgr][sync_increase] update {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
+        for obj in pairs(self.targets) do
+            self:flush(obj)
         end
-        return true, SUCCESS
-    end)
+        return false
+    end
+    return true, SUCCESS
 end
 
-function Store:sync_whole(channel)
-    if not self.wholes then
-        return
-    end
-    channel:push(function()
-        local code, adata = cache_agent:flush(self.primary_id, self.sheet, self.wholes)
-        if qfailed(code) then
-            log_err("[StoreMgr][sync_whole] flush {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
-            for obj in pairs(self.targets) do
-                self:flush(obj)
-            end
-            return false
+function Store:sync_whole()
+    local code, adata = cache_agent:flush(self.primary_id, self.sheet, self.wholes)
+    if qfailed(code) then
+        log_err("[StoreMgr][sync_whole] flush {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
+        for obj in pairs(self.targets) do
+            self:flush(obj)
         end
-        self.wholes = nil
-        return true, SUCCESS
-    end)
+        return false
+    end
+    self.wholes = nil
+    return true, SUCCESS
 end
 
 return Store

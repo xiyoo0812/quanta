@@ -55,6 +55,7 @@ function CacheMgr:__init()
     -- 事件hook
     event_mgr:register_hook(self, "rpc_cache_load", "on_cache_hook")
     event_mgr:register_hook(self, "rpc_cache_copy", "on_cache_hook")
+    event_mgr:register_hook(self, "rpc_cache_flush", "on_cache_hook")
     event_mgr:register_hook(self, "rpc_cache_update", "on_cache_hook")
     event_mgr:register_hook(self, "rpc_cache_delete", "on_cache_hook")
     event_mgr:register_hook(self, "rpc_cache_signed", "on_cache_hook")
@@ -95,8 +96,10 @@ end
 --RPC hook
 function CacheMgr:on_cache_hook(rpc, hook, primary_id)
     hook:register(function()
+        log_debug("[CacheMgr][on_cache_hook2] rpc={}, primary={}", rpc, primary_id)
         thread_mgr:unlock(primary_id)
     end)
+    log_debug("[CacheMgr][on_cache_hook1] rpc={}, primary={}", rpc, primary_id)
     thread_mgr:lock(primary_id, true)
 end
 

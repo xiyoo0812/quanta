@@ -57,9 +57,14 @@ function Scheduler:startup(name, entry)
     return ok
 end
 
+--注入线程
+function Scheduler:append(name, file)
+    wcall(name, 0, FLAG_REQ, "master", "on_append", file)
+end
+
 --访问其他线程任务
 function Scheduler:broadcast(rpc, ...)
-    wbroadcast(0, FLAG_REQ, "master", rpc, ...)
+    wbroadcast("", 0, FLAG_REQ, "master", rpc, ...)
 end
 
 --访问其他线程任务

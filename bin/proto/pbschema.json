@@ -283,6 +283,48 @@
                                 ]
                             },
                             "alias": "NID_LOGIN_ROLE_KICKOUT_NTF"
+                        },
+                        {
+                            "name": "NID_ENTITY_ENTER_SCENE_NTF",
+                            "full_name": "ncmd_cs.NID_ENTITY_ENTER_SCENE_NTF",
+                            "number": 12101,
+                            "extend": {
+                                "desc": [
+                                    "实体系统&12101-12150",
+                                    "实体进入场景通知"
+                                ]
+                            },
+                            "alias": "NID_ENTITY_ENTER_SCENE_NTF"
+                        },
+                        {
+                            "name": "NID_ENTITY_LEAVE_SCENE_NTF",
+                            "full_name": "ncmd_cs.NID_ENTITY_LEAVE_SCENE_NTF",
+                            "number": 12102,
+                            "extend": {
+                                "desc": [
+                                    "实体离开场景通知"
+                                ]
+                            },
+                            "alias": "NID_ENTITY_LEAVE_SCENE_NTF"
+                        },
+                        {
+                            "name": "NID_UTILITY_GM_COMMAND_REQ",
+                            "full_name": "ncmd_cs.NID_UTILITY_GM_COMMAND_REQ",
+                            "number": 11001,
+                            "extend": {
+                                "desc": [
+                                    "杂项&11001-11050",
+                                    "GM命令"
+                                ]
+                            },
+                            "alias": "NID_UTILITY_GM_COMMAND_REQ"
+                        },
+                        {
+                            "name": "NID_UTILITY_GM_COMMAND_RES",
+                            "full_name": "ncmd_cs.NID_UTILITY_GM_COMMAND_RES",
+                            "number": 11002,
+                            "extend": {},
+                            "alias": "NID_UTILITY_GM_COMMAND_RES"
                         }
                     ]
                 }
@@ -961,6 +1003,20 @@
                                 ]
                             },
                             "alias": "token"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "role_id",
+                            "full_name": "ncmd_cs.login_role_choose_res.role_id",
+                            "number": 6,
+                            "extend": {
+                                "desc": [
+                                    "role_id"
+                                ]
+                            },
+                            "alias": "role_id"
                         }
                     ]
                 },
@@ -1323,6 +1379,170 @@
                             "alias": "reason"
                         }
                     ]
+                },
+                {
+                    "name": "entity_enter_scene_ntf",
+                    "full_name": "ncmd_cs.entity_enter_scene_ntf",
+                    "extend": {
+                        "desc": [
+                            "NID_ENTITY_ENTER_SCENE_NTF"
+                        ]
+                    },
+                    "alias": "entity_enter_scene_ntf",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "id",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "实体id"
+                                ]
+                            },
+                            "alias": "id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "scene_id",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.scene_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "场景实例id"
+                                ]
+                            },
+                            "alias": "scene_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "type",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.type",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "实体类型"
+                                ]
+                            },
+                            "alias": "type"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "map_id",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.map_id",
+                            "number": 4,
+                            "extend": {
+                                "desc": [
+                                    "场景id"
+                                ]
+                            },
+                            "alias": "map_id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_INT32",
+                            "type_name": "int32",
+                            "name": "pos_x",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.pos_x",
+                            "number": 5,
+                            "extend": {
+                                "desc": [
+                                    "pos_x"
+                                ]
+                            },
+                            "alias": "pos_x"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_INT32",
+                            "type_name": "int32",
+                            "name": "pos_y",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.pos_y",
+                            "number": 6,
+                            "extend": {
+                                "desc": [
+                                    "pos_y"
+                                ]
+                            },
+                            "alias": "pos_y"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_INT32",
+                            "type_name": "int32",
+                            "name": "pos_z",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.pos_z",
+                            "number": 7,
+                            "extend": {
+                                "desc": [
+                                    "pos_z"
+                                ]
+                            },
+                            "alias": "pos_z"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_INT32",
+                            "type_name": "int32",
+                            "name": "dir_y",
+                            "full_name": "ncmd_cs.entity_enter_scene_ntf.dir_y",
+                            "number": 8,
+                            "extend": {
+                                "desc": [
+                                    "dir_y"
+                                ]
+                            },
+                            "alias": "dir_y"
+                        }
+                    ]
+                },
+                {
+                    "name": "entity_leave_scene_ntf",
+                    "full_name": "ncmd_cs.entity_leave_scene_ntf",
+                    "extend": {
+                        "desc": [
+                            "NID_ENTITY_LEAVE_SCENE_NTF"
+                        ]
+                    },
+                    "alias": "entity_leave_scene_ntf",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "id",
+                            "full_name": "ncmd_cs.entity_leave_scene_ntf.id",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "实体id"
+                                ]
+                            },
+                            "alias": "id"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT64",
+                            "type_name": "uint64",
+                            "name": "scene_id",
+                            "full_name": "ncmd_cs.entity_leave_scene_ntf.scene_id",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "场景实例id"
+                                ]
+                            },
+                            "alias": "scene_id"
+                        }
+                    ]
                 }
             ]
         },
@@ -1656,6 +1876,72 @@
                             "alias": "time"
                         }
                     ]
+                },
+                {
+                    "name": "utility_gm_command_req",
+                    "full_name": "ncmd_cs.utility_gm_command_req",
+                    "extend": {
+                        "desc": [
+                            "NID_UTILITY_GM_COMMAND_REQ"
+                        ]
+                    },
+                    "alias": "utility_gm_command_req",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "command",
+                            "full_name": "ncmd_cs.utility_gm_command_req.command",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "指令"
+                                ]
+                            },
+                            "alias": "command"
+                        }
+                    ]
+                },
+                {
+                    "name": "utility_gm_command_res",
+                    "full_name": "ncmd_cs.utility_gm_command_res",
+                    "extend": {
+                        "desc": [
+                            "NID_UTILITY_GM_COMMAND_RES"
+                        ]
+                    },
+                    "alias": "utility_gm_command_res",
+                    "fields": [
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.utility_gm_command_res.error_code",
+                            "number": 1,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_STRING",
+                            "type_name": "string",
+                            "name": "error_msg",
+                            "full_name": "ncmd_cs.utility_gm_command_res.error_msg",
+                            "number": 2,
+                            "extend": {
+                                "desc": [
+                                    "错误信息"
+                                ]
+                            },
+                            "alias": "error_msg"
+                        }
+                    ]
                 }
             ]
         }
@@ -1687,6 +1973,14 @@
             ]
         },
         "message_idxs": {
+            "ncmd_cs.entity_enter_scene_ntf": [
+                2,
+                21
+            ],
+            "ncmd_cs.entity_leave_scene_ntf": [
+                2,
+                22
+            ],
             "ncmd_cs.heartbeat_req": [
                 4,
                 0
@@ -1778,6 +2072,14 @@
             "ncmd_cs.rolemodel": [
                 2,
                 7
+            ],
+            "ncmd_cs.utility_gm_command_req": [
+                4,
+                2
+            ],
+            "ncmd_cs.utility_gm_command_res": [
+                4,
+                3
             ]
         }
     }

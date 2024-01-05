@@ -1,3 +1,5 @@
+--accord_dao.lua
+import("store/mongo_mgr.lua")
 
 local log_debug     = logger.debug
 local mrandom       = qmath.random
@@ -33,7 +35,7 @@ end
 -- 更新数据
 function AccordDao:update(document, data)
     local udata = { ["$set"] = data }
-    local code = mongo_mgr:update(1, mrandom(), document, udata, { id = data.id })
+    local code = mongo_mgr:update(mrandom(), document, udata, { id = data.id })
     if code ~= SUCCESS then
         log_debug("[AccordDao][update] document:{} code:{}", document, code)
         return false
@@ -43,7 +45,7 @@ end
 
 -- 删除数据
 function AccordDao:delete(document, id)
-    local code = mongo_mgr:delete(1, mrandom(), document, {id=id})
+    local code = mongo_mgr:delete(mrandom(), document, {id=id})
     if code ~= SUCCESS then
         log_debug("[AccordDao][delete] document:{} code:{}", document, code)
         return false

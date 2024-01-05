@@ -631,7 +631,7 @@ return [[
                         }
 
                         if (append || $scope.topCheckbox.all) {
-                            $scope.messages += "\n\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "]服务器通知:\n" + FormatUtils.prettyFormat(data)
+                            $scope.messages += "\n\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "]服务器通知:\n" + FormatUtils.prettyFormat(data.msg)
                             document.getElementById('jsonShow').innerHTML = $scope.messages
                         }
 
@@ -742,11 +742,6 @@ return [[
             for (var key in caseGroupSort) {
                 var group = caseGroupSort[key]
                 $scope.caseGroupSort.push(group.name)
-            }
-            //添加默认协议分组
-            for (var i=0; i<$scope.accordGroupSort.length; i++) {
-                var item = $scope.accordGroupSort[i]
-                $scope.caseGroupSort.push(item.name)
             }
         }
         //保存分组

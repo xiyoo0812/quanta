@@ -4,7 +4,6 @@
 
 namespace lcodec {
 
-    thread_local ketama thread_ketama;
     thread_local luakit::luabuf thread_buff;
 
     static codec_base* rds_codec(codec_base* codec) {
@@ -32,19 +31,6 @@ namespace lcodec {
         mysqlscodec* codec = new mysqlscodec(session_id);
         codec->set_buff(&thread_buff);
         return codec;
-    }
-
-    static bool ketama_insert(std::string name, uint32_t node_id) {
-        return thread_ketama.insert(name, node_id, 255);
-    }
-    static void ketama_remove(uint32_t node_id) {
-        thread_ketama.remove(node_id);
-    }
-    static uint32_t ketama_next(uint32_t node_id) {
-        return thread_ketama.next(node_id);
-    }
-    static std::map<uint32_t, uint32_t> ketama_map() {
-        return thread_ketama.virtual_map;
     }
     
     static bitarray* lbarray(lua_State* L, size_t nbits) {
@@ -75,10 +61,6 @@ namespace lcodec {
         llcodec.set_function("fnv_1_32", fnv_1_32_l);
         llcodec.set_function("fnv_1a_32", fnv_1a_32_l);
         llcodec.set_function("murmur3_32", murmur3_32_l);
-        llcodec.set_function("ketama_insert", ketama_insert);
-        llcodec.set_function("ketama_remove", ketama_remove);
-        llcodec.set_function("ketama_next", ketama_next);
-        llcodec.set_function("ketama_map", ketama_map);
         llcodec.set_function("mysqlcodec", mysql_codec);
         llcodec.set_function("rediscodec", rds_codec);
         llcodec.set_function("httpcodec", http_codec);

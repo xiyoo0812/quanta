@@ -97,20 +97,20 @@ end
 
 function LobbyServlet:rpc_player_login(player_id, open_id, token)
     log_debug("[LobbyServlet][rpc_player_login] open_id({}) player({}) token({})  login req!", open_id, player_id, token)
-    local account = player_mgr:load_account(open_id, player_id)
-    if not account then
-        return ROLE_TOKEN_ERR
-    end
     --验证token
     local ok, login_token = self:check_login_token(open_id, token)
     if not ok then
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, login_token)
         return ROLE_TOKEN_ERR
     end
-    local player = player_mgr:load_player(account, player_id)
+    local player = player_mgr:load_player(open_id, player_id)
     if not player then
         log_err("[LobbyServlet][rpc_player_login] load_player failed! player:{}", player_id)
         return FRAME_FAILED
+    end
+    local account = player:get_account()
+    if not account then
+        return ROLE_TOKEN_ERR
     end
     --通知登陆成功
     local new_token = mrandom()

@@ -176,7 +176,7 @@ end
 
 -- 删除实例
 function RedisDiscovery:del_instance(node_data)
-    self.redis:execute("HDEL", SERVICE_KEY, node_data)
+    self.redis:execute("HSET", SERVICE_KEY, node_data, 0)
     self.redis:execute("publish", CHANNEL_DN, node_data)
 end
 

@@ -101,6 +101,7 @@ message login_role_choose_res
     uint32 port                 = 3;        // gateway port
     uint32 lobby                = 4;        // lobby id
     uint32 token                = 5;        // 验证token
+    uint64 role_id              = 6;        // role_id
 }
 
 //NID_LOGIN_ROLE_DELETE_REQ
@@ -164,4 +165,24 @@ message login_role_reload_res
 message login_role_kickout_ntf
 {
     uint32 reason               = 1;        // 原因
+}
+
+//NID_ENTITY_ENTER_SCENE_NTF
+message entity_enter_scene_ntf
+{
+    uint64 id                   = 1;        // 实体id
+    uint64 scene_id             = 2;        // 场景实例id
+    uint32 type                 = 3;        // 实体类型
+    uint32 map_id               = 4;        // 场景id
+    int32 pos_x                 = 5;        // pos_x
+    int32 pos_y                 = 6;        // pos_y
+    int32 pos_z                 = 7;        // pos_z
+    int32 dir_y                 = 8;        // dir_y
+}
+
+//NID_ENTITY_LEAVE_SCENE_NTF
+message entity_leave_scene_ntf
+{
+    uint64 id                   = 1;        // 实体id
+    uint64 scene_id             = 2;        // 场景实例id
 }

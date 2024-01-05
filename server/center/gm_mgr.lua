@@ -279,8 +279,11 @@ end
 
 --local command
 function GM_Mgr:exec_local_cmd(service_id, cmd_name, ...)
-    event_mgr:notify_trigger(cmd_name, ...)
-    return { code = 0, msg = "success" }
+    local ok, code, res = tunpack(event_mgr:notify_listener(cmd_name, ...))
+    if not ok then
+        return { code = code, msg = "fail" }
+    end
+    return { code = 0, msg = "success", res=res }
 end
 
 --兼容在线和离线的玩家指令

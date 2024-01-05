@@ -29,7 +29,7 @@ function Account:create(token, device_id, params)
     self.device_id = device_id
     self.create_time = quanta.now
     self.user_id = guid_new(quanta.service, quanta.index)
-    self:flush_account_db()
+    self:flush_account_db(true)
     return true
 end
 

@@ -11,10 +11,13 @@ local makechan      = quanta.make_channel
 local event_mgr     = quanta.get("event_mgr")
 local mongo_agent   = quanta.get("mongo_agent")
 local redis_agent   = quanta.get("redis_agent")
+
+--[[
 local protobuf_mgr  = quanta.get("protobuf_mgr")
+local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
+]]
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
 
 local Account       = import("login/account.lua")
 
@@ -70,12 +73,15 @@ function LoginDao:check_player(user_id, name)
         end
         return check_ok, code
     end)
+    --临时屏蔽同名
+    --[[
     channel:push(function()
         if self:check_name_exist(name) then
             return false, NAME_EXIST
         end
         return true, SUCCESS
     end)
+    ]]
     channel:push(function()
         return self:get_autoinc_id(user_id)
     end)

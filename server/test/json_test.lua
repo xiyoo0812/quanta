@@ -1,14 +1,10 @@
 --json_test.lua
-local cjson = require("lcjson")
 
-local ltime         = timer.time
 local jencode       = json.encode
 local jdecode       = json.decode
 local jpretty       = json.pretty
 local bencode       = bson.encode
 local bdecode       = bson.decode
-local cencode       = cjson.encode
-local cdecode       = cjson.decode
 local log_debug     = logger.debug
 local new_guid      = codec.guid_new
 local lencode       = luakit.encode
@@ -83,43 +79,3 @@ local aaa1 = bencode(test)
 local bbb1 = bdecode(aaa1)
 log_debug("tt23:{}", bbb1, #aaa1)
 
-local tt1 = ltime()
-for i = 1, 100000 do
-    jencode(test)
-end
-local tt2 = ltime()
-for i = 1, 100000 do
-    cencode(test)
-end
-local tt3 = ltime()
-for i = 1, 100000 do
-    bencode(test)
-end
-local tt4 = ltime()
-for i = 1, 100000 do
-    lencode(test)
-end
-
-local tt5 = ltime()
-for i = 1, 100000 do
-    jdecode(a)
-end
-local tt6 = ltime()
-for i = 1, 100000 do
-    cdecode(a)
-end
-local tt7 = ltime()
-for i = 1, 100000 do
-    local x = bdecode(aaa1)
-    if i == 10000 then
-        log_debug("tt24:{}", x)
-    end
-end
-local tt8 = ltime()
-for i = 1, 100000 do
-    ldecode(aaa)
-end
-local tt9 = ltime()
-
-log_debug("tt1:{}, tt2:{}, tt3:{}, tt4:{}", tt2 - tt1, tt3 - tt2, tt4 - tt3, tt5 - tt4)
-log_debug("tt5:{}, tt6:{}, tt7:{}, tt8:{}", tt6 - tt5, tt7 - tt6, tt8 - tt7, tt9 - tt8)

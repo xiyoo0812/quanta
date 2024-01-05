@@ -1,8 +1,16 @@
 -- accord_mgr.lua
+import("robot/robot_mgr.lua")
+import("robot/accord/accord_dao.lua")
+
 local log_warn      = logger.warn
 local log_debug     = logger.debug
-local jdecode       = json.decode
 local json_pretty   = json.pretty
+local tunpack       = table.unpack
+local ssub          = string.sub
+local sfind         = string.find
+local supper        = string.upper
+local ssplit        = qstring.split
+local pb_enum_id    = protobuf.enum
 
 local HttpServer    = import("network/http_server.lua")
 
@@ -10,7 +18,6 @@ local robot_mgr     = quanta.get("robot_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local accord_dao    = quanta.get("accord_dao")
-local msg_mgr       = quanta.get("msg_mgr")
 
 -- 时间单位
 local SECOND_3_MS   = quanta.enum("PeriodTime", "SECOND_3_MS")
@@ -18,8 +25,9 @@ local SECOND_3_MS   = quanta.enum("PeriodTime", "SECOND_3_MS")
 local AccordMgr = singleton()
 local prop = property(AccordMgr)
 prop:reader("http_server", nil)
-prop:reader("accord_list", {}) -- 协议列表(添加的数据)
-prop:reader("case_group", {})  -- 用例分组
+prop:reader("accord_list", {})  -- 协议列表(添加的数据)
+prop:reader("case_group", {})   -- 用例分组
+prop:reader("accord_group", {}) -- 协议分组(解析proto)
 prop:reader("load_db_status", false)
 prop:reader("srvlist_api", environ.get("QUANTA_SRVLIST_API")) -- 服务器列表api
 
@@ -46,10 +54,42 @@ function AccordMgr:__init()
 
     service.make_node(server:get_port())
     self.http_server = server
+    --初始化
+    self:on_second5()
+    self:init_accord()
+    self:load_db_data()
     -- 定时更新
     update_mgr:attach_second5(self)
-    self:on_second5()
-    self:load_db_data()
+end
+
+-- 初始化协议数据
+function AccordMgr:init_accord()
+    for full_name, proto_name, type in protobuf.types() do
+        if type == "message" then
+            local package_name = tunpack(ssplit(full_name, "."))
+            local enum_type = package_name .. ".NCmdId"
+            local msg_name = "NID_" .. supper(proto_name)
+            local msg_id = pb_enum_id(enum_type, msg_name)
+            if msg_id then
+                local fields = {}
+                for name, _, typ in protobuf.fields(full_name) do
+                    fields[name] = (typ == "string") and "xxx" or 0
+                end
+                local group = ssub(msg_name, 1, sfind(msg_name, "_", sfind(msg_name, "_") + 1) - 1)
+                if group then
+                    if not self.accord_group[group] then
+                        self.accord_group[group] = {}
+                    end
+                    self.accord_group[group][msg_name] = {
+                        msg_id = msg_id,
+                        name = msg_name,
+                        fields = fields,
+                        type = ssub(proto_name, -3)
+                    }
+                end
+            end
+        end
+    end
 end
 
 -- 加载db数据
@@ -91,7 +131,6 @@ function AccordMgr:load_db_data()
         else
             log_warn("[AccordMgr][load_db_data] accord_conf fail ok:{}", cf_ok)
         end
-
         if cgp_ok and cf_ok then
             self.load_db_status = true
         end
@@ -101,7 +140,7 @@ end
 
 -- 加载资源
 function AccordMgr:load_html()
-    self.accord_html = import("../server/robot/accord/index.lua")
+    self.accord_html = import("robot/accord/index.lua")
 end
 
 -- 定时更新
@@ -141,13 +180,22 @@ end
 -- 拉取日志
 function AccordMgr:on_message(url, body, params)
     -- log_debug("[AccordMgr][on_message] open_id: {}", params.open_id)
-    return robot_mgr:get_accord_message(params.open_id)
+    local robot = robot_mgr:get_robot(params.open_id)
+    if robot then
+        return { code = 0, msg = robot:get_messages() }
+    end
+    return { code = -1, msg = "robot not exist" }
 end
 
 -- monitor拉取
 function AccordMgr:on_create(url, body, params)
     log_debug("[AccordMgr][on_create] params:{}", params)
-    return robot_mgr:create_robot(body.ip, body.port, body.open_id, body.passwd)
+    local robot = robot_mgr:create_robot(body.ip, body.port, body.open_id, body.passwd)
+    --绑定消息队列
+    robot:bind_message_eueue()
+    --执行登陆
+    local ok, res = robot:login_server()
+    return { code = ok and 0 or -1, msg = res }
 end
 
 -- 后台GM调用，字符串格式
@@ -161,7 +209,7 @@ function AccordMgr:on_accord_group(url, body)
     log_debug("[AccordMgr][on_accord_group] body:{}", body)
     return {
         code = 0,
-        accord_group = msg_mgr.accord_group
+        accord_group = self.accord_group
     }, {
         ["Access-Control-Allow-Origin"] = "*"
     }
@@ -269,15 +317,13 @@ end
 -- 编辑协议选项
 function AccordMgr:on_proto_edit(url, body)
     log_debug("[AccordMgr][on_proto_edit] body:{}", body)
-if body and body.data then
+    if body and body.data then
         local data = body.data
         local accord = self.accord_list[data.id]
         if not accord then
             return { code = -1, msg = "不存在的协议配置,请重新创建!" }
         end
         local proto = data.data
-        -- 解析json
-        proto.args = jdecode(proto.args);
         -- 格式json字符串
         proto.args = json_pretty(proto.args)
         accord.protocols[tonumber(proto.id)] = proto
@@ -304,16 +350,21 @@ end
 -- 后台GM调用，table格式
 function AccordMgr:on_run(url, body)
     local data = body.data
-    if body.cmd_id ~= 1001 then
-        data = jdecode(body.data)
+    local cmd_id, open_id = body.cmd_id, body.open_id
+    if cmd_id ~= 1001 then
         log_debug("[AccordMgr][on_run] body:{}", body)
     end
-    return robot_mgr:run_accord_message(body.open_id, body.cmd_id, data)
+    local robot = robot_mgr:get_robot(open_id)
+    if robot then
+        local ok, res = robot:call(cmd_id, data)
+        return { code = ok and 0 or -1, msg = res, req_open_id=open_id, req_cmd_id=cmd_id }
+    end
+    return { code = -1, msg = "robot not exist", req_open_id=open_id, req_cmd_id=cmd_id }
 end
 
 -- 获取配置
 function AccordMgr:on_get_config(url, body)
-    return { code = 0, srvlist_api=self.srvlist_api}
+    return { code = 0, srvlist_api=self.srvlist_api }
 end
 
 quanta.accord_mgr = AccordMgr()

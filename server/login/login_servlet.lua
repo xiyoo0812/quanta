@@ -140,7 +140,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, codatas, session_id)
     end
     --创建角色
-    local role_id = codatas[3]
+    local role_id = codatas[2]
     if not login_dao:create_player(account:get_open_id(), role_id, body) then
         log_err("[LoginServlet][on_role_create_req] user_id({}) create role failed!", user_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
@@ -169,7 +169,7 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) role nit exist!", user_id, role_id)
         return client_mgr:callback_errcode(session, cmd_id, ROLE_NOT_EXIST, session_id)
     end
-    local fok, gateway = self:find_gateway(account)
+    local fok, gateway = self:find_gateway(account, role_id)
     log_debug("[LoginServlet][on_role_choose_req] choose gateway({})!", gateway)
     if not fok then
         log_err("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) server uphold!", user_id, role_id)
@@ -281,7 +281,7 @@ function LoginServlet:on_service_ready(id, name, info)
     gate_region[#gate_region + 1] = info
 end
 
-function LoginServlet:find_gateway(account)
+function LoginServlet:find_gateway(account, role_id)
     --分配lobby
     local lobby = account:get_lobby()
     local lobby_info = self.lobbys[lobby]
@@ -301,6 +301,7 @@ function LoginServlet:find_gateway(account)
     local gateway = {
         port = port,
         lobby = lobby,
+        role_id = role_id,
         token = mrandom(),
         addrs = self:parse_addr(ip),
         error_code = FRAME_SUCCESS

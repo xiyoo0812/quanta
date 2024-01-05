@@ -14,27 +14,6 @@ local decode        = luakit.decode
 local serialize     = luakit.serialize
 local unserialize   = luakit.unserialize
 
---ketama
---[[
-codec.ketama_insert("test1", quanta.id)
-codec.ketama_insert("test2", quanta.id + 1)
-codec.ketama_insert("test3", quanta.id + 2)
-codec.ketama_insert("test4", quanta.id + 3)
-codec.ketama_insert("test5", quanta.id + 4)
-codec.ketama_insert("test6", quanta.id + 5)
-codec.ketama_insert("test7", quanta.id + 6)
-codec.ketama_insert("test8", quanta.id + 7)
-codec.ketama_insert("test9", quanta.id + 8)
-codec.ketama_insert("test10", quanta.id + 9)
-
-local map = codec.ketama_map()
-local qmap = qtable.mapsort(map)
-for _, value in pairs(qmap) do
-    log_debug("ketama_map: {}, {}", value[1], value[2])
-end
-log_debug("ketama_insert number: {}", qtable.size(map))
-]]
-
 --hash
 ----------------------------------------------------------------
 local hash_n1 = hash_code(12345)

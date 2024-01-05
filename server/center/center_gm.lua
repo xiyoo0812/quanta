@@ -57,7 +57,7 @@ function CenterGM:register()
     gm_mgr:rpc_register_command(cmd_list)
     -- 初始化监听事件
     for _, cmd in ipairs(cmd_list) do
-        event_mgr:add_trigger(self, cmd.name)
+        event_mgr:add_listener(self, cmd.name)
     end
 end
 

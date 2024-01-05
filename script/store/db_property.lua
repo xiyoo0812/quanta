@@ -17,8 +17,8 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, storekey)
         self["on_db_" .. sheet .. "_load"](self, data)
         store:bind_target(self)
     end
-    class["flush_" .. sheet .. "_db"] = function(self)
-        self[storekey]:flush(self)
+    class["flush_" .. sheet .. "_db"] = function(self, timely)
+        self[storekey]:flush(self, timely)
     end
     class["is_" .. sheet .. "_loaded"] = function(self)
         return self["__" .. sheet .. "_loaded"]

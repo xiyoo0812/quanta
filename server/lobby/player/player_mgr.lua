@@ -56,7 +56,7 @@ function PlayerMgr:kick_out(player, player_id)
 end
 
 --创建玩家
-function PlayerMgr:load_player(account, player_id)
+function PlayerMgr:load_player(open_id, player_id)
     local player = self:get_entity(player_id)
     if not player then
         local Player = import("lobby/player/player.lua")
@@ -69,9 +69,10 @@ function PlayerMgr:load_player(account, player_id)
         return player
     end
     --初始化
-    player:set_account(account)
-    player:set_open_id(account.open_id)
+    local account = self:load_account(open_id, player_id)
     player:set_user_id(account.user_id)
+    player:set_account(account)
+    player:set_open_id(open_id)
     if player:setup() then
         return player
     end

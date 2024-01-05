@@ -465,10 +465,7 @@ var DataUtils = {
                 // 设置缩进为2个空格
                 str = JSON.stringify(str, null, 2);
             }
-            str = str
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+            str = str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
                 var cls = 'number';
                 if (/^"/.test(match)) {
@@ -488,6 +485,7 @@ var DataUtils = {
             alert("异常信息:" + e);
         }
     },
+    
     formatJson:function(text){
         var result = text.replace(/\\n/g, '\n').replace(/\\/g, '').replace(/^\"|\"$/g, '');
         return result
@@ -793,7 +791,7 @@ var DataUtils = {
                         }
 
                         if (append || $scope.topCheckbox.all) {
-                            $scope.messages += "\n\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "]服务器通知:\n" + FormatUtils.prettyFormat(data)
+                            $scope.messages += "\n\n[" + new Date().Format("yyyy-MM-dd hh:mm:ss S") + "]服务器通知:\n" + FormatUtils.prettyFormat(data.msg)
                             document.getElementById('jsonShow').innerHTML = $scope.messages
                         }
 
@@ -904,11 +902,6 @@ var DataUtils = {
             for (var key in caseGroupSort) {
                 var group = caseGroupSort[key]
                 $scope.caseGroupSort.push(group.name)
-            }
-            //添加默认协议分组
-            for (var i=0; i<$scope.accordGroupSort.length; i++) {
-                var item = $scope.accordGroupSort[i]
-                $scope.caseGroupSort.push(item.name)
             }
         }
         //保存分组
