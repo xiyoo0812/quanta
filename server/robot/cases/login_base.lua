@@ -83,7 +83,7 @@ return {
             cmd_id = "NID_ENTITY_ENTER_SCENE_NTF",
             cond = "res.id==robot.player_id",
             outputs = {
-                login_success = { type = "attr", value = true },
+                login_success = { type = "const", value = true },
             },
         },
     }

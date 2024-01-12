@@ -35,7 +35,7 @@ local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
+local SLOW_MS       = quanta.enum("PeriodTime", "SLOW_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
@@ -299,7 +299,7 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
     local _<close> = qdefer(function()
         sock.sessions[session_id] = nil
         local utime = lclock_ms() - tick
-        if utime > FAST_MS then
+        if utime > SLOW_MS then
             log_warn("[MongoDB][op_msg] cmd ({}:{}) execute so big {}!", cmd, session_id, utime)
         end
     end)

@@ -153,10 +153,12 @@ function LobbyServlet:rpc_player_reload(player_id, token)
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, old_token)
         return ROLE_TOKEN_ERR
     end
-    player:relive()
     local new_token = mrandom()
     account:set_reload_token(new_token)
-    event_mgr:notify_trigger("on_reload_success", player_id, player)
+    event_mgr:fire_frame(function()
+        player:relive()
+        event_mgr:notify_trigger("on_reload_success", player_id, player)
+    end)
     log_debug("[LobbyServlet][rpc_player_reload] player({}) reload success!", player_id)
     return FRAME_SUCCESS, new_token
 end

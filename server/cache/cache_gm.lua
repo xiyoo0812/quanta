@@ -72,9 +72,9 @@ function CacheGM:register()
             gm_type = HASHKEY,
             group = "数据",
             desc = "删除角色",
-            args = "tplayer_id|integer",
-            example = "signed 1130045456",
-            tip = "示例中，1130045456为目标玩家ID"
+            args = "player_id|integer",
+            example = "signed 1001021787",
+            tip = "示例中, 1001021787为角色ID"
         },
 
     }
@@ -88,17 +88,27 @@ function CacheGM:register()
 end
 
 --删除角色
-function CacheGM:signed(player_id)
-    local code, doc = cache_mgr:load_document("player", player_id)
+function CacheGM:signed(role_id)
+    --查询open_id
+    local p_code, player_doc = cache_mgr:load_document("player", role_id)
+    if qfailed(p_code) then
+        log_err("[CacheGM][signed] load_document failed! role_id={}", role_id)
+        return "failed"
+    end
+
+    local open_id = player_doc:get_wholes().open_id
+    if not open_id then
+        return "failed. cant find data"
+    end
+    log_info("[CacheGM][signed] unroll role_id:{} open_id:{}", role_id, open_id)
+    local code, doc = cache_mgr:load_document("account", open_id)
     if qfailed(code) then
-        log_err("[CacheGM][signed] load_document failed! player_id={}", player_id)
+        log_err("[CacheGM][signed] load_document failed! open_id={}", open_id)
         return "failed"
     end
     local wholes = doc:get_wholes()
     wholes.roles = {}
     doc:update_wholes(wholes)
-    cache_mgr:rpc_cache_signed(player_id, "player")
-    cache_mgr:rpc_cache_delete(player_id, "player_mirror")
     return "success"
 end
 

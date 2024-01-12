@@ -20,6 +20,7 @@ local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local Account       = import("login/account.lua")
+local AC_LIMIT_KEY  = "account_limmit"
 
 local LoginDao = singleton()
 
@@ -94,6 +95,21 @@ function LoginDao:load_account(open_id)
         return
     end
     return account
+end
+
+--账号数量
+function LoginDao:account_count()
+    local ok, code, cur_num = mongo_agent:count({ "account" })
+    if qfailed(code, ok) then
+        log_err("[LoginDao][account_limit] load account num failed! code: {}, res: {}", code, cur_num)
+        return false
+    end
+    return true, cur_num
+end
+
+--加载账号限制
+function LoginDao:load_ac_limit()
+    return redis_agent:load_msic(AC_LIMIT_KEY)
 end
 
 quanta.login_dao = LoginDao()

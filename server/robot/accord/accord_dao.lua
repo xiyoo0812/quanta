@@ -1,12 +1,11 @@
---accord_dao.lua
-import("store/mongo_mgr.lua")
 
-local log_debug     = logger.debug
-local mrandom       = qmath.random
+local log_err       = logger.err
+local jdecode       = json.decode
+local sformat       = string.format
 
-local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local ACCORD_URL    = environ.get("QUANTA_ACCORD_URL")
 
-local mongo_mgr     = quanta.get("mongo_mgr")
+local http_client   = quanta.get("http_client")
 
 local AccordDao = singleton()
 function AccordDao:__init()
@@ -14,43 +13,61 @@ end
 
 -- 加载数据
 function AccordDao:load_data(document)
-    local code, data = mongo_mgr:find(mrandom(), document, {})
-    if code ~= SUCCESS then
-        log_debug("[AccordDao][load_data] document:{} code:{}", document, code)
-        return false, code
+    local url = sformat("%s/accord_data/load_data", ACCORD_URL)
+    local ok, status, body = http_client:call_get(url, { tab = document })
+    if not ok or status ~= 200 then
+        log_err("[AccordDao][load_data] url:{}", url)
+        return false, nil
     end
-    return true, data
+    local data = jdecode(body)
+    if type(data) == "table" then
+        return ok, data.data or {}
+    end
+    return ok, { }
 end
 
 -- 插入数据
 function AccordDao:insert(document, data)
-    local code = mongo_mgr:insert(mrandom(), document, data)
-    if code ~= SUCCESS then
-        log_debug("[AccordDao][insert] document:{} code:{}", document, code)
+    local headers = {
+        ["Content-type"] = "application/json"
+    }
+    local request = {
+        tab = document,
+        data = data
+    }
+    local url = sformat("%s/accord_data/insert", ACCORD_URL)
+    local ok, status = http_client:call_post(url, request, headers)
+    if not ok or status ~= 200 then
         return false
     end
-    return true
+    return ok
 end
 
 -- 更新数据
 function AccordDao:update(document, data)
-    local udata = { ["$set"] = data }
-    local code = mongo_mgr:update(mrandom(), document, udata, { id = data.id })
-    if code ~= SUCCESS then
-        log_debug("[AccordDao][update] document:{} code:{}", document, code)
-        return false
-    end
-    return true
+    local headers = {
+        ["Content-type"] = "application/json"
+    }
+    local request = {
+        id = data.id,
+        tab = document,
+        data = data
+    }
+    request.data.id = nil
+    local url = sformat("%s/accord_data/update", ACCORD_URL)
+    local ok, status, _ = http_client:call_post(url, request, headers)
+    return ok and status == 200
 end
 
 -- 删除数据
 function AccordDao:delete(document, id)
-    local code = mongo_mgr:delete(mrandom(), document, {id=id})
-    if code ~= SUCCESS then
-        log_debug("[AccordDao][delete] document:{} code:{}", document, code)
-        return false
-    end
-    return true
+    local query = {
+        id = id,
+        tab = document
+    }
+    local url = sformat("%s/accord_data/delete", ACCORD_URL)
+    local ok, status, _ = http_client:call_get(url, query)
+    return ok and status == 200
 end
 
 quanta.accord_dao = AccordDao()

@@ -1,32 +1,48 @@
 --robot_worker.lua
 import("feature/worker.lua")
 import("robot/robot_mgr.lua")
+import("network/http_client.lua")
 
 local mceil         = math.ceil
 local qmax          = qmath.max
 local tinsert       = table.insert
 local sformat       = string.format
 local log_debug     = logger.debug
+local lnow          = timer.now
+local ltime         = timer.time
+local lclock_ms     = timer.clock_ms
 
 local timer_mgr     = quanta.get("timer_mgr")
 local robot_mgr     = quanta.get("robot_mgr")
 local event_mgr     = quanta.get("event_mgr")
+local http_client   = quanta.get("http_client")
+local protobuf_mgr  = quanta.get("protobuf_mgr")
+
+local ROBOT_ADDR    = environ.get("QUANTA_ROBOT_ADDR")
 
 --30ms 一个槽位
 local SLOT_TIME     = 30
 
 local RobotWorker = singleton()
 local prop = property(RobotWorker)
+prop:reader("review", {})
 prop:reader("watch_cmds", {})
-prop:reader("error_infos", {})
-prop:reader("failed_nums", {})
-prop:reader("success_nums", {})
 
 function RobotWorker:__init()
-    event_mgr:add_listener(self, "startup_robot_task")
+    --task监听
     event_mgr:add_listener(self, "stop_robot_task")
-    event_mgr:add_listener(self, "on_call_message")
+    event_mgr:add_listener(self, "startup_robot_task")
     event_mgr:add_listener(self, "on_watch_message")
+    --协议hook
+    event_mgr:add_trigger(self, "on_recv_message")
+    event_mgr:add_trigger(self, "on_error_message")
+    event_mgr:register_hook(self, "on_send_message", "on_message_hook")
+    --初始化参数
+    self.review.errors = {}
+    self.review.samples = {}
+    self.review.child = quanta.title
+    self.review.client = quanta.index
+    self.review.task_id = environ.get("QUANTA_TASK_ID")
 end
 
 -- 启动机器人任务
@@ -53,8 +69,9 @@ function RobotWorker:startup_robot_task(start_open_id, num, ip, port, start_time
     timer_mgr:loop(50, function()
         robot_mgr:update()
     end)
-    timer_mgr:loop(50, function()
-        robot_mgr:update()
+    --定时器汇报
+    timer_mgr:loop(5000, function()
+        self:revicw_task()
     end)
 end
 
@@ -64,30 +81,92 @@ function RobotWorker:stop_robot_task()
     robot_mgr:stop_robot()
 end
 
-
-function RobotWorker:on_watch_message(cmd_id)
+--观察消息
+function RobotWorker:on_watch_message(cmd_name)
+    local cmd_id = protobuf_mgr:msg_id(cmd_name)
+    log_debug("[RobotWorker][on_watch_message] watch cmd {}-{}", cmd_id, cmd_name)
     self.watch_cmds[cmd_id] = true
 end
 
---信息统计
-function RobotWorker:on_call_message(robot, cmd_id, ok, res)
-    if not self.watch_cmds[cmd_id] then
-        return
+--send hook
+function RobotWorker:on_message_hook(rpc, hook, cmd_id)
+    local now_ms, btime = ltime()
+    hook:register(function()
+        self:review_command(cmd_id, now_ms, lclock_ms() - btime)
+    end)
+end
+
+--发送汇报
+function RobotWorker:review_command(cmd_id, now_ms, diff_time)
+    local time = now_ms // 1000
+    local time_samples = self.review.samples[time]
+    if not time_samples then
+        time_samples = { sendn = 0, failn = 0, recvn = 0, sends = {}, recvs = {}}
+        self.review.samples[time] = time_samples
     end
-    --统计成功计数
-    if robot:check_callback(ok, res) then
-        local old_count = self.success_nums[cmd_id] or 0
-        self.success_nums[cmd_id] = old_count + 1
-        return
+    time_samples.sendn = time_samples.sendn + 1
+    time_samples.recvn = time_samples.recvn + 1
+    if self.watch_cmds[cmd_id] then
+        local cmdsample = time_samples.sends[cmd_id]
+        if not cmdsample then
+            time_samples.sends[cmd_id] = { sendn = 1, failn = 0, maxt = diff_time, allt = diff_time, mint = diff_time }
+            return
+        end
+        cmdsample.sendn = cmdsample.sendn + 1
+        cmdsample.allt = cmdsample.allt + diff_time
+        if diff_time > cmdsample.maxt then
+            cmdsample.maxt = diff_time
+        end
+        if diff_time < cmdsample.mint then
+            cmdsample.mint = diff_time
+        end
     end
-    --统计失败计数
-    local old_count = self.failed_nums[cmd_id] or 0
-    self.failed_nums[cmd_id] = old_count + 1
-    --统计错误信息
-    if not self.error_infos[cmd_id] then
-        self.error_infos[cmd_id] = {}
+end
+
+--接受统计
+function RobotWorker:on_recv_message(cmd_id)
+    local time = lnow()
+    local time_samples = self.review.samples[time]
+    if not time_samples then
+        time_samples = { sendn = 0, failn = 0, recvn = 0, sends = {}, recvs = {}}
+        self.review.samples[time] = time_samples
     end
-    tinsert(self.error_infos[cmd_id], {robot.open_id, robot.player_id, res})
+    time_samples.recvn = time_samples.recvn + 1
+    if self.watch_cmds[cmd_id] then
+        local old_cnt = time_samples.recvs[cmd_id] or 0
+        time_samples.recvs[cmd_id] = old_cnt + 1
+    end
+end
+
+--错误统计
+function RobotWorker:on_error_message(cmd_id, open_id, res)
+    local time = lnow()
+    local time_samples = self.review.samples[time]
+    if not time_samples then
+        time_samples = { sendn = 0, failn = 0, recvn = 0, sends = {}, recvs = {}}
+        self.review.samples[time] = time_samples
+    end
+    time_samples.failn = time_samples.failn + 1
+    if self.watch_cmds[cmd_id] then
+        local cmdsample = time_samples.sends[cmd_id]
+        if not cmdsample then
+            return
+        end
+        cmdsample.failn = cmdsample.failn + 1
+        if res then
+            if type(res) == "table" then
+                tinsert(self.review.errors, { open_id = open_id, cmd_id = cmd_id, code = res.error_code, time = time })
+            else
+                tinsert(self.review.errors, { open_id = open_id, cmd_id = cmd_id, err = res, time = time })
+            end
+        end
+    end
+end
+
+function RobotWorker:revicw_task()
+    http_client:call_post(ROBOT_ADDR,  self.review)
+    self.review.errors = {}
+    self.review.samples = {}
 end
 
 quanta.robot_worker = RobotWorker()

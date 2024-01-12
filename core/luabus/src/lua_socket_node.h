@@ -79,7 +79,7 @@ private:
     void on_call(router_header* header, slice* slice);
     void on_transfer(transfer_header* header, slice* slice);
     void on_forward_broadcast(router_header* header, size_t target_size);
-    void on_forward_error(router_header* header, slice* slice);
+    void on_forward_error(router_header* header);
 
     eproto_type m_type;
     codec_base* m_codec;

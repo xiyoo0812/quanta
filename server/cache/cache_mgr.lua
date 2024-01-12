@@ -48,7 +48,6 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "rpc_cache_flush")
     event_mgr:add_listener(self, "rpc_cache_update")
     event_mgr:add_listener(self, "rpc_cache_delete")
-    event_mgr:add_listener(self, "rpc_cache_signed")
     event_mgr:add_listener(self, "rpc_router_update")
     -- 事件监听
     event_mgr:add_listener(self, "on_cache_ready")
@@ -58,7 +57,6 @@ function CacheMgr:__init()
     event_mgr:register_hook(self, "rpc_cache_flush", "on_cache_hook")
     event_mgr:register_hook(self, "rpc_cache_update", "on_cache_hook")
     event_mgr:register_hook(self, "rpc_cache_delete", "on_cache_hook")
-    event_mgr:register_hook(self, "rpc_cache_signed", "on_cache_hook")
     event_mgr:register_hook(self, "rpc_router_update", "on_cache_hook")
     --counter
     self.counter = quanta.make_sampling("cache req")
@@ -96,10 +94,8 @@ end
 --RPC hook
 function CacheMgr:on_cache_hook(rpc, hook, primary_id)
     hook:register(function()
-        log_debug("[CacheMgr][on_cache_hook2] rpc={}, primary={}", rpc, primary_id)
         thread_mgr:unlock(primary_id)
     end)
-    log_debug("[CacheMgr][on_cache_hook1] rpc={}, primary={}", rpc, primary_id)
     thread_mgr:lock(primary_id, true)
 end
 
@@ -324,21 +320,6 @@ function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
         self:clear_document(coll_name, src_id)
     end
     return SUCCESS
-end
-
---标记注销
-function CacheMgr:rpc_cache_signed(primary_id, coll_name)
-    local field = "del_time"
-    local field_data = quanta.now
-    local ccode, doc = self:load_document(coll_name, primary_id)
-    if qfailed(ccode) then
-        log_err("[CacheMgr][rpc_cache_signed] load_document failed! coll_name={}, primary={}, field={}", coll_name, primary_id, field)
-        return ccode
-    end
-    log_debug("[CacheMgr][rpc_cache_signed] coll_name={}, primary={}, field={}, data:{}", coll_name, primary_id, field, field_data)
-    doc:update_field(field, field_data)
-    --强制落库
-    doc:update()
 end
 
 quanta.cache_mgr = CacheMgr()

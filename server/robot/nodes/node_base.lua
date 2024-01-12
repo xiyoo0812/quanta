@@ -65,7 +65,7 @@ function NodeBase:read_inputs(inputs)
     local values = {}
     for name, input in pairs(inputs or {}) do
         local value = self:read_input(input)
-        if not value then
+        if value == nil then
             log_warn("[NodeBase][read_inputs] name:{} avalue {} failed: {}", name, input.value, value)
             return
         end

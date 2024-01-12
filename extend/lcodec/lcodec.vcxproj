@@ -11,7 +11,6 @@
     <ClInclude Include="src\guid.h" />
     <ClInclude Include="src\hash.h" />
     <ClInclude Include="src\http.h" />
-    <ClInclude Include="src\ketama.h" />
     <ClInclude Include="src\lcodec.h" />
     <ClInclude Include="src\mysql.h" />
     <ClInclude Include="src\redis.h" />
@@ -50,7 +49,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\lua\lua;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>

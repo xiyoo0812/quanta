@@ -69,10 +69,17 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     end
     local account_params = {}
     local device_id = body.device_id
+    --加载账号信息
+    local account = login_dao:load_account(open_id)
+    if not account then
+        log_err("[LoginServlet][on_account_login_req] load account failed! open_id: {} token:{}", open_id, access_token)
+        return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
+    end
+
     if platform ~= PLATFORM_PASSWORD then
         --登录验证
         body.ip = session.ip
-        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, access_token, body, account_params)
+        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, access_token, body, account_params, account:is_newbee())
         local ok, code, sdk_open_id, sdk_device_id = tunpack(result)
         local login_failed, login_code = qfailed(code, ok)
         if login_failed then
@@ -84,12 +91,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
         open_id = sdk_open_id
         device_id = sdk_device_id
     end
-    --加载账号信息
-    local account = login_dao:load_account(open_id)
-    if not account then
-        log_err("[LoginServlet][on_account_login_req] load account failed! open_id: {} token:{}", open_id, access_token)
-        return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
-    end
+
     --创建账号
     if account:is_newbee() then
         if not account:create(access_token, device_id, account_params) then

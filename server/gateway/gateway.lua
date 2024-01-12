@@ -4,6 +4,7 @@ local log_info          = logger.info
 local log_warn          = logger.warn
 local log_debug         = logger.debug
 local qfailed           = quanta.failed
+local qdefer            = quanta.defer
 local sformat           = string.format
 local name2sid          = service.name2sid
 
@@ -14,14 +15,16 @@ local group_mgr         = quanta.get("group_mgr")
 local config_mgr        = quanta.get("config_mgr")
 local router_mgr        = quanta.get("router_mgr")
 local client_mgr        = quanta.get("client_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
 local GatePlayer     	= import("gateway/player.lua")
 
-local gatelog           = config_mgr:init_table("gatelog", "name")
+local filter            = config_mgr:init_table("filter", "name")
 
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_UPHOLD      = protobuf_mgr:error_code("FRAME_UPHOLD")
+local FRAME_TOOFAST     = protobuf_mgr:error_code("FRAME_TOOFAST")
 local SERVER_UPHOLD     = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 local DEVICE_REPLACE    = protobuf_mgr:error_code("KICK_DEVICE_REPLACE")
 local ROLE_IS_INLINE    = protobuf_mgr:error_code("LOGIN_ROLE_IS_INLINE")
@@ -35,6 +38,7 @@ prop:reader("counter", nil)         --计数器
 prop:reader("req_counter", nil)     --计数器
 prop:reader("ntf_counter", nil)     --计数器
 prop:reader("ignore_cmds", {})      --日志过滤
+prop:reader("reenter_cmds", {})     --重入过滤
 
 function Gateway:__init()
     -- 网络事件监听
@@ -60,7 +64,7 @@ function Gateway:__init()
     local domain = environ.get("QUANTA_DOMAIN_ADDR")
     service.make_node(nport, domain)
     --日志过滤
-    self:init_gatelog()
+    self:init_filter()
     --计数器
     self.counter = quanta.make_counter(sformat("gateway %s player", quanta.index))
     self.req_counter = quanta.make_sampling(sformat("gateway %s req", quanta.index))
@@ -81,18 +85,23 @@ function Gateway:on_service_close(id, name, info)
 end
 
 ---是否输出CMD消息的内容
-function Gateway:init_gatelog()
-    self:on_cfg_gatelog_changed()
-    event_mgr:add_trigger(self, "on_cfg_gatelog_changed")
+function Gateway:init_filter()
+    self:on_cfg_filter_changed()
+    event_mgr:add_trigger(self, "on_cfg_filter_changed")
 end
 
 ---日志忽略网络消息通知名
-function Gateway:on_cfg_gatelog_changed()
+function Gateway:on_cfg_filter_changed()
     self.ignore_cmds = {}
-    for cmd_name in gatelog:iterator() do
+    for cmd_name, conf in filter:iterator() do
         local cmd_id = protobuf_mgr:msg_id(cmd_name)
-        self.ignore_cmds[cmd_name] = true
-        self.ignore_cmds[cmd_id] = true
+        if conf.log then
+            self.ignore_cmds[cmd_id] = true
+            self.ignore_cmds[cmd_name] = true
+        end
+        if conf.proto then
+            self.reenter_cmds[cmd_id] = true
+        end
     end
 end
 
@@ -300,6 +309,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
     if session.player_id then
         return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
     end
+    online:login_service(player_id, "gateway", quanta.id)
     local code, new_token = self:call_lobby(lobby, "rpc_player_reload", player_id, token)
     if qfailed(code) then
         log_err("[Gateway][on_role_reload_req] call rpc_player_reload code {} failed: {}", code, new_token)
@@ -309,7 +319,6 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
         session.player_id = player_id
         self:add_player(player, player_id, lobby, new_token)
     end
-    online:login_service(player_id, "gateway", quanta.id)
     log_info("[Gateway][on_role_reload_req] user:{} player:{} new_token:{} reload success!", open_id, player_id, new_token)
     local callback_data = { error_code = code, token = new_token}
     client_mgr:callback_by_id(session, cmd_id, callback_data, session_id)
@@ -343,6 +352,19 @@ function Gateway:on_socket_cmd(session, service_type, cmd_id, body, session_id)
         log_warn("[Gateway][on_socket_cmd] on_proto_filter false, cmd_id={}", cmd_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_UPHOLD, session_id)
         return
+    end
+    -- 协议锁
+    local hook<close> = qdefer()
+    if self.reenter_cmds[cmd_id] then
+        local lock_key = sformat("%s_%s", session.token, cmd_id)
+        hook:register(function()
+            thread_mgr:unlock(lock_key)
+        end)
+        if not thread_mgr:lock(lock_key, false) then
+            log_warn("[Gateway][on_socket_cmd] check lock failed, cmd_id={}, {}", cmd_id, lock_key)
+            client_mgr:callback_errcode(session, cmd_id, FRAME_TOOFAST, session_id)
+            return
+        end
     end
     if service_type == 0 or service_type == SERVICE_GATE then
         --gateway消息，本地转发

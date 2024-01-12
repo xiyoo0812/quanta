@@ -1,8 +1,9 @@
 -- robot.lua
-local qfailed       = quanta.failed
 local jpretty       = json.pretty
 local log_err       = logger.err
 local log_debug     = logger.debug
+local qfailed       = quanta.failed
+local sformat       = string.format
 local guid_string   = codec.guid_string
 
 local SessionModule = import("robot/module/session.lua")
@@ -11,7 +12,6 @@ local QueueFIFO     = import("container/queue_fifo.lua")
 
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-local update_mgr    = quanta.get("update_mgr")
 
 local Robot = class(nil, SessionModule)
 local prop = property(Robot)
@@ -29,8 +29,6 @@ prop:reader("access_token", "123456")
 
 function Robot:__init()
     self.device_id = guid_string()
-    --注册心跳循环
-    update_mgr:attach_second5(self)
 end
 
 --检查错误码
@@ -44,19 +42,9 @@ function Robot:check_callback(ok, res)
     return false
 end
 
-function Robot:on_second5()
-    self:send_heartbeat()
-end
-
-function Robot:send_heartbeat()
-    if self.login_success then
-        self:call("NID_HEARTBEAT_REQ", { time = quanta.now })
-    end
-end
-
 function Robot:send_gm(gm)
     if self.login_success then
-        self:call("NID_UTILITY_GM_COMMAND_REQ", { command = gm })
+        self:send("NID_UTILITY_GM_COMMAND_REQ", { command = sformat(gm, self.player_id) })
     end
 end
 

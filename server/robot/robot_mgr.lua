@@ -1,5 +1,4 @@
 -- robot_mgr.lua
-import("robot/msg_mgr.lua")
 import("kernel/protobuf_mgr.lua")
 
 local log_debug     = logger.debug

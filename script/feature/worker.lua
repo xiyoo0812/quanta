@@ -18,7 +18,7 @@ local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
 local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
-local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
+local SLOW_MS       = quanta.enum("PeriodTime", "SLOW_MS")
 local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 --初始化核心
@@ -114,7 +114,7 @@ quanta.run = function()
         --时间告警
         local io_ms = clock_ms - sclock_ms
         local work_ms = lclock_ms() - sclock_ms
-        if work_ms > HALF_MS or io_ms > FAST_MS then
+        if work_ms > HALF_MS or io_ms > SLOW_MS then
             log_warn("[worker][run] last frame too long => all:{}, net:{})!", work_ms, io_ms)
         end
     end, "worker run err: {}")

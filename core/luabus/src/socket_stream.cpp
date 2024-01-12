@@ -24,6 +24,9 @@ socket_stream::~socket_stream() {
         closesocket(m_socket);
         m_socket = INVALID_SOCKET;
     }
+    if (m_codec) {
+        m_codec = nullptr;
+    }
     if (m_addr != nullptr) {
         freeaddrinfo(m_addr);
         m_addr = nullptr;
@@ -62,9 +65,6 @@ void socket_stream::close() {
         m_link_status = elink_status::link_closed;
         return;
     }
-    if (m_codec) {
-        m_codec = nullptr;
-    }
     shutdown(m_socket, SD_RECEIVE);
     m_link_status = elink_status::link_colsing;
 }
@@ -73,18 +73,20 @@ bool socket_stream::update(int64_t now) {
     switch (m_link_status) {
         case elink_status::link_closed: {
 #ifdef _MSC_VER
-            if (m_ovl_ref != 0) return true;
+            if (m_ovl_ref > 0) return true;
 #endif
+            return false;
+        }
+        case elink_status::link_colsing: {
+#ifdef _MSC_VER
+            if (m_ovl_ref > 1) return true;
+#endif
+            if (!m_send_buffer->empty()) return true;
             if (m_socket != INVALID_SOCKET) {
                 closesocket(m_socket);
                 m_socket = INVALID_SOCKET;
             }
-            return false;
-        }
-        case elink_status::link_colsing: {
-            if (m_send_buffer->empty()) {
-                m_link_status = elink_status::link_closed;
-            }
+            m_link_status = elink_status::link_closed;
             return true;
         }
         case elink_status::link_init: {

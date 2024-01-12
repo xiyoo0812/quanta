@@ -12,7 +12,7 @@ local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")
 
-local ROBOT_ADDR    = environ.number("QUANTA_ROBOT_ADDR")
+local ROBOT_ADDR    = environ.get("QUANTA_ROBOT_ADDR")
 local THREAD_ROBOT  = environ.number("QUANTA_THREAD_ROBOT", 2)
 
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
@@ -23,24 +23,17 @@ local prop = property(RobotAgent)
 prop:reader("appends", {})
 
 function RobotAgent:__init()
-    --事件监听
-    event_mgr:add_listener(self, "upload_progress")
     -- 准备开启
     thread_mgr:success_call(SECOND_MS, function()
         return self:load_task()
     end, SECOND_MS)
 end
 
---上报结果
-function RobotAgent:upload_progress(success, failed)
-    http_client:call_post(ROBOT_ADDR, success, failed)
-end
-
 function RobotAgent:append(file)
     self.appends[file] = true
 end
 
-function RobotAgent:startup(conf, task_conf)
+function RobotAgent:startup(conf, task_id, task_conf)
     local all_count = task_conf.count
     local start_open_id = task_conf.start_open_id
     local worker_num = mceil(all_count / THREAD_ROBOT)
@@ -58,6 +51,8 @@ function RobotAgent:startup(conf, task_conf)
             for file, _ in pairs(self.appends) do
                 scheduler:append(name, file)
             end
+            --汇报信息
+            http_client:call_post(ROBOT_ADDR, { task_id = task_id, child = quanta.index })
         end)
     end
     --定时器停止
@@ -89,7 +84,7 @@ function RobotAgent:load_task()
         signal.quit()
         return false
     end
-    self:startup(conf, task_conf)
+    self:startup(conf, task_id, task_conf)
     return true
 end
 

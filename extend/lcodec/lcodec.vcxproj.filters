@@ -13,9 +13,6 @@
     <ClInclude Include="src\http.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\ketama.h">
-      <Filter>inc</Filter>
-    </ClInclude>
     <ClInclude Include="src\lcodec.h">
       <Filter>inc</Filter>
     </ClInclude>

@@ -11,7 +11,7 @@ local scheduler     = quanta.load("scheduler")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
 
-local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
+local SLOW_MS       = quanta.enum("PeriodTime", "SLOW_MS")
 local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 --初始化核心
@@ -98,7 +98,7 @@ quanta.run = function()
     --时间告警
     local io_ms = clock_ms - sclock_ms
     local work_ms = lclock_ms() - sclock_ms
-    if work_ms > HALF_MS or io_ms > FAST_MS then
+    if work_ms > HALF_MS or io_ms > SLOW_MS then
         log_warn("[quanta][run] last frame too long => all:{}, net:{})!", work_ms, io_ms)
     end
 end

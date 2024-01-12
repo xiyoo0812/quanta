@@ -47,7 +47,8 @@ NetwkTime.KICKOUT_TIMEOUT   = 80000     --强制清理时间
 
 --常用时间周期
 local PeriodTime = enum("PeriodTime", 0)
-PeriodTime.FAST_MS          = 100       --0.1秒（ms）
+PeriodTime.FAST_MS          = 50        --50毫秒（ms）
+PeriodTime.SLOW_MS          = 120       --120毫秒（ms）
 PeriodTime.HALF_MS          = 500       --0.5秒（ms）
 PeriodTime.SECOND_MS        = 1000      --1秒（ms）
 PeriodTime.SECOND_2_MS      = 2000      --2秒（ms）

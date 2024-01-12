@@ -7,7 +7,6 @@ local log_debug     = logger.debug
 local guid_encode   = codec.guid_encode
 local trandarray    = qtable.random_array
 
-local event_mgr     = quanta.get("event_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local NetClient     = import("network/net_client.lua")
@@ -27,24 +26,26 @@ function SessionModule:disconnect()
     if self.client then
         self.client:close()
     end
+    self.login_success = false
 end
 
 function SessionModule:connect(ip, port, block)
     if self.client then
         self.client:close()
     end
+    self.login_success = false
     self.client = NetClient(self, ip, port)
     return self.client:connect(block)
 end
 
 -- 连接成回调
 function SessionModule:on_socket_connect(client)
-    log_debug("[SessionModule][on_socket_connect] {}", self.open_id)
+    log_debug("[SessionModule][on_socket_connect] {}-{}-{}", self.open_id, client.ip, client.port)
 end
 
 -- 连接关闭回调
 function SessionModule:on_socket_error(client, token, err)
-    log_debug("[SessionModule][on_socket_error] {}, err:{}", self.open_id, err)
+    log_debug("[SessionModule][on_socket_error] {}, err:{}, {}-{}", self.open_id, err, client.ip, client.port)
 end
 
 -- ntf消息回调
@@ -88,7 +89,6 @@ function SessionModule:call(cmdid, data)
         local srv_type = self:conv_type(cmdid)
         local ok, resp = self.client:call(cmdid, data, srv_type)
         if cmdid ~= 1001 then
-            event_mgr:notify_listener("on_call_message", self, cmdid, ok, resp)
             if ok and srv_type == 0 and resp then
                 self:push_message(cmdid, resp)
             end
@@ -121,11 +121,11 @@ function SessionModule:create_role_req(name)
     }
     local ok, res = self:call("NID_LOGIN_ROLE_CREATE_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][create_role_req] robot:{}, ok={}, res={}", self:get_title(), ok, res)
+        log_warn("[LoginModule][create_role_req] robot:{}, ok={}, res={}", self.open_id, ok, res)
         return false
     end
     tinsert(self.roles, res.role)
-    log_debug("[LoginModule][create_role_req] robot:{} success", self:get_title())
+    log_debug("[LoginModule][create_role_req] robot:{} success", self.open_id)
     return true
 end
 

@@ -239,7 +239,7 @@ end
 function GM_Mgr:exec_global_cmd(service_id, cmd_name, ...)
     local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute" , cmd_name, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_global_cmd] rpc_command_execute failed! service_id:{}, cmd_name={}", service_id, cmd_name)
+        log_err("[GM_Mgr][exec_global_cmd] rpc_command_execute failed! service_id:{},cmd_name={},code={},res={}", service_id, cmd_name, codeoe, res)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }
@@ -251,7 +251,7 @@ function GM_Mgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
     local quanta_id = make_sid(service_id, index)
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_command_execute" , cmd_name, target_id, ...)
     if not ok then
-        log_err("[GM_Mgr][exec_system_cmd] rpc_command_execute failed! cmd_name={}", cmd_name)
+        log_err("[GM_Mgr][exec_system_cmd] rpc_command_execute failed! cmd_name={},code={},res={}", cmd_name, codeoe, res)
         return { code = 1, msg = codeoe }
     end
     return { code = codeoe, msg = res }

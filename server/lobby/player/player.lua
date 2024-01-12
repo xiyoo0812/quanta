@@ -153,11 +153,11 @@ function Player:online()
     self.release = false
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
-    self:set_version(self:build_version())
     --invoke
     self:invoke("_online")
     --load success
     self:set_login_time(quanta.now)
+    self:set_version(self:build_version())
     self.load_success = true
     log_info("[Player][online] player({}) is online!", self.id)
 end

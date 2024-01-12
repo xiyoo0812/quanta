@@ -2,6 +2,8 @@
 local log_warn  = logger.warn
 local log_debug = logger.debug
 
+local event_mgr = quanta.get("event_mgr")
+
 local NodeBase  = import("robot/nodes/node_base.lua")
 
 local NodeReq = class(NodeBase)
@@ -36,6 +38,7 @@ function NodeReq:on_action()
         local ok, res = role:call(self.cmd_id, values)
         if role:check_callback(ok, res) then
             log_warn("[NodeReq][on_action] robot:{} call {} failed: ok={}, res={}", role.open_id, self.cmd_id, ok, res)
+            event_mgr:notify_trigger("on_error_message", self.cmd_id, role.open_id, res)
             self:failed(res)
             return false
         end

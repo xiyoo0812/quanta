@@ -21,6 +21,8 @@ import("basic/console.lua")
 import("basic/service.lua")
 
 local odate     = os.date
+local otime     = os.time
+local odtime    = os.difftime
 local qenum     = quanta.enum
 
 local FAILED    = qenum("KernCode", "FAILED")
@@ -28,7 +30,8 @@ local SUCCESS   = qenum("KernCode", "SUCCESS")
 local DAY_S     = qenum("PeriodTime", "DAY_S")
 local HOUR_S    = qenum("PeriodTime", "HOUR_S")
 
-local DIFF_TIME = environ.number("QUANTA_TIMEZONE", 8) * 3600
+local DIFF_TIME = odtime(otime(), otime(odate("!*t", otime())))
+local TIME_ZONE = DIFF_TIME / 3600
 
 function quanta.success(code, ok)
     if ok == nil then
@@ -42,6 +45,10 @@ function quanta.failed(code, ok, def_code)
         return code ~= SUCCESS, code or (def_code or FAILED)
     end
     return not ok or code ~= SUCCESS, code or (def_code or FAILED)
+end
+
+function quanta.timezone()
+    return TIME_ZONE
 end
 
 --获取一个类型的时间版本号

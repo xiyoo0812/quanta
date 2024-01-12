@@ -18,7 +18,7 @@ local protobuf_mgr      = quanta.get("protobuf_mgr")
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
-local FAST_MS           = quanta.enum("PeriodTime", "FAST_MS")
+local SLOW_MS           = quanta.enum("PeriodTime", "SLOW_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local TOO_FAST          = quanta.enum("KernCode", "TOO_FAST")
 
@@ -72,8 +72,7 @@ end
 -- 连接回调
 function NetServer:on_socket_accept(session)
     -- 流控配置
-    session.lc_crc = 0
-    session.lc_time = 0
+    session.lc_cmd = {}
     session.fc_packet = 0
     session.fc_bytes  = 0
     session.last_fc_time = quanta.clock_ms
@@ -91,16 +90,16 @@ function NetServer:on_socket_accept(session)
         return true
     end
     session.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
-        local now_ms = quanta.now_ms
         if session_id > 0 then
             session_id = session.stoken | session_id
         end
-        if crc8 > 0 and session.lc_crc == crc8 and now_ms - session.lc_time < FAST_MS then
+        local now_ms = quanta.now_ms
+        local cmd = session.lc_cmd[cmd_id]
+        if crc8 > 0 and cmd and cmd.crc8 == crc8 and now_ms - cmd.time < SLOW_MS then
             self:callback_errcode(session, cmd_id, TOO_FAST, session_id)
             return
         end
-        session.lc_crc = crc8
-        session.lc_time = now_ms
+        session.lc_cmd[cmd_id] = { time = now_ms, crc8 = crc8 }
         if FLOW_CTRL then
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len
@@ -183,8 +182,10 @@ function NetServer:check_flow(session)
         local escape = cur_time - session.last_fc_time
         if escape > SECOND_MS then
             -- 检查是否超过配置
-            if session.fc_packet > (FC_PACKETS * escape // SECOND_MS) or session.fc_bytes > FC_BYTES then
-                log_warn("[NetServer][check_flow] session trigger package or bytes flowctrl line, will be closed.")
+            local is_over_packets = session.fc_packet > (FC_PACKETS * escape // SECOND_MS)
+            local is_over_bytes = session.fc_bytes > (FC_BYTES * escape // SECOND_MS)
+            if is_over_packets or is_over_bytes then
+                log_warn("[NetServer][check_flow] session trigger package({}) or bytes({}) flowctrl line, will be closed.", is_over_packets, is_over_bytes)
                 self:close_session(session)
             end
             session.fc_packet = 0

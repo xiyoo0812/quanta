@@ -9,6 +9,7 @@ local tunpack       = table.unpack
 local ssub          = string.sub
 local sfind         = string.find
 local supper        = string.upper
+local sformat       = string.format
 local ssplit        = qstring.split
 local pb_enum_id    = protobuf.enum
 
@@ -18,6 +19,8 @@ local robot_mgr     = quanta.get("robot_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local accord_dao    = quanta.get("accord_dao")
+
+local ACCORD_URL    = environ.get("QUANTA_ACCORD_URL")
 
 -- 时间单位
 local SECOND_3_MS   = quanta.enum("PeriodTime", "SECOND_3_MS")
@@ -29,7 +32,7 @@ prop:reader("accord_list", {})  -- 协议列表(添加的数据)
 prop:reader("case_group", {})   -- 用例分组
 prop:reader("accord_group", {}) -- 协议分组(解析proto)
 prop:reader("load_db_status", false)
-prop:reader("srvlist_api", environ.get("QUANTA_SRVLIST_API")) -- 服务器列表api
+prop:reader("srvlist_api", sformat("%s/server_mgr/query", ACCORD_URL)) -- 服务器列表api
 
 function AccordMgr:__init()
     -- 创建HTTP服务器

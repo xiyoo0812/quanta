@@ -1,4 +1,5 @@
 --utility_cfg.lua
+--source: utility.xlsm
 --luacheck: ignore 631
 
 --获取配置表
