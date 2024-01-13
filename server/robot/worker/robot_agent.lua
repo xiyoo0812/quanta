@@ -10,9 +10,7 @@ local scheduler     = quanta.get("scheduler")
 local timer_mgr     = quanta.get("timer_mgr")
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-local http_client   = quanta.get("http_client")
 
-local ROBOT_ADDR    = environ.get("QUANTA_ROBOT_ADDR")
 local THREAD_ROBOT  = environ.number("QUANTA_THREAD_ROBOT", 2)
 
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
@@ -51,8 +49,6 @@ function RobotAgent:startup(conf, task_id, task_conf)
             for file, _ in pairs(self.appends) do
                 scheduler:append(name, file)
             end
-            --汇报信息
-            http_client:call_post(ROBOT_ADDR, { task_id = task_id, child = quanta.index })
         end)
     end
     --定时器停止

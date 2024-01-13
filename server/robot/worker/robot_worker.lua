@@ -38,7 +38,6 @@ function RobotWorker:__init()
     event_mgr:add_trigger(self, "on_error_message")
     event_mgr:register_hook(self, "on_send_message", "on_message_hook")
     --初始化参数
-    self.review.errors = {}
     self.review.samples = {}
     self.review.child = quanta.title
     self.review.client = quanta.index
@@ -154,6 +153,9 @@ function RobotWorker:on_error_message(cmd_id, open_id, res)
         end
         cmdsample.failn = cmdsample.failn + 1
         if res then
+            if not self.review.errors then
+                self.review.errors = {}
+            end
             if type(res) == "table" then
                 tinsert(self.review.errors, { open_id = open_id, cmd_id = cmd_id, code = res.error_code, time = time })
             else
@@ -164,8 +166,8 @@ function RobotWorker:on_error_message(cmd_id, open_id, res)
 end
 
 function RobotWorker:revicw_task()
-    http_client:call_post(ROBOT_ADDR,  self.review)
-    self.review.errors = {}
+    http_client:call_post(ROBOT_ADDR, self.review)
+    self.review.errors = nil
     self.review.samples = {}
 end
 
