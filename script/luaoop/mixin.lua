@@ -23,7 +23,7 @@ local sformat       = string.format
 local setmetatable  = setmetatable
 local dtraceback    = debug.traceback
 
-local mixin_tpls    = _ENV.mixin_tpls or {}
+local mixin_tpls    = _ENV.__mixins or {}
 
 local function tab_copy(src, dst)
     local ndst = dst or {}
@@ -194,3 +194,5 @@ function mixin(super)
     end
     return mixin_tpl
 end
+
+_ENV.__mixins = mixin_tpls

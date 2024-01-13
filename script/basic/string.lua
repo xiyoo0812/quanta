@@ -12,7 +12,7 @@ local slower    = string.lower
 local sformat   = string.format
 local sbyte     = string.byte
 
-qstring = _ENV.qstring or {}
+qstring = {}
 
 --------------------------------------------------------------------------------
 function qstring.parse(str)

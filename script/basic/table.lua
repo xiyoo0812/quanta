@@ -204,7 +204,7 @@ local function tweak(src, mode)
     return setmetatable(src, { __mode = mode or "kv" })
 end
 
-qtable              = _ENV.qtable or {}
+qtable              = {}
 qtable.random       = trandom
 qtable.random_array = trandom_array
 qtable.indexof      = tindexof

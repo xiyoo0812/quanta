@@ -16,6 +16,7 @@ local shotfix       = signal.hotfix
 local event_mgr     = quanta.get("event_mgr")
 
 local ROUTER        = quanta.enum("QuantaMode", "ROUTER")
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local RPC_FAILED    = quanta.enum("KernCode", "RPC_FAILED")
 
 local MonitorAgent = singleton()
@@ -36,6 +37,7 @@ function MonitorAgent:__init()
     event_mgr:add_listener(self, "rpc_service_hotfix")
     event_mgr:add_listener(self, "rpc_server_shutdown")
     event_mgr:add_listener(self, "rpc_set_logger_level")
+    event_mgr:add_listener(self, "rpc_show_memory")
     --消息
     event_mgr:add_trigger(self, "on_router_connected")
 end
@@ -130,6 +132,12 @@ end
 function MonitorAgent:rpc_set_logger_level(level)
     log_debug("[MonitorAgent][rpc_set_logger_level] level: {}", level)
     log_filter(level)
+end
+
+function MonitorAgent:rpc_show_memory()
+    local values = class_review()
+    log_debug("[MonitorAgent][rpc_show_memory] values: {}", values)
+    return SUCCESS, values
 end
 
 quanta.monitor = MonitorAgent()
