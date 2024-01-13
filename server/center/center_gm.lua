@@ -122,12 +122,17 @@ function CenterGM:show_memory(service_name, index)
     log_info("[CenterGM][show_memory] service_name: {}, index:{}", service_name, index)
     -- 通知服务
     local quanta_id = make_sid(name2sid(service_name), index)
+    if service_name == "router" then
+        local ok, codeoe, res = router_mgr:call_router_id(quanta_id, "rpc_show_memory")
+        if not ok then
+            log_err("[CenterGM][show_memory] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
+        end
+        return codeoe, res
+    end
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_show_memory")
     if not ok then
         log_err("[CenterGM][show_memory] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
-        return { code = 1, msg = codeoe }
     end
-    log_err("[CenterGM][show_memory] exec service={}-{}! codeoe={},res={}", service_name, index, codeoe, res)
     return codeoe, res
 end
 

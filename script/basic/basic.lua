@@ -152,3 +152,11 @@ function quanta.make_timer()
     local Timer = import("feature/timer.lua")
     return Timer()
 end
+
+--内存审视
+function quanta.memory_review()
+    local reviews = {}
+    reviews.memory = collectgarbage("count")
+    reviews.object = class_review()
+    return reviews
+end

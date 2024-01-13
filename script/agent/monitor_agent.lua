@@ -135,7 +135,7 @@ function MonitorAgent:rpc_set_logger_level(level)
 end
 
 function MonitorAgent:rpc_show_memory()
-    local values = class_review()
+    local values = quanta.memory_review()
     log_debug("[MonitorAgent][rpc_show_memory] values: {}", values)
     return SUCCESS, values
 end
