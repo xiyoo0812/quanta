@@ -5,6 +5,7 @@ local log_info      = logger.info
 local log_warn      = logger.warn
 local tunpack       = table.unpack
 local qxpcall       = quanta.xpcall
+local wcall         = quanta.call
 local lclock_ms     = timer.clock_ms
 local ltime         = timer.time
 
@@ -124,7 +125,7 @@ end
 local function notify_rpc(session_id, title, rpc, ...)
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        quanta.call(title, session_id, FLAG_RES, tunpack(rpc_datas))
+        wcall(title, session_id, FLAG_RES, tunpack(rpc_datas))
     end
 end
 
@@ -140,7 +141,7 @@ end
 --访问主线程
 quanta.call_master = function(rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    if quanta.call("master", session_id, FLAG_REQ, TITLE, rpc, ...) then
+    if wcall("master", session_id, FLAG_REQ, TITLE, rpc, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end
     return false, "call failed"
@@ -148,13 +149,13 @@ end
 
 --通知主线程
 quanta.send_master = function(rpc, ...)
-    quanta.call("master", 0, FLAG_REQ, TITLE, rpc, ...)
+    wcall("master", 0, FLAG_REQ, TITLE, rpc, ...)
 end
 
 --访问其他线程
 quanta.call_worker = function(name, rpc, ...)
     local session_id = thread_mgr:build_session_id()
-    if quanta.call(name, session_id, FLAG_REQ, TITLE, rpc, ...) then
+    if wcall(name, session_id, FLAG_REQ, TITLE, rpc, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end
     return false, "call failed"
@@ -162,5 +163,5 @@ end
 
 --通知其他线程
 quanta.send_worker = function(name, rpc, ...)
-    quanta.call(name, 0, FLAG_REQ, TITLE, rpc, ...)
+    wcall(name, 0, FLAG_REQ, TITLE, rpc, ...)
 end

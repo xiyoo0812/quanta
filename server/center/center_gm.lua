@@ -55,13 +55,13 @@ function CenterGM:register()
             tip = "示例中,设置指定服务的日志输出等级"
         },
         {
-            name = "show_memory",
+            name = "show_snapshot",
             gm_type = LOCAL,
             group = "运维",
-            desc = "显示内存快照",
+            desc = "显示系统快照",
             args = "service_name|string index|integer",
-            example = "show_memory lobby 1",
-            tip = "示例中,显示lobby1的内存快照"
+            example = "show_snapshot lobby 1",
+            tip = "示例中,显示lobby1的系统快照"
         }
     }
 
@@ -117,21 +117,21 @@ function CenterGM:set_logger_level(service_id, level)
     router_mgr:broadcast(service_id, "rpc_set_logger_level", level)
 end
 
--- 显示内存快照
-function CenterGM:show_memory(service_name, index)
-    log_info("[CenterGM][show_memory] service_name: {}, index:{}", service_name, index)
+-- 显示系统快照
+function CenterGM:show_snapshot(service_name, index)
+    log_info("[CenterGM][show_snapshot] service_name: {}, index:{}", service_name, index)
     -- 通知服务
     local quanta_id = make_sid(name2sid(service_name), index)
     if service_name == "router" then
-        local ok, codeoe, res = router_mgr:call_router_id(quanta_id, "rpc_show_memory")
+        local ok, codeoe, res = router_mgr:call_router_id(quanta_id, "rpc_show_snapshot")
         if not ok then
-            log_err("[CenterGM][show_memory] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
+            log_err("[CenterGM][show_snapshot] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
         end
         return codeoe, res
     end
-    local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_show_memory")
+    local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_show_snapshot")
     if not ok then
-        log_err("[CenterGM][show_memory] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
+        log_err("[CenterGM][show_snapshot] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
     end
     return codeoe, res
 end
