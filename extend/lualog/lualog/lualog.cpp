@@ -32,9 +32,9 @@ namespace logger {
         return "unsuppert data type";
     }
 
-    int zformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& trace_id, cstring& msg) {
+    int zformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& trace_id, int flag, cstring& msg) {
         int log_output = 0;
-        if (lvl == log_level::LOG_LEVEL_FATAL) {
+        if ((flag & 0x04) == 0x04) {
             log_output++;
             lua_pushlstring(L, msg.c_str(), msg.size());
         }
@@ -50,7 +50,7 @@ namespace logger {
     int tformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& trace_id, int flag, vstring vfmt, std::index_sequence<integers...>&&) {
         try {
             auto msg = fmt::format(vfmt, read_args(L, flag, integers + 6)...);
-            return zformat(L, lvl, tag, feature, trace_id, msg);
+            return zformat(L, lvl, tag, feature, trace_id, flag, msg);
         } catch (const exception& e) {
             luaL_error(L, "log format failed: %s!", e.what());
         }
@@ -65,6 +65,7 @@ namespace logger {
             "WARN", log_level::LOG_LEVEL_WARN,
             "DUMP", log_level::LOG_LEVEL_DUMP,
             "DEBUG", log_level::LOG_LEVEL_DEBUG,
+            "TRACE", log_level::LOG_LEVEL_TRACE,
             "ERROR", log_level::LOG_LEVEL_ERROR,
             "FATAL", log_level::LOG_LEVEL_FATAL
         );

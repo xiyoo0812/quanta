@@ -5,7 +5,6 @@ local log_err       = logger.err
 local log_info      = logger.info
 local sformat       = string.format
 local lrandomkey    = crypt.randomkey
-local lhex_encode   = crypt.hex_encode
 
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")
@@ -28,7 +27,7 @@ end
 
 --https://zipkin.io/zipkin-api/
 function Zipkin:general(name, trace_id, parent_id)
-    local span_id = self:new_zipkin_id()
+    local span_id = lrandomkey(1)
     local span = {
         tags = {},
         name = name,
@@ -53,13 +52,9 @@ function Zipkin:general(name, trace_id, parent_id)
     return span
 end
 
-function Zipkin:new_zipkin_id()
-    return lhex_encode(lrandomkey())
-end
-
 function Zipkin:new_span(name, trace_id)
     if not trace_id then
-        trace_id = self:new_zipkin_id()
+        trace_id = lrandomkey(1)
     end
     return self:general(name, trace_id)
 end

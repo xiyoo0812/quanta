@@ -40,6 +40,7 @@ namespace logger {
         LOG_LEVEL_INFO,
         LOG_LEVEL_WARN,
         LOG_LEVEL_DUMP,
+        LOG_LEVEL_TRACE,
         LOG_LEVEL_ERROR,
         LOG_LEVEL_FATAL,
     };
@@ -72,7 +73,7 @@ namespace logger {
     struct level_names {};
     template <> struct level_names<log_level> {
         constexpr std::array<const char*, 7> operator()() const {
-            return { "UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR","FATAL" };
+            return { "UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "TRACE", "ERROR","FATAL" };
         }
     };
 
@@ -80,7 +81,7 @@ namespace logger {
     struct level_colors {};
     template <> struct level_colors<log_level> {
         constexpr std::array<const char*, 7> operator()() const {
-            return { "\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[31m", "\x1b[31m", "\x1b[32m" };
+            return { "\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[37m", "\x1b[32m", "\x1b[31m", "\x1b[31m" };
         }
     };
 
@@ -303,6 +304,7 @@ namespace logger {
 #define LOG_WARN(msg) logger::get_logger()->output(logger::log_level::LOG_LEVEL_WARN, msg, "C", __FILE__, __LINE__)
 #define LOG_INFO(msg) logger::get_logger()->output(logger::log_level::LOG_LEVEL_INFO, msg, "C", __FILE__, __LINE__)
 #define LOG_DUMP(msg) logger::get_logger()->output(logger::log_level::LOG_LEVEL_DUMP, msg, "C", __FILE__, __LINE__)
+#define LOG_TRACE(msg) logger::get_logger()->output(logger::log_level::LOG_LEVEL_DEBUG, msg, "C", __FILE__, __LINE__)
 #define LOG_DEBUG(msg) logger::get_logger()->output(logger::log_level::LOG_LEVEL_DEBUG, msg, "C", __FILE__, __LINE__)
 #define LOG_ERROR(msg) logger::get_logger()->output(logger::log_level::LOG_LEVEL_ERROR, msg, "C", __FILE__, __LINE__)
 #define LOG_FATAL(msg) logger::get_logger()->output(logger::log_level::LOG_LEVEL_FATAL, msg, "C", __FILE__, __LINE__)

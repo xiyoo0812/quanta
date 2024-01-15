@@ -10,6 +10,7 @@ local log_dump      = logfeature.dump("webhooks", WEBPATH, true)
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")
 
+local LOG_LEVEL     = log.LOG_LEVEL
 local HOST_IP       = environ.get("QUANTA_HOST_IP")
 local HOUR_S        = quanta.enum("PeriodTime", "HOUR_S")
 
@@ -27,7 +28,7 @@ function Webhook:__init()
     if mode ~= "null" then
         --添加webhook功能
         self.mode = mode
-        logger.add_monitor(self)
+        logger.add_monitor(self, LOG_LEVEL.FATAL)
         self.title = sformat("%s | %s", HOST_IP, quanta.service_name)
         --初始化hooks
         self.hooks.lark_log = environ.get("QUANTA_LARK_URL")

@@ -36,8 +36,8 @@ function logger.daemon(daemon)
     log.daemon(daemon)
 end
 
-function logger.add_monitor(monitor)
-    MONITORS[monitor] = true
+function logger.add_monitor(monitor, lvl)
+    MONITORS[monitor] = lvl
 end
 
 function logger.remove_monitor(monitor)
@@ -73,8 +73,10 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
         return
     end
     if msg then
-        for monitor in pairs(MONITORS) do
-            monitor:dispatch_log(msg, lvl_name)
+        for monitor, mlvl in pairs(MONITORS) do
+            if mlvl == lvl then
+                monitor:dispatch_log(msg, lvl_name)
+            end
         end
     end
 end
@@ -84,7 +86,8 @@ local LOG_LEVEL_OPTIONS = {
     [LOG_LEVEL.WARN]    = { "warn",  0x01 },
     [LOG_LEVEL.DEBUG]   = { "debug", 0x01 },
     [LOG_LEVEL.ERROR]   = { "err",   0x01 },
-    [LOG_LEVEL.FATAL]   = { "fatal", 0x01 },
+    [LOG_LEVEL.TRACE]   = { "trace", 0x01 | 0x04 },
+    [LOG_LEVEL.FATAL]   = { "fatal", 0x01 | 0x04 },
     [LOG_LEVEL.DUMP]    = { "dump",  0x01 | 0x02 },
 }
 
