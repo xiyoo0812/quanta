@@ -11,6 +11,7 @@ import("basic/math.lua")
 import("basic/time.lua")
 import("basic/table.lua")
 import("basic/string.lua")
+import("basic/coroutine.lua")
 import("basic/logger.lua")
 import("basic/signal.lua")
 import("basic/environ.lua")
@@ -74,10 +75,6 @@ function quanta.failed(code, ok, def_code)
         return code ~= SUCCESS, code or (def_code or FAILED)
     end
     return not ok or code ~= SUCCESS, code or (def_code or FAILED)
-end
-
-function quanta.load(name)
-    return quanta[name]
 end
 
 function quanta.get(name)

@@ -109,6 +109,10 @@ function quanta.load_failed(content)
     log_error(content)
 end
 
+function quanta.load(name)
+    return quanta[name]
+end
+
 function quanta.init(name, val)
     if not quanta[name] then
         quanta[name] = val or {}

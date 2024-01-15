@@ -32,21 +32,25 @@ namespace logger {
         return "unsuppert data type";
     }
 
-    int zformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& msg) {
+    int zformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& trace_id, cstring& msg) {
+        int log_output = 0;
         if (lvl == log_level::LOG_LEVEL_FATAL) {
+            log_output++;
             lua_pushlstring(L, msg.c_str(), msg.size());
-            get_logger()->output(lvl, msg, tag, feature);
-            return 1;
         }
-        get_logger()->output(lvl, msg, tag, feature);
-        return 0;
+        auto log_msg = get_logger()->output(lvl, msg, tag);
+        if (log_msg) {
+            log_msg->set_feature(feature);
+            log_msg->set_trace_id(trace_id);
+        }
+        return log_output;
     }
 
     template<size_t... integers>
-    int tformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, int flag, vstring vfmt, std::index_sequence<integers...>&&) {
+    int tformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& trace_id, int flag, vstring vfmt, std::index_sequence<integers...>&&) {
         try {
             auto msg = fmt::format(vfmt, read_args(L, flag, integers + 6)...);
-            return zformat(L, lvl, tag, feature, msg);
+            return zformat(L, lvl, tag, feature, trace_id, msg);
         } catch (const exception& e) {
             luaL_error(L, "log format failed: %s!", e.what());
         }
@@ -72,17 +76,18 @@ namespace logger {
             sstring tag = lua_to_native<sstring>(L, 3);
             sstring feature = lua_to_native<sstring>(L, 4);
             vstring vfmt = lua_to_native<vstring>(L, 5);
-            int arg_num = lua_gettop(L) - 5;
+            sstring trace_id = lua_to_native<sstring>(L, 6);
+            int arg_num = lua_gettop(L) - 6;
             switch (arg_num) {
-            case 0: return zformat(L, lvl, tag, feature, string(vfmt.data(), vfmt.size()));
-            case 1: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<1>{});
-            case 2: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<2>{});
-            case 3: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<3>{});
-            case 4: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<4>{});
-            case 5: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<5>{});
-            case 6: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<6>{});
-            case 7: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<7>{});
-            case 8: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<8>{});
+            case 0: return zformat(L, lvl, tag, feature, trace_id, string(vfmt.data(), vfmt.size()));
+            case 1: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<1>{});
+            case 2: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<2>{});
+            case 3: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<3>{});
+            case 4: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<4>{});
+            case 5: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<5>{});
+            case 6: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<6>{});
+            case 7: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<7>{});
+            case 8: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<8>{});
             default: luaL_error(L, "log format args is more than 8!"); break;
             }
             return 0;

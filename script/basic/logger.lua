@@ -5,9 +5,10 @@ local pcall         = pcall
 local pairs         = pairs
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
+local qtrace_id     = quanta.trace_id
 local sformat       = string.format
-local lprint        = log.print
 local lfilter       = log.filter
+local lprint        = log.print
 
 local LOG_LEVEL     = log.LOG_LEVEL
 
@@ -64,7 +65,8 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
     if not fmt:find("{") then
         return logger_format(flag, feature, lvl, lvl_name, fmt, ...)
     end
-    local ok, msg = pcall(lprint, lvl, flag, title, feature, fmt, ...)
+    local trace_id = qtrace_id()
+    local ok, msg = pcall(lprint, lvl, flag, title, feature, trace_id, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"
         lprint(LOG_LEVEL.WARN, 0, title, feature, wfmt, lvl_name, msg, dtraceback())

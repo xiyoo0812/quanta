@@ -26,12 +26,13 @@ namespace logger {
 
     // class log_message
     // --------------------------------------------------------------------------------
-    void log_message::option(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
+    void log_message::option(log_level level, cstring& msg, cstring& tag, cstring& source, int line) {
         log_time_ = log_time::now();
-        feature_ = std::move(feature);
         source_ = std::move(source);
         msg_ = std::move(msg);
         tag_ = std::move(tag);
+        trace_id_ = "";
+        feature_ = "";
         level_ = level;
         line_ = line;
     }
@@ -100,8 +101,8 @@ namespace logger {
         if (!ignore_prefix_) {
             auto names = level_names<log_level>()();
             const log_time& t = logmsg->get_log_time();
-            return fmt::format("[{:4d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}][{}][{}]",
-                t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, t.tm_usec, logmsg->tag(), names[(int)logmsg->level()]);
+            return fmt::format("[{:4d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d} T-{}][{}][{}]",
+                t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, t.tm_usec, logmsg->trace_id(), logmsg->tag(), names[(int)logmsg->level()]);
         }
         return "";
     }
@@ -367,12 +368,14 @@ namespace logger {
         }
     }
 
-    void log_service::output(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
+    sptr<log_message> log_service::output(log_level level, cstring& msg, cstring& tag, cstring& source, int line) {
         if (!log_filter_.is_filter(level)) {
             auto logmsg_ = message_pool_->allocate();
-            logmsg_->option(level, msg, tag, feature, source, line);
+            logmsg_->option(level, msg, tag, source, line);
             logmsgque_->put(logmsg_);
+            return logmsg_;
         }
+        return nullptr;
     }
 
     static logger* s_logger = nullptr;
