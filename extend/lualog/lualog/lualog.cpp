@@ -80,7 +80,7 @@ namespace logger {
             sstring trace_id = lua_to_native<sstring>(L, 6);
             int arg_num = lua_gettop(L) - 6;
             switch (arg_num) {
-            case 0: return zformat(L, lvl, tag, feature, trace_id, string(vfmt.data(), vfmt.size()));
+            case 0: return zformat(L, lvl, tag, feature, trace_id, flag, string(vfmt.data(), vfmt.size()));
             case 1: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<1>{});
             case 2: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<2>{});
             case 3: return tformat(L, lvl, tag, feature, trace_id, flag, vfmt, make_index_sequence<3>{});
