@@ -7,7 +7,7 @@ local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running
-local clean_trace   = quanta.clean_trace
+local qtracked      = quanta.tracked
 local synclock      = quanta.synclock
 local qxpcall       = quanta.xpcall
 local qdefer        = quanta.defer
@@ -121,7 +121,7 @@ function ThreadMgr:create_co(f)
             while true do
                 f = nil
                 pool:push(co)
-                clean_trace(co)
+                qtracked(co)
                 f = co_yield()
                 if type(f) == "function" then
                     qxpcall(f, "[ThreadMgr][co_create] fork error: {}", co_yield())

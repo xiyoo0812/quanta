@@ -40,7 +40,6 @@ namespace logger {
         LOG_LEVEL_INFO,
         LOG_LEVEL_WARN,
         LOG_LEVEL_DUMP,
-        LOG_LEVEL_TRACE,
         LOG_LEVEL_ERROR,
         LOG_LEVEL_FATAL,
     };
@@ -72,16 +71,16 @@ namespace logger {
     template <typename T>
     struct level_names {};
     template <> struct level_names<log_level> {
-        constexpr std::array<const char*, 8> operator()() const {
-            return { "UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "TRACE", "ERROR", "FATAL" };
+        constexpr std::array<const char*, 7> operator()() const {
+            return { "UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR", "FATAL" };
         }
     };
 
     template <typename T>
     struct level_colors {};
     template <> struct level_colors<log_level> {
-        constexpr std::array<const char*, 8> operator()() const {
-            return { "\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[37m", "\x1b[32m", "\x1b[31m", "\x1b[31m" };
+        constexpr std::array<const char*, 7> operator()() const {
+            return { "\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[37m", "\x1b[31m", "\x1b[31m" };
         }
     };
 

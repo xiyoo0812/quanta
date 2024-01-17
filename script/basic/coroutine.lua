@@ -1,13 +1,11 @@
 -- coroutine.lua
 local tpack         = table.pack
 local tunpack       = table.unpack
-local sformat       = string.format
 local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
 local co_running    = coroutine.running
 
 local co_hookor     = quanta.load("co_hookor")
-local TRACES        = quanta.init("TRACES")
 
 --协程改造
 function quanta.init_coroutine()
@@ -40,24 +38,4 @@ end
 function quanta.hook_coroutine(hooker)
     co_hookor = hooker
     quanta.co_hookor = hooker
-end
-
-function quanta.init_trace(trace_id)
-    TRACES[co_running()] = trace_id
-end
-
-function quanta.clean_trace(co)
-    TRACES[co] = nil
-end
-
-function quanta.trace_id()
-    return TRACES[co_running()]
-end
-
-function quanta.trace_fmt()
-    local trace_id = TRACES[co_running()]
-    if not trace_id then
-        return ""
-    end
-    return sformat(" T:%d", TRACES[co_running()])
 end

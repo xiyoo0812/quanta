@@ -65,7 +65,6 @@ namespace logger {
             "WARN", log_level::LOG_LEVEL_WARN,
             "DUMP", log_level::LOG_LEVEL_DUMP,
             "DEBUG", log_level::LOG_LEVEL_DEBUG,
-            "TRACE", log_level::LOG_LEVEL_TRACE,
             "ERROR", log_level::LOG_LEVEL_ERROR,
             "FATAL", log_level::LOG_LEVEL_FATAL
         );

@@ -5,8 +5,7 @@ local pcall         = pcall
 local pairs         = pairs
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
-local qtrace_fmt    = quanta.trace_fmt 
-local sformat       = string.format
+local qtrack_id     = quanta.track_id
 local lfilter       = log.filter
 local lprint        = log.print
 
@@ -51,22 +50,8 @@ function logger.filter(level)
     end
 end
 
-local function logger_format(flag, feature, lvl, lvl_name, fmt, ...)
-    local trace_id = qtrace_fmt()
-    local ok, msg = pcall(sformat, fmt, ...)
-    if not ok then
-        local wfmt = "[logger][{}] format failed: {}=> {})"
-        lprint(LOG_LEVEL.WARN, 0, title, feature, trace_id, wfmt, lvl_name, msg, dtraceback())
-        return
-    end
-    lprint(lvl, flag, title, feature, trace_id, msg)
-end
-
 local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
-    if not fmt:find("{") then
-        return logger_format(flag, feature, lvl, lvl_name, fmt, ...)
-    end
-    local trace_id = qtrace_fmt()
+    local trace_id = qtrack_id()
     local ok, msg = pcall(lprint, lvl, flag, title, feature, trace_id, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"
@@ -87,7 +72,6 @@ local LOG_LEVEL_OPTIONS = {
     [LOG_LEVEL.WARN]    = { "warn",  0x01 },
     [LOG_LEVEL.DEBUG]   = { "debug", 0x01 },
     [LOG_LEVEL.ERROR]   = { "err",   0x01 },
-    [LOG_LEVEL.TRACE]   = { "trace", 0x01 | 0x04 },
     [LOG_LEVEL.FATAL]   = { "fatal", 0x01 | 0x04 },
     [LOG_LEVEL.DUMP]    = { "dump",  0x01 | 0x02 },
 }

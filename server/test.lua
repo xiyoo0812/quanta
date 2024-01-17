@@ -19,7 +19,6 @@ quanta.startup(function()--初始化test
     import("test/stdfs_test.lua")
     import("test/cmdline_test.lua")
     import("test/ws_test.lua")
-    import("test/zipkin_test.lua")
     import("test/clickhouse_test.lua")
     import("test/url_test.lua")
     import("test/udp_test.lua")
