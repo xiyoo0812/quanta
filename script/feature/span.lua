@@ -8,10 +8,12 @@ local lrandomkey    = crypt.randomkey
 local SERVICE_NAME  = quanta.name
 local SERVICE_HOST  = quanta.host
 
+local Defer         = import("feature/defer.lua")
+
 local LOG_PATH      = environ.get("QUANTA_LOG_PATH", "./logs/")
 local log_dump      = logfeature.dump("spans", LOG_PATH .. "../spans/", true)
 
-local Span = class()
+local Span = class(Defer)
 local prop = property(Span)
 prop:reader("id", nil)     --id
 prop:reader("name", nil)        --name
@@ -21,16 +23,20 @@ prop:reader("timestamp", nil)   --timestamp
 prop:reader("annotations", {})  --annotations
 prop:reader("tags", {})         --tags
 
+--https://zipkin.io/zipkin-api/
 function Span:__init(name, trace_id, parent_id)
     self.name = name
     self.id = lrandomkey(1)
     self.trace_id = trace_id or lrandomkey(1)
     self.timestamp = lnow_ms() * 1000
     self.parent_id = parent_id
+    --注册回调
+    self:register(function()
+        self:output()
+    end)
 end
 
---https://zipkin.io/zipkin-api/
-function Span:__defer()
+function Span:output()
     local arsg = {{
         id = self.id,
         kind = "CLIENT",
@@ -47,6 +53,15 @@ function Span:__defer()
         }
     }}
     log_dump(jencode(arsg))
+end
+
+function Span:reset()
+    self.tags = {}
+    self.annotations = {}
+    Defer.reset(self)
+    self:register(function()
+        self:output()
+    end)
 end
 
 function Span:track(annotation, tags)

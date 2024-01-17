@@ -6,8 +6,9 @@ local signalquit        = signal.quit
 local log_err           = logger.err
 local log_warn          = logger.warn
 local log_info          = logger.info
-local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
+local new_span          = quanta.new_span
+local inject_span       = quanta.inject_span
 local hash_code         = codec.hash_code
 
 local event_mgr         = quanta.get("event_mgr")
@@ -57,10 +58,10 @@ function RpcServer:__init(holder, ip, port, induce)
 end
 
 --rpc事件
-function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ...)
+function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ispan, ...)
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
-            local hook<close> = qdefer()
+            local span<close> = new_span(rpc, ispan)
             event_mgr:execute_hook(rpc, hook, ...)
             local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
             if session_id > 0 then
@@ -93,7 +94,8 @@ function RpcServer:on_socket_accept(client)
     self.clients[token] = client
     -- 绑定call/回调
     client.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = client.call(session_id, rpc_flag, 0, rpc, ...)
+        local span = inject_span()
+        local send_len = client.call(session_id, rpc_flag, 0, rpc, span, ...)
         if send_len < 0 then
             log_err("[RpcServer][call_rpc] call failed! code:{}", send_len)
             return false

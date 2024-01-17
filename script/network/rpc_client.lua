@@ -2,9 +2,10 @@
 
 local tunpack           = table.unpack
 local log_err           = logger.err
-local qdefer            = quanta.defer
-local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
+local qxpcall           = quanta.xpcall
+local new_span          = quanta.new_span
+local inject_span       = quanta.inject_span
 
 local event_mgr         = quanta.get("event_mgr")
 local timer_mgr         = quanta.get("timer_mgr")
@@ -84,37 +85,44 @@ function RpcClient:connect()
         qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, session_id, rpc_flag, recv_len, ...)
     end
     socket.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = socket.call(session_id, rpc_flag, quanta.id, rpc, ...)
+        local span = inject_span()
+        local send_len = socket.call(session_id, rpc_flag, quanta.id, rpc, span, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.transfer = function(rpc, session_id, target_id, service_id, ...)
-        local send_len = socket.forward_transfer(session_id, target_id, service_id, quanta.id, rpc, ...)
+        local span = inject_span()
+        local send_len = socket.forward_transfer(session_id, target_id, service_id, quanta.id, rpc, span, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_target = function(rpc, session_id, target, ...)
-        local send_len = socket.forward_target(session_id, FLAG_REQ, target, quanta.id, rpc, ...)
+        local span = inject_span()
+        local send_len = socket.forward_target(session_id, FLAG_REQ, target, quanta.id, rpc, span, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.callback_target = function(rpc, session_id, target, ...)
+        local span = inject_span()
         if target == 0 then
-            local send_len = socket.call(session_id, FLAG_RES, quanta.id, rpc, ...)
+            local send_len = socket.call(session_id, FLAG_RES, quanta.id, rpc, span, ...)
             return self:on_call_router(rpc, token, send_len)
         else
-            local send_len = socket.forward_target(session_id, FLAG_RES, target, quanta.id, rpc, ...)
+            local send_len = socket.forward_target(session_id, FLAG_RES, target, quanta.id, rpc, span, ...)
             return self:on_call_router(rpc, token, send_len)
         end
     end
     socket.call_hash = function(rpc, session_id, service_id, hash_key, ...)
+        local span = inject_span()
         local hash_value = hash_code(hash_key, 0xffff)
-        local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, quanta.id, rpc, ...)
+        local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, quanta.id, rpc, span, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_master = function(rpc, session_id, service_id, ...)
-        local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, quanta.id, rpc, ...)
+        local span = inject_span()
+        local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, quanta.id, rpc, span, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_broadcast = function(rpc, session_id, service_id, ...)
-        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, quanta.id, rpc, ...)
+        local span = inject_span()
+        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, quanta.id, rpc, span, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.on_error = function(stoken, err)
@@ -141,7 +149,7 @@ function RpcClient:close()
 end
 
 --rpc事件
-function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source, rpc, ...)
+function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source, rpc, ispan, ...)
     if rpc == "on_heartbeat" then
         return
     end
@@ -151,8 +159,8 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source,
     end
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
-            local hook<close> = qdefer()
-            event_mgr:execute_hook(rpc, hook, ...)
+            local span<close> = new_span(rpc, ispan)
+            event_mgr:execute_hook(rpc, span, ...)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
                 socket.callback_target(rpc, session_id, source, tunpack(rpc_datas))

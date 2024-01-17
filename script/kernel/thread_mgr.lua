@@ -7,8 +7,9 @@ local co_yield      = coroutine.yield
 local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running
-local qtracked      = quanta.tracked
+local qpass_span    = quanta.pass_span
 local synclock      = quanta.synclock
+local qtracked      = quanta.tracked
 local qxpcall       = quanta.xpcall
 local qdefer        = quanta.defer
 local mrandom       = qmath.random
@@ -229,6 +230,7 @@ function ThreadMgr:fork(f, ...)
         local args = { ... }
         co = self:create_co(function() f(tunpack(args, 1, n)) end)
     end
+    qpass_span(co)
     self:resume(co, ...)
     return co
 end

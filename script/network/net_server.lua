@@ -5,8 +5,8 @@ local log_info          = logger.info
 local log_warn          = logger.warn
 local log_fatal         = logger.fatal
 local signalquit        = signal.quit
-local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
+local new_span          = quanta.new_span
 
 local proto_pb          = luabus.eproto_type.pb
 
@@ -159,8 +159,9 @@ end
 function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(_session, typ, cmd, cbody)
-            local hook<close> = qdefer()
-            event_mgr:execute_hook(cmd_id, hook, body)
+            local cmd_name = protobuf_mgr:msg_name(cmd_id)
+            local span<close> = new_span(cmd_name)
+            event_mgr:execute_hook(cmd_id, span, body)
             local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, cbody, session_id)
             if not result[1] then
                 log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd_id)
