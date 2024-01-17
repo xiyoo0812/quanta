@@ -61,7 +61,7 @@ end
 
 -- 注册NTF消息处理
 function SessionModule:register_doer(pb_name, module, handler)
-    local cmdid = protobuf_mgr:enum("NCmdId", pb_name)
+    local cmdid = protobuf_mgr:msg_id(pb_name)
     self.cmd_doers[cmdid] = {module, handler}
 end
 

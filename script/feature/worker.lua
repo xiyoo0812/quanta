@@ -39,7 +39,6 @@ local function init_network()
 end
 
 local function init_listener()
-    event_mgr:add_listener(quanta, "on_append")
     event_mgr:add_listener(quanta, "on_reload")
 end
 
@@ -75,12 +74,6 @@ quanta.on_reload = function()
     quanta.reload()
     --事件通知
     event_mgr:notify_trigger("on_reload")
-end
-
---附件文件
-quanta.on_append = function(_, file)
-    log_info("[quanta][on_append] worker:{} append {}!", TITLE, file)
-    import(file)
 end
 
 --启动

@@ -34,7 +34,6 @@ function NodeReq:on_action()
             self:failed("collect inputs failed")
             return false
         end
-        log_debug("[NodeReq][on_action] robot:{} call {}=>{} success", role.open_id, self.cmd_id, values)
         local ok, res = role:call(self.cmd_id, values)
         if role:check_callback(ok, res) then
             log_warn("[NodeReq][on_action] robot:{} call {} failed: ok={}, res={}", role.open_id, self.cmd_id, ok, res)
@@ -42,6 +41,7 @@ function NodeReq:on_action()
             self:failed(res)
             return false
         end
+        log_debug("[NodeReq][on_action] robot:{} call {}=>{} success", role.open_id, self.cmd_id, values)
         self:write_outputs(self.outputs, res)
         self:run_script(self.script, res)
     end

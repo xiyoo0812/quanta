@@ -1,6 +1,7 @@
 -- coroutine.lua
 local tpack         = table.pack
 local tunpack       = table.unpack
+local sformat       = string.format
 local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
 local co_running    = coroutine.running
@@ -51,4 +52,12 @@ end
 
 function quanta.trace_id()
     return TRACES[co_running()]
+end
+
+function quanta.trace_fmt()
+    local trace_id = TRACES[co_running()]
+    if not trace_id then
+        return ""
+    end
+    return sformat(" T:%d", TRACES[co_running()])
 end

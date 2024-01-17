@@ -49,7 +49,7 @@ namespace logger {
     template<size_t... integers>
     int tformat(lua_State* L, log_level lvl, cstring& tag, cstring& feature, cstring& trace_id, int flag, vstring vfmt, std::index_sequence<integers...>&&) {
         try {
-            auto msg = fmt::format(vfmt, read_args(L, flag, integers + 6)...);
+            auto msg = fmt::format(vfmt, read_args(L, flag, integers + 7)...);
             return zformat(L, lvl, tag, feature, trace_id, flag, msg);
         } catch (const exception& e) {
             luaL_error(L, "log format failed: %s!", e.what());
@@ -76,8 +76,8 @@ namespace logger {
             size_t flag = lua_tointeger(L, 2);
             sstring tag = lua_to_native<sstring>(L, 3);
             sstring feature = lua_to_native<sstring>(L, 4);
-            vstring vfmt = lua_to_native<vstring>(L, 5);
-            sstring trace_id = lua_to_native<sstring>(L, 6);
+            sstring trace_id = lua_to_native<sstring>(L, 5);
+            vstring vfmt = lua_to_native<vstring>(L, 6);
             int arg_num = lua_gettop(L) - 6;
             switch (arg_num) {
             case 0: return zformat(L, lvl, tag, feature, trace_id, flag, string(vfmt.data(), vfmt.size()));

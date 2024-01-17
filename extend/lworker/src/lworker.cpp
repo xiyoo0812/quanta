@@ -2,6 +2,8 @@
 
 #include "scheduler.h"
 
+using vstring   = std::string_view;
+
 namespace lworker {
 
     static scheduler schedulor;
@@ -11,14 +13,14 @@ namespace lworker {
         llworker.set_function("shutdown", []() { schedulor.shutdown(); });
         llworker.set_function("update", [&](uint64_t clock_ms) { schedulor.update(clock_ms); });
         llworker.set_function("broadcast", [&](lua_State* L) { return schedulor.broadcast(L); });
-        llworker.set_function("setup", [](lua_State* L, std::string_view service, std::string_view sandbox) {
+        llworker.set_function("setup", [](lua_State* L, vstring service, vstring sandbox) {
             schedulor.setup(L, service, sandbox);
             return 0;
         });
-        llworker.set_function("startup", [](std::string_view name, std::string_view entry) {
-            return schedulor.startup(name, entry);
+        llworker.set_function("startup", [](vstring name, vstring entry, vstring incl) {
+            return schedulor.startup(name, entry, incl);
         });
-        llworker.set_function("call", [](lua_State* L, std::string_view name) {
+        llworker.set_function("call", [](lua_State* L, vstring name) {
             return schedulor.call(L, name);
         });
         return llworker;

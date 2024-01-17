@@ -19,11 +19,11 @@ local TITLE         = quanta.title
 local load_status = "success"
 local log_error = function(content)
     load_status = "failed"
-    lprint(LOG_LEVEL.ERROR, 0, TITLE, FEATURE, content)
+    lprint(LOG_LEVEL.ERROR, 0, TITLE, FEATURE, "", content)
 end
 
 local log_output = function(content)
-    lprint(LOG_LEVEL.INFO, 0, TITLE, FEATURE, content)
+    lprint(LOG_LEVEL.INFO, 0, TITLE, FEATURE, "", content)
 end
 
 local function ssplit(str, token)

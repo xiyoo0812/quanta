@@ -5,7 +5,7 @@ local pcall         = pcall
 local pairs         = pairs
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
-local qtrace_id     = quanta.trace_id
+local qtrace_fmt    = quanta.trace_fmt 
 local sformat       = string.format
 local lfilter       = log.filter
 local lprint        = log.print
@@ -52,24 +52,25 @@ function logger.filter(level)
 end
 
 local function logger_format(flag, feature, lvl, lvl_name, fmt, ...)
+    local trace_id = qtrace_fmt()
     local ok, msg = pcall(sformat, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"
-        lprint(LOG_LEVEL.WARN, 0, title, feature, wfmt, lvl_name, msg, dtraceback())
+        lprint(LOG_LEVEL.WARN, 0, title, feature, trace_id, wfmt, lvl_name, msg, dtraceback())
         return
     end
-    lprint(lvl, flag, title, feature, msg)
+    lprint(lvl, flag, title, feature, trace_id, msg)
 end
 
 local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
     if not fmt:find("{") then
         return logger_format(flag, feature, lvl, lvl_name, fmt, ...)
     end
-    local trace_id = qtrace_id()
+    local trace_id = qtrace_fmt()
     local ok, msg = pcall(lprint, lvl, flag, title, feature, trace_id, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"
-        lprint(LOG_LEVEL.WARN, 0, title, feature, wfmt, lvl_name, msg, dtraceback())
+        lprint(LOG_LEVEL.WARN, 0, title, feature, trace_id, wfmt, lvl_name, msg, dtraceback())
         return
     end
     if msg then
