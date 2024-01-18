@@ -24,6 +24,7 @@ local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 --初始化核心
 local function init_core()
+    quanta.init_coroutine()
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
     import("kernel/config_mgr.lua")
@@ -37,13 +38,7 @@ local function init_network()
     quanta.socket_mgr = socket_mgr
 end
 
-local function init_coroutine()
-    import("basic/coroutine.lua")
-    quanta.init_coroutine()
-end
-
 local function init_listener()
-    event_mgr:add_listener(quanta, "on_append")
     event_mgr:add_listener(quanta, "on_reload")
 end
 
@@ -58,8 +53,6 @@ local function init_mainloop()
 end
 
 function quanta.init()
-    --协程初始化
-    init_coroutine()
     --核心加载
     init_core()
     --初始化基础模块
@@ -81,12 +74,6 @@ quanta.on_reload = function()
     quanta.reload()
     --事件通知
     event_mgr:notify_trigger("on_reload")
-end
-
---附件文件
-quanta.on_append = function(_, file)
-    log_info("[quanta][on_append] worker:{} append {}!", TITLE, file)
-    import(file)
 end
 
 --启动
