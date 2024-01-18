@@ -123,23 +123,6 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
     return false;
 }
 
-bool socket_router::do_transfer_call(transfer_header* header, char* data, size_t data_len) {
-    auto& services = m_services[header->service_id];
-    auto& nodes = services.nodes;
-    int count = (int)nodes.size();
-    if (count == 0) {
-        return false;
-    }
-    auto& target = nodes[header->target_id % count];
-    if (target.token != 0) {
-        sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
-        m_mgr->sendv(target.token, items, _countof(items));
-        m_route_count++;
-        return true;
-    }
-    return false;
-}
-
 uint32_t socket_router::get_route_count() {
     uint32_t old = m_route_count;
     m_route_count = 0;
