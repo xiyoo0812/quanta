@@ -62,8 +62,7 @@ static int ltohex(lua_State *L) {
 static int lrandomkey(lua_State *L) {
     char tmp[8];
     int i;
-    for (i=0;i<8;i++)
-    {
+    for (i=0;i<8;i++) {
         tmp[i] = rand() & 0xff;
     }
     if (luaL_optinteger(L, 1, 0)) {
