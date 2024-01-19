@@ -4,6 +4,7 @@ import("agent/online_agent.lua")
 local tunpack       = table.unpack
 local qmake_mq      = quanta.make_mq
 
+local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local online        = quanta.get("online")
@@ -54,12 +55,12 @@ end
 
 --load_reliable_events
 function MsgComponent:load_reliable_events()
-    thread_mgr:entry(self.id, function()
+    local ok = thread_mgr:entry(self.id, function()
         local timestamp = 0
         local serv_name = quanta.service_name
         local msg_queue = self:create_mq(serv_name)
         local events = msg_queue:list_message(self.id)
-        for i, event in ipairs(events) do
+        for _, event in ipairs(events) do
             if event.time > timestamp then
                 timestamp = event.time
             end
@@ -69,6 +70,9 @@ function MsgComponent:load_reliable_events()
             msg_queue:delete_message(self.id, timestamp)
         end
     end)
+    if not ok then
+        event_mgr:publish_frame(self, "load_reliable_events")
+    end
 end
 
 --通过gateway转发消息给client
