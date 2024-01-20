@@ -60,7 +60,7 @@ function GatePlayer:notify_heartbeat(session, cmd_id, body, session_id)
     -- 缓存服务
     router_mgr:forward_send(self.player_id, -1, "rpc_player_heartbeat", self.player_id)
     client_mgr:check_flow(session)
-    client_mgr:callback_by_id(session, cmd_id, { time = quanta.now_ms }, session_id)
+    client_mgr:callback_by_id(session, cmd_id, { time = quanta.now_ms, error_code = 0 }, session_id)
 end
 
 --发送消息

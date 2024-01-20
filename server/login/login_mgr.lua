@@ -22,7 +22,7 @@ end
 --心跳协议
 function LoginMgr:on_heartbeat_req(session, cmd_id, body, session_id)
     client_mgr:check_flow(session)
-    client_mgr:callback_by_id(session, cmd_id, { time = quanta.now_ms }, session_id)
+    client_mgr:callback_by_id(session, cmd_id, { time = quanta.now_ms, error_code = 0 }, session_id)
 end
 
 --客户端连上
