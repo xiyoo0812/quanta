@@ -49,6 +49,10 @@ function UpdateMgr:__init()
     self:attach_second(event_mgr)
     self:attach_second(thread_mgr)
     self:attach_second30(thread_mgr)
+    --初始化变量
+    local time = odate("*t")
+    self.last_minute = time.min
+    self.last_hour = time.hour
 end
 
 function UpdateMgr:update_second(clock_ms)

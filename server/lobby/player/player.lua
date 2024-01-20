@@ -33,10 +33,11 @@ prop:reader("routers", {})          --routers
 prop:accessor("user_id", nil)       --user_id
 prop:accessor("open_id", nil)       --open_id
 prop:accessor("account", nil)       --account
+prop:accessor("offtime", OFFTIMEOUT)    --offtime
 
 local dprop = db_property(Player, "player", true)
 dprop:store_value("nick", "")       --nick
-dprop:store_value("facade", "")     --nick
+dprop:store_value("facade", "")     --facade
 dprop:store_value("upgrade_time", 0)--upgrade_time
 dprop:store_value("energy_tick", 0)--下次能量恢复时间
 function Player:__init(id)
@@ -133,7 +134,7 @@ function Player:check(now)
     end
     if self.status == ONL_OFFLINE then
         --掉线清理
-        if now_ms - self.active_time > OFFTIMEOUT then
+        if now_ms - self.active_time > self.offtime then
             log_warn("[Player][check] player({}) offline too long, will be destory!", self.id)
             self:set_release(true)
             self.status = ONL_CLOSE
