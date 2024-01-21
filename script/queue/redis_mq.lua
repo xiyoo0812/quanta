@@ -16,6 +16,8 @@ local prop = property(RedisMQ)
 prop:reader("expire_keys", {})  -- expire_keys
 prop:reader("coll_name", "")    -- coll_name
 prop:reader("prefix", nil)      -- prefix
+prop:reader("index", 0)         -- index
+prop:reader("time", 0)          -- time
 
 function RedisMQ:__init()
 end
@@ -53,9 +55,19 @@ function RedisMQ:delete_message(target_id, timestamp)
     return redis_agent:execute({ "ZREMRANGEBYSCORE", zset_name, 0, timestamp }, target_id)
 end
 
+function RedisMQ:build_timestamp()
+    local now = quanta.now
+    if now ~= self.time then
+        self.time = now
+        self.index = 0
+    end
+    self.index = self.index + 1
+    return now << 30 + self.index
+end
+
 -- 发送消息
 function RedisMQ:send_message(target_id, event, args, ttl)
-    local timestamp = quanta.now_ms
+    local timestamp = self:build_timestamp()
     local doc = { args = args, event = event, time = timestamp }
     local zset_name = sformat("%s:%s", self.prefix, target_id)
     local ok, code = redis_agent:execute({ "ZADD", zset_name, timestamp, doc }, target_id)

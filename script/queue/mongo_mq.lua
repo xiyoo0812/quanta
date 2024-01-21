@@ -12,6 +12,8 @@ local mongo_agent   = quanta.get("mongo_agent")
 local MongoMQ = class()
 local prop = property(MongoMQ)
 prop:reader("coll_name", "")    -- coll_name
+prop:reader("index", 0)         -- index
+prop:reader("time", 0)          -- time
 
 function MongoMQ:__init()
 end
@@ -54,9 +56,20 @@ function MongoMQ:delete_message(target_id, timestamp)
     return mongo_agent:delete({ self.coll_name, selecter }, target_id)
 end
 
+function MongoMQ:build_timestamp()
+    local now = quanta.now
+    if now ~= self.time then
+        self.time = now
+        self.index = 0
+    end
+    self.index = self.index + 1
+    return now << 30 + self.index
+end
+
 -- 发送消息
 function MongoMQ:send_message(target_id, event, args, ttl)
-    local doc = { args = args, event = event, target_id = target_id, time = quanta.now_ms }
+    local timestamp = self:build_timestamp()
+    local doc = { args = args, event = event, target_id = target_id, time = timestamp }
     if ttl then
         --设置过期ttl字段
         doc.ttl = bdate(quanta.now + ttl)
