@@ -67,7 +67,7 @@ function MsgComponent:load_reliable_events()
             self:notify_event(event.event, tunpack(event.args))
         end
         if timestamp > 0 then
-            msg_queue:delete_message(self.id, timestamp)
+            msg_queue:delete_message(self.id, timestamp, #events)
         end
     end)
     if not ok then
