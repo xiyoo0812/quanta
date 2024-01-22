@@ -162,18 +162,20 @@ namespace laoi {
             object_set objs;
             kit_state kit_state(L);
             get_rect_objects(objs, nxgrid - m_aoi_radius, nxgrid + m_aoi_radius, nzgrid - m_aoi_radius, nzgrid + m_aoi_radius);
-            std::map<uint64_t, uint64_t> eenters;
+            std::vector<uint64_t> eenters;
             for (auto cobj : objs) {
                 if (obj == cobj) continue;
                 if (cobj->type == aoi_type::watcher) {
-                    eenters[cobj->eid] = obj->eid;
+                    eenters.push_back(cobj->eid);
+                    eenters.push_back(obj->eid);
                 }
                 if (obj->type == aoi_type::watcher) {
-                    eenters[obj->eid] = cobj->eid;
+                    eenters.push_back(obj->eid);
+                    eenters.push_back(cobj->eid);
                 }
             }
             //消息通知
-            if (!eenters.empty()) {
+            if (!eenters.empty() ) {
                 kit_state.object_call(this, "on_enter", nullptr, std::tie(), eenters);
             }
             //放入格子
@@ -196,17 +198,19 @@ namespace laoi {
             kit_state kit_state(L);
             get_rect_objects(objs, obj->grid_x - m_aoi_radius, obj->grid_x + m_aoi_radius, obj->grid_z - m_aoi_radius, obj->grid_z + m_aoi_radius);
             //退出视野
-            std::map<uint64_t, uint64_t> eleaves;
+            std::vector<uint64_t> eleaves;
             for (auto cobj : objs) {
                 if (obj == cobj) continue;
                 if (cobj->type == aoi_type::watcher) {
-                    eleaves[cobj->eid] = obj->eid;
+                    eleaves.push_back(cobj->eid);
+                    eleaves.push_back(obj->eid);
                 }
                 if (obj->type == aoi_type::watcher) {
-                    eleaves[obj->eid] = cobj->eid;
+                    eleaves.push_back(obj->eid);
+                    eleaves.push_back(cobj->eid);
                 }
             }
-            if (!eleaves.empty()) {
+            if (!eleaves.empty() ) {
                 kit_state.object_call(this, "on_leave", nullptr, std::tie(), eleaves);
             }
             remove(obj);
@@ -239,32 +243,35 @@ namespace laoi {
             object_set enters, leaves;
             get_around_objects(enters, leaves, obj->grid_x, obj->grid_z, nxgrid, nzgrid);
             //进入视野
-            std::map<uint64_t, uint64_t> eenters, eleaves;
+            std::vector<uint64_t> eenters, eleaves;
             for (auto cobj : enters) {
                 if (obj == cobj) continue;
                 if (cobj->type == aoi_type::watcher) {
-                    eenters[cobj->eid] = obj->eid;
+                    eenters.push_back(cobj->eid);
+                    eenters.push_back(obj->eid);
                 }
                 if (obj->type == aoi_type::watcher) {
-                    eenters[obj->eid] = cobj->eid;
+                    eenters.push_back(obj->eid);
+                    eenters.push_back(cobj->eid);
                 }
             }
             //退出视野
             for (auto cobj : leaves) {
-                if (cobj->eid != obj->eid) {
-                    if (cobj->type == aoi_type::watcher) {
-                        eleaves[cobj->eid] = obj->eid;
-                    }
-                    if (obj->type == aoi_type::watcher) {
-                        eleaves[obj->eid] = cobj->eid;
-                    }
+                if (obj == cobj) continue;
+                if (cobj->type == aoi_type::watcher) {
+                    eleaves.push_back(cobj->eid);
+                    eleaves.push_back(obj->eid);
                 }
+                if (obj->type == aoi_type::watcher) {
+                    eleaves.push_back(obj->eid);
+                    eleaves.push_back(cobj->eid);
+                }
+            }
+            if (!eleaves.empty() ) {
+                kit_state.object_call(this, "on_leave", nullptr, std::tie(), eleaves);
             }
             if (!eenters.empty()) {
                 kit_state.object_call(this, "on_enter", nullptr, std::tie(), eenters);
-            }
-            if (!eleaves.empty()) {
-                kit_state.object_call(this, "on_leave", nullptr, std::tie(), eleaves);
             }
             //插入
             insert(obj, nxgrid, nzgrid);
