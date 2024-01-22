@@ -56,18 +56,14 @@ end
 --load_reliable_events
 function MsgComponent:load_reliable_events()
     local ok = thread_mgr:entry(self.id, function()
-        local timestamp = 0
         local serv_name = quanta.service_name
         local msg_queue = self:create_mq(serv_name)
         local events = msg_queue:list_message(self.id)
-        for _, event in ipairs(events) do
-            if event.time > timestamp then
-                timestamp = event.time
+        if events then
+            for _, event in ipairs(events) do
+                self:notify_event(event.event, tunpack(event.args))
             end
-            self:notify_event(event.event, tunpack(event.args))
-        end
-        if timestamp > 0 then
-            msg_queue:delete_message(self.id, timestamp, #events)
+            msg_queue:delete_message(self.id, events)
         end
     end)
     if not ok then

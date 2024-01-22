@@ -47,10 +47,12 @@ function RedisMQ:list_message(target_id)
 end
 
 -- 删除消息
-function RedisMQ:delete_message(target_id, timestamp, count)
-    log_info("[RedisMQ][delete_message] delete message: {}-{}", target_id, count)
+function RedisMQ:delete_message(target_id, events)
+    for _, event in ipairs(events) do
+        log_debug("[RedisMQ][delete_message] delete message: {}-{}", target_id, event)
+    end
     local list_name = sformat("%s:%s", self.prefix, target_id)
-    return redis_agent:execute({ "LTRIM", list_name, count, -1 }, target_id)
+    return redis_agent:execute({ "LTRIM", list_name, #events, -1 }, target_id)
 end
 
 -- 发送消息

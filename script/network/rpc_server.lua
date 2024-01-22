@@ -165,7 +165,6 @@ function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
         client.call_rpc(rpc, 0, FLAG_REQ, ...)
     end
-    socket_mgr:broadgroup()
 end
 
 --broadcast接口，注册后才转发
