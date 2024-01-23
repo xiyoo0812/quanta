@@ -197,7 +197,9 @@ namespace laoi {
             object_set objs;
             kit_state kit_state(L);
             get_rect_objects(objs, obj->grid_x - m_aoi_radius, obj->grid_x + m_aoi_radius, obj->grid_z - m_aoi_radius, obj->grid_z + m_aoi_radius);
-            //退出视野
+            //移除
+            remove(obj);
+            //消息通知
             std::vector<uint64_t> eleaves;
             for (auto cobj : objs) {
                 if (obj == cobj) continue;
@@ -213,7 +215,6 @@ namespace laoi {
             if (!eleaves.empty() ) {
                 kit_state.object_call(this, "on_leave", nullptr, std::tie(), eleaves);
             }
-            remove(obj);
             return true;
         }
 
