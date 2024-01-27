@@ -18,7 +18,7 @@ local log_err       = logger.err
 local QueueFIFO     = import("container/queue_fifo.lua")
 
 local SECOND_30_MS  = quanta.enum("PeriodTime", "SECOND_30_MS")
-local SYNC_FRAME    = environ.number("QUANTA_SYNCLOCK_FRAME", 100)
+local SYNC_FRAME    = environ.number("QUANTA_SYNCLOCK_FRAME", 50)
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
