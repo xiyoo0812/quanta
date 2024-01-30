@@ -58,20 +58,28 @@ function RpcServer:__init(holder, ip, port, induce)
 end
 
 --rpc事件
-function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ispan, ...)
-    if session_id == 0 or rpc_flag == FLAG_REQ then
-        local function dispatch_rpc_message(...)
-            local span<close> = new_span(rpc, ispan)
-            event_mgr:execute_hook(rpc, hook, ...)
-            local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
-            if session_id > 0 then
-                client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))
+function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ...)
+    if client.id or rpc == "rpc_register" then
+        if session_id == 0 or rpc_flag == FLAG_REQ then
+            local function dispatch_rpc_message(...)
+                local hook<close> = qdefer()
+                event_mgr:execute_hook(rpc, hook, ...)
+                local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
+                if session_id > 0 then
+                    client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))
+                end
             end
+            thread_mgr:fork(dispatch_rpc_message, ...)
+            return
         end
-        thread_mgr:fork(dispatch_rpc_message, ...)
+        thread_mgr:response(session_id, ...)
         return
     end
-    thread_mgr:response(session_id, ...)
+    if rpc == "rpc_heartbeat" then
+        return
+    end
+    log_err("[RpcServer][on_socket_rpc] Illegal client({}) rpc({})! will be closed!", client.ip, rpc)
+    self:close_client(client)
 end
 
 --连接关闭
@@ -167,7 +175,6 @@ function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
         client.call_rpc(rpc, 0, FLAG_REQ, ...)
     end
-    socket_mgr:broadgroup()
 end
 
 --broadcast接口，注册后才转发
@@ -185,6 +192,14 @@ function RpcServer:servicecast(service_id, rpc, ...)
         if service_id == 0 or client.service == service_id then
             client.call_rpc(rpc, 0, FLAG_REQ, ...)
         end
+    end
+end
+
+-- 关闭会话
+function RpcServer:close_client(client)
+    if client then
+        self.clients[client.token] = nil
+        client.close()
     end
 end
 

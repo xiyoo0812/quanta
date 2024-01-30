@@ -38,7 +38,7 @@ function NodeBase:write_output(name, output, res)
         return true
     end
     if output.type == "lua" then
-        self:run_script(output.value, res)
+        role[name] = self:call_script(output.value, res)
         return true
     end
     role[name] = output.value
@@ -102,12 +102,12 @@ function NodeBase:exec_script(expr, res)
     local role = self.actor
     local ok, func = pcall(load(expr))
     if not ok then
-        log_warn("[NodeBase][run_script] robot:{} load script {} failed: {}", role.open_id, expr, func)
+        log_warn("[NodeBase][exec_script] robot:{} load script {} failed: {}", role.open_id, expr, func)
         return
     end
     local ok2, value = pcall(func, role, self.case.variables, res)
     if not ok2 then
-        log_warn("[NodeBase][run_script] robot:{} exec script {} failed: {}", role.open_id, expr, value)
+        log_warn("[NodeBase][exec_script] robot:{} exec script {} failed: {}", role.open_id, expr, value)
         return
     end
     return value

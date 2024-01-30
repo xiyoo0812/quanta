@@ -41,7 +41,7 @@ return {
                 gate_port = { type = "attr", value = "port" },
                 lobby_token = { type = "attr", value = "token" },
                 player_id = { type = "attr", value = "role_id" },
-                gate_ip = { type = "lua", value = "robot.gate_ip=vars.addrs[1]" },
+                gate_ip = { type = "lua", value = "vars.addrs[1]" },
             },
             next = 6
         },
@@ -83,7 +83,7 @@ return {
             cmd_id = "NID_ENTITY_ENTER_SCENE_NTF",
             cond = "res.id==robot.player_id",
             outputs = {
-                login_success = { type = "const", value = true },
+                login_success = { type = "lua", value = "true" },
             },
         },
     }

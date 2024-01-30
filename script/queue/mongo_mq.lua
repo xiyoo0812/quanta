@@ -6,6 +6,7 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
 local qsuccess      = quanta.success
+local new_guid      = codec.guid_new
 
 local mongo_agent   = quanta.get("mongo_agent")
 
@@ -44,19 +45,19 @@ function MongoMQ:list_message(target_id)
     if qsuccess(code, ok) then
         return result
     end
-    return {}
 end
 
 -- 删除消息
-function MongoMQ:delete_message(target_id, timestamp)
-    log_info("[MongoMQ][delete_message] delete message: {}", target_id)
-    local selecter = { ["$and"] = { { target_id = target_id }, { time = {["$lte"] = timestamp } }}}
-    return mongo_agent:delete({ self.coll_name, selecter }, target_id)
+function MongoMQ:delete_message(target_id, events)
+    for _, event in ipairs(events) do
+        log_debug("[RedisMQ][delete_message] delete message: {}-{}", target_id, event)
+        mongo_agent:delete({ self.coll_name, { uuid = event.uuid } }, target_id)
+    end
 end
 
 -- 发送消息
 function MongoMQ:send_message(target_id, event, args, ttl)
-    local doc = { args = args, event = event, target_id = target_id, time = quanta.now_ms }
+    local doc = { args = args, event = event, target_id = target_id, time = quanta.now_ms, uuid = new_guid() }
     if ttl then
         --设置过期ttl字段
         doc.ttl = bdate(quanta.now + ttl)

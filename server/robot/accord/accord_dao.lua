@@ -19,7 +19,7 @@ function AccordDao:load_data(document)
         log_err("[AccordDao][load_data] url:{}", url)
         return false, nil
     end
-    local data = jdecode(body)
+    local data = jdecode(body, true)
     if type(data) == "table" then
         return ok, data.data or {}
     end
