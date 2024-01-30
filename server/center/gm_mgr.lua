@@ -283,7 +283,7 @@ function GM_Mgr:exec_local_cmd(service_id, cmd_name, ...)
     if not ok then
         return { code = code, msg = "fail" }
     end
-    return { code = 0, msg = "success", res=res }
+    return { code = 0, msg = res }
 end
 
 --兼容在线和离线的玩家指令

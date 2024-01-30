@@ -4,8 +4,8 @@ import("network/http_client.lua")
 local jencode       = json.encode
 local sformat       = string.format
 
-local WEBPATH       = environ.get("QUANTA_WEBHOOK_PATH", "./webhooks/")
-local log_dump      = logfeature.dump("webhooks", WEBPATH, true)
+local LOG_PATH      = environ.get("QUANTA_LOG_PATH", "./logs/")
+local log_dump      = logfeature.dump("webhooks", LOG_PATH .. "../webhooks/", true)
 
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")

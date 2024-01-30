@@ -5,7 +5,7 @@ local raw_yield     = coroutine.yield
 local raw_resume    = coroutine.resume
 local co_running    = coroutine.running
 
-local co_hookor = quanta.load("co_hookor")
+local co_hookor     = quanta.load("co_hookor")
 
 --协程改造
 function quanta.init_coroutine()

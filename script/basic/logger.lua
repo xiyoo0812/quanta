@@ -12,7 +12,7 @@ local lfilter       = log.filter
 local LOG_LEVEL     = log.LOG_LEVEL
 
 local title         = quanta.title
-local monitors      = _ENV.monitors or {}
+local MONITORS      = quanta.init("MONITORS")
 
 logger = {}
 logfeature = {}
@@ -36,11 +36,11 @@ function logger.daemon(daemon)
 end
 
 function logger.add_monitor(monitor)
-    monitors[monitor] = true
+    MONITORS[monitor] = true
 end
 
 function logger.remove_monitor(monitor)
-    monitors[monitor] = nil
+    MONITORS[monitor] = nil
 end
 
 function logger.filter(level)
@@ -71,7 +71,7 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
         return
     end
     if msg then
-        for monitor in pairs(monitors) do
+        for monitor in pairs(MONITORS) do
             monitor:dispatch_log(msg, lvl_name)
         end
     end

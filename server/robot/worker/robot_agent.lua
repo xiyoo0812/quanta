@@ -10,27 +10,21 @@ local scheduler     = quanta.get("scheduler")
 local timer_mgr     = quanta.get("timer_mgr")
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-local http_client   = quanta.get("http_client")
 
-local ROBOT_ADDR    = environ.get("QUANTA_ROBOT_ADDR")
 local THREAD_ROBOT  = environ.number("QUANTA_THREAD_ROBOT", 2)
+local ROBOT_INCLUDE = environ.get("QUANTA_ROBOT_INCLUDE")
+local ROBOT_ENTRY   = environ.get("QUANTA_ROBOT_ENTRY")
 
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_3_MS   = quanta.enum("PeriodTime", "SECOND_3_MS")
 
 local RobotAgent    = singleton()
-local prop = property(RobotAgent)
-prop:reader("appends", {})
 
 function RobotAgent:__init()
     -- 准备开启
     thread_mgr:success_call(SECOND_MS, function()
         return self:load_task()
     end, SECOND_MS)
-end
-
-function RobotAgent:append(file)
-    self.appends[file] = true
 end
 
 function RobotAgent:startup(conf, task_id, task_conf)
@@ -40,19 +34,13 @@ function RobotAgent:startup(conf, task_id, task_conf)
     for i = 1, worker_num do
         --启动机器人线程
         local name = sformat("robot_%s", i)
-        scheduler:startup(name, "robot.worker.robot")
+        scheduler:startup(name, ROBOT_ENTRY, ROBOT_INCLUDE)
         --发布任务
         event_mgr:fire_second(function()
             local num = all_count >= THREAD_ROBOT and THREAD_ROBOT or all_count
             scheduler:send(name, "startup_robot_task", start_open_id, num, conf.ip, conf.port, conf.start_time, task_conf)
             start_open_id = start_open_id + THREAD_ROBOT
             all_count = all_count - THREAD_ROBOT
-            --执行附件文件
-            for file, _ in pairs(self.appends) do
-                scheduler:append(name, file)
-            end
-            --汇报信息
-            http_client:call_post(ROBOT_ADDR, { task_id = task_id, child = quanta.index })
         end)
     end
     --定时器停止

@@ -4,6 +4,9 @@ import("agent/online_agent.lua")
 local tunpack       = table.unpack
 local qmake_mq      = quanta.make_mq
 
+local event_mgr     = quanta.get("event_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+
 local online        = quanta.get("online")
 local ONL_INLINE    = quanta.enum("OnlineStatus", "INLINE")
 
@@ -52,18 +55,19 @@ end
 
 --load_reliable_events
 function MsgComponent:load_reliable_events()
-    local timestamp = 0
-    local serv_name = quanta.service_name
-    local msg_queue = self:create_mq(serv_name)
-    local events = msg_queue:list_message(self.id)
-    for i, event in ipairs(events) do
-        if event.time > timestamp then
-            timestamp = event.time
+    local ok = thread_mgr:entry(self.id, function()
+        local serv_name = quanta.service_name
+        local msg_queue = self:create_mq(serv_name)
+        local events = msg_queue:list_message(self.id)
+        if events then
+            for _, event in ipairs(events) do
+                self:notify_event(event.event, tunpack(event.args))
+            end
+            msg_queue:delete_message(self.id, events)
         end
-        self:notify_event(event.event, tunpack(event.args))
-    end
-    if timestamp > 0 then
-        msg_queue:delete_message(self.id, timestamp)
+    end)
+    if not ok then
+        event_mgr:publish_frame(self, "load_reliable_events")
     end
 end
 

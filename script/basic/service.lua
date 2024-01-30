@@ -16,8 +16,8 @@
 local sformat       = string.format
 
 --服务组常量
-local SERVICES      = _ENV.SERVICES or {}
-local SERVICE_NAMES = _ENV.SERVICE_NAMES or {}
+local SERVICES      = quanta.init("SERVICES")
+local SERVICE_NAMES = quanta.init("SERVICE_NAMES")
 
 service = {}
 function service.make_node(port, domain)

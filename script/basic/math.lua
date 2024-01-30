@@ -4,7 +4,7 @@ local mfloor        = math.floor
 local mrandom       = math.random
 local mtointeger    = math.tointeger
 
-qmath = _ENV.qmath or {}
+qmath = {}
 
 --四舍五入
 function qmath.round(n)

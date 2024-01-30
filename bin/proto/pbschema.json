@@ -1874,6 +1874,20 @@
                                 ]
                             },
                             "alias": "time"
+                        },
+                        {
+                            "is_repeated": false,
+                            "type": "TYPE_UINT32",
+                            "type_name": "uint32",
+                            "name": "error_code",
+                            "full_name": "ncmd_cs.heartbeat_res.error_code",
+                            "number": 3,
+                            "extend": {
+                                "desc": [
+                                    "错误码"
+                                ]
+                            },
+                            "alias": "error_code"
                         }
                     ]
                 },

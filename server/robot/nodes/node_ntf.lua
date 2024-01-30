@@ -1,5 +1,6 @@
 --node_ntf.lua
 local log_warn      = logger.warn
+local log_debug     = logger.debug
 
 local NodeBase      = import("robot/nodes/node_base.lua")
 
@@ -42,6 +43,7 @@ function NodeNtf:on_action()
             if not cond then
                 return false
             end
+            log_debug("[NodeNtf][on_action] robot:{} wait {} success", role.open_id, self.cmd_id)
         end
         self:write_outputs(self.outputs, res)
         self:run_script(self.script, res)

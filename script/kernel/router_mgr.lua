@@ -198,6 +198,17 @@ function RouterMgr:send_target_hash(target, hash_key, rpc, ...)
 end
 
 --发送给路由
+function RouterMgr:call_router_id(router_id, rpc, ...)
+    local session_id = thread_mgr:build_session_id()
+    return self:forward_target(self:get_router(router_id), "call_rpc", rpc, session_id, FLAG_REQ, ...)
+end
+
+--发送给路由
+function RouterMgr:send_router_id(router_id, rpc, ...)
+    return self:forward_target(self:get_router(router_id), "call_rpc", rpc, 0, FLAG_REQ, ...)
+end
+
+--发送给路由
 function RouterMgr:call_router(hash_key, rpc, ...)
     local session_id = thread_mgr:build_session_id()
     return self:forward_target(self:hash_router(hash_key), "call_rpc", rpc, session_id, FLAG_REQ, ...)

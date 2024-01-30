@@ -18,7 +18,7 @@ local log_err       = logger.err
 local QueueFIFO     = import("container/queue_fifo.lua")
 
 local SECOND_30_MS  = quanta.enum("PeriodTime", "SECOND_30_MS")
-local SYNC_PERFRAME = 10
+local SYNC_FRAME    = environ.number("QUANTA_SYNCLOCK_FRAME", 50)
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
@@ -34,11 +34,14 @@ function ThreadMgr:__init()
     self.coroutine_pool = QueueFIFO(512)
 end
 
-function ThreadMgr:size()
-    local co_idle_size = self.coroutine_pool:size()
+function ThreadMgr:idle_size()
+    return self.coroutine_pool:size()
+end
+
+function ThreadMgr:wait_size()
     local co_yield_size = tsize(self.coroutine_yields)
     local co_wait_size = tsize(self.coroutine_waitings)
-    return co_yield_size + co_wait_size + 1, co_idle_size
+    return co_yield_size + co_wait_size + 1
 end
 
 function ThreadMgr:entry(key, func)
@@ -97,7 +100,7 @@ function ThreadMgr:unlock(key, force)
         local next = queue:head()
         if next then
             local sync_num = queue.sync_num
-            if sync_num < SYNC_PERFRAME then
+            if sync_num < SYNC_FRAME then
                 queue.sync_num = sync_num + 1
                 co_resume(next.co)
                 return

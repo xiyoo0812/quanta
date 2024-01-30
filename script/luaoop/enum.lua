@@ -25,7 +25,7 @@ local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local setmetatable  = setmetatable
 
-local enum_tpls     = _ENV.enum_tpls or {}
+local enum_tpls     = _ENV.__enums or {}
 
 local function enum_tostring(eo)
     local ekv = {}
@@ -124,3 +124,5 @@ function enum(name, base, ...)
     --没有传base参数表示查询
     return enum_tpls[name]
 end
+
+_ENV.__enums = enum_tpls

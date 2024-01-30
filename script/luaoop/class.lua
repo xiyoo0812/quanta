@@ -9,12 +9,13 @@ local rawset    = rawset
 local tostring  = tostring
 local ssub      = string.sub
 local sformat   = string.format
+local sgmatch   = string.gmatch
 local dgetinfo  = debug.getinfo
 local getmetatable = getmetatable
 local setmetatable = setmetatable
 
 --类模板
-local class_tpls = _ENV.class_tpls or {}
+local class_tpls = _ENV.__classes or {}
 
 local function deep_copy(src, dst)
     local ndst = dst or {}
@@ -102,6 +103,7 @@ end
 
 local function object_constructor(class)
     local obj = {}
+    class.__count = class.__count + 1
     object_props(class, obj)
     obj.__addr = ssub(tostring(obj), 8)
     setmetatable(obj, class.__vtbl)
@@ -147,6 +149,8 @@ local function mt_class_newindex(class, field, value)
 end
 
 local function mt_object_release(obj)
+    local class = obj.__class
+    class.__count = class.__count - 1
     object_release(obj.__class, obj)
 end
 
@@ -180,10 +184,11 @@ local function class_constructor(class, super, ...)
         if super then
             setmetatable(vtbl, {__index = super})
         end
-        class.__vtbl = vtbl
-        class.__super = super
+        class.__count = 0
         class.__props = {}
         class.__mixins = {}
+        class.__vtbl = vtbl
+        class.__name = sgmatch(source, ".+/(.+).lua")()
         class_tpl = setmetatable(class, classMT)
         implemented(class, ...)
         class_tpls[source] = class_tpl
@@ -240,3 +245,14 @@ function conv_class(name)
     end
 end
 
+function class_review()
+    local review = {}
+    for _, class in pairs(class_tpls) do
+        if class.__count > 0 then
+            review[class.__name] = class.__count
+        end
+    end
+    return review
+end
+
+_ENV.__classes = class_tpls

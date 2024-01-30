@@ -62,7 +62,6 @@ end
 ------------------------------------------------------------------
 --注册服务器
 function RouterServer:on_client_register(client, node, client_id)
-    log_info("[RouterServer][on_client_register] service: {}", client.name)
     local new_master = socket_mgr.map_token(client_id, client.token)
     log_info("[RouterServer][on_client_register] {} master --> {}", client.service_name, new_master)
 end

@@ -29,10 +29,6 @@ public:
         m_codec = codec;
         m_mgr->set_codec(m_token, codec);
     }
-    void create_codec() {
-        m_codec = m_lvm->create_codec();
-        m_mgr->set_codec(m_token, m_codec);
-    }
 
     int call_pb(lua_State* L);
     int call_data(lua_State* L);

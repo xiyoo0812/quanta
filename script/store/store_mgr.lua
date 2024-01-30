@@ -110,15 +110,15 @@ function StoreMgr:on_fast()
         return
     end
     local channel = makechan("increases store")
-    for stroe in pairs(self.increases) do
+    for store in pairs(self.increases) do
+        self.increases[store] = nil
         channel:push(function()
-            stroe:sync_increase()
+            store:sync_increase()
         end)
         if channel:isfull(STORE_INCRE) then
             break
         end
     end
-    self.increases = {}
     channel:execute(true)
 end
 
@@ -127,15 +127,15 @@ function StoreMgr:on_second()
         return
     end
     local channel = makechan("increases store")
-    for stroe in pairs(self.wholes) do
+    for store in pairs(self.wholes) do
+        self.wholes[store] = nil
         channel:push(function()
-            stroe:sync_whole()
+            store:sync_whole()
         end)
         if channel:isfull(STORE_WHOLE) then
             break
         end
     end
-    self.wholes = {}
     channel:execute(true)
 end
 

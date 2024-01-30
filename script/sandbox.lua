@@ -109,6 +109,17 @@ function quanta.load_failed(content)
     log_error(content)
 end
 
+function quanta.load(name)
+    return quanta[name]
+end
+
+function quanta.init(name, val)
+    if not quanta[name] then
+        quanta[name] = val or {}
+    end
+    return quanta[name]
+end
+
 function quanta.report(type)
     local divider = "----------------------------------------------------------------------------------------"
     local fmt = '{"type":"%s","pid":"%s","state":"%s","time":%s,"service":"%s"}'

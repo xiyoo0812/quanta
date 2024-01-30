@@ -16,6 +16,7 @@ local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 --初始化核心
 local function init_core()
+    quanta.init_coroutine()
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
     import("kernel/config_mgr.lua")
@@ -29,11 +30,6 @@ local function init_network()
     quanta.socket_mgr = socket_mgr
 end
 
-local function init_coroutine()
-    import("basic/coroutine.lua")
-    quanta.init_coroutine()
-end
-
 --初始化loop
 local function init_mainloop()
     import("kernel/timer_mgr.lua")
@@ -45,8 +41,6 @@ local function init_mainloop()
 end
 
 function quanta.init()
-    --协程初始化
-    init_coroutine()
     --核心加载
     init_core()
     --初始化基础模块
