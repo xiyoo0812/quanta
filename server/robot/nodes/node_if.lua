@@ -5,10 +5,10 @@ local NodeBase  = import("robot/nodes/node_base.lua")
 
 local NodeIF = class(NodeBase)
 local prop = property(NodeIF)
-prop:reader("cond", nil)    --cond
-prop:reader("success", nil) --success
-prop:reader("failed", nil)  --failed
-prop:reader("result", false)  --result
+prop:reader("cond", nil)        --cond
+prop:reader("success", nil)     --success
+prop:reader("failed", nil)      --failed
+prop:reader("result", false)    --result
 
 function NodeIF:__init(case)
 end
