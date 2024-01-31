@@ -127,7 +127,7 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
         log_err("[NetClient][write] call_pb failed! code:{}", send_len)
         return false
     end
-    if not session_id then
+    if not session_id or session_id <= 0 then
         return true
     end
     return thread_mgr:yield(session_id, cmd_id, RPC_CALL_TIMEOUT)
