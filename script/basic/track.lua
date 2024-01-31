@@ -8,7 +8,7 @@ local function build_span(name, ispan)
     local co = co_running()
     local Span = import("feature/span.lua")
     local span = Span(name, ispan.trace_id, ispan.parent_id)
-    RACE_SPANS[co] = span
+    TRACE_SPANS[co] = span
     return span
 end
 
