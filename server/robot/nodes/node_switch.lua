@@ -7,38 +7,40 @@ local NodeSwitch = class(NodeBase)
 local prop = property(NodeSwitch)
 prop:reader("inputs", nil)      --inputs
 prop:reader("targets", nil)     --targets
-prop:reader("goal", nil)        --goal
+prop:reader("branch", nil)      --branch
 
 function NodeSwitch:__init(case)
 end
 
 function NodeSwitch:on_load(conf)
     self.inputs = conf.inputs
-    self.targets = conf.targets
+    for _, item in pairs(conf.targets or {}) do
+        self.targets[item[1]] = item[2]
+    end
     return true
 end
 
 function NodeSwitch:go_next()
-    if self.goal then
-        self.case:run_next(self.goal)
+    if self.branch then
+        self.case:run_next(self.branch)
     end
 end
 
 function NodeSwitch:on_action()
     local role = self.actor
-    local value = self:read_input("value")
-    if value == nil then
-        log_warn("[NodeSwitch][on_action] robot:{} switch value null", role.open_id)
+    local skey = self:read_input("key")
+    if skey == nil then
+        log_warn("[NodeSwitch][on_action] robot:{} switch key null", role.open_id)
         self:failed("switch null")
         return false
     end
-    local goal = self.targets[value]
-    if not goal then
-        log_warn("[NodeSwitch][on_action] robot:{} switch value {} not valid", role.open_id, value)
+    local branch = self.targets[skey]
+    if not branch then
+        log_warn("[NodeSwitch][on_action] robot:{} switch key {} not valid", role.open_id, skey)
         self:failed("switch not valid")
         return false
     end
-    self.goal = goal
+    self.branch = branch
     return true
 end
 
