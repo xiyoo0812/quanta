@@ -52,7 +52,7 @@ local function init_mainloop()
     update_mgr = quanta.get("update_mgr")
 end
 
-function quanta.init()
+function quanta.main()
     --核心加载
     init_core()
     --初始化基础模块
@@ -84,7 +84,7 @@ function quanta.startup(entry)
     --初始化随机种子
     math.randomseed(quanta.now_ms)
     --初始化quanta
-    quanta.init()
+    quanta.main()
     --注册系统事件
     --启动服务器
     entry()
