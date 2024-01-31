@@ -11,6 +11,7 @@ local prop = property(NodeBase)
 prop:reader("case", nil)        --case
 prop:reader("next", nil)        --next
 prop:reader("actor", nil)       --actor
+prop:reader("script", nil)      --script
 
 function NodeBase:__init(case)
     self.case = case
@@ -23,6 +24,7 @@ end
 
 function NodeBase:load(conf)
     self.next = conf.next
+    self.script = conf.script
     return self:on_load(conf)
 end
 
@@ -120,6 +122,7 @@ end
 
 --执行
 function NodeBase:action()
+    self:run_script(self.script)
     if not self:on_action() then
         return
     end
