@@ -85,10 +85,6 @@ namespace ljson {
             return 1;
         }
 
-        void init_alc() {
-            yyjson_alc_pool_init(&m_alc, m_buf, sizeof(m_buf));
-        }
-
     protected:
         bool is_array(lua_State* L, int index, bool emy_as_arr) {
             size_t raw_len = lua_rawlen(L, index);
