@@ -9,7 +9,6 @@ local NodeBase  = import("robot/nodes/node_base.lua")
 local NodeReq = class(NodeBase)
 local prop = property(NodeReq)
 prop:reader("cmd_id", nil)  --cmd_id
-prop:reader("script", nil) --script
 prop:reader("inputs", nil)  --inputs
 prop:reader("outputs", nil) --outputs
 
@@ -18,7 +17,6 @@ end
 
 function NodeReq:on_load(conf)
     self.cmd_id = conf.cmd_id
-    self.script = conf.script
     self.inputs = conf.inputs
     self.outputs = conf.outputs
     self:watch(self.cmd_id)
@@ -43,7 +41,6 @@ function NodeReq:on_action()
         end
         log_debug("[NodeReq][on_action] robot:{} call {}=>{} success", role.open_id, self.cmd_id, values)
         self:write_outputs(self.outputs, res)
-        self:run_script(self.script, res)
     end
     return true
 end

@@ -10,7 +10,6 @@ local NodeNtf = class(NodeBase)
 local prop = property(NodeNtf)
 prop:reader("cond", nil)    --cond
 prop:reader("cmd_id", nil)  --cmd_id
-prop:reader("script", nil)  --script
 prop:reader("outputs", nil) --outputs
 
 function NodeNtf:__init(case)
@@ -19,7 +18,6 @@ end
 function NodeNtf:on_load(conf)
     self.cond = conf.cond
     self.cmd_id = conf.cmd_id
-    self.script = conf.script
     self.outputs = conf.outputs
     self:watch(self.cmd_id)
     return true
@@ -46,7 +44,6 @@ function NodeNtf:on_action()
             log_debug("[NodeNtf][on_action] robot:{} wait {} success", role.open_id, self.cmd_id)
         end
         self:write_outputs(self.outputs, res)
-        self:run_script(self.script, res)
     end
     return true
 end

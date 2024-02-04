@@ -4,20 +4,22 @@ local NodeBase  = import("robot/nodes/node_base.lua")
 
 local NodeGM = class(NodeBase)
 local prop = property(NodeGM)
-prop:reader("cmd", nil)     --cmd
+prop:reader("cmds", nil)    --cmds
 prop:reader("time", nil)    --time
 
 function NodeGM:__init(case)
 end
 
 function NodeGM:on_load(conf)
-    self.cmd = conf.cmd
+    self.cmds = conf.cmds
     self.time = conf.time
     return true
 end
 
 function NodeGM:on_action()
-    self.actor:send_gm(self.cmd)
+    for _, cmd in pairs(self.cmds or {}) do
+        self.actor:send_gm(cmd)
+    end
     if self.time then
         self:sleep(self.time)
     end

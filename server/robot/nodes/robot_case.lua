@@ -12,7 +12,8 @@ local NodeSwitch = {
     SOCK    = import("robot/nodes/node_sock.lua"),
     CASE    = import("robot/nodes/node_case.lua"),
     WAIT    = import("robot/nodes/node_wait.lua"),
-    GOAL    = import("robot/nodes/node_goal.lua"),
+    SCRIPT  = import("robot/nodes/node_script.lua"),
+    SWITCH  = import("robot/nodes/node_switch.lua"),
 }
 
 local RobotCase = class()

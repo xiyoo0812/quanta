@@ -6,6 +6,7 @@ local Account = class()
 local prop = property(Account)
 prop:reader("params", {})           --params
 prop:reader("user_id", 0)           --user_id
+prop:reader("channel","")           --channel
 prop:reader("open_id", "")          --open_id
 prop:reader("device_id", 0)         --device_id
 prop:reader("create_time", 0)       --create_time
@@ -31,6 +32,7 @@ function Account:on_db_account_load(data)
         self.user_id = data.user_id
         self.device_id = data.device_id
         self.create_time = data.create_time
+        self.channel = data.channel or "default"
         return true
     end
     return false
