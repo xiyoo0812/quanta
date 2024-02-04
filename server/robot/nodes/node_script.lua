@@ -1,25 +1,25 @@
---node_goal.lua
+--node_script.lua
 
 local NodeBase  = import("robot/nodes/node_base.lua")
 
-local NodeGoal = class(NodeBase)
-local prop = property(NodeGoal)
-prop:reader("script", nil)    --script
+local NodeScript = class(NodeBase)
+local prop = property(NodeScript)
+prop:reader("script", nil)  --script
 prop:reader("outputs", nil) --outputs
 
-function NodeGoal:__init(case)
+function NodeScript:__init(case)
 end
 
-function NodeGoal:on_load(conf)
+function NodeScript:on_load(conf)
     self.script = conf.script
     self.outputs = conf.outputs
     return true
 end
 
-function NodeGoal:on_action()
+function NodeScript:on_action()
     self:write_outputs(self.outputs)
     self:run_script(self.script)
     return true
 end
 
-return NodeGoal
+return NodeScript

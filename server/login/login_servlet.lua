@@ -62,7 +62,7 @@ end
 
 --账号登陆
 function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
-    local open_id, access_token, platform = body.openid, body.session, body.platform
+    local open_id, access_token, platform, channel = body.openid, body.session, body.platform, body.package_channel
     log_debug("[LoginServlet][on_account_login_req] open_id({}) token({}) body:{} login req!", open_id, access_token, body)
     if session.account then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
@@ -94,7 +94,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
 
     --创建账号
     if account:is_newbee() then
-        if not account:create(access_token, device_id, account_params) then
+        if not account:create(access_token, device_id, account_params, channel) then
             log_err("[LoginServlet][on_account_login_req] open_id({}) create account failed!", open_id)
             return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         end
@@ -213,7 +213,7 @@ end
 --账号重登
 function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
     local open_id, token, device_id = body.openid, body.session, body.device_id
-    log_debug("[LoginServlet][on_account_reload_req] openid({}) token({}) reload req!", open_id, token)
+    log_debug("[LoginServlet][on_account_reload_req] openid({}) token({}) device_id({}) reload req!", open_id, token, device_id)
     if session.account then
         return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
     end
@@ -228,8 +228,9 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
     local old_token = account:get_token()
-    if token ~= old_token or device_id ~= account:get_device_id() then
-        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: {}, token: {}-{}", open_id, token, old_token)
+    local old_device_id = account:get_device_id()
+    if token ~= old_token or device_id ~= old_device_id then
+        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: {}, token: {}-{} device_id:{}-{}", open_id, token, old_token, device_id, old_device_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     session.account = account

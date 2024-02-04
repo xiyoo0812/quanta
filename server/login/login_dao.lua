@@ -7,6 +7,7 @@ local log_err       = logger.err
 local tunpack       = table.unpack
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
+local sformat       = string.format
 
 local event_mgr     = quanta.get("event_mgr")
 local mongo_agent   = quanta.get("mongo_agent")
@@ -98,8 +99,8 @@ function LoginDao:load_account(open_id)
 end
 
 --账号数量
-function LoginDao:account_count()
-    local ok, code, cur_num = mongo_agent:count({ "account" })
+function LoginDao:account_count(channel)
+    local ok, code, cur_num = mongo_agent:count({"account", { channel = channel}})
     if qfailed(code, ok) then
         log_err("[LoginDao][account_limit] load account num failed! code: {}, res: {}", code, cur_num)
         return false
@@ -108,8 +109,9 @@ function LoginDao:account_count()
 end
 
 --加载账号限制
-function LoginDao:load_ac_limit()
-    return redis_agent:load_msic(AC_LIMIT_KEY)
+function LoginDao:load_ac_limit(channel)
+    local key = sformat("%s_%s", AC_LIMIT_KEY, channel)
+    return redis_agent:load_msic(key)
 end
 
 quanta.login_dao = LoginDao()
