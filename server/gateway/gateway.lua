@@ -37,7 +37,8 @@ prop:reader("players", {})          --会话列表
 prop:reader("counter", nil)         --计数器
 prop:reader("req_counter", nil)     --计数器
 prop:reader("ntf_counter", nil)     --计数器
-prop:reader("ignore_cmds", {})      --日志过滤
+prop:reader("cache_cmds", {})       --缓存过滤
+prop:reader("print_cmds", {})       --日志过滤
 prop:reader("reenter_cmds", {})     --重入过滤
 
 function Gateway:__init()
@@ -92,25 +93,23 @@ end
 
 ---日志忽略网络消息通知名
 function Gateway:on_cfg_filter_changed()
-    self.ignore_cmds = {}
+    self.print_cmds = {}
+    self.cache_cmds = {}
+    self.reenter_cmds = {}
     for cmd_name, conf in filter:iterator() do
         local cmd_id = protobuf_mgr:msg_id(cmd_name)
         if conf.log then
-            self.ignore_cmds[cmd_id] = true
-            self.ignore_cmds[cmd_name] = true
+            self.print_cmds[cmd_id] = true
+            self.print_cmds[cmd_name] = true
+        end
+        if conf.cache then
+            self.cache_cmds[cmd_id] = true
+            self.cache_cmds[cmd_name] = true
         end
         if conf.proto then
             self.reenter_cmds[cmd_id] = true
         end
     end
-end
-
----是否输出CMD消息的内容
-function Gateway:is_print_cmd(cmd_id)
-    if self.ignore_cmds[cmd_id] then
-        return false
-    end
-    return true
 end
 
 --查找玩家
@@ -177,7 +176,9 @@ function Gateway:rpc_forward_client(player_id, cmd_id, data)
         log_warn("[Gateway][rpc_forward_client] cmd_id({}) player({}) not exist!", cmd_id, player_id)
         return
     end
-    player:send_message(cmd_id, data, self:is_print_cmd(cmd_id))
+    local cachable = self.cache_cmds[cmd_id]
+    local printble = self.print_cmds[cmd_id]
+    player:send_message(cmd_id, data, printble, cachable)
 end
 
 --群发消息
@@ -379,7 +380,7 @@ function Gateway:on_socket_cmd(session, service_type, cmd_id, body, session_id)
         client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
         return
     end
-    player:notify_command(service_type, cmd_id, body, session_id, self:is_print_cmd(cmd_id))
+    player:notify_command(service_type, cmd_id, body, session_id, self.print_cmds[cmd_id])
 end
 
 quanta.gateway = Gateway()
