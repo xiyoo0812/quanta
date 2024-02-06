@@ -19,4 +19,10 @@ filter:upsert({
     proto=true
 })
 
+filter:upsert({
+    cache=true,
+    id=3,
+    name='NID_ENTITY_ENTER_SCENE_NTF'
+})
+
 filter:update()
