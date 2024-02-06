@@ -38,7 +38,7 @@ function NodeBase:write_output(name, output, res)
         return true
     end
     if output.type == "var" then
-        self.case.variables[name] = res[output.value]
+        role.variables[name] = res[output.value]
         return true
     end
     if output.type == "lua" then
@@ -51,10 +51,10 @@ end
 
 --读取输入
 function NodeBase:read_input(input)
-    if input.type == "var" then
-        return self.case.variables[input.value]
-    end
     local role = self.actor
+    if input.type == "var" then
+        return role.variables[input.value]
+    end
     if input.type == "attr" then
         return role[input.value]
     end
@@ -80,7 +80,7 @@ end
 
 --批量输出
 function NodeBase:write_outputs(outputs, res)
-    tcopy(res, self.case.variables)
+    tcopy(res, self.actor.variables)
     for name, output in pairs(outputs or {}) do
         self:write_output(name, output, res)
     end
@@ -109,7 +109,7 @@ function NodeBase:exec_script(expr, res)
         log_warn("[NodeBase][exec_script] robot:{} load script {} failed: {}", role.open_id, expr, func)
         return
     end
-    local ok2, value = pcall(func, role, self.case.variables, res)
+    local ok2, value = pcall(func, role, role.variables, res)
     if not ok2 then
         log_warn("[NodeBase][exec_script] robot:{} exec script {} failed: {}", role.open_id, expr, value)
         return

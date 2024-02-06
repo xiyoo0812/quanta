@@ -25,6 +25,7 @@ prop:reader("user_id", nil)         --user_id
 prop:reader("messages", nil)        --收到的消息回包
 prop:reader("player_id", nil)       --player_id
 prop:reader("device_id", nil)       --device_id
+prop:reader("variables", {})        --variables
 prop:reader("access_token", "123456")
 
 function Robot:__init()
@@ -52,7 +53,7 @@ function Robot:bind_message_eueue()
     self.messages = QueueFIFO()
 end
 
-function Robot:caeck_case(case)
+function Robot:check_case(case)
     return self.case == case
 end
 

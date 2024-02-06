@@ -68,7 +68,6 @@ quanta.bat
 # 依赖
 - lua
 - lbson
-- luabt
 - lcurl
 - ljson
 - luabus
@@ -96,7 +95,7 @@ quanta.bat
 - tcp服务器/客户端支持
 - rpc调用机制支持
 - 协议加密和压缩功能支持
-- 行为树ai功能支持
+- ai功能支持
 - 文件系统支持
 - 异步日志功能支持
 - lua面向对象机制支持

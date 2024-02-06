@@ -23,13 +23,15 @@ namespace laoi {
         marker      = 1,    //被观察者
     };
 
+    class aoi;
     #pragma pack(2)
     struct aoi_obj
     {
-        uint64_t eid;
         aoi_type type;
+        uint64_t eid = 0;
         uint16_t grid_x = 0;
         uint16_t grid_z = 0;
+        aoi* aoi_inst = nullptr; 
         void set_grid(uint16_t x, uint16_t z) {
             grid_x = x;
             grid_z = z;
@@ -158,6 +160,10 @@ namespace laoi {
             if ((nxgrid >= m_xgrid_num) || (nzgrid >= m_zgrid_num)) {
                 return false;
             }
+            if (obj->aoi_inst) {
+                obj->aoi_inst->detach(L, obj);
+            }
+            obj->aoi_inst = this;
             //查询节点
             object_set objs;
             kit_state kit_state(L);
@@ -197,6 +203,8 @@ namespace laoi {
             object_set objs;
             kit_state kit_state(L);
             get_rect_objects(objs, obj->grid_x - m_aoi_radius, obj->grid_x + m_aoi_radius, obj->grid_z - m_aoi_radius, obj->grid_z + m_aoi_radius);
+            //清空aoi_inst
+            obj->aoi_inst = nullptr;
             //移除
             remove(obj);
             //消息通知

@@ -25,7 +25,7 @@ return {
             next = 3
         },
         [3] = {
-            type = "IF",
+            type = "COND",
             cond = "#robot.roles>0",
             result = { success = 4, failed = 5 }
         },

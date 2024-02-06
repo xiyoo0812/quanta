@@ -3,7 +3,6 @@
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
-local log_fatal         = logger.fatal
 local signalquit        = signal.quit
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
@@ -116,7 +115,7 @@ end
 
 function NetServer:write(session, cmd, data, session_id, flag)
     if session.token == 0 then
-        log_fatal("[NetServer][write] session lost! cmd_id:{}-({})", cmd, data)
+        log_err("[NetServer][write] session lost! cmd_id:{}-({})", cmd, data)
         return false
     end
     return session.call_client(cmd, flag, session_id, data)

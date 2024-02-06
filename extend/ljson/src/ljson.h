@@ -77,7 +77,7 @@ namespace ljson {
 
         int decode_core(lua_State* L, char* buf, size_t len, bool numkeyable) {
             yyjson_read_err err;
-            yyjson_doc* doc = yyjson_read_opts((char*)buf, len, YYJSON_READ_ALLOW_INVALID_UNICODE, &m_alc, &err);
+            yyjson_doc* doc = yyjson_read_opts(buf, len, YYJSON_READ_ALLOW_INVALID_UNICODE, &m_alc, &err);
             if (!doc) throw invalid_argument(err.msg);
 
             jdoc_guard g(doc);

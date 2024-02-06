@@ -1,15 +1,16 @@
 --robot_case.lua
 local log_err   = logger.err
+local tcopy     = qtable.copy
 local sformat   = string.format
 
 local event_mgr = quanta.get("event_mgr")
 
 local NodeSwitch = {
-    IF      = import("robot/nodes/node_if.lua"),
     GM      = import("robot/nodes/node_gm.lua"),
     REQ     = import("robot/nodes/node_req.lua"),
     NTF     = import("robot/nodes/node_ntf.lua"),
     SOCK    = import("robot/nodes/node_sock.lua"),
+    COND    = import("robot/nodes/node_cond.lua"),
     CASE    = import("robot/nodes/node_case.lua"),
     WAIT    = import("robot/nodes/node_wait.lua"),
     SCRIPT  = import("robot/nodes/node_script.lua"),
@@ -23,7 +24,6 @@ prop:reader("rewind", nil)      --rewind
 prop:reader("actor", nil)       --actor
 prop:reader("current", nil)     --current
 prop:reader("childs", {})       --childs
-prop:reader("variables", {})    --variables
 prop:accessor("parent", nil)    --parent
 
 function RobotCase:__init(actor)
@@ -41,6 +41,7 @@ function RobotCase:load(file)
     self.root = cconf.root
     self.current = cconf.root
     self.rewind = cconf.rewind or cconf.root
+    tcopy(cconf.inputs, self.actor.variables)
     return true
 end
 
@@ -61,7 +62,7 @@ end
 
 function RobotCase:run_next(child)
     self.current = child
-    if self.actor:caeck_case(self) then
+    if self.actor:check_case(self) then
         event_mgr:fire_frame(function()
             self:update()
         end)
