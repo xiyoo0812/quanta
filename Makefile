@@ -31,6 +31,7 @@ luaext:
 	cd extend/lcurl; make SOLUTION_DIR=$(CUR_DIR) -f lcurl.mak;
 	cd extend/ldetour; make SOLUTION_DIR=$(CUR_DIR) -f ldetour.mak;
 	cd extend/ljson; make SOLUTION_DIR=$(CUR_DIR) -f ljson.mak;
+	cd extend/lmdb; make SOLUTION_DIR=$(CUR_DIR) -f lmdb.mak;
 	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;

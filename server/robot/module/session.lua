@@ -189,6 +189,10 @@ function SessionModule:role_login_req()
     return true
 end
 
+function SessionModule:logout_server()
+    self:disconnect()
+end
+
 function SessionModule:login_server()
     if self.login_success then
         return true
@@ -214,6 +218,7 @@ function SessionModule:login_server()
         return false, "role login failed!"
     end
     log_debug("[SessionModule][login_server] robot:{} login success", self.open_id)
+    return true, "login success"
 end
 
 return SessionModule

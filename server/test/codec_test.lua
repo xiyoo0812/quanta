@@ -4,7 +4,7 @@ local log_debug     = logger.debug
 local log_dump      = logger.dump
 local lhex_encode   = crypt.hex_encode
 
-local crc8          = codec.crc8
+local crc8          = crypt.crc8
 local hash_code     = codec.hash_code
 local fnv_32a       = codec.fnv_1a_32
 local fnv_32        = codec.fnv_1_32
@@ -99,6 +99,10 @@ log_debug("decode-> {}", datae)
 
 local ip = luabus.dns("mtae-global-test-outer-zone-a-2-89e65514de3445cc.elb.us-east-1.amazonaws.com")
 log_debug("luabus dns-> {}", ip)
+
+
+local host = luabus.host()
+log_debug("luabus host-> {}", host)
 
 --dump
 log_dump("dump-> a: {}", t)

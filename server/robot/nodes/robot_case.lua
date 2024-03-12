@@ -1,6 +1,5 @@
 --robot_case.lua
 local log_err   = logger.err
-local tcopy     = qtable.copy
 local sformat   = string.format
 
 local event_mgr = quanta.get("event_mgr")
@@ -41,7 +40,6 @@ function RobotCase:load(file)
     self.root = cconf.root
     self.current = cconf.root
     self.rewind = cconf.rewind or cconf.root
-    tcopy(cconf.inputs, self.actor.variables)
     return true
 end
 

@@ -10,19 +10,29 @@ local CLUSTER       = environ.get("QUANTA_CLUSTER")
 local MSIC_PREFIX   = sformat("QUANTA:%s:MSIC", CLUSTER)
 
 local RedisAgent = singleton()
+local prop = property(RedisAgent)
+prop:accessor("proxy", nil)
 function RedisAgent:__init()
+end
+
+--call
+function RedisAgent:call(key, ...)
+    if self.proxy then
+        return self.proxy:proxy_call("call_redis_hash", key, ...)
+    end
+    return router_mgr:call_redis_hash(key, ...)
 end
 
 --发送数据库请求
 --db_query: { cmd, ...}
 function RedisAgent:execute(db_query, hash_key)
     local key = hash_key or mrandom()
-    return router_mgr:call_redis_hash(key, "rpc_redis_execute", tunpack(db_query))
+    return self:call(key, "rpc_redis_execute", tunpack(db_query))
 end
 
 
 function RedisAgent:autoinc_id()
-    return router_mgr:call_redis_hash(mrandom(), "rpc_redis_autoinc_id")
+    return self:call(mrandom(), "rpc_redis_autoinc_id")
 end
 
 --保存变量

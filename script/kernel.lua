@@ -5,8 +5,6 @@ local log_warn      = logger.warn
 local lclock_ms     = timer.clock_ms
 local ltime         = timer.time
 
-local QuantaMode    = enum("QuantaMode")
-
 local scheduler     = quanta.load("scheduler")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
@@ -51,19 +49,12 @@ function quanta.main()
     --主循环
     init_mainloop()
     init_network()
-    --其他模式
-    if quanta.mode <= QuantaMode.ROUTER then
-        --加载monitor
-        if not environ.get("QUANTA_MONITOR_HOST") then
-            import("agent/monitor_agent.lua")
-        end
-    end
-    if quanta.mode == QuantaMode.SERVICE then
-        --加载路由
-        import("kernel/router_mgr.lua")
-        --加载协议
-        import("kernel/protobuf_mgr.lua")
-    end
+    --加载monitor
+    import("agent/monitor_agent.lua")
+    --加载路由
+    import("kernel/router_mgr.lua")
+    --加载协议
+    import("kernel/protobuf_mgr.lua")
 end
 
 --启动

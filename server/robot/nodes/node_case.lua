@@ -1,4 +1,5 @@
 --node_case.lua
+local tcopy     = qtable.copy
 
 local NodeBase  = import("robot/nodes/node_base.lua")
 
@@ -14,6 +15,7 @@ function NodeCase:on_load(conf)
     if not ccase then
         return false
     end
+    tcopy(conf.in_args, self.actor.variables)
     ccase:set_parent(self.case)
     self.child = ccase
     return true

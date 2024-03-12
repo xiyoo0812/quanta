@@ -28,6 +28,7 @@ quanta.startup(function()--初始化test
     import("test/lock_test.lua")
     import("test/detour_test.lua")
     import("test/bitarray_test.lua")
+    import("test/lmdb_test.lua")
     ]]
-    import("test/log_test.lua")
+    import("test/codec_test.lua")
 end)
