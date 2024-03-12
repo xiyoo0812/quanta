@@ -103,6 +103,11 @@ function AttrComponent:set_attr(attr_id, value, service_id)
     return true
 end
 
+--强制保存属性
+function AttrComponent:flush_attr(attr_id)
+    self:flush_attrs_field(attr_id)
+end
+
 --观察属性
 function AttrComponent:watch_attr(trigger, attr_id, handler)
     self:watch_event(trigger, sformat("on_attr_changed_%s", attr_id), handler)

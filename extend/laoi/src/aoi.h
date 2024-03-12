@@ -36,7 +36,7 @@ namespace laoi {
             grid_x = x;
             grid_z = z;
         }
-        aoi_obj(uint64_t id, aoi_type typ) : eid(id), type(typ) {}
+        aoi_obj(uint64_t id, aoi_type typ) : type(typ), eid(id){}
     };
     #pragma pack()
 
