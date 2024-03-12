@@ -81,13 +81,6 @@ const char* quanta_app::get_env(const char* key) {
 int quanta_app::set_env(lua_State* L) {
     const char* key = lua_tostring(L, 1);
     const char* value = lua_tostring(L, 2);
-    if (getenv(key)){
-        int overwrite = luaL_optinteger(L, 3, 0);
-        if (overwrite || m_environs.find(key) != m_environs.end()) {
-            setenv(key, value, 1);
-        }
-        return 0;
-    }
     m_environs[key] = value;
     setenv(key, value, 1);
     return 0;
@@ -153,6 +146,7 @@ void quanta_app::run() {
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
     quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
+    quanta.set_function("setenv", [&](lua_State* L) { return set_env(L); });
 
     const char* env_log_path = get_env("QUANTA_LOG_PATH");
     if (env_log_path) {

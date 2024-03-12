@@ -73,6 +73,15 @@ local function db_prop_op_values(class, sheetkey, storekey, name, default)
             self[name][key] = value
         end
     end
+    class["flush_" .. name .. "_field"] = function(self, key)
+        local value = self[name][key]
+        if value then
+            local sheetkeys = self[sheetkey]
+            if sheetkeys then
+                self[storekey]:update_field(sheetkeys, name, key, value)
+            end
+        end
+    end
     class["save_" .. name .. "_field"] = function(self, key, value)
         if self[name][key] ~= value or type(value) == "table" then
             self[name][key] = value
@@ -107,6 +116,17 @@ local function db_prop_op_objects(class, sheetkey, storekey, name, default)
         if sheetkeys then
             value[storekey] = self[storekey]
             value[sheetkey] = build_sheet_keys(sheetkeys, name, key)
+        end
+    end
+    class["flush_" .. name .. "_elem"] = function(self, key)
+        local value = self[name][key]
+        if value then
+            local sheetkeys = self[sheetkey]
+            if sheetkeys then
+                value[storekey] = self[storekey]
+                value[sheetkey] = build_sheet_keys(sheetkeys, name, key)
+                self[storekey]:update_field(sheetkeys, name, key, value:serialize())
+            end
         end
     end
     class["save_" .. name .. "_elem"] = function(self, key, value)

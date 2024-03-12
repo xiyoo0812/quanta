@@ -1,26 +1,26 @@
---node_if.lua
+--node_cond.lua
 local log_warn  = logger.warn
 
 local NodeBase  = import("robot/nodes/node_base.lua")
 
-local NodeIF = class(NodeBase)
-local prop = property(NodeIF)
+local NodeCond = class(NodeBase)
+local prop = property(NodeCond)
 prop:reader("cond", nil)        --cond
 prop:reader("success", nil)     --success
 prop:reader("failed", nil)      --failed
 prop:reader("result", false)    --result
 
-function NodeIF:__init(case)
+function NodeCond:__init(case)
 end
 
-function NodeIF:on_load(conf)
+function NodeCond:on_load(conf)
     self.cond = conf.cond
     self.failed = conf.result.failed
     self.success = conf.result.success
     return true
 end
 
-function NodeIF:go_next()
+function NodeCond:go_next()
     if self.result then
         self.case:run_next(self.success)
     else
@@ -28,11 +28,11 @@ function NodeIF:go_next()
     end
 end
 
-function NodeIF:on_action()
+function NodeCond:on_action()
     local role = self.actor
     local cond = self:call_script(self.cond)
     if cond == nil then
-        log_warn("[NodeIF][on_action] robot:{} cond {} id null", role.open_id, self.cond)
+        log_warn("[NodeCond][on_action] robot:{} cond {} id null", role.open_id, self.cond)
         self:failed("cond error")
         return false
     end
@@ -40,4 +40,4 @@ function NodeIF:on_action()
     return true
 end
 
-return NodeIF
+return NodeCond

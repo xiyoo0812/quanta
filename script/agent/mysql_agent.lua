@@ -8,7 +8,18 @@ local router_mgr    = quanta.get("router_mgr")
 local PARAM_ERROR   = quanta.enum("KernCode", "PARAM_ERROR")
 
 local MysqlAgent = singleton()
+local prop = property(MysqlAgent)
+prop:accessor("proxy", nil)
+
 function MysqlAgent:__init()
+end
+
+--call
+function MysqlAgent:call(key, ...)
+    if self.proxy then
+        return self.proxy:proxy_call("call_mysql_hash", key, ...)
+    end
+    return router_mgr:call_mysql_hash(key, ...)
 end
 
 function MysqlAgent:format(value)
@@ -117,7 +128,7 @@ end
 
 --发送数据库请求
 function MysqlAgent:execute(sql, hash_key)
-    return router_mgr:call_mysql_hash(hash_key or mrandom(), "rpc_mysql_execute", sql)
+    return self:call(hash_key or mrandom(), "rpc_mysql_execute", sql)
 end
 
 ------------------------------------------------------------------

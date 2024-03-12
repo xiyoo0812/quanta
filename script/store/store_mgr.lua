@@ -1,24 +1,26 @@
 --store_mgr.lua
 
 import("store/db_property.lua")
-import("agent/cache_agent.lua")
 
 local log_err       = logger.err
 local tsort         = table.sort
 local tinsert       = table.insert
 local qfailed       = quanta.failed
-local qxpcall       = quanta.xpcall
 local makechan      = quanta.make_channel
 
-local router_mgr    = quanta.get("router_mgr")
+local mdb_driver    = quanta.get("mdb_driver")
 local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local cache_agent   = quanta.get("cache_agent")
+local redis_agent   = quanta.get("redis_agent")
 
 local cache_db      = config_mgr:init_table("cache", "sheet")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local STORE_INCRE   = environ.number("QUANTA_STORE_FLUSH")
+
+local QUANTA_LMDB   = environ.status("QUANTA_LMDB")
+
 local STORE_WHOLE   = STORE_INCRE // 10
 
 local StoreMgr = singleton()
@@ -50,7 +52,35 @@ function StoreMgr:find_group(group_name)
     return sgroup
 end
 
+function StoreMgr:get_autoinc_id(character_id, world_id)
+    if QUANTA_LMDB then
+        local aok, role_id = mdb_driver:autoinc_id()
+        if not aok then
+            log_err("[CharacterWorld][get_autoinc_id] failed: character_id: {} world_id:{} res: {}", character_id, world_id, role_id)
+            return false
+        end
+        return true, role_id
+    end
+    local aok, acode, role_id = redis_agent:autoinc_id()
+    if qfailed(acode, aok) then
+        log_err("[CharacterWorld][get_autoinc_id] failed: character_id: {} world_id:{} code: {}, res: {}", character_id, world_id, acode, role_id)
+        return false
+    end
+    return true, role_id
+end
+
 function StoreMgr:load_impl(primary_id, sheet_name)
+    if QUANTA_LMDB then
+        local primary_key = cache_db:find_value("key", sheet_name)
+        local SMDB = import("store/store_mdb.lua")
+        local store = SMDB(sheet_name, primary_id)
+        local ok, adata = store:load(primary_key)
+        if not ok then
+            log_err("[StoreMgr][load_mdb_{}] primary_id: {} find failed! res: {}", sheet_name, primary_id, adata)
+            return false
+        end
+        return true, adata, store
+    end
     local code, adata = cache_agent:load(primary_id, sheet_name)
     if qfailed(code) then
         log_err("[StoreMgr][load_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
@@ -67,8 +97,9 @@ function StoreMgr:load(entity, primary_id, sheet_name)
         return ok, data
     end
     local func = entity["load_" .. sheet_name .. "_db"]
-    local ok2, err = qxpcall(func, "[StoreMgr][load] failed: {}", entity, store, data)
+    local ok2, err = pcall(func, entity, store, data)
     if not ok2 then
+        log_err("[StoreMgr][load] load ({}) failed primary_id({}), err: {}!",  sheet_name, primary_id, err)
         return ok2, err
     end
     return ok, SUCCESS, data
@@ -82,7 +113,7 @@ function StoreMgr:load_group(entity, primary_id, group)
             return self:load(entity, primary_id, conf.sheet)
         end)
     end
-    if not channel:execute() then
+    if not channel:execute(true) then
         return false
     end
     return true, SUCCESS
@@ -106,9 +137,6 @@ function StoreMgr:save_increases(store)
 end
 
 function StoreMgr:on_fast()
-    if not router_mgr:available() then
-        return
-    end
     local channel = makechan("increases store")
     for store in pairs(self.increases) do
         self.increases[store] = nil
@@ -123,9 +151,6 @@ function StoreMgr:on_fast()
 end
 
 function StoreMgr:on_second()
-    if not router_mgr:available() then
-        return
-    end
     local channel = makechan("increases store")
     for store in pairs(self.wholes) do
         self.wholes[store] = nil

@@ -19,6 +19,8 @@ local librarys = {
     codec = require("lcodec"),
     --加密解密库
     crypt = require("lcrypt"),
+    --lmdb
+    lmdb = require("lmdb"),
 }
 
 --特定模块

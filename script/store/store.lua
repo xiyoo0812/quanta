@@ -10,8 +10,6 @@ local qtweak        = qtable.weak
 local store_mgr     = quanta.get("store_mgr")
 local cache_agent   = quanta.get("cache_agent")
 
-local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-
 local Store = class()
 local prop = property(Store)
 prop:reader("sheet", "")        -- sheet
@@ -151,26 +149,23 @@ function Store:sync_increase()
     local commits = self:merge_commits()
     local code, adata = cache_agent:update(self.primary_id, self.sheet, commits)
     if qfailed(code) then
-        log_err("[StoreMgr][sync_increase] update {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
+        log_err("[Store][sync_increase] update {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
         for obj in pairs(self.targets) do
             self:flush(obj)
         end
-        return false
     end
-    return true, SUCCESS
 end
 
 function Store:sync_whole()
     local code, adata = cache_agent:flush(self.primary_id, self.sheet, self.wholes)
     if qfailed(code) then
-        log_err("[StoreMgr][sync_whole] flush {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
+        log_err("[Store][sync_whole] flush {}.{} failed! code: {}, res: {}", self.primary_id, self.sheet, code, adata)
         for obj in pairs(self.targets) do
             self:flush(obj)
         end
-        return false
+        return
     end
     self.wholes = nil
-    return true, SUCCESS
 end
 
 return Store

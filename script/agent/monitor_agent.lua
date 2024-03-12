@@ -29,18 +29,20 @@ prop:reader("ready_watchers", {})
 prop:reader("close_watchers", {})
 
 function MonitorAgent:__init()
-    --创建连接
-    local ip, port = env_addr("QUANTA_MONITOR_ADDR")
-    self.client = RpcClient(self, ip, port)
-    --注册事件
-    event_mgr:add_listener(self, "rpc_remote_message")
-    event_mgr:add_listener(self, "rpc_service_changed")
-    event_mgr:add_listener(self, "rpc_service_hotfix")
-    event_mgr:add_listener(self, "rpc_server_shutdown")
-    event_mgr:add_listener(self, "rpc_set_logger_level")
-    event_mgr:add_listener(self, "rpc_show_snapshot")
-    --消息
-    event_mgr:add_trigger(self, "on_router_connected")
+    if environ.status("QUANTA_MONITOR") then
+        --创建连接
+        local ip, port = env_addr("QUANTA_MONITOR_ADDR")
+        self.client = RpcClient(self, ip, port)
+        --注册事件
+        event_mgr:add_listener(self, "rpc_remote_message")
+        event_mgr:add_listener(self, "rpc_service_changed")
+        event_mgr:add_listener(self, "rpc_service_hotfix")
+        event_mgr:add_listener(self, "rpc_server_shutdown")
+        event_mgr:add_listener(self, "rpc_set_logger_level")
+        event_mgr:add_listener(self, "rpc_show_snapshot")
+        --消息
+        event_mgr:add_trigger(self, "on_router_connected")
+    end
 end
 
 function MonitorAgent:on_router_connected()

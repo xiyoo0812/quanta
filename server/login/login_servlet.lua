@@ -227,10 +227,10 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
         log_err("[LoginServlet][on_account_reload_req] open_id({}) load account status failed!", open_id)
         return client_mgr:callback_errcode(session, cmd_id, FRAME_FAILED, session_id)
     end
-    local old_token = account:get_token()
-    local old_device_id = account:get_device_id()
-    if token ~= old_token or device_id ~= old_device_id then
-        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id: {}, token: {}-{} device_id:{}-{}", open_id, token, old_token, device_id, old_device_id)
+    local otoken = account:get_token()
+    local odevice_id = account:get_device_id()
+    if token ~= otoken or device_id ~= odevice_id then
+        log_err("[LoginServlet][on_account_reload_req] verify failed! open_id:{}, token:{}-{} device:{}-{}", open_id, token, otoken, device_id, odevice_id)
         return client_mgr:callback_errcode(session, cmd_id, VERIFY_FAILED, session_id)
     end
     session.account = account

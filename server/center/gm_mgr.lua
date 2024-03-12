@@ -308,14 +308,14 @@ end
 --player command
 function GM_Mgr:exec_player_cmd(service_id, cmd_name, player_id, ...)
     if player_id == 0 then
-        local ok, codeoe, res = router_mgr:call_lobby_random("rpc_command_execute", cmd_name, player_id, ...)
+        local ok, codeoe, res = router_mgr:call_world_random("rpc_command_execute", cmd_name, player_id, ...)
         if not ok then
             log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
             return { code = 1, msg = codeoe }
         end
         return { code = codeoe, msg = res }
     end
-    local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
+    local ok, codeoe, res = online:call_service(player_id, "rpc_command_execute", "world", cmd_name, player_id, ...)
     if not ok then
         log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
         return { code = 1, msg = codeoe }
