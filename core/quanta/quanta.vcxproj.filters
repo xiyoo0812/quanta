@@ -4,12 +4,18 @@
     <ClInclude Include="src\quanta.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\world.h">
+      <Filter>inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\quanta.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\world.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

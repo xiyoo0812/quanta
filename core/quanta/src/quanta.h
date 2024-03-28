@@ -15,6 +15,8 @@ public:
     void load(int argc, const char* argv[]);
     void set_signal(uint32_t n, bool b = true);
 
+    lua_State* L() { return m_lua.L(); }
+
 protected:
     void exception_handler(std::string_view msg, std::string_view err);
     void set_env(std::string key, std::string value, int over = 0);

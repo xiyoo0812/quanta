@@ -95,11 +95,10 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 OBJS =
-#根目录
-OBJS += $(patsubst $(SRC_DIR)/%.c, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.c)))
-OBJS += $(patsubst $(SRC_DIR)/%.m, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.m)))
-OBJS += $(patsubst $(SRC_DIR)/%.cc, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cc)))
-OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cpp)))
+COBJS = $(patsubst %.c, $(INT_DIR)/%.o, quanta.cppmain.cpp)
+MOBJS = $(patsubst %.m, $(INT_DIR)/%.o, $(COBJS))
+CCOBJS = $(patsubst %.cc, $(INT_DIR)/%.o, $(MOBJS))
+OBJS = $(patsubst %.cpp, $(INT_DIR)/%.o, $(CCOBJS))
 
 # 编译所有源文件
 $(INT_DIR)/%.o : $(SRC_DIR)/%.c

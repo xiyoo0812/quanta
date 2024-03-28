@@ -8,10 +8,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\quanta.h" />
+    <ClInclude Include="src\world.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\quanta.cpp" />
+    <ClCompile Include="src\world.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2CE1C7DB-EA72-ED68-C587-CA3383754760}</ProjectGuid>
