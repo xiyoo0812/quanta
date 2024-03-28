@@ -37,11 +37,9 @@ STDCPP = -std=c++17
 #需要定义的选项
 ifeq ($(UNAME_S), Linux)
 MYCFLAGS += -D_LARGEFILE64_SOURCE
-MYCFLAGS += -DMINIZ_EXPORT=extern
 endif
 ifeq ($(UNAME_S), Darwin)
 MYCFLAGS += -D_LARGEFILE64_SOURCE
-MYCFLAGS += -DMINIZ_EXPORT=extern
 endif
 
 #LDFLAGS
