@@ -218,12 +218,12 @@ local function build_projfile(solution_dir, project_dir, lmake_dir)
         end
         if lextension(fullname) == ".lmak" then
             local env = init_project_env(project_dir)
-            if not load_env_file(lappend(solution_dir, "lmake"), env) then
-                error("load main lmake file failed")
-                return
-            end
             if not load_env_file(lappend(lmake_dir, "share.lua"), env) then
                 error("load share lmake file failed")
+                return
+            end
+            if not load_env_file(lappend(solution_dir, "lmake"), env) then
+                error("load main lmake file failed")
                 return
             end
             if not load_env_file(fullname, env) then
