@@ -23,6 +23,7 @@ namespace llmdb {
             "drop", &mdb_driver::drop,
             "sync", &mdb_driver::sync,
             "open", &mdb_driver::open,
+            "close", &mdb_driver::close,
             "quick_put", &mdb_driver::quick_put,
             "quick_get", &mdb_driver::quick_get,
             "quick_del", &mdb_driver::quick_del,

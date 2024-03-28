@@ -25,6 +25,12 @@ DARWIN_DEFINES = {
     "LUA_USE_MACOSX"
 }
 
+--PS4/5需要定义的选项
+PS_DEFINES = {
+    "MAKE_LIB"
+}
+
+
 --WINDOWS需要定义的选项
 WINDOWS_DEFINES = {
     "LUA_BUILD_AS_DLL"

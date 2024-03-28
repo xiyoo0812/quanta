@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "socket_tcp.h"
-#include "socket_helper.h"
+#include "socket_dns.h"
 
 #define WAITFD_R        1
 #define WAITFD_W        2
@@ -75,10 +75,13 @@ int socket_tcp::listen(lua_State* L, const char* ip, int port) {
 }
 
 int socket_tcp::connect(lua_State* L, const char* ip, int port, int timeout) {
-    size_t addr_len = 0;
-    sockaddr_storage addr;
-    make_ip_addr(&addr, &addr_len, ip, port);
-    if(::connect(m_fd, (sockaddr*)&addr, addr_len) == 0){
+    sockaddr addr;
+    if (!resolver_ip(&addr, ip, port)) {
+        close();
+        lua_pushboolean(L, false);
+        lua_pushstring(L, "resolver ip failed");
+    }
+    if(::connect(m_fd, &addr, sizeof(sockaddr)) == 0){
         lua_pushboolean(L, true);
         return 1;
     }

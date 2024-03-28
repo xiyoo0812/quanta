@@ -5,13 +5,16 @@ local pairs         = pairs
 local loadfile      = loadfile
 local iopen         = io.open
 local mabs          = math.abs
-local ogetenv       = os.getenv
 local lprint        = log.print
+local sgsub         = string.gsub
 local sformat       = string.format
 local traceback     = debug.traceback
+local qgetenv       = quanta.getenv
+local zexist        = quanta.zexist
 local file_time     = stdfs.last_write_time
 
 local LOG_LEVEL     = log.LOG_LEVEL
+local QUANTA_ZIP    = qgetenv("QUANTA_ZIP_FILE")
 
 local FEATURE       = "devops"
 local TITLE         = quanta.title
@@ -42,7 +45,7 @@ local function ssplit(str, token)
 end
 
 --加载部署日志
-if ogetenv("QUANTA_LOG_PATH") then
+if qgetenv("QUANTA_LOG_PATH") then
     log.add_file_dest(FEATURE, "devops.log")
 end
 
@@ -51,7 +54,24 @@ local load_files    = {}
 local load_codes    = {}
 local search_path   = {}
 for _, path in ipairs(ssplit(package.path, ";")) do
-    search_path[#search_path + 1] = path:sub(1, path:find("?") - 1)
+    local spath = path:sub(1, path:find("?") - 1)
+    search_path[#search_path + 1] = sgsub(spath, "\\", "/")
+end
+
+if QUANTA_ZIP then
+    file_time = function() return 1 end
+end
+
+local function fexist(fname)
+    if QUANTA_ZIP then
+        return zexist(fname)
+    end
+    local file = iopen(fname)
+    if file then
+        file:close()
+        return true
+    end
+    return false
 end
 
 local function search_load(node)
@@ -63,9 +83,7 @@ local function search_load(node)
     local filename = node.filename
     for _, path_root in pairs(search_path) do
         local fullpath = path_root .. filename
-        local file = iopen(fullpath)
-        if file then
-            file:close()
+        if fexist(fullpath) then
             node.fullpath = fullpath
             node.time = file_time(fullpath)
             return loadfile(fullpath)

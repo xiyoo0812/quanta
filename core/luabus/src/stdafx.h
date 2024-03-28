@@ -33,8 +33,6 @@
 #include <mswsock.h>
 #include <windows.h>
 
-#endif
-
 // TODO: reference additional headers your program requires here
 #pragma warning(disable: 4996)
 #pragma warning(disable: 4311)
@@ -44,6 +42,8 @@
 #pragma warning(disable: 4819)
 #pragma warning(disable: 4313)
 #pragma warning(disable: 4251)
+
+#endif
 
 #include <string>
 #include <exception>
@@ -63,7 +63,9 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #endif
-
+#if defined(__ORBIS__) || defined(__PROSPERO__)
+#include <net.h>
+#endif
 
 #define LUA_LIB
 

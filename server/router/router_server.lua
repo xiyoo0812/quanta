@@ -20,7 +20,7 @@ prop:reader("counter", nil)
 function RouterServer:__init()
     local ip, port = environ.addr("QUANTA_ROUTER_ADDR")
     local rserver = RpcServer(self, ip, port, true)
-    service.make_node(rserver:get_port())
+    service.modify_host(rserver:get_port())
     self.rpc_server = rserver
     --路由性能统计
     self.counter = quanta.make_sampling("route msg")

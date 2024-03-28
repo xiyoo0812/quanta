@@ -12,7 +12,7 @@ struct socket_stream : public socket_object
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
     bool accept_socket(socket_t fd, const char ip[]);
-    void connect(const char node_name[], const char service_name[], int timeout);
+    void connect(const char ip[], int port, int timeout);
     bool update(int64_t now) override;
     bool do_connect();
     void try_connect();
@@ -34,7 +34,7 @@ struct socket_stream : public socket_object
     void on_complete(WSAOVERLAPPED* ovl) override;
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
     void on_can_recv(size_t max_len, bool is_eof) override { do_recv(max_len, is_eof); }
     void on_can_send(size_t max_len, bool is_eof) override;
 #endif
@@ -51,11 +51,8 @@ struct socket_stream : public socket_object
     std::shared_ptr<luabuf> m_recv_buffer = std::make_shared<luabuf>();
     std::shared_ptr<luabuf> m_send_buffer = std::make_shared<luabuf>();
 
-    std::string m_node_name;
-    std::string m_service_name;
-    struct addrinfo* m_addr = nullptr;
-    struct addrinfo* m_next = nullptr;
-    char m_ip[INET6_ADDRSTRLEN];
+    sockaddr m_addr;
+    char m_ip[INET_ADDRSTRLEN];
     int m_timeout = -1;
 
     int64_t m_last_recv_time = 0;

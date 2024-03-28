@@ -65,9 +65,11 @@ int socket_udp::recv(lua_State* L) {
         }
         return 2;
     }
+    char ip[INET_ADDRSTRLEN];
+    get_ip_string(ip, sizeof(ip), &addr);
     lua_pushboolean(L, true);
     lua_pushlstring(L, m_recv_buf, recv_len);
-    lua_pushstring(L, inet_ntoa(addr.sin_addr));
+    lua_pushstring(L, ip);
     lua_pushinteger(L, ntohs(addr.sin_port));
     return 4;
 }

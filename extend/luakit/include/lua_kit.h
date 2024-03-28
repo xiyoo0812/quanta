@@ -67,6 +67,22 @@ namespace luakit {
             return lua_isfunction(m_L, -1);
         }
 
+        void set_path(const char* field, const char* path, const char* workdir) {
+            if (strcmp(field, "LUA_PATH") == 0) {
+                set_lua_path("path", path, LUA_PATH_DEFAULT, workdir);
+            } else {
+                set_lua_path("cpath", path, LUA_CPATH_DEFAULT, workdir);
+            }
+        }
+
+        void set_searchers(global_function fn) {
+            lua_guard g(m_L);
+            lua_getglobal(m_L, LUA_LOADLIBNAME);
+            lua_getfield(m_L, -1, "searchers");
+            lua_push_function(m_L, fn);
+            lua_rawseti(m_L, -2, 2);
+        }
+
         template <typename... ret_types, typename... arg_types>
         bool call(const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_global_function(m_L, function, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
@@ -182,6 +198,35 @@ namespace luakit {
 
         lua_State* L() {
             return m_L;
+        }
+
+    protected:
+        void set_lua_path(const char* fieldname, const char* path, const char* dft, const char* workdir){
+            lua_getglobal(m_L, LUA_LOADLIBNAME);
+            const char* dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
+            if (dftmark == nullptr) {
+                lua_pushstring(m_L, path);  /* nothing to change */
+            } else {
+                luaL_Buffer b;
+                luaL_buffinit(m_L, &b);
+                if (path < dftmark) {  /* is there a prefix before ';;'? */
+                    luaL_addlstring(&b, path, dftmark - path);  /* add it */
+                    luaL_addchar(&b, *LUA_PATH_SEP);
+                }
+                size_t len = strlen(path);
+                luaL_addstring(&b, dft);  /* add default */
+                if (dftmark < path + len - 2) {  /* is there a suffix after ';;'? */
+                    luaL_addchar(&b, *LUA_PATH_SEP);
+                    luaL_addlstring(&b, dftmark + 2, (path + len - 2) - dftmark);
+                }
+                luaL_pushresult(&b);
+            }
+            if (workdir) {
+                luaL_gsub(m_L, lua_tostring(m_L, -1), LUA_EXEC_DIR, workdir);
+                lua_remove(m_L, -2);  /* remove original string */
+            }
+            lua_setfield(m_L, -2, fieldname);  /* package[fieldname] = path value */
+            lua_pop(m_L, 1);
         }
 
     protected:

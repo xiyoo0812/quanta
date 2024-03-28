@@ -1,15 +1,11 @@
 --protobuf_mgr.lua
 
-local pairs         = pairs
 local ipairs        = ipairs
 local pcall         = pcall
 local log_err       = logger.err
 local log_warn      = logger.warn
+local log_debug     = logger.debug
 local env_get       = environ.get
-local ldir          = stdfs.dir
-local lappend       = stdfs.append
-local lfilename     = stdfs.filename
-local lextension    = stdfs.extension
 local pb_enum_id    = protobuf.enum
 local pb_decode     = protobuf.decode
 local pb_encode     = protobuf.encode
@@ -75,36 +71,29 @@ function ProtobufMgr:enum(ename, ekey)
 end
 
 --加载pb文件
-function ProtobufMgr:load_pbfiles(proto_dir, proto_file)
-    local full_name = lappend(proto_dir, proto_file)
-    --加载PB文件
-    protobuf.loadfile(full_name)
-    --设置枚举解析成number
-    protobuf.option("enum_as_value")
-    protobuf.option("encode_default_values")
-    --注册枚举
-    for name, _, typ in protobuf.types() do
-        if typ == "enum" then
-            self:define_enum(name)
-        end
-    end
-    --注册CMDID和PB的映射
-    for name, basename, typ in protobuf.types() do
-        if typ == "message" then
-            self:define_command(name, basename)
-        end
-    end
-end
-
---加载pb文件
 function ProtobufMgr:load_protos()
-    local proto_paths = ssplit(env_get("QUANTA_PROTO_PATH", ""), ";")
-    for _, proto_path in pairs(proto_paths) do
-        local dir_files = ldir(proto_path)
-        for _, file in pairs(dir_files) do
-            if lextension(file.name) == ".pb" then
-                local filename = lfilename(file.name)
-                self:load_pbfiles(proto_path, filename)
+    local proto_file = env_get("QUANTA_PROTO_FILE")
+    if proto_file then
+        if env_get("QUANTA_ZIP_FILE") then
+            protobuf.load(quanta.zload(proto_file))
+            log_debug("[ProtobufMgr][load_protos] load zip pb file: {}", proto_file)
+        else
+            protobuf.loadfile(proto_file)
+            log_debug("[ProtobufMgr][load_protos] load pb file: {}", proto_file)
+        end
+        --设置枚举解析成number
+        protobuf.option("enum_as_value")
+        protobuf.option("encode_default_values")
+        --注册枚举
+        for name, _, typ in protobuf.types() do
+            if typ == "enum" then
+                self:define_enum(name)
+            end
+        end
+        --注册CMDID和PB的映射
+        for name, basename, typ in protobuf.types() do
+            if typ == "message" then
+                self:define_command(name, basename)
             end
         end
     end

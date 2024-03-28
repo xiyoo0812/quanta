@@ -20,18 +20,32 @@ local SERVICES      = quanta.init("SERVICES")
 local SERVICE_NAMES = quanta.init("SERVICE_NAMES")
 
 service = {}
-function service.make_node(port, domain)
+function service.make_node()
     quanta.node_info = {
         id = quanta.id,
         name = quanta.name,
+        host = quanta.host,
+        port = quanta.index,
         index = quanta.index,
         region = quanta.region,
         cluster = quanta.cluster,
         service = quanta.service,
-        port = port or quanta.index,
-        host = domain or quanta.host,
-        service_name = quanta.service_name,
+        service_name = quanta.service_name
     }
+end
+
+function service.modify_id(id)
+    quanta.node_info.id = id
+    quanta.id = id
+end
+
+function service.modify_host(port, domain)
+    quanta.node_info.port = port or quanta.index
+    quanta.node_info.host = domain or quanta.host
+end
+
+function service.modify_option(val)
+    quanta.node_info.option = val
 end
 
 function service.init()

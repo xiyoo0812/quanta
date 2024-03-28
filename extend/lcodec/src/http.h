@@ -52,6 +52,7 @@ namespace lcodec {
             //body
             uint8_t* body = nullptr;
             if (lua_type(L, index + 2) == LUA_TTABLE) {
+                if (!m_jcodec) luaL_error(L, "http json not suppert, con't use lua table!");
                 body = m_jcodec->encode(L, index + 2, len);
             } else {
                 body = (uint8_t*)lua_tolstring(L, index + 2, len);
@@ -75,6 +76,10 @@ namespace lcodec {
 
         void set_codec(codec_base* codec) {
             m_jcodec = codec;
+        }
+
+        void set_jsondecode(bool jsondecode) {
+            m_jsondisable = jsondecode;
         }
 
     protected:
@@ -143,7 +148,7 @@ namespace lcodec {
             }
         }
 
-        void http_parse_body(lua_State* L, string_view header, string_view& buf) {
+        void http_parse_body(lua_State* L, string_view header, string_view buf) {
             m_buf->clean();
             bool jsonable = false;
             bool contentlenable = false;
@@ -184,7 +189,7 @@ namespace lcodec {
                         }
                         mslice = m_buf->get_slice();
                     }
-                    else if (!strncasecmp(key.data(), "Content-Type", key.size()) && !strncasecmp(header.data(), "application/json", strlen("application/json"))) {
+                    else if (!strncasecmp(key.data(), "Content-Type", key.size()) && header.find("json") != string_view::npos) {
                         jsonable = true;
                     }
                     //压栈
@@ -204,15 +209,19 @@ namespace lcodec {
                 lua_pushnil(L);
                 return;
             }
-            if (jsonable) {
-                m_jcodec->set_slice(mslice);
-                m_jcodec->decode(L);
+            if ((!m_jsondisable) && jsonable && m_jcodec) {
+                try {
+                    m_jcodec->set_slice(mslice);
+                    m_jcodec->decode(L);
+                } catch (...) {
+                    lua_pushlstring(L, (char*)mslice->head(), mslice->size());
+                }
                 return;
             }
             lua_pushlstring(L, (char*)mslice->head(), mslice->size());
         }
 
-        void parse_http_packet(lua_State* L, string_view& buf) {
+        void parse_http_packet(lua_State* L, string_view buf) {
             size_t pos = buf.find(CRLF2);
             if (pos == string_view::npos) {
                 throw length_error("http text not full");
@@ -233,7 +242,7 @@ namespace lcodec {
             http_parse_body(L, header, buf);
         }
 
-        string_view read_line(string_view& buf) {
+        string_view read_line(string_view buf) {
             size_t pos = buf.find(CRLF);
             auto ss = buf.substr(0, pos);
             buf.remove_prefix(pos + LCRLF);
@@ -241,6 +250,7 @@ namespace lcodec {
         }
 
     protected:
+        bool m_jsondisable = false;
         codec_base* m_jcodec = nullptr;
     };
 }

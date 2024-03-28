@@ -3,37 +3,44 @@
 {{% local STDAFX = nil %}}
 {{% local AINCLUDES = {} %}}
 {{% local ALIBDIRS = {} %}}
+{{% local ADEFINES = {} %}}
 {{% for _, CLIB in pairs(LIBS or {}) do %}}
 {{% table.insert(ALIBS, CLIB .. ".lib") %}}
 {{% end %}}
 {{% for _, WLIB in pairs(WINDOWS_LIBS or {}) do %}}
 {{% table.insert(ALIBS, WLIB) %}}
 {{% end %}}
+{{% for _, DDEF in pairs(DEFINES or {}) do %}}
+{{% table.insert(ADEFINES, DDEF) %}}
+{{% end %}}
 {{% for _, DDEF in pairs(WINDOWS_DEFINES or {}) do %}}
-{{% table.insert(DEFINES, DDEF) %}}
+{{% table.insert(ADEFINES, DDEF) %}}
 {{% end %}}
 {{% for _, WINC in pairs(WINDOWS_INCLUDES or {}) do %}}
-{{% table.insert(INCLUDES, WINC) %}}
+{{% local C_INC = string.gsub(WINC, '/', '\\') %}}
+{{% table.insert(AINCLUDES, C_INC) %}}
 {{% end %}}
 {{% for _, WLDIR in pairs(WINDOWS_LIBRARY_DIR or {}) do %}}
-{{% table.insert(LIBRARY_DIR, WLDIR) %}}
+{{% local FWLDIR = string.gsub(WLDIR, '/', '\\') %}}
+{{% table.insert(ALIBDIRS, FWLDIR) %}}
 {{% end %}}
-{{% if MIMALLOC and MIMALLOC_DIR then %}}
-{{% table.insert(ALIBS, "mimalloc.lib") %}}
-{{% table.insert(INCLUDES, "$(SolutionDir)" .. MIMALLOC_DIR) %}}
-{{% end %}}
-{{% local FMT_LIBS = table.concat(ALIBS, ";") %}}
-{{% local FMT_DEFINES = table.concat(DEFINES or {}, ";") %}}
 {{% for _, INC in pairs(INCLUDES or {}) do %}}
 {{% local C_INC = string.gsub(INC, '/', '\\') %}}
 {{% table.insert(AINCLUDES, C_INC) %}}
+{{% end %}}
+{{% if MIMALLOC and MIMALLOC_DIR then %}}
+{{% table.insert(ALIBS, "mimalloc.lib") %}}
+{{% local FMIMALLOC_DIR = string.gsub(MIMALLOC_DIR, '/', '\\') %}}
+{{% table.insert(AINCLUDES, "$(SolutionDir)" .. FMIMALLOC_DIR) %}}
 {{% end %}}
 {{% for _, LIB_DIR in pairs(LIBRARY_DIR or {}) do %}}
 {{% local C_LIB_DIR = string.gsub(LIB_DIR, '/', '\\') %}}
 {{% table.insert(ALIBDIRS, C_LIB_DIR) %}}
 {{% end %}}
+{{% local FMT_LIBS = table.concat(ALIBS, ";") %}}
 {{% local FMT_INCLUDES = table.concat(AINCLUDES, ";") %}}
 {{% local FMT_LIBRARY_DIR = table.concat(ALIBDIRS, ";") %}}
+{{% local FMT_DEFINES = table.concat(ADEFINES or {}, ";") %}}
 {{% local ARGS = {AUTO_SUB_DIR = AUTO_SUB_DIR, SUB_DIR = SUB_DIR, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
 {{% local CINCLUDES, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIR, ARGS) %}}
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -129,10 +136,9 @@
     </ClCompile>
     {{% if PROJECT_TYPE == "static" then %}}
     <Lib>
-      <AdditionalLibraryDirectories>
-      </AdditionalLibraryDirectories>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>{{%= FMT_LIBS %}};%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     {{% else %}}
     <Link>

@@ -6,7 +6,8 @@ stds.quanta = {
         "quanta", "environ", "signal", "service", "logger",
         "import", "class", "enum", "mixin", "property", "singleton", "super", "implemented",
         "logfeature", "db_property", "classof", "is_class", "is_subclass", "instanceof", "conv_class", "class_review",
-        "codec", "crypt", "stdfs", "luabus", "luakit", "json", "protobuf", "curl", "timer", "aoi", "log", "worker", "http", "bson", "detour", "lmdb"
+        "codec", "crypt", "stdfs", "luabus", "luakit", "json", "protobuf", "curl", "timer", "aoi", "log", "worker", "http", "bson", "detour",
+        "lmdb", "unqlite", "sqlite"
     }
 }
 std = "max+quanta"

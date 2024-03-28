@@ -9,6 +9,7 @@ local labsolute     = lstdfs.absolute
 local lextension    = lstdfs.extension
 local lcurdir       = lstdfs.current_path
 local lrelativedir  = lstdfs.relative_path
+local lrepfilename  = lstdfs.replace_filename
 local lrepextension = lstdfs.replace_extension
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -217,6 +218,10 @@ local function build_projfile(solution_dir, project_dir, lmake_dir)
         end
         if lextension(fullname) == ".lmak" then
             local env = init_project_env(project_dir)
+            if not load_env_file(lappend(solution_dir, "lmake"), env) then
+                error("load main lmake file failed")
+                return
+            end
             if not load_env_file(lappend(lmake_dir, "share.lua"), env) then
                 error("load share lmake file failed")
                 return
@@ -228,16 +233,20 @@ local function build_projfile(solution_dir, project_dir, lmake_dir)
             if not env.ENABLE then
                 return
             end
+            local filename = lstem(fullname)
             local mak_dir = path_cut(project_dir, solution_dir)
-            ltmpl.render_file(lappend(lmake_dir, "tmpl/make.tpl"),  lrepextension(fullname, ".mak"), env)
-            ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxproj.tpl"),  lrepextension(fullname, ".vcxproj"), env)
+            if env.PS_PLATFORM then
+                ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxprojps.tpl"),  lrepfilename(fullname, sformat("%sps.vcxproj", filename)), env)
+            end
             ltmpl.render_file(lappend(lmake_dir, "tmpl/filters.tpl"),  lrepextension(fullname, ".vcxproj.filters"), env)
+            ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxproj.tpl"),  lrepextension(fullname, ".vcxproj"), env)
+            ltmpl.render_file(lappend(lmake_dir, "tmpl/make.tpl"),  lrepextension(fullname, ".mak"), env)
             projects[env.PROJECT_NAME] = {
                 DIR = mak_dir,
+                FILE = filename,
                 DEPS = env.DEPS,
                 GROUP = env.GROUP,
                 NAME = env.PROJECT_NAME,
-                FILE = lstem(fullname),
                 GUID = lguid.guid(env.PROJECT_NAME)
             }
         end
@@ -275,6 +284,9 @@ local function build_lmak(solution_dir)
     local ltmpl = require("ltemplate")
     ltmpl.render_file(lappend(lmake_dir, "tmpl/makefile.tpl"), lappend(solution_dir, "Makefile"), env)
     ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
+    if env.PS_PLATFORM then
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/solutionps.tpl"), lappend(solution_dir, lconcat(solution, "ps.sln")), env)
+    end
     print(sformat("build solution %s success!", solution))
 end
 

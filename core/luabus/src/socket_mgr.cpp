@@ -29,14 +29,7 @@ socket_mgr::~socket_mgr() {
     WSACleanup();
 #endif
 
-#ifdef __linux
-    if (m_handle != -1) {
-        ::close(m_handle);
-        m_handle = -1;
-    }
-#endif
-
-#ifdef __APPLE__
+#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     if (m_handle != -1) {
         ::close(m_handle);
         m_handle = -1;
@@ -54,7 +47,7 @@ bool socket_mgr::setup(int max_connection) {
         return false;
 #endif
 
-#ifdef __linux
+#if defined (__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     m_handle = epoll_create(max_connection);
     if (m_handle == -1)
         return false;
@@ -133,7 +126,7 @@ int socket_mgr::wait(int64_t now, int timeout) {
     }
 #endif
 
-#ifdef __linux
+#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     int event_count = epoll_wait(m_handle, &m_events[0], (int)m_events.size(), timeout);
     for (int i = 0; i < event_count; i++) {
         epoll_event& ev = m_events[i];
@@ -169,7 +162,7 @@ int socket_mgr::listen(std::string& err, const char ip[], int port) {
     auto* listener = new socket_listener(this, m_accept_func, m_addrs_func);
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
     auto* listener = new socket_listener(this);
 #endif
 
@@ -208,7 +201,7 @@ Exit0:
     return 0;
 }
 
-int socket_mgr::connect(std::string& err, const char node_name[], const char service_name[], int timeout) {
+int socket_mgr::connect(std::string& err, const char ip[], int port, int timeout) {
     if (is_full()) {
         err = "too-many-connection";
         return 0;
@@ -218,11 +211,11 @@ int socket_mgr::connect(std::string& err, const char node_name[], const char ser
     socket_stream* stm = new socket_stream(this, m_connect_func);
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
     socket_stream* stm = new socket_stream(this);
 #endif
 
-    stm->connect(node_name, service_name, timeout);
+    stm->connect(ip, port, timeout);
 
     int token = new_token();
     stm->set_token(token);
@@ -343,7 +336,7 @@ bool socket_mgr::watch_listen(socket_t fd, socket_object* object) {
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
 
-#ifdef __linux
+#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | EPOLLET;
@@ -362,7 +355,7 @@ bool socket_mgr::watch_accepted(socket_t fd, socket_object* object) {
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
 
-#ifdef __linux
+#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | EPOLLET;
@@ -382,7 +375,7 @@ bool socket_mgr::watch_connecting(socket_t fd, socket_object* object) {
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
 
-#ifdef __linux
+#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLOUT | EPOLLET;
@@ -401,7 +394,7 @@ bool socket_mgr::watch_connected(socket_t fd, socket_object* object) {
     return true;
 #endif
 
-#ifdef __linux
+#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | EPOLLET;
@@ -421,7 +414,7 @@ bool socket_mgr::watch_send(socket_t fd, socket_object* object, bool enable) {
     return true;
 #endif
 
-#ifdef __linux
+#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | (enable ? EPOLLOUT : 0) | EPOLLET;

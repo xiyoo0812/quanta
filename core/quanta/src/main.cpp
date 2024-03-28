@@ -8,10 +8,14 @@
 
 int main(int argc, const char* argv[])
 {
+#if !(defined(__ORBIS__) || defined(__PROSPERO__))
     tzset();
+#endif
     setlocale(LC_ALL, "");
 
+#if !(defined(__ORBIS__) || defined(__PROSPERO__))
     system("echo quanta engine init.");
+#endif
     quanta_app* q_app = new quanta_app();
     q_app->setup(argc, argv);
 

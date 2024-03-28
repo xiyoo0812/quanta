@@ -140,6 +140,9 @@
 
 
 static int os_execute (lua_State *L) {
+#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
+    return 0;
+#else
   const char *cmd = luaL_optstring(L, 1, NULL);
   int stat;
   errno = 0;
@@ -150,6 +153,7 @@ static int os_execute (lua_State *L) {
     lua_pushboolean(L, stat);  /* true if there is a shell */
     return 1;
   }
+#endif
 }
 
 
@@ -160,13 +164,20 @@ static int os_remove (lua_State *L) {
 
 
 static int os_rename (lua_State *L) {
+#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
+  return 0;
+#else
   const char *fromname = luaL_checkstring(L, 1);
   const char *toname = luaL_checkstring(L, 2);
   return luaL_fileresult(L, rename(fromname, toname) == 0, NULL);
+#endif
 }
 
 
 static int os_tmpname (lua_State *L) {
+#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
+  return 0;
+#else
   char buff[LUA_TMPNAMBUFSIZE];
   int err;
   lua_tmpnam(buff, err);
@@ -174,12 +185,17 @@ static int os_tmpname (lua_State *L) {
     return luaL_error(L, "unable to generate a unique filename");
   lua_pushstring(L, buff);
   return 1;
+#endif
 }
 
 
 static int os_getenv (lua_State *L) {
+#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
+  return 0;
+#else
   lua_pushstring(L, getenv(luaL_checkstring(L, 1)));  /* if NULL push nil */
   return 1;
+#endif
 }
 
 

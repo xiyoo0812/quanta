@@ -36,6 +36,7 @@ MYCFLAGS += -I../../extend/lua/lua
 MYCFLAGS += -I../../extend/fmt/include
 MYCFLAGS += -I../../extend/luakit/include
 MYCFLAGS += -I../../extend/lualog/lualog
+MYCFLAGS += -I../../extend/luaxlsx/src
 
 #需要定义的选项
 MYCFLAGS += -DFMT_HEADER_ONLY
@@ -57,6 +58,7 @@ LIBS += -lmimalloc
 MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
 #自定义库
 LIBS += -llua
+LIBS += -lminiz
 LIBS += -llualog
 ifeq ($(UNAME_S), Linux)
 LIBS += -lstdc++fs
@@ -85,7 +87,7 @@ INT_DIR = $(SOLUTION_DIR)temp/$(PROJECT_NAME)
 
 #目标定义
 TARGET_DIR = $(SOLUTION_DIR)bin
-TARGET_EXECUTE =  $(TARGET_DIR)/$(TARGET_NAME)
+TARGET_EXECUTE = $(TARGET_DIR)/$(TARGET_NAME)
 
 #link添加.so目录
 LDFLAGS += -L$(SOLUTION_DIR)bin

@@ -149,7 +149,15 @@ function RpcServer:transfer_hash(session_id, service_id, hash_key, rpc, ...)
     return false, "rpc server send failed"
 end
 
---send接口
+--call接口
+function RpcServer:wait_call(client, session_id, rpc, ...)
+    if client.call_rpc(rpc, 0, FLAG_REQ, ...) then
+        return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
+    end
+    return false, "rpc server send failed"
+end
+
+--call接口
 function RpcServer:call(client, rpc, ...)
     local session_id = thread_mgr:build_session_id()
     if client.call_rpc(rpc, session_id, FLAG_REQ, ...) then

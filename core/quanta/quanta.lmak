@@ -17,12 +17,14 @@ INCLUDES = {
     "../../extend/lua/lua",
     "../../extend/fmt/include",
     "../../extend/luakit/include",
-    "../../extend/lualog/lualog"
+    "../../extend/lualog/lualog",
+    "../../extend/luaxlsx/src"
 }
 
 --需要连接的库文件
 LIBS = {
     "lua",
+    "miniz",
     "lualog"
 }
 
@@ -48,6 +50,7 @@ NWINDOWS_POSTBUILDS = {
 
 --依赖项目
 DEPS = {
+    "miniz",
     "lualog"
 }
 

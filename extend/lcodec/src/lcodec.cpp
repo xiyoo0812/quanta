@@ -20,10 +20,11 @@ namespace lcodec {
         return wcodec;
     }
 
-    static codec_base* http_codec(codec_base* codec) {
+    static codec_base* http_codec(codec_base* codec, bool jsondecode) {
         httpcodec* hcodec = new httpcodec();
         hcodec->set_codec(codec);
         hcodec->set_buff(&thread_buff);
+        hcodec->set_jsondecode(jsondecode);
         return hcodec;
     }
 

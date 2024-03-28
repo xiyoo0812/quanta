@@ -16,7 +16,7 @@ socket_listener::socket_listener(socket_mgr* mgr,
 }
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
 socket_listener::socket_listener(socket_mgr* mgr) {
     mgr->increase_count();
     m_mgr = mgr;
@@ -67,7 +67,7 @@ bool socket_listener::update(int64_t) {
         return m_ovl_ref != 0;
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
         return false;
 #endif
     }
@@ -98,7 +98,7 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
     char ip[INET6_ADDRSTRLEN];
 
     (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
-    get_ip_string(ip, sizeof(ip), remote_addr, (size_t)remote_addr_len);
+    get_ip_string(ip, sizeof(ip), remote_addr);
 
     set_no_block(node->fd);
 
@@ -161,7 +161,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         char ip[INET6_ADDRSTRLEN];
 
         (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
-        get_ip_string(ip, sizeof(ip), remote_addr, (size_t)remote_addr_len);
+        get_ip_string(ip, sizeof(ip), remote_addr);
 
         auto token = m_mgr->accept_stream(m_token, node->fd, ip);
         if (token == 0) {
@@ -178,13 +178,13 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
 }
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
 void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
     size_t total_accept = 0;
     while (total_accept < max_len && m_link_status == elink_status::link_connected) {
         sockaddr_storage addr;
         socklen_t addr_len = (socklen_t)sizeof(addr);
-        char ip[INET6_ADDRSTRLEN];
+        char ip[INET_ADDRSTRLEN];
 
         socket_t fd = accept(m_socket, (sockaddr*)&addr, &addr_len);
         if (fd == INVALID_SOCKET)
@@ -196,7 +196,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
             continue;
         }
 
-        get_ip_string(ip, sizeof(ip), &addr, (size_t)addr_len);
+        get_ip_string(ip, sizeof(ip), &addr);
         set_no_block(fd);
         set_no_delay(fd, 1);
         set_close_on_exec(fd);

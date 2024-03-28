@@ -69,3 +69,5 @@ bin/configs
 *.mdb
 *.lock
 *.mdb-lock
+*.prx
+*.elf

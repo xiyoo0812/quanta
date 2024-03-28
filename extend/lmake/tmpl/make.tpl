@@ -187,7 +187,7 @@ LDFLAGS += -Wl,-install_name,$(PROJECT_PREFIX)$(TARGET_NAME).so
 endif
 {{% else %}}
 TARGET_DIR = $(SOLUTION_DIR){{%= DST_DIR %}}
-TARGET_EXECUTE =  $(TARGET_DIR)/$(TARGET_NAME)
+TARGET_EXECUTE = $(TARGET_DIR)/$(TARGET_NAME)
 {{% end %}}
 
 #link添加.so目录

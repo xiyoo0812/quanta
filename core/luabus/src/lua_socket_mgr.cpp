@@ -28,8 +28,8 @@ int lua_socket_mgr::listen(lua_State* L, const char* ip, int port) {
     return luakit::variadic_return(L, listener, "ok");
 }
 
-int lua_socket_mgr::connect(lua_State* L, const char* ip, const char* port, int timeout) {
-    if (ip == nullptr || port == nullptr) {
+int lua_socket_mgr::connect(lua_State* L, const char* ip, int port, int timeout) {
+    if (ip == nullptr) {
         return luakit::variadic_return(L, nullptr, "invalid param");
     }
     std::string err;

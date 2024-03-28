@@ -1,0 +1,52 @@
+--工程名字
+PROJECT_NAME = "miniz"
+
+--目标名字
+TARGET_NAME = "miniz"
+
+----工程类型: static/dynamic/exe
+PROJECT_TYPE = "dynamic"
+
+--目标文件前缀
+LIB_PREFIX = 1
+
+EX_FLAGS = {
+    "Wno-implicit-fallthrough"
+}
+
+--需要的include目录
+INCLUDES = {
+}
+
+--LINUX需要定义的选项
+LINUX_DEFINES = {
+    "_LARGEFILE64_SOURCE",
+    "MINIZ_EXPORT=extern"
+}
+
+--DARWIN需要定义的选项
+DARWIN_DEFINES = {
+    "_LARGEFILE64_SOURCE",
+    "MINIZ_EXPORT=extern"
+}
+
+--WINDOWS需要定义的选项
+WINDOWS_DEFINES = {
+    "MINIZ_EXPORT=__declspec(dllexport)"
+}
+
+--目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
+OBJS = {
+    "miniz.c" 
+}
+
+DEFINES = {
+}
+
+--依赖项目
+DEPS = {
+    "mimalloc"
+}
+
+--分组定义
+GROUP = "share"

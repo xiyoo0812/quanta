@@ -58,7 +58,7 @@ function AccordMgr:__init()
     server:register_post("/proto_edit", "on_proto_edit", self)
     server:register_post("/proto_del", "on_proto_del", self)
 
-    service.make_node(server:get_port())
+    service.modify_host(server:get_port())
     self.http_server = server
     --初始化
     self:on_second5()

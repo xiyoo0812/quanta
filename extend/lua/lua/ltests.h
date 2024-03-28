@@ -102,9 +102,10 @@ LUA_API void *debug_realloc (void *ud, void *block,
                              size_t osize, size_t nsize);
 
 #if defined(lua_c)
-#define luaL_newstate()		lua_newstate(debug_realloc, &l_memcontrol)
-#define luaL_openlibs(L)  \
-  { (luaL_openlibs)(L); \
+#define luaL_newstate()  \
+	lua_newstate(debug_realloc, &l_memcontrol, luaL_makeseed(NULL))
+#define luai_openlibs(L)  \
+  {  luaL_openlibs(L); \
      luaL_requiref(L, "T", luaB_opentests, 1); \
      lua_pop(L, 1); }
 #endif

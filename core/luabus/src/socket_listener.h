@@ -16,7 +16,7 @@ struct socket_listener : public socket_object
         LPFN_GETACCEPTEXSOCKADDRS addrs_func);
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
     socket_listener(socket_mgr* mgr);
 #endif
 
@@ -32,7 +32,7 @@ struct socket_listener : public socket_object
     void queue_accept(WSAOVERLAPPED* ovl);
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
     void on_can_recv(size_t max_len, bool is_eof) override;
 #endif
 

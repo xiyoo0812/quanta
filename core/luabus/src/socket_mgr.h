@@ -42,7 +42,7 @@ struct socket_object
     virtual int get_recvbuf_size() { return 0; }
     virtual void close() { m_link_status = elink_status::link_closed; };
     virtual bool get_remote_ip(std::string& ip) = 0;
-    virtual void connect(const char node_name[], const char service_name[]) { }
+    virtual void connect(const char ip[], int port) { }
     virtual void set_timeout(int duration) { }
     virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }
@@ -60,7 +60,7 @@ struct socket_object
     virtual void on_complete(WSAOVERLAPPED* ovl) = 0;
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
     virtual void on_can_recv(size_t data_len = UINT_MAX, bool is_eof = false) {};
     virtual void on_can_send(size_t data_len = UINT_MAX, bool is_eof = false) {};
 #endif
@@ -87,7 +87,7 @@ public:
     int wait(int64_t now, int timeout);
 
     int listen(std::string& err, const char ip[], int port);
-    int connect(std::string& err, const char node_name[], const char service_name[], int timeout);
+    int connect(std::string& err, const char ip[], int port, int timeout);
 
     int get_sendbuf_size(uint32_t token);
     int get_recvbuf_size(uint32_t token);
@@ -125,7 +125,7 @@ private:
     std::vector<OVERLAPPED_ENTRY> m_events;
 #endif
 
-#ifdef __linux
+#if defined (__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
     int m_handle = -1;
     std::vector<epoll_event> m_events;
 #endif

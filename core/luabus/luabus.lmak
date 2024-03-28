@@ -19,7 +19,13 @@ INCLUDES = {
 
 --需要连接的库文件
 LIBS = {
-    "lua",
+    "lua"
+}
+
+PSLIBS = {
+    "SceNet_stub_weak",
+    "ScePosix_stub_weak",
+    "SceNetCtl_stub_weak"
 }
 
 --WINDOWS需要定义的选项

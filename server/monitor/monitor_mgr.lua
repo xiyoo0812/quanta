@@ -58,7 +58,7 @@ end
 
 function MonitorMgr:on_client_register(client, node)
     local token = client.token
-    log_debug("[MonitorMgr][on_service_register] node:{}, token: {}", node.name, token)
+    log_debug("[MonitorMgr][on_service_register] node:{}, token: {}", node, token)
     self.discovery:register(node)
     self.monitor_nodes[token] = node
     --返回所有服务

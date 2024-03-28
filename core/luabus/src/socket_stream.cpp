@@ -1,6 +1,6 @@
 ﻿#include "stdafx.h"
+#include "socket_dns.h"
 #include "socket_mgr.h"
-#include "socket_helper.h"
 #include "socket_stream.h"
 #include "socket_router.h"
 
@@ -27,10 +27,6 @@ socket_stream::~socket_stream() {
     if (m_codec) {
         m_codec = nullptr;
     }
-    if (m_addr != nullptr) {
-        freeaddrinfo(m_addr);
-        m_addr = nullptr;
-    }
     m_mgr->decrease_count();
 }
 
@@ -46,7 +42,7 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
     m_ovl_ref++;
 #endif
 
-    strncpy(m_ip, ip, INET6_ADDRSTRLEN - 1);
+    strncpy(m_ip, ip, INET_ADDRSTRLEN - 1);
 
     m_socket = fd;
     m_link_status = elink_status::link_connected;
@@ -54,10 +50,10 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
     return true;
 }
 
-void socket_stream::connect(const char node_name[], const char service_name[], int timeout) {
-    m_node_name = node_name;
-    m_service_name = service_name;
-    m_connecting_time = ltimer::steady_ms() + timeout;
+void socket_stream::connect(const char ip[], int port, int timeout) {
+    if (resolver_ip(&m_addr, ip, port)) {
+        m_connecting_time = ltimer::steady_ms() + timeout;
+    }
 }
 
 void socket_stream::close() {
@@ -90,6 +86,10 @@ bool socket_stream::update(int64_t now) {
             return true;
         }
         case elink_status::link_init: {
+            if (m_connecting_time == 0) {
+                on_connect(false, "resolver failed");
+                return true;
+            }
             if (now > m_connecting_time) {
                 on_connect(false, "timeout");
                 return true;
@@ -110,23 +110,13 @@ bool socket_stream::update(int64_t now) {
 
 #ifdef _MSC_VER
 static bool bind_any(socket_t s) {
-    struct sockaddr_in6 v6addr;
-
-    memset(&v6addr, 0, sizeof(v6addr));
-    v6addr.sin6_family = AF_INET6;
-    v6addr.sin6_addr = in6addr_any;
-    v6addr.sin6_port = 0;
-    auto ret = ::bind(s, (sockaddr*)&v6addr, (int)sizeof(v6addr));
-    if (ret != SOCKET_ERROR)
-        return true;
-
     struct sockaddr_in v4addr;
     memset(&v4addr, 0, sizeof(v4addr));
     v4addr.sin_family = AF_INET;
     v4addr.sin_addr.s_addr = INADDR_ANY;
     v4addr.sin_port = 0;
 
-    ret = ::bind(s, (sockaddr*)&v4addr, (int)sizeof(v4addr));
+    int ret = ::bind(s, (sockaddr*)&v4addr, (int)sizeof(v4addr));
     return ret != SOCKET_ERROR;
 }
 
@@ -142,9 +132,8 @@ bool socket_stream::do_connect() {
     }
 
     memset(&m_send_ovl, 0, sizeof(m_send_ovl));
-    auto ret = (*m_connect_func)(m_socket, (SOCKADDR*)m_next->ai_addr, (int)m_next->ai_addrlen, nullptr, 0, nullptr, &m_send_ovl);
+    auto ret = (*m_connect_func)(m_socket, &m_addr, sizeof(sockaddr), nullptr, 0, nullptr, &m_send_ovl);
     if (!ret) {
-        m_next = m_next->ai_next;
         int err = get_socket_error();
         if (err == ERROR_IO_PENDING) {
             m_ovl_ref++;
@@ -166,10 +155,10 @@ bool socket_stream::do_connect() {
 }
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
 bool socket_stream::do_connect() {
     while (true) {
-        auto ret = ::connect(m_socket, m_next->ai_addr, (int)m_next->ai_addrlen);
+        auto ret = ::connect(m_socket, &m_addr, sizeof(sockaddr));
         if (ret != SOCKET_ERROR) {
             on_connect(true, "ok");
             break;
@@ -179,7 +168,6 @@ bool socket_stream::do_connect() {
         if (err == EINTR)
             continue;
 
-        m_next = m_next->ai_next;
         if (err != EINPROGRESS)
             return false;
 
@@ -194,41 +182,20 @@ bool socket_stream::do_connect() {
 #endif
 
 void socket_stream::try_connect() {
-    if (m_addr == nullptr) {
-        addrinfo hints;
-        struct addrinfo* addr = nullptr;
-
-        memset(&hints, 0, sizeof hints);
-        hints.ai_family = AF_UNSPEC; // use AF_INET6 to force IPv6
-        hints.ai_socktype = SOCK_STREAM;
-
-        int ret = getaddrinfo(m_node_name.c_str(), m_service_name.c_str(), &hints, &addr);
-        if (ret != 0 || addr == nullptr) {
-            on_connect(false, "addr-error");
-            return;
-        }
-        m_addr = addr;
-        m_next = addr;
-    }
-
     // socket connecting
     if (m_socket != INVALID_SOCKET)
         return;
 
-    while (m_next != nullptr && m_link_status == elink_status::link_init) {
-        if (m_next->ai_family != AF_INET && m_next->ai_family != AF_INET6) {
-            m_next = m_next->ai_next;
-            continue;
-        }
-        m_socket = socket(m_next->ai_family, m_next->ai_socktype, m_next->ai_protocol);
+    if (m_link_status == elink_status::link_init) {
+        m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (m_socket == INVALID_SOCKET) {
-            m_next = m_next->ai_next;
-            continue;
+            on_connect(false, "connect-failed");
+            return;
         }
         set_no_block(m_socket);
         set_no_delay(m_socket, 1);
         set_close_on_exec(m_socket);
-        get_ip_string(m_ip, sizeof(m_ip), m_next->ai_addr, m_next->ai_addrlen);
+        get_ip_string(m_ip, sizeof(m_ip), &m_addr);
 
         if (do_connect())
             return;
@@ -332,13 +299,11 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
     // socket连接失败,还可以继续dns解析的下一个地址继续尝试
     closesocket(m_socket);
     m_socket = INVALID_SOCKET;
-    if (m_next == nullptr) {
-        on_connect(false, "connect-failed");
-    }
+    on_connect(false, "connect-failed");
 }
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
 void socket_stream::on_can_send(size_t max_len, bool is_eof) {
     if (m_link_status == elink_status::link_closed)
         return;
@@ -363,9 +328,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof) {
     // socket连接失败,还可以继续dns解析的下一个地址继续尝试
     closesocket(m_socket);
     m_socket = INVALID_SOCKET;
-    if (m_next == nullptr) {
-        on_connect(false, "connect-failed");
-    }
+    on_connect(false, "connect-failed");
 }
 #endif
 
@@ -396,7 +359,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
                 break;
             }
 #endif
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
             if (err == EINTR)
                 continue;
             if (err == EAGAIN)
@@ -439,7 +402,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
                 break;
             }
 #endif
-#if defined(__linux) || defined(__APPLE__)
+#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
             if (err == EINTR) 
                 continue;
             if (err == EAGAIN)
@@ -515,11 +478,6 @@ void socket_stream::on_error(const char err[]) {
 }
 
 void socket_stream::on_connect(bool ok, const char reason[]) {
-    m_next = nullptr;
-    if (m_addr != nullptr) {
-        freeaddrinfo(m_addr);
-        m_addr = nullptr;
-    }
     if (m_link_status == elink_status::link_init) {
         if (!ok) {
             if (m_socket != INVALID_SOCKET) {

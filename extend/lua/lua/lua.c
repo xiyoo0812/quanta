@@ -13,7 +13,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
+#include <sys/signal.h>
+#else
 #include <signal.h>
+#endif
 
 #include "lua.h"
 
@@ -52,7 +56,11 @@ static void setsignal (int sig, void (*handler)(int)) {
 
 #else           /* }{ */
 
+#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
+#define setsignal(a,b)
+#else
 #define setsignal            signal
+#endif
 
 #endif                               /* } */
 
@@ -372,11 +380,15 @@ static int runargs (lua_State *L, char **argv, int n) {
 
 static int handle_luainit (lua_State *L) {
   const char *name = "=" LUA_INITVARVERSION;
+#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
+  const char* init = NULL;
+#else
   const char *init = getenv(name + 1);
   if (init == NULL) {
     name = "=" LUA_INIT_VAR;
     init = getenv(name + 1);  /* try alternative name */
   }
+#endif
   if (init == NULL) return LUA_OK;
   else if (init[0] == '@')
     return dofile(L, init+1);
@@ -617,6 +629,10 @@ static void doREPL (lua_State *L) {
 
 /* }================================================================== */
 
+#if !defined(luai_openlibs)
+#define luai_openlibs(L)	luaL_openselectedlibs(L, ~0, 0)
+#endif
+
 
 /*
 ** Main body of stand-alone interpreter (to be called in protected mode).
@@ -639,10 +655,10 @@ static int pmain (lua_State *L) {
     lua_pushboolean(L, 1);  /* signal for libraries to ignore env. vars. */
     lua_setfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
   }
-  luaL_openlibs(L);  /* open standard libraries */
+  luai_openlibs(L);  /* open standard libraries */
   createargtable(L, argv, argc, script);  /* create table 'arg' */
   lua_gc(L, LUA_GCRESTART);  /* start GC... */
-  lua_gc(L, LUA_GCGEN, 0, 0);  /* ...in generational mode */
+  lua_gc(L, LUA_GCGEN);  /* ...in generational mode */
   if (!(args & has_E)) {  /* no option '-E'? */
     if (handle_luainit(L) != LUA_OK)  /* run LUA_INIT */
       return 0;  /* error running LUA_INIT */

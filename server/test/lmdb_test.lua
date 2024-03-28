@@ -1,4 +1,4 @@
--- redis_test.lua
+-- lmdb_test.lua
 local log_debug     = logger.debug
 local jsoncodec     = json.jsoncodec
 

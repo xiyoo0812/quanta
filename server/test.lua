@@ -29,6 +29,8 @@ quanta.startup(function()--初始化test
     import("test/detour_test.lua")
     import("test/bitarray_test.lua")
     import("test/lmdb_test.lua")
+    import("test/unqlite_test.lua")
+    import("test/sqlite_test.lua")
     ]]
-    import("test/codec_test.lua")
+    import("test/sqlite_test.lua")
 end)

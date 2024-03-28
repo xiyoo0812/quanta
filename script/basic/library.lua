@@ -18,9 +18,7 @@ local librarys = {
     --编码库
     codec = require("lcodec"),
     --加密解密库
-    crypt = require("lcrypt"),
-    --lmdb
-    lmdb = require("lmdb"),
+    crypt = require("lcrypt")
 }
 
 --特定模块
@@ -35,6 +33,12 @@ if qgetenv("QUANTA_MODE") then
     librarys.detour = require("ldetour")
     --多线程库
     librarys.worker = require("lworker")
+    --unqlite
+    librarys.unqlite = require("lunqlite")
+    --sqlite
+    librarys.sqlite = require("lsqlite")
+    --lmdb
+    librarys.lmdb = require("lmdb")
 end
 
 --index

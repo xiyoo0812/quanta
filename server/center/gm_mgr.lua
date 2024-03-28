@@ -45,7 +45,7 @@ function GM_Mgr:__init()
 
     --创建HTTP服务器
     local server = HttpServer(environ.get("QUANTA_GM_HTTP"))
-    service.make_node(server:get_port())
+    service.modify_host(server:get_port())
     self.http_server = server
     --是否开启GM功能
     if environ.status("QUANTA_GM_SERVER") then

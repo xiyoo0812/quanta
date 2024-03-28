@@ -29,6 +29,10 @@ LIBS = {
     "lua"
 }
 
+PSLIBS = {
+    "ScePosix_stub_weak",
+}
+
 --源文件路径
 SRC_DIR = "lualog"
 

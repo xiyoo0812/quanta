@@ -129,8 +129,8 @@ function RedisDiscovery:register(node)
     if not self.services[node.service_name] then
         return
     end
-    local fmt = [[{"id":%d,"port":%d,"ip":"%s","region":%d,"name":"%s"}]]
-    local node_data = sformat(fmt, node.id, node.port, node.host, node.region, node.name)
+    local fmt = [[{"id":%d,"port":%d,"ip":"%s","region":%d,"name":"%s","option":"%s"}]]
+    local node_data = sformat(fmt, node.id, node.port, node.host, node.region, node.name, node.option)
     self:regi_instance(node_data)
     self.locals[node.id] = node_data
 end
