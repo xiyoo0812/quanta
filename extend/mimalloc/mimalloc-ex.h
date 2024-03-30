@@ -7,9 +7,6 @@
 #ifndef __APPLE__
 #include <malloc.h>
 #endif
-#ifdef __APPLE__
-#include <unistd.h>
-#endif
 
 #include "mimalloc-override.h"
 

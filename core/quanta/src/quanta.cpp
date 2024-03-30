@@ -244,8 +244,6 @@ void quanta_app::setup(int argc, const char* argv[]) {
     load(argc, argv);
     //设置
     g_app = this;
-    //运行
-    run();
 }
 
 void quanta_app::exception_handler(std::string_view msg, std::string_view err) {
@@ -274,14 +272,14 @@ void quanta_app::load(int argc, const char* argv[]) {
             m_lua.set_function("init_zip", [&](std::string zfile) { return initzip(zfile.c_str()); });
             m_lua.set_function("set_env", [&](std::string key, std::string value) { return set_env(key, value, 1); });
             m_lua.set_function("set_path", [&](std::string field, std::string path) { return set_path(field, path); });
-            m_lua.run_file(argv[1], [&](std::string_view err) {
-                exception_handler("load lua config err: {}", err);
+            m_lua.run_script(fmt::format("dofile('{}')", argv[1]), [&](std::string_view err) {
+                exception_handler("load sandbox err: {}", err);
             });
         }
     }
 }
 
-void quanta_app::run() {
+luakit::lua_table quanta_app::init() {
     //初始化lua
     auto quanta = m_lua.new_table("quanta");
     quanta.set("pid", ::getpid());
@@ -317,11 +315,29 @@ void quanta_app::run() {
             exception_handler("load includes err: {}", err);
         });
     }
+    return quanta;
+}
+
+void quanta_app::run() {
+    auto quanta = init();
     while (quanta.get_function("run")) {
         quanta.call([&](std::string_view err) {
             LOG_FATAL(fmt::format("quanta run err: {} ", err));
         });
         check_input(m_lua);
+    };
+    logger::get_logger()->stop();
+}
+
+bool quanta_app::step() {
+    auto quanta = m_lua.get<luakit::lua_table>("quanta");
+    if (quanta.get_function("run")) {
+        quanta.call([&](std::string_view err) {
+            LOG_FATAL(fmt::format("quanta run err: {} ", err));
+        });
+        check_input(m_lua);
+        return true;
     }
     logger::get_logger()->stop();
+    return false;
 }

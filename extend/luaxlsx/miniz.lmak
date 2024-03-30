@@ -21,13 +21,11 @@ INCLUDES = {
 --LINUX需要定义的选项
 LINUX_DEFINES = {
     "_LARGEFILE64_SOURCE",
-    "MINIZ_EXPORT=extern"
 }
 
 --DARWIN需要定义的选项
 DARWIN_DEFINES = {
     "_LARGEFILE64_SOURCE",
-    "MINIZ_EXPORT=extern"
 }
 
 --WINDOWS需要定义的选项

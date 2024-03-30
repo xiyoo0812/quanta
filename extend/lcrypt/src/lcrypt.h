@@ -3,7 +3,11 @@
 
 #ifdef _MSC_VER
 #ifdef LCRYPT_EXPORT
+#ifdef _WINDLL
 #define LCRYPT_API _declspec(dllexport)
+#else
+#define LCRYPT_API
+#endif
 #else
 #define LCRYPT_API _declspec(dllimport)
 #endif

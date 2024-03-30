@@ -11,19 +11,22 @@ public:
     ~quanta_app();
 
     void run();
+    bool step();
+    void initzip(const char* zfile);
     void setup(int argc, const char* argv[]);
     void load(int argc, const char* argv[]);
     void set_signal(uint32_t n, bool b = true);
+    void set_env(std::string key, std::string value, int over = 0);
+
+    luakit::lua_table init();
 
 protected:
     void exception_handler(std::string_view msg, std::string_view err);
-    void set_env(std::string key, std::string value, int over = 0);
     void set_path(std::string field, std::string path);
     const char* get_env(const char* key);
 
     int zip_load(lua_State* L);
     bool zip_exist(const char* fname);
-    void initzip(const char* zfile);
 
     int load_zip_file(lua_State* L);
     int find_zip_file(lua_State* L, std::string filename);

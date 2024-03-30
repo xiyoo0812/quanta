@@ -223,7 +223,7 @@ namespace lstdfs {
     lua_table open_lstdfs(lua_State* L) {
         kit_state kit_state(L);
         kit_state.new_class<file_info>("name", &file_info::name, "type", &file_info::type);
-        auto lstdfs = kit_state.new_table();
+        auto lstdfs = kit_state.new_table("stdfs");
         lstdfs.new_enum("copy_options",
             "none", copy_options::none,
             "recursive", copy_options::recursive,

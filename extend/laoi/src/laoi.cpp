@@ -15,7 +15,7 @@ namespace laoi {
 
     luakit::lua_table open_laoi(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto llaoi = kit_state.new_table();
+        auto llaoi = kit_state.new_table("aoi");
         llaoi.set_function("create_aoi", create_aoi);
         llaoi.set_function("create_object", create_object);
         llaoi.new_enum("aoi_type", "watcher", aoi_type::watcher, "marker", aoi_type::marker);

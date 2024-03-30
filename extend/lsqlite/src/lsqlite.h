@@ -52,9 +52,9 @@ namespace lsqlite {
                 return handler_err(L, rc);
             }
             int index = 0;
-            lua_createtable(L, 4, 0);
+            lua_createtable(L, 0, 4);
             while(rc == SQLITE_ROW) {
-                lua_createtable(L, 4, 0);
+                lua_createtable(L, 0, 4);
                 int ncol = sqlite3_data_count(m_stmt);
                 for (int col = 0; col < ncol; ++col) {
                     lua_pushstring(L, sqlite3_column_name(m_stmt, col));
@@ -206,9 +206,9 @@ namespace lsqlite {
                 titles.push_back(*result);
             }
             lua_pushinteger(L, rc);
-            lua_createtable(L, nrow - 1, 0);
+            lua_createtable(L, 0, (nrow > 0) ? nrow - 1 : 0);
             for (int r = 0; r < nrow; ++r) {
-                lua_createtable(L, ncol, 0);
+                lua_createtable(L, 0, ncol);
                 for (int c = 0; c < ncol; ++c, result++) {
                     char* value = *result;
                     if (lua_stringtonumber(L, value) == 0) {

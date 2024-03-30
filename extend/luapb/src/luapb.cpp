@@ -123,6 +123,8 @@ namespace luapb {
     luakit::lua_table open_luapb(lua_State* L) {
         luaopen_pb(L);
         lua_table luapb(L);
+        luakit::kit_state kit_state(L);
+        kit_state.set("protobuf", luapb);
         luapb.set_function("pbcodec", pb_codec);
         luapb.set_function("bind_cmd", [](uint32_t cmd_id, std::string name, std::string fullname) { 
             pb_cmd_indexs[name] = cmd_id;

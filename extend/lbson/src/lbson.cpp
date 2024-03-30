@@ -47,7 +47,7 @@ namespace lbson {
 
     luakit::lua_table open_lbson(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto llbson = kit_state.new_table();
+        auto llbson = kit_state.new_table("bson");
         llbson.set_function("encode", encode);
         llbson.set_function("decode", decode);
         llbson.set_function("mongocodec", mongo_codec);

@@ -1,4 +1,4 @@
-#!./quanta
+--quanta
 import("kernel.lua")
 
 local env_addr  = environ.addr

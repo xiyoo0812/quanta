@@ -15,7 +15,7 @@ namespace ljson {
 
     luakit::lua_table open_ljson(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto ljson = kit_state.new_table();
+        auto ljson = kit_state.new_table("json");
         ljson.set_function("jsoncodec", json_codec);
         ljson.set_function("pretty", [](lua_State* L) { return thread_json.pretty(L); });
         ljson.set_function("encode", [](lua_State* L) { return thread_json.encode(L); });

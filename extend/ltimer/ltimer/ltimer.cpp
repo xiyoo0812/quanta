@@ -122,7 +122,7 @@ namespace ltimer {
 
     luakit::lua_table open_ltimer(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto luatimer = kit_state.new_table();
+        auto luatimer = kit_state.new_table("timer");
         luatimer.set_function("time", timer_time);
         luatimer.set_function("insert", timer_insert);
         luatimer.set_function("update", timer_update);

@@ -1,22 +1,12 @@
 ﻿#include <stdio.h>
-#include <locale>
-#include "quanta.h"
-
-#ifdef WIN32
-#define tzset _tzset
-#endif
+#include "mainlib.h"
 
 int main(int argc, const char* argv[])
 {
-    setlocale(LC_ALL, "");
-#if !(defined(__ORBIS__) || defined(__PROSPERO__))
-    tzset();
-    system("echo quanta engine init.");
-#endif
-    quanta_app q_app;
-    q_app.set_env("QUANTA_DYNAMIC", "1");
-    q_app.setup(argc, argv);
-    q_app.run();
+    quanta_init(argv[1], argv[2]);
+    while (quanta_run() == 0) {
+        break;
+    }
     return 0;
 }
 

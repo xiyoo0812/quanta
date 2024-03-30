@@ -85,9 +85,9 @@ using BYTE = unsigned char;
 const int SOCKET_ERROR = -1;
 const socket_t INVALID_SOCKET = -1;
 inline int get_socket_error() { return errno; }
+inline void closesocket(socket_t fd) { close(fd); }
 template <typename T, int N>
 constexpr int _countof(T(&_array)[N]) { return N; }
-#define closesocket close
 #define SD_RECEIVE SHUT_RD
 #define WSAEWOULDBLOCK EWOULDBLOCK
 #define WSAEINPROGRESS EINPROGRESS

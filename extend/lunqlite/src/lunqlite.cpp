@@ -13,7 +13,7 @@ namespace lunqlite {
 
     luakit::lua_table open_lunqlite(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto unqlite = kit_state.new_table();
+        auto unqlite = kit_state.new_table("unqlite");
         unqlite.set_function("destory", destory);
         unqlite.set_function("create", create_criver);
         kit_state.new_class<unqlite_driver>(

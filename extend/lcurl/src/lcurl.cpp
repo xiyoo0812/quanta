@@ -7,7 +7,7 @@ namespace lcurl {
     luakit::lua_table open_lcurl(lua_State* L) {
         //类导出
         luakit::kit_state kit_state(L);
-        luakit::lua_table luacurl = kit_state.new_table();
+        luakit::lua_table luacurl = kit_state.new_table("curl");
         kit_state.new_class<curlm_mgr>(
             "update", &curlm_mgr::update,
             "destory", &curlm_mgr::destory,

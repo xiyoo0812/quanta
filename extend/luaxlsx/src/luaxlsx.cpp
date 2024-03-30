@@ -15,7 +15,7 @@ namespace lxlsx {
 
     luakit::lua_table open_luaxlsx(lua_State* L) {
         luakit::kit_state kit_state(L);
-        luakit::lua_table luaxlsx = kit_state.new_table();
+        luakit::lua_table luaxlsx = kit_state.new_table("xlsx");
         luaxlsx.set_function("open", open_xcel);
         kit_state.new_class<cell>(
             "type", &cell::type,

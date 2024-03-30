@@ -1,4 +1,4 @@
-#!./quanta
+--quanta
 import("kernel.lua")
 
 quanta.startup(function()

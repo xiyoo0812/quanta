@@ -11,10 +11,9 @@ local sformat       = string.format
 local traceback     = debug.traceback
 local qgetenv       = quanta.getenv
 local zexist        = quanta.zexist
-local file_time     = stdfs.last_write_time
 
 local LOG_LEVEL     = log.LOG_LEVEL
-local QUANTA_ZIP    = qgetenv("QUANTA_ZIP_FILE")
+local QUANTA_ZIP    = qgetenv("QUANTA_ZIP_MODE")
 
 local FEATURE       = "devops"
 local TITLE         = quanta.title
@@ -58,8 +57,11 @@ for _, path in ipairs(ssplit(package.path, ";")) do
     search_path[#search_path + 1] = sgsub(spath, "\\", "/")
 end
 
-if QUANTA_ZIP then
-    file_time = function() return 1 end
+local file_time = function(fname)
+    if QUANTA_ZIP then
+        return 1
+    end
+    return stdfs.last_write_time(fname)
 end
 
 local function fexist(fname)

@@ -300,46 +300,37 @@ void generate_rand(uint8_t *block, uint32_t block_len) {
 }
 
 int rsa_public_encrypt(uint8_t *out, uint32_t *out_len, uint8_t *in, uint32_t in_len) {
-    int status;
-    uint32_t i, modulus_len;
-    uint8_t byte, pkcs_block[RSA_MAX_MODULUS_LEN];
-
-    modulus_len = (pk->bits + 7) / 8;
-    if(in_len + 11 > modulus_len) {
+    if(in_len > RSA_MAX_ENCODE_LEN) {
         return ERR_WRONG_LEN;
     }
-
+    uint32_t i;
+    uint8_t byte, pkcs_block[RSA_MAX_MODULUS_LEN];
     pkcs_block[0] = 0;
     pkcs_block[1] = 2;
+    uint32_t modulus_len = (pk->bits + 7) / 8;
     for(i=2; i<modulus_len-in_len-1; i++) {
         do {
             generate_rand(&byte, 1);
         } while(byte == 0);
         pkcs_block[i] = byte;
     }
-
     pkcs_block[i++] = 0;
-
     memcpy((uint8_t *)&pkcs_block[i], (uint8_t *)in, in_len);
-    status = public_block_operation(out, out_len, pkcs_block, modulus_len);
-
+    int status = public_block_operation(out, out_len, pkcs_block, modulus_len);
     // Clear potentially sensitive information
     byte = 0;
     memset((uint8_t *)pkcs_block, 0, sizeof(pkcs_block));
-
     return status;
 }
 
 int rsa_public_decrypt(uint8_t *out, uint32_t *out_len, uint8_t *in, uint32_t in_len) {
-    int status;
-    uint8_t pkcs_block[RSA_MAX_MODULUS_LEN];
-    uint32_t i, modulus_len, pkcs_block_len;
-
-    modulus_len = (pk->bits + 7) / 8;
+    uint32_t modulus_len = (pk->bits + 7) / 8;
     if(in_len > modulus_len)
         return ERR_WRONG_LEN;
 
-    status = public_block_operation(pkcs_block, &pkcs_block_len, in, in_len);
+    uint32_t i, pkcs_block_len;
+    uint8_t pkcs_block[RSA_MAX_MODULUS_LEN];
+    int status = public_block_operation(pkcs_block, &pkcs_block_len, in, in_len);
     if(status != 0)
         return status;
 
@@ -361,50 +352,39 @@ int rsa_public_decrypt(uint8_t *out, uint32_t *out_len, uint8_t *in, uint32_t in
         return ERR_WRONG_DATA;
 
     memcpy((uint8_t *)out, (uint8_t *)&pkcs_block[i], *out_len);
-
     // Clear potentially sensitive information
     memset((uint8_t *)pkcs_block, 0, sizeof(pkcs_block));
-
     return status;
 }
 
 int rsa_private_encrypt(uint8_t *out, uint32_t *out_len, uint8_t *in, uint32_t in_len) {
-    int status;
-    uint8_t pkcs_block[RSA_MAX_MODULUS_LEN];
-    uint32_t i, modulus_len;
-
-    modulus_len = (sk->bits + 7) / 8;
-    if(in_len + 11 > modulus_len)
+    if(in_len > RSA_MAX_ENCODE_LEN)
         return ERR_WRONG_LEN;
 
+    int i, status;
+    uint32_t modulus_len = (sk->bits + 7) / 8;
+    uint8_t pkcs_block[RSA_MAX_MODULUS_LEN];
     pkcs_block[0] = 0;
     pkcs_block[1] = 1;
     for(i=2; i<modulus_len-in_len-1; i++) {
         pkcs_block[i] = 0xFF;
     }
-
     pkcs_block[i++] = 0;
-
     memcpy((uint8_t *)&pkcs_block[i], (uint8_t *)in, in_len);
-
     status = private_block_operation(out, out_len, pkcs_block, modulus_len);
-
     // Clear potentially sensitive information
     memset((uint8_t *)pkcs_block, 0, sizeof(pkcs_block));
-
     return status;
 }
 
 int rsa_private_decrypt(uint8_t *out, uint32_t *out_len, uint8_t *in, uint32_t in_len) {
-    int status;
-    uint8_t pkcs_block[RSA_MAX_MODULUS_LEN];
     uint32_t i, modulus_len, pkcs_block_len;
-
     modulus_len = (sk->bits + 7) / 8;
     if(in_len > modulus_len)
         return ERR_WRONG_LEN;
 
-    status = private_block_operation(pkcs_block, &pkcs_block_len, in, in_len);
+    uint8_t pkcs_block[RSA_MAX_MODULUS_LEN];
+    int status = private_block_operation(pkcs_block, &pkcs_block_len, in, in_len);
     if(status != 0)
         return status;
 

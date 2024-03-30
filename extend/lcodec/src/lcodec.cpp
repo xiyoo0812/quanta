@@ -45,7 +45,7 @@ namespace lcodec {
 
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto llcodec = kit_state.new_table();
+        auto llcodec = kit_state.new_table("codec");
         llcodec.set_function("bitarray", lbarray);
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_string", guid_string);

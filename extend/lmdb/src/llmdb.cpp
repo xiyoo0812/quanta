@@ -14,7 +14,7 @@ namespace llmdb {
 
     luakit::lua_table open_lmdb(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto lmdb = kit_state.new_table();
+        auto lmdb = kit_state.new_table("lmdb");
         lmdb.set_function("create", create_criver);
         kit_state.new_class<mdb_driver>(
             "get", &mdb_driver::get,

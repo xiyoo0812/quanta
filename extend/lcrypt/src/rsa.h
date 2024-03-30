@@ -15,6 +15,7 @@
 #define RSA_MAX_MODULUS_LEN     ((RSA_MAX_MODULUS_BITS + 7) / 8)
 #define RSA_MAX_PRIME_BITS      ((RSA_MAX_MODULUS_BITS + 1) / 2)
 #define RSA_MAX_PRIME_LEN       ((RSA_MAX_PRIME_BITS + 7) / 8)
+#define RSA_MAX_ENCODE_LEN      RSA_MAX_MODULUS_LEN - 11
 #define RSA_EXPONENT_POS        RSA_MAX_MODULUS_LEN - 3
 
 #define RSA_PEM_SEQUENCE        0x30
@@ -23,6 +24,9 @@
 // Error codes
 #define ERR_WRONG_DATA          0x1001
 #define ERR_WRONG_LEN           0x1002
+
+#define RSA_ENCODE_OUT_SIZE(s) (((s) + (RSA_MAX_ENCODE_LEN) - 1) / (RSA_MAX_ENCODE_LEN)) * (RSA_MAX_MODULUS_LEN) + 1
+#define RSA_DECODE_OUT_SIZE(s) (((s) + (RSA_MAX_MODULUS_LEN) - 1) / (RSA_MAX_MODULUS_LEN)) * (RSA_MAX_ENCODE_LEN) + 1
 
 typedef uint32_t bignum_t;
 typedef uint64_t bignum_dt;

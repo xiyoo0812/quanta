@@ -55,7 +55,7 @@ namespace logger {
 
     luakit::lua_table open_lualog(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto lualog = kit_state.new_table();
+        auto lualog = kit_state.new_table("log");
         lualog.new_enum("LOG_LEVEL",
             "INFO", log_level::LOG_LEVEL_INFO,
             "WARN", log_level::LOG_LEVEL_WARN,

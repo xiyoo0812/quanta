@@ -34,6 +34,10 @@ LINUX_LIBS = {
     "stdc++fs"
 }
 
+OBJS = {
+    "quanta.cpp", "main.cpp"
+}
+
 --非WINDOWS预编译命令
 --格式: cmd
 --"cp -r bin/libcurl-x64.dll $(SolutionDir)bin"
