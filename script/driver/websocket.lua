@@ -7,7 +7,7 @@ local lsha1         = crypt.sha1
 local lb64encode    = crypt.b64_encode
 local jsoncodec     = json.jsoncodec
 local wsscodec      = codec.wsscodec
-local httpcodec     = codec.httpcodec
+local httpdcodec    = codec.httpdcodec
 local qxpcall       = quanta.xpcall
 
 local proto_text    = luabus.eproto_type.text
@@ -35,7 +35,7 @@ function WebSocket:__init(host)
     self.host = host
     self.jcodec = jsoncodec()
     self.wcodec = wsscodec(self.jcodec)
-    self.hcodec = httpcodec(self.jcodec)
+    self.hcodec = httpdcodec(self.jcodec)
 end
 
 function WebSocket:close()

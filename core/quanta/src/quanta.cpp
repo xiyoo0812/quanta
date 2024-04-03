@@ -119,9 +119,11 @@ void quanta_app::set_path(std::string field, std::string path) {
 #endif
 }
 
-void quanta_app::initzip(const char* zfile) {
+bool quanta_app::initzip(const char* zfile) {
     memset(&m_archive, 0, sizeof(m_archive));
-    mz_zip_reader_init_file(&m_archive, zfile, 0);
+    if(!mz_zip_reader_init_file(&m_archive, zfile, 0)){
+        return false;
+    }
     m_lua.set_searchers([&](lua_State* L) {
         const char* fname = luaL_checkstring(L, 1);
         int index = find_zip_file(L, fname);
@@ -160,6 +162,7 @@ void quanta_app::initzip(const char* zfile) {
         lua_insert(L, -2);
         return 2;
     });
+    return true;
 }
 
 int quanta_app::find_zip_file(lua_State* L, std::string filename) {

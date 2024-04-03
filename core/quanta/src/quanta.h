@@ -12,13 +12,14 @@ public:
 
     void run();
     bool step();
-    void initzip(const char* zfile);
+    bool initzip(const char* zfile);
     void setup(int argc, const char* argv[]);
     void load(int argc, const char* argv[]);
     void set_signal(uint32_t n, bool b = true);
     void set_env(std::string key, std::string value, int over = 0);
 
     luakit::lua_table init();
+    lua_State* L() { return m_lua.L();  }
 
 protected:
     void exception_handler(std::string_view msg, std::string_view err);

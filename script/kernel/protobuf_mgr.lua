@@ -9,7 +9,9 @@ local env_get       = environ.get
 local pb_enum_id    = protobuf.enum
 local pb_decode     = protobuf.decode
 local pb_encode     = protobuf.encode
-local pb_bind_cmd   = protobuf.bind_cmd
+local bind_proto    = protobuf.bind_proto
+local bind_decode   = protobuf.bind_decode
+local bind_encode   = protobuf.bind_encode
 local tunpack       = table.unpack
 local supper        = string.upper
 local ssplit        = qstring.split
@@ -93,6 +95,7 @@ function ProtobufMgr:load_protos()
         --注册CMDID和PB的映射
         for name, basename, typ in protobuf.types() do
             if typ == "message" then
+                self.pb_names[basename] = name
                 self:define_command(name, basename)
             end
         end
@@ -168,7 +171,6 @@ function ProtobufMgr:define_command(full_name, proto_name)
         local enum_type = package_name .. ".NCmdId"
         local msg_id = pb_enum_id(enum_type, msg_name)
         if msg_id then
-            self.pb_names[msg_id] = msg_name
             self.pb_indexs[msg_id] = { id = msg_id, name = full_name }
             self.pb_indexs[msg_name] = { id = msg_id, name = full_name }
             if proto_isreq then
@@ -178,10 +180,25 @@ function ProtobufMgr:define_command(full_name, proto_name)
                     self.pb_callbacks[msg_id] = msg_res_id
                 end
             end
-            pb_bind_cmd(msg_id, msg_name, full_name)
+            bind_proto(msg_id, msg_name, full_name)
             return
         end
         log_warn("[ProtobufMgr][define_command] proto_name: [{}] can't find msg enum:[{}] !", proto_name, msg_name)
+    end
+end
+
+function ProtobufMgr:bind_ntf(msg_name, pb_name)
+    local msg_id = self:enum("NCmdId", msg_name)
+    bind_encode(msg_id, msg_name, self.pb_names[pb_name])
+end
+
+function ProtobufMgr:bind_cmd(doer, msg_name, callback, pb_recv_name, pb_send_name)
+    local msg_id = self:enum("NCmdId", msg_name)
+    bind_decode(msg_id, msg_name, self.pb_names[pb_recv_name])
+    event_mgr:add_cmd_listener(doer, msg_id, callback)
+    if pb_send_name then
+        self.pb_callbacks[msg_id] = msg_id
+        bind_encode(msg_id, msg_name, self.pb_names[pb_send_name])
     end
 end
 

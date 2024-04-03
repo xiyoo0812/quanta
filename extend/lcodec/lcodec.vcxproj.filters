@@ -22,6 +22,9 @@
     <ClInclude Include="src\redis.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\url.h">
+      <Filter>inc</Filter>
+    </ClInclude>
     <ClInclude Include="src\websocket.h">
       <Filter>inc</Filter>
     </ClInclude>

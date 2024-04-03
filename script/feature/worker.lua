@@ -36,6 +36,7 @@ local function init_network()
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
     socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
+    import("driver/webhook.lua")
 end
 
 local function init_listener()
@@ -46,7 +47,6 @@ end
 local function init_mainloop()
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
-    import("driver/webhook.lua")
     event_mgr = quanta.get("event_mgr")
     thread_mgr = quanta.get("thread_mgr")
     update_mgr = quanta.get("update_mgr")

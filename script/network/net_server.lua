@@ -144,13 +144,19 @@ end
 -- 回调数据
 function NetServer:callback_by_id(session, cmd_id, data, session_id)
     local callback_id = protobuf_mgr:callback_id(cmd_id)
+    if not callback_id then
+        return false
+    end
     return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
 end
 
 -- 回复错误码
 function NetServer:callback_errcode(session, cmd_id, code, session_id)
-    local data = { error_code = code }
     local callback_id = protobuf_mgr:callback_id(cmd_id)
+    if not callback_id then
+        return false
+    end
+    local data = { error_code = code }
     return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
 end
 

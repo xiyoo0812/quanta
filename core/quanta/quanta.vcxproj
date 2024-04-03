@@ -11,6 +11,9 @@
     <ClInclude Include="src\quanta.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\execute.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\mainlib.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>

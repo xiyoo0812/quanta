@@ -114,7 +114,7 @@ namespace lsqlite {
             break;
             case LUA_TSTRING: {
                 size_t len;
-                const char* str = luaL_checklstring(L, -1, &len);
+                const char* str = luaL_checklstring(L, vidx, &len);
                 sqlite3_bind_text(m_stmt, param_index, str, len, SQLITE_TRANSIENT);
             }
             break;
@@ -216,7 +216,7 @@ namespace lsqlite {
                     }
                     lua_setfield(L, -2, titles[c]);
                 }
-                lua_seti(L, -2, r);
+                lua_seti(L, -2, r + 1);
             }
             sqlite3_free_table(olres);
             return 2;

@@ -3,6 +3,7 @@
 
 #include "lua_kit.h"
 
+#include "url.h"
 #include "guid.h"
 #include "http.h"
 #include "hash.h"

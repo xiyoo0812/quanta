@@ -24,8 +24,6 @@ if qgetenv("QUANTA_DYNAMIC") then
     if qgetenv("QUANTA_MODE") then
         --aoi解析
         require("laoi")
-        --Curl库
-        require("lcurl")
         --网络库
         require("luabus")
         --detour库

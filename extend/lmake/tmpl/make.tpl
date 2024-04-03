@@ -197,7 +197,7 @@ LDFLAGS += -L$(SOLUTION_DIR){{%= DST_LIB_DIR %}}
 #自动生成目标
 OBJS =
 {{% if next(OBJS) then %}}
-{{% local OBJS = table.concat(OBJS, "") %}}
+{{% local OBJS = table.concat(OBJS, " ") %}}
 COBJS = $(patsubst %.c, $(INT_DIR)/%.o, {{%= OBJS %}})
 MOBJS = $(patsubst %.m, $(INT_DIR)/%.o, $(COBJS))
 CCOBJS = $(patsubst %.cc, $(INT_DIR)/%.o, $(MOBJS))

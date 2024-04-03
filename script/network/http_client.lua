@@ -1,75 +1,109 @@
 --httpClient.lua
+local Socket        = import("driver/socket.lua")
 
 local pairs         = pairs
+local busdns        = luabus.dns
 local log_err       = logger.err
+local log_debug     = logger.debug
 local tconcat       = table.concat
+local qsaddr        = qstring.addr
 local sformat       = string.format
-local qxpcall       = quanta.xpcall
-local tinsert       = table.insert
-local tunpack       = table.unpack
-local jencode       = json.encode
-local luencode      = curl.url_encode
+local sgmatch       = string.gmatch
+local jsoncodec     = json.jsoncodec
+local httpccodec    = codec.httpccodec
+local luencode      = codec.url_encode
 
-local curlm_mgr     = curl.curlm_mgr
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
+local HTTP_TIMEOUT  = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
-local HTTP_CALL_TIMEOUT = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
+local proto_text    = luabus.eproto_type.text
 
 local HttpClient = singleton()
 local prop = property(HttpClient)
-prop:reader("contexts", {})
-prop:reader("results", {})
+prop:reader("hcodec", nil)          --codec
+prop:reader("jcodec", nil)          --codec
+prop:reader("clients", {})          --clients
+prop:reader("domains", {})          --domains
 
 function HttpClient:__init()
-    --加入帧更新
-    update_mgr:attach_frame(self)
-    --退出通知
-    update_mgr:attach_quit(self)
-    --创建管理器
-    curlm_mgr.on_respond = function(curl_handle, result)
-        qxpcall(self.on_respond, "on_respond: %s", self, curl_handle, result)
-    end
+    self.jcodec = jsoncodec()
+    self.hcodec = httpccodec(self.jcodec)
+    --attach_hour
+    update_mgr:attach_hour(self)
 end
 
 function HttpClient:on_quit()
-    self.contexts = {}
-    curlm_mgr.destory()
+    self.clients = {}
+    self.domains = {}
 end
 
-function HttpClient:on_frame()
-    if next(self.contexts) then
-        curlm_mgr.update()
-        for _, result in pairs(self.results) do
-            thread_mgr:fork(function()
-                thread_mgr:response(tunpack(result))
-            end)
-        end
-        self.results = {}
-        --清除超时请求
-        local clock_ms = quanta.clock_ms
-        for handle, context in pairs(self.contexts) do
-            if clock_ms >= context.time then
-                self.contexts[handle] = nil
-            end
-        end
+function HttpClient:on_hour()
+    self.domains = {}
+end
+
+function HttpClient:on_socket_recv(socket, status, headers, body)
+    local token = socket.token
+    local client = self.clients[token]
+    if client then
+        client:close()
+        self.clients[token] = nil
+        thread_mgr:response(client.session_id, true, status, body, headers)
     end
 end
 
-function HttpClient:on_respond(curl_handle, result)
-    local context = self.contexts[curl_handle]
-    if context then
-        self.contexts[curl_handle] = nil
-        local request = context.request
-        local session_id = context.session_id
-        local content, code, err = request.get_respond()
-        if result == 0 then
-            tinsert(self.results, {session_id, true, code, content})
-        else
-            tinsert(self.results, {session_id, false, code, err})
-        end
-    end
+function HttpClient:on_socket_error(socket, token, err)
+    log_debug("[HttpClient][on_socket_error] client(token:{}) close({})!", token, err)
+    self.clients[token] = nil
 end
+
+--构建请求
+function HttpClient:send_request(url, timeout, querys, headers, method, datas)
+    local host, port = self:parse_url_addr(url)
+    if not host then
+        log_err("[HttpClient][send_request] failed : {}", port)
+        return false, port
+    end
+    local socket = Socket(self)
+    local ok, cerr = socket:connect(host, port, proto_text)
+    if not ok then
+        return false, cerr
+    end
+    if not headers then
+        headers = {["Content-Type"] = "text/plain" }
+    end
+    if type(datas) == "table" then
+        headers["Content-Type"] = "application/json"
+    end
+    local fmt_url = self:format_url(url, querys)
+    local session_id = thread_mgr:build_session_id()
+    socket:set_codec(self.hcodec)
+    socket.session_id = session_id
+    self.clients[socket.token] = socket
+    socket:send_data(fmt_url, method, headers, datas or "")
+    return thread_mgr:yield(session_id, url, timeout or HTTP_TIMEOUT)
+end
+
+--get接口
+function HttpClient:call_get(url, querys, headers, datas, timeout)
+    return self:send_request(url, timeout, querys, headers, "GET", datas)
+end
+
+--post接口
+function HttpClient:call_post(url, datas, headers, querys, timeout)
+    return self:send_request(url, timeout, querys, headers, "POST", datas)
+end
+
+--put接口
+function HttpClient:call_put(url, datas, headers, querys, timeout)
+    return self:send_request(url, timeout, querys, headers, "PUT", datas)
+end
+
+--del接口
+function HttpClient:call_del(url, querys, headers, timeout)
+    return self:send_request(url, timeout, querys, headers, "DELETE")
+end
+
 
 function HttpClient:format_url(url, query)
     if query then
@@ -88,60 +122,31 @@ function HttpClient:format_url(url, query)
     return url
 end
 
---构建请求
-function HttpClient:send_request(url, timeout, querys, headers, method, datas)
+function HttpClient:parse_url_addr(url)
     if not url then
-        return false
+        return nil, "htpp url is empty"
     end
-    local to = timeout or HTTP_CALL_TIMEOUT
-    local fmt_url = self:format_url(url, querys)
-    local request, curl_handle = curlm_mgr.create_request(fmt_url, to)
-    if not request then
-        log_err("[HttpClient][send_request] failed : {}", curl_handle)
-        return false
+    if url:sub(-1) ~= "/" then
+        url = sformat("%s/", url)
     end
-    if not headers then
-        headers = {["Content-Type"] = "text/plain" }
+    local http, addr = sgmatch(url, "(.+)://([^/]-)/")()
+    if not http then
+        return nil, "Illegal htpp url"
     end
-    if type(datas) == "table" then
-        datas = jencode(datas)
-        headers["Content-Type"] = "application/json"
+    local host, port = qsaddr(addr)
+    if not port then
+        port = http == "https" and 443 or 80
     end
-    for key, value in pairs(headers or {}) do
-        request.set_header(sformat("%s:%s", key, value))
+    local ip = self.domains[host]
+    if not ip then
+        local ips = busdns(host)
+        if not ips or #ips == 0 then
+            return nil, "ip addr parse failed!"
+        end
+        ip = ips[1]
+        self.domains[host] = ip
     end
-    local ok, err = request[method](datas or "")
-    if not ok then
-        log_err("[HttpClient][send_request] curl {} failed: {}!", method, err)
-        return false
-    end
-    local session_id = thread_mgr:build_session_id()
-    self.contexts[curl_handle] = {
-        request = request,
-        session_id = session_id,
-        time = quanta.clock_ms + to,
-    }
-    return thread_mgr:yield(session_id, url, to)
-end
-
---get接口
-function HttpClient:call_get(url, querys, headers, datas, timeout)
-    return self:send_request(url, timeout, querys, headers, "call_get", datas)
-end
-
---post接口
-function HttpClient:call_post(url, datas, headers, querys, timeout)
-    return self:send_request(url, timeout, querys, headers, "call_post", datas)
-end
-
---put接口
-function HttpClient:call_put(url, datas, headers, querys, timeout)
-    return self:send_request(url, timeout, querys, headers, "call_put", datas)
-end
-
---del接口
-function HttpClient:call_del(url, querys, headers, timeout)
-    return self:send_request(url, timeout, querys, headers, "call_del")
+    return ip, port
 end
 
 quanta.http_client = HttpClient()

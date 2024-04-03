@@ -11,7 +11,7 @@ local tunpack       = table.unpack
 local signalquit    = signal.quit
 local saddr         = qstring.addr
 local jsoncodec     = json.jsoncodec
-local httpcodec     = codec.httpcodec
+local httpdcodec    = codec.httpdcodec
 
 local HttpServer = class()
 local prop = property(HttpServer)
@@ -25,7 +25,7 @@ prop:reader("handlers", {})         --handlers
 
 function HttpServer:__init(http_addr)
     self.jcodec = jsoncodec()
-    self.hcodec = httpcodec(self.jcodec)
+    self.hcodec = httpdcodec(self.jcodec)
     self.handlers = { GET = {}, POST = {}, PUT = {}, DELETE = {} }
     self:setup(http_addr)
 end

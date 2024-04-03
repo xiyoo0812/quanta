@@ -39,28 +39,12 @@ namespace lcodec {
             return data_len;
         }
 
-        virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf->clean();
-            //status (http begining)
-            format_http(lua_tointeger(L, index));
-            //headers
-            lua_pushnil(L);
-            while (lua_next(L, index + 1) != 0) {
-                format_http_header(lua_tostring(L, -2), lua_tostring(L, -1));
-                lua_pop(L, 1);
-            }
-            //body
-            uint8_t* body = nullptr;
-            if (lua_type(L, index + 2) == LUA_TTABLE) {
-                if (!m_jcodec) luaL_error(L, "http json not suppert, con't use lua table!");
-                body = m_jcodec->encode(L, index + 2, len);
-            } else {
-                body = (uint8_t*)lua_tolstring(L, index + 2, len);
-            }
-            format_http_header("Content-Length", std::to_string(*len));
-            m_buf->push_data((const uint8_t*)CRLF, LCRLF);
-            m_buf->push_data(body, *len);
-            return m_buf->data(len);
+        void set_codec(codec_base* codec) {
+            m_jcodec = codec;
+        }
+
+        void set_jsondecode(bool jsondecode) {
+            m_jsondisable = jsondecode;
         }
 
         virtual size_t decode(lua_State* L) {
@@ -74,79 +58,34 @@ namespace lcodec {
             return lua_gettop(L) - top;
         }
 
-        void set_codec(codec_base* codec) {
-            m_jcodec = codec;
-        }
-
-        void set_jsondecode(bool jsondecode) {
-            m_jsondisable = jsondecode;
+        virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
+            m_buf->clean();
+            //status
+            format_http(L, &index);
+            //headers
+            lua_pushnil(L);
+            while (lua_next(L, index) != 0) {
+                format_http_header(lua_tostring(L, -2), lua_tostring(L, -1));
+                lua_pop(L, 1);
+            }
+            //body
+            uint8_t* body = nullptr;
+            if (lua_type(L, index + 1) == LUA_TTABLE) {
+                if (!m_jcodec) luaL_error(L, "http json not suppert, con't use lua table!");
+                body = m_jcodec->encode(L, index + 1, len);
+            }
+            else {
+                body = (uint8_t*)lua_tolstring(L, index + 1, len);
+            }
+            format_http_header("Content-Length", std::to_string(*len));
+            m_buf->push_data((const uint8_t*)CRLF, LCRLF);
+            m_buf->push_data(body, *len);
+            return m_buf->data(len);
         }
 
     protected:
-        void format_http(size_t status) {
-            switch (status) {
-            case SC_OK:         m_buf->write("HTTP/1.1 200 OK\r\n"); break;
-            case SC_NOCONTENT:  m_buf->write("HTTP/1.1 204 No Content\r\n"); break;
-            case SC_PARTIAL:    m_buf->write("HTTP/1.1 206 Partial Content\r\n"); break;
-            case SC_BADREQUEST: m_buf->write("HTTP/1.1 400 Bad Request\r\n"); break;
-            case SC_OBJMOVED:   m_buf->write("HTTP/1.1 302 Moved Temporarily\r\n"); break;
-            case SC_NOTFOUND:   m_buf->write("HTTP/1.1 404 Not Found\r\n"); break;
-            case SC_BADMETHOD:  m_buf->write("HTTP/1.1 405 Method Not Allowed\r\n"); break;
-            case SC_PROTOCOL:   m_buf->write("HTTP/1.1 101 Switching Protocols\r\n"); break;
-            default: m_buf->write("HTTP/1.1 500 Internal Server Error\r\n"); break;
-            }
-        }
-
-        void format_http_header(string_view key, string_view val) {
-            m_buf->push_data((uint8_t*)key.data(), key.size());
-            m_buf->push_data((uint8_t*)": ", LCRLF);
-            m_buf->push_data((uint8_t*)val.data(), val.size());
-            m_buf->push_data((const uint8_t*)CRLF, LCRLF);
-        }
-
-        void split(string_view str, string_view delim, vector<string_view>& res) {
-            size_t cur = 0;
-            size_t step = delim.size();
-            size_t pos = str.find(delim);
-            while (pos != string_view::npos) {
-                res.push_back(str.substr(cur, pos - cur));
-                cur = pos + step;
-                pos = str.find(delim, cur);
-            }
-            if (str.size() > cur) {
-                res.push_back(str.substr(cur));
-            }
-        }
-
-        void http_parse_url(lua_State* L, string_view url) {
-            string_view sparams;
-            size_t pos = url.find("?");
-            if (pos != string_view::npos) {
-                sparams = url.substr(pos + 1);
-                url = url.substr(0, pos);
-            }
-            if (url.size() > 1 && url.back() == '/') {
-                url.remove_suffix(1);
-            }
-            //url
-            lua_pushlstring(L, url.data(), url.size());
-            //params
-            lua_createtable(L, 0, 4);
-            if (!sparams.empty()) {
-                vector<string_view> params;
-                split(sparams, "&", params);
-                for (string_view param : params) {
-                    size_t pos = param.find("=");
-                    if (pos != string_view::npos) {
-                        string_view key = param.substr(0, pos);
-                        param.remove_prefix(pos + 1);
-                        lua_pushlstring(L, key.data(), key.size());
-                        lua_pushlstring(L, param.data(), param.size());
-                        lua_settable(L, -3);
-                    }
-                }
-            }
-        }
+        virtual void format_http(lua_State* L, int* index) = 0;
+        virtual void parse_http_packet(lua_State* L, string_view buf) = 0;
 
         void http_parse_body(lua_State* L, string_view header, string_view buf) {
             m_buf->clean();
@@ -221,27 +160,27 @@ namespace lcodec {
             lua_pushlstring(L, (char*)mslice->head(), mslice->size());
         }
 
-        void parse_http_packet(lua_State* L, string_view buf) {
-            size_t pos = buf.find(CRLF2);
-            if (pos == string_view::npos) {
-                throw length_error("http text not full");
-            }
-            string_view header = buf.substr(0, pos);
-            buf.remove_prefix(pos + LCRLF2);
-            auto begining = read_line(header);
-            vector<string_view> parts;
-            split(begining, " ", parts);
-            if (parts.size() < 2) {
-                throw invalid_argument("invalid http healder");
-            }
-            //method
-            lua_pushlstring(L, parts[0].data(), parts[0].size());
-            //url + params
-            http_parse_url(L, parts[1]);
-            //header + body
-            http_parse_body(L, header, buf);
+        void format_http_header(string_view key, string_view val) {
+            m_buf->push_data((uint8_t*)key.data(), key.size());
+            m_buf->push_data((uint8_t*)": ", LCRLF);
+            m_buf->push_data((uint8_t*)val.data(), val.size());
+            m_buf->push_data((const uint8_t*)CRLF, LCRLF);
         }
 
+        void split(string_view str, string_view delim, vector<string_view>& res) {
+            size_t cur = 0;
+            size_t step = delim.size();
+            size_t pos = str.find(delim);
+            while (pos != string_view::npos) {
+                res.push_back(str.substr(cur, pos - cur));
+                cur = pos + step;
+                pos = str.find(delim, cur);
+            }
+            if (str.size() > cur) {
+                res.push_back(str.substr(cur));
+            }
+        }
+    
         string_view read_line(string_view buf) {
             size_t pos = buf.find(CRLF);
             auto ss = buf.substr(0, pos);
@@ -253,4 +192,107 @@ namespace lcodec {
         bool m_jsondisable = false;
         codec_base* m_jcodec = nullptr;
     };
+
+    class httpdcodec : public httpcodec {
+    protected:
+        virtual void format_http(lua_State* L, int* index) {
+            size_t status = lua_tointeger(L, (*index)++);
+            switch (status) {
+            case SC_OK:         m_buf->write("HTTP/1.1 200 OK\r\n"); break;
+            case SC_NOCONTENT:  m_buf->write("HTTP/1.1 204 No Content\r\n"); break;
+            case SC_PARTIAL:    m_buf->write("HTTP/1.1 206 Partial Content\r\n"); break;
+            case SC_BADREQUEST: m_buf->write("HTTP/1.1 400 Bad Request\r\n"); break;
+            case SC_OBJMOVED:   m_buf->write("HTTP/1.1 302 Moved Temporarily\r\n"); break;
+            case SC_NOTFOUND:   m_buf->write("HTTP/1.1 404 Not Found\r\n"); break;
+            case SC_BADMETHOD:  m_buf->write("HTTP/1.1 405 Method Not Allowed\r\n"); break;
+            case SC_PROTOCOL:   m_buf->write("HTTP/1.1 101 Switching Protocols\r\n"); break;
+            default: m_buf->write("HTTP/1.1 500 Internal Server Error\r\n"); break;
+            }
+        }
+
+        virtual void parse_http_packet(lua_State* L, string_view buf) {
+            size_t pos = buf.find(CRLF2);
+            if (pos == string_view::npos) {
+                throw length_error("http text not full");
+            }
+            string_view header = buf.substr(0, pos);
+            buf.remove_prefix(pos + LCRLF2);
+            auto begining = read_line(header);
+            vector<string_view> parts;
+            split(begining, " ", parts);
+            if (parts.size() < 2) {
+                throw lua_exception("invalid http header");
+            }
+            //method
+            lua_pushlstring(L, parts[0].data(), parts[0].size());
+            //url + params
+            http_parse_url(L, parts[1]);
+            //header + body
+            http_parse_body(L, header, buf);
+        }
+
+        void http_parse_url(lua_State* L, string_view url) {
+            string_view sparams;
+            size_t pos = url.find("?");
+            if (pos != string_view::npos) {
+                sparams = url.substr(pos + 1);
+                url = url.substr(0, pos);
+            }
+            if (url.size() > 1 && url.back() == '/') {
+                url.remove_suffix(1);
+            }
+            //url
+            lua_pushlstring(L, url.data(), url.size());
+            //params
+            lua_createtable(L, 0, 4);
+            if (!sparams.empty()) {
+                vector<string_view> params;
+                split(sparams, "&", params);
+                for (string_view param : params) {
+                    size_t pos = param.find("=");
+                    if (pos != string_view::npos) {
+                        string_view key = param.substr(0, pos);
+                        param.remove_prefix(pos + 1);
+                        lua_pushlstring(L, key.data(), key.size());
+                        lua_pushlstring(L, param.data(), param.size());
+                        lua_settable(L, -3);
+                    }
+                }
+            }
+        }
+    };
+
+    class httpccodec : public httpcodec {
+    protected:
+        virtual void format_http(lua_State* L, int* index)  {
+            char buf[CHAR_MAX];
+            const char* url = lua_tostring(L, (*index)++);
+            const char* method = lua_tostring(L, (*index)++);
+            int len = snprintf(buf, CHAR_MAX, "%s %s HTTP/1.1\r\n", method, url);
+            m_buf->push_data((const uint8_t*)buf, len);
+        }
+
+        virtual void parse_http_packet(lua_State* L, string_view buf) {
+            size_t pos = buf.find(CRLF2);
+            if (pos == string_view::npos) {
+                throw length_error("http text not full");
+            }
+            string_view header = buf.substr(0, pos);
+            buf.remove_prefix(pos + LCRLF2);
+            auto begining = read_line(header);
+            vector<string_view> parts;
+            split(begining, " ", parts);
+            if (parts.size() < 2) {
+                throw lua_exception("invalid http header");
+            }
+            //status
+            if (lua_stringtonumber(L, parts[1].data()) == 0) {
+                lua_pushlstring(L, parts[1].data(), parts[1].size());
+            }
+            //header + body
+            http_parse_body(L, header, buf);
+        }
+    };
 }
+
+

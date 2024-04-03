@@ -44,7 +44,7 @@ static void luaL_open_worldlibs(lua_State* L) {
 
 quanta_app* q_app = nullptr;
 
-QUANTA_API int quanta_init(const char* zfile, const char* fconf) {
+QUANTA_API int init_quanta(const char* zfile, const char* fconf) {
     setlocale(LC_ALL, "");
 #if !(defined(__ORBIS__) || defined(__PROSPERO__))
     tzset();
@@ -57,24 +57,15 @@ QUANTA_API int quanta_init(const char* zfile, const char* fconf) {
         //设置静态库模式
         q_app->set_env("QUANTA_STATIC", "1", 0);
         //加载zip文件
-        q_app->initzip(zfile);
+        if (!q_app->initzip(zfile)) {
+            return -1;
+        }
         const char* args[QUANTA_ARGS_NUM]{ "world", fconf};
-        //启动主循环
+        //初始化
         q_app->setup(QUANTA_ARGS_NUM, args);
+        q_app->init();
     }
     return 0;
-}
-
-QUANTA_API int quanta_running() {
-    if (q_app) {
-        bool running = q_app->running();
-        if (!running) {
-            delete q_app;
-            q_app = nullptr;
-        }
-        return running;
-    }
-    return false;
 }
 
 QUANTA_API int run_quanta() {
@@ -82,9 +73,9 @@ QUANTA_API int run_quanta() {
         if (!q_app->step()) {
             delete q_app;
             q_app = nullptr;
-            return 0
+            return -1;
         }
-        return 1;
+        return 0;
     }
-    return 0;
+    return -2;
 }

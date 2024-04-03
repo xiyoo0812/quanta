@@ -2,6 +2,9 @@
 
 #include "lsqlite.h"
 
+using namespace std;
+using namespace luakit;
+
 namespace lsqlite {
     sqlite_driver* create_criver(lua_State* L) {
         return new sqlite_driver();

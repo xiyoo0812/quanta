@@ -95,7 +95,7 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 OBJS =
-COBJS = $(patsubst %.c, $(INT_DIR)/%.o, quanta.cppmain.cpp)
+COBJS = $(patsubst %.c, $(INT_DIR)/%.o, quanta.cpp main.cpp)
 MOBJS = $(patsubst %.m, $(INT_DIR)/%.o, $(COBJS))
 CCOBJS = $(patsubst %.cc, $(INT_DIR)/%.o, $(MOBJS))
 OBJS = $(patsubst %.cpp, $(INT_DIR)/%.o, $(CCOBJS))

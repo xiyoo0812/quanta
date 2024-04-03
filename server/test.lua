@@ -32,5 +32,5 @@ quanta.startup(function()--初始化test
     import("test/unqlite_test.lua")
     import("test/sqlite_test.lua")
     ]]
-    import("test/sqlite_test.lua")
+    import("test/http_test.lua")
 end)

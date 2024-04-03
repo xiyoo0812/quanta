@@ -94,7 +94,7 @@ local code1 = rsa_init_pkey(pub_pem_b64)
 local code2 = rsa_init_skey(pri_pem_b64)
 log_info("rsa_init: {}, {}",  code1, code2)
 
-local rsav1, ee = crypt.rsa_pencode(pem_pri)
+local rsav1 = crypt.rsa_pencode(pem_pri)
 log_info("rsa_pencode: {}, {}",  #rsav1, lhex_encode(rsav1))
 local rsav2 = crypt.rsa_sdecode(rsav1)
 log_info("rsa_sdecode: {}, {}",  #rsav2, rsav2)
@@ -102,3 +102,4 @@ local rsav3 = crypt.rsa_sencode(pem_pri)
 log_info("rsa_sencode: {}, {}",  #rsav3, lhex_encode(rsav3))
 local rsav4 = crypt.rsa_pdecode(rsav3)
 log_info("rsa_pdecode: {}, {}",  #rsav4, rsav4)
+

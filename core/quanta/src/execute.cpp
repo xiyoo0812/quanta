@@ -3,9 +3,9 @@
 
 int main(int argc, const char* argv[])
 {
-    quanta_init(argv[1], argv[2]);
-    while (quanta_run() == 0) {
-        break;
+    init_quanta(argv[1], argv[2]);
+    while (true) {
+        if(run_quanta() != 0) break;
     }
     return 0;
 }
