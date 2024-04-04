@@ -113,11 +113,13 @@ EXCLUDE += $(SRC_DIR)/{{%= exclude %}}
 
 #需要连接的库文件
 LIBS =
+ifneq ($(UNAME_S), Darwin)
 {{% if MIMALLOC and MIMALLOC_DIR then %}}
 #是否启用mimalloc库
 LIBS += -lmimalloc
 MYCFLAGS += -I$(SOLUTION_DIR){{%= MIMALLOC_DIR %}} -include ../../mimalloc-ex.h
 {{% end %}}
+endif
 #自定义库
 {{% if #LIBS > 0 then %}}
 {{% for _, lib in ipairs(LIBS) do %}}

@@ -52,9 +52,12 @@ EXCLUDE =
 EXCLUDE += $(SRC_DIR)/static.c
 EXCLUDE += $(SRC_DIR)/page-queue.c
 EXCLUDE += $(SRC_DIR)/alloc-override.c
+EXCLUDE += $(SRC_DIR)/free.c
 
 #需要连接的库文件
 LIBS =
+ifneq ($(UNAME_S), Darwin)
+endif
 #自定义库
 #系统库
 LIBS += -lm -ldl -lstdc++ -lpthread

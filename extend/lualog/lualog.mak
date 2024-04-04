@@ -51,9 +51,11 @@ EXCLUDE =
 
 #需要连接的库文件
 LIBS =
+ifneq ($(UNAME_S), Darwin)
 #是否启用mimalloc库
 LIBS += -lmimalloc
 MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
+endif
 #自定义库
 LIBS += -llua
 ifeq ($(UNAME_S), Linux)
