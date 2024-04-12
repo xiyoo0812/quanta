@@ -85,9 +85,9 @@ namespace lcodec {
 
     protected:
         virtual void format_http(lua_State* L, int* index) = 0;
-        virtual void parse_http_packet(lua_State* L, string_view buf) = 0;
+        virtual void parse_http_packet(lua_State* L, string_view& buf) = 0;
 
-        void http_parse_body(lua_State* L, string_view header, string_view buf) {
+        void http_parse_body(lua_State* L, string_view header, string_view& buf) {
             m_buf->clean();
             bool jsonable = false;
             bool contentlenable = false;
@@ -210,7 +210,7 @@ namespace lcodec {
             }
         }
 
-        virtual void parse_http_packet(lua_State* L, string_view buf) {
+        virtual void parse_http_packet(lua_State* L, string_view& buf) {
             size_t pos = buf.find(CRLF2);
             if (pos == string_view::npos) {
                 throw length_error("http text not full");
@@ -272,7 +272,7 @@ namespace lcodec {
             m_buf->push_data((const uint8_t*)buf, len);
         }
 
-        virtual void parse_http_packet(lua_State* L, string_view buf) {
+        virtual void parse_http_packet(lua_State* L, string_view& buf) {
             size_t pos = buf.find(CRLF2);
             if (pos == string_view::npos) {
                 throw length_error("http text not full");
@@ -285,9 +285,12 @@ namespace lcodec {
             if (parts.size() < 2) {
                 throw lua_exception("invalid http header");
             }
+            //proto
+            lua_pushstring(L, "HTTP");
             //status
-            if (lua_stringtonumber(L, parts[1].data()) == 0) {
-                lua_pushlstring(L, parts[1].data(), parts[1].size());
+            string status = string(parts[1]);
+            if (lua_stringtonumber(L, status.c_str()) == 0) {
+                lua_pushlstring(L, status.c_str(), status.size());
             }
             //header + body
             http_parse_body(L, header, buf);

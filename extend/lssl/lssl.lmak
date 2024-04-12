@@ -1,0 +1,80 @@
+--工程名字
+PROJECT_NAME = "lssl"
+
+--目标名字
+TARGET_NAME = "lssl"
+
+----工程类型: static/dynamic/exe
+PROJECT_TYPE = "dynamic"
+
+--目标文件前缀
+LIB_PREFIX = 1
+
+EX_FLAGS = {
+    "Wno-implicit-fallthrough"
+}
+
+--需要的include目录
+INCLUDES = {
+    "./src",
+    "../lua/lua",
+    "../luakit/include"
+}
+
+--LINUX需要定义的选项
+LINUX_DEFINES = {
+}
+
+--DARWIN需要定义的选项
+DARWIN_DEFINES = {
+}
+
+--WINDOWS需要定义的选项
+WINDOWS_DEFINES = {
+    "LUA_BUILD_AS_DLL"
+}
+
+DEFINES = {
+    "WOLFSSL_LIB",
+    "WOLFSSL_SRTP",
+    "WOLFSSL_NO_SOCK",
+    "WOLFSSL_USER_IO",
+    "WOLFSSL_USER_SETTINGS"
+}
+
+--自动搜索子目录
+AUTO_SUB_DIR = true
+
+--需要排除的源文件,目录基于$(SRC_DIR)
+EXCLUDE_FILE = {
+    "src/ssl_bn.c",
+    "src/ssl_misc.c",
+    "src/ssl_asn1.c",
+    "src/ssl_crypto.c",
+    "src/ssl_certman.c",
+    "wolfcrypt/src/evp.c",
+    "wolfcrypt/src/misc.c",
+    "src/x509_str.c",
+    "src/x509.c",
+    "src/conf.c",
+    "src/bio.c",
+    "src/pk.c",
+}
+
+--需要连接的库文件
+LIBS = {
+    "lua"
+}
+
+--WINDOWS需要连接的库文件
+--windows下没有-l自动连接的功能，库文件需要带前后缀
+WINDOWS_LIBS = {
+}
+
+--依赖项目
+DEPS = {
+    "lualib"
+}
+
+--分组定义
+GROUP = "luaext"

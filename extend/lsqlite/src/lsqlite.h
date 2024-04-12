@@ -226,7 +226,7 @@ namespace lsqlite {
             size_t size;
             sqlite3_stmt* stmt;
             const char* sql = luaL_checklstring(L, 1, &size);
-            int rc = sqlite3_prepare(m_sdb, sql, size, &stmt, nullptr);
+            int rc = sqlite3_prepare_v2(m_sdb, sql, size, &stmt, nullptr);
             if (rc != SQLITE_OK) {
                 return handler_err(L, rc);
             }

@@ -18,7 +18,7 @@ if qgetenv("QUANTA_DYNAMIC") then
     --编码库
     require("lcodec")
     --加密解密库
-    require("lcrypt")
+    require("lssl")
 
     --特定模块
     if qgetenv("QUANTA_MODE") then

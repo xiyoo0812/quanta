@@ -48,6 +48,7 @@ namespace luapb {
             header.session_id = (lua_tointeger(L, index++) & 0xffff);
             //cmdid
             const pb_Type* t = pb_type_from_stack(L, LS, &header, index++);
+            if (t == nullptr) luaL_error(L, "pb message not define cmd: %d", header.cmd_id);
             pb_Slice sh = pb_lslice((const char*)&header, sizeof(header));
             //other
             header.flag = (uint8_t)lua_tointeger(L, index++);
@@ -70,6 +71,9 @@ namespace luapb {
             //cmd_id
             lpb_State* LS = lpb_lstate(L);
             const pb_Type* t = pb_type_from_enum(L, LS, header->cmd_id);
+            if (t == nullptr) {
+                throw lua_exception("pb message not define cmd: %d", header->cmd_id);
+            }
             //data
             size_t data_len;
             const char* data = (const char*)m_slice->data(&data_len);

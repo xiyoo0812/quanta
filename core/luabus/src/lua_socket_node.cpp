@@ -42,7 +42,7 @@ int lua_socket_node::call_data(lua_State* L) {
     if (m_codec) {
         size_t data_len = 0;
         char* data = (char*)m_codec->encode(L, 1, &data_len);
-        if (data_len <= SOCKET_PACKET_MAX){
+        if (data_len > 0 && data_len <= SOCKET_PACKET_MAX){
             m_mgr->send(m_token, data, data_len);
             lua_pushinteger(L, data_len);
             return 1;

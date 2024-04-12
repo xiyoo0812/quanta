@@ -8,7 +8,6 @@ local tinsert       = table.insert
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
 
-local mdb_driver    = quanta.get("mdb_driver")
 local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local cache_agent   = quanta.get("cache_agent")
@@ -19,14 +18,13 @@ local cache_db      = config_mgr:init_table("cache", "sheet")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local STORE_INCRE   = environ.number("QUANTA_STORE_FLUSH")
 
-local QUANTA_LMDB   = environ.status("QUANTA_LMDB")
-
 local STORE_WHOLE   = STORE_INCRE // 10
 
 local StoreMgr = singleton()
 local prop = property(StoreMgr)
 prop:reader("groups", {})       -- groups
 prop:reader("wholes", {})       -- wholes
+prop:reader("driver", nil)      -- driver
 prop:reader("increases", {})    -- increases
 
 function StoreMgr:__init()
@@ -34,6 +32,13 @@ function StoreMgr:__init()
     --通知监听
     update_mgr:attach_fast(self)
     update_mgr:attach_second(self)
+end
+
+function StoreMgr:open(driver, name, dbname)
+    if not self.driver then
+        driver:open(name, dbname)
+        self.driver = driver
+    end
 end
 
 function StoreMgr:find_group(group_name)
@@ -53,8 +58,8 @@ function StoreMgr:find_group(group_name)
 end
 
 function StoreMgr:get_autoinc_id(character_id, world_id)
-    if QUANTA_LMDB then
-        local aok, role_id = mdb_driver:autoinc_id()
+    if self.driver then
+        local aok, role_id = self.driver:autoinc_id()
         if not aok then
             log_err("[CharacterWorld][get_autoinc_id] failed: character_id: {} world_id:{} res: {}", character_id, world_id, role_id)
             return false
@@ -70,10 +75,10 @@ function StoreMgr:get_autoinc_id(character_id, world_id)
 end
 
 function StoreMgr:load_impl(primary_id, sheet_name)
-    if QUANTA_LMDB then
+    if self.driver then
         local primary_key = cache_db:find_value("key", sheet_name)
-        local SMDB = import("store/store_mdb.lua")
-        local store = SMDB(sheet_name, primary_id)
+        local StoreKV = import("store/store_kv.lua")
+        local store = StoreKV(self.driver, sheet_name, primary_id)
         local ok, adata = store:load(primary_key)
         if not ok then
             log_err("[StoreMgr][load_mdb_{}] primary_id: {} find failed! res: {}", sheet_name, primary_id, adata)

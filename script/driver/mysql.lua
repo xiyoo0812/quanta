@@ -1,7 +1,7 @@
 --mysql.lua
 local Socket        = import("driver/socket.lua")
 
-local lsha1         = crypt.sha1
+local lsha1         = ssl.sha1
 local sgsub         = string.gsub
 local log_err       = logger.err
 local log_info      = logger.info
@@ -9,7 +9,7 @@ local sformat       = string.format
 local tinsert       = table.insert
 local tdelete       = qtable.delete
 local mrandom       = qmath.random
-local lxor_byte     = crypt.xor_byte
+local lxor_byte     = ssl.xor_byte
 local qhash         = codec.hash_code
 local mysqlcodec    = codec.mysqlcodec
 local makechan      = quanta.make_channel

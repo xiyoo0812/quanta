@@ -5,12 +5,13 @@ local pcall     = pcall
 local tostring  = tostring
 local tunpack   = table.unpack
 local ssub      = string.sub
+local sbyte     = string.byte
 local sfind     = string.find
 local sgsub     = string.gsub
 local supper    = string.upper
 local slower    = string.lower
 local sformat   = string.format
-local sbyte     = string.byte
+local sgmatch   = string.gmatch
 
 qstring = {}
 
@@ -109,12 +110,28 @@ function qstring.addr(value)
     return ip, tonumber(port)
 end
 
-function qstring.protoaddr(value)
-    local addr, proto = tunpack(ssplit(value, "/"))
-    if addr then
-        local ip, port = tunpack(ssplit(addr, ":"))
-        return ip, tonumber(port), proto
+local saddr = qstring.addr
+function qstring.url(url)
+    if not url then
+        return
     end
+    local proto, addr = sgmatch(url, "(.+)://(.+)")()
+    if not proto then
+        return
+    end
+    local host, port, path
+    local i, j = addr:find("/")
+    if not i then
+        path = "/"
+        host, port = saddr(addr)
+    else
+        path = addr:sub(j)
+        host, port = saddr(addr:sub(1, i - 1))
+    end
+    if not port then
+        port = proto == "https" and 443 or 80
+    end
+    return proto, host, port, path
 end
 
 function qstring.usplit(str, token)

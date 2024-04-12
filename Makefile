@@ -27,11 +27,11 @@ luaext:
 	cd extend/laoi; make SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
 	cd extend/lbson; make SOLUTION_DIR=$(CUR_DIR) -f lbson.mak;
 	cd extend/lcodec; make SOLUTION_DIR=$(CUR_DIR) -f lcodec.mak;
-	cd extend/lcrypt; make SOLUTION_DIR=$(CUR_DIR) -f lcrypt.mak;
 	cd extend/ldetour; make SOLUTION_DIR=$(CUR_DIR) -f ldetour.mak;
 	cd extend/ljson; make SOLUTION_DIR=$(CUR_DIR) -f ljson.mak;
 	cd extend/lmdb; make SOLUTION_DIR=$(CUR_DIR) -f lmdb.mak;
 	cd extend/lsqlite; make SOLUTION_DIR=$(CUR_DIR) -f lsqlite.mak;
+	cd extend/lssl; make SOLUTION_DIR=$(CUR_DIR) -f lssl.mak;
 	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;

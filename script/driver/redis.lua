@@ -2,13 +2,13 @@
 local Socket        = import("driver/socket.lua")
 
 local tonumber      = tonumber
+local crc16         = ssl.crc16
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
 local slower        = string.lower
 local tinsert       = table.insert
 local mrandom       = qmath.random
-local crc16         = crypt.crc16
 local tdelete       = qtable.delete
 local qhash         = codec.hash_code
 local makechan      = quanta.make_channel

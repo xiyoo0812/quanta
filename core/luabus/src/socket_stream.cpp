@@ -236,7 +236,7 @@ void socket_stream::stream_send(const char* data, size_t data_len)
         while (data_len > 0) {
             int send_len = ::send(m_socket, data, (int)data_len, 0);
             if (send_len == 0) {
-                on_error("connection-lost");
+                on_error("connection-send-lost");
                 return;
             }
             if (send_len == SOCKET_ERROR) {
@@ -369,7 +369,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
             return;
         }
         if (send_len == 0) {
-            on_error("connection-lost");
+            on_error("connection-send-lost");
             return;
         }
         total_send += send_len;
@@ -380,8 +380,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
     }
 }
 
-void socket_stream::do_recv(size_t max_len, bool is_eof)
-{
+void socket_stream::do_recv(size_t max_len, bool is_eof) {
     size_t total_recv = 0;
     while (total_recv < max_len && m_link_status == elink_status::link_connected) {
         auto* space = m_recv_buffer->peek_space(SOCKET_RECV_LEN);
@@ -412,7 +411,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof)
             return;
         }
         if (recv_len == 0) {
-            on_error("connection-lost");
+            on_error("connection-recv-lost");
             return;
         }
         total_recv += recv_len;

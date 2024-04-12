@@ -6,7 +6,6 @@ local qgetenv   = quanta.getenv
 local saddr     = qstring.addr
 local ssplit    = qstring.split
 local usplit    = qstring.usplit
-local protoaddr = qstring.protoaddr
 
 environ = {}
 
@@ -35,13 +34,6 @@ function environ.addr(key)
     local value = qgetenv(key)
     if value then
         return saddr(value)
-    end
-end
-
-function environ.protoaddr(key)
-    local value = qgetenv(key)
-    if value then
-        return protoaddr(value)
     end
 end
 

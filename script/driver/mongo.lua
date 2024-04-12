@@ -19,14 +19,14 @@ local qhash         = codec.hash_code
 local qdefer        = quanta.defer
 local makechan      = quanta.make_channel
 
-local lmd5          = crypt.md5
-local lsha1         = crypt.sha1
+local lmd5          = ssl.md5
+local lsha1         = ssl.sha1
+local lrandomkey    = ssl.randomkey
+local lb64encode    = ssl.b64_encode
+local lb64decode    = ssl.b64_decode
+local lhmac_sha1    = ssl.hmac_sha1
+local lxor_byte     = ssl.xor_byte
 local bsonpairs     = bson.pairs
-local lrandomkey    = crypt.randomkey
-local lb64encode    = crypt.b64_encode
-local lb64decode    = crypt.b64_decode
-local lhmac_sha1    = crypt.hmac_sha1
-local lxor_byte     = crypt.xor_byte
 local lclock_ms     = timer.clock_ms
 
 local timer_mgr     = quanta.get("timer_mgr")

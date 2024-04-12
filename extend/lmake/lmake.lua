@@ -119,7 +119,7 @@ local function collect_files(collect_dir, project_dir, source_dir, args, group, 
     local dir_files = ldir(collect_dir)
     for _, file in pairs(dir_files) do
         if file.type == "directory" then
-            local sub_dir = path_cut(file.name, collect_dir)
+            local sub_dir = path_cut(file.name, source_dir)
             if args.AUTO_SUB_DIR or tcontain(args.SUB_DIR, sub_dir) then
                 collect_files(file.name, project_dir, source_dir, args, sub_dir, collects, is_hfile)
             end

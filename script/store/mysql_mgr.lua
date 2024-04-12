@@ -25,7 +25,7 @@ function MysqlMgr:setup()
     self.mysql_db = MysqlDB(driver)
 end
 
-function MysqlMgr:query(db_id, primary_id, sql)
+function MysqlMgr:query(primary_id, sql)
     local mysqldb = self.mysql_db
     if mysqldb and mysqldb:set_executer(primary_id) then
         local ok, res_oe = mysqldb:query(sql)

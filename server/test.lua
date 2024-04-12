@@ -12,7 +12,6 @@ quanta.startup(function()--初始化test
     import("test/http_test.lua")
     import("test/rpc_test.lua")
     import("test/log_test.lua")
-    import("test/crypt_test.lua")
     import("test/timer_test.lua")
     import("test/mysql_test.lua")
     import("test/redis_test.lua")
@@ -31,6 +30,7 @@ quanta.startup(function()--初始化test
     import("test/lmdb_test.lua")
     import("test/unqlite_test.lua")
     import("test/sqlite_test.lua")
+    import("test/ssl_test.lua")
     ]]
-    import("test/http_test.lua")
+    import("test/redis_test.lua")
 end)

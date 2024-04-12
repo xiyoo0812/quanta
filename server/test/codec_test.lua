@@ -2,9 +2,9 @@
 
 local log_debug     = logger.debug
 local log_dump      = logger.dump
-local lhex_encode   = crypt.hex_encode
+local lhex_encode   = ssl.hex_encode
 
-local crc8          = crypt.crc8
+local crc8          = ssl.crc8
 local hash_code     = codec.hash_code
 local fnv_32a       = codec.fnv_1a_32
 local fnv_32        = codec.fnv_1_32

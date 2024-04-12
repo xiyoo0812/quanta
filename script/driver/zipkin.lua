@@ -4,8 +4,8 @@ import("network/http_client.lua")
 local log_err       = logger.err
 local log_info      = logger.info
 local sformat       = string.format
-local lrandomkey    = crypt.randomkey
-local lhex_encode   = crypt.hex_encode
+local lrandomkey    = ssl.randomkey
+local lhex_encode   = ssl.hex_encode
 
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")
