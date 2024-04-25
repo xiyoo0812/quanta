@@ -46,9 +46,9 @@ function Sqlite:register_prepare(sheet)
     }
 end
 
-function Sqlite:get_prepare(sheet)
+function Sqlite:get_prepare(sheet, primary_id)
     if not self.prepares[sheet] then
-        self:register_prepare(sheet)
+        self:init_sheet(sheet, primary_id)
     end
     return self.prepares[sheet]
 end
@@ -67,14 +67,14 @@ end
 
 function Sqlite:init_sheet(sheet, primary_id)
     log_debug("[Sqlite][init_sheet] sheet:{} primary_id:{}", sheet, primary_id)
+    local sql = "CREATE TABLE IF NOT EXISTS '%s' (KEY %s PRIMARY KEY NOT NULL, VALUE BLOB);"
+    self.driver.exec(sformat(sql, sheet, type(primary_id) == "string" and "TEXT" or "INTEGER"))
     self:register_prepare(sheet)
-    self.driver.exec(sformat("CREATE TABLE IF NOT EXISTS '%s' (KEY %s PRIMARY KEY NOT NULL, VALUE BLOB);", sheet,
-        type(primary_id) == "string" and "TEXT" or "INTEGER"))
 end
 
 function Sqlite:put(primary_id, data, sheet)
     log_debug("[Sqlite][put] primary_id:{} data:{} sheet:{}", primary_id, data, sheet)
-    local rc = self:get_prepare(sheet).update.run(primary_id, data)
+    local rc = self:get_prepare(sheet, primary_id).update.run(primary_id, data)
     if rc ~= SQLITE_DONE then
         log_debug("[Sqlite][put] fail rc={}", rc)
         return false
@@ -82,9 +82,9 @@ function Sqlite:put(primary_id, data, sheet)
     return true
 end
 
-function Sqlite:get(sheet, primary_id)
+function Sqlite:get(primary_id, sheet)
     log_debug("[Sqlite][get] sheet:{} primary_id:{}", sheet, primary_id)
-    local rc, data = self:get_prepare(sheet).select.run(primary_id)
+    local rc, data = self:get_prepare(sheet, primary_id).select.run(primary_id)
     if rc == SQLITE_NFOUND or rc == SQLITE_DONE then
         return (data[1] and data[1].VALUE) and data[1].VALUE or {}, true
     end
@@ -92,7 +92,7 @@ function Sqlite:get(sheet, primary_id)
 end
 
 function Sqlite:del(primary_id, sheet)
-    local rc = self:get_prepare(sheet).delete.run(primary_id)
+    local rc = self:get_prepare(sheet, primary_id).delete.run(primary_id)
     return rc == SQLITE_NFOUND or rc == SQLITE_OK
 end
 
@@ -101,8 +101,8 @@ function Sqlite:drop(dbname)
 end
 
 function Sqlite:autoinc_id()
-    local sql = sformat("INSERT INTO '%s' (VALUE) VALUES(%s); SELECT last_insert_rowid() AS AUTOINC_ID;", AUTOINCKEY, quanta.now)
-    local code, record = self.driver.find(sql)
+    local sql = "INSERT INTO '%s' (VALUE) VALUES(%s); SELECT last_insert_rowid() AS AUTOINC_ID;"
+    local code, record = self.driver.find(sformat(sql, AUTOINCKEY, quanta.now))
     if code ~= SQLITE_OK or not next(record) then
         log_err("[Sqlite][autoinc_id] update fail code:{} record:{}", code, record)
         return false

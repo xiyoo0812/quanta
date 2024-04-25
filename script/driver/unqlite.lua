@@ -21,7 +21,7 @@ end
 
 function Unqlite:open(name)
     if not self.driver then
-        local driver = Unqlite.create()
+        local driver = unqlite.create()
         local jcodec = json.jsoncodec()
         driver.set_codec(jcodec)
         self.driver = driver

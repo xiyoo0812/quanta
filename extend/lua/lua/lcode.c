@@ -415,7 +415,7 @@ int luaK_codeABx (FuncState *fs, OpCode o, int a, unsigned int bc) {
 /*
 ** Format and emit an 'iAsBx' instruction.
 */
-static int codeAsBx (FuncState *fs, OpCode o, int a, int bc) {
+int luaK_codeAsBx (FuncState *fs, OpCode o, int a, int bc) {
   unsigned int b = bc + OFFSET_sBx;
   lua_assert(getOpMode(o) == iAsBx);
   lua_assert(a <= MAXARG_A && b <= MAXARG_Bx);
@@ -544,10 +544,10 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   TValue val;
   lua_State *L = fs->ls->L;
   Proto *f = fs->f;
-  int tag = luaH_get(fs->ls->h, key, &val);  /* query scanner table */
+  const TValue *idx = luaH_get(fs->ls->h, key);  /* query scanner table */
   int k, oldsize;
-  if (tag == LUA_VNUMINT) {  /* is there an index there? */
-    k = cast_int(ivalue(&val));
+  if (ttisinteger(idx)) {  /* is there an index there? */
+    k = cast_int(ivalue(idx));
     /* correct value? (warning: must distinguish floats from integers!) */
     if (k < fs->nk && ttypetag(&f->k[k]) == ttypetag(v) &&
                       luaV_rawequalobj(&f->k[k], v))
@@ -559,7 +559,7 @@ static int addk (FuncState *fs, TValue *key, TValue *v) {
   /* numerical value does not need GC barrier;
      table has no metatable, so it does not need to invalidate cache */
   setivalue(&val, k);
-  luaH_set(L, fs->ls->h, key, &val);
+  luaH_finishset(L, fs->ls->h, key, idx, &val);
   luaM_growvector(L, f->k, k, f->sizek, TValue, MAXARG_Ax, "constants");
   while (oldsize < f->sizek) setnilvalue(&f->k[oldsize++]);
   setobj(L, &f->k[k], v);
@@ -671,7 +671,7 @@ static int fitsBx (lua_Integer i) {
 
 void luaK_int (FuncState *fs, int reg, lua_Integer i) {
   if (fitsBx(i))
-    codeAsBx(fs, OP_LOADI, reg, cast_int(i));
+    luaK_codeAsBx(fs, OP_LOADI, reg, cast_int(i));
   else
     luaK_codek(fs, reg, luaK_intK(fs, i));
 }
@@ -680,7 +680,7 @@ void luaK_int (FuncState *fs, int reg, lua_Integer i) {
 static void luaK_float (FuncState *fs, int reg, lua_Number f) {
   lua_Integer fi;
   if (luaV_flttointeger(f, &fi, F2Ieq) && fitsBx(fi))
-    codeAsBx(fs, OP_LOADF, reg, cast_int(fi));
+    luaK_codeAsBx(fs, OP_LOADF, reg, cast_int(fi));
   else
     luaK_codek(fs, reg, luaK_numberK(fs, f));
 }
@@ -1025,7 +1025,7 @@ static int luaK_exp2K (FuncState *fs, expdesc *e) {
 ** in the range of R/K indices).
 ** Returns 1 iff expression is K.
 */
-static int exp2RK (FuncState *fs, expdesc *e) {
+int luaK_exp2RK (FuncState *fs, expdesc *e) {
   if (luaK_exp2K(fs, e))
     return 1;
   else {  /* not a constant in the right range: put it in a register */
@@ -1037,7 +1037,7 @@ static int exp2RK (FuncState *fs, expdesc *e) {
 
 static void codeABRK (FuncState *fs, OpCode o, int a, int b,
                       expdesc *ec) {
-  int k = exp2RK(fs, ec);
+  int k = luaK_exp2RK(fs, ec);
   luaK_codeABCk(fs, o, a, b, ec->u.info, k);
 }
 
@@ -1215,7 +1215,7 @@ static void codenot (FuncState *fs, expdesc *e) {
 
 
 /*
-** Check whether expression 'e' is a short literal string
+** Check whether expression 'e' is a small literal string
 */
 static int isKstr (FuncState *fs, expdesc *e) {
   return (e->k == VK && !hasjumps(e) && e->u.info <= MAXARG_B &&
@@ -1225,7 +1225,7 @@ static int isKstr (FuncState *fs, expdesc *e) {
 /*
 ** Check whether expression 'e' is a literal integer.
 */
-static int isKint (expdesc *e) {
+int luaK_isKint (expdesc *e) {
   return (e->k == VKINT && !hasjumps(e));
 }
 
@@ -1235,7 +1235,7 @@ static int isKint (expdesc *e) {
 ** proper range to fit in register C
 */
 static int isCint (expdesc *e) {
-  return isKint(e) && (l_castS2U(e->u.ival) <= l_castS2U(MAXARG_C));
+  return luaK_isKint(e) && (l_castS2U(e->u.ival) <= l_castS2U(MAXARG_C));
 }
 
 
@@ -1244,7 +1244,7 @@ static int isCint (expdesc *e) {
 ** proper range to fit in register sC
 */
 static int isSCint (expdesc *e) {
-  return isKint(e) && fitsC(e->u.ival);
+  return luaK_isKint(e) && fitsC(e->u.ival);
 }
 
 
@@ -1283,16 +1283,15 @@ void luaK_indexed (FuncState *fs, expdesc *t, expdesc *k) {
   if (t->k == VUPVAL && !isKstr(fs, k))  /* upvalue indexed by non 'Kstr'? */
     luaK_exp2anyreg(fs, t);  /* put it in a register */
   if (t->k == VUPVAL) {
-    lua_assert(isKstr(fs, k));
     t->u.ind.t = t->u.info;  /* upvalue index */
-    t->u.ind.idx = k->u.info;  /* literal short string */
+    t->u.ind.idx = k->u.info;  /* literal string */
     t->k = VINDEXUP;
   }
   else {
     /* register index of the table */
     t->u.ind.t = (t->k == VLOCAL) ? t->u.var.ridx: t->u.info;
     if (isKstr(fs, k)) {
-      t->u.ind.idx = k->u.info;  /* literal short string */
+      t->u.ind.idx = k->u.info;  /* literal string */
       t->k = VINDEXSTR;
     }
     else if (isCint(k)) {
@@ -1460,7 +1459,7 @@ static void codebinK (FuncState *fs, BinOpr opr,
 */
 static int finishbinexpneg (FuncState *fs, expdesc *e1, expdesc *e2,
                              OpCode op, int line, TMS event) {
-  if (!isKint(e2))
+  if (!luaK_isKint(e2))
     return 0;  /* not an integer constant */
   else {
     lua_Integer i2 = e2->u.ival;
@@ -1593,7 +1592,7 @@ static void codeeq (FuncState *fs, BinOpr opr, expdesc *e1, expdesc *e2) {
     op = OP_EQI;
     r2 = im;  /* immediate operand */
   }
-  else if (exp2RK(fs, e2)) {  /* 2nd expression is constant? */
+  else if (luaK_exp2RK(fs, e2)) {  /* 2nd expression is constant? */
     op = OP_EQK;
     r2 = e2->u.info;  /* constant index */
   }
@@ -1659,7 +1658,7 @@ void luaK_infix (FuncState *fs, BinOpr op, expdesc *v) {
     }
     case OPR_EQ: case OPR_NE: {
       if (!tonumeral(v, NULL))
-        exp2RK(fs, v);
+        luaK_exp2RK(fs, v);
       /* else keep numeral, which may be an immediate operand */
       break;
     }
@@ -1849,7 +1848,7 @@ void luaK_finish (FuncState *fs) {
     lua_assert(i == 0 || isOT(*(pc - 1)) == isIT(*pc));
     switch (GET_OPCODE(*pc)) {
       case OP_RETURN0: case OP_RETURN1: {
-        if (!(fs->needclose || (p->flag & PF_ISVARARG)))
+        if (!(fs->needclose || p->is_vararg))
           break;  /* no extra work */
         /* else use OP_RETURN to do the extra work */
         SET_OPCODE(*pc, OP_RETURN);
@@ -1857,7 +1856,7 @@ void luaK_finish (FuncState *fs) {
       case OP_RETURN: case OP_TAILCALL: {
         if (fs->needclose)
           SETARG_k(*pc, 1);  /* signal that it needs to close */
-        if (p->flag & PF_ISVARARG)
+        if (p->is_vararg)
           SETARG_C(*pc, p->numparams + 1);  /* signal that it is vararg */
         break;
       }

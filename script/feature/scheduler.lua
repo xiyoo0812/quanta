@@ -29,8 +29,8 @@ function Scheduler:update(clock_ms)
     wupdate(clock_ms)
 end
 
-function Scheduler:startup(name, entry, incl)
-    local ok, err = pcall(worker.startup, name, entry, incl)
+function Scheduler:startup(name, entry)
+    local ok, err = pcall(worker.startup, name, entry)
     if not ok then
         log_err("[Scheduler][startup] startup failed: {}", err)
     end

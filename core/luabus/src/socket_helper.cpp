@@ -97,6 +97,27 @@ bool get_ip_string(char ip[], size_t ip_size, const void* addr) {
     return inet_ntop(ipv4->sin_family, &ipv4->sin_addr, ip, ip_size) != nullptr;
 }
 
+
+int derive_port(int port){
+    socket_t fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+#if defined(__ORBIS__) || defined(__PROSPERO__)
+    addr->sin_len = sizeof(*ipv4);
+#endif
+    int try_cnt = 20;
+    while (try_cnt-- > 0) {
+        addr.sin_port = htons(port);
+        if (::bind(fd, (sockaddr*)&addr, sizeof(sockaddr_in)) != SOCKET_ERROR) {
+            closesocket(fd);
+            return port;
+        }
+        port++;
+    }
+    return 0;
+}
+
 char* get_error_string(char buffer[], int len, int no) {
     buffer[0] = '\0';
 #ifdef _WIN32

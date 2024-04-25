@@ -299,13 +299,9 @@ static int io_popen (lua_State *L) {
 
 
 static int io_tmpfile (lua_State *L) {
-#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
-    return 0;
-#else
   LStream *p = newfile(L);
   p->f = tmpfile();
   return (p->f == NULL) ? luaL_fileresult(L, 0, NULL) : 1;
-#endif
 }
 
 

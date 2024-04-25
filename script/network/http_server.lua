@@ -12,6 +12,7 @@ local signalquit    = signal.quit
 local saddr         = qstring.addr
 local jsoncodec     = json.jsoncodec
 local httpdcodec    = codec.httpdcodec
+local derive_port   = luabus.derive_port
 
 local HttpServer = class()
 local prop = property(HttpServer)
@@ -31,14 +32,16 @@ function HttpServer:__init(http_addr)
 end
 
 function HttpServer:setup(http_addr)
-    self.ip, self.port = saddr(http_addr)
     local socket = Socket(self)
-    if not socket:listen(self.ip, self.port) then
+    local ip, port = saddr(http_addr)
+    local real_port = derive_port(port)
+    if not socket:listen(ip, real_port) then
         log_err("[HttpServer][setup] now listen {} failed", http_addr)
         signalquit(1)
         return
     end
     socket:set_codec(self.hcodec)
+    self.ip, self.port = ip, real_port
     log_info("[HttpServer][setup] listen({}:{}) success!", self.ip, self.port)
     self.listener = socket
 end

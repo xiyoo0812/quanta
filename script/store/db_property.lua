@@ -46,6 +46,30 @@ local function db_prop_op_value(class, sheetkey, storekey, name, default)
     end
 end
 
+local function db_prop_op_object(class, sheetkey, storekey, name, default)
+    class.__props[name] = { default }
+    class["get_" .. name] = function(self)
+        return self[name]
+    end
+    class["set_" .. name] = function(self, value)
+        self[name] = value
+        local sheetkeys = self[sheetkey]
+        if value and sheetkeys then
+            value[storekey] = self[storekey]
+            value[sheetkey] = build_sheet_keys(sheetkeys, name)
+        end
+    end
+    class["save_" .. name] = function(self, value)
+        self[name] = value
+        local sheetkeys = self[sheetkey]
+        if value and sheetkeys then
+            value[storekey] = self[storekey]
+            value[sheetkey] = build_sheet_keys(sheetkeys, name)
+            self[storekey]:update_value(sheetkeys, name, value)
+        end
+    end
+end
+
 local function db_prop_op_values(class, sheetkey, storekey, name, default)
     class.__props[name] = { default or {} }
     class["get_" .. name] = function(self, key)
@@ -153,17 +177,22 @@ local function db_prop_op_objects(class, sheetkey, storekey, name, default)
 end
 
 local property_accessor_value = function(prop, name, default)
-    prop.__reflect[name] = true
+    prop.__reflect[name] = "value"
     db_prop_op_value(prop.__class, prop.__key, prop.__store, name, default)
 end
 
+local property_accessor_object = function(prop, name, default)
+    prop.__reflect[name] = "object"
+    db_prop_op_object(prop.__class, prop.__key, prop.__store, name, default)
+end
+
 local property_accessor_values = function(prop, name, default)
-    prop.__reflect[name] = true
+    prop.__reflect[name] = "value"
     db_prop_op_values(prop.__class, prop.__key, prop.__store, name, default)
 end
 
 local property_accessor_objects = function(prop, name, default)
-    prop.__reflect[name] = false
+    prop.__reflect[name] = "hash"
     db_prop_op_objects(prop.__class, prop.__key, prop.__store, name, default)
 end
 
@@ -174,6 +203,7 @@ function db_property(class, sheet, root)
         __key = "__key_" .. sheet,
         __store = "__store_" .. sheet,
         store_value = property_accessor_value,
+        store_object = property_accessor_object,
         store_values = property_accessor_values,
         store_objects = property_accessor_objects,
     }
@@ -192,13 +222,15 @@ function db_property(class, sheet, root)
             end
         end
         for key, leaf in pairs(prop.__reflect) do
-            if leaf then
+            if leaf == "value" then
                 value[key] = obj[key]
-            else
+            elseif leaf == "hash" then
                 value[key] = {}
                 for idx, sobj in pairs(obj[key]) do
                     value[key][idx] = sobj:serialize()
                 end
+            elseif leaf == "object" then
+                value[key] = obj[key]:serialize()
             end
         end
         return value

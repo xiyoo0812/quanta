@@ -5,6 +5,7 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local signalquit    = signal.quit
 local saddr         = qstring.addr
+local derive_port   = luabus.derive_port
 
 local WSServer = class()
 local prop = property(WSServer)
@@ -18,13 +19,15 @@ function WSServer:__init(ws_addr)
 end
 
 function WSServer:setup(ws_addr)
-    self.ip, self.port = saddr(ws_addr)
     local socket = WebSocket(self)
-    if not socket:listen(self.ip, self.port) then
+    local ip, port = saddr(ws_addr)
+    local real_port = derive_port(port)
+    if not socket:listen(ip, real_port) then
         log_info("[WSServer][setup] now listen {} failed", ws_addr)
         signalquit(1)
         return
     end
+    self.ip, self.port = ip, real_port
     log_info("[WSServer][setup] listen({}:{}) success!", self.ip, self.port)
     self.listener = socket
 end

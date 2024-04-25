@@ -306,18 +306,15 @@ luakit::lua_table quanta_app::init() {
         const char* env_service = get_env("QUANTA_SERVICE");
         logger::get_logger()->option(env_log_path, env_service, env_index);
     }
+#ifdef WIN32
+    m_lua.run_script("os.setlocale('.UTF8')");
+#endif
     m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string_view err) {
         exception_handler("load sandbox err: {}", err);
-        });
+    });
     m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string_view err) {
         exception_handler("load entry err: {}", err);
-        });
-    const char* env_include = get_env("QUANTA_INCLUDE");
-    if (env_include) {
-        m_lua.run_script(fmt::format("require '{}'", env_include), [&](std::string_view err) {
-            exception_handler("load includes err: {}", err);
-        });
-    }
+    });
     return quanta;
 }
 
@@ -330,17 +327,4 @@ void quanta_app::run() {
         check_input(m_lua);
     };
     logger::get_logger()->stop();
-}
-
-bool quanta_app::step() {
-    auto quanta = m_lua.get<luakit::lua_table>("quanta");
-    if (quanta.get_function("run")) {
-        quanta.call([&](std::string_view err) {
-            LOG_FATAL(fmt::format("quanta run err: {} ", err));
-        });
-        check_input(m_lua);
-        return true;
-    }
-    logger::get_logger()->stop();
-    return false;
 }

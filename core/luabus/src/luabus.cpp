@@ -40,6 +40,7 @@ namespace luabus {
         lluabus.set_function("tcp", create_tcp);
         lluabus.set_function("host", gethostip);
         lluabus.set_function("dns", gethostbydomain);
+        lluabus.set_function("derive_port", derive_port);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
             "pb", eproto_type::proto_pb,

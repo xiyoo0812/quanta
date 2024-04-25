@@ -11,7 +11,7 @@ STDCPP = "c++17"
 ENABLE = true
 
 --需要的FLAGS
-FLAGS = {
+BASE_FLAGS = {
     "Wsign-compare",
     "Wno-sign-compare",
     "Wno-unused-variable",
@@ -21,9 +21,17 @@ FLAGS = {
     "Wno-unknown-pragmas"
 }
 
---扩展的FLAGS
-EX_FLAGS = {
+--FLAGS
+FLAGS = {
 
+}
+
+LINUX_FLAGS = {
+    
+}
+
+DARWIN_FLAGS = {
+    
 }
 
 --需要的include目录
@@ -122,6 +130,19 @@ LINUX_LIBS = {
 
 --DARWIN需要连接的库文件
 DARWIN_LIBS = {
+}
+
+--LDFLAGS
+LDFLAGS = {
+
+}
+
+LINUX_LDFLAGS = {
+    
+}
+
+DARWIN_LDFLAGS = {
+    
 }
 
 --WINDOWS预编译命令

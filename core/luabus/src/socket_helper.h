@@ -111,6 +111,8 @@ void set_no_delay(socket_t fd, int enable);
 void set_close_on_exec(socket_t fd);
 void set_reuseaddr(socket_t fd);
 
+int derive_port(int port);
+
 #define MAX_ERROR_TXT 128
 
 char* get_error_string(char buffer[], int len, int no);

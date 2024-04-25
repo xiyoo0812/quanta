@@ -44,6 +44,18 @@
     p = restorestack(L, t__))  /* 'pos' part: restore 'p' */
 
 
+/* macro to check stack size and GC, preserving 'p' */
+#define checkstackGCp(L,n,p)  \
+  luaD_checkstackaux(L, n, \
+    ptrdiff_t t__ = savestack(L, p);  /* save 'p' */ \
+    luaC_checkGC(L),  /* stack grow uses memory */ \
+    p = restorestack(L, t__))  /* 'pos' part: restore 'p' */
+
+
+/* macro to check stack size and GC */
+#define checkstackGC(L,fsize)  \
+	luaD_checkstackaux(L, (fsize), luaC_checkGC(L), (void)0)
+
 
 /* type of protected functions, to be ran by 'runprotected' */
 typedef void (*Pfunc) (lua_State *L, void *ud);
@@ -59,6 +71,7 @@ LUAI_FUNC int luaD_pretailcall (lua_State *L, CallInfo *ci, StkId func,
 LUAI_FUNC CallInfo *luaD_precall (lua_State *L, StkId func, int nResults);
 LUAI_FUNC void luaD_call (lua_State *L, StkId func, int nResults);
 LUAI_FUNC void luaD_callnoyield (lua_State *L, StkId func, int nResults);
+LUAI_FUNC StkId luaD_tryfuncTM (lua_State *L, StkId func);
 LUAI_FUNC int luaD_closeprotected (lua_State *L, ptrdiff_t level, int status);
 LUAI_FUNC int luaD_pcall (lua_State *L, Pfunc func, void *u,
                                         ptrdiff_t oldtop, ptrdiff_t ef);

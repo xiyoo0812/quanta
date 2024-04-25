@@ -43,9 +43,16 @@ MYCFLAGS += -DWOLFSSL_SRTP
 MYCFLAGS += -DWOLFSSL_NO_SOCK
 MYCFLAGS += -DWOLFSSL_USER_IO
 MYCFLAGS += -DWOLFSSL_USER_SETTINGS
+ifeq ($(UNAME_S), Darwin)
+MYCFLAGS += -DWOLFSSL_APPLE_NATIVE_CERT_VALIDATION
+endif
 
 #LDFLAGS
 LDFLAGS =
+ifeq ($(UNAME_S), Darwin)
+LDFLAGS += -framework CoreFoundation
+LDFLAGS += -framework Security
+endif
 
 
 #源文件路径
@@ -97,7 +104,7 @@ endif
 INT_DIR = $(SOLUTION_DIR)temp/$(PROJECT_NAME)
 
 #目标文件前缀，定义则.so和.a加lib前缀，否则不加
-PROJECT_PREFIX = lib
+PROJECT_PREFIX =
 
 #目标定义
 MYCFLAGS += -fPIC

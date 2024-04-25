@@ -12,7 +12,6 @@ local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local THREAD_ROBOT  = environ.number("QUANTA_THREAD_ROBOT", 2)
-local ROBOT_INCLUDE = environ.get("QUANTA_ROBOT_INCLUDE")
 local ROBOT_ENTRY   = environ.get("QUANTA_ROBOT_ENTRY")
 
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
@@ -34,7 +33,7 @@ function RobotAgent:startup(conf, task_id, task_conf)
     for i = 1, worker_num do
         --启动机器人线程
         local name = sformat("robot_%s", i)
-        scheduler:startup(name, ROBOT_ENTRY, ROBOT_INCLUDE)
+        scheduler:startup(name, ROBOT_ENTRY)
         --发布任务
         event_mgr:fire_second(function()
             local num = all_count >= THREAD_ROBOT and THREAD_ROBOT or all_count

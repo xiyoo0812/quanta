@@ -25,6 +25,15 @@
 
 
 /*
+** LUA_IGMARK is a mark to ignore all before it when building the
+** luaopen_ function name.
+*/
+#if !defined (LUA_IGMARK)
+#define LUA_IGMARK		"-"
+#endif
+
+
+/*
 ** LUA_CSUBSEP is the character that replaces dots in submodule names
 ** when searching for a C loader.
 ** LUA_LSUBSEP is the character that replaces dots in submodule names
@@ -283,24 +292,18 @@ static int noenv (lua_State *L) {
 
 
 /*
-** Set a path. (If using the default path, assume it is a string
-** literal in C and create it as an external string.)
+** Set a path
 */
 static void setpath (lua_State *L, const char *fieldname,
                                    const char *envname,
                                    const char *dft) {
   const char *dftmark;
-#if defined(__ORBIS__) || defined(__PROSPERO__)
-  const char* path = NULL;
-  lua_pushfstring(L, "%s%s", envname, LUA_VERSUFFIX);
-#else
   const char *nver = lua_pushfstring(L, "%s%s", envname, LUA_VERSUFFIX);
   const char *path = getenv(nver);  /* try versioned name */
   if (path == NULL)  /* no versioned environment variable? */
     path = getenv(envname);  /* try unversioned name */
-#endif
   if (path == NULL || noenv(L))  /* no environment variable? */
-    lua_pushextlstring(L, dft, strlen(dft), NULL, NULL);  /* use default */
+    lua_pushstring(L, dft);  /* use default */
   else if ((dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP)) == NULL)
     lua_pushstring(L, path);  /* nothing to change */
   else {  /* path contains a ";;": insert default path in its place */

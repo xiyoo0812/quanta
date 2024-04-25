@@ -15,11 +15,25 @@ all : pre_build target post_build
 MYCFLAGS =
 
 #需要定义的FLAG
+{{% for _, flag in ipairs(BASE_FLAGS) do %}}
+MYCFLAGS += -{{%= flag %}}
+{{% end %}}
 {{% for _, flag in ipairs(FLAGS) do %}}
 MYCFLAGS += -{{%= flag %}}
 {{% end %}}
-{{% for _, flag in ipairs(EX_FLAGS) do %}}
+{{% if #LINUX_FLAGS > 0 then %}}
+ifeq ($(UNAME_S), Linux)
+{{% for _, flag in ipairs(LINUX_FLAGS) do %}}
 MYCFLAGS += -{{%= flag %}}
+{{% end %}}
+endif
+{{% end %}}
+{{% if #DARWIN_FLAGS > 0 then %}}
+ifeq ($(UNAME_S), Darwin)
+{{% for _, flag in ipairs(DARWIN_FLAGS) do %}}
+MYCFLAGS += -{{%= flag %}}
+{{% end %}}
+endif
 {{% end %}}
 
 {{% if STDC then %}}
@@ -76,6 +90,23 @@ endif
 
 #LDFLAGS
 LDFLAGS =
+{{% for _, flag in ipairs(LDFLAGS) do %}}
+LDFLAGS += {{%= flag %}}
+{{% end %}}
+{{% if #LINUX_LDFLAGS > 0 then %}}
+ifeq ($(UNAME_S), Linux)
+{{% for _, flag in ipairs(LINUX_LDFLAGS) do %}}
+LDFLAGS += {{%= flag %}}
+{{% end %}}
+endif
+{{% end %}}
+{{% if #DARWIN_LDFLAGS > 0 then %}}
+ifeq ($(UNAME_S), Darwin)
+{{% for _, flag in ipairs(DARWIN_LDFLAGS) do %}}
+LDFLAGS += {{%= flag %}}
+{{% end %}}
+endif
+{{% end %}}
 
 {{% if #LIBRARY_DIR > 0 then %}}
 #需要附加link库目录

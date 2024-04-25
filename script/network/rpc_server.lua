@@ -9,6 +9,7 @@ local log_info          = logger.info
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
+local derive_port       = luabus.derive_port
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -38,7 +39,7 @@ function RpcServer:__init(holder, ip, port, induce)
         signalquit()
         return
     end
-    local real_port = induce and (port + quanta.order - 1) or port
+    local real_port = derive_port(induce and (port + quanta.order - 1) or port)
     local listener = socket_mgr.listen(ip, real_port)
     if not listener then
         log_err("[RpcServer][setup] now listen {}:{} failed", ip, real_port)

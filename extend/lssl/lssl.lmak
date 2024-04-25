@@ -7,10 +7,7 @@ TARGET_NAME = "lssl"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
---目标文件前缀
-LIB_PREFIX = 1
-
-EX_FLAGS = {
+FLAGS = {
     "Wno-implicit-fallthrough"
 }
 
@@ -27,6 +24,12 @@ LINUX_DEFINES = {
 
 --DARWIN需要定义的选项
 DARWIN_DEFINES = {
+    "WOLFSSL_APPLE_NATIVE_CERT_VALIDATION"
+}
+
+DARWIN_LDFLAGS = {
+    "-framework CoreFoundation",
+    "-framework Security"
 }
 
 --WINDOWS需要定义的选项

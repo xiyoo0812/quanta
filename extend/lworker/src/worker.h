@@ -55,8 +55,8 @@ namespace lworker {
     class worker
     {
     public:
-        worker(ischeduler* schedulor, vstring name, vstring entry, vstring incl, vstring service, vstring sandbox)
-            : m_schedulor(schedulor), m_name(name), m_entry(entry), m_service(service), m_sandbox(sandbox), m_include(incl) { }
+        worker(ischeduler* schedulor, vstring name, vstring entry, vstring service, vstring sandbox)
+            : m_schedulor(schedulor), m_name(name), m_entry(entry), m_service(service), m_sandbox(sandbox) { }
 
         ~worker() {
             m_running = false;
@@ -132,13 +132,6 @@ namespace lworker {
                 m_schedulor->destory(m_name);
                 return;
             });
-            if (!m_include.empty()) {
-                m_lua->run_script(fmt::format("require '{}'", m_include), [&](vstring err) {
-                    printf("worker load includes %s failed, because: %s", m_include.c_str(), err.data());
-                    m_schedulor->destory(m_name);
-                    return;
-                });
-            }
             m_running = true;
             const char* service = m_service.c_str();
             while (m_running) {
@@ -161,7 +154,7 @@ namespace lworker {
         bool m_running = false;
         codec_base* m_codec = nullptr;
         ischeduler* m_schedulor = nullptr;
-        std::string m_name, m_entry, m_service, m_sandbox, m_include;
+        std::string m_name, m_entry, m_service, m_sandbox;
         std::shared_ptr<kit_state> m_lua = std::make_shared<kit_state>();
         std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
         std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();

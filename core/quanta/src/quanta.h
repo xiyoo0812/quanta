@@ -11,7 +11,6 @@ public:
     ~quanta_app();
 
     void run();
-    bool step();
     bool initzip(const char* zfile);
     void setup(int argc, const char* argv[]);
     void load(int argc, const char* argv[]);
@@ -19,6 +18,7 @@ public:
     void set_env(std::string key, std::string value, int over = 0);
 
     luakit::lua_table init();
+    
     lua_State* L() { return m_lua.L();  }
 
 protected:

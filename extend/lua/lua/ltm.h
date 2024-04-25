@@ -9,6 +9,7 @@
 
 
 #include "lobject.h"
+#include "lstate.h"
 
 
 /*
@@ -48,8 +49,8 @@ typedef enum {
 /*
 ** Mask with 1 in all fast-access methods. A 1 in any of these bits
 ** in the flag of a (meta)table means the metatable does not have the
-** corresponding metamethod field. (Bit 6 of the flag indicates that
-** the table is using the dummy node; bit 7 is used for 'isrealasize'.)
+** corresponding metamethod field. (Bit 7 of the flag is used for
+** 'isrealasize'.)
 */
 #define maskflags	(~(~0u << (TM_EQ + 1)))
 
@@ -60,12 +61,11 @@ typedef enum {
 */
 #define notm(tm)	ttisnil(tm)
 
-#define checknoTM(mt,e)	((mt) == NULL || (mt)->flags & (1u<<(e)))
 
-#define gfasttm(g,mt,e)  \
-  (checknoTM(mt, e) ? NULL : luaT_gettm(mt, e, (g)->tmname[e]))
+#define gfasttm(g,et,e) ((et) == NULL ? NULL : \
+  ((et)->flags & (1u<<(e))) ? NULL : luaT_gettm(et, e, (g)->tmname[e]))
 
-#define fasttm(l,mt,e)	gfasttm(G(l), mt, e)
+#define fasttm(l,et,e)	gfasttm(G(l), et, e)
 
 #define ttypename(x)	luaT_typenames_[(x) + 1]
 
@@ -96,8 +96,8 @@ LUAI_FUNC int luaT_callorderiTM (lua_State *L, const TValue *p1, int v2,
                                  int inv, int isfloat, TMS event);
 
 LUAI_FUNC void luaT_adjustvarargs (lua_State *L, int nfixparams,
-                                   struct CallInfo *ci, const Proto *p);
-LUAI_FUNC void luaT_getvarargs (lua_State *L, struct CallInfo *ci,
+                                   CallInfo *ci, const Proto *p);
+LUAI_FUNC void luaT_getvarargs (lua_State *L, CallInfo *ci,
                                               StkId where, int wanted);
 
 

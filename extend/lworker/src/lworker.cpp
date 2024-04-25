@@ -17,8 +17,8 @@ namespace lworker {
             schedulor.setup(L, service, sandbox);
             return 0;
         });
-        llworker.set_function("startup", [](vstring name, vstring entry, vstring incl) {
-            return schedulor.startup(name, entry, incl);
+        llworker.set_function("startup", [](vstring name, vstring entry) {
+            return schedulor.startup(name, entry);
         });
         llworker.set_function("call", [](lua_State* L, vstring name) {
             return schedulor.call(L, name);

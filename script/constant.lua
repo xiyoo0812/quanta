@@ -102,6 +102,11 @@ RobotType.RANDOM            = 0       -- 随机账号
 RobotType.COMPOSE           = 1       -- 组合账号
 RobotType.PLAYER            = 2       -- 指定账号
 
+--刷新时间
+local FlushType             = enum("FlushType", 0)
+FlushType.DAY               = 0       -- 每日0点刷新
+FlushType.WEEK              = 1       -- 每周一刷新
+
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
 CacheCode.CACHE_DB_LOAD_ERR         = 10001  -- DB加载失败

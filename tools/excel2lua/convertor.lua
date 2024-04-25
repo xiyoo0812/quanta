@@ -6,6 +6,7 @@ local lexcel    = require("luaxlsx")
 local pairs         = pairs
 local iopen         = io.open
 local ldir          = lstdfs.dir
+local lstem         = lstdfs.stem
 local lmkdir        = lstdfs.mkdir
 local lappend       = lstdfs.append
 local lconcat       = lstdfs.concat
@@ -29,10 +30,18 @@ local ogetenv       = os.getenv
 
 --指定导出函数
 local export_method = nil
+--起始列，默认2
+local start_col     = 2
 --类型定义行，默认2
 local type_line     = 2
 --配置起始行，默认5
 local start_line    = 5
+--配置表头行，默认start-1
+local head_line     = nil
+--是否递归
+local recursion     = false
+--是否导出所有sheet
+local allsheet      = false
 
 --设置utf8
 if quanta.platform == "linux" then
@@ -108,28 +117,19 @@ local value_func = {
     end,
     ["array"] = function(value)
         value = sgsub(value, '|', ',')
-        if sfind(value, '[(]') then
-            -- 替换'('&')' 为 '{' & '}'
-            local array = sgsub(value, '[(.*)]', function (s)
-                return s == '(' and '{' or '}'
-            end)
-            return unserialize(array)
-        end
         if sfind(value, '[{]') then
             return unserialize(value)
         end
         return unserialize('{' .. value .. '}')
     end,
+    ["doublearray"] = function(value)
+        value = sgsub(value, '|', ',')
+        value = sgsub(value, ';', '},{')
+        return unserialize('{{' .. value .. '}}')
+    end,
     ["sarray"] = function(value)
         value = sgsub(value, '|', ',')
         value = sgsub(value, ',', "','")
-        if sfind(value, '[(]') then
-            -- 替换'('&')' 为 '{' & '}'
-            local array = sgsub(value, '[(.*)]', function (s)
-                return s == '(' and "{'" or "'}"
-            end)
-            return unserialize(array)
-        end
         if sfind(value, '[{]') then
             local array = sgsub(value, '[{.*}]', function (s)
                 return s == '{' and "{'" or "'}"
@@ -150,7 +150,7 @@ local function get_sheet_value(sheet, row, col, field_type, header)
             value = fvalue
         end
         if field_type then
-            local func = value_func[field_type]
+            local func = value_func[slower(field_type)]
             if func then
                 return func(value)
             end
@@ -277,37 +277,36 @@ local function export_records_to_json(output, title, fname, records)
 end
 
 local function find_sheet_data_struct(sheet)
-    local header = {}
-    local field_type = {}
-    local head_line = start_line - 1
-    for col = sheet.first_col, sheet.last_col do
-        -- 读取类型行，作为筛选条件
-        field_type[col] = get_sheet_value(sheet, type_line, col)
-        -- 读取第四行作为表头
-        header[col] = get_sheet_value(sheet, head_line, col)
+    local headers = {}
+    local field_types = {}
+    if not head_line then
+        head_line = start_line - 1
     end
-    return header, field_type
+    for col = sheet.first_col, sheet.last_col do
+        -- 读取第四行作为表头
+        headers[col] = get_sheet_value(sheet, head_line, col)
+        -- 读取类型行，作为筛选条件
+        local field_type = get_sheet_value(sheet, type_line, col)
+        if field_type and field_type ~= "" then
+            field_types[col] = field_type
+        end
+    end
+    return headers, field_types
 end
 
---导出到目标文件
-local function export_sheet_to_output(sheet, output, fname, title)
-    local header, field_type = find_sheet_data_struct(sheet)
-    if tsize(field_type) == 1 then
-        --未定义数据定义，不导出此sheet
-        print(sformat("export excel %s sheet %s not need export!", fname, title))
-        return
+local function find_read_range(sheet, first_line, last_line)
+    if start_col <= 1 then
+        return first_line, last_line
     end
-    --定位起始行
-    local read_len = start_line
-    local end_line = sheet.last_row
-    for row = read_len, end_line do
+    local read_len, end_line = first_line, last_line
+    for row = read_len, last_line do
         local start_tag = get_sheet_value(sheet, row, 1)
         if start_tag == "Start" then
             read_len = row
             break
         end
     end
-    for row = read_len, end_line do
+    for row = read_len, last_line do
         local end_tag = get_sheet_value(sheet, row, 1)
         local fkey = get_sheet_value(sheet, row, 2)
         if end_tag == "End" or not fkey or fkey == "" then
@@ -315,24 +314,38 @@ local function export_sheet_to_output(sheet, output, fname, title)
             break
         end
     end
+    return read_len, end_line
+end
+
+--导出到目标文件
+local function export_sheet_to_output(sheet, output, fname, shname)
+    local headers, field_types = find_sheet_data_struct(sheet)
+    if tsize(field_types) <= 1 then
+        --未定义数据定义，不导出此sheet
+        print(sformat("export excel %s sheet %s not need export!", fname, shname))
+        return
+    end
+    --定位起始行
+    local read_len, end_line = find_read_range(sheet, start_line, sheet.last_row)
     -- 开始处理
     local records = {}
     for row = read_len, end_line do
         local record = {}
         -- 遍历每一列
-        for col = 2, sheet.last_col do
+        for col = start_col, sheet.last_col do
             -- 过滤掉没有配置的行
-            if field_type[col] and header[col] then
-                local value = get_sheet_value(sheet, row, col, field_type[col], header[col])
+            if field_types[col] and headers[col] then
+                local value = get_sheet_value(sheet, row, col, field_types[col], headers[col])
                 if value ~= nil then
-                    tinsert(record, {header[col], value, field_type[col]})
+                    tinsert(record, {headers[col], value, field_types[col]})
                 end
             end
         end
         tinsert(records, record)
     end
+    local title = allsheet and shname or slower(lstem(fname))
     export_method(output, title, fname, build_records(records))
-    print(sformat("export file: %s sheet: %s success!", fname, title))
+    print(sformat("export file: %s sheet: %s to %s success!", fname, shname, title))
 end
 
 local function is_excel_file(file)
@@ -362,6 +375,9 @@ local function export_excel(input, output)
             if fullname == output then
                 goto continue
             end
+            if not recursion then
+                goto continue
+            end
             local fname = lfilename(fullname)
             local soutput = lappend(output, fname)
             lmkdir(soutput)
@@ -376,23 +392,27 @@ local function export_excel(input, output)
                 goto continue
             end
             local sheets = workbook.sheets()
-            for _, sheet in pairs(sheets) do
+            for _, sheet in ipairs(sheets) do
                 local title = slower(sheet.name)
-                if title == "remarks" then
-                    print(sformat("export excel %s sheet %s is remarks!", fullname, title))
-                    goto next
-                end
-                if sheet.last_row < 4 or sheet.last_col <= 0 then
+                if sheet.last_row < start_line or sheet.last_col <= 0 then
                     print(sformat("export excel %s sheet %s empty!", fullname, title))
                     goto next
                 end
                 export_sheet_to_output(sheet, output, fname, title)
+                if not allsheet then
+                    break
+                end
                 :: next ::
             end
         end
         :: continue ::
     end
 end
+
+local format_methods = {
+    ["lua"] = export_records_to_lua,
+    ["json"] = export_records_to_json,
+}
 
 --检查配置
 local function export_config()
@@ -421,14 +441,24 @@ local function export_config()
     if env_staline then
         start_line = mtointeger(env_staline)
     end
-    local env_format = ogetenv("QUANTA_FORMAT")
-    if env_format == "lua" then
-        export_method = export_records_to_lua
-    elseif env_format == "json" then
-        export_method = export_records_to_json
-    else
-        export_method = export_records_to_conf
+    local env_stacol = ogetenv("QUANTA_STACOL")
+    if env_stacol then
+        start_col = mtointeger(env_stacol)
     end
+    local env_headline = ogetenv("QUANTA_HEADLINE")
+    if env_headline then
+        head_line = mtointeger(env_headline)
+    end
+    local env_recursion = ogetenv("QUANTA_RECURSION")
+    if env_recursion then
+        recursion = mtointeger(env_recursion)
+    end
+    local env_allsheet = ogetenv("QUANTA_ALLSHEET")
+    if env_allsheet then
+        allsheet = mtointeger(env_allsheet)
+    end
+    local format = ogetenv("QUANTA_FORMAT")
+    export_method = format_methods[format] or export_records_to_conf
     return input, output
 end
 

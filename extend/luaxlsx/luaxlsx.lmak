@@ -7,7 +7,7 @@ TARGET_NAME = "luaxlsx"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
-EX_FLAGS = {
+FLAGS = {
     "Wno-implicit-fallthrough"
 }
 

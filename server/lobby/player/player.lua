@@ -8,7 +8,6 @@ local store_mgr     = quanta.get("store_mgr")
 local config_mgr    = quanta.get("config_mgr")
 
 local attr_db       = config_mgr:init_table("player_attr", "key")
-local utility_db    = config_mgr:init_table("utility", "key")
 
 local OFFTIMEOUT    = quanta.enum("NetwkTime", "OFFLINE_TIMEOUT")
 local SECOND_5_MS   = quanta.enum("PeriodTime", "SECOND_5_MS")
@@ -18,7 +17,7 @@ local ONL_INLINE    = quanta.enum("OnlineStatus", "INLINE")
 local ONL_OFFLINE   = quanta.enum("OnlineStatus", "OFFLINE")
 local ONL_CLOSE     = quanta.enum("OnlineStatus", "CLOSE")
 
-local DAY_FLUSH_S   = utility_db:find_integer("value", "flush_day_hour") * 3600
+local DAY_FLUSH_S   = quanta.enum("FlushType", "DAY") * 3600
 
 local Entity        = import("business/entity/entity.lua")
 local MsgComponent  = import("business/component/msg_component.lua")

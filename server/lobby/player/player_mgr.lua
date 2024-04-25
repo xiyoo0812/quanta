@@ -5,12 +5,10 @@ local log_debug     = logger.debug
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
-local config_mgr    = quanta.get("config_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
-local utility_db    = config_mgr:init_table("utility", "key")
-local DAY_FLUSH     = utility_db:find_integer("value", "flush_day_hour")
-local WEEK_FLUSH    = utility_db:find_integer("value", "flush_week_day")
+local DAY_FLUSH     = quanta.enum("FlushType", "DAY")
+local WEEK_FLUSH    = quanta.enum("FlushType", "WEEK")
 
 local SERVER_UPHOLD = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 

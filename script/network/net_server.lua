@@ -6,6 +6,7 @@ local log_warn          = logger.warn
 local signalquit        = signal.quit
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
+local derive_port       = luabus.derive_port
 
 local proto_pb          = luabus.eproto_type.pb
 
@@ -34,8 +35,9 @@ prop:reader("sessions", {})             --会话列表
 prop:reader("session_type", "default")  --会话类型
 prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
-prop:reader("broad_token", nil)         --监听器
+prop:reader("broad_token", nil)         --广播token
 prop:reader("codec", nil)               --编解码器
+prop:accessor("msgtype", 0)             --消息类型
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -50,7 +52,7 @@ function NetServer:setup(ip, port, induce)
         signalquit()
         return
     end
-    local real_port = induce and (port + quanta.order - 1) or port
+    local real_port = derive_port(induce and (port + quanta.order - 1) or port)
     local listener = socket_mgr.listen(ip, real_port, proto_pb)
     if not listener then
         log_err("[NetServer][setup] failed to listen: {}:{}", ip, real_port)
@@ -81,7 +83,7 @@ function NetServer:on_socket_accept(session)
     self:add_session(session)
     -- 绑定call回调
     session.call_client = function(cmd_id, flag, session_id, body)
-        local send_len = session.call_pb(session_id, cmd_id, flag, 0, 0, body)
+        local send_len = session.call_pb(session_id, cmd_id, flag, self.msgtype, 0, body)
         if send_len <= 0 then
             log_err("[NetServer][call_client] call_pb failed! code:{}", send_len)
             return false
