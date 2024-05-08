@@ -41,8 +41,8 @@
 {{% local FMT_INCLUDES = table.concat(AINCLUDES, ";") %}}
 {{% local FMT_LIBRARY_DIR = table.concat(ALIBDIRS, ";") %}}
 {{% local FMT_DEFINES = table.concat(ADEFINES or {}, ";") %}}
-{{% local ARGS = {AUTO_SUB_DIR = AUTO_SUB_DIR, SUB_DIR = SUB_DIR, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
-{{% local CINCLUDES, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIR, ARGS) %}}
+{{% local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
+{{% local CINCLUDES, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) %}}
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Develop|x64">
@@ -63,13 +63,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">Create</PrecompiledHeader>
     </ClCompile>
   {{% else %}}
-    {{% if CSRC[4] or (#OBJS == 0 and not CSRC[3]) then %}}
     <ClCompile Include="{{%= CSRC[1] %}}" />
-    {{% else %}}
-    <ClCompile Include="{{%= CSRC[1] %}}">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    {{% end %}}
   {{% end %}}
   {{% end %}}
   </ItemGroup>

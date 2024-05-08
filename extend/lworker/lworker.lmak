@@ -10,8 +10,8 @@ PROJECT_TYPE = "dynamic"
 --需要的include目录
 INCLUDES = {
     "../lua/lua",
+    "../ltimer/src",
     "../fmt/include",
-    "../ltimer/ltimer",
     "../luakit/include"
 }
 

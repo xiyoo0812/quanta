@@ -235,7 +235,7 @@ namespace lbson {
             if (depth > max_bson_depth) {
                 luaL_error(L, "Too depth while encoding bson");
             }
-            size_t raw_len = lua_rawlen(L, -1);
+            int raw_len = lua_rawlen(L, -1);
             bson_type type = check_doctype(L, raw_len);
             write_key(type, key, len);
             if (type == bson_type::BSON_DOCUMENT) {

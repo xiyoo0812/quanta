@@ -2,37 +2,37 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="src\lua_socket_mgr.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\lua_socket_node.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_dns.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_helper.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_listener.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_mgr.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_router.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_stream.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_tcp.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\socket_udp.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\stdafx.h">
-      <Filter>inc</Filter>
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -71,9 +71,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="inc">
-      <UniqueIdentifier>{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
     </Filter>

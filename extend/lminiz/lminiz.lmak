@@ -1,21 +1,16 @@
 --工程名字
-PROJECT_NAME = "miniz"
+PROJECT_NAME = "lminiz"
 
 --目标名字
-TARGET_NAME = "miniz"
+TARGET_NAME = "lminiz"
 
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
---目标文件前缀
-LIB_PREFIX = 1
-
-FLAGS = {
-    "Wno-implicit-fallthrough"
-}
-
 --需要的include目录
 INCLUDES = {
+    "../../extend/lua/lua",
+    "../../extend/luakit/include"
 }
 
 --LINUX需要定义的选项
@@ -30,21 +25,21 @@ DARWIN_DEFINES = {
 
 --WINDOWS需要定义的选项
 WINDOWS_DEFINES = {
-    "MINIZ_EXPORT=__declspec(dllexport)"
-}
-
---目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
-OBJS = {
-    "miniz.c" 
+    "LUA_BUILD_AS_DLL"
 }
 
 DEFINES = {
 }
 
+--需要连接的库文件
+LIBS = {
+    "lua"
+}
+
 --依赖项目
 DEPS = {
-    "mimalloc"
+    "lualib"
 }
 
 --分组定义
-GROUP = "share"
+GROUP = "luaext"

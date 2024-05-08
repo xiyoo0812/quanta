@@ -49,7 +49,7 @@ namespace lssl {
         if (sz > UCHAR_MAX / 2) {
             buffer = (char*)lua_newuserdata(L, sz * 2);
         }
-        for (int i = 0; i < sz; i++) {
+        for (size_t i = 0; i < sz; i++) {
             buffer[i * 2] = hex[text[i] >> 4];
             buffer[i * 2 + 1] = hex[text[i] & 0xf];
         }
@@ -80,14 +80,14 @@ namespace lssl {
         size_t sz = 0;
         const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
         if (sz & 2) {
-            return luaL_error(L, "Invalid hex text size %d", (int)sz);
+            return luaL_error(L, "Invalid hex text size %lu", (int)sz);
         }
         char tmp[UCHAR_MAX];
         char* buffer = tmp;
         if (sz > UCHAR_MAX * 2) {
             buffer = (char*)lua_newuserdata(L, sz / 2);
         }
-        int i;
+        size_t i;
         for (i = 0; i < sz; i += 2) {
             char hi, low;
             HEX(hi, text[i]);
@@ -289,7 +289,7 @@ namespace lssl {
         }
         luaL_Buffer b;
         char* buffer = luaL_buffinitsize(L, &b, len1);
-        int i;
+        size_t i;
         for (i = 0; i < len1; i++) {
             buffer[i] = s1[i] ^ s2[i % len2];
         }

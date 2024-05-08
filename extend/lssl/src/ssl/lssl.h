@@ -171,7 +171,7 @@ namespace lssl {
             size_t slen = 0;
             uint8_t* body = m_hcodec->encode(L, index, &slen);
             while (slen > 0) {
-                int written = SSL_write(ssl, body, slen);
+                size_t written = SSL_write(ssl, body, slen);
                 if (written <= 0 || written > slen) {
                     int err = SSL_get_error(ssl, written);
                     ERR_clear_error();
@@ -295,7 +295,7 @@ namespace lssl {
 
         void bio_write(lua_State* L, uint8_t* data, size_t sz) {
             while (sz > 0) {
-                int written = BIO_write(in_bio, data, sz);
+                size_t written = BIO_write(in_bio, data, sz);
                 if (written <= 0 || written > sz) {
                     throw lua_exception("BIO_write error:%d", written);
                 }

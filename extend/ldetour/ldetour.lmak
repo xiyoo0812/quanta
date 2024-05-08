@@ -7,14 +7,16 @@ TARGET_NAME = "ldetour"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
+FLAGS = {
+    "Wno-class-memaccess"
+}
+
 --需要的include目录
 INCLUDES = {
     "src/detour",
     "../lua/lua",
     "../luakit/include"
 }
-
-AUTO_SUB_DIR = true
 
 --WINDOWS需要定义的选项
 WINDOWS_DEFINES = {

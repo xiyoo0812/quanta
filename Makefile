@@ -30,6 +30,7 @@ luaext:
 	cd extend/ldetour; make SOLUTION_DIR=$(CUR_DIR) -f ldetour.mak;
 	cd extend/ljson; make SOLUTION_DIR=$(CUR_DIR) -f ljson.mak;
 	cd extend/lmdb; make SOLUTION_DIR=$(CUR_DIR) -f lmdb.mak;
+	cd extend/lminiz; make SOLUTION_DIR=$(CUR_DIR) -f lminiz.mak;
 	cd extend/lsqlite; make SOLUTION_DIR=$(CUR_DIR) -f lsqlite.mak;
 	cd extend/lssl; make SOLUTION_DIR=$(CUR_DIR) -f lssl.mak;
 	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
@@ -37,10 +38,10 @@ luaext:
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
 	cd extend/luapb; make SOLUTION_DIR=$(CUR_DIR) -f luapb.mak;
 	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
+	cd extend/luaxml; make SOLUTION_DIR=$(CUR_DIR) -f luaxml.mak;
 	cd extend/lunqlite; make SOLUTION_DIR=$(CUR_DIR) -f lunqlite.mak;
 	cd extend/lworker; make SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
 
 share:
 	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
-	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f miniz.mak;
 

@@ -13,6 +13,10 @@ INCLUDES = {
     "../luakit/include"
 }
 
+FLAGS = {
+    "Wno-implicit-fallthrough"
+}
+
 --需要连接的库文件
 LIBS = {
     "lua"

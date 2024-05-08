@@ -7,10 +7,6 @@ TARGET_NAME = "lmdb"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
-FLAGS = {
-    "Wno-implicit-fallthrough"
-}
-
 --需要的include目录
 INCLUDES = {
     "../lua/lua",

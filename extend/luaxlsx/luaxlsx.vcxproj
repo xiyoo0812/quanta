@@ -7,14 +7,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\lminiz\src\lminiz.h" />
+    <ClInclude Include="..\lminiz\src\miniz.h" />
+    <ClInclude Include="..\luaxml\src\tinyxml2.h" />
     <ClInclude Include="src\excel.h" />
-    <ClInclude Include="src\miniz.h" />
-    <ClInclude Include="src\tinyxml2.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\lminiz\src\miniz.c" />
+    <ClCompile Include="..\luaxml\src\tinyxml2.cpp" />
     <ClCompile Include="src\luaxlsx.cpp" />
-    <ClCompile Include="src\miniz.c" />
-    <ClCompile Include="src\tinyxml2.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B2999D78-279A-1A53-CC82-74D494144722}</ProjectGuid>
@@ -47,7 +48,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\lua\lua;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lua\lua;..\lminiz\src;..\luaxml\src;..\luakit\include;$(SolutionDir)extend\mimalloc\mimalloc\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

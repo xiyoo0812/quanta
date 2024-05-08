@@ -7,10 +7,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ltimer\ltimer.h" />
+    <ClInclude Include="src\ltimer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ltimer\ltimer.cpp" />
+    <ClCompile Include="src\ltimer.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2DE9C09F-02F5-DF2B-524C-FFBEBC8DE5EE}</ProjectGuid>

@@ -8,35 +8,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="mimalloc\src\bitmap.h" />
+    <ClInclude Include="mimalloc\src\prim\windows\etw.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mimalloc\src\alloc-aligned.c" />
-    <ClCompile Include="mimalloc\src\alloc-override.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="mimalloc\src\alloc-posix.c" />
     <ClCompile Include="mimalloc\src\alloc.c" />
     <ClCompile Include="mimalloc\src\arena.c" />
     <ClCompile Include="mimalloc\src\bitmap.c" />
-    <ClCompile Include="mimalloc\src\free.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="mimalloc\src\heap.c" />
     <ClCompile Include="mimalloc\src\init.c" />
     <ClCompile Include="mimalloc\src\libc.c" />
     <ClCompile Include="mimalloc\src\options.c" />
     <ClCompile Include="mimalloc\src\os.c" />
-    <ClCompile Include="mimalloc\src\page-queue.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="mimalloc\src\page.c" />
     <ClCompile Include="mimalloc\src\prim\prim.c" />
     <ClCompile Include="mimalloc\src\random.c" />
     <ClCompile Include="mimalloc\src\segment-map.c" />
     <ClCompile Include="mimalloc\src\segment.c" />
-    <ClCompile Include="mimalloc\src\static.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="mimalloc\src\stats.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

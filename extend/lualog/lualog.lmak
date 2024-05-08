@@ -34,7 +34,9 @@ PSLIBS = {
 }
 
 --源文件路径
-SRC_DIR = "lualog"
+SRC_DIRS =  {
+    "lualog"
+}
 
 --LINUX需要连接的库文件
 --gcc9.1前filesystem需要链接stdc++fs

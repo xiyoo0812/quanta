@@ -8,10 +8,11 @@
 
 int main(int argc, const char* argv[])
 {
-    setlocale(LC_ALL, "");
+#ifdef WIN32
+    setlocale(LC_ALL, ".UTF8");
+#endif
 #if !(defined(__ORBIS__) || defined(__PROSPERO__))
     tzset();
-    system("echo quanta engine init.");
 #endif
     quanta_app q_app;
     q_app.set_env("QUANTA_DYNAMIC", "1");

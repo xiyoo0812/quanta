@@ -36,5 +36,9 @@ if qgetenv("QUANTA_DYNAMIC") then
         require("lsqlite")
         --lmdb
         require("lmdb")
+        --lminiz
+        require("lminiz")
+        --luaxml
+        require("luaxml")
     end
 end

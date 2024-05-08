@@ -7,13 +7,11 @@ TARGET_NAME = "luaxlsx"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
-FLAGS = {
-    "Wno-implicit-fallthrough"
-}
-
 --需要的include目录
 INCLUDES = {
     "../lua/lua",
+    "../lminiz/src",
+    "../luaxml/src",
     "../luakit/include"
 }
 
@@ -30,6 +28,20 @@ DARWIN_DEFINES = {
 --WINDOWS需要定义的选项
 WINDOWS_DEFINES = {
     "LUA_BUILD_AS_DLL"
+}
+
+--源文件路径
+SRC_DIRS = {
+    "src",
+    "../lminiz/src",
+    "../luaxml/src",
+}
+
+--目标文件
+OBJS = {
+    "miniz.c",
+    "luaxlsx.cpp",
+    "tinyxml2.cpp",
 }
 
 --需要连接的库文件

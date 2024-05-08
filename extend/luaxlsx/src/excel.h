@@ -128,13 +128,10 @@ namespace lxlsx
 
             XMLElement* root = doc.FirstChildElement("worksheet");
             XMLElement* dim = root->FirstChildElement("dimension");
-            if (dim) {
-                parse_range(dim->Attribute("ref"), sh);
-            }
+            XMLElement* shdata = root->FirstChildElement("sheetData");
+            parse_range(dim, shdata, sh);
             sh->cells.resize(sh->last_col * sh->last_row);
-
-            XMLElement* row = root->FirstChildElement("sheetData");
-            row = row->FirstChildElement("row");
+            XMLElement* row = shdata->FirstChildElement("row");
             while (row) {
                 uint32_t row_idx = row->IntAttribute("r");
                 XMLElement* c = row->FirstChildElement("c");
@@ -327,15 +324,29 @@ namespace lxlsx
             }
         }
 
-        void parse_range(const string& value, sheet* sh) {
-            size_t index = value.find_first_of(':');
-            if (index != string::npos) {
-                parse_cell(value.substr(0, index), sh->first_row, sh->first_col);
-                parse_cell(value.substr(index + 1), sh->last_row, sh->last_col);
-            } else {
-                parse_cell(value, sh->first_row, sh->first_col);
-                sh->last_col = sh->first_col;
-                sh->last_row = sh->first_row;
+        void parse_range(XMLElement* dim, XMLElement* shdata, sheet* sh) {
+            if (dim) {
+                std::string value = dim->Attribute("ref");
+                size_t index = value.find_first_of(':');
+                if (index != string::npos) {
+                    parse_cell(value.substr(0, index), sh->first_row, sh->first_col);
+                    parse_cell(value.substr(index + 1), sh->last_row, sh->last_col);
+                    return;
+                }
+            }
+            XMLElement* row = shdata->FirstChildElement("row");
+            while (row) {
+                sh->last_row = row->IntAttribute("r");
+                if (sh->first_row == 0) sh->first_row = sh->last_row;
+                if (sh->last_col == 0) {
+                    sh->first_col = 1;
+                    XMLElement* c = row->FirstChildElement("c");
+                    while (c ) {
+                        c = c->NextSiblingElement("c");
+                        sh->last_col++;
+                    }
+                }
+                row = row->NextSiblingElement("row");
             }
         }
 

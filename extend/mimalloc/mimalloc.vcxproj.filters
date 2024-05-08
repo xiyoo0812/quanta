@@ -2,80 +2,71 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="mimalloc\src\bitmap.h">
-      <Filter>inc</Filter>
+      <Filter>mimalloc/src</Filter>
+    </ClInclude>
+    <ClInclude Include="mimalloc\src\prim\windows\etw.h">
+      <Filter>mimalloc/src\prim\windows</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mimalloc\src\alloc-aligned.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\alloc-override.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\alloc-posix.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\alloc.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\arena.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\bitmap.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\free.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\heap.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\init.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\libc.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\options.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\os.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\page-queue.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\page.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\prim\prim.c">
-      <Filter>prim</Filter>
+      <Filter>mimalloc/src\prim</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\random.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\segment-map.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\segment.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="mimalloc\src\static.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
     <ClCompile Include="mimalloc\src\stats.c">
-      <Filter>src</Filter>
+      <Filter>mimalloc/src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="inc">
-      <UniqueIdentifier>{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
+    <Filter Include="mimalloc/src">
+      <UniqueIdentifier>{8215DE2D-85CB-48A1-6D8A-03CC19252F74}</UniqueIdentifier>
     </Filter>
-    <Filter Include="prim">
-      <UniqueIdentifier>{60BEC1A8-0A84-D025-8EDC-5AAF54952563}</UniqueIdentifier>
+    <Filter Include="mimalloc/src\prim">
+      <UniqueIdentifier>{BEEE3C53-4DD4-A571-E61A-3E5ED09A5F30}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src">
-      <UniqueIdentifier>{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
+    <Filter Include="mimalloc/src\prim\windows">
+      <UniqueIdentifier>{9118B0C9-5993-829F-1046-4BA353D0FFA7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

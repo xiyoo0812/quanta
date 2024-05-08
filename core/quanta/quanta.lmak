@@ -24,7 +24,6 @@ INCLUDES = {
 --需要连接的库文件
 LIBS = {
     "lua",
-    "miniz",
     "lualog"
 }
 
@@ -32,10 +31,6 @@ LIBS = {
 --gcc9.1前filesystem需要链接stdc++fs
 LINUX_LIBS = {
     "stdc++fs"
-}
-
-OBJS = {
-    "quanta.cpp", "main.cpp"
 }
 
 --非WINDOWS预编译命令
@@ -54,7 +49,8 @@ NWINDOWS_POSTBUILDS = {
 
 --依赖项目
 DEPS = {
-    "miniz",
+    "lminiz",
+    "luabus",
     "lualog"
 }
 

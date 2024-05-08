@@ -84,7 +84,7 @@ namespace lcodec {
         char tmp[LETTER_LEN];
         memset(tmp, 0, LETTER_LEN);
         uint64_t val = (lua_gettop(L) > 0) ? lua_tointeger(L, 1) : guid_new(0, 0);
-        for (int i = 0; i < LETTER_LEN - 1; ++i) {
+        for (uint32_t i = 0; i < LETTER_LEN - 1; ++i) {
             tmp[i] = letter[val % LETTER_SIZE];
             val /= LETTER_SIZE;
             if (val == 0) break;
@@ -103,7 +103,7 @@ namespace lcodec {
         uint64_t val = 0;
         size_t len = sval.size();
         const char* cval = sval.c_str();
-        for (int i = 0; i < len; ++i) {
+        for (size_t i = 0; i < len; ++i) {
             val += uint64_t(find_index(cval[i]) * pow(LETTER_SIZE, i));
         }
         return val;

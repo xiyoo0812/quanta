@@ -75,17 +75,6 @@ static void check_input(luakit::kit_state& lua) {
 #endif
 }
 
-quanta_app::quanta_app() {
-    mz_zip_zero_struct(&m_archive);
-}
-
-quanta_app::~quanta_app() {
-    if (m_archive.m_pState){
-        mz_zip_reader_end(&m_archive);
-        mz_zip_zero_struct(&m_archive);
-    }
-}
-
 void quanta_app::set_signal(uint32_t n, bool b) {
     uint32_t mask = 1 << n;
     if (b) {
@@ -117,126 +106,6 @@ void quanta_app::set_path(std::string field, std::string path) {
 #else
     m_lua.set_path(field.c_str(), path.c_str(), nullptr);
 #endif
-}
-
-bool quanta_app::initzip(const char* zfile) {
-    memset(&m_archive, 0, sizeof(m_archive));
-    if(!mz_zip_reader_init_file(&m_archive, zfile, 0)){
-        return false;
-    }
-    m_lua.set_searchers([&](lua_State* L) {
-        const char* fname = luaL_checkstring(L, 1);
-        int index = find_zip_file(L, fname);
-        if (index < 0) {
-            lua_pushstring(L, fmt::format("file {} not found in zip!", fname).c_str());
-            return 1;
-        }
-        if (load_zip_data(L, fname, index) == LUA_OK) {
-            lua_pushstring(L, fname);  /* will be 2nd argument to module */
-            return 2;  /* return open function and file name */
-        }
-        return luaL_error(L, "error loading module '%s' from file '%s':\n\t%s", lua_tostring(L, 1), fname, lua_tostring(L, -1));
-    });
-    m_lua.set_function("dofile", [&](lua_State* L) {
-        const char* fname = luaL_optstring(L, 1, NULL);
-        lua_settop(L, 1);
-        if (load_zip_file(L) != LUA_OK) {
-            return lua_error(L);
-        }
-        auto kf = [](lua_State* L, int d1, lua_KContext d2) { return lua_gettop(L) - 1; };
-        lua_callk(L, 0, LUA_MULTRET, 0, kf);
-        return kf(L, 0, 0);
-    });
-    m_lua.set_function("loadfile", [&](lua_State* L) {
-        int env = (!lua_isnone(L, 3) ? 3 : 0);  /* 'env' index or 0 if no 'env' */
-        if (load_zip_file(L) == LUA_OK) {
-            if (env != 0) {  /* 'env' parameter? */
-                lua_pushvalue(L, env);  /* environment for loaded function */
-                if (!lua_setupvalue(L, -2, 1))  /* set it as 1st upvalue */
-                    lua_pop(L, 1);  /* remove 'env' if not used by previous call */
-            }
-            return 1;
-        }
-        //error(message is on top of the stack)* /
-        lua_pushnil(L);
-        lua_insert(L, -2);
-        return 2;
-    });
-    return true;
-}
-
-int quanta_app::find_zip_file(lua_State* L, std::string filename) {
-    size_t start_pos = 0;
-    luakit::lua_guard g(L);
-    lua_getglobal(L, LUA_LOADLIBNAME);
-    lua_getfield(L, -1, "path");
-    std::string path = lua_tostring(L, -1);
-    while ((start_pos = filename.find(".", start_pos)) != std::string::npos) {
-        filename.replace(start_pos, strlen("."), LUA_DIRSEP);
-        start_pos += strlen(LUA_DIRSEP);
-    }
-    start_pos = 0;
-    while ((start_pos = path.find(LUA_PATH_MARK, start_pos)) != std::string::npos) {
-        path.replace(start_pos, strlen(LUA_PATH_MARK), filename);
-        start_pos += filename.size();
-    }
-    start_pos = 0;
-    while ((start_pos = path.find(LUA_DIRSEP, start_pos)) != std::string::npos) {
-        path.replace(start_pos, strlen(LUA_DIRSEP), "/");
-        start_pos += strlen("/");
-    }
-    size_t cur = 0, pos = 0;
-    while ((pos = path.find(LUA_PATH_SEP, cur)) != std::string::npos) {
-        std::string sub = path.substr(cur, pos - cur);
-        int index = mz_zip_reader_locate_file(&m_archive, sub.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
-        if (index > 0) {
-            return index;
-        }
-        cur = pos + strlen(LUA_PATH_SEP);
-    }
-    if (path.size() > cur) {
-        std::string sub = path.substr(cur);
-        return mz_zip_reader_locate_file(&m_archive, sub.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
-    }
-    return -1;
-}
-
-bool quanta_app::zip_exist(const char* fname) {
-    return mz_zip_reader_locate_file(&m_archive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE) > 0;
-}
-
-int quanta_app::zip_load(lua_State* L) {
-    const char* fname = luaL_optstring(L, 1, nullptr);
-    int index = mz_zip_reader_locate_file(&m_archive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
-    if (index <= 0) return 0;
-    size_t size = 0;
-    const char* data = (const char*)mz_zip_reader_extract_to_heap(&m_archive, index, &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
-    if (!data) return 0;
-    lua_pushlstring(L, data, size);
-    delete[] data;
-    return 1;
-}
-
-int quanta_app::load_zip_file(lua_State* L) {
-    const char* fname = luaL_optstring(L, 1, nullptr);
-    int index = mz_zip_reader_locate_file(&m_archive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
-    if (index <= 0) {
-        lua_pushstring(L, fmt::format("file {} not found in zip!", fname).c_str());
-        return LUA_ERRERR;
-    }
-    return load_zip_data(L, fname, index);
-}
-
-int quanta_app::load_zip_data(lua_State* L, const char* filename, int index) {
-    size_t size = 0;
-    const char* data = (const char*)mz_zip_reader_extract_to_heap(&m_archive, index, &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
-    if (!data) {
-        lua_pushstring(L, "file read failed!");
-        return LUA_ERRERR;
-    }
-    int status = luaL_loadbufferx(L, data, size, filename, luaL_optstring(L, 2, nullptr));
-    delete[] data;
-    return status;
 }
 
 void quanta_app::setup(int argc, const char* argv[]) {
@@ -272,7 +141,6 @@ void quanta_app::load(int argc, const char* argv[]) {
         if (i == 1){
             //加载LUA配置
             m_lua.set("platform", get_platform());
-            m_lua.set_function("init_zip", [&](std::string zfile) { return initzip(zfile.c_str()); });
             m_lua.set_function("set_env", [&](std::string key, std::string value) { return set_env(key, value, 1); });
             m_lua.set_function("set_path", [&](std::string field, std::string path) { return set_path(field, path); });
             m_lua.run_script(fmt::format("dofile('{}')", argv[1]), [&](std::string_view err) {
@@ -295,8 +163,6 @@ luakit::lua_table quanta_app::init() {
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
-    quanta.set_function("zload", [&](lua_State* L) { return zip_load(L); });
-    quanta.set_function("zexist", [&](const char* fn) { return zip_exist(fn); });
     quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
     quanta.set_function("setenv", [&](std::string key, std::string value) { return set_env(key, value, 1); });
 
@@ -306,9 +172,6 @@ luakit::lua_table quanta_app::init() {
         const char* env_service = get_env("QUANTA_SERVICE");
         logger::get_logger()->option(env_log_path, env_service, env_index);
     }
-#ifdef WIN32
-    m_lua.run_script("os.setlocale('.UTF8')");
-#endif
     m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string_view err) {
         exception_handler("load sandbox err: {}", err);
     });

@@ -114,14 +114,18 @@ local function init_solution_env(env)
     env.GROUPS = sgroup
 end
 
+local function is_cpp_file(ext_name)
+    return ext_name == ".c" or ext_name == ".cc" or ext_name == ".cpp" or ext_name == ".m"
+end
+
 --收集文件
-local function collect_files(collect_dir, project_dir, source_dir, args, group, collects, is_hfile)
+local function collect_files(collect_dir, project_dir, source_dir, args, sub_dir, collects, is_hfile)
     local dir_files = ldir(collect_dir)
     for _, file in pairs(dir_files) do
         if file.type == "directory" then
-            local sub_dir = path_cut(file.name, source_dir)
-            if args.AUTO_SUB_DIR or tcontain(args.SUB_DIR, sub_dir) then
-                collect_files(file.name, project_dir, source_dir, args, sub_dir, collects, is_hfile)
+            if args.RECURSION then
+                local rec_sub_dir = path_cut(file.name, project_dir)
+                collect_files(file.name, project_dir, source_dir, args, rec_sub_dir, collects, is_hfile)
             end
             goto continue
         end
@@ -131,50 +135,35 @@ local function collect_files(collect_dir, project_dir, source_dir, args, group, 
         local fmt_name_c = sgsub(fmt_name, '/', '\\')
         if is_hfile then
             if ext_name == ".h" or ext_name == ".hpp" then
-                collects[#collects + 1] = {fmt_name_c, group, false, false}
+                collects[#collects + 1] = { fmt_name_c, sub_dir }
             end
             goto continue
         end
-        if ext_name == ".c" or ext_name == ".cc" or ext_name == ".cpp" then
+        if is_cpp_file(ext_name) then
             local cmp_name = path_cut(fullname, source_dir)
             local is_obj = tcontain(args.OBJS, cmp_name)
             local cmp_name_c = sgsub(cmp_name, '/', '\\')
             local is_exclude = tcontain(path_fmt(args.EXCLUDE_FILE), cmp_name_c)
-            collects[#collects + 1] = {fmt_name_c, group, is_exclude, is_obj}
+            if is_obj or ((#args.OBJS == 0) and not is_exclude) then
+                collects[#collects + 1] = { fmt_name_c, sub_dir }
+            end
         end
         :: continue ::
     end
 end
 
 --vs工程收集源文件
-local function collect_sources(project_dir, src_dir, args)
+local function collect_sources(project_dir, src_dirs, args)
     local includes, sources = {}, {}
-    local source_dir = lappend(project_dir, src_dir)
-    collect_files(source_dir, project_dir, source_dir, args, "inc", includes, true)
-    collect_files(source_dir, project_dir, source_dir, args, "src", sources, false)
+    for _, src_dir in ipairs(src_dirs) do
+        local source_dir = lappend(project_dir, src_dir)
+        local sub_dir = path_cut(source_dir, project_dir)
+        collect_files(source_dir, project_dir, source_dir, args, sub_dir, includes, true)
+        collect_files(source_dir, project_dir, source_dir, args, sub_dir, sources, false)
+    end
     tsort(includes, files_sort)
     tsort(sources, files_sort)
     return includes, sources
-end
-
---收集目录
-local function collect_dirs(collect_dir, source_dir, sub_dirs, auto_sub_dir)
-    local dir_files = ldir(collect_dir)
-    for _, file in pairs(dir_files) do
-        if file.type == "directory" and auto_sub_dir then
-            local sub_dir = path_cut(file.name, source_dir)
-            if not tcontain(sub_dirs, sub_dir) then
-                sub_dirs[#sub_dirs + 1] = sub_dir
-            end
-            collect_dirs(file.name, source_dir, sub_dirs, auto_sub_dir)
-        end
-    end
-end
-
---linux工程收集子目录
-local function collect_sub_dir(project_dir, src_dir, sub_dirs, auto_sub_dir)
-    local source_dir = lappend(project_dir, src_dir)
-    collect_dirs(source_dir, source_dir, sub_dirs, auto_sub_dir)
 end
 
 --初始化项目环境变量
@@ -184,7 +173,6 @@ local function init_project_env(project_dir)
         WORK_DIR        = project_dir,
         GUID_NEW        = lguid.guid,
         COLLECT_SOURCES = collect_sources,
-        COLLECT_SUBDIRS = collect_sub_dir,
     }
 end
 

@@ -173,48 +173,18 @@
     <ClInclude Include="src\wolfssl\wolfio.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\src\bio.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\src\conf.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\src\crl.c" />
     <ClCompile Include="src\src\dtls.c" />
     <ClCompile Include="src\src\dtls13.c" />
     <ClCompile Include="src\src\internal.c" />
     <ClCompile Include="src\src\keys.c" />
     <ClCompile Include="src\src\ocsp.c" />
-    <ClCompile Include="src\src\pk.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\src\quic.c" />
     <ClCompile Include="src\src\sniffer.c" />
     <ClCompile Include="src\src\ssl.c" />
-    <ClCompile Include="src\src\ssl_asn1.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\src\ssl_bn.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\src\ssl_certman.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\src\ssl_crypto.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\src\ssl_misc.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\src\tls.c" />
     <ClCompile Include="src\src\tls13.c" />
     <ClCompile Include="src\src\wolfio.c" />
-    <ClCompile Include="src\src\x509.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="src\src\x509_str.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\ssl\crc.c" />
     <ClCompile Include="src\ssl\hmac_sha.c" />
     <ClCompile Include="src\ssl\lssl.cpp" />
@@ -246,9 +216,6 @@
     <ClCompile Include="src\wolfcrypt\src\ed25519.c" />
     <ClCompile Include="src\wolfcrypt\src\ed448.c" />
     <ClCompile Include="src\wolfcrypt\src\error.c" />
-    <ClCompile Include="src\wolfcrypt\src\evp.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\wolfcrypt\src\ext_kyber.c" />
     <ClCompile Include="src\wolfcrypt\src\ext_lms.c" />
     <ClCompile Include="src\wolfcrypt\src\ext_xmss.c" />
@@ -269,9 +236,6 @@
     <ClCompile Include="src\wolfcrypt\src\md4.c" />
     <ClCompile Include="src\wolfcrypt\src\md5.c" />
     <ClCompile Include="src\wolfcrypt\src\memory.c" />
-    <ClCompile Include="src\wolfcrypt\src\misc.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="src\wolfcrypt\src\pkcs12.c" />
     <ClCompile Include="src\wolfcrypt\src\pkcs7.c" />
     <ClCompile Include="src\wolfcrypt\src\poly1305.c" />

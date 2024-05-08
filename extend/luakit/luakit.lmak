@@ -11,7 +11,9 @@ PROJECT_TYPE = "exe"
 ENABLE = false
 
 --源文件路径
-SRC_DIR = "test"
+SRC_DIRS =  {
+    "test"
+}
 
 --需要的include目录
 INCLUDES = {

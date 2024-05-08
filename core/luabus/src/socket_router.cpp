@@ -80,7 +80,7 @@ bool socket_router::do_forward_master(router_header* header, char* data, size_t 
     return true;
 }
 
-bool socket_router::do_forward_broadcast(router_header* header, int source, char* data, size_t data_len, size_t& broadcast_num) {
+bool socket_router::do_forward_broadcast(router_header* header, uint32_t source, char* data, size_t data_len, size_t& broadcast_num) {
 	uint16_t service_id = (uint16_t)header->target_id;
 
 	uint8_t flag = header->context & 0xf;
@@ -89,7 +89,6 @@ bool socket_router::do_forward_broadcast(router_header* header, int source, char
 
     auto& services = m_services[service_id];
     auto& nodes = services.nodes;
-    int count = (int)nodes.size();
     for (auto& target : nodes) {
         if (target.token != 0 && target.token != source) {
             m_mgr->sendv(target.token, items, _countof(items));

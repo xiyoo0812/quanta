@@ -129,19 +129,6 @@ LDFLAGS += -L{{%= lib_dir %}}
 endif
 {{% end %}}
 
-#源文件路径
-{{% if SRC_DIR then %}}
-SRC_DIR = {{%= SRC_DIR %}}
-{{% else %}}
-SRC_DIR = src
-{{% end %}}
-
-#需要排除的源文件,目录基于$(SRC_DIR)
-EXCLUDE =
-{{% for _, exclude in ipairs(EXCLUDE_FILE) do %}}
-EXCLUDE += $(SRC_DIR)/{{%= exclude %}}
-{{% end %}}
-
 #需要连接的库文件
 LIBS =
 ifneq ($(UNAME_S), Darwin)
@@ -181,8 +168,8 @@ endif
 ifndef CX
 CX = c++
 endif
-CFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra $(STDC) $(MYCFLAGS)
-CXXFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra $(STDCPP) $(MYCFLAGS)
+CFLAGS = -g -O2 -Wall -Wno-deprecated $(STDC) $(MYCFLAGS)
+CXXFLAGS = -g -O2 -Wall -Wno-deprecated $(STDCPP) $(MYCFLAGS)
 
 #项目目录
 ifndef SOLUTION_DIR
@@ -228,38 +215,32 @@ LDFLAGS += -L$(SOLUTION_DIR){{%= DST_DIR %}}
 LDFLAGS += -L$(SOLUTION_DIR){{%= DST_LIB_DIR %}}
 
 #自动生成目标
-OBJS =
-{{% if next(OBJS) then %}}
-{{% local OBJS = table.concat(OBJS, " ") %}}
-COBJS = $(patsubst %.c, $(INT_DIR)/%.o, {{%= OBJS %}})
-MOBJS = $(patsubst %.m, $(INT_DIR)/%.o, $(COBJS))
-CCOBJS = $(patsubst %.cc, $(INT_DIR)/%.o, $(MOBJS))
-OBJS = $(patsubst %.cpp, $(INT_DIR)/%.o, $(CCOBJS))
-{{% else %}}
-{{% COLLECT_SUBDIRS(WORK_DIR, SRC_DIR, SUB_DIR, AUTO_SUB_DIR) %}}
-{{% for _, sub_dir in ipairs(SUB_DIR) do %}}
-#子目录
-{{% local fmtsub_dir = string.gsub(sub_dir, '\\', '/') %}}
-OBJS += $(patsubst $(SRC_DIR)/{{%= fmtsub_dir%}}/%.c, $(INT_DIR)/{{%= fmtsub_dir%}}/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/{{%= fmtsub_dir%}}/*.c)))
-OBJS += $(patsubst $(SRC_DIR)/{{%= fmtsub_dir%}}/%.m, $(INT_DIR)/{{%= fmtsub_dir%}}/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/{{%= fmtsub_dir%}}/*.m)))
-OBJS += $(patsubst $(SRC_DIR)/{{%= fmtsub_dir%}}/%.cc, $(INT_DIR)/{{%= fmtsub_dir%}}/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/{{%= fmtsub_dir%}}/*.cc)))
-OBJS += $(patsubst $(SRC_DIR)/{{%= fmtsub_dir%}}/%.cpp, $(INT_DIR)/{{%= fmtsub_dir%}}/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/{{%= fmtsub_dir%}}/*.cpp)))
+SOURCES =
+{{% local TEMPS, GROUPS = {}, {} %}}
+{{% local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
+{{% local _, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) %}}
+{{% for _, CSRC in ipairs(CSOURCES) do %}}
+{{% local fmtsrc = string.gsub(CSRC[1], '\\', '/') %}}
+SOURCES += {{%= fmtsrc %}}
+{{% TEMPS[CSRC[2]] = true %}}
 {{% end %}}
-#根目录
-OBJS += $(patsubst $(SRC_DIR)/%.c, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.c)))
-OBJS += $(patsubst $(SRC_DIR)/%.m, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.m)))
-OBJS += $(patsubst $(SRC_DIR)/%.cc, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cc)))
-OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cpp)))
+{{% for CSRC in pairs(TEMPS) do %}}
+{{% GROUPS[#GROUPS+1] = CSRC %}}
 {{% end %}}
 
+CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
+MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))
+CCSOURCES = $(patsubst %.cc, $(INT_DIR)/%.o, $(MSOURCES))
+OBJS = $(patsubst %.cpp, $(INT_DIR)/%.o, $(CCSOURCES))
+
 # 编译所有源文件
-$(INT_DIR)/%.o : $(SRC_DIR)/%.c
+$(INT_DIR)/%.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
-$(INT_DIR)/%.o : $(SRC_DIR)/%.m
+$(INT_DIR)/%.o : %.m
 	$(CC) $(CFLAGS) -c $< -o $@
-$(INT_DIR)/%.o : $(SRC_DIR)/%.cc
+$(INT_DIR)/%.o : %.cc
 	$(CX) $(CXXFLAGS) -c $< -o $@
-$(INT_DIR)/%.o : $(SRC_DIR)/%.cpp
+$(INT_DIR)/%.o : %.cpp
 	$(CX) $(CXXFLAGS) -c $< -o $@
 
 {{% if PROJECT_TYPE == "static" then %}}
@@ -293,8 +274,9 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
-{{% for _, sub_dir in ipairs(SUB_DIR) do %}}
-	{{% local fmtsub_dir = string.gsub(sub_dir, '\\', '/') %}}
+{{% table.sort(GROUPS, function(a, b) return a < b end) %}}
+{{% for _, CSRC in ipairs(GROUPS) do %}}
+{{% local fmtsub_dir = string.gsub(CSRC, '\\', '/') %}}
 	mkdir -p $(INT_DIR)/{{%= fmtsub_dir %}}
 {{% end %}}
 {{% for _, pre_cmd in ipairs(NWINDOWS_PREBUILDS) do %}}

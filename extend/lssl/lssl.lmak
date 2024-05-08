@@ -8,7 +8,7 @@ TARGET_NAME = "lssl"
 PROJECT_TYPE = "dynamic"
 
 FLAGS = {
-    "Wno-implicit-fallthrough"
+    "Wno-implicit-function-declaration"
 }
 
 --需要的include目录
@@ -16,10 +16,6 @@ INCLUDES = {
     "./src",
     "../lua/lua",
     "../luakit/include"
-}
-
---LINUX需要定义的选项
-LINUX_DEFINES = {
 }
 
 --DARWIN需要定义的选项
@@ -44,9 +40,6 @@ DEFINES = {
     "WOLFSSL_USER_IO",
     "WOLFSSL_USER_SETTINGS"
 }
-
---自动搜索子目录
-AUTO_SUB_DIR = true
 
 --需要排除的源文件,目录基于$(SRC_DIR)
 EXCLUDE_FILE = {

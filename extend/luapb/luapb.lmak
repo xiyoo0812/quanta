@@ -19,14 +19,12 @@ WINDOWS_DEFINES = {
     "LUA_BUILD_AS_DLL"
 }
 
---源文件路径v
-SRC_DIR = "src"
-
 --需要连接的库文件
 LIBS = {
     "lua"
 }
 
+--目标文件
 OBJS = {
     "luapb.cpp"
 }

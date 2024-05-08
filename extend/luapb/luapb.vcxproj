@@ -11,9 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\luapb.cpp" />
-    <ClCompile Include="src\pb.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">true</ExcludedFromBuild>
-    </ClCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2967F038-B90B-EBF5-B268-BE3BAF66D417}</ProjectGuid>

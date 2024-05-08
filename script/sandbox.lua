@@ -10,7 +10,6 @@ local sgsub         = string.gsub
 local sformat       = string.format
 local traceback     = debug.traceback
 local qgetenv       = quanta.getenv
-local zexist        = quanta.zexist
 
 local LOG_LEVEL     = log.LOG_LEVEL
 local QUANTA_ZIP    = qgetenv("QUANTA_ZIP_MODE")
@@ -66,7 +65,7 @@ end
 
 local function fexist(fname)
     if QUANTA_ZIP then
-        return zexist(fname)
+        return zip.zexist(fname)
     end
     local file = iopen(fname)
     if file then

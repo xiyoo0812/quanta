@@ -8,6 +8,7 @@ TARGET_NAME = "lunqlite"
 PROJECT_TYPE = "dynamic"
 
 FLAGS = {
+    "Wno-misleading-indentation",
     "Wno-implicit-fallthrough"
 }
 

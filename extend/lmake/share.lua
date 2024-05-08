@@ -12,13 +12,11 @@ ENABLE = true
 
 --需要的FLAGS
 BASE_FLAGS = {
-    "Wsign-compare",
     "Wno-sign-compare",
     "Wno-unused-variable",
     "Wno-unused-parameter",
     "Wno-unused-but-set-variable",
-    "Wno-unused-but-set-parameter",
-    "Wno-unknown-pragmas"
+    "Wno-unused-but-set-parameter"
 }
 
 --FLAGS
@@ -86,7 +84,9 @@ DARWIN_LIBRARY_DIR = {
 }
 
 --源文件路径
-SRC_DIR = "src"
+SRC_DIRS = {
+    "src"
+}
 
 --目标文件生成路径
 --.so/.exe/.dll
@@ -101,12 +101,8 @@ MS_VERSION = "143"
 VS_SHR_VERSION = "17"
 VS_FUL_VERSION = "17.4.33103.184"
 
---子目录路径
-SUB_DIR = {
-}
-
---自动搜索子目录
-AUTO_SUB_DIR = false
+--递归搜索子目录
+RECURSION = true
 
 --需要排除的源文件,目录基于$(SRC_DIR)
 EXCLUDE_FILE = {

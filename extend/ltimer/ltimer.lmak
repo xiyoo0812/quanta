@@ -13,9 +13,6 @@ INCLUDES = {
     "../luakit/include"
 }
 
---源文件路径
-SRC_DIR = "ltimer"
-
 --需要连接的库文件
 LIBS = {
     "lua"

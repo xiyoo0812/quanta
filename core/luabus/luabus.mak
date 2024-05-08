@@ -15,13 +15,12 @@ all : pre_build target post_build
 MYCFLAGS =
 
 #需要定义的FLAG
-MYCFLAGS += -Wsign-compare
 MYCFLAGS += -Wno-sign-compare
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
 MYCFLAGS += -Wno-unused-but-set-variable
 MYCFLAGS += -Wno-unused-but-set-parameter
-MYCFLAGS += -Wno-unknown-pragmas
+MYCFLAGS += -Wno-extra
 
 #c标准库版本
 #gnu99/gnu11/gnu17
@@ -33,7 +32,7 @@ STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../../extend/lua/lua
-MYCFLAGS += -I../../extend/ltimer/ltimer
+MYCFLAGS += -I../../extend/ltimer/src
 MYCFLAGS += -I../../extend/luakit/include
 
 #需要定义的选项
@@ -41,12 +40,6 @@ MYCFLAGS += -I../../extend/luakit/include
 #LDFLAGS
 LDFLAGS =
 
-
-#源文件路径
-SRC_DIR = src
-
-#需要排除的源文件,目录基于$(SRC_DIR)
-EXCLUDE =
 
 #需要连接的库文件
 LIBS =
@@ -67,8 +60,8 @@ endif
 ifndef CX
 CX = c++
 endif
-CFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra $(STDC) $(MYCFLAGS)
-CXXFLAGS = -g -O2 -Wall -Wno-deprecated -Wextra $(STDCPP) $(MYCFLAGS)
+CFLAGS = -g -O2 -Wall -Wno-deprecated $(STDC) $(MYCFLAGS)
+CXXFLAGS = -g -O2 -Wall -Wno-deprecated $(STDCPP) $(MYCFLAGS)
 
 #项目目录
 ifndef SOLUTION_DIR
@@ -99,21 +92,32 @@ LDFLAGS += -L$(SOLUTION_DIR)bin
 LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
-OBJS =
-#根目录
-OBJS += $(patsubst $(SRC_DIR)/%.c, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.c)))
-OBJS += $(patsubst $(SRC_DIR)/%.m, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.m)))
-OBJS += $(patsubst $(SRC_DIR)/%.cc, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cc)))
-OBJS += $(patsubst $(SRC_DIR)/%.cpp, $(INT_DIR)/%.o, $(filter-out $(EXCLUDE), $(wildcard $(SRC_DIR)/*.cpp)))
+SOURCES =
+SOURCES += src/lua_socket_mgr.cpp
+SOURCES += src/lua_socket_node.cpp
+SOURCES += src/luabus.cpp
+SOURCES += src/socket_helper.cpp
+SOURCES += src/socket_listener.cpp
+SOURCES += src/socket_mgr.cpp
+SOURCES += src/socket_router.cpp
+SOURCES += src/socket_stream.cpp
+SOURCES += src/socket_tcp.cpp
+SOURCES += src/socket_udp.cpp
+SOURCES += src/stdafx.cpp
+
+CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
+MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))
+CCSOURCES = $(patsubst %.cc, $(INT_DIR)/%.o, $(MSOURCES))
+OBJS = $(patsubst %.cpp, $(INT_DIR)/%.o, $(CCSOURCES))
 
 # 编译所有源文件
-$(INT_DIR)/%.o : $(SRC_DIR)/%.c
+$(INT_DIR)/%.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@
-$(INT_DIR)/%.o : $(SRC_DIR)/%.m
+$(INT_DIR)/%.o : %.m
 	$(CC) $(CFLAGS) -c $< -o $@
-$(INT_DIR)/%.o : $(SRC_DIR)/%.cc
+$(INT_DIR)/%.o : %.cc
 	$(CX) $(CXXFLAGS) -c $< -o $@
-$(INT_DIR)/%.o : $(SRC_DIR)/%.cpp
+$(INT_DIR)/%.o : %.cpp
 	$(CX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGET_DYNAMIC) : $(OBJS)
@@ -130,6 +134,7 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
+	mkdir -p $(INT_DIR)/src
 
 #后编译
 post_build:
