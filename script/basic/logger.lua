@@ -5,7 +5,6 @@ local pcall         = pcall
 local pairs         = pairs
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
-local sformat       = string.format
 local lprint        = log.print
 local lfilter       = log.filter
 
@@ -50,20 +49,7 @@ function logger.filter(level)
     end
 end
 
-local function logger_format(flag, feature, lvl, lvl_name, fmt, ...)
-    local ok, msg = pcall(sformat, fmt, ...)
-    if not ok then
-        local wfmt = "[logger][{}] format failed: {}=> {})"
-        lprint(LOG_LEVEL.WARN, 0, title, feature, wfmt, lvl_name, msg, dtraceback())
-        return
-    end
-    lprint(lvl, flag, title, feature, msg)
-end
-
 local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
-    if not fmt:find("{") then
-        return logger_format(flag, feature, lvl, lvl_name, fmt, ...)
-    end
     local ok, msg = pcall(lprint, lvl, flag, title, feature, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"

@@ -1,5 +1,6 @@
 -- mongo_test.lua
 local log_debug     = logger.debug
+local bdate         = bson.date
 
 local timer_mgr     = quanta.get("timer_mgr")
 
@@ -33,6 +34,13 @@ timer_mgr:once(2000, function()
     log_debug("db listIndexes code: {}, err = {}", icode, ierr)
     icode, ierr = mongo_mgr:drop_indexes("test_mongo_2", "test_uid")
     log_debug("db drop_indexes code: {}, err = {}", icode, ierr)
+    
+    icode, ierr = mongo_mgr:create_indexes("test_mongo_3", {{key={"pid",1,"uid",1},name="test_uid", unique = true}})
+    log_debug("db create_indexes code: {}, err = {}", icode, ierr)
+    icode, ierr = mongo_mgr:create_indexes("test_mongo_3", { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } })
+    log_debug("db create_indexes code: {}, err = {}", icode, ierr)
+    icode, ierr = mongo_mgr:insert(primary_id, "test_mongo_3", {pid = 123457, uid = 3, time = quanta.now, ttl = bdate(quanta.now + 3600*8 + 30)})
+    log_debug("db insert code: {}, err = {}", icode, ierr)
 
     --[[
     fcode, res = mongo_mgr:find("test_mongo_1", {}, {_id = 0}, {pid = 1})

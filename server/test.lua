@@ -33,5 +33,5 @@ quanta.startup(function()--初始化test
     import("test/ssl_test.lua")
     import("test/xml_test.lua")
     ]]
-    import("test/xml_test.lua")
+    import("test/mongo_test.lua")
 end)

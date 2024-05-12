@@ -27,6 +27,7 @@ local lb64decode    = ssl.b64_decode
 local lhmac_sha1    = ssl.hmac_sha1
 local lxor_byte     = ssl.xor_byte
 local bsonpairs     = bson.pairs
+local bint64        = bson.int64
 local lclock_ms     = timer.clock_ms
 
 local timer_mgr     = quanta.get("timer_mgr")
@@ -49,8 +50,6 @@ prop:reader("passwd", nil)      --passwd
 prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
 prop:reader("timer_id", nil)    --timer_id
-prop:reader("cursor_id", nil)   --cursor_id
-prop:reader("sort_doc", nil)    --sort_doc
 prop:reader("connections", {})  --connections
 prop:reader("alives", {})       --alives
 prop:reader("req_counter", nil)
@@ -60,8 +59,6 @@ function MongoDB:__init(conf)
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
-    self.sort_doc = bson.doc()
-    self.cursor_id = bson.int64(0)
     self.codec = bson.mongocodec()
     self:set_options(conf.opts)
     self:setup_pool(conf.hosts)
@@ -380,13 +377,10 @@ function MongoDB:find_one(co_name, query, projection)
     return succ
 end
 
-function MongoDB:format_pairs(args, doc)
+function MongoDB:format_pairs(args)
     if args then
         if type(next(args)) == "string" then
             return args
-        end
-        if doc then
-            tinsert(args, doc)
         end
         return bsonpairs(tunpack(args))
     end
@@ -395,7 +389,7 @@ end
 -- 参数说明
 --sort: {k1=1} / {k1,1,k2,-1,k3,-1}
 function MongoDB:find(co_name, query, projection, sortor, limit, skip)
-    local fsortor = self:format_pairs(sortor, self.sort_doc)
+    local fsortor = self:format_pairs(sortor)
     local succ, reply = self:runCommand("find", co_name, "filter", query, "projection", projection, "sort", fsortor, "limit", limit, "skip", skip)
     if not succ then
         return succ, reply
@@ -411,8 +405,8 @@ function MongoDB:find(co_name, query, projection, sortor, limit, skip)
         if limit and #results >= limit then
             break
         end
-        self.cursor_id.val = cursor.id
-        local msucc, moreply = self:runCommand("getMore", self.cursor_id, "collection", co_name, "batchSize", limit)
+        local new_cur_id = bint64(cursor.id)
+        local msucc, moreply = self:runCommand("getMore", new_cur_id, "collection", co_name, "batchSize", limit)
         if not msucc then
             return msucc, moreply
         end

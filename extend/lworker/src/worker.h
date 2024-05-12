@@ -56,7 +56,9 @@ namespace lworker {
     {
     public:
         worker(ischeduler* schedulor, vstring name, vstring entry, vstring service, vstring sandbox)
-            : m_schedulor(schedulor), m_name(name), m_entry(entry), m_service(service), m_sandbox(sandbox) { }
+            : m_schedulor(schedulor), m_name(name), m_entry(entry), m_service(service), m_sandbox(sandbox) {
+            m_codec = m_lua->create_codec();
+        }
 
         ~worker() {
             m_running = false;
@@ -115,7 +117,6 @@ namespace lworker {
         }
 
         void run(){
-            m_codec = m_lua->create_codec();
             auto quanta = m_lua->new_table(m_service.c_str());
             quanta.set("title", m_name);
             quanta.set_function("stop", [&]() { m_running = false; });

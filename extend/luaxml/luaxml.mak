@@ -70,7 +70,7 @@ endif
 INT_DIR = $(SOLUTION_DIR)temp/$(PROJECT_NAME)
 
 #目标文件前缀，定义则.so和.a加lib前缀，否则不加
-PROJECT_PREFIX = lib
+PROJECT_PREFIX =
 
 #目标定义
 MYCFLAGS += -fPIC

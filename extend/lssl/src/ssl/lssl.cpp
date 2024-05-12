@@ -41,8 +41,7 @@ namespace lssl {
         return 1;
     }
 
-    static int tohex(lua_State* L, const unsigned char* text, size_t sz)
-    {
+    static int tohex(lua_State* L, const unsigned char* text, size_t sz)     {
         static char hex[] = "0123456789abcdef";
         char tmp[UCHAR_MAX];
         char* buffer = tmp;
@@ -64,15 +63,15 @@ namespace lssl {
     }
 
     static int lrandomkey(lua_State* L) {
-        char tmp[8];
+        char tmp[12];
         int i;
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < 12; i++) {
             tmp[i] = rand() & 0xff;
         }
         if (luaL_optinteger(L, 1, 0)) {
-            return tohex(L, (const unsigned char*)tmp, 8);
+            return tohex(L, (const unsigned char*)tmp, 12);
         }
-        lua_pushlstring(L, tmp, 8);
+        lua_pushlstring(L, tmp, 12);
         return 1;
     }
 
@@ -93,7 +92,7 @@ namespace lssl {
             HEX(hi, text[i]);
             HEX(low, text[i + 1]);
             if (hi > 16 || low > 16) {
-                return luaL_error(L, "Invalid hex text", text);
+                return luaL_error(L, "Invalid hex text: %s", text);
             }
             buffer[i / 2] = hi << 4 | low;
         }
