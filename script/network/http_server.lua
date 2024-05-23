@@ -14,6 +14,8 @@ local jsoncodec     = json.jsoncodec
 local httpdcodec    = codec.httpdcodec
 local derive_port   = luabus.derive_port
 
+local update_mgr    = quanta.get("update_mgr")
+
 local HttpServer = class()
 local prop = property(HttpServer)
 prop:reader("ip", nil)              --http server地址
@@ -29,6 +31,15 @@ function HttpServer:__init(http_addr)
     self.hcodec = httpdcodec(self.jcodec)
     self.handlers = { GET = {}, POST = {}, PUT = {}, DELETE = {} }
     self:setup(http_addr)
+    --注册退出
+    update_mgr:attach_quit(self)
+end
+
+function HttpServer:on_quit()
+    if self.listener then
+        log_debug("[HttpServer][on_quit]")
+        self.listener:close()
+    end
 end
 
 function HttpServer:setup(http_addr)

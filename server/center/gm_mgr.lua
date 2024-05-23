@@ -8,13 +8,11 @@ local log_err           = logger.err
 local log_debug         = logger.debug
 local sformat           = string.format
 local tunpack           = table.unpack
-local tinsert           = table.insert
 local make_sid          = service.make_sid
 local guid_index        = codec.guid_index
 
 local online            = quanta.get("online")
 local cmdline           = quanta.get("cmdline")
-local monitor           = quanta.get("monitor")
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
 local router_mgr        = quanta.get("router_mgr")
@@ -22,18 +20,15 @@ local router_mgr        = quanta.get("router_mgr")
 local GLOBAL            = quanta.enum("GMType", "GLOBAL")
 local SYSTEM            = quanta.enum("GMType", "SYSTEM")
 local SERVICE           = quanta.enum("GMType", "SERVICE")
-local OFFLINE           = quanta.enum("GMType", "OFFLINE")
 local LOCAL             = quanta.enum("GMType", "LOCAL")
 local HASHKEY           = quanta.enum("GMType", "HASHKEY")
 local PLAYER            = quanta.enum("GMType", "PLAYER")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
-local PLAYER_NOT_EXIST  = quanta.enum("KernCode", "PLAYER_NOT_EXIST")
 
 local GM_Mgr = singleton()
 local prop = property(GM_Mgr)
 prop:reader("http_server", nil)
 prop:reader("services", {})
-prop:reader("monitors", {})
 prop:reader("gm_page", "")
 prop:reader("gm_status", false)
 
@@ -45,16 +40,12 @@ function GM_Mgr:__init()
 
     --创建HTTP服务器
     local server = HttpServer(environ.get("QUANTA_GM_HTTP"))
-    service.modify_host(server:get_port())
     self.http_server = server
     --是否开启GM功能
     if environ.status("QUANTA_GM_SERVER") then
         self.gm_status = true
         self:register_webgm()
     end
-    --关注monitor
-    monitor:watch_service_ready(self, "monitor")
-    monitor:watch_service_close(self, "monitor")
     --定时更新
     update_mgr:attach_second5(self)
     self:on_second5()
@@ -80,16 +71,9 @@ function GM_Mgr:on_second5()
     self.gm_page = import("center/gm_page.lua")
 end
 
--- 事件请求
-function GM_Mgr:on_register_command(command_list, service_id)
-    self:rpc_register_command(command_list, service_id)
-    return SUCCESS
-end
-
 function GM_Mgr:register_webgm()
     self:register_get("/", "on_gm_page", self)
     self:register_get("/gmlist", "on_gmlist", self)
-    self:register_get("/monitors", "on_monitors", self)
     self:register_post("/command", "on_command", self)
     self:register_post("/message", "on_message", self)
 end
@@ -167,16 +151,6 @@ function GM_Mgr:on_gmlist(url, body, params)
     return { text = "GM指令", nodes = cmdline:get_displays() }
 end
 
---monitor拉取
-function GM_Mgr:on_monitors(url, body, params)
-    log_debug("[GM_Mgr][on_monitors] body: {}", params)
-    local nodes = {}
-    for _, addr in pairs(self.monitors) do
-        tinsert(nodes, { text = addr, tag = "log" })
-    end
-    return { text = "在线日志", nodes = nodes }
-end
-
 --后台GM调用，字符串格式
 function GM_Mgr:on_command(url, body)
     log_debug("[GM_Mgr][on_command] body: {}", body)
@@ -193,12 +167,11 @@ end
 --参数分发预处理
 function GM_Mgr:dispatch_pre_command(fmtargs)
     local result = event_mgr:notify_listener("on_center_command", fmtargs.name, fmtargs.args)
-    local _, status_ok, args = tunpack(result)
+    local status_ok, args = tunpack(result)
     --无额外处理
     if not status_ok then
         return self:dispatch_command(fmtargs.args, fmtargs.type, fmtargs.service)
     end
-
     return self:dispatch_command(args, fmtargs.type, fmtargs.service)
 end
 
@@ -228,7 +201,6 @@ function GM_Mgr:dispatch_command(cmd_args, gm_type, service_id)
         [SYSTEM]    = GM_Mgr.exec_system_cmd,
         [PLAYER]    = GM_Mgr.exec_player_cmd,
         [SERVICE]   = GM_Mgr.exec_service_cmd,
-        [OFFLINE]   = GM_Mgr.exec_offline_cmd,
         [LOCAL]     = GM_Mgr.exec_local_cmd,
         [HASHKEY]   = GM_Mgr.exec_hash_cmd,
     }
@@ -279,30 +251,11 @@ end
 
 --local command
 function GM_Mgr:exec_local_cmd(service_id, cmd_name, ...)
-    local ok, code, res = tunpack(event_mgr:notify_listener(cmd_name, ...))
+    local ok, res = tunpack(event_mgr:notify_listener(cmd_name, ...))
     if not ok then
-        return { code = code, msg = "fail" }
+        return { code = 1, msg = res }
     end
     return { code = 0, msg = res }
-end
-
---兼容在线和离线的玩家指令
-function GM_Mgr:exec_offline_cmd(service_id, cmd_name, player_id, ...)
-    log_debug("[GM_Mgr][exec_offline_cmd] cmd_name:{} player_id:{}", cmd_name, player_id)
-    local ok, codeoe, res = online:call_lobby(player_id, "rpc_command_execute", cmd_name, player_id, ...)
-    if not ok then
-        log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
-        return { code = 1, msg = codeoe }
-    end
-    if codeoe == PLAYER_NOT_EXIST then
-        ok, codeoe, res = router_mgr:call_lobby_hash(player_id, "rpc_command_execute", cmd_name, player_id, ...)
-        if not ok then
-            log_err("[GM_Mgr][exec_offline_cmd] rpc_command_execute failed! player_id:{}, cmd_name={}", player_id, cmd_name)
-            return { code = 1, msg = codeoe }
-        end
-        return { code = codeoe, msg = res }
-    end
-    return { code = codeoe, msg = res }
 end
 
 --player command

@@ -7,7 +7,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\bitarray.h" />
+    <ClInclude Include="src\bitset.h" />
     <ClInclude Include="src\guid.h" />
     <ClInclude Include="src\hash.h" />
     <ClInclude Include="src\http.h" />

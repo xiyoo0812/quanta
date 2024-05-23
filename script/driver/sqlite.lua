@@ -3,6 +3,8 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local sformat       = string.format
 
+local update_mgr    = quanta.get("update_mgr")
+
 local SQLITE_OK     = sqlite.SQLITE_CODE.SQLITE_OK
 local SQLITE_DONE   = sqlite.SQLITE_CODE.SQLITE_DONE
 local SQLITE_NFOUND = sqlite.SQLITE_CODE.SQLITE_NOTFOUND
@@ -19,6 +21,21 @@ prop:reader("prepares", {})
 
 function Sqlite:__init()
     stdfs.mkdir(SQDB_PATH)
+    update_mgr:attach_quit(self)
+end
+
+function Sqlite:on_quit()
+    if self.driver then
+        log_debug("[Sqlite][on_quit]")
+        for _, stmts in pairs(self.prepares) do
+            for _, stmt in pairs(stmts) do
+                stmt.close()
+            end
+        end
+        self.prepares = {}
+        self.driver.close()
+        self.driver = nil
+    end
 end
 
 function Sqlite:open(dbname)

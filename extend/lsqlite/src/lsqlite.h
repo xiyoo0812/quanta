@@ -151,7 +151,7 @@ namespace lsqlite {
         ~sqlite_driver() { close(); }
 
         void close() {
-            if (m_sdb) sqlite3_close(m_sdb);
+            if (m_sdb) sqlite3_close_v2(m_sdb);
             m_sdb = nullptr;
         }
 

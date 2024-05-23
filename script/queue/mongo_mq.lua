@@ -59,8 +59,8 @@ end
 function MongoMQ:send_message(target_id, event, args, ttl)
     local doc = { args = args, event = event, target_id = target_id, time = quanta.now_ms, uuid = new_guid() }
     if ttl then
-        --设置过期ttl字段, 单位毫秒
-        doc.ttl = bdate(quanta.now_ms + ttl * 1000)
+        --设置过期ttl字段
+        doc.ttl = bdate(quanta.now + ttl)
     end
     local ok = mongo_agent:insert({ self.coll_name, doc }, target_id)
     if not ok then

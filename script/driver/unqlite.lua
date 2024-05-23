@@ -2,6 +2,8 @@
 local log_debug         = logger.debug
 local sformat           = string.format
 
+local update_mgr        = quanta.get("update_mgr")
+
 local UNQLITE_OK        = unqlite.UNQLITE_CODE.UNQLITE_OK
 local UNQLITE_NOTFOUND  = unqlite.UNQLITE_CODE.UNQLITE_NOTFOUND
 
@@ -17,6 +19,15 @@ prop:reader("jcodec", nil)
 
 function Unqlite:__init()
     stdfs.mkdir(UNQLITE_PATH)
+    update_mgr:attach_quit(self)
+end
+
+function Unqlite:on_quit()
+    if self.driver then
+        log_debug("[Unqlite][on_quit]")
+        self.driver.close()
+        self.driver = nil
+    end
 end
 
 function Unqlite:open(name)

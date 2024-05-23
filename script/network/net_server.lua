@@ -3,6 +3,7 @@
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
+local log_debug         = logger.debug
 local signalquit        = signal.quit
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
@@ -11,6 +12,7 @@ local derive_port       = luabus.derive_port
 local proto_pb          = luabus.eproto_type.pb
 
 local event_mgr         = quanta.get("event_mgr")
+local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
@@ -42,6 +44,15 @@ prop:accessor("msgtype", 0)             --消息类型
 function NetServer:__init(session_type)
     self.session_type = session_type
     self.codec = protobuf.pbcodec()
+    --注册退出
+    update_mgr:attach_quit(self)
+end
+
+function NetServer:on_quit()
+    if self.listener then
+        log_debug("[NetServer][on_quit]")
+        self.listener:close()
+    end
 end
 
 --induce：根据 order 推导port

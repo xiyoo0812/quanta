@@ -126,14 +126,16 @@ function CenterGM:show_snapshot(service_name, index)
         local ok, codeoe, res = router_mgr:call_router_id(quanta_id, "rpc_show_snapshot")
         if not ok then
             log_err("[CenterGM][show_snapshot] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
+            return codeoe
         end
-        return codeoe, res
+        return res
     end
     local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_show_snapshot")
     if not ok then
         log_err("[CenterGM][show_snapshot] exec service={}-{} failed! codeoe={},res={}", service_name, index, codeoe, res)
+        return codeoe
     end
-    return codeoe, res
+    return res
 end
 
 -- export

@@ -28,7 +28,7 @@ namespace lbson {
         return thread_bson.int64(L, value);
     }
     static int date(lua_State* L, int64_t value) {
-        return thread_bson.date(L, value);
+        return thread_bson.date(L, value * 1000);
     }
 
     static void init_static_bson() {

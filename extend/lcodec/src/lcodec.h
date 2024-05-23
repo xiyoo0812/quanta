@@ -10,4 +10,4 @@
 #include "redis.h"
 #include "mysql.h"
 #include "websocket.h"
-#include "bitarray.h"
+#include "bitset.h"

@@ -34,7 +34,7 @@ timer_mgr:once(2000, function()
     log_debug("db listIndexes code: {}, err = {}", icode, ierr)
     icode, ierr = mongo_mgr:drop_indexes("test_mongo_2", "test_uid")
     log_debug("db drop_indexes code: {}, err = {}", icode, ierr)
-    
+
     icode, ierr = mongo_mgr:create_indexes("test_mongo_3", {{key={"pid",1,"uid",1},name="test_uid", unique = true}})
     log_debug("db create_indexes code: {}, err = {}", icode, ierr)
     icode, ierr = mongo_mgr:create_indexes("test_mongo_3", { { key = { ttl = 1 }, expireAfterSeconds = 0, name = "ttl", unique = false } })

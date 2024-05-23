@@ -6,12 +6,14 @@ local signalquit        = signal.quit
 local log_err           = logger.err
 local log_warn          = logger.warn
 local log_info          = logger.info
+local log_debug         = logger.debug
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
 local derive_port       = luabus.derive_port
 
 local event_mgr         = quanta.get("event_mgr")
+local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 
@@ -53,8 +55,18 @@ function RpcServer:__init(holder, ip, port, induce)
     self.listener = listener
     self.ip, self.port = ip, real_port
     log_info("[RpcServer][setup] now listen {}:{} success!", ip, real_port)
+    --监听rpc
     event_mgr:add_listener(self, "rpc_heartbeat")
     event_mgr:add_listener(self, "rpc_register")
+    --注册退出
+    update_mgr:attach_quit(self)
+end
+
+function RpcServer:on_quit()
+    if self.listener then
+        log_debug("[RpcServer][on_quit]")
+        self.listener:close()
+    end
 end
 
 --rpc事件
