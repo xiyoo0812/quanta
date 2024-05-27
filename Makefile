@@ -41,6 +41,7 @@ luaext:
 	cd extend/luaxml; make SOLUTION_DIR=$(CUR_DIR) -f luaxml.mak;
 	cd extend/lunqlite; make SOLUTION_DIR=$(CUR_DIR) -f lunqlite.mak;
 	cd extend/lworker; make SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
+	cd extend/lyaml; make SOLUTION_DIR=$(CUR_DIR) -f lyaml.mak;
 
 share:
 	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
