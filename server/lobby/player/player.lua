@@ -53,10 +53,13 @@ function Player:on_db_player_load(data)
         self:set_gender(data.gender)
         self:set_custom(data.facade)
         self:set_name(data.nick)
-        self:set_relayable(true)
         return true
     end
     return false
+end
+
+function Player:is_player()
+    return true
 end
 
 -- 更新路由

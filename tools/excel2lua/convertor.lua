@@ -122,7 +122,7 @@ local value_func = {
         end
         return unserialize('{' .. value .. '}')
     end,
-    ["doublearray"] = function(value)
+    ["array2"] = function(value)
         value = sgsub(value, '|', ',')
         value = sgsub(value, ';', '},{')
         return unserialize('{{' .. value .. '}}')

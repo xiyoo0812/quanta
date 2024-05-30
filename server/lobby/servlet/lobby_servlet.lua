@@ -24,6 +24,7 @@ local prop = property(LobbyServlet)
 prop:reader("login_tokens", {})
 
 function LobbyServlet:__init()
+    event_mgr:add_trigger(self, "on_attr_synchronous")
     -- 事件监听
     event_mgr:add_listener(self, "rpc_player_sync")
     event_mgr:add_listener(self, "rpc_player_command")
@@ -35,6 +36,18 @@ function LobbyServlet:__init()
     event_mgr:add_listener(self, "rpc_player_reload")
 
     event_mgr:add_listener(self, "rpc_update_login_token")
+end
+
+function LobbyServlet:on_attr_synchronous(entity, entity_id, attrs, battrs)
+    if entity:is_player() then
+        if next(attrs) then
+            entity:send("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = attrs })
+        end
+        if next(battrs) then
+            --如果需要广播
+            entity:broadcast_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = battrs })
+        end
+    end
 end
 
 function LobbyServlet:check_login_token(open_id, token)

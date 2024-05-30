@@ -21,8 +21,7 @@ end
 --属性加载
 function AttributeAgent:load_attrs(player, attrs)
     player:load_attrs(attrs)
-    player:set_wbackable(true)
-    player:set_relayable(false)
+    player:set_slavable(true)
     player:watch_event(self, "on_attr_writeback")
 end
 
@@ -30,12 +29,12 @@ end
 -------------------------------------------------------------------------
 --属性回写
 function AttributeAgent:on_attr_writeback(player, player_id)
-    local write_attrs = player:get_write_attrs()
-    local ok, code = player:call_lobby("rpc_attr_writeback", write_attrs, quanta.service)
+    local share_attrs = player:load_share_attrs()
+    local ok, code = player:call_lobby("rpc_attr_writeback", share_attrs, quanta.service)
     if qfailed(code, ok) then
-        log_err("[AttributeAgent][on_attr_writeback] writeback failed attrs={}, player={}, code={}", write_attrs, player_id, code)
+        player:merge_share_attrs(share_attrs)
+        log_err("[AttributeAgent][on_attr_writeback] writeback failed attrs={}, player={}, code={}", share_attrs, player_id, code)
     end
-    player:set_write_attrs({})
 end
 
 --rpc协议
