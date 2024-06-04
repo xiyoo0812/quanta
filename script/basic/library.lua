@@ -42,5 +42,7 @@ if qgetenv("QUANTA_DYNAMIC") then
         require("luaxml")
         --lyaml
         require("lyaml")
+        --toml
+        require("ltoml")
     end
 end

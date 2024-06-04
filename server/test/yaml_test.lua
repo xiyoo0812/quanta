@@ -19,11 +19,11 @@ bar: &bar
 ]]
 
 local xlua = yaml.decode(cxml)
-log_dump("lyxml decode yxml:{}",  xlua)
+log_dump("lyaml decode yaml:{}",  xlua)
 local yxml = yaml.encode(xlua)
-log_dump("lyxml encode yxml:{}", yxml)
+log_dump("lyaml encode yaml:{}", yxml)
 
 local ok = yaml.save("./bb.yaml", xlua)
-log_dump("lyxml save yxml:{}", ok)
+log_dump("lyaml save yaml:{}", ok)
 local flua = yaml.open("./bb.yaml")
-log_dump("lyxml open yaml:{}", flua)
+log_dump("lyaml open yaml:{}", flua)

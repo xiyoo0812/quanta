@@ -35,6 +35,7 @@ luaext:
 	cd extend/lssl; make SOLUTION_DIR=$(CUR_DIR) -f lssl.mak;
 	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
+	cd extend/ltoml; make SOLUTION_DIR=$(CUR_DIR) -f ltoml.mak;
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
 	cd extend/luapb; make SOLUTION_DIR=$(CUR_DIR) -f luapb.mak;
 	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
