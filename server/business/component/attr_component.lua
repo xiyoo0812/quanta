@@ -43,17 +43,23 @@ function AttrComponent:__delegate()
             return this:set_attr(attr.id, value)
         end
         if attr.increase then
-            AttrComponent["add_" .. attr.nick] = function(this, value, ncheck)
+            AttrComponent["add_" .. attr.nick] = function(this, value)
                 if value < 0 then
-                    return this:cost_attr(attr.id, -value, ncheck)
+                    return this:sub_attr(attr.id, -value)
                 end
                 return this:add_attr(attr.id, value)
             end
-            AttrComponent["cost_" .. attr.nick] = function(this, value, ncheck)
+            AttrComponent["sub_" .. attr.nick] = function(this, value)
                 if value < 0 then
                     return this:add_attr(attr.id, -value)
                 end
-                return this:cost_attr(attr.id, value, ncheck)
+                return this:sub_attr(attr.id, value)
+            end
+            AttrComponent["cost_" .. attr.nick] = function(this, value)
+                if value <= 0 then
+                    return false
+                end
+                return this:cost_attr(attr.id, value)
             end
         end
     end
@@ -78,7 +84,7 @@ end
 
 --停止对某个服务属性共享
 function AttrComponent:stop_share(service_name)
-    for _, attr_info in pairs(self.attrset) do
+    for _, attr_info in pairs(self.attr_set) do
         if attr_info.services[service_name] then
             attr_info.services[service_name] = nil
         end
@@ -135,9 +141,10 @@ function AttrComponent:on_db_player_attr_load(data)
     log_debug("[AttrComponent][on_db_player_attr_load] data({})", data)
     if data.player_id then
         self:load_attrs(data.attrs or {})
-        return true
+        event_mgr:notify_trigger("on_player_attr_init", self)
+        return
     end
-    event_mgr:notify_trigger("on_player_attr_init", self)
+    event_mgr:notify_trigger("on_player_attr_init", self, true)
     return true
 end
 
@@ -146,7 +153,7 @@ end
 function AttrComponent:set_attr(attr_id, value, service_id)
     local attr = self.attr_set[attr_id]
     if not attr or not value then
-        log_warn("[AttrComponent][set_attr] attr({}-{}) is not vaild", attr_id)
+        log_warn("[AttrComponent][set_attr] attr({}-{}) is not vaild", attr_id, value)
         return false
     end
     if attr.complex then
@@ -224,7 +231,7 @@ function AttrComponent:update_attr(attr_id)
     self:set_attrs_field(attr_id, value)
     --通知改变
     if self:is_load_success() then
-        self:notify_attr(attr_id, value, cur_val, self.attrset[attr_id])
+        self:notify_attr(attr_id, value, cur_val, self.attr_set[attr_id])
     end
 end
 
@@ -251,7 +258,7 @@ function AttrComponent:check_attr(attr_id, value)
     return false
 end
 
---增加属性
+--加属性
 function AttrComponent:add_attr(attr_id, value)
     if not value then
         return false
@@ -260,17 +267,23 @@ function AttrComponent:add_attr(attr_id, value)
     return self:set_attr(attr_id, ovalue + value)
 end
 
---消耗属性
-function AttrComponent:cost_attr(attr_id, value, ncheck)
+--减属性
+function AttrComponent:sub_attr(attr_id, value)
     if not value then
         return false
     end
-    local ovalue = self.attrs[attr_id]
-    if ncheck then
-        return self:set_attr(attr_id, ovalue > value and (ovalue - value) or 0)
+    local nvalue = self.attrs[attr_id] - value
+    return self:set_attr(attr_id, nvalue)
+end
+
+--消耗属性
+function AttrComponent:cost_attr(attr_id, value)
+    if not value then
+        return false
     end
-    if ovalue >= value then
-        return self:set_attr(attr_id, ovalue - value)
+    local nvalue = self.attrs[attr_id] - value
+    if nvalue >= 0 then
+        return self:set_attr(attr_id, nvalue)
     end
     return false
 end
