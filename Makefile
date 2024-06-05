@@ -27,6 +27,7 @@ luaext:
 	cd extend/laoi; make SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
 	cd extend/lbson; make SOLUTION_DIR=$(CUR_DIR) -f lbson.mak;
 	cd extend/lcodec; make SOLUTION_DIR=$(CUR_DIR) -f lcodec.mak;
+	cd extend/lcsv; make SOLUTION_DIR=$(CUR_DIR) -f lcsv.mak;
 	cd extend/ldetour; make SOLUTION_DIR=$(CUR_DIR) -f ldetour.mak;
 	cd extend/ljson; make SOLUTION_DIR=$(CUR_DIR) -f ljson.mak;
 	cd extend/lmdb; make SOLUTION_DIR=$(CUR_DIR) -f lmdb.mak;

@@ -44,5 +44,7 @@ if qgetenv("QUANTA_DYNAMIC") then
         require("lyaml")
         --toml
         require("ltoml")
+        --csv
+        require("lcsv")
     end
 end

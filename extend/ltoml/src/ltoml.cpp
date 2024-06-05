@@ -73,31 +73,33 @@ namespace ltoml {
         for (int i = 1; i <= raw_len; ++i) {
             lua_rawgeti(L, index, i);
             switch (lua_type(L, -1)) {
-            case LUA_TBOOLEAN:
-                array.push_back(toml::value<bool>(lua_toboolean(L, -1)));
-                break;
-            case LUA_TSTRING: {
-                size_t len;
-                const char* sstr = lua_tolstring(L, -1, &len);
-                array.push_back(toml::value<string>(string(sstr, len)));
-                break;
-            }
-            case LUA_TNUMBER: {
-                if (lua_isinteger(L, -1)) {
-                    array.push_back(toml::value<int64_t>(lua_tointeger(L, -1)));
-                } else {
-                    array.push_back(toml::value<int64_t>(lua_tonumber(L, -1)));
+                case LUA_TBOOLEAN:
+                    array.push_back(toml::value<bool>(lua_toboolean(L, -1)));
+                    break;
+                case LUA_TSTRING: {
+                    size_t len;
+                    const char* sstr = lua_tolstring(L, -1, &len);
+                    array.push_back(toml::value<string>(string(sstr, len)));
+                    break;
                 }
-                break;
-            }
-            case LUA_TTABLE: {
-                if (is_lua_array(L, -1)) {
-                    array.push_back(encode_array(L, -1));
-                } else {
-                    array.push_back(encode_table(L, lua_absindex(L, -1)));
+                case LUA_TNUMBER: {
+                    if (lua_isinteger(L, -1)) {
+                        array.push_back(toml::value<int64_t>(lua_tointeger(L, -1)));
+                    } else {
+                        array.push_back(toml::value<int64_t>(lua_tonumber(L, -1)));
+                    }
+                    break;
                 }
-                break;
-            }
+                case LUA_TTABLE: {
+                    if (is_lua_array(L, -1)) {
+                        array.push_back(encode_array(L, -1));
+                    } else {
+                        array.push_back(encode_table(L, lua_absindex(L, -1)));
+                    }
+                    break;
+                default:
+                    luaL_error(L, "unsuppert lua type");
+                }
             }
             lua_pop(L, 1);
         }
@@ -144,6 +146,8 @@ namespace ltoml {
                         tbl.insert(key, encode_table(L, lua_absindex(L, -1)));
                     }
                     break;
+                default:
+                    luaL_error(L, "unsuppert lua type");
                 }
             }
             lua_pop(L, 1);
@@ -175,7 +179,6 @@ namespace ltoml {
         toml::table tbl = encode_table(L, 2);
         ofstream fstm(tomlfile);
         fstm << tbl;
-        fstm.flush();
         fstm.close();
         lua_pushboolean(L, true);
         return 1;

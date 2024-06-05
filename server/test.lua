@@ -34,6 +34,7 @@ quanta.startup(function()--初始化test
     import("test/xml_test.lua")
     import("test/yaml_test.lua")
     import("test/toml_test.lua")
+    import("test/csv_test.lua")
     ]]
-    import("test/toml_test.lua")
+    import("test/csv_test.lua")
 end)
