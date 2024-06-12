@@ -123,6 +123,7 @@ end
 function Socket:on_socket_error(token, err)
     thread_mgr:fork(function()
         if self.session then
+            self.codec = nil
             self.token = nil
             self.session = nil
             self.alive = false

@@ -2,6 +2,9 @@
 
 import("store/db_property.lua")
 
+import("agent/cache_agent.lua")
+import("agent/redis_agent.lua")
+
 local log_err       = logger.err
 local tsort         = table.sort
 local tinsert       = table.insert

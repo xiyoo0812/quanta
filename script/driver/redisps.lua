@@ -60,6 +60,7 @@ function PSRedis:setup_pool(hosts)
     for _, host in pairs(hosts) do
         local socket = Socket(self, host[1], host[2])
         self.connections[1] = socket
+        socket.sessions = {}
         socket:set_id(1)
         break
     end

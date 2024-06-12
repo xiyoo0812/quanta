@@ -160,11 +160,11 @@ function MongoMgr:execute(primary_id, cmd, ...)
 end
 
 function MongoMgr:available(db_id)
-    local redisdb = self.mongo_db
-    if not redisdb then
+    local mongodb = self.mongo_db
+    if not mongodb then
         return false
     end
-    return redisdb:available()
+    return mongodb:available()
 end
 
 quanta.mongo_mgr = MongoMgr()

@@ -66,13 +66,8 @@ namespace luapb {
         }
 
         virtual size_t decode(lua_State* L) {
+            //header
             pb_header* header = (pb_header*)m_slice->erase(sizeof(pb_header));
-            //cmd_id
-            lpb_State* LS = lpb_lstate(L);
-            const pb_Type* t = pb_type_from_enum(L, LS, header->cmd_id);
-            if (t == nullptr) {
-                throw lua_exception("pb message not define cmd: %d", header->cmd_id);
-            }
             //data
             size_t data_len;
             const char* data = (const char*)m_slice->data(&data_len);
@@ -84,6 +79,12 @@ namespace luapb {
             lua_pushinteger(L, header->flag);
             lua_pushinteger(L, header->type);
             lua_pushinteger(L, header->crc8);
+            //cmd_id
+            lpb_State* LS = lpb_lstate(L);
+            const pb_Type* t = pb_type_from_enum(L, LS, header->cmd_id);
+            if (t == nullptr) {
+                return lua_gettop(L) - top;
+            }
             //decode
             lua_push_function(L, [&](lua_State* L) {
                 lpb_Env e;
@@ -94,7 +95,8 @@ namespace luapb {
                 return 1;
             });
             if (lua_pcall(L, 0, 1, 0)) {
-                throw lua_exception("decode pb cmdid: %d failed: %s", header->cmd_id, lua_tostring(L, -1));
+                lua_pushnil(L);
+                lua_insert(L, -2);
             }
             return lua_gettop(L) - top;
         }
@@ -102,7 +104,7 @@ namespace luapb {
     protected:
         const pb_Type* pb_type_from_enum(lua_State* L, lpb_State* LS, size_t cmd_id) {
             auto it = pb_cmd_ids.find(cmd_id);
-            if (it == pb_cmd_ids.end()) throw lua_exception("pb decode invalid cmdid: %d!", cmd_id);
+            if (it == pb_cmd_ids.end()) return nullptr;
             return lpb_type(L, LS, pb_lslice(it->second.c_str(), it->second.size()));
         }
 

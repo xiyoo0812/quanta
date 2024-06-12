@@ -101,7 +101,7 @@ function NetServer:on_socket_accept(session)
         end
         return true
     end
-    session.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body)
+    session.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body, err)
         if session_id > 0 then
             session_id = session.stoken | session_id
         end
@@ -116,7 +116,7 @@ function NetServer:on_socket_accept(session)
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len
         end
-        qxpcall(self.on_socket_recv, "on_socket_recv: {}", self, session, cmd_id, flag, type, session_id, body)
+        qxpcall(self.on_socket_recv, "on_socket_recv:{}", self, session, cmd_id, flag, type, session_id, body, err)
     end
     -- 绑定网络错误回调（断开）
     session.on_error = function(stoken, err)
@@ -174,14 +174,18 @@ function NetServer:callback_errcode(session, cmd_id, code, session_id)
 end
 
 -- 收到远程调用回调
-function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body)
+function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body, err)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(_session, typ, cmd, cbody)
-            local hook<close> = qdefer()
-            event_mgr:execute_hook(cmd_id, hook, body)
-            local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, cbody, session_id)
-            if not result[1] then
-                log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd_id)
+            if cbody then
+                local hook<close> = qdefer()
+                event_mgr:execute_hook(cmd, hook, cbody)
+                local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, cbody, session_id)
+                if not result[1] then
+                    log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd)
+                end
+            else
+                log_warn("[NetServer][on_socket_recv] pb cmd_id({}) decode field: {}!", cmd, err and err or "pb not define")
             end
         end
         thread_mgr:fork(dispatch_rpc_message, session, type, cmd_id, body)
