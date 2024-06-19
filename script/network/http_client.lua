@@ -6,6 +6,8 @@ local busdns        = luabus.dns
 local log_err       = logger.err
 local log_debug     = logger.debug
 local tconcat       = table.concat
+local tunpack       = table.unpack
+local trandomarr    = qtable.random_array
 local qsurl         = qstring.url
 local sformat       = string.format
 local jsoncodec     = json.jsoncodec
@@ -76,14 +78,14 @@ end
 --构建请求
 function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     if not headers then
-        headers = {["Accept"] = "text/html" }
+        headers = {["Accept"] = "*/*" }
     end
-    local host, port, path, proto = self:parse_url(headers, url)
-    if not host then
+    local ipinfo, port, path, proto = self:parse_url(headers, url)
+    if not ipinfo then
         log_err("[HttpClient][send_request] failed : {}", port)
         return false, port
     end
-    local socket, err = self:init_http_socket(host, port, proto)
+    local socket, err = self:init_http_socket(ipinfo, port, proto, headers)
     if not socket then
         return false, err
     end
@@ -98,9 +100,10 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     return thread_mgr:yield(session_id, url, timeout or HTTP_TIMEOUT)
 end
 
-function HttpClient:init_http_socket(host, port, proto)
+function HttpClient:init_http_socket(ipinfo, port, proto, headers)
     local socket = Socket(self)
-    local ok, cerr = socket:connect(host, port, proto_text)
+    local ip, host = tunpack(ipinfo)
+    local ok, cerr = socket:connect(ip, port, proto_text)
     if not ok then
         return nil, cerr
     end
@@ -112,6 +115,8 @@ function HttpClient:init_http_socket(host, port, proto)
         codec:init_tls()
         socket:set_codec(codec)
         socket:send_data()
+        headers["Host"] = host
+        headers["User-Agent"] = "quanta"
         local session_id = thread_mgr:build_session_id()
         socket.session_id = session_id
         return thread_mgr:yield(session_id, host, HTTP_TIMEOUT)
@@ -170,23 +175,20 @@ function HttpClient:parse_url(headers, url)
             local nhost = sformat("www.%s", host)
             local ips = busdns(nhost)
             if ips then
-                local ip = ips[1]
-                headers["Host"] = nhost
-                self.domains[host] = { ip, nhost }
-                return ip, port, path, proto
+                ipinfo = { trandomarr(ips), nhost }
+                self.domains[host] = ipinfo
+                return ipinfo, port, path, proto
             end
         end
         local ips = busdns(host)
         if not ips or #ips == 0 then
             return nil, "ip addr parse failed!"
         end
-        local ip = ips[1]
-        headers["Host"] = host
-        self.domains[host] = { ip, host }
-        return ip, port, path, proto
+        ipinfo = { trandomarr(ips), host }
+        self.domains[host] = ipinfo
+        return ipinfo, port, path, proto
     end
-    headers["Host"] = ipinfo[2]
-    return ipinfo[1], port, path, proto
+    return ipinfo, port, path, proto
 end
 
 quanta.http_client = HttpClient()

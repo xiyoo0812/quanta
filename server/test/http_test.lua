@@ -6,6 +6,6 @@ local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")
 
 thread_mgr:fork(function()
-    local ok, status, res, headers = http_client:call_get("https://www.163.com/")
-    log_debug("node_status4 : {}, {}, {}, {}", ok, status, res, headers)
+    local ok, status, res, headers = http_client:call_get("https://www.baidu.com/")
+    log_debug("node_status4 : {}, {}, {}, {}", ok, status, headers, res)
 end)

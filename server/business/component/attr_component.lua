@@ -66,7 +66,7 @@ function AttrComponent:__delegate()
     local function delegate_complex_attr(complex_id, attr)
         for idx, info in ipairs(COMPLEX_NAMES) do
             AttrID[attr.enum_key .. supper(info[1])] = complex_id + idx
-            delegate_attr({ id = complex_id + idx, nick = attr.nick .. info[1], increase = true})
+            delegate_attr({ id = complex_id + idx, nick = attr.nick .. info[1], increase = true })
         end
     end
     for _, attr in attr_db:iterator() do
@@ -94,10 +94,10 @@ end
 --初始化属性
 function AttrComponent:init_attr(attr_type, attr_id, attr_info)
     self.attr_set[attr_id] = attr_info
-    if attr_type == "int" or attr_type == "float" then
-        self.attrs[attr_id] = 0
-    else
+    if attr_type == "string" or attr_type == "bytes" then
         self.attrs[attr_id] = ""
+    else
+        self.attrs[attr_id] = 0
     end
 end
 
@@ -114,7 +114,7 @@ function AttrComponent:bind_attr(attr_id, attr, service_name)
             --复合子属性不同步
             local complex_id = COMPLEX_ID + attr_id * 4 + idx
             local complex_info = { save = info[2], type = info[3], range = 0, share = attr.share, services = {}, base = attr_id }
-            self:init_attr(attr_opt.type, complex_id , complex_info)
+            self:init_attr(info[3], complex_id , complex_info)
         end
         --复合属性不共享，不存储
         local attr_info = { save = false, share = false, range = attr.range, type = attr_opt.type, services = {} }
@@ -161,10 +161,17 @@ function AttrComponent:set_attr(attr_id, value, service_id)
         return false
     end
     --检查限制
-    if (not service_id) and attr.limit_id then
-        local limit = self:get_attr(attr.limit_id)
-        if limit > 0 and limit < value then
-            value = limit
+    if not service_id then
+        if attr.limit_id then
+            local limit = self:get_attr(attr.limit_id)
+            if limit > 0 and limit < value then
+                value = limit
+            end
+        end
+        if attr.type == "uint" then
+            if value < 0 then
+                value = 0
+            end
         end
     end
     local cur_val = self.attrs[attr_id]
@@ -330,8 +337,8 @@ end
 --编码属性
 function AttrComponent:encode_attr(attr_id, attr)
     local value = self.attrs[attr_id]
-    if attr.type == "int" then
-        return { attr_id = attr_id, attr_i = value // 1 }
+    if attr.type == "uint" or attr.type == "int" then
+        return { attr_id = attr_id, attr_f = value }
     end
     if attr.type == "string" then
         return { attr_id = attr_id, attr_s = value }
@@ -365,6 +372,11 @@ function AttrComponent:on_attr_update()
     end
     event_mgr:notify_trigger("on_attr_synchronous", self, self.id, attrs, battrs)
     self.sync_attrs = {}
+end
+
+--获取复合ID
+function AttrComponent:complex_id(attr_id)
+    return COMPLEX_ID + attr_id * 4
 end
 
 return AttrComponent

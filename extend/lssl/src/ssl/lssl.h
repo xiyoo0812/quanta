@@ -195,16 +195,18 @@ namespace lssl {
                 m_packet_len = sz;
                 return lua_gettop(L) - top;
             }
-            m_buf->clean();
+            if (!is_recving) {
+                m_buf->clean();
+            }
             bio_write(L, m_slice->head(), sz);
             do {
                 uint8_t* outbuff = m_buf->peek_space(SSL_TLS_READ_SIZE);
-                int read = SSL_read(ssl, outbuff, sizeof(SSL_TLS_READ_SIZE));
+                int read = SSL_read(ssl, outbuff, SSL_TLS_READ_SIZE);
                 if (read == 0) break;
                 if (read < 0 || read > SSL_TLS_READ_SIZE) {
                     int err = SSL_get_error(ssl, read);
                     ERR_clear_error();
-                    if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                    if (err == SSL_ERROR_WANT_READ) {
                         break;
                     }
                     throw lua_exception("SSL_read error:%d", err);
@@ -212,9 +214,12 @@ namespace lssl {
                 m_buf->pop_space(read);
             } while (true);
             m_slice->erase(sz);
-            m_packet_len = sz;
             m_hcodec->set_slice(m_buf->get_slice());
-            return m_hcodec->decode(L);
+            is_recving = true;
+            m_packet_len = sz;
+            size_t argnum = m_hcodec->decode(L);
+            is_recving = false;
+            return argnum;
         }
 
         bool isfinish() {
@@ -244,7 +249,8 @@ namespace lssl {
             SSL_set_bio(ssl, in_bio, out_bio);
             if (is_client) {
                 SSL_set_connect_state(ssl);
-            } else {
+            }
+            else {
                 SSL_set_accept_state(ssl);
             }
             return 0;
@@ -272,22 +278,19 @@ namespace lssl {
 
     protected:
         void tls_handshake(lua_State* L) {
-            is_handshake = SSL_is_init_finished(ssl);
-            if (is_handshake) return;
             int ret = SSL_do_handshake(ssl);
             if (ret == 1) {
+                m_buf->clean();
                 return;
             }
             if (ret < 0) {
-                bool dshake = SSL_is_init_finished(ssl);
                 int err = SSL_get_error(ssl, ret);
                 ERR_clear_error();
-                if (err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE) {
+                if (err == SSL_ERROR_WANT_READ) {
                     bio_read(L);
                 }
                 return;
             }
-            bool dshake = SSL_is_init_finished(ssl);
             int err = SSL_get_error(ssl, ret);
             ERR_clear_error();
             luaL_error(L, "SSL_do_handshake error:%d ret:%d", err, ret);
@@ -325,5 +328,6 @@ namespace lssl {
         SSL_CTX* ctx = nullptr;
         codec_base* m_hcodec = nullptr;
         bool is_handshake = false;
+        bool is_recving = false;
     };
 }
