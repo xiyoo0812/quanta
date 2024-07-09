@@ -2,10 +2,8 @@
 
 import("store/db_property.lua")
 
-import("agent/cache_agent.lua")
-import("agent/redis_agent.lua")
-
 local log_err       = logger.err
+local log_debug     = logger.debug
 local tsort         = table.sort
 local tinsert       = table.insert
 local qfailed       = quanta.failed
@@ -13,13 +11,12 @@ local makechan      = quanta.make_channel
 
 local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
-local cache_agent   = quanta.get("cache_agent")
-local redis_agent   = quanta.get("redis_agent")
 
 local cache_db      = config_mgr:init_table("cache", "sheet")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local STORE_INCRE   = environ.number("QUANTA_STORE_FLUSH")
+local QUANTA_STORE  = environ.get("QUANTA_STORE")
 
 local STORE_WHOLE   = STORE_INCRE // 10
 
@@ -27,8 +24,9 @@ local StoreMgr = singleton()
 local prop = property(StoreMgr)
 prop:reader("groups", {})       -- groups
 prop:reader("wholes", {})       -- wholes
-prop:reader("driver", nil)      -- driver
 prop:reader("increases", {})    -- increases
+prop:reader("db_stores", {})    -- db_stores
+prop:reader("db_drivers", {})   -- db_drivers
 
 function StoreMgr:__init()
     cache_db:add_group("group")
@@ -37,11 +35,21 @@ function StoreMgr:__init()
     update_mgr:attach_second(self)
 end
 
-function StoreMgr:open(driver, name, dbname)
-    if not self.driver then
+function StoreMgr:open_driver(name, dbname)
+    local driver = self.db_drivers[QUANTA_STORE]
+    if driver then
         driver:open(name, dbname)
-        self.driver = driver
     end
+end
+
+function StoreMgr:bind_driver(name, store)
+    self.db_drivers[name] = store
+    log_debug("[StoreMgr][bind_driver] name: {}", name)
+end
+
+function StoreMgr:bind_store(name, store)
+    self.db_stores[name] = store
+    log_debug("[StoreMgr][bind_store] name: {}", name)
 end
 
 function StoreMgr:find_group(group_name)
@@ -60,42 +68,32 @@ function StoreMgr:find_group(group_name)
     return sgroup
 end
 
-function StoreMgr:get_autoinc_id(character_id, world_id)
-    if self.driver then
-        local aok, role_id = self.driver:autoinc_id()
-        if not aok then
-            log_err("[CharacterWorld][get_autoinc_id] failed: character_id: {} world_id:{} res: {}", character_id, world_id, role_id)
+function StoreMgr:get_autoinc_id()
+    local driver = self.db_drivers[QUANTA_STORE]
+    if driver then
+        local ok, code, role_id = driver:autoinc_id()
+        if qfailed(code, ok) then
+            log_err("[StoreMgr][get_autoinc_id] failed: res: {}", role_id)
             return false
         end
         return true, role_id
     end
-    local aok, acode, role_id = redis_agent:autoinc_id()
-    if qfailed(acode, aok) then
-        log_err("[CharacterWorld][get_autoinc_id] failed: character_id: {} world_id:{} code: {}, res: {}", character_id, world_id, acode, role_id)
-        return false
-    end
-    return true, role_id
+    return false
 end
 
 function StoreMgr:load_impl(primary_id, sheet_name)
-    if self.driver then
-        local primary_key = cache_db:find_value("key", sheet_name)
-        local StoreKV = import("store/store_kv.lua")
-        local store = StoreKV(self.driver, sheet_name, primary_id)
-        local ok, adata = store:load(primary_key)
-        if not ok then
-            log_err("[StoreMgr][load_mdb_{}] primary_id: {} find failed! res: {}", sheet_name, primary_id, adata)
-            return false
-        end
-        return true, adata, store
-    end
-    local code, adata = cache_agent:load(primary_id, sheet_name)
-    if qfailed(code) then
-        log_err("[StoreMgr][load_{}] primary_id: {} find failed! code: {}, res: {}", sheet_name, primary_id, code, adata)
+    local primary_key = cache_db:find_value("key", sheet_name)
+    local Store = self.db_stores[QUANTA_STORE]
+    if not Store then
+        log_err("[StoreMgr][load_impl] store {} not register!", QUANTA_STORE)
         return false
     end
-    local Store = import("store/store.lua")
     local store = Store(sheet_name, primary_id)
+    local ok, adata = store:load(primary_key)
+    if not ok then
+        log_err("[StoreMgr][load_impl_{}] primary_id: {} find failed! res: {}", sheet_name, primary_id, adata)
+        return false
+    end
     return true, adata, store
 end
 
@@ -127,13 +125,28 @@ function StoreMgr:load_group(entity, primary_id, group)
     return true, SUCCESS
 end
 
-function StoreMgr:delete(primary_id, sheet_name)
-    local code, res = cache_agent:delete(primary_id, sheet_name)
-    if qfailed(code) then
-        log_err("[StoreMgr][delete] delete ({}) failed primary_id({}), code: {}, res: {}!",  sheet_name, primary_id, code, res)
+function StoreMgr:delete_group(entity, primary_id, group)
+    local channel = makechan("delete_group")
+    local sheets = self:find_group(group)
+    for _, conf in ipairs(sheets) do
+        channel:push(function()
+            return self:delete(entity, primary_id, conf.sheet)
+        end)
+    end
+    if not channel:execute(true) then
         return false
     end
     return true, SUCCESS
+end
+
+function StoreMgr:delete(entity, primary_id, sheet_name)
+    local func = entity["delete_" .. sheet_name .. "_db"]
+    local ok, err = pcall(func, entity)
+    if not ok then
+        log_err("[StoreMgr][delete] delete ({}) failed primary_id({}), err: {}!",  sheet_name, primary_id, err)
+        return ok, err
+    end
+    return ok, SUCCESS
 end
 
 function StoreMgr:save_wholes(store)
@@ -145,6 +158,9 @@ function StoreMgr:save_increases(store)
 end
 
 function StoreMgr:on_fast()
+    if not next(self.increases) then
+        return
+    end
     local channel = makechan("increases store")
     for store in pairs(self.increases) do
         self.increases[store] = nil
@@ -159,6 +175,9 @@ function StoreMgr:on_fast()
 end
 
 function StoreMgr:on_second()
+    if not next(self.wholes) then
+        return
+    end
     local channel = makechan("increases store")
     for store in pairs(self.wholes) do
         self.wholes[store] = nil

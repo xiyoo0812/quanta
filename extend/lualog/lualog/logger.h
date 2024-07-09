@@ -294,6 +294,7 @@ namespace logger {
 
     extern "C" {
         LUALIB_API logger* get_logger();
+        LUALIB_API void stop_logger();
     }
 }
 

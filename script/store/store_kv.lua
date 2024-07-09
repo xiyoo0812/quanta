@@ -1,28 +1,21 @@
 --store_kv.lua
 local log_err       = logger.err
 local log_debug     = logger.debug
-local tconcat       = table.concat
-local qtweak        = qtable.weak
 
 local store_mgr     = quanta.get("store_mgr")
 
-local StoreKV = class()
+local QUANTA_STORE  = environ.get("QUANTA_STORE")
+
+local Store         = import("store/store.lua")
+
+local StoreKV = class(Store)
 local prop = property(StoreKV)
-prop:reader("sheet", "")        -- sheet
-prop:reader("driver", nil)      -- driver
-prop:reader("primary_id", "")   -- primary_id
 prop:reader("primary_key", "")  -- primary_key
-prop:reader("targets", nil)
 
-function StoreKV:__init(driver, sheet, primary_id)
-    self.sheet = sheet
-    self.driver = driver
-    self.primary_id = primary_id
-end
-
-function StoreKV:bind_target(obj)
-    self.targets = qtweak({})
-    self.targets[obj] = true
+function StoreKV:__init(sheet, primary_id)
+    if QUANTA_STORE == "sqlite" then
+        self.driver = quanta.sdb_driver
+    end
 end
 
 function StoreKV:load(key)
@@ -35,50 +28,18 @@ function StoreKV:load(key)
     return true, self.wholes
 end
 
-function StoreKV:flush(obj, timely)
-    self.wholes = obj["serialize_" .. self.sheet](obj)
-    if timely then
-        self:sync_whole()
-    else
-        store_mgr:save_wholes(self)
-    end
+function StoreKV:delete()
+    self.driver:del(self.primary_id, self.sheet)
 end
 
 function StoreKV:update_value(parentkeys, key, value)
-    log_debug("[StoreKV][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), key, value)
-    local cur_data = self.wholes
-    for _, cfield in ipairs(parentkeys) do
-        if not cur_data[cfield] then
-            cur_data[cfield] = {}
-        end
-        cur_data = cur_data[cfield]
-    end
-    cur_data[key] = value
+    Store.update_value(self, parentkeys, key, value)
     store_mgr:save_wholes(self)
 end
 
 function StoreKV:update_field(parentkeys, field, key, value)
-    log_debug("[StoreKV][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), field, key, value)
-    local cur_data = self.wholes
-    for _, cfield in ipairs(parentkeys) do
-        if not cur_data[cfield] then
-            cur_data[cfield] = {}
-        end
-        cur_data = cur_data[cfield]
-    end
-    if not cur_data[field] then
-        cur_data[field] = {}
-    end
-    if key then
-        cur_data[field][key] = value
-    else
-        --key为空，全量更新
-        cur_data[field] = value
-    end
+    Store.update_field(self, parentkeys, field, key, value)
     store_mgr:save_wholes(self)
-end
-
-function StoreKV:sync_increase()
 end
 
 function StoreKV:sync_whole()
@@ -89,6 +50,12 @@ function StoreKV:sync_whole()
     if not self.driver:put(self.primary_id, self.wholes, self.sheet) then
         log_err("[StoreKV][sync_whole] sync {}.{} failed!", self.primary_id, self.sheet)
     end
+end
+
+if QUANTA_STORE == "sqlite" then
+    import("driver/sqlite.lua")
+    store_mgr:bind_store(QUANTA_STORE, StoreKV)
+    store_mgr:bind_driver(QUANTA_STORE, quanta.sdb_driver)
 end
 
 return StoreKV

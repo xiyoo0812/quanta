@@ -10,13 +10,13 @@
 {{% for _, CLIB in pairs(LIBS or {}) do %}}
 {{% FMT_LIBS = string.format("%s-l%s;", FMT_LIBS, CLIB) %}}
 {{% end %}}
-{{% for _, PSLIB in pairs(PSLIBS or {}) do %}}
+{{% for _, PSLIB in pairs(NSLIBS or {}) do %}}
 {{% FMT_LIBS = string.format("%s-l%s;", FMT_LIBS, PSLIB) %}}
 {{% end %}}
 {{% for _, DDEF in pairs(DEFINES or {}) do %}}
 {{% table.insert(ADEFINES, DDEF) %}}
 {{% end %}}
-{{% for _, DDEF in pairs(PS_DEFINES or {}) do %}}
+{{% for _, DDEF in pairs(NS_DEFINES or {}) do %}}
 {{% table.insert(ADEFINES, DDEF) %}}
 {{% end %}}
 {{% local FMT_DEFINES = table.concat(ADEFINES or {}, ";") %}}
@@ -66,6 +66,11 @@
     {{% else %}}
     <ConfigurationType>Application</ConfigurationType>
     {{% end %}}
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <NintendoSdkRoot>$(NINTENDO_SDK_ROOT)</NintendoSdkRoot>
+    <NintendoSdkSpec>NX</NintendoSdkSpec>
+    <NintendoSdkBuildType>Debug</NintendoSdkBuildType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'" Label="Configuration">
     {{% if PROJECT_TYPE == "dynamic" then %}}
@@ -75,43 +80,57 @@
     {{% else %}}
     <ConfigurationType>Application</ConfigurationType>
     {{% end %}}
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <NintendoSdkRoot>$(NINTENDO_SDK_ROOT)</NintendoSdkRoot>
+    <NintendoSdkSpec>NX</NintendoSdkSpec>
+    <NintendoSdkBuildType>Release</NintendoSdkBuildType>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
-  </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|{{%= PLATFORM %}}'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(NintendoSdkRoot)\Build\Vc\NintendoSdkVcProjectSettings.props" Condition="('$(NintendoSdkRoot)' != '') and Exists('$(NintendoSdkRoot)\Build\Vc\NintendoSdkVcProjectSettings.props')" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(NintendoSdkRoot)\Build\Vc\NintendoSdkVcProjectSettings.props" Condition="('$(NintendoSdkRoot)' != '') and Exists('$(NintendoSdkRoot)\Build\Vc\NintendoSdkVcProjectSettings.props')" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|{{%= PLATFORM %}}'">
+    <LinkIncremental>true</LinkIncremental>
+    {{% if STDCPP == "c++17" then %}}
+    <CppLanguageStandard>Gnu++17</CppLanguageStandard>
+    {{% end %}}
+    {{% if STDCPP == "c++14" then %}}
+    <CppLanguageStandard>Gnu++14</CppLanguageStandard>
+    {{% end %}}
     <TargetName>{{%= PROJECT_PREFIX %}}{{%= TARGET_NAME %}}</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'">
+    <LinkIncremental>false</LinkIncremental>
+    {{% if STDCPP == "c++17" then %}}
+    <CppLanguageStandard>Gnu++17</CppLanguageStandard>
+    {{% end %}}
+    {{% if STDCPP == "c++14" then %}}
+    <CppLanguageStandard>Gnu++14</CppLanguageStandard>
+    {{% end %}}
     <TargetName>{{%= PROJECT_PREFIX %}}{{%= TARGET_NAME %}}</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|{{%= PLATFORM %}}'">
     <ClCompile>
-      {{% if STDCPP == "c++17" then %}}
-      <CppLanguageStd>Cpp17</CppLanguageStd>
-      {{% end %}}
-      {{% if STDCPP == "c++14" then %}}
-      <CppLanguageStd>Cpp14</CppLanguageStd>
-      {{% end %}}
-      <CppExceptions>true</CppExceptions>
+      <CPPExceptions>true</CPPExceptions>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       {{% if FORCE_INCLUDE then %}}
       <ForcedIncludeFiles>{{%= FORCE_INCLUDE %}}</ForcedIncludeFiles>
       {{% end %}}
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <PreprocessorDefinitions>_DEBUG;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>     
+      <PreprocessorDefinitions>{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     {{% if PROJECT_TYPE ~= "static" then %}}
     <Link>
@@ -152,20 +171,14 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'">
     <ClCompile>
-      {{% if STDCPP == "c++17" then %}}
-      <CppLanguageStd>Cpp17</CppLanguageStd>
-      {{% end %}}
-      {{% if STDCPP == "c++14" then %}}
-      <CppLanguageStd>Cpp14</CppLanguageStd>
-      {{% end %}}
-      <CppExceptions>true</CppExceptions>
+      <CPPExceptions>true</CPPExceptions>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
       {{% if FORCE_INCLUDE then %}}
       <ForcedIncludeFiles>{{%= FORCE_INCLUDE %}}</ForcedIncludeFiles>
       {{% end %}}
-      <GenerateDebugInformation>false</GenerateDebugInformation>
-      <PreprocessorDefinitions>NDEBUG;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>     
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <PreprocessorDefinitions>{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     {{% if PROJECT_TYPE ~= "static" then %}}
     <Link>

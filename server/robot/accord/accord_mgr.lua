@@ -193,7 +193,7 @@ function AccordMgr:on_message(url, body, params)
     return { code = -1, msg = "robot not exist" }
 end
 
--- monitor拉取
+-- 创角角色
 function AccordMgr:on_create(url, body, params)
     log_debug("[AccordMgr][on_create] params:{}", params)
     local robot = robot_mgr:create_robot(body.ip, body.port, body.open_id, body.passwd)

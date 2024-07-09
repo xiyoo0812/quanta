@@ -136,10 +136,10 @@ function MongoMgr:drop_indexes(coll_name, index_name)
 end
 
 function MongoMgr:autoinc_id(id_key)
-    local query = { key = id_key }
     local fields = { autoinc_id = 1 }
+    local query = { key = (id_key or "default") }
     local update = { ["$inc"] = { ["autoinc_id"] = 1 } }
-    local code, res = self:find_and_modify(AUTOINCCC, update, query, true, fields, true)
+    local code, res = self:find_and_modify(nil, AUTOINCCC, update, query, true, fields, true)
     if code == MONGO_FAILED then
         return MONGO_FAILED, res
     end

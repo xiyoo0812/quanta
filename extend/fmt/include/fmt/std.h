@@ -10,7 +10,6 @@
 
 #include <atomic>
 #include <bitset>
-#include <complex>
 #include <cstdlib>
 #include <exception>
 #include <memory>
@@ -39,10 +38,6 @@
 #  endif
 #endif
 
-#if FMT_HAS_INCLUDE(<expected>) && FMT_CPLUSPLUS > 202002L
-#  include <expected>
-#endif
-
 #if FMT_CPLUSPLUS > 201703L && FMT_HAS_INCLUDE(<source_location>)
 #  include <source_location>
 #endif
@@ -59,8 +54,8 @@
 
 // Check if typeid is available.
 #ifndef FMT_USE_TYPEID
-// __RTTI is for EDG compilers. _CPPRTTI is for MSVC.
-#  if defined(__GXX_RTTI) || FMT_HAS_FEATURE(cxx_rtti) || defined(_CPPRTTI) || \
+// __RTTI is for EDG compilers. In MSVC typeid is available without RTTI.
+#  if defined(__GXX_RTTI) || FMT_HAS_FEATURE(cxx_rtti) || FMT_MSC_VERSION || \
       defined(__INTEL_RTTI__) || defined(__RTTI)
 #    define FMT_USE_TYPEID 1
 #  else
@@ -149,9 +144,11 @@ template <typename Char> struct formatter<std::filesystem::path, Char> {
   template <typename FormatContext>
   auto format(const std::filesystem::path& p, FormatContext& ctx) const {
     auto specs = specs_;
-    auto path_string =
-        !path_type_ ? p.native()
-                    : p.generic_string<std::filesystem::path::value_type>();
+#  ifdef _WIN32
+    auto path_string = !path_type_ ? p.native() : p.generic_wstring();
+#  else
+    auto path_string = !path_type_ ? p.native() : p.generic_string();
+#  endif
 
     detail::handle_dynamic_spec<detail::width_checker>(specs.width, width_ref_,
                                                        ctx);
@@ -245,56 +242,6 @@ struct formatter<std::optional<T>, Char,
 FMT_END_NAMESPACE
 #endif  // __cpp_lib_optional
 
-#if defined(__cpp_lib_expected) || FMT_CPP_LIB_VARIANT
-
-FMT_BEGIN_NAMESPACE
-namespace detail {
-
-template <typename Char, typename OutputIt, typename T>
-auto write_escaped_alternative(OutputIt out, const T& v) -> OutputIt {
-  if constexpr (has_to_string_view<T>::value)
-    return write_escaped_string<Char>(out, detail::to_string_view(v));
-  if constexpr (std::is_same_v<T, Char>) return write_escaped_char(out, v);
-  return write<Char>(out, v);
-}
-
-}  // namespace detail
-
-FMT_END_NAMESPACE
-#endif
-
-#ifdef __cpp_lib_expected
-FMT_BEGIN_NAMESPACE
-
-FMT_EXPORT
-template <typename T, typename E, typename Char>
-struct formatter<std::expected<T, E>, Char,
-                 std::enable_if_t<is_formattable<T, Char>::value &&
-                                  is_formattable<E, Char>::value>> {
-  template <typename ParseContext>
-  FMT_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
-    return ctx.begin();
-  }
-
-  template <typename FormatContext>
-  auto format(const std::expected<T, E>& value, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
-    auto out = ctx.out();
-
-    if (value.has_value()) {
-      out = detail::write<Char>(out, "expected(");
-      out = detail::write_escaped_alternative<Char>(out, value.value());
-    } else {
-      out = detail::write<Char>(out, "unexpected(");
-      out = detail::write_escaped_alternative<Char>(out, value.error());
-    }
-    *out++ = ')';
-    return out;
-  }
-};
-FMT_END_NAMESPACE
-#endif  // __cpp_lib_expected
-
 #ifdef __cpp_lib_source_location
 FMT_BEGIN_NAMESPACE
 FMT_EXPORT
@@ -344,6 +291,16 @@ template <typename T, typename C> class is_variant_formattable_ {
       decltype(check(variant_index_sequence<T>{}))::value;
 };
 
+template <typename Char, typename OutputIt, typename T>
+auto write_variant_alternative(OutputIt out, const T& v) -> OutputIt {
+  if constexpr (has_to_string_view<T>::value)
+    return write_escaped_string<Char>(out, detail::to_string_view(v));
+  else if constexpr (std::is_same_v<T, Char>)
+    return write_escaped_char(out, v);
+  else
+    return write<Char>(out, v);
+}
+
 }  // namespace detail
 
 template <typename T> struct is_variant_like {
@@ -389,7 +346,7 @@ struct formatter<
     FMT_TRY {
       std::visit(
           [&](const auto& v) {
-            out = detail::write_escaped_alternative<Char>(out, v);
+            out = detail::write_variant_alternative<Char>(out, v);
           },
           value);
     }
@@ -583,37 +540,6 @@ struct formatter<std::atomic_flag, Char> : formatter<bool, Char> {
   }
 };
 #endif  // __cpp_lib_atomic_flag_test
-
-FMT_EXPORT
-template <typename F, typename Char>
-struct formatter<std::complex<F>, Char> : nested_formatter<F, Char> {
- private:
-  // Functor because C++11 doesn't support generic lambdas.
-  struct writer {
-    const formatter<std::complex<F>, Char>* f;
-    const std::complex<F>& c;
-
-    template <typename OutputIt>
-    FMT_CONSTEXPR auto operator()(OutputIt out) -> OutputIt {
-      if (c.real() != 0) {
-        auto format_full = detail::string_literal<Char, '(', '{', '}', '+', '{',
-                                                  '}', 'i', ')'>{};
-        return fmt::format_to(out, basic_string_view<Char>(format_full),
-                              f->nested(c.real()), f->nested(c.imag()));
-      }
-      auto format_imag = detail::string_literal<Char, '{', '}', 'i'>{};
-      return fmt::format_to(out, basic_string_view<Char>(format_imag),
-                            f->nested(c.imag()));
-    }
-  };
-
- public:
-  template <typename FormatContext>
-  auto format(const std::complex<F>& c, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
-    return this->write_padded(ctx, writer{this, c});
-  }
-};
 
 FMT_END_NAMESPACE
 #endif  // FMT_STD_H_

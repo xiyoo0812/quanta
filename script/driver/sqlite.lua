@@ -9,6 +9,8 @@ local SQLITE_OK     = sqlite.SQLITE_CODE.SQLITE_OK
 local SQLITE_DONE   = sqlite.SQLITE_CODE.SQLITE_DONE
 local SQLITE_NFOUND = sqlite.SQLITE_CODE.SQLITE_NOTFOUND
 
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 local SQDB_PATH     = environ.get("QUANTA_SQLITE_PATH", "./sqdb/")
 local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
@@ -26,7 +28,6 @@ end
 
 function Sqlite:on_quit()
     if self.driver then
-        log_debug("[Sqlite][on_quit]")
         for _, stmts in pairs(self.prepares) do
             for _, stmt in pairs(stmts) do
                 stmt.close()
@@ -35,6 +36,7 @@ function Sqlite:on_quit()
         self.prepares = {}
         self.driver.close()
         self.driver = nil
+        log_debug("[Sqlite][on_quit]")
     end
 end
 
@@ -124,8 +126,9 @@ function Sqlite:autoinc_id()
         log_err("[Sqlite][autoinc_id] update fail code:{} record:{}", code, record)
         return false
     end
-    return true, record[1].AUTOINC_ID
+    return true, SUCCESS, record[1].AUTOINC_ID
 end
 
 quanta.sdb_driver = Sqlite()
+
 return Sqlite

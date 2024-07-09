@@ -3,7 +3,7 @@ local log_debug = logger.debug
 
 local timer_mgr = quanta.get("timer_mgr")
 
-local ClickMgr  = import("store/clickhouse_mgr.lua")
+local ClickMgr  = import("db/clickhouse_mgr.lua")
 local ck_mgr    = ClickMgr()
 
 timer_mgr:once(2000, function()

@@ -1,13 +1,13 @@
 -- route_test.lua
 local log_debug     = logger.debug
 
-local router_mgr    = quanta.get("router_mgr")
+local discover      = quanta.get("discover")
 local timer_mgr     = quanta.get("timer_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
 local RouterTest = singleton()
 function RouterTest:__init()
-    router_mgr:watch_service_ready(self, "mongo")
-    router_mgr:watch_service_close(self, "mongo")
+    discover:watch_service(self, "mongo")
 
     timer_mgr:once(4000, function()
         local ok, code, res = router_mgr:call_mongo_random("rpc_mongo_find", "default", "test_mongo_1", {}, {_id = 0})

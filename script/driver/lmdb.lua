@@ -13,6 +13,7 @@ local MDB_FIRST     = lmdb.MDB_CUR_OP.MDB_FIRST
 local MDB_NEXT      = lmdb.MDB_CUR_OP.MDB_NEXT
 local MDB_SET       = lmdb.MDB_CUR_OP.MDB_SET
 
+local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
@@ -103,7 +104,7 @@ function Lmdb:autoinc_id()
         return false
     end
     driver.commit_txn()
-    return true, id
+    return true, SUCCESS, id
 end
 
 --迭代器

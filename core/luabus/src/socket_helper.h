@@ -25,6 +25,7 @@ constexpr int _countof(T(&_array)[N]) { return N; }
 #define recv sceNetRecv
 #define htons sceNetHtons
 #define ntohs sceNetNtohs
+#define htonl sceNetHtonl
 #define accept sceNetAccept
 #define listen sceNetListen
 #define sendto sceNetSendto

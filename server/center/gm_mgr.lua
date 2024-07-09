@@ -1,6 +1,5 @@
 --gm_mgr.lua
 import("basic/cmdline.lua")
-import("agent/online_agent.lua")
 
 local HttpServer        = import("network/http_server.lua")
 
@@ -8,29 +7,20 @@ local log_err           = logger.err
 local log_debug         = logger.debug
 local sformat           = string.format
 local tunpack           = table.unpack
-local make_sid          = service.make_sid
-local guid_index        = codec.guid_index
 
-local online            = quanta.get("online")
 local cmdline           = quanta.get("cmdline")
 local event_mgr         = quanta.get("event_mgr")
-local update_mgr        = quanta.get("update_mgr")
-local router_mgr        = quanta.get("router_mgr")
 
-local GLOBAL            = quanta.enum("GMType", "GLOBAL")
-local SYSTEM            = quanta.enum("GMType", "SYSTEM")
-local SERVICE           = quanta.enum("GMType", "SERVICE")
 local LOCAL             = quanta.enum("GMType", "LOCAL")
-local HASHKEY           = quanta.enum("GMType", "HASHKEY")
-local PLAYER            = quanta.enum("GMType", "PLAYER")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 
 local GM_Mgr = singleton()
 local prop = property(GM_Mgr)
-prop:reader("http_server", nil)
+prop:reader("gm_addr", "")
+prop:reader("handlers", {})
 prop:reader("services", {})
-prop:reader("gm_page", "")
 prop:reader("gm_status", false)
+prop:reader("http_server", nil)
 
 function GM_Mgr:__init()
     --监听事件
@@ -39,16 +29,16 @@ function GM_Mgr:__init()
     event_mgr:add_listener(self, "rpc_execute_message")
 
     --创建HTTP服务器
-    local server = HttpServer(environ.get("QUANTA_GM_HTTP"))
-    self.http_server = server
+    local httpsvr = HttpServer(environ.get("QUANTA_GM_HTTP"))
+    self.gm_addr = sformat("http://%s:%s", httpsvr:get_ip(),httpsvr:get_port())
+    self.http_server = httpsvr
+    --注册GM Handler
+    self:register_handler(LOCAL, self, "exec_local_cmd")
     --是否开启GM功能
     if environ.status("QUANTA_GM_SERVER") then
         self.gm_status = true
-        self:register_webgm()
+        self:enable_webgm()
     end
-    --定时更新
-    update_mgr:attach_second5(self)
-    self:on_second5()
 end
 
 --外部注册post请求
@@ -66,22 +56,16 @@ function GM_Mgr:unregister_url(url)
     self.http_server:unregister(url)
 end
 
---定时更新
-function GM_Mgr:on_second5()
-    self.gm_page = import("center/gm_page.lua")
-end
-
-function GM_Mgr:register_webgm()
+function GM_Mgr:enable_webgm()
     self:register_get("/", "on_gm_page", self)
     self:register_get("/gmlist", "on_gmlist", self)
     self:register_post("/command", "on_command", self)
     self:register_post("/message", "on_message", self)
 end
 
-function GM_Mgr:unregister_webgm()
+function GM_Mgr:disable_webgm()
     self:unregister_url("/")
     self:unregister_url("/gmlist")
-    self:unregister_url("/monitors")
     self:unregister_url("/command")
     self:unregister_url("/message")
 end
@@ -90,9 +74,9 @@ end
 function GM_Mgr:gm_switch(status)
     self.gm_status = status
     if self.gm_status then
-        self:register_webgm()
+        self:enable_webgm()
     else
-        self:unregister_webgm()
+        self:disable_webgm()
     end
     return status
 end
@@ -106,8 +90,7 @@ function GM_Mgr:rpc_register_command(command_list, service_id)
         return
     end
     for _, cmd in pairs(command_list) do
-        local gm_type = cmd.gm_type or PLAYER
-        cmdline:register_command(cmd.name, cmd.args, cmd.desc, gm_type, cmd.group, cmd.tip, cmd.example, service_id)
+        cmdline:register_command(cmd.name, cmd.args, cmd.desc, cmd.gm_type, cmd.group, cmd.tip, cmd.example, service_id)
     end
     if service_id then
         self.services[service_id] = true
@@ -129,21 +112,12 @@ function GM_Mgr:rpc_execute_message(message)
     return SUCCESS, res
 end
 
-function GM_Mgr:on_service_close(id, name)
-    log_debug("[GM_Mgr][on_service_close] node: {}-{}", name, id)
-    self.monitors[id] = nil
-end
-
-function GM_Mgr:on_service_ready(id, name, info)
-    log_debug("[GM_Mgr][on_service_ready] node: {}-{}, info: {}", name, id, info)
-    self.monitors[id] = sformat("%s:%s", info.ip, info.port)
-end
-
 --http 回调
 ----------------------------------------------------------------------
 --gm_page
 function GM_Mgr:on_gm_page(url, body, params)
-    return self.gm_page, {["Access-Control-Allow-Origin"] = "*", ["X-Frame-Options"]= "ALLOW_FROM"}
+    local page = import("center/gm_page.lua")
+    return page, {["Access-Control-Allow-Origin"] = "*", ["X-Frame-Options"]= "ALLOW_FROM"}
 end
 
 --gm列表
@@ -164,17 +138,6 @@ function GM_Mgr:on_message(url, body)
 end
 
 -------------------------------------------------------------------------
---参数分发预处理
-function GM_Mgr:dispatch_pre_command(fmtargs)
-    local result = event_mgr:notify_listener("on_center_command", fmtargs.name, fmtargs.args)
-    local status_ok, args = tunpack(result)
-    --无额外处理
-    if not status_ok then
-        return self:dispatch_command(fmtargs.args, fmtargs.type, fmtargs.service)
-    end
-    return self:dispatch_command(args, fmtargs.type, fmtargs.service)
-end
-
 --后台GM执行，字符串格式
 function GM_Mgr:exec_command(command)
     local fmtargs, err = cmdline:parser_command(command)
@@ -194,59 +157,35 @@ function GM_Mgr:exec_message(message)
     return self:dispatch_pre_command(fmtargs)
 end
 
+--参数分发预处理
+function GM_Mgr:dispatch_pre_command(fmtargs)
+    local result = event_mgr:notify_listener("on_center_command", fmtargs.name, fmtargs.args)
+    local status_ok, args = tunpack(result)
+    --无额外处理
+    if not status_ok then
+        return self:dispatch_command(fmtargs.args, fmtargs.type, fmtargs.service)
+    end
+    return self:dispatch_command(args, fmtargs.type, fmtargs.service)
+end
+
 --分发command
 function GM_Mgr:dispatch_command(cmd_args, gm_type, service_id)
-    local callback = {
-        [GLOBAL]    = GM_Mgr.exec_global_cmd,
-        [SYSTEM]    = GM_Mgr.exec_system_cmd,
-        [PLAYER]    = GM_Mgr.exec_player_cmd,
-        [SERVICE]   = GM_Mgr.exec_service_cmd,
-        [LOCAL]     = GM_Mgr.exec_local_cmd,
-        [HASHKEY]   = GM_Mgr.exec_hash_cmd,
-    }
-    return callback[gm_type](self, service_id, tunpack(cmd_args))
+    local handler = self.handlers[gm_type]
+    if not handler then
+        return { code = 1, msg = "gm_type error" }
+    end
+    local target, func_name = tunpack(handler)
+    return target[func_name](target, service_id, tunpack(cmd_args))
 end
 
---GLOBAL command
-function GM_Mgr:exec_global_cmd(service_id, cmd_name, ...)
-    local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute" , cmd_name, ...)
-    if not ok then
-        log_err("[GM_Mgr][exec_global_cmd] rpc_command_execute failed! service_id:{},cmd_name={},code={},res={}", service_id, cmd_name, codeoe, res)
-        return { code = 1, msg = codeoe }
+--注册handler
+function GM_Mgr:register_handler(gm_type, target, func_name)
+    local callback_func = target[func_name]
+    if not callback_func or type(callback_func) ~= "function" then
+        log_err("[GM_Mgr][register_handler] gm_type({}) handler not define!", gm_type)
+        return
     end
-    return { code = codeoe, msg = res }
-end
-
---system command
-function GM_Mgr:exec_system_cmd(service_id, cmd_name, target_id, ...)
-    local index = guid_index(target_id)
-    local quanta_id = make_sid(service_id, index)
-    local ok, codeoe, res = router_mgr:call_target(quanta_id, "rpc_command_execute" , cmd_name, target_id, ...)
-    if not ok then
-        log_err("[GM_Mgr][exec_system_cmd] rpc_command_execute failed! cmd_name={},code={},res={}", cmd_name, codeoe, res)
-        return { code = 1, msg = codeoe }
-    end
-    return { code = codeoe, msg = res }
-end
-
---service command
-function GM_Mgr:exec_service_cmd(service_id, cmd_name, ...)
-    local ok, codeoe = router_mgr:broadcast(service_id, "rpc_command_execute" , cmd_name, ...)
-    if not ok then
-        log_err("[GM_Mgr][exec_service_cmd] rpc_command_execute failed! cmd_name={}", cmd_name)
-        return { code = 1, msg = codeoe }
-    end
-    return { code = codeoe, msg = "success" }
-end
-
---hash command
-function GM_Mgr:exec_hash_cmd(service_id, cmd_name, target_id, ...)
-    local ok, codeoe, res = router_mgr:call_hash(service_id, target_id, "rpc_command_execute", cmd_name, target_id, ...)
-    if not ok then
-        log_err("[GM_Mgr][exec_hash_cmd] rpc_command_execute failed! cmd_name={}", cmd_name)
-        return { code = 1, msg = codeoe }
-    end
-    return { code = codeoe, msg = res }
+    self.handlers[gm_type] = { target, func_name }
 end
 
 --local command
@@ -256,24 +195,6 @@ function GM_Mgr:exec_local_cmd(service_id, cmd_name, ...)
         return { code = 1, msg = res }
     end
     return { code = 0, msg = res }
-end
-
---player command
-function GM_Mgr:exec_player_cmd(service_id, cmd_name, player_id, ...)
-    if player_id == 0 then
-        local ok, codeoe, res = router_mgr:call_world_random("rpc_command_execute", cmd_name, player_id, ...)
-        if not ok then
-            log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
-            return { code = 1, msg = codeoe }
-        end
-        return { code = codeoe, msg = res }
-    end
-    local ok, codeoe, res = online:call_service(player_id, "rpc_command_execute", "world", cmd_name, player_id, ...)
-    if not ok then
-        log_err("[GM_Mgr][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
-        return { code = 1, msg = codeoe }
-    end
-    return { code = codeoe, msg = res }
 end
 
 quanta.gm_mgr = GM_Mgr()

@@ -15,6 +15,7 @@ namespace lsqlite {
         void close() {
             if (m_stmt) sqlite3_finalize(m_stmt);
             m_stmt = nullptr;
+            m_sdb = nullptr;
         }
         void reset() {
             sqlite3_reset(m_stmt);

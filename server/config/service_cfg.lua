@@ -51,9 +51,9 @@ service:upsert({
 
 service:upsert({
     enable=true,
-    enum_key='MONITOR',
+    enum_key='DISCOVER',
     id=16,
-    name='monitor'
+    name='discover'
 })
 
 service:upsert({

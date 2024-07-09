@@ -9,7 +9,6 @@ local labsolute     = lstdfs.absolute
 local lextension    = lstdfs.extension
 local lcurdir       = lstdfs.current_path
 local lrelativedir  = lstdfs.relative_path
-local lrepfilename  = lstdfs.replace_filename
 local lrepextension = lstdfs.replace_extension
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -223,12 +222,15 @@ local function build_projfile(solution_dir, project_dir, lmake_dir)
             end
             local filename = lstem(fullname)
             local mak_dir = path_cut(project_dir, solution_dir)
-            if env.PS_PLATFORM then
-                ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxprojps.tpl"),  lrepfilename(fullname, sformat("%sps.vcxproj", filename)), env)
+            if env.PLATFORM == "Prospero" or env.PLATFORM == "Orbis" then
+                ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxprojps.tpl"), lrepextension(fullname, ".vcxproj"), env)
+            elseif env.PLATFORM == "NX64" then
+                ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxprojns.tpl"), lrepextension(fullname, ".vcxproj"), env)
+            else
+                ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxproj.tpl"),  lrepextension(fullname, ".vcxproj"), env)
+                ltmpl.render_file(lappend(lmake_dir, "tmpl/make.tpl"),  lrepextension(fullname, ".mak"), env)
             end
             ltmpl.render_file(lappend(lmake_dir, "tmpl/filters.tpl"),  lrepextension(fullname, ".vcxproj.filters"), env)
-            ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxproj.tpl"),  lrepextension(fullname, ".vcxproj"), env)
-            ltmpl.render_file(lappend(lmake_dir, "tmpl/make.tpl"),  lrepextension(fullname, ".mak"), env)
             projects[env.PROJECT_NAME] = {
                 DIR = mak_dir,
                 FILE = filename,
@@ -269,11 +271,13 @@ local function build_lmak(solution_dir)
         error("load share lmake file failed")
         return
     end
+    load_env_file(lappend(solution_dir, "lmake"), env)
     local ltmpl = require("ltemplate")
-    ltmpl.render_file(lappend(lmake_dir, "tmpl/makefile.tpl"), lappend(solution_dir, "Makefile"), env)
-    ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
-    if env.PS_PLATFORM then
-        ltmpl.render_file(lappend(lmake_dir, "tmpl/solutionps.tpl"), lappend(solution_dir, lconcat(solution, "ps.sln")), env)
+    if env.PLATFORM then
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/platform.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
+    else
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/makefile.tpl"), lappend(solution_dir, "Makefile"), env)
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
     end
     print(sformat("build solution %s success!", solution))
 end

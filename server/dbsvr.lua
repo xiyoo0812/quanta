@@ -7,10 +7,10 @@ quanta.startup(function()
     --初始化dbsvr
     local service = env_get("QUANTA_SERVICE")
     if service == "mongo" then
-        import("store/mongo_mgr.lua")
+        import("db/mongo_mgr.lua")
     elseif service == "mysql" then
-        import("store/mysql_mgr.lua")
+        import("db/mysql_mgr.lua")
     elseif service == "redis" then
-        import("store/redis_mgr.lua")
+        import("db/redis_mgr.lua")
     end
 end)

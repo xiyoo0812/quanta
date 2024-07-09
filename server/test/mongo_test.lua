@@ -4,7 +4,7 @@ local bdate         = bson.date
 
 local timer_mgr     = quanta.get("timer_mgr")
 
-local MongoMgr      = import("store/mongo_mgr.lua")
+local MongoMgr      = import("db/mongo_mgr.lua")
 local mongo_mgr     = MongoMgr()
 
 local primary_id    = 1234567

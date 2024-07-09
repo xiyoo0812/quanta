@@ -1,6 +1,6 @@
 -- cache_mgr.lua
-import("store/mongo_mgr.lua")
-import("store/redis_mgr.lua")
+import("db/mongo_mgr.lua")
+import("db/redis_mgr.lua")
 
 local log_err       = logger.err
 local log_debug     = logger.debug

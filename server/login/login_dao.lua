@@ -4,11 +4,10 @@ local log_err       = logger.err
 local tunpack       = table.unpack
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
-local sformat       = string.format
 
 local event_mgr     = quanta.get("event_mgr")
+local store_mgr     = quanta.get("store_mgr")
 local mongo_agent   = quanta.get("mongo_agent")
-local redis_agent   = quanta.get("redis_agent")
 
 --[[
 local protobuf_mgr  = quanta.get("protobuf_mgr")
@@ -18,7 +17,6 @@ local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local Account       = import("login/account.lua")
-local AC_LIMIT_KEY  = "account_limmit"
 
 local LoginDao = singleton()
 
@@ -26,9 +24,9 @@ function LoginDao:__init()
 end
 
 function LoginDao:get_autoinc_id(user_id)
-    local aok, acode, role_id = redis_agent:autoinc_id()
-    if qfailed(acode, aok) then
-        log_err("[LoginDao][get_autoinc_id] user_id: {} get_autoinc_id failed! code: {}, res: {}", user_id, acode, role_id)
+    local aok, role_id = store_mgr:autoinc_id()
+    if aok then
+        log_err("[LoginDao][get_autoinc_id] user_id: {} get_autoinc_id failed! res: {}", user_id, role_id)
         return false
     end
     return true, SUCCESS, role_id
@@ -103,12 +101,6 @@ function LoginDao:account_count(channel)
         return false
     end
     return true, cur_num
-end
-
---加载账号限制
-function LoginDao:load_ac_limit(channel)
-    local key = sformat("%s_%s", AC_LIMIT_KEY, channel)
-    return redis_agent:load_msic(key)
 end
 
 quanta.login_dao = LoginDao()

@@ -15,7 +15,6 @@ function environ.init()
     if environ.status("QUANTA_DAEMON") then
         quanta.daemon()
     end
-    quanta.mode = environ.number("QUANTA_MODE", 1)
 end
 
 function environ.get(key, def)

@@ -3,11 +3,12 @@ local tconcat       = table.concat
 local log_info      = logger.info
 local sname2sid     = service.name2sid
 
+local discover      = quanta.get("discover")
 local router_mgr    = quanta.get("router_mgr")
 
 local PackTest = singleton()
 function PackTest:__init()
-    router_mgr:watch_service_ready(self, "proxy")
+    discover:watch_servic(self, "proxy")
 end
 
 function PackTest:on_service_ready(quanta_id)

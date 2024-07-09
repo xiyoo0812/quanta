@@ -325,6 +325,13 @@ namespace logger {
         }
         if (thread_.joinable()) {
             thread_.join();
+            dest_lvls_.clear();
+            dest_features_.clear();
+            def_dest_ = nullptr;
+            std_dest_ = nullptr;
+            stop_msg_ = nullptr;
+            logmsgque_ = nullptr;
+            message_pool_ = nullptr;
         }
     }
 
@@ -383,6 +390,12 @@ namespace logger {
                 s_logger->start();
             }
             return s_logger;
+        }
+        LUALIB_API void stop_logger() {
+            if (s_logger) {
+                s_logger->stop();
+                s_logger = nullptr;
+            }
         }
     }
 }

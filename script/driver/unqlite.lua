@@ -7,6 +7,7 @@ local update_mgr        = quanta.get("update_mgr")
 local UNQLITE_OK        = unqlite.UNQLITE_CODE.UNQLITE_OK
 local UNQLITE_NOTFOUND  = unqlite.UNQLITE_CODE.UNQLITE_NOTFOUND
 
+local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK         = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY        = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
@@ -71,7 +72,7 @@ function Unqlite:autoinc_id()
     if driver.put(AUTOINCKEY, id + 1) ~= UNQLITE_OK then
         return false
     end
-    return true, id
+    return true, SUCCESS, id
 end
 
 --迭代器

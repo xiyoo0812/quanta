@@ -4,7 +4,7 @@ local tunpack       = table.unpack
 local log_info      = logger.info
 local qsuccess      = quanta.success
 
-local monitor       = quanta.get("monitor")
+local discover       = quanta.get("discover")
 local event_mgr     = quanta.get("event_mgr")
 local router_mgr    = quanta.get("router_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -23,7 +23,7 @@ function GMAgent:__init()
     --注册gm事件分发
     event_mgr:add_listener(self, "rpc_command_execute")
     -- 关注 gm服务 事件
-    monitor:watch_service_ready(self, "center")
+    discover:watch_service(self, "center")
 end
 
 --插入一条command

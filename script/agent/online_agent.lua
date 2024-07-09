@@ -11,11 +11,6 @@ local OnlineAgent = singleton()
 function OnlineAgent:__init()
 end
 
---执行远程rpc消息
-function OnlineAgent:login_service(pla_id, ser_name, ser_id)
-    return router_mgr:call_router(pla_id, "rpc_login_service", pla_id, ser_name, ser_id)
-end
-
 function OnlineAgent:is_online(pla_id)
     local ok, code, lobby_id = router_mgr:call_router(pla_id, "rpc_query_lobby", pla_id)
     if qfailed(code, ok) then

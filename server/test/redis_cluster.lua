@@ -3,7 +3,7 @@ local log_debug = logger.debug
 
 local timer_mgr = quanta.get("timer_mgr")
 
-local RedisMgr  = import("store/redis_mgr.lua")
+local RedisMgr  = import("db/redis_mgr.lua")
 local redis_mgr = RedisMgr()
 
 timer_mgr:once(2000, function()

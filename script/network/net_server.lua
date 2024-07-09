@@ -39,7 +39,6 @@ prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
 prop:reader("broad_token", nil)         --广播token
 prop:reader("codec", nil)               --编解码器
-prop:accessor("msgtype", 0)             --消息类型
 
 function NetServer:__init(session_type)
     self.session_type = session_type
@@ -50,8 +49,10 @@ end
 
 function NetServer:on_quit()
     if self.listener then
+        self.listener.close()
+        self.listener = nil
+        self.codec = nil
         log_debug("[NetServer][on_quit]")
-        self.listener:close()
     end
 end
 
@@ -93,8 +94,8 @@ function NetServer:on_socket_accept(session)
     -- 添加会话
     self:add_session(session)
     -- 绑定call回调
-    session.call_client = function(cmd_id, flag, session_id, body)
-        local send_len = session.call_pb(session_id, cmd_id, flag, self.msgtype, 0, body)
+    session.call_client = function(cmd_id, flag, ctype, session_id, body)
+        local send_len = session.call_pb(session_id, cmd_id, flag, ctype or 0, 0, body)
         if send_len <= 0 then
             log_err("[NetServer][call_client] call_pb failed! code:{}", send_len)
             return false
@@ -111,7 +112,7 @@ function NetServer:on_socket_accept(session)
             self:callback_errcode(session, cmd_id, TOO_FAST, session_id)
             return
         end
-        session.lc_cmd[cmd_id] = { time = now_ms, crc8 = crc8 }
+        session.lc_cmd[cmd_id] = { time = now_ms, crc8 = crc8, type = type }
         if FLOW_CTRL then
             session.fc_packet = session.fc_packet + 1
             session.fc_bytes  = session.fc_bytes  + recv_len
@@ -126,12 +127,12 @@ function NetServer:on_socket_accept(session)
     event_mgr:notify_listener("on_socket_accept", session)
 end
 
-function NetServer:write(session, cmd, data, session_id, flag)
+function NetServer:write(session, cmd, data, session_id, flag, type)
     if session.token == 0 then
         log_err("[NetServer][write] session lost! cmd_id:{}-({})", cmd, data)
         return false
     end
-    return session.call_client(cmd, flag, session_id, data)
+    return session.call_client(cmd, flag, type or 0, session_id, data)
 end
 
 -- 广播数据
@@ -160,7 +161,8 @@ function NetServer:callback_by_id(session, cmd_id, data, session_id)
     if not callback_id then
         return false
     end
-    return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
+    local cmd = session.lc_cmd[cmd_id]
+    return self:write(session, callback_id, data, session_id or 0, FLAG_RES, cmd.type)
 end
 
 -- 回复错误码
@@ -169,8 +171,9 @@ function NetServer:callback_errcode(session, cmd_id, code, session_id)
     if not callback_id then
         return false
     end
+    local cmd = session.lc_cmd[cmd_id]
     local data = { error_code = code }
-    return self:write(session, callback_id, data, session_id or 0, FLAG_RES)
+    return self:write(session, callback_id, data, session_id or 0, FLAG_RES, cmd.type)
 end
 
 -- 收到远程调用回调

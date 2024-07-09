@@ -87,8 +87,8 @@ template <> struct is_char<char32_t> : std::true_type {};
 
 template <typename... T>
 constexpr auto make_wformat_args(T&... args)
-    -> decltype(fmt::make_format_args<wformat_context>(args...)) {
-  return fmt::make_format_args<wformat_context>(args...);
+    -> decltype(make_format_args<wformat_context>(args...)) {
+  return make_format_args<wformat_context>(args...);
 }
 
 inline namespace literals {
@@ -294,14 +294,13 @@ inline auto format(const text_style& ts, wformat_string<T...> fmt, T&&... args)
 }
 
 template <typename... T>
-FMT_DEPRECATED void print(std::FILE* f, const text_style& ts,
-                          wformat_string<T...> fmt, const T&... args) {
+void print(std::FILE* f, const text_style& ts, wformat_string<T...> fmt,
+           const T&... args) {
   vprint(f, ts, fmt, fmt::make_wformat_args(args...));
 }
 
 template <typename... T>
-FMT_DEPRECATED void print(const text_style& ts, wformat_string<T...> fmt,
-                          const T&... args) {
+void print(const text_style& ts, wformat_string<T...> fmt, const T&... args) {
   return print(stdout, ts, fmt, args...);
 }
 

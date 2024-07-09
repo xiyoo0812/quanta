@@ -56,7 +56,7 @@ public:
     bool do_forward_hash(router_header* header, char* data, size_t data_len);
     bool do_forward_target(router_header* header, char* data, size_t data_len);
     bool do_forward_master(router_header* header, char* data, size_t data_len);
-    bool do_forward_broadcast(router_header* header, uint32_t source, char* data, size_t data_len, size_t& broadcast_num);
+    bool do_forward_broadcast(router_header* header, int source, char* data, size_t data_len, size_t& broadcast_num);
 
 private:
     size_t m_route_count = 0;

@@ -21,14 +21,17 @@ void set_reuseaddr(socket_t fd) {
 #endif
 }
 
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#if defined(__linux) || defined(__APPLE__) || defined(__PROSPERO__)
 void set_no_block(socket_t fd) {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 }
-
 void set_close_on_exec(socket_t fd) {
     fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
 }
+#endif
+
+#if defined(__ORBIS__)
+void set_close_on_exec(socket_t fd) {}
 #endif
 
 #ifdef _MSC_VER
@@ -104,7 +107,7 @@ int derive_port(int port){
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 #if defined(__ORBIS__) || defined(__PROSPERO__)
-    addr->sin_len = sizeof(*ipv4);
+    addr.sin_len = sizeof(sockaddr_in);
 #endif
     int try_cnt = 20;
     while (try_cnt-- > 0) {

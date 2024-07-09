@@ -487,8 +487,6 @@ template <typename Char> class basic_string_view {
   constexpr basic_string_view(const Char* s, size_t count) noexcept
       : data_(s), size_(count) {}
 
-  constexpr basic_string_view(std::nullptr_t) = delete;
-
   /**
     Constructs a string reference object from a C string.
    */
@@ -774,9 +772,7 @@ template <typename Char> class basic_format_parse_context {
     next_arg_id_ = -1;
     do_check_arg_id(id);
   }
-  FMT_CONSTEXPR void check_arg_id(basic_string_view<Char>) {
-    next_arg_id_ = -1;
-  }
+  FMT_CONSTEXPR void check_arg_id(basic_string_view<Char>) {}
   FMT_CONSTEXPR void check_dynamic_spec(int arg_id);
 };
 
@@ -1162,20 +1158,6 @@ using appender = basic_appender<char>;
 
 namespace detail {
 
-template <typename T, typename Enable = void>
-struct locking : std::true_type {};
-template <typename T>
-struct locking<T, void_t<typename formatter<remove_cvref_t<T>>::nonlocking>>
-    : std::false_type {};
-
-template <typename T = int> FMT_CONSTEXPR inline auto is_locking() -> bool {
-  return locking<T>::value;
-}
-template <typename T1, typename T2, typename... Tail>
-FMT_CONSTEXPR inline auto is_locking() -> bool {
-  return locking<T1>::value || is_locking<T2, Tail...>();
-}
-
 // An optimized version of std::copy with the output value type (T).
 template <typename T, typename InputIt>
 auto copy(InputIt begin, InputIt end, appender out) -> appender {
@@ -1505,14 +1487,12 @@ template <typename Context> struct arg_mapper {
     return {};
   }
 
-  // is_fundamental is used to allow formatters for extended FP types.
   template <typename T, typename U = remove_const_t<T>,
-            FMT_ENABLE_IF(
-                (std::is_class<U>::value || std::is_enum<U>::value ||
-                 std::is_union<U>::value || std::is_fundamental<U>::value) &&
-                !has_to_string_view<U>::value && !is_char<U>::value &&
-                !is_named_arg<U>::value && !std::is_integral<U>::value &&
-                !std::is_arithmetic<format_as_t<U>>::value)>
+            FMT_ENABLE_IF((std::is_class<U>::value || std::is_enum<U>::value ||
+                           std::is_union<U>::value) &&
+                          !has_to_string_view<U>::value && !is_char<U>::value &&
+                          !is_named_arg<U>::value &&
+                          !std::is_arithmetic<format_as_t<U>>::value)>
   FMT_MAP_API auto map(T& val) -> decltype(FMT_DECLTYPE_THIS do_map(val)) {
     return do_map(val);
   }
@@ -1654,9 +1634,7 @@ template <typename Context, size_t NUM_ARGS, size_t NUM_NAMED_ARGS,
 struct format_arg_store {
   // args_[0].named_args points to named_args to avoid bloating format_args.
   // +1 to workaround a bug in gcc 7.5 that causes duplicated-branches warning.
-  static constexpr size_t ARGS_ARR_SIZE = 1 + (NUM_ARGS != 0 ? NUM_ARGS : +1);
-
-  arg_t<Context, NUM_ARGS> args[ARGS_ARR_SIZE];
+  arg_t<Context, NUM_ARGS> args[1 + (NUM_ARGS != 0 ? NUM_ARGS : +1)];
   named_arg_info<typename Context::char_type> named_args[NUM_NAMED_ARGS];
 
   template <typename... T>
@@ -1669,17 +1647,6 @@ struct format_arg_store {
         0,
         (init_named_arg(named_args, arg_index, named_arg_index, values), 0)...};
   }
-
-  format_arg_store(format_arg_store&& rhs) {
-    args[0] = {named_args, NUM_NAMED_ARGS};
-    for (size_t i = 1; i < ARGS_ARR_SIZE; ++i) args[i] = rhs.args[i];
-    for (size_t i = 0; i < NUM_NAMED_ARGS; ++i)
-      named_args[i] = rhs.named_args[i];
-  }
-
-  format_arg_store(const format_arg_store& rhs) = delete;
-  format_arg_store& operator=(const format_arg_store& rhs) = delete;
-  format_arg_store& operator=(format_arg_store&& rhs) = delete;
 };
 
 // A specialization of format_arg_store without named arguments.
@@ -2647,7 +2614,6 @@ template <typename T> struct strip_named_arg<T, true> {
 };
 
 template <typename T, typename ParseContext>
-FMT_VISIBILITY("hidden")  // Suppress an ld warning on macOS (#3769).
 FMT_CONSTEXPR auto parse_format_specs(ParseContext& ctx)
     -> decltype(ctx.begin()) {
   using char_type = typename ParseContext::char_type;
@@ -2799,33 +2765,6 @@ FMT_API void vprint_mojibake(FILE*, string_view, format_args, bool = false);
 #ifndef _WIN32
 inline void vprint_mojibake(FILE*, string_view, format_args, bool) {}
 #endif
-
-template <typename T, typename Char, type TYPE> struct native_formatter {
- private:
-  dynamic_format_specs<Char> specs_;
-
- public:
-  using nonlocking = void;
-
-  template <typename ParseContext>
-  FMT_CONSTEXPR auto parse(ParseContext& ctx) -> const Char* {
-    if (ctx.begin() == ctx.end() || *ctx.begin() == '}') return ctx.begin();
-    auto end = parse_format_specs(ctx.begin(), ctx.end(), specs_, ctx, TYPE);
-    if (TYPE == type::char_type) check_char_specs(specs_);
-    return end;
-  }
-
-  template <type U = TYPE,
-            FMT_ENABLE_IF(U == type::string_type || U == type::cstring_type ||
-                          U == type::char_type)>
-  FMT_CONSTEXPR void set_debug_format(bool set = true) {
-    specs_.type = set ? presentation_type::debug : presentation_type::none;
-  }
-
-  template <typename FormatContext>
-  FMT_CONSTEXPR auto format(const T& val, FormatContext& ctx) const
-      -> decltype(ctx.out());
-};
 }  // namespace detail
 
 FMT_BEGIN_EXPORT
@@ -2834,8 +2773,32 @@ FMT_BEGIN_EXPORT
 template <typename T, typename Char>
 struct formatter<T, Char,
                  enable_if_t<detail::type_constant<T, Char>::value !=
-                             detail::type::custom_type>>
-    : detail::native_formatter<T, Char, detail::type_constant<T, Char>::value> {
+                             detail::type::custom_type>> {
+ private:
+  detail::dynamic_format_specs<Char> specs_;
+
+ public:
+  template <typename ParseContext>
+  FMT_CONSTEXPR auto parse(ParseContext& ctx) -> const Char* {
+    if (ctx.begin() == ctx.end() || *ctx.begin() == '}') return ctx.begin();
+    auto type = detail::type_constant<T, Char>::value;
+    auto end =
+        detail::parse_format_specs(ctx.begin(), ctx.end(), specs_, ctx, type);
+    if (type == detail::type::char_type) detail::check_char_specs(specs_);
+    return end;
+  }
+
+  template <detail::type U = detail::type_constant<T, Char>::value,
+            FMT_ENABLE_IF(U == detail::type::string_type ||
+                          U == detail::type::cstring_type ||
+                          U == detail::type::char_type)>
+  FMT_CONSTEXPR void set_debug_format(bool set = true) {
+    specs_.type = set ? presentation_type::debug : presentation_type::none;
+  }
+
+  template <typename FormatContext>
+  FMT_CONSTEXPR auto format(const T& val, FormatContext& ctx) const
+      -> decltype(ctx.out());
 };
 
 template <typename Char = char> struct runtime_format_string {
@@ -2960,12 +2923,12 @@ FMT_INLINE auto format_to_n(OutputIt out, size_t n, format_string<T...> fmt,
   return vformat_to_n(out, n, fmt, fmt::make_format_args(args...));
 }
 
-template <typename OutputIt, typename Sentinel = OutputIt>
+template <typename OutputIt, typename OutputSen = OutputIt>
 struct format_to_result {
-  /** Iterator pointing to just after the last successful write in the range. */
+  /** Iterator pointing to just after the last succesful write in the range. */
   OutputIt out;
-  /** Specifies if the output was truncated. */
-  bool truncated;
+  /** Sentinel indicating the end of the output range. */
+  OutputSen out_last;
 
   FMT_CONSTEXPR operator OutputIt&() & noexcept { return out; }
   FMT_CONSTEXPR operator const OutputIt&() const& noexcept { return out; }
@@ -2974,18 +2937,17 @@ struct format_to_result {
   }
 };
 
-template <size_t N>
-auto vformat_to(char (&out)[N], string_view fmt, format_args args)
+template <size_t Size>
+auto vformat_to(char (&out)[Size], string_view fmt, format_args args)
     -> format_to_result<char*> {
-  auto result = vformat_to_n(out, N, fmt, args);
-  return {result.out, result.size > N};
+  format_to_n_result<char*> result = vformat_to_n(out, Size, fmt, args);
+  return {result.out, out + Size};
 }
 
-template <size_t N, typename... T>
-FMT_INLINE auto format_to(char (&out)[N], format_string<T...> fmt, T&&... args)
-    -> format_to_result<char*> {
-  auto result = fmt::format_to_n(out, N, fmt, static_cast<T&&>(args)...);
-  return {result.out, result.size > N};
+template <size_t Size, typename... T>
+FMT_INLINE auto format_to(char (&out)[Size], format_string<T...> fmt,
+                          T&&... args) -> format_to_result<char*> {
+  return vformat_to(out, fmt, fmt::make_format_args(args...));
 }
 
 /** Returns the number of chars in the output of ``format(fmt, args...)``. */
@@ -2999,7 +2961,6 @@ FMT_NODISCARD FMT_INLINE auto formatted_size(format_string<T...> fmt,
 
 FMT_API void vprint(string_view fmt, format_args args);
 FMT_API void vprint(FILE* f, string_view fmt, format_args args);
-FMT_API void vprint_locked(FILE* f, string_view fmt, format_args args);
 FMT_API void vprintln(FILE* f, string_view fmt, format_args args);
 
 /**
@@ -3015,9 +2976,8 @@ FMT_API void vprintln(FILE* f, string_view fmt, format_args args);
 template <typename... T>
 FMT_INLINE void print(format_string<T...> fmt, T&&... args) {
   const auto& vargs = fmt::make_format_args(args...);
-  if (!detail::is_utf8()) return detail::vprint_mojibake(stdout, fmt, vargs);
-  return detail::is_locking<T...>() ? vprint(fmt, vargs)
-                                    : vprint_locked(stdout, fmt, vargs);
+  return detail::is_utf8() ? vprint(fmt, vargs)
+                           : detail::vprint_mojibake(stdout, fmt, vargs);
 }
 
 /**
@@ -3033,9 +2993,8 @@ FMT_INLINE void print(format_string<T...> fmt, T&&... args) {
 template <typename... T>
 FMT_INLINE void print(FILE* f, format_string<T...> fmt, T&&... args) {
   const auto& vargs = fmt::make_format_args(args...);
-  if (!detail::is_utf8()) return detail::vprint_mojibake(f, fmt, vargs);
-  return detail::is_locking<T...>() ? vprint(f, fmt, vargs)
-                                    : vprint_locked(f, fmt, vargs);
+  return detail::is_utf8() ? vprint(f, fmt, vargs)
+                           : detail::vprint_mojibake(f, fmt, vargs);
 }
 
 /**

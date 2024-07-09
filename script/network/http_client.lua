@@ -73,6 +73,9 @@ end
 function HttpClient:on_socket_error(socket, token, err)
     log_debug("[HttpClient][on_socket_error] client(token:{}) close({})!", token, err)
     self.clients[token] = nil
+    if socket.session_id then
+        thread_mgr:response(socket.session_id, false, err)
+    end
 end
 
 --构建请求

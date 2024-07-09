@@ -8,23 +8,13 @@ local router_mgr    = quanta.get("router_mgr")
 local RPC_FAILED    = quanta.enum("KernCode", "RPC_FAILED")
 
 local CacheAgent = singleton()
-local prop = property(CacheAgent)
-prop:accessor("proxy", nil)
 
 function CacheAgent:__init()
 end
 
---call
-function CacheAgent:call(primary_id, ...)
-    if self.proxy then
-        return self.proxy:proxy_call("call_cache_hash", primary_id, ...)
-    end
-    return router_mgr:call_cache_hash(primary_id, ...)
-end
-
 -- 加载
 function CacheAgent:load(primary_id, sheet_name)
-    local ok, code, row_data = self:call(primary_id, "rpc_cache_load", primary_id, sheet_name)
+    local ok, code, row_data = router_mgr:call_cache_hash(primary_id, "rpc_cache_load", primary_id, sheet_name)
     if qfailed(code, ok) then
         log_err("[CacheAgent][load] code={}, pkey={}, sheet_name={}", code, primary_id, sheet_name)
         return ok and code or RPC_FAILED
@@ -34,7 +24,7 @@ end
 
 -- flush
 function CacheAgent:flush(primary_id, sheet_name, wholes)
-    local ok, code = self:call(primary_id, "rpc_cache_flush", primary_id, sheet_name, wholes)
+    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_flush", primary_id, sheet_name, wholes)
     if qfailed(code, ok) then
         log_err("[CacheAgent][flush] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
         return ok and code or RPC_FAILED
@@ -44,7 +34,7 @@ end
 
 -- update
 function CacheAgent:update(primary_id, sheet_name, commits)
-    local ok, code = self:call(primary_id, "rpc_cache_update", primary_id, sheet_name, commits)
+    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_update", primary_id, sheet_name, commits)
     if qfailed(code, ok) then
         log_err("[CacheAgent][update] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
         return ok and code or RPC_FAILED
@@ -54,7 +44,7 @@ end
 
 -- 删除
 function CacheAgent:delete(primary_id, sheet_name)
-    local ok, code = self:call(primary_id, "rpc_cache_delete", primary_id, sheet_name)
+    local ok, code = router_mgr:call_cache_hash(primary_id, "rpc_cache_delete", primary_id, sheet_name)
     if qfailed(code, ok) then
         log_err("[CacheAgent][delete] faild: code={}, sheet_name={}, primary_id={}", code, sheet_name, primary_id)
         return ok and code or RPC_FAILED

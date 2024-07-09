@@ -38,6 +38,29 @@ local function init_mainloop()
     scheduler = quanta.get("scheduler")
 end
 
+--初始化store
+local function init_store()
+    import("store/store_mgr.lua")
+    local smode = environ.get("QUANTA_STORE")
+    if smode == "cache" then
+        import("store/store_cache.lua")
+    elseif smode == "mongo" then
+        import("store/store_mgo.lua")
+    else
+        import("store/store_kv.lua")
+    end
+end
+
+--初始化路由和服务发现
+local function init_discover()
+    if environ.status("QUANTA_DISCOVER") then
+        import("agent/discover_agent.lua")
+        if quanta.service_name ~= "router" then
+            import("kernel/router_mgr.lua")
+        end
+    end
+end
+
 function quanta.main()
     --核心加载
     init_core()
@@ -49,10 +72,10 @@ function quanta.main()
     --主循环
     init_mainloop()
     init_network()
-    --加载monitor
-    import("agent/monitor_agent.lua")
-    --加载路由
-    import("kernel/router_mgr.lua")
+    --加载服务发现
+    init_discover()
+    --初始化store
+    init_store()
     --加载协议
     import("kernel/protobuf_mgr.lua")
 end

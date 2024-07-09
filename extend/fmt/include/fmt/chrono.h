@@ -398,9 +398,8 @@ auto write_encoded_tm_str(OutputIt out, string_view in, const std::locale& loc)
   if (detail::is_utf8() && loc != get_classic_locale()) {
     // char16_t and char32_t codecvts are broken in MSVC (linkage errors) and
     // gcc-4.
-#if FMT_MSC_VERSION != 0 ||  \
-    (defined(__GLIBCXX__) && \
-     (!defined(_GLIBCXX_USE_DUAL_ABI) || _GLIBCXX_USE_DUAL_ABI == 0))
+#if FMT_MSC_VERSION != 0 || \
+    (defined(__GLIBCXX__) && !defined(_GLIBCXX_USE_DUAL_ABI))
     // The _GLIBCXX_USE_DUAL_ABI macro is always defined in libstdc++ from gcc-5
     // and newer.
     using code_unit = wchar_t;
@@ -693,7 +692,7 @@ enum class pad_type {
 template <typename OutputIt>
 auto write_padding(OutputIt out, pad_type pad, int width) -> OutputIt {
   if (pad == pad_type::none) return out;
-  return detail::fill_n(out, width, pad == pad_type::space ? ' ' : '0');
+  return std::fill_n(out, width, pad == pad_type::space ? ' ' : '0');
 }
 
 template <typename OutputIt>
@@ -1149,27 +1148,22 @@ void write_fractional_seconds(OutputIt& out, Duration d, int precision = -1) {
     if (std::ratio_less<typename subsecond_precision::period,
                         std::chrono::seconds::period>::value) {
       *out++ = '.';
-      out = detail::fill_n(out, leading_zeroes, '0');
+      out = std::fill_n(out, leading_zeroes, '0');
       out = format_decimal<Char>(out, n, num_digits).end;
     }
-  } else if (precision > 0) {
+  } else {
     *out++ = '.';
     leading_zeroes = (std::min)(leading_zeroes, precision);
+    out = std::fill_n(out, leading_zeroes, '0');
     int remaining = precision - leading_zeroes;
-    out = detail::fill_n(out, leading_zeroes, '0');
-    if (remaining < num_digits) {
-      int num_truncated_digits = num_digits - remaining;
-      n /= to_unsigned(detail::pow10(to_unsigned(num_truncated_digits)));
-      if (n) {
-        out = format_decimal<Char>(out, n, remaining).end;
-      }
+    if (remaining != 0 && remaining < num_digits) {
+      n /= to_unsigned(detail::pow10(to_unsigned(num_digits - remaining)));
+      out = format_decimal<Char>(out, n, remaining).end;
       return;
     }
-    if (n) {
-      out = format_decimal<Char>(out, n, num_digits).end;
-      remaining -= num_digits;
-    }
-    out = detail::fill_n(out, remaining, '0');
+    out = format_decimal<Char>(out, n, num_digits).end;
+    remaining -= num_digits;
+    out = std::fill_n(out, remaining, '0');
   }
 }
 
@@ -1320,8 +1314,7 @@ class tm_writer {
     }
     uint32_or_64_or_128_t<long long> n = to_unsigned(year);
     const int num_digits = count_digits(n);
-    if (width > num_digits)
-      out_ = detail::fill_n(out_, width - num_digits, '0');
+    if (width > num_digits) out_ = std::fill_n(out_, width - num_digits, '0');
     out_ = format_decimal<Char>(out_, n, num_digits).end;
   }
   void write_year(long long year) {
@@ -2037,217 +2030,45 @@ struct chrono_formatter {
 
 #if defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907
 using weekday = std::chrono::weekday;
-using day = std::chrono::day;
-using month = std::chrono::month;
-using year = std::chrono::year;
-using year_month_day = std::chrono::year_month_day;
 #else
 // A fallback version of weekday.
 class weekday {
  private:
-  unsigned char value_;
+  unsigned char value;
 
  public:
   weekday() = default;
-  constexpr explicit weekday(unsigned wd) noexcept
-      : value_(static_cast<unsigned char>(wd != 7 ? wd : 0)) {}
-  constexpr auto c_encoding() const noexcept -> unsigned { return value_; }
+  explicit constexpr weekday(unsigned wd) noexcept
+      : value(static_cast<unsigned char>(wd != 7 ? wd : 0)) {}
+  constexpr auto c_encoding() const noexcept -> unsigned { return value; }
 };
 
-class day {
- private:
-  unsigned char value_;
-
- public:
-  day() = default;
-  constexpr explicit day(unsigned d) noexcept
-      : value_(static_cast<unsigned char>(d)) {}
-  constexpr explicit operator unsigned() const noexcept { return value_; }
-};
-
-class month {
- private:
-  unsigned char value_;
-
- public:
-  month() = default;
-  constexpr explicit month(unsigned m) noexcept
-      : value_(static_cast<unsigned char>(m)) {}
-  constexpr explicit operator unsigned() const noexcept { return value_; }
-};
-
-class year {
- private:
-  int value_;
-
- public:
-  year() = default;
-  constexpr explicit year(int y) noexcept : value_(y) {}
-  constexpr explicit operator int() const noexcept { return value_; }
-};
-
-class year_month_day {
- private:
-  fmt::year year_;
-  fmt::month month_;
-  fmt::day day_;
-
- public:
-  year_month_day() = default;
-  constexpr year_month_day(const year& y, const month& m, const day& d) noexcept
-      : year_(y), month_(m), day_(d) {}
-  constexpr fmt::year year() const noexcept { return year_; }
-  constexpr fmt::month month() const noexcept { return month_; }
-  constexpr fmt::day day() const noexcept { return day_; }
-};
+class year_month_day {};
 #endif
 
-template <typename Char>
-struct formatter<weekday, Char> : private formatter<std::tm, Char> {
+// A rudimentary weekday formatter.
+template <typename Char> struct formatter<weekday, Char> {
  private:
-  bool localized_{false};
-  bool use_tm_formatter_{false};
+  bool localized = false;
 
  public:
   FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
       -> decltype(ctx.begin()) {
-    auto it = ctx.begin(), end = ctx.end();
-    if (it != end && *it == 'L') {
-      ++it;
-      localized_ = true;
-      return it;
+    auto begin = ctx.begin(), end = ctx.end();
+    if (begin != end && *begin == 'L') {
+      ++begin;
+      localized = true;
     }
-    use_tm_formatter_ = it != end && *it != '}';
-    return use_tm_formatter_ ? formatter<std::tm, Char>::parse(ctx) : it;
+    return begin;
   }
 
   template <typename FormatContext>
   auto format(weekday wd, FormatContext& ctx) const -> decltype(ctx.out()) {
     auto time = std::tm();
     time.tm_wday = static_cast<int>(wd.c_encoding());
-    if (use_tm_formatter_) {
-      return formatter<std::tm, Char>::format(time, ctx);
-    }
-    detail::get_locale loc(localized_, ctx.locale());
+    detail::get_locale loc(localized, ctx.locale());
     auto w = detail::tm_writer<decltype(ctx.out()), Char>(loc, ctx.out(), time);
     w.on_abbr_weekday();
-    return w.out();
-  }
-};
-
-template <typename Char>
-struct formatter<day, Char> : private formatter<std::tm, Char> {
- private:
-  bool use_tm_formatter_{false};
-
- public:
-  FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
-      -> decltype(ctx.begin()) {
-    auto it = ctx.begin(), end = ctx.end();
-    use_tm_formatter_ = it != end && *it != '}';
-    return use_tm_formatter_ ? formatter<std::tm, Char>::parse(ctx) : it;
-  }
-
-  template <typename FormatContext>
-  auto format(day d, FormatContext& ctx) const -> decltype(ctx.out()) {
-    auto time = std::tm();
-    time.tm_mday = static_cast<int>(static_cast<unsigned>(d));
-    if (use_tm_formatter_) {
-      return formatter<std::tm, Char>::format(time, ctx);
-    }
-    detail::get_locale loc(false, ctx.locale());
-    auto w = detail::tm_writer<decltype(ctx.out()), Char>(loc, ctx.out(), time);
-    w.on_day_of_month(detail::numeric_system::standard);
-    return w.out();
-  }
-};
-
-template <typename Char>
-struct formatter<month, Char> : private formatter<std::tm, Char> {
- private:
-  bool localized_{false};
-  bool use_tm_formatter_{false};
-
- public:
-  FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
-      -> decltype(ctx.begin()) {
-    auto it = ctx.begin(), end = ctx.end();
-    if (it != end && *it == 'L') {
-      ++it;
-      localized_ = true;
-      return it;
-    }
-    use_tm_formatter_ = it != end && *it != '}';
-    return use_tm_formatter_ ? formatter<std::tm, Char>::parse(ctx) : it;
-  }
-
-  template <typename FormatContext>
-  auto format(month m, FormatContext& ctx) const -> decltype(ctx.out()) {
-    auto time = std::tm();
-    time.tm_mon = static_cast<int>(static_cast<unsigned>(m)) - 1;
-    if (use_tm_formatter_) {
-      return formatter<std::tm, Char>::format(time, ctx);
-    }
-    detail::get_locale loc(localized_, ctx.locale());
-    auto w = detail::tm_writer<decltype(ctx.out()), Char>(loc, ctx.out(), time);
-    w.on_abbr_month();
-    return w.out();
-  }
-};
-
-template <typename Char>
-struct formatter<year, Char> : private formatter<std::tm, Char> {
- private:
-  bool use_tm_formatter_{false};
-
- public:
-  FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
-      -> decltype(ctx.begin()) {
-    auto it = ctx.begin(), end = ctx.end();
-    use_tm_formatter_ = it != end && *it != '}';
-    return use_tm_formatter_ ? formatter<std::tm, Char>::parse(ctx) : it;
-  }
-
-  template <typename FormatContext>
-  auto format(year y, FormatContext& ctx) const -> decltype(ctx.out()) {
-    auto time = std::tm();
-    time.tm_year = static_cast<int>(y) - 1900;
-    if (use_tm_formatter_) {
-      return formatter<std::tm, Char>::format(time, ctx);
-    }
-    detail::get_locale loc(false, ctx.locale());
-    auto w = detail::tm_writer<decltype(ctx.out()), Char>(loc, ctx.out(), time);
-    w.on_year(detail::numeric_system::standard);
-    return w.out();
-  }
-};
-
-template <typename Char>
-struct formatter<year_month_day, Char> : private formatter<std::tm, Char> {
- private:
-  bool use_tm_formatter_{false};
-
- public:
-  FMT_CONSTEXPR auto parse(basic_format_parse_context<Char>& ctx)
-      -> decltype(ctx.begin()) {
-    auto it = ctx.begin(), end = ctx.end();
-    use_tm_formatter_ = it != end && *it != '}';
-    return use_tm_formatter_ ? formatter<std::tm, Char>::parse(ctx) : it;
-  }
-
-  template <typename FormatContext>
-  auto format(year_month_day val, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
-    auto time = std::tm();
-    time.tm_year = static_cast<int>(val.year()) - 1900;
-    time.tm_mon = static_cast<int>(static_cast<unsigned>(val.month())) - 1;
-    time.tm_mday = static_cast<int>(static_cast<unsigned>(val.day()));
-    if (use_tm_formatter_) {
-      return formatter<std::tm, Char>::format(time, ctx);
-    }
-    detail::get_locale loc(true, ctx.locale());
-    auto w = detail::tm_writer<decltype(ctx.out()), Char>(loc, ctx.out(), time);
-    w.on_iso_date();
     return w.out();
   }
 };
@@ -2329,26 +2150,27 @@ struct formatter<std::chrono::time_point<std::chrono::system_clock, Duration>,
   template <typename FormatContext>
   auto format(std::chrono::time_point<std::chrono::system_clock, Duration> val,
               FormatContext& ctx) const -> decltype(ctx.out()) {
-    std::tm tm = gmtime(val);
     using period = typename Duration::period;
     if (detail::const_check(
-            period::num == 1 && period::den == 1 &&
-            !std::is_floating_point<typename Duration::rep>::value)) {
-      return formatter<std::tm, Char>::format(tm, ctx);
+            period::num != 1 || period::den != 1 ||
+            std::is_floating_point<typename Duration::rep>::value)) {
+      const auto epoch = val.time_since_epoch();
+      auto subsecs = detail::fmt_duration_cast<Duration>(
+          epoch - detail::fmt_duration_cast<std::chrono::seconds>(epoch));
+
+      if (subsecs.count() < 0) {
+        auto second =
+            detail::fmt_duration_cast<Duration>(std::chrono::seconds(1));
+        if (epoch.count() < ((Duration::min)() + second).count())
+          FMT_THROW(format_error("duration is too small"));
+        subsecs += second;
+        val -= second;
+      }
+
+      return formatter<std::tm, Char>::do_format(gmtime(val), ctx, &subsecs);
     }
-    Duration epoch = val.time_since_epoch();
-    Duration subsecs = detail::fmt_duration_cast<Duration>(
-        epoch - detail::fmt_duration_cast<std::chrono::seconds>(epoch));
-    if (subsecs.count() < 0) {
-      auto second =
-          detail::fmt_duration_cast<Duration>(std::chrono::seconds(1));
-      if (tm.tm_sec != 0)
-        --tm.tm_sec;
-      else
-        tm = gmtime(val - second);
-      subsecs += detail::fmt_duration_cast<Duration>(std::chrono::seconds(1));
-    }
-    return formatter<std::tm, Char>::do_format(tm, ctx, &subsecs);
+
+    return formatter<std::tm, Char>::format(gmtime(val), ctx);
   }
 };
 

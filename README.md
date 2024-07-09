@@ -63,7 +63,7 @@ quanta.bat
 - dbsvr: 提供基础的数据库访问服务。
 - proxy: 提供基础的http访问服务。
 - cachesvr: 提供基础的数据缓存服务。
-- monitor: 提供基于httpserver服务，以及服务启停、监控的服务。
+- discover: 提供服务发现功能，以及基于http提供启停、监控的服务。
 
 # 依赖
 - lua

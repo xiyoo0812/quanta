@@ -11,7 +11,7 @@ local qsuccess          = quanta.success
 local jumphash          = codec.jumphash
 local signal_quit       = signal.quit
 
-local monitor           = quanta.get("monitor")
+local discover          = quanta.get("discover")
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
@@ -27,8 +27,7 @@ function RouterMgr:__init()
     --router接口
     self:build_service()
     --监听路由信息
-    monitor:watch_service_ready(self, "router")
-    monitor:watch_service_close(self, "router")
+    discover:watch_service(self, "router")
     event_mgr:add_listener(self, "rpc_service_kickout")
 end
 
@@ -44,13 +43,18 @@ end
 --服务上线
 function RouterMgr:on_service_ready(id, name, info)
     log_debug("[RouterMgr][on_service_ready] node: {}-{}, info: {}", name, id, info)
-    self:add_router(info.id, info.ip, info.port)
+    self:add_router(info.id, info.host, info.port)
 end
 
 --服务被踢下线
 function RouterMgr:rpc_service_kickout(router_id, reason)
     log_err("[RouterMgr][rpc_service_kickout] reason:{} router_id:{}", reason, router_id)
     signal_quit()
+end
+
+--注册服务
+function RouterMgr:login_service(pla_id, ser_name, ser_id)
+    return self:call_router(pla_id, "rpc_login_service", pla_id, ser_name, ser_id)
 end
 
 --添加router

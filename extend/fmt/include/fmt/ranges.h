@@ -13,7 +13,7 @@
 #include <tuple>
 #include <type_traits>
 
-#include "format.h"
+#include "base.h"
 
 FMT_BEGIN_NAMESPACE
 
@@ -159,13 +159,12 @@ class is_tuple_formattable_ {
   static constexpr const bool value = false;
 };
 template <typename T, typename C> class is_tuple_formattable_<T, C, true> {
-  template <size_t... Is>
-  static auto all_true(index_sequence<Is...>,
-                       integer_sequence<bool, (Is >= 0)...>) -> std::true_type;
-  static auto all_true(...) -> std::false_type;
-
-  template <size_t... Is>
-  static auto check(index_sequence<Is...>) -> decltype(all_true(
+  template <std::size_t... Is>
+  static auto check2(index_sequence<Is...>,
+                     integer_sequence<bool, (Is == Is)...>) -> std::true_type;
+  static auto check2(...) -> std::false_type;
+  template <std::size_t... Is>
+  static auto check(index_sequence<Is...>) -> decltype(check2(
       index_sequence<Is...>{},
       integer_sequence<bool,
                        (is_formattable<typename std::tuple_element<Is, T>::type,
@@ -388,7 +387,6 @@ struct range_formatter<
       detail::string_literal<Char, '['>{};
   basic_string_view<Char> closing_bracket_ =
       detail::string_literal<Char, ']'>{};
-  bool is_debug = false;
 
  public:
   FMT_CONSTEXPR range_formatter() {}
@@ -411,73 +409,36 @@ struct range_formatter<
   FMT_CONSTEXPR auto parse(ParseContext& ctx) -> decltype(ctx.begin()) {
     auto it = ctx.begin();
     auto end = ctx.end();
-    detail::maybe_set_debug_format(underlying_, true);
-    if (it == end) return underlying_.parse(ctx);
 
-    switch (detail::to_ascii(*it)) {
-    case 'n':
+    if (it != end && *it == 'n') {
       set_brackets({}, {});
       ++it;
-      break;
-    case '?':
-      is_debug = true;
-      set_brackets({}, {});
-      ++it;
-      if (it == end || *it != 's') report_error("invalid format specifier");
-      FMT_FALLTHROUGH;
-    case 's':
-      if (!std::is_same<T, Char>::value)
-        report_error("invalid format specifier");
-      if (!is_debug) {
-        set_brackets(detail::string_literal<Char, '"'>{},
-                     detail::string_literal<Char, '"'>{});
-        set_separator({});
-        detail::maybe_set_debug_format(underlying_, false);
-      }
-      ++it;
-      return it;
     }
 
     if (it != end && *it != '}') {
       if (*it != ':') report_error("invalid format specifier");
-      detail::maybe_set_debug_format(underlying_, false);
       ++it;
+    } else {
+      detail::maybe_set_debug_format(underlying_, true);
     }
 
     ctx.advance_to(it);
     return underlying_.parse(ctx);
   }
 
-  template <typename Output, typename It, typename Sentinel, typename U = T,
-            FMT_ENABLE_IF(std::is_same<U, Char>::value)>
-  auto write_debug_string(Output& out, It it, Sentinel end) const -> Output {
-    auto buf = basic_memory_buffer<Char>();
-    for (; it != end; ++it) buf.push_back(*it);
-    auto specs = format_specs();
-    specs.type = presentation_type::debug;
-    return detail::write<Char>(
-        out, basic_string_view<Char>(buf.data(), buf.size()), specs);
-  }
-  template <typename Output, typename It, typename Sentinel, typename U = T,
-            FMT_ENABLE_IF(!std::is_same<U, Char>::value)>
-  auto write_debug_string(Output& out, It, Sentinel) const -> Output {
-    return out;
-  }
-
   template <typename R, typename FormatContext>
   auto format(R&& range, FormatContext& ctx) const -> decltype(ctx.out()) {
     detail::range_mapper<buffered_context<Char>> mapper;
     auto out = ctx.out();
-    auto it = detail::range_begin(range);
-    auto end = detail::range_end(range);
-    if (is_debug) return write_debug_string(out, it, end);
-
     out = detail::copy<Char>(opening_bracket_, out);
     int i = 0;
+    auto it = detail::range_begin(range);
+    auto end = detail::range_end(range);
     for (; it != end; ++it) {
       if (i > 0) out = detail::copy<Char>(separator_, out);
       ctx.advance_to(out);
-      out = underlying_.format(mapper.map(*it), ctx);
+      auto&& item = *it;
+      out = underlying_.format(mapper.map(item), ctx);
       ++i;
     }
     out = detail::copy<Char>(closing_bracket_, out);
@@ -617,22 +578,6 @@ auto join(It begin, Sentinel end, string_view sep) -> join_view<It, Sentinel> {
   return {begin, end, sep};
 }
 
-namespace detail {
-// ADL helpers for fmt::join()
-namespace adl {
-using std::begin;
-using std::end;
-
-template <typename Range> auto adlbegin(Range& r) -> decltype(begin(r)) {
-  return begin(r);
-}
-
-template <typename Range> auto adlend(Range& r) -> decltype(end(r)) {
-  return end(r);
-}
-}  // namespace adl
-}  // namespace detail
-
 /**
   \rst
   Returns a view that formats `range` with elements separated by `sep`.
@@ -651,9 +596,8 @@ template <typename Range> auto adlend(Range& r) -> decltype(end(r)) {
  */
 template <typename Range>
 auto join(Range&& range, string_view sep)
-    -> join_view<decltype(detail::adl::adlbegin(range)),
-                 decltype(detail::adl::adlend(range))> {
-  return join(detail::adl::adlbegin(range), detail::adl::adlend(range), sep);
+    -> join_view<decltype(std::begin(range)), decltype(std::end(range))> {
+  return join(std::begin(range), std::end(range), sep);
 }
 
 template <typename Char, typename... T> struct tuple_join_view : detail::view {

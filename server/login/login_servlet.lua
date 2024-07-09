@@ -11,7 +11,7 @@ local tremove               = table.remove
 local tunpack               = table.unpack
 local guid_encode           = codec.guid_encode
 
-local monitor               = quanta.get("monitor")
+local discover              = quanta.get("discover")
 local login_dao             = quanta.get("login_dao")
 local event_mgr             = quanta.get("event_mgr")
 local router_mgr            = quanta.get("router_mgr")
@@ -45,10 +45,8 @@ function LoginServlet:__init()
     protobuf_mgr:register(self, "NID_LOGIN_ACCOUNT_LOGIN_REQ", "on_account_login_req")
     protobuf_mgr:register(self, "NID_LOGIN_ACCOUNT_RELOAD_REQ", "on_account_reload_req")
     --关注gateway和lobby
-    monitor:watch_service_ready(self, "gateway")
-    monitor:watch_service_close(self, "gateway")
-    monitor:watch_service_ready(self, "lobby")
-    monitor:watch_service_close(self, "lobby")
+    discover:watch_service(self, "gateway")
+    discover:watch_service(self, "lobby")
     --添加事件监听
     event_mgr:add_listener(self, "on_safe_text")
     --定时器
@@ -300,7 +298,7 @@ function LoginServlet:find_gateway(account, role_id)
     if not gate_info then
         return false
     end
-    local ip, port = gate_info.ip, gate_info.port
+    local ip, port = gate_info.host, gate_info.port
     local gateway = {
         port = port,
         lobby = lobby,

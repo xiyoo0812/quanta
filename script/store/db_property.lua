@@ -20,6 +20,10 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, storekey)
     class["flush_" .. sheet .. "_db"] = function(self, timely)
         self[storekey]:flush(self, timely)
     end
+    class["delete_" .. sheet .. "_db"] = function(self)
+        self[storekey]:delete(self)
+        self[storekey] = nil
+    end
     class["is_" .. sheet .. "_loaded"] = function(self)
         return self["__" .. sheet .. "_loaded"]
     end
@@ -122,6 +126,7 @@ local function db_prop_op_values(class, sheetkey, storekey, name, default)
             if sheetkeys then
                 self[storekey]:update_field(sheetkeys, name, key)
             end
+            return true
         end
     end
 end
@@ -172,6 +177,7 @@ local function db_prop_op_objects(class, sheetkey, storekey, name, default)
                 value[storekey] = nil
                 value[sheetkey] = nil
             end
+            return value
         end
     end
 end
