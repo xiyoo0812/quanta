@@ -3,7 +3,7 @@
 #include <sstream>
 
 #include "lua_kit.h"
-#include "csv.hpp"
+#include "lcsv.h"
 
 using namespace std;
 using namespace csv2;
@@ -30,7 +30,6 @@ namespace lcsv {
         int index = 1;
         int keyidx = luaL_optinteger(L, 2, 0) - 1;
         lua_createtable(L, 0, 4);
-        int xxx = reader.rows();
         for (const auto& row : reader) {
             if (row.length() <= 0) {
                 continue;
@@ -72,7 +71,7 @@ namespace lcsv {
         return decode_reader(L, csv);
     }
 
-    inline int open_csv(lua_State* L, const char* csvfile) {
+    inline int read_csv(lua_State* L, const char* csvfile) {
         csv_reader csv;
         if (!csv.mmap(csvfile)) {
             luaL_error(L, "parse csv failed!");
@@ -164,13 +163,39 @@ namespace lcsv {
         return 1;
     }
 
+    static csv_file* open_csv(const char* filename) {
+        auto excel = new csv_file();
+        if (!excel->open(filename)) {
+            delete excel;
+            return nullptr;
+        }
+        return excel;
+    }
+
     lua_table open_lcsv(lua_State* L) {
         kit_state kit_state(L);
         lua_table csv = kit_state.new_table("csv");
         csv.set_function("decode", decode_csv);
         csv.set_function("encode", encode_csv);
-        csv.set_function("open", open_csv);
+        csv.set_function("read", read_csv);
         csv.set_function("save", save_csv);
+        csv.set_function("open", open_csv);
+        kit_state.new_class<cell>(
+            "type", &cell::type,
+            "value", &cell::value
+            );
+        kit_state.new_class<sheet>(
+            "name", &sheet::name,
+            "last_row", &sheet::last_row,
+            "last_col", &sheet::last_col,
+            "first_row", &sheet::first_row,
+            "first_col", &sheet::first_col,
+            "get_cell", &sheet::get_cell
+            );
+        kit_state.new_class<csv_file>(
+            "sheets", &csv_file::sheets,
+            "get_sheet", &csv_file::get_sheet
+            );
         return csv;
     }
 }

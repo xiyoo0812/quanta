@@ -4,6 +4,9 @@
     <ClInclude Include="src\csv.hpp">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\lcsv.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lcsv.cpp">

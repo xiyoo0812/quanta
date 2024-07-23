@@ -8,6 +8,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\csv.hpp" />
+    <ClInclude Include="src\lcsv.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lcsv.cpp" />

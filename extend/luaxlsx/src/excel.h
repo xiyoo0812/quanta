@@ -11,8 +11,7 @@
 using namespace std;
 using namespace tinyxml2;
 
-namespace lxlsx
-{
+namespace lxlsx {
     bool is_date_ime(uint32_t id) {
         return (id >= 14 && id <= 22) || (id >= 27 && id <= 36) || (id >= 45 && id <= 47)
             || (id >= 50 && id <= 58) || (id >= 71 && id <= 81);
@@ -22,8 +21,7 @@ namespace lxlsx
         return id > 165;
     }
 
-    class cell
-    {
+    class cell {
     public:
         void __gc() {}
         string type = "";
@@ -41,8 +39,7 @@ namespace lxlsx
         }
     };
 
-    class sheet
-    {
+    class sheet {
     public:
         ~sheet() {
             for (auto cell : cells){ if (cell) delete cell; }
@@ -75,8 +72,7 @@ namespace lxlsx
         vector<cell*> cells = {};
     };
 
-    class excel_file
-    {
+    class excel_file {
     public:
         ~excel_file() { 
             mz_zip_reader_end(&archive);

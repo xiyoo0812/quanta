@@ -1,5 +1,5 @@
 --filter_cfg.lua
---source: filter.xlsm
+--source: filter.csv
 --luacheck: ignore 631
 
 --获取配置表

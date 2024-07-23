@@ -1,0 +1,7 @@
+﻿协议过滤器,id,消息名,日志输出过滤,协议并发过滤
+Server,int,string,bool,bool
+Client,,,,
+VariableName,id,name,log,proto
+Start,1,NID_HEARTBEAT_REQ,1,
+,2,NID_LOGIN_ROLE_LOGIN_REQ,,1
+,,,,

@@ -1,18 +1,20 @@
 --convertor.lua
-local ljson     = require("ljson")
-local lstdfs    = require("lstdfs")
-local lexcel    = require("luaxlsx")
+require("lcsv")
+require("ljson")
+require("lstdfs")
+require("luaxlsx")
 
 local pairs         = pairs
 local iopen         = io.open
-local ldir          = lstdfs.dir
-local lstem         = lstdfs.stem
-local lmkdir        = lstdfs.mkdir
-local lappend       = lstdfs.append
-local lconcat       = lstdfs.concat
-local lfilename     = lstdfs.filename
-local lcurdir       = lstdfs.current_path
-local jpretty       = ljson.pretty
+local ldir          = stdfs.dir
+local lstem         = stdfs.stem
+local lmkdir        = stdfs.mkdir
+local lappend       = stdfs.append
+local lconcat       = stdfs.concat
+local lfilename     = stdfs.filename
+local lextension    = stdfs.extension
+local lcurdir       = stdfs.current_path
+local jpretty       = json.pretty
 local serialize     = luakit.serialize
 local unserialize   = luakit.unserialize
 local sfind         = string.find
@@ -294,42 +296,17 @@ local function find_sheet_data_struct(sheet)
     return headers, field_types
 end
 
-local function find_read_range(sheet, first_line, last_line)
-    if start_col <= 1 then
-        return first_line, last_line
-    end
-    local read_len, end_line = first_line, last_line
-    for row = read_len, last_line do
-        local start_tag = get_sheet_value(sheet, row, 1)
-        if start_tag == "Start" then
-            read_len = row
-            break
-        end
-    end
-    for row = read_len, last_line do
-        local end_tag = get_sheet_value(sheet, row, 1)
-        local fkey = get_sheet_value(sheet, row, 2)
-        if end_tag == "End" or not fkey or fkey == "" then
-            end_line = row
-            break
-        end
-    end
-    return read_len, end_line
-end
-
 --导出到目标文件
 local function export_sheet_to_output(sheet, output, fname, shname)
     local headers, field_types = find_sheet_data_struct(sheet)
     if tsize(field_types) <= 1 then
         --未定义数据定义，不导出此sheet
-        print(sformat("export excel %s sheet %s not need export!", fname, shname))
+        print(sformat("export config %s sheet %s not need export!", fname, shname))
         return
     end
-    --定位起始行
-    local read_len, end_line = find_read_range(sheet, start_line, sheet.last_row)
     -- 开始处理
     local records = {}
-    for row = read_len, end_line do
+    for row = start_line, sheet.last_row do
         local record = {}
         -- 遍历每一列
         for col = start_col, sheet.last_col do
@@ -348,23 +325,22 @@ local function export_sheet_to_output(sheet, output, fname, shname)
     print(sformat("export file: %s sheet: %s to %s success!", fname, shname, title))
 end
 
-local function is_excel_file(file)
-    if sfind(file, "~") then
-        return false
+local function is_config_file(ext)
+    return ext == ".xlsx" or ext == ".xlsm" or ext == ".csv"
+end
+
+local function load_workbook(ext, filename)
+    if ext == ".xlsx" or ext == ".xlsm" then
+        return xlsx.open(filename)
     end
-    local pos = sfind(file, "%.xlsm")
-    if pos then
-        return true
+    if ext == ".csv" then
+        return csv.open(filename)
     end
-    pos = sfind(file, "%.xlsx")
-    if pos then
-        return true
-    end
-    return false
 end
 
 --入口函数
-local function export_excel(input, output)
+local function export_config(input, output)
+    print("export_config:", input, output)
     local files = ldir(input)
     if files == 0 then
         error(sformat("input dir: %s not exist!", input))
@@ -381,21 +357,22 @@ local function export_excel(input, output)
             local fname = lfilename(fullname)
             local soutput = lappend(output, fname)
             lmkdir(soutput)
-            export_excel(fullname, soutput)
+            export_config(fullname, soutput)
             goto continue
         end
-        if is_excel_file(fullname) then
+        local ext = lextension(fullname)
+        if is_config_file(ext) then
             local fname = lfilename(fullname)
-            local workbook = lexcel.open(fullname)
+            local workbook = load_workbook(ext, fullname)
             if not workbook then
-                print(sformat("open excel %s failed!", fullname))
+                print(sformat("open config %s failed!", fullname))
                 goto continue
             end
             local sheets = workbook.sheets()
             for _, sheet in ipairs(sheets) do
                 local title = slower(sheet.name)
                 if sheet.last_row < start_line or sheet.last_col <= 0 then
-                    print(sformat("export excel %s sheet %s empty!", fullname, title))
+                    print(sformat("export config %s sheet %s empty!", fullname, title))
                     goto next
                 end
                 export_sheet_to_output(sheet, output, fname, title)
@@ -415,7 +392,7 @@ local format_methods = {
 }
 
 --检查配置
-local function export_config()
+local function read_cmdline()
     local input = lcurdir()
     local output = lcurdir()
     local env_input = ogetenv("QUANTA_INPUT")
@@ -463,11 +440,11 @@ local function export_config()
 end
 
 print("useage: quanta.exe [--entry=convertor] [--input=xxx] [--output=xxx]")
-print("begin export excels to lua!")
-local input, output = export_config()
-local ok, err = pcall(export_excel, input, output)
+print("begin export configs to lua!")
+local input, output = read_cmdline()
+local ok, err = pcall(export_config, input, output)
 if not ok then
-    print("export excel to lua failed:", err)
+    print("export config to lua failed:", err)
     return
 end
-print("success export excels to lua!")
+print("success export configs to lua!")

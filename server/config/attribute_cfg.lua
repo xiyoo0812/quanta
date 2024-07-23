@@ -1,5 +1,5 @@
 --attribute_cfg.lua
---source: attribute.xlsm
+--source: attribute.csv
 --luacheck: ignore 631
 
 --获取配置表

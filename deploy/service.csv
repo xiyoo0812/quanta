@@ -1,0 +1,17 @@
+﻿服务表,服务id,服务名字,emun,是否启用
+Server,int,string,string,bool
+Client,,,,
+VariableName,id,name,enum_key,enable
+Start,1,lobby,LOBBY,1
+,11,login,LOGIN,1
+,12,gateway,GATEWAY,1
+,13,router,ROUTER,1
+,14,online,ONLINE,1
+,15,center,CENTER,1
+,16,discover,DISCOVER,1
+,17,cache,CACHE,1
+,28,mongo,MONGO,1
+,29,redis,REDIS,1
+,30,mysql,MYSQL,0
+,31,test,TEST,1
+,32,tool,TOOL,0

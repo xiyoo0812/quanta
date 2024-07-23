@@ -1,5 +1,5 @@
 --player_attr_cfg.lua
---source: attribute.xlsm
+--source: player_attr.csv
 --luacheck: ignore 631
 
 --获取配置表

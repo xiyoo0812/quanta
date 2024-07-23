@@ -18,5 +18,5 @@ log_dump("lcsv encode csv:{}", yxml)
 local ok = csv.save("./bb.csv", xlua)
 log_dump("lcsv save csv:{}", ok)
 
-local flua = csv.open("./bb.csv")
-log_dump("lcsv open csv:{}", flua)
+local flua = csv.read("./bb.csv")
+log_dump("lcsv read csv:{}", flua)
