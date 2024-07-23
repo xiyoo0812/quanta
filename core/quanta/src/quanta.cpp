@@ -1,12 +1,15 @@
 ﻿#include <locale>
 #include <stdlib.h>
-#if defined(__ORBIS__) || defined(__PROSPERO__)
-#include <sys/signal.h>
+#include <functional>
+
+#include "quanta.h"
+
+#if defined(__ORBIS__) || defined(__PROSPERO__) || defined(__NINTENDO__)
+#define _signal(s, t)
 #else
 #include <signal.h>
+#define _signal signal
 #endif
-#include <functional>
-#include "quanta.h"
 
 #if WIN32
 #include <conio.h>
@@ -160,9 +163,9 @@ luakit::lua_table quanta_app::init() {
     quanta.set_function("daemon", [&]() { daemon(); });
     quanta.set_function("get_signal", [&]() { return m_signal; });
     quanta.set_function("set_signal", [&](int n, bool b) { set_signal(n, b); });
-    quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
-    quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
-    quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
+    quanta.set_function("ignore_signal", [](int n) { _signal(n, SIG_IGN); });
+    quanta.set_function("default_signal", [](int n) { _signal(n, SIG_DFL); });
+    quanta.set_function("register_signal", [](int n) { _signal(n, on_signal); });
     quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
     quanta.set_function("setenv", [&](std::string key, std::string value) { return set_env(key, value, 1); });
 

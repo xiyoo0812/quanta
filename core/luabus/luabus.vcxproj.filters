@@ -19,6 +19,9 @@
     <ClInclude Include="src\socket_mgr.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\socket_ping.h">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="src\socket_router.h">
       <Filter>src</Filter>
     </ClInclude>

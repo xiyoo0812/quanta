@@ -10,16 +10,14 @@ local co_hookor     = quanta.load("co_hookor")
 --协程改造
 function quanta.init_coroutine()
     coroutine.yield = function(...)
-        local rco = co_running()
         if co_hookor then
-            co_hookor:yield(rco)
+            co_hookor:yield(co_running())
         end
         return raw_yield(...)
     end
     coroutine.resume = function(co, ...)
-        local rco = co_running()
         if co_hookor then
-            co_hookor:yield(rco)
+            co_hookor:yield(co_running())
             co_hookor:resume(co)
         end
         local args = tpack(raw_resume(co, ...))

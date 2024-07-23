@@ -5,7 +5,7 @@
 
 #include "lua_kit.h"
 
-#ifdef _MSC_VER
+#ifdef WIN32
 #define strncasecmp _strnicmp
 #endif
 

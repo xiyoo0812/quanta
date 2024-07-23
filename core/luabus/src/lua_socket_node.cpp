@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "lua_socket_node.h"
 
-lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, stdsptr<socket_mgr> mgr, stdsptr<socket_router> router, eproto_type type) 
+lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, stdsptr<socket_mgr> mgr, stdsptr<socket_router> router, eproto_type type)
         : m_token(token), m_type(type), m_mgr(mgr), m_router(router) {
     m_stoken = (m_token & 0xffff) << 16;
     m_lvm = std::make_shared<kit_state>(L);
@@ -109,7 +109,7 @@ int lua_socket_node::forward_transfer(lua_State* L, uint32_t session_id, uint32_
             lua_pushinteger(L, length);
             return 1;
         }
-    }    
+    }
     lua_pushinteger(L, 0);
     return 1;
 }
@@ -184,7 +184,7 @@ int lua_socket_node::transfer_call(lua_State* L, uint32_t session_id, uint32_t t
         }
     }
     lua_pushinteger(L, 0);
-    return 0;
+    return 1;
 }
 
 int lua_socket_node::transfer_hash(lua_State* L, uint32_t session_id, uint16_t service_id, uint16_t hash) {
@@ -206,7 +206,7 @@ int lua_socket_node::transfer_hash(lua_State* L, uint32_t session_id, uint16_t s
         }
     }
     lua_pushinteger(L, 0);
-    return 0;
+    return 1;
 }
 
 void lua_socket_node::on_recv(slice* slice) {

@@ -46,11 +46,7 @@
 #include <locale.h>
 #include <math.h>
 #include <setjmp.h>
-#if defined(__ORBIS__) || defined(__PROSPERO__) /* PlayStation 4 and 5 */
-#include <sys/signal.h>
-#else
 #include <signal.h>
-#endif
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>

@@ -1,11 +1,11 @@
 --kernel.lua
+require("ltimer")
 import("basic/basic.lua")
 
 local log_warn      = logger.warn
 local lclock_ms     = timer.clock_ms
 local ltime         = timer.time
 
-local scheduler     = quanta.load("scheduler")
 local socket_mgr    = quanta.load("socket_mgr")
 local update_mgr    = quanta.load("update_mgr")
 
@@ -21,8 +21,19 @@ local function init_core()
     import("kernel/perfeval_mgr.lua")
 end
 
+--加载扩展库
+local function init_library()
+    require("lssl")
+    require("luapb")
+    require("ljson")
+    require("lbson")
+    require("lcodec")
+    require("lsqlite")
+end
+
 --初始化网络
 local function init_network()
+    require("luabus")
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
     socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
@@ -33,9 +44,11 @@ end
 local function init_mainloop()
     import("kernel/timer_mgr.lua")
     import("kernel/update_mgr.lua")
-    import("feature/scheduler.lua")
     update_mgr = quanta.get("update_mgr")
-    scheduler = quanta.get("scheduler")
+    if environ.status("QUANTA_THREAD") then
+        require("lworker")
+        import("feature/scheduler.lua")
+    end
 end
 
 --初始化store
@@ -64,6 +77,8 @@ end
 function quanta.main()
     --核心加载
     init_core()
+    --初始化基础库
+    init_library()
     --初始化基础模块
     signal.init()
     environ.init()
@@ -98,11 +113,10 @@ end
 --底层驱动
 quanta.run = function()
     local sclock_ms = lclock_ms()
-    scheduler:update(sclock_ms)
     socket_mgr.wait(sclock_ms, 10)
     --系统更新
     local now_ms, clock_ms = ltime()
-    update_mgr:update(scheduler, now_ms, clock_ms)
+    update_mgr:update(now_ms, clock_ms, true)
     --时间告警
     local io_ms = clock_ms - sclock_ms
     local work_ms = lclock_ms() - sclock_ms

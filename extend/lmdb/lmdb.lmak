@@ -13,8 +13,6 @@ INCLUDES = {
     "../luakit/include"
 }
 
-MIMALLOC = false
-
 --需要连接的库文件
 LIBS = {
     "lua"

@@ -5,10 +5,3 @@ SOLUTION = "quanta"
 
 --lmake目录
 LMAKE_DIR = "extend/lmake"
-
---ps平台
--- PS_PLATFORM = "Prospero"
--- PS_PLATFORM = "Orbis"
-
-
-

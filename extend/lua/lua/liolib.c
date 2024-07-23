@@ -286,7 +286,6 @@ static int io_pclose (lua_State *L) {
   return luaL_execresult(L, l_pclose(L, p->f));
 }
 
-
 static int io_popen (lua_State *L) {
   const char *filename = luaL_checkstring(L, 1);
   const char *mode = luaL_optstring(L, 2, "r");

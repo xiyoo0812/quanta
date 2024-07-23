@@ -116,7 +116,6 @@ namespace lminiz {
             return luaL_error(L, "error loading module '%s' from file '%s':\n\t%s", lua_tostring(L, 1), fname, lua_tostring(L, -1));
         });
         lua.set_function("dofile", [&](lua_State* L) {
-            const char* fname = luaL_optstring(L, 1, NULL);
             lua_settop(L, 1);
             if (load_zip_file(L) != LUA_OK) {
                 return lua_error(L);

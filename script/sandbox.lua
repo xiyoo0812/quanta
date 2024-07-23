@@ -1,5 +1,6 @@
 --sandbox.lua
-require("basic.library")
+require("lualog")
+require("lstdfs")
 
 local pairs         = pairs
 local loadfile      = loadfile
@@ -10,6 +11,7 @@ local sgsub         = string.gsub
 local sformat       = string.format
 local traceback     = debug.traceback
 local qgetenv       = quanta.getenv
+local zexist        = quanta.zexist
 
 local LOG_LEVEL     = log.LOG_LEVEL
 local QUANTA_ZIP    = qgetenv("QUANTA_ZIP_MODE")
@@ -42,6 +44,7 @@ local function ssplit(str, token)
     return t
 end
 
+
 --加载部署日志
 if qgetenv("QUANTA_LOG_PATH") then
     log.add_file_dest(FEATURE, "devops.log")
@@ -65,7 +68,7 @@ end
 
 local function fexist(fname)
     if QUANTA_ZIP then
-        return zip.zexist(fname)
+        return zexist(fname)
     end
     local file = iopen(fname)
     if file then

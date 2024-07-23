@@ -1,4 +1,4 @@
---clock_mgr.lua
+--update_mgr.lua
 
 local pairs         = pairs
 local odate         = os.date
@@ -17,6 +17,7 @@ local thread_mgr    = quanta.get("thread_mgr")
 local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
 
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
+local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
@@ -63,7 +64,7 @@ function UpdateMgr:update_second(clock_ms)
     end
 end
 
-function UpdateMgr:update(scheduler, now_ms, clock_ms)
+function UpdateMgr:update(now_ms, clock_ms, master)
     --业务更新
     quanta.frame_ms = clock_ms - quanta.clock_ms
     quanta.clock_ms = clock_ms
@@ -99,7 +100,9 @@ function UpdateMgr:update(scheduler, now_ms, clock_ms)
     --执行gc
     collectgarbage("step", 10)
     --信号检查
-    self:check_signal(scheduler)
+    if master then
+        self:check_signal()
+    end
     --时间更新
     self:update_second(clock_ms)
     self:update_by_time(now, clock_ms)
@@ -153,30 +156,20 @@ function UpdateMgr:update_by_time(now, clock_ms)
     log_info("[UpdateMgr][update]now lua mem: {}!", collectgarbage("count"))
 end
 
-function UpdateMgr:check_signal(scheduler)
-    if scheduler then
-        local signal = sig_get()
-        if sig_reload(signal) then
-            log_info("[UpdateMgr][check_signal]service reload for signal !")
-            --重新加载脚本
-            quanta.reload()
-            --事件通知
-            event_mgr:notify_trigger("on_reload")
-            --通知woker更新
-            scheduler:broadcast("on_reload")
-            --输出状态
-            quanta.report("reload")
-        end
-        if sig_check(signal) then
-            log_info("[UpdateMgr][check_signal]service quit for signal !")
-            for obj in pairs(self.quit_objs) do
-                obj:on_quit()
-            end
-            --通知woker退出
-            scheduler:quit()
-            --退出
-            quanta.run = nil
-        end
+function UpdateMgr:check_signal()
+    local signal = sig_get()
+    if sig_reload(signal) then
+        log_info("[UpdateMgr][check_signal]service reload for signal !")
+        --重新加载脚本
+        quanta.reload()
+        --事件通知
+        event_mgr:notify_trigger("on_reload")
+        --输出状态
+        quanta.report("reload")
+    end
+    if sig_check(signal) then
+        log_info("[UpdateMgr][check_signal]service quit for signal !")
+        self:quit()
     end
 end
 
@@ -282,6 +275,17 @@ end
 
 function UpdateMgr:detach_quit(obj)
     self.quit_objs[obj] = nil
+end
+
+function UpdateMgr:quit()
+    log_info("[UpdateMgr][quit] service quit !")
+    for obj in pairs(self.quit_objs) do
+        obj:on_quit()
+    end
+    --退出
+    timer_mgr:once(HALF_MS, function()
+        quanta.run = nil
+    end)
 end
 
 quanta.update_mgr = UpdateMgr()

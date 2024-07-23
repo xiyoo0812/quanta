@@ -4,10 +4,10 @@
 
 struct socket_stream : public socket_object
 {
-#ifdef _MSC_VER
-    socket_stream(socket_mgr* mgr, LPFN_CONNECTEX connect_func);
+#ifdef IO_IOCP
+    socket_stream(socket_mgr* mgr, socket_t fd, LPFN_CONNECTEX connect_func);
 #endif
-    socket_stream(socket_mgr* mgr);
+    socket_stream(socket_mgr* mgr, socket_t fd);
 
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
@@ -30,11 +30,13 @@ struct socket_stream : public socket_object
     void sendv(const sendv_item items[], int count) override;
     void stream_send(const char* data, size_t data_len);
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
+    int m_ovl_ref = 0;
+    WSAOVERLAPPED m_send_ovl;
+    WSAOVERLAPPED m_recv_ovl;
+    LPFN_CONNECTEX m_connect_func = nullptr;
     void on_complete(WSAOVERLAPPED* ovl) override;
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#else
     void on_can_recv(size_t max_len, bool is_eof) override { do_recv(max_len, is_eof); }
     void on_can_send(size_t max_len, bool is_eof) override;
 #endif
@@ -46,26 +48,20 @@ struct socket_stream : public socket_object
     void on_error(const char err[]);
     void on_connect(bool ok, const char reason[]);
 
-    socket_mgr* m_mgr = nullptr;
-    socket_t m_socket = INVALID_SOCKET;
-    std::shared_ptr<luabuf> m_recv_buffer = std::make_shared<luabuf>();
-    std::shared_ptr<luabuf> m_send_buffer = std::make_shared<luabuf>();
-
     sockaddr m_addr;
-    char m_ip[INET_ADDRSTRLEN];
     int m_timeout = -1;
+    char m_ip[INET_ADDRSTRLEN];
 
     int64_t m_last_recv_time = 0;
     int64_t m_connecting_time = 0;
 
-#ifdef _MSC_VER
-    LPFN_CONNECTEX m_connect_func = nullptr;
-    WSAOVERLAPPED m_send_ovl;
-    WSAOVERLAPPED m_recv_ovl;
-    int m_ovl_ref = 0;
-#endif
+    socket_mgr* m_mgr = nullptr;
+    socket_t m_socket = INVALID_SOCKET;
 
+    std::function<void(slice*)> m_package_cb = nullptr;
     std::function<void(const char*)> m_error_cb = nullptr;
     std::function<void(bool, const char*)> m_connect_cb = nullptr;
-    std::function<void(slice*)> m_package_cb = nullptr;
+
+    std::shared_ptr<luabuf> m_recv_buffer = std::make_shared<luabuf>();
+    std::shared_ptr<luabuf> m_send_buffer = std::make_shared<luabuf>();
 };

@@ -60,7 +60,7 @@ int socket_tcp::listen(lua_State* L, const char* ip, int port) {
     set_reuseaddr(m_fd);
     set_close_on_exec(m_fd);
     //bind && listen
-    size_t addr_len = 0;
+    socklen_t addr_len = 0;
     sockaddr_storage addr;
     make_ip_addr(&addr, &addr_len, ip, port);
     if (::bind(m_fd, (sockaddr*)&addr, (int)addr_len) != SOCKET_ERROR) {

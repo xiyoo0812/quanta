@@ -14,7 +14,6 @@ local jsoncodec     = json.jsoncodec
 local httpdcodec    = codec.httpdcodec
 local derive_port   = luabus.derive_port
 
-local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local HttpServer = class()
@@ -158,10 +157,7 @@ function HttpServer:response(socket, status, response, headers)
         headers["Content-Type"] = html and "text/html" or "text/plain"
     end
     socket:send_data(status, headers, response)
-    --下一帧关闭
-    event_mgr:fire_frame(function()
-        self:close(token, socket)
-    end)
+    self:close(token, socket)
 end
 
 --取消url

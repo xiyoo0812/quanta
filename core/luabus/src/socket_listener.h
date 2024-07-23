@@ -10,13 +10,9 @@
 
 struct socket_listener : public socket_object
 {
-#ifdef _MSC_VER
-    socket_listener(socket_mgr* mgr, 
-        LPFN_ACCEPTEX accept_func, 
-        LPFN_GETACCEPTEXSOCKADDRS addrs_func);
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_IOCP
+    socket_listener(socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func);
+#else
     socket_listener(socket_mgr* mgr);
 #endif
 
@@ -27,12 +23,10 @@ struct socket_listener : public socket_object
     void set_accept_callback(const std::function<void(int)> cb) override { m_accept_cb = cb; }
     void set_error_callback(const std::function<void(const char*)> cb) override { m_error_cb = cb; }
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     void on_complete(WSAOVERLAPPED* ovl);
     void queue_accept(WSAOVERLAPPED* ovl);
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#else
     void on_can_recv(size_t max_len, bool is_eof) override;
 #endif
 
@@ -42,7 +36,7 @@ private:
     std::function<void(int)> m_accept_cb;
     std::function<void(const char*)> m_error_cb;
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     struct listen_node
     {
         WSAOVERLAPPED ovl;

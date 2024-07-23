@@ -15,11 +15,10 @@
 #include <condition_variable>
 #include <assert.h>
 
-#include "fmt/core.h"
+#include "fmt/chrono.h"
 #include "lua_kit.h"
 
 #ifdef WIN32
-#include <process.h>
 #define getpid _getpid
 #else
 #include <unistd.h>
@@ -93,10 +92,10 @@ namespace logger {
         unsigned switch_bits_ = -1;
     }; // class log_filter
 
-    class log_time : public ::tm {
+    class log_time : public std::tm {
     public:
         static log_time now();
-        log_time(const ::tm& tm, int usec) : ::tm(tm), tm_usec(usec) { }
+        log_time(const std::tm& tm, int usec) : std::tm(tm), tm_usec(usec) { }
         log_time() { }
 
     public:
@@ -112,8 +111,9 @@ namespace logger {
         vstring feature() const { return feature_; }
         bool is_grow() const { return grow_; }
         void set_grow(bool grow) { grow_ = grow; }
+        int get_usec() { return log_time_.tm_usec; }
         log_level level() const { return level_; }
-        const log_time& get_log_time()const { return log_time_; }
+        const std::tm& get_time() const { return log_time_; }
         void option(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line);
 
     private:
@@ -178,14 +178,14 @@ namespace logger {
         log_file_base(size_t max_line) : line_(0), max_line_(max_line) {}
         virtual ~log_file_base();
 
-        const log_time& file_time() const;
+        const std::tm& file_time() const { return file_time_; }
         virtual void raw_write(vstring msg, log_level lvl);
         virtual void flush();
 
-        void create(path file_path, vstring file_name, const log_time& file_time);
+        void create(path file_path, vstring file_name, const std::tm& file_time);
 
     protected:
-        log_time        file_time_;
+        std::tm         file_time_;
         size_t          line_, max_line_;
         std::unique_ptr<std::ofstream> file_ = nullptr;
     }; // class log_file

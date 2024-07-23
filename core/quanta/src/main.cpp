@@ -15,7 +15,6 @@ int main(int argc, const char* argv[])
     tzset();
 #endif
     quanta_app q_app;
-    q_app.set_env("QUANTA_DYNAMIC", "1");
     q_app.setup(argc, argv);
     q_app.run();
     return 0;

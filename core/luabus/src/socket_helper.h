@@ -5,7 +5,7 @@
 const int SOCKET_RECV_LEN   = 4096;
 const int SOCKET_PACKET_MAX = 1024 * 1024 * 16; //16m
 
-#if defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef SCE_API
 using BYTE = unsigned char;
 using socket_t = SceNetId;
 using socklen_t = SceNetSocklen_t;
@@ -49,12 +49,15 @@ constexpr int _countof(T(&_array)[N]) { return N; }
 #define IPPROTO_IP SCE_NET_IPPROTO_IP
 #define IPPROTO_TCP SCE_NET_IPPROTO_TCP
 #define IPPROTO_UDP SCE_NET_IPPROTO_UDP
+#define IPPROTO_ICMP SCE_NET_IPPROTO_ICMP
 
-#define SOL_SOCKET SCE_NET_SOL_SOCKET
+#define SOCK_RAW SCE_NET_SOCK_RAW
 #define SOCK_DGRAM SCE_NET_SOCK_DGRAM
 #define SOCK_STREAM SCE_NET_SOCK_STREAM
+#define SOL_SOCKET SCE_NET_SOL_SOCKET
 #define TCP_NODELAY SCE_NET_TCP_NODELAY
 #define SO_ERROR SCE_NET_SO_ERROR
+#define SO_RCVTIMEO SCE_NET_SO_RCVTIMEO
 #define SO_REUSEADDR SCE_NET_SO_REUSEADDR
 
 #define EPOLLIN SCE_NET_EPOLLIN
@@ -73,14 +76,7 @@ constexpr int _countof(T(&_array)[N]) { return N; }
 #define WSAEINPROGRESS EINPROGRESS
 #endif
 
-#if defined(__linux) || defined(__APPLE__)
-#include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <netdb.h>
-#include <cstring>
-#include <sys/stat.h>
-#include <netinet/udp.h>
+#ifdef POSIXI_API
 using socket_t = int;
 using BYTE = unsigned char;
 const int SOCKET_ERROR = -1;
@@ -90,11 +86,13 @@ inline void closesocket(socket_t fd) { close(fd); }
 template <typename T, int N>
 constexpr int _countof(T(&_array)[N]) { return N; }
 #define SD_RECEIVE SHUT_RD
+#define SD_SEND    SHUT_WR
+#define SD_BOTH    SHUT_RDWR
 #define WSAEWOULDBLOCK EWOULDBLOCK
 #define WSAEINPROGRESS EINPROGRESS
 #endif
 
-#ifdef _MSC_VER
+#ifdef WIN32
 using socket_t = SOCKET;
 inline int get_socket_error() { return WSAGetLastError(); }
 bool wsa_send_empty(socket_t fd, WSAOVERLAPPED& ovl);
@@ -104,7 +102,7 @@ bool wsa_recv_empty(socket_t fd, WSAOVERLAPPED& ovl);
 template <typename T>
 using stdsptr = std::shared_ptr<T>;
 
-bool make_ip_addr(sockaddr_storage* addr, size_t* len, const char ip[], int port);
+bool make_ip_addr(sockaddr_storage* addr, socklen_t* len, const char ip[], int port);
 // ip字符串建议大小: char ip[INET6_ADDRSTRLEN];
 bool get_ip_string(char ip[], size_t ip_size, const void* addr);
 void set_no_block(socket_t fd);

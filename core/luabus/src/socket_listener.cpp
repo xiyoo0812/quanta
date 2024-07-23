@@ -2,9 +2,8 @@
 #include "socket_mgr.h"
 #include "socket_listener.h"
 
-#ifdef _MSC_VER
-socket_listener::socket_listener(socket_mgr* mgr,
-    LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) {
+#ifdef IO_IOCP
+socket_listener::socket_listener(socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) {
     mgr->increase_count();
     m_mgr = mgr;
     m_accept_func = accept_func;
@@ -14,9 +13,7 @@ socket_listener::socket_listener(socket_mgr* mgr,
         node.fd = INVALID_SOCKET;
     }
 }
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#else
 socket_listener::socket_listener(socket_mgr* mgr) {
     mgr->increase_count();
     m_mgr = mgr;
@@ -24,7 +21,7 @@ socket_listener::socket_listener(socket_mgr* mgr) {
 #endif
 
 socket_listener::~socket_listener() {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     for (auto& node : m_nodes) {
         if (node.fd != INVALID_SOCKET) {
             closesocket(node.fd);
@@ -52,7 +49,7 @@ bool socket_listener::update(int64_t) {
         m_socket = INVALID_SOCKET;
     }
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     if (m_ovl_ref == 0 && m_link_status == elink_status::link_connected) {
         for (auto& node : m_nodes) {
             if (node.fd == INVALID_SOCKET) {
@@ -63,18 +60,16 @@ bool socket_listener::update(int64_t) {
 #endif
 
     if (m_link_status == elink_status::link_closed) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
         return m_ovl_ref != 0;
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#else
         return false;
 #endif
     }
     return true;
 }
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
 void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
     m_ovl_ref--;
     if (m_link_status != elink_status::link_connected)
@@ -102,14 +97,8 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
 
     set_no_block(node->fd);
 
-    auto token = m_mgr->accept_stream(m_token, node->fd, ip);
-    if (token == 0) {
-        closesocket(node->fd);
-    }
-    else {
-        m_accept_cb(token);
-    }
-
+    m_mgr->accept_stream(m_token, node->fd, ip);
+    m_accept_cb(node->fd);
     node->fd = INVALID_SOCKET;
     queue_accept(ovl);
 }
@@ -163,22 +152,14 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
         get_ip_string(ip, sizeof(ip), remote_addr);
 
-        auto token = m_mgr->accept_stream(m_token, node->fd, ip);
-        if (token == 0) {
-            closesocket(node->fd);
-            node->fd = INVALID_SOCKET;
-            m_link_status = elink_status::link_closed;
-            m_error_cb("new-stream-failed");
-            return;
-        }
-
+        m_mgr->accept_stream(m_token, node->fd, ip);
+        m_accept_cb(node->fd);
         node->fd = INVALID_SOCKET;
-        m_accept_cb(token);
     }
 }
 #endif
 
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifndef IO_IOCP
 void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
     size_t total_accept = 0;
     while (total_accept < max_len && m_link_status == elink_status::link_connected) {
@@ -201,13 +182,8 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
         set_no_delay(fd, 1);
         set_close_on_exec(fd);
 
-        auto token = m_mgr->accept_stream(m_token, fd, ip);
-        if (token != 0) {
-            m_accept_cb(token);
-        }
-        else {
-            closesocket(fd);
-        }
+        m_mgr->accept_stream(m_socket, fd, ip);
+        m_accept_cb(fd);
     }
 }
 #endif

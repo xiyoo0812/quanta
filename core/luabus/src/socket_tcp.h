@@ -9,7 +9,7 @@ public:
     socket_tcp(socket_t fd) : m_fd(fd) {};
 
     ~socket_tcp();
-    
+
     void close();
 
     bool setup();

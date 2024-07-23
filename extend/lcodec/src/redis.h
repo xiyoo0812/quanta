@@ -2,7 +2,7 @@
 #include <deque>
 #include <string>
 
-#ifdef _MSC_VER
+#ifdef WIN32
 #define strncasecmp _strnicmp
 #endif
 

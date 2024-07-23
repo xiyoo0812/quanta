@@ -23,7 +23,7 @@ bool socket_udp::setup() {
 }
 
 int socket_udp::listen(lua_State* L, const char* ip, int port) {
-    size_t addr_len = 0;
+    socklen_t addr_len = 0;
     sockaddr_storage addr;
     make_ip_addr(&addr, &addr_len, ip, port);
     if (::bind(m_fd, (sockaddr*)&addr, (int)addr_len) == SOCKET_ERROR) {
@@ -36,7 +36,7 @@ int socket_udp::listen(lua_State* L, const char* ip, int port) {
 }
 
 int socket_udp::send(lua_State* L, const char* buf, size_t len, const char* ip, int port) {
-    size_t addr_len = 0;
+    socklen_t addr_len = 0;
     sockaddr_storage addr;
     make_ip_addr(&addr, &addr_len, ip, port);
     int send_len = sendto(m_fd, buf, len, 0, (sockaddr*)&addr, sizeof(sockaddr));

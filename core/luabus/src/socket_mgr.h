@@ -14,9 +14,10 @@ using namespace luakit;
 enum class elink_status : int
 {
     link_init       = 0,
-    link_connected  = 1,
-    link_colsing    = 2,
-    link_closed     = 3,
+    link_connecting = 1,
+    link_connected  = 2,
+    link_closing    = 3,
+    link_closed     = 4,
 };
 
 // 协议类型
@@ -25,7 +26,7 @@ enum class eproto_type : int
     proto_pb        = 0,    // pb协议，pb
     proto_rpc       = 1,    // rpc协议，rpc
     proto_text      = 2,    // text协议，mysql/mongo/http/wss/redis
-    proto_max       = 3,    // max 
+    proto_max       = 3,    // max
 };
 
 struct sendv_item
@@ -56,11 +57,9 @@ struct socket_object
     virtual void set_package_callback(const std::function<void(slice*)> cb) { }
     virtual bool is_same_kind(uint32_t kind) { return m_kind == kind; }
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     virtual void on_complete(WSAOVERLAPPED* ovl) = 0;
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#else
     virtual void on_can_recv(size_t data_len = UINT_MAX, bool is_eof = false) {};
     virtual void on_can_send(size_t data_len = UINT_MAX, bool is_eof = false) {};
 #endif
@@ -80,7 +79,7 @@ public:
 
     bool setup(int max_connection);
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     bool get_socket_funcs();
 #endif
 
@@ -110,14 +109,14 @@ public:
     bool watch_connecting(socket_t fd, socket_object* object);
     bool watch_connected(socket_t fd, socket_object* object);
     bool watch_send(socket_t fd, socket_object* object, bool enable);
-    int accept_stream(uint32_t ltoken, socket_t fd, const char ip[]);
+    int accept_stream(socket_t lfd, socket_t fd, const char ip[]);
 
     void increase_count() { m_count++; }
     void decrease_count() { m_count--; }
     bool is_full() { return m_count >= m_max_count; }
 
 private:
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     LPFN_ACCEPTEX m_accept_func = nullptr;
     LPFN_CONNECTEX m_connect_func = nullptr;
     LPFN_GETACCEPTEXSOCKADDRS m_addrs_func = nullptr;
@@ -125,14 +124,20 @@ private:
     std::vector<OVERLAPPED_ENTRY> m_events;
 #endif
 
-#if defined (__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_EPOLL
     int m_handle = -1;
     std::vector<epoll_event> m_events;
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     int m_handle = -1;
     std::vector<struct kevent> m_events;
+#endif
+
+#ifdef IO_POLL
+    std::vector<struct pollfd> m_events;
+    std::unordered_map<socket_t, short> m_event_map;
+    bool poll_event_ctl(socket_t fd, short fevts);
 #endif
 
     socket_object* get_object(int token) {
@@ -143,15 +148,7 @@ private:
         return nullptr;
     }
 
-    uint32_t new_token() {
-        while (++m_token == 0 || m_objects.find(m_token) != m_objects.end()) {
-            // nothing ...
-        }
-        return m_token;
-    }
-
-    int m_max_count = 0;
     int m_count = 0;
-    uint32_t m_token = 0;
-    std::unordered_map<uint32_t, socket_object*> m_objects;
+    int m_max_count = 0;
+    std::unordered_map<socket_t, socket_object*> m_objects;
 };

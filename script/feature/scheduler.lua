@@ -14,19 +14,30 @@ local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
+local update_mgr    = quanta.load("update_mgr")
 
 local Scheduler = singleton()
 
 function Scheduler:__init()
+    --事件监听
+    update_mgr:attach_quit(self)
+    update_mgr:attach_frame(self)
+    event_mgr:add_trigger(self, "on_reload")
+    --启动
     worker.setup("quanta", environ.get("QUANTA_SANDBOX"))
 end
 
-function Scheduler:quit()
-    worker.shutdown()
+function Scheduler:on_reload()
+    --通知woker热更新
+    self:broadcast("on_reload")
 end
 
-function Scheduler:update(clock_ms)
+function Scheduler:on_frame(clock_ms)
     wupdate(clock_ms)
+end
+
+function Scheduler:on_quit()
+    worker.shutdown()
 end
 
 function Scheduler:startup(name, entry)

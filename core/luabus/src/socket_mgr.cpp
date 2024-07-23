@@ -4,12 +4,12 @@
 #include "socket_stream.h"
 #include "socket_listener.h"
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
 #pragma comment(lib, "Ws2_32.lib")
 #endif
 
 socket_mgr::socket_mgr() {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     WORD    wVersion = MAKEWORD(2, 2);
     WSADATA wsaData;
     WSAStartup(wVersion, &wsaData);
@@ -17,11 +17,12 @@ socket_mgr::socket_mgr() {
 }
 
 socket_mgr::~socket_mgr() {
+    m_events.clear();
     for (auto& node : m_objects) {
         delete node.second;
     }
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     if (m_handle != INVALID_HANDLE_VALUE) {
         CloseHandle(m_handle);
         m_handle = INVALID_HANDLE_VALUE;
@@ -29,7 +30,7 @@ socket_mgr::~socket_mgr() {
     WSACleanup();
 #endif
 
-#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#if defined(IO_EPOLL) || defined(IO_KQUEUE)
     if (m_handle != -1) {
         ::close(m_handle);
         m_handle = -1;
@@ -38,7 +39,7 @@ socket_mgr::~socket_mgr() {
 }
 
 bool socket_mgr::setup(int max_connection) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     m_handle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
     if (m_handle == INVALID_HANDLE_VALUE)
         return false;
@@ -47,13 +48,13 @@ bool socket_mgr::setup(int max_connection) {
         return false;
 #endif
 
-#if defined (__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_EPOLL
     m_handle = epoll_create(max_connection);
     if (m_handle == -1)
         return false;
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     m_handle = kqueue();
     if (m_handle == -1)
         return false;
@@ -65,7 +66,7 @@ bool socket_mgr::setup(int max_connection) {
     return true;
 }
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
 bool socket_mgr::get_socket_funcs() {
     bool result = false;
     int ret = 0;
@@ -106,6 +107,9 @@ int socket_mgr::wait(int64_t now, int timeout) {
     while (it != end) {
         socket_object* object = it->second;
         if (!object->update(now)) {
+#ifdef IO_POLL
+            poll_event_ctl(it->first, 0);
+#endif
             it = m_objects.erase(it);
             delete object;
             continue;
@@ -114,7 +118,7 @@ int socket_mgr::wait(int64_t now, int timeout) {
     }
     int escape = ltimer::steady_ms() - now;
     timeout = escape >= timeout ? 0 : timeout - escape;
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     ULONG event_count = 0;
     int ret = GetQueuedCompletionStatusEx(m_handle, &m_events[0], (ULONG)m_events.size(), &event_count, (DWORD)timeout, false);
     if (ret) {
@@ -126,8 +130,24 @@ int socket_mgr::wait(int64_t now, int timeout) {
     }
 #endif
 
-#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
-    int event_count = epoll_wait(m_handle, &m_events[0], (int)m_events.size(), timeout);
+#ifdef IO_POLL
+    int event_count = 0;
+    int ret = ::poll(&m_events[0], (int)m_events.size(), timeout);
+    if (ret == SOCKET_ERROR) return event_count;
+    for (auto& pfd : m_events) {
+        if (pfd.revents != 0) {
+            event_count++;
+            auto object = get_object(pfd.fd);
+            if (object) {
+                if (pfd.revents & POLLIN) object->on_can_recv();
+                if (pfd.revents & POLLOUT) object->on_can_send();
+            }
+        }
+    }
+#endif
+
+#ifdef IO_EPOLL
+    int event_count = ::epoll_wait(m_handle, &m_events[0], (int)m_events.size(), timeout);
     for (int i = 0; i < event_count; i++) {
         epoll_event& ev = m_events[i];
         auto object = (socket_object*)ev.data.ptr;
@@ -136,7 +156,7 @@ int socket_mgr::wait(int64_t now, int timeout) {
     }
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     timespec time_wait;
     time_wait.tv_sec = timeout / 1000;
     time_wait.tv_nsec = (timeout % 1000) * 1000000;
@@ -153,20 +173,15 @@ int socket_mgr::wait(int64_t now, int timeout) {
 }
 
 int socket_mgr::listen(std::string& err, const char ip[], int port) {
-    int ret = false;
     socket_t fd = INVALID_SOCKET;
-    sockaddr_storage addr;
-    size_t addr_len = 0;
-
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     auto* listener = new socket_listener(this, m_accept_func, m_addrs_func);
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#else
     auto* listener = new socket_listener(this);
 #endif
-
-    ret = make_ip_addr(&addr, &addr_len, ip, port);
+    socklen_t addr_len = 0;
+    sockaddr_storage addr;
+    int ret = make_ip_addr(&addr, &addr_len, ip, port);
     if(!ret) goto Exit0;
 
     fd = socket(addr.ss_family, SOCK_STREAM, IPPROTO_IP);
@@ -184,11 +199,10 @@ int socket_mgr::listen(std::string& err, const char ip[], int port) {
     if(ret == SOCKET_ERROR) goto Exit0;
 
     if (watch_listen(fd, listener) && listener->setup(fd)) {
-        int token = new_token();
-        listener->set_kind(token);
-        listener->set_token(token);
-        m_objects[token] = listener;
-        return token;
+        listener->set_kind(fd);
+        listener->set_token(fd);
+        m_objects[fd] = listener;
+        return fd;
     }
 
 Exit0:
@@ -206,21 +220,21 @@ int socket_mgr::connect(std::string& err, const char ip[], int port, int timeout
         err = "too-many-connection";
         return 0;
     }
-
-#ifdef _MSC_VER
-    socket_stream* stm = new socket_stream(this, m_connect_func);
-#endif
-
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
-    socket_stream* stm = new socket_stream(this);
+    socket_t fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    if(fd == INVALID_SOCKET) {
+        err = "socket-create-failed";
+        return 0;
+    }
+#ifdef IO_IOCP
+    socket_stream* stm = new socket_stream(this, fd, m_connect_func);
+#else
+    socket_stream* stm = new socket_stream(this, fd);
 #endif
 
     stm->connect(ip, port, timeout);
-
-    int token = new_token();
-    stm->set_token(token);
-    m_objects[token] = stm;
-    return token;
+    stm->set_token(fd);
+    m_objects[fd] = stm;
+    return fd;
 }
 
 void socket_mgr::set_timeout(uint32_t token, int duration) {
@@ -331,19 +345,38 @@ void socket_mgr::set_error_callback(uint32_t token, const std::function<void(con
     }
 }
 
+#ifdef IO_POLL
+bool socket_mgr::poll_event_ctl(socket_t fd, short fevts) {
+    if (fevts == 0) {
+        m_event_map.erase(fd);
+    } else {
+        m_event_map[fd] = fevts;
+    }
+    m_events.clear();
+    for (const auto [efd, evts] : m_event_map) {
+        m_events.emplace_back(pollfd{ efd, evts });
+    }
+    return true;
+}
+#endif
+
 bool socket_mgr::watch_listen(socket_t fd, socket_object* object) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
 
-#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_POLL
+    return poll_event_ctl(fd, POLLIN);
+#endif
+
+#ifdef IO_EPOLL
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_ADD, fd, &ev) == 0;
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     struct kevent evt;
     EV_SET(&evt, fd, EVFILT_READ, EV_ADD, 0, 0, object);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
@@ -351,18 +384,22 @@ bool socket_mgr::watch_listen(socket_t fd, socket_object* object) {
 }
 
 bool socket_mgr::watch_accepted(socket_t fd, socket_object* object) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
 
-#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_POLL
+    return poll_event_ctl(fd, POLLIN);
+#endif
+
+#ifdef IO_EPOLL
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_ADD, fd, &ev) == 0;
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     struct kevent evt[2];
     EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD, 0, 0, object);
     EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, object);
@@ -371,18 +408,22 @@ bool socket_mgr::watch_accepted(socket_t fd, socket_object* object) {
 }
 
 bool socket_mgr::watch_connecting(socket_t fd, socket_object* object) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     return CreateIoCompletionPort((HANDLE)fd, m_handle, (ULONG_PTR)object, 0) == m_handle;
 #endif
 
-#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_POLL
+    return poll_event_ctl(fd, POLLOUT);
+#endif
+
+#ifdef IO_EPOLL
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLOUT | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_ADD, fd, &ev) == 0;
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     struct kevent evt;
     EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD, 0, 0, object);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
@@ -390,18 +431,22 @@ bool socket_mgr::watch_connecting(socket_t fd, socket_object* object) {
 }
 
 bool socket_mgr::watch_connected(socket_t fd, socket_object* object) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     return true;
 #endif
 
-#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_POLL
+    return poll_event_ctl(fd, POLLIN);
+#endif
+
+#ifdef IO_EPOLL
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_MOD, fd, &ev) == 0;
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     struct kevent evt[2];
     EV_SET(&evt[0], fd, EVFILT_READ, EV_ADD, 0, 0, object);
     EV_SET(&evt[1], fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, object);
@@ -410,32 +455,35 @@ bool socket_mgr::watch_connected(socket_t fd, socket_object* object) {
 }
 
 bool socket_mgr::watch_send(socket_t fd, socket_object* object, bool enable) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     return true;
 #endif
 
-#if defined(__linux) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifdef IO_POLL
+    return poll_event_ctl(fd, POLLIN | (enable ? POLLOUT : 0));
+#endif
+
+#ifdef IO_EPOLL
     epoll_event ev;
     ev.data.ptr = object;
     ev.events = EPOLLIN | (enable ? EPOLLOUT : 0) | EPOLLET;
     return epoll_ctl(m_handle, EPOLL_CTL_MOD, fd, &ev) == 0;
 #endif
 
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
     struct kevent evt;
     EV_SET(&evt, fd, EVFILT_WRITE, EV_ADD | (enable ? 0 : EV_DISABLE), 0, 0, object);
     return kevent(m_handle, &evt, 1, nullptr, 0, nullptr) == 0;
 #endif
 }
 
-int socket_mgr::accept_stream(uint32_t ltoken, socket_t fd, const char ip[]) {
-    auto* stm = new socket_stream(this);
+int socket_mgr::accept_stream(socket_t lfd, socket_t fd, const char ip[]) {
+    auto* stm = new socket_stream(this, fd);
     if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip)) {
-        auto token = new_token();
-        stm->set_kind(ltoken);
-        stm->set_token(token);
-        m_objects[token] = stm;
-        return token;
+        stm->set_kind(lfd);
+        stm->set_token(fd);
+        m_objects[fd] = stm;
+        return fd;
     }
     delete stm;
     return 0;

@@ -99,9 +99,7 @@ namespace logger {
     cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
             auto names = level_names<log_level>()();
-            const log_time& t = logmsg->get_log_time();
-            return fmt::format("[{:4d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}.{:03d}][{}][{}]",
-                t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, t.tm_usec, logmsg->tag(), names[(int)logmsg->level()]);
+            return fmt::format("[{:%Y-%m-%d %H:%M:%S}.{:03d}][{}][{}]", logmsg->get_time(), logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
         }
         return "";
     }
@@ -137,9 +135,8 @@ namespace logger {
     void log_file_base::flush() {
         if (file_) file_->flush();
     }
-    const log_time& log_file_base::file_time() const { return file_time_; }
 
-    void log_file_base::create(path file_path, vstring file_name, const log_time& file_time) {
+    void log_file_base::create(path file_path, vstring file_name, const std::tm& file_time) {
         if (file_) {
             file_->flush();
             file_->close();
@@ -152,18 +149,17 @@ namespace logger {
     // class rolling_hourly
     // --------------------------------------------------------------------------------
     bool rolling_hourly::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        const log_time& ftime = log_file->file_time();
-        const log_time& ltime = logmsg->get_log_time();
-        return ltime.tm_year != ftime.tm_year || ltime.tm_mon != ftime.tm_mon ||
-            ltime.tm_mday != ftime.tm_mday || ltime.tm_hour != ftime.tm_hour;
+        auto& ltime = logmsg->get_time();
+        auto& ftime = log_file->file_time();
+        return ltime.tm_mday != ftime.tm_mday || ltime.tm_hour != ftime.tm_hour;
     }
 
     // class rolling_daily
     // --------------------------------------------------------------------------------
     bool rolling_daily::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        const log_time& ftime = log_file->file_time();
-        const log_time& ltime = logmsg->get_log_time();
-        return ltime.tm_year != ftime.tm_year || ltime.tm_mon != ftime.tm_mon || ltime.tm_mday != ftime.tm_mday;
+        auto& ltime = logmsg->get_time();
+        auto& ftime = log_file->file_time();
+        return ltime.tm_mon != ftime.tm_mon || ltime.tm_mday != ftime.tm_mday;
     }
 
     // class log_rollingfile
@@ -189,7 +185,7 @@ namespace logger {
                         }
                     }
                 } catch (...) {}
-                create(log_path_, new_log_file_path(logmsg), logmsg->get_log_time());
+                create(log_path_, new_log_file_path(logmsg), logmsg->get_time());
                 assert(file_);
                 line_ = 0;
             }
@@ -198,9 +194,7 @@ namespace logger {
 
     template<class rolling_evaler>
     cstring log_rollingfile<rolling_evaler>::new_log_file_path(const sptr<log_message> logmsg) {
-        const log_time& t = logmsg->get_log_time();
-        return fmt::format("{}-{:4d}{:02d}{:02d}-{:02d}{:02d}{:02d}.{:03d}.p{}.log", 
-            feature_, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, t.tm_usec, ::getpid());
+        return fmt::format("{}-{:%Y%m%d-%H%M%S}.{:03d}.p{}.log", feature_, logmsg->get_time(), logmsg->get_usec(), ::getpid());
     }
 
     // class log_service

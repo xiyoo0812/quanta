@@ -6,7 +6,7 @@
 class socket_udp {
 public:
     ~socket_udp();
-    
+
     void close();
 
     bool setup();

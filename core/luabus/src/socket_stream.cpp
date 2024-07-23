@@ -4,17 +4,19 @@
 #include "socket_stream.h"
 #include "socket_router.h"
 
-#ifdef _MSC_VER
-socket_stream::socket_stream(socket_mgr* mgr, LPFN_CONNECTEX connect_func) {
+#ifdef IO_IOCP
+socket_stream::socket_stream(socket_mgr* mgr, socket_t fd, LPFN_CONNECTEX connect_func) {
     mgr->increase_count();
     m_mgr = mgr;
+    m_socket = fd;
     m_connect_func = connect_func;
     m_ip[0] = 0;
 }
 #endif
 
-socket_stream::socket_stream(socket_mgr* mgr) {
+socket_stream::socket_stream(socket_mgr* mgr, socket_t fd) {
     mgr->increase_count();
+    m_socket = fd;
     m_mgr = mgr;
     m_ip[0] = 0;
 }
@@ -36,7 +38,7 @@ bool socket_stream::get_remote_ip(std::string& ip) {
 }
 
 bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
     if (!wsa_recv_empty(fd, m_recv_ovl))
         return false;
     m_ovl_ref++;
@@ -62,26 +64,22 @@ void socket_stream::close() {
         return;
     }
     shutdown(m_socket, SD_RECEIVE);
-    m_link_status = elink_status::link_colsing;
+    m_link_status = elink_status::link_closing;
 }
 
 bool socket_stream::update(int64_t now) {
     switch (m_link_status) {
         case elink_status::link_closed: {
-#ifdef _MSC_VER
+#ifdef IO_IOCP
             if (m_ovl_ref > 0) return true;
 #endif
             return false;
         }
-        case elink_status::link_colsing: {
-#ifdef _MSC_VER
+        case elink_status::link_closing: {
+#ifdef IO_IOCP
             if (m_ovl_ref > 1) return true;
 #endif
             if (!m_send_buffer->empty()) return true;
-            if (m_socket != INVALID_SOCKET) {
-                closesocket(m_socket);
-                m_socket = INVALID_SOCKET;
-            }
             m_link_status = elink_status::link_closed;
             return true;
         }
@@ -90,11 +88,14 @@ bool socket_stream::update(int64_t now) {
                 on_connect(false, "resolver failed");
                 return true;
             }
+            try_connect();
+            return true;
+        }
+        case elink_status::link_connecting:{
             if (now > m_connecting_time) {
                 on_connect(false, "timeout");
                 return true;
             }
-            try_connect();
             return true;
         }
         default: {
@@ -108,7 +109,7 @@ bool socket_stream::update(int64_t now) {
     return true;
 }
 
-#ifdef _MSC_VER
+#ifdef IO_IOCP
 static bool bind_any(socket_t s) {
     struct sockaddr_in v4addr;
     memset(&v4addr, 0, sizeof(v4addr));
@@ -139,7 +140,6 @@ bool socket_stream::do_connect() {
             m_ovl_ref++;
             return true;
         }
-        m_link_status = elink_status::link_closed;
         on_connect(false, "connect-failed");
         return false;
     }
@@ -155,69 +155,48 @@ bool socket_stream::do_connect() {
 }
 #endif
 
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifndef IO_IOCP
 bool socket_stream::do_connect() {
-    while (true) {
-        auto ret = ::connect(m_socket, &m_addr, sizeof(sockaddr));
-        if (ret != SOCKET_ERROR) {
-            on_connect(true, "ok");
-            break;
-        }
+    auto ret = ::connect(m_socket, &m_addr, sizeof(sockaddr));
+    if (ret != SOCKET_ERROR) {
+        on_connect(true, "ok");
+        return true;
+    }
 
-        int err = get_socket_error();
-        if (err == EINTR)
-            continue;
+    if (get_socket_error() != EINPROGRESS)
+        return false;
 
-        if (err != EINPROGRESS)
-            return false;
-
-        if (!m_mgr->watch_connecting(m_socket, this)) {
-            on_connect(false, "watch-failed");
-            return false;
-        }
-        break;
+    if (!m_mgr->watch_connecting(m_socket, this)) {
+        on_connect(false, "watch-failed");
+        return false;
     }
     return true;
 }
 #endif
 
 void socket_stream::try_connect() {
-    // socket connecting
-    if (m_socket != INVALID_SOCKET)
+    if (m_socket == INVALID_SOCKET) {
+        on_connect(false, "connect-failed");
         return;
-
-    if (m_link_status == elink_status::link_init) {
-        m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if (m_socket == INVALID_SOCKET) {
-            on_connect(false, "connect-failed");
-            return;
-        }
-        set_no_block(m_socket);
-        set_no_delay(m_socket, 1);
-        set_close_on_exec(m_socket);
-        get_ip_string(m_ip, sizeof(m_ip), &m_addr);
-
-        if (do_connect())
-            return;
-
-        if (m_socket != INVALID_SOCKET) {
-            closesocket(m_socket);
-            m_socket = INVALID_SOCKET;
-        }
     }
-    on_connect(false, "connect-failed");
+    set_no_block(m_socket);
+    set_no_delay(m_socket, 1);
+    set_close_on_exec(m_socket);
+    get_ip_string(m_ip, sizeof(m_ip), &m_addr);
+    m_link_status = elink_status::link_connecting;
+    if (!do_connect()){
+        on_connect(false, "connect-failed");
+    }
 }
 
-void socket_stream::send(const void* data, size_t data_len)
-{
+void socket_stream::send(const void* data, size_t data_len) {
     if (m_link_status != elink_status::link_connected)
         return;
 
     stream_send((char*)data, data_len);
 }
 
-void socket_stream::sendv(const sendv_item items[], int count)
-{
+void socket_stream::sendv(const sendv_item items[], int count) {
     if (m_link_status != elink_status::link_connected)
         return;
 
@@ -227,8 +206,7 @@ void socket_stream::sendv(const sendv_item items[], int count)
     }
 }
 
-void socket_stream::stream_send(const char* data, size_t data_len)
-{
+void socket_stream::stream_send(const char* data, size_t data_len) {
     if (m_link_status != elink_status::link_connected || data_len == 0)
         return;
 
@@ -253,7 +231,7 @@ void socket_stream::stream_send(const char* data, size_t data_len)
         on_error("send-failed");
         return;
     }
-#if _MSC_VER
+#ifdef IO_IOCP
     if (!wsa_send_empty(m_socket, m_send_ovl)) {
         on_error("send-failed");
         return;
@@ -267,14 +245,10 @@ void socket_stream::stream_send(const char* data, size_t data_len)
 #endif
 }
 
-#ifdef _MSC_VER
-void socket_stream::on_complete(WSAOVERLAPPED* ovl)
-{
+#ifdef IO_IOCP
+void socket_stream::on_complete(WSAOVERLAPPED* ovl) {
     m_ovl_ref--;
-    if (m_link_status == elink_status::link_closed)
-        return;
-
-    if (m_link_status != elink_status::link_init){
+    if (m_link_status == elink_status::link_connected){
         if (ovl == &m_recv_ovl) {
             do_recv(UINT_MAX, false);
         } else {
@@ -282,59 +256,57 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl)
         }
         return;
     }
-
-    int seconds = 0;
-    socklen_t sock_len = (socklen_t)sizeof(seconds);
-    auto ret = getsockopt(m_socket, SOL_SOCKET, SO_CONNECT_TIME, (char*)&seconds, &sock_len);
-    if (ret == 0 && seconds != 0xffffffff) {
-        if (!wsa_recv_empty(m_socket, m_recv_ovl)) {
-            on_connect(false, "connect-failed");
-            return;
+    if (m_link_status == elink_status::link_closing) {
+        if (ovl == &m_recv_ovl) {
+            do_recv(UINT_MAX, false);
         }
-        m_ovl_ref++;
-        on_connect(true, "ok");
         return;
     }
 
-    // socket连接失败,还可以继续dns解析的下一个地址继续尝试
-    closesocket(m_socket);
-    m_socket = INVALID_SOCKET;
-    on_connect(false, "connect-failed");
+    if (m_link_status == elink_status::link_connecting) {
+        int seconds = 0;
+        socklen_t sock_len = (socklen_t)sizeof(seconds);
+        auto ret = getsockopt(m_socket, SOL_SOCKET, SO_CONNECT_TIME, (char*)&seconds, &sock_len);
+        if (ret == 0 && seconds != 0xffffffff) {
+            if (!wsa_recv_empty(m_socket, m_recv_ovl)) {
+                on_connect(false, "connect-failed");
+                return;
+            }
+            m_ovl_ref++;
+            on_connect(true, "ok");
+            return;
+        }
+        on_connect(false, "connect-failed");
+    }
 }
 #endif
 
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#ifndef IO_IOCP
 void socket_stream::on_can_send(size_t max_len, bool is_eof) {
-    if (m_link_status == elink_status::link_closed)
-        return;
-
-    if (m_link_status != elink_status::link_init) {
+    if (m_link_status == elink_status::link_connected || m_link_status == elink_status::link_closing) {
         do_send(max_len, is_eof);
         return;
     }
-
-    int err = 0;
-    socklen_t sock_len = sizeof(err);
-    auto ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, (char*)&err, &sock_len);
-    if (ret == 0 && err == 0 && !is_eof) {
-        if (!m_mgr->watch_connected(m_socket, this)) {
-            on_connect(false, "watch-error");
+    if (m_link_status == elink_status::link_connecting) {
+        int err = 0;
+        socklen_t sock_len = sizeof(err);
+        auto ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, (char*)&err, &sock_len);
+        if (ret == 0 && err == 0 && !is_eof) {
+            if (!m_mgr->watch_connected(m_socket, this)) {
+                on_connect(false, "watch-error");
+                return;
+            }
+            on_connect(true, "ok");
             return;
         }
-        on_connect(true, "ok");
-        return;
+        on_connect(false, "connect-failed");
     }
-
-    // socket连接失败,还可以继续dns解析的下一个地址继续尝试
-    closesocket(m_socket);
-    m_socket = INVALID_SOCKET;
-    on_connect(false, "connect-failed");
 }
 #endif
 
 void socket_stream::do_send(size_t max_len, bool is_eof) {
     size_t total_send = 0;
-    while (total_send < max_len && (m_link_status != elink_status::link_closed)) {
+    while (total_send < max_len) {
         size_t data_len = 0;
         auto data = m_send_buffer->data(&data_len);
         if (data_len == 0) {
@@ -349,7 +321,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
         int send_len = ::send(m_socket, (char*)data, (int)try_len, 0);
         if (send_len == SOCKET_ERROR) {
             int err = get_socket_error();
-#ifdef _MSC_VER
+#ifdef IO_IOCP
             if (err == WSAEWOULDBLOCK) {
                 if (!wsa_send_empty(m_socket, m_send_ovl)) {
                     on_error("send-failed");
@@ -358,8 +330,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
                 m_ovl_ref++;
                 break;
             }
-#endif
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
+#else
             if (err == EINTR)
                 continue;
             if (err == EAGAIN)
@@ -388,10 +359,10 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
             on_error("recv-buffer-full");
             return;
         }
-        int recv_len = recv(m_socket, (char*)space, SOCKET_RECV_LEN, 0);
+        int recv_len = ::recv(m_socket, (char*)space, SOCKET_RECV_LEN, 0);
         if (recv_len < 0) {
             int err = get_socket_error();
-#ifdef _MSC_VER
+#ifdef IO_IOCP
             if (err == WSAEWOULDBLOCK) {
                 if (!wsa_recv_empty(m_socket, m_recv_ovl)) {
                     on_error("recv-failed");
@@ -400,9 +371,8 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
                 m_ovl_ref++;
                 break;
             }
-#endif
-#if defined(__linux) || defined(__APPLE__) || defined(__ORBIS__) || defined(__PROSPERO__)
-            if (err == EINTR) 
+#else
+            if (err == EINTR)
                 continue;
             if (err == EAGAIN)
                 break;
@@ -411,6 +381,9 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
             return;
         }
         if (recv_len == 0) {
+            if (!m_recv_buffer->empty()) {
+                dispatch_package();
+            }
             on_error("connection-recv-lost");
             return;
         }
@@ -477,17 +450,15 @@ void socket_stream::on_error(const char err[]) {
 }
 
 void socket_stream::on_connect(bool ok, const char reason[]) {
-    if (m_link_status == elink_status::link_init) {
-        if (!ok) {
-            if (m_socket != INVALID_SOCKET) {
-                closesocket(m_socket);
-                m_socket = INVALID_SOCKET;
-            }
-            m_link_status = elink_status::link_closed;
-        } else {
-            m_link_status = elink_status::link_connected;
-            m_last_recv_time = ltimer::steady_ms();
+    if (!ok) {
+        if (m_socket != INVALID_SOCKET) {
+            closesocket(m_socket);
+            m_socket = INVALID_SOCKET;
         }
-        m_connect_cb(ok, reason);
+        m_link_status = elink_status::link_closed;
+    } else {
+        m_link_status = elink_status::link_connected;
+        m_last_recv_time = ltimer::steady_ms();
     }
+    m_connect_cb(ok, reason);
 }

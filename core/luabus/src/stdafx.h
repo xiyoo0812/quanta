@@ -13,9 +13,9 @@
 #define WINVER 0x0603		// Change this to the appropriate value to target other versions of Windows.
 #endif
 
-#ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.                   
+#ifndef _WIN32_WINNT		// Allow use of features specific to Windows XP or later.
 #define _WIN32_WINNT 0x0603	// Change this to the appropriate value to target other versions of Windows.
-#endif						
+#endif
 
 #ifndef _WIN32_WINDOWS		// Allow use of features specific to Windows 98 or later.
 #define _WIN32_WINDOWS 0x0510 // Change this to the appropriate value to target Windows Me or later.
@@ -43,6 +43,8 @@
 #pragma warning(disable: 4313)
 #pragma warning(disable: 4251)
 
+#define IO_IOCP
+
 #endif
 
 #include <string>
@@ -50,21 +52,51 @@
 #include <assert.h>
 
 #ifdef __linux
+#define IO_EPOLL
+#endif
+
+#ifdef __NINTENDO__
+#define IO_POLL
+#endif
+
+#ifdef __APPLE__
+#define IO_KQUEUE
+#endif
+
+#ifdef IO_POLL
+#define POSIXI_API
+#include <sys/poll.h>
+#endif
+#ifdef IO_EPOLL
+#define POSIXI_API
 #include <sys/epoll.h>
 #endif
-#ifdef __APPLE__
+#ifdef IO_KQUEUE
+#define POSIXI_API
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
 #endif
-#if defined(__linux) || defined(__APPLE__)
+
+#ifdef POSIXI_API
+#include <netdb.h>
+#include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <cstring>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #endif
+
 #if defined(__ORBIS__) || defined(__PROSPERO__)
+#define SCE_API
+#define IO_EPOLL
 #include <net.h>
+#include <unistd.h>
+#include <libnetctl.h>
 #endif
 
 #define LUA_LIB

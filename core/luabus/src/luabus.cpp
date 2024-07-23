@@ -2,6 +2,7 @@
 #include "socket_dns.h"
 #include "socket_udp.h"
 #include "socket_tcp.h"
+#include "socket_ping.h"
 #include "lua_socket_mgr.h"
 #include "lua_socket_node.h"
 
@@ -39,6 +40,7 @@ namespace luabus {
         lluabus.set_function("udp", create_udp);
         lluabus.set_function("tcp", create_tcp);
         lluabus.set_function("host", gethostip);
+        lluabus.set_function("ping", socket_ping);
         lluabus.set_function("dns", gethostbydomain);
         lluabus.set_function("derive_port", derive_port);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);

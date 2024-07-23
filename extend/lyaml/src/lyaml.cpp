@@ -238,7 +238,7 @@ namespace lyaml {
     }
 
     inline FILE* fopenyaml(const char* filepath, const char* mode) {
-#if defined(_MSC_VER)
+#if defined(WIN32)
         FILE* fp = 0;
         const errno_t err = fopen_s(&fp, filepath, mode);
         if (err) return nullptr;

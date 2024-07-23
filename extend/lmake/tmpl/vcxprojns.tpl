@@ -30,6 +30,7 @@
 {{% end %}}
 {{% local FMT_INCLUDES = table.concat(AINCLUDES, ";") %}}
 {{% local FMT_LIBRARY_DIR = table.concat(ALIBDIRS, ";") %}}
+{{% local FMT_NROLIBS = table.concat(NROLIBS or {}, ";") %}}
 {{% local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
 {{% local CINCLUDES, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) %}}
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -108,6 +109,10 @@
     <TargetName>{{%= PROJECT_PREFIX %}}{{%= TARGET_NAME %}}</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
+    {{% if PROJECT_TYPE == "exe" then %}}
+    <NRODeployPath>$(SolutionDir)bin</NRODeployPath>
+    <ApplicationDataDir>$(SolutionDir)bin</ApplicationDataDir>
+    {{% end %}}
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'">
     <LinkIncremental>false</LinkIncremental>
@@ -120,6 +125,10 @@
     <TargetName>{{%= PROJECT_PREFIX %}}{{%= TARGET_NAME %}}</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
+    {{% if PROJECT_TYPE == "exe" then %}}
+    <NRODeployPath>$(SolutionDir)bin</NRODeployPath>
+    <ApplicationDataDir>$(SolutionDir)bin</ApplicationDataDir>
+    {{% end %}}
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|{{%= PLATFORM %}}'">
     <ClCompile>
@@ -140,6 +149,10 @@
       <ImportLibrary></ImportLibrary>
       <AdditionalDependencies>{{%= FMT_LIBS %}};%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      {{% if PROJECT_TYPE == "exe" then %}}
+      <AdditionalNRODependencies>{{%= FMT_NROLIBS %}};%(AdditionalNRODependencies)</AdditionalNRODependencies>
+      <NRRFileName>$(SolutionDir)\bin\.nrr\$(TargetName).nrr</NRRFileName>
+      {{% end %}}
     </Link>
     {{% end %}}
     <PreBuildEvent>
@@ -160,6 +173,11 @@
       {{% table.insert(post_commands, string.format("copy /y $(TargetPath) %s", dst_dir)) %}}
       {{% else %}}
       {{% local dst_dir = string.gsub(DST_DIR, '/', '\\') %}}
+      {{% if PROJECT_TYPE == "dynamic" then %}}
+      {{% local dst_lib_dir = string.format("$(SolutionDir)%s/$(Platform)", DST_LIB_DIR) %}}
+      {{% local dst_dir = string.gsub(dst_lib_dir, '/', '\\') %}}
+      {{% table.insert(post_commands, string.format("copy /y $(OutDir)$(TargetName).nrs %s", dst_dir)) %}}
+      {{% end %}}
       {{% table.insert(post_commands, string.format("copy /y $(TargetPath) $(SolutionDir)%s", dst_dir)) %}}
       {{% end %}}
       {{% for _, POSTBUILD_CMD in pairs(WINDOWS_POSTBUILDS) do %}}
@@ -188,6 +206,10 @@
       <ImportLibrary></ImportLibrary>
       <AdditionalDependencies>{{%= FMT_LIBS %}};%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      {{% if PROJECT_TYPE == "exe" then %}}
+      <AdditionalNRODependencies>{{%= FMT_NROLIBS %}};%(AdditionalNRODependencies)</AdditionalNRODependencies>
+      <NRRFileName>$(SolutionDir)\bin\.nrr\$(TargetName).nrr</NRRFileName>
+      {{% end %}}
     </Link>
     {{% end %}}
     <PreBuildEvent>
@@ -207,6 +229,11 @@
       {{% local dst_dir = string.gsub(dst_lib_dir, '/', '\\') %}}
       {{% table.insert(post_commands, string.format("copy /y $(TargetPath) %s", dst_dir)) %}}
       {{% else %}}
+      {{% if PROJECT_TYPE == "dynamic" then %}}
+      {{% local dst_lib_dir = string.format("$(SolutionDir)%s/$(Platform)", DST_LIB_DIR) %}}
+      {{% local dst_dir = string.gsub(dst_lib_dir, '/', '\\') %}}
+      {{% table.insert(post_commands, string.format("copy /y $(OutDir)$(TargetName).nrs %s", dst_dir)) %}}
+      {{% end %}}
       {{% local dst_dir = string.gsub(DST_DIR, '/', '\\') %}}
       {{% table.insert(post_commands, string.format("copy /y $(TargetPath) $(SolutionDir)%s", dst_dir)) %}}
       {{% end %}}
