@@ -52,9 +52,16 @@ function StoreKV:sync_whole()
     end
 end
 
+store_mgr:bind_store(QUANTA_STORE, StoreKV)
+
 if QUANTA_STORE == "sqlite" then
     import("driver/sqlite.lua")
-    store_mgr:bind_store(QUANTA_STORE, StoreKV)
+    store_mgr:bind_driver(QUANTA_STORE, quanta.sdb_driver)
+elseif QUANTA_STORE == "lmdb" then
+    import("driver/lmdb.lua")
+    store_mgr:bind_driver(QUANTA_STORE, quanta.mdb_driver)
+elseif QUANTA_STORE == "smdb" then
+    import("driver/smdb.lua")
     store_mgr:bind_driver(QUANTA_STORE, quanta.sdb_driver)
 end
 

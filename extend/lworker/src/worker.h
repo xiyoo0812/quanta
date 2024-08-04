@@ -8,6 +8,12 @@
 #include "ltimer.h"
 #include "fmt/core.h"
 
+#ifdef WIN32
+#define getpid _getpid
+#else
+#include <unistd.h>
+#endif
+
 using namespace luakit;
 
 using vstring   = std::string_view;
@@ -119,6 +125,7 @@ namespace lworker {
         void run(){
             auto quanta = m_lua->new_table(m_service.c_str());
             quanta.set("title", m_name);
+            quanta.set("pid", ::getpid());
             quanta.set_function("stop", [&]() { m_running = false; });
             quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });

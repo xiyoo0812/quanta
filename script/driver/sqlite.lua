@@ -1,5 +1,6 @@
 -- sqlite.lua
 local log_err       = logger.err
+local log_dump      = logger.dump
 local log_debug     = logger.debug
 local sformat       = string.format
 
@@ -12,7 +13,7 @@ local SQLITE_NFOUND = sqlite.SQLITE_CODE.SQLITE_NOTFOUND
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
-local SQDB_PATH     = environ.get("QUANTA_SQLITE_PATH", "./sqdb/")
+local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./sqlite/")
 local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
 local Sqlite = singleton()
@@ -22,7 +23,7 @@ prop:reader("dbname", nil)
 prop:reader("prepares", {})
 
 function Sqlite:__init()
-    stdfs.mkdir(SQDB_PATH)
+    stdfs.mkdir(KVDB_PATH)
     update_mgr:attach_quit(self)
 end
 
@@ -48,7 +49,7 @@ function Sqlite:open(dbname)
         self.driver = driver
         self.jcodec = jcodec
         self.dbname = dbname
-        driver.open(sformat("%s%s.db", SQDB_PATH, dbname))
+        driver.open(sformat("%s%s.db", KVDB_PATH, dbname))
         self:init_db()
         log_debug("[Sqlite][open] open smdb {}!", dbname)
     end
@@ -92,17 +93,17 @@ function Sqlite:init_sheet(sheet, primary_id)
 end
 
 function Sqlite:put(primary_id, data, sheet)
-    log_debug("[Sqlite][put] primary_id:{} data:{} sheet:{}", primary_id, data, sheet)
+    log_dump("[Sqlite][put] primary_id:{} data:{} sheet:{}", primary_id, data, sheet)
     local rc = self:get_prepare(sheet, primary_id).update.run(primary_id, data)
     if rc ~= SQLITE_DONE then
-        log_debug("[Sqlite][put] fail rc={}", rc)
+        log_err("[Sqlite][put] fail rc={}", rc)
         return false
     end
     return true
 end
 
 function Sqlite:get(primary_id, sheet)
-    log_debug("[Sqlite][get] sheet:{} primary_id:{}", sheet, primary_id)
+    log_dump("[Sqlite][get] sheet:{} primary_id:{}", sheet, primary_id)
     local rc, data = self:get_prepare(sheet, primary_id).select.run(primary_id)
     if rc == SQLITE_NFOUND or rc == SQLITE_DONE then
         return (data[1] and data[1].VALUE) and data[1].VALUE or {}, true

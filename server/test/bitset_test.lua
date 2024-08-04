@@ -2,18 +2,31 @@
 
 local log_debug = logger.debug
 
-local bval = codec.bit32_new()
-log_debug("bit32_new: {}", bval)
-local fval = codec.bit32_flip(bval, 3)
-log_debug("bit32_flip: {}-{}", bval, fval)
-log_debug("bit32_get: {}-{}", codec.bit32_get(fval, 3), codec.bit32_get(fval, 2))
+local val = codec.bitset()
+log_debug("new: {}", val.tostring(true))
 
-local bval2 = codec.bit32_new("010000101")
-log_debug("bit32_new: {}", bval2)
-local sval = codec.bit32_set(bval2, 4, true)
-log_debug("bit32_set: {}-{}", bval2, sval)
-local sval2 = codec.bit32_set(sval, 2, true)
-log_debug("bit32_set: {}-{}", bval2, sval2)
-log_debug("bit32_check 4: {}", codec.bit32_check(sval2, 4))
-log_debug("bit32_check 5: {}", codec.bit32_check(sval2, 5))
+val.flip(3)
+log_debug("flip: {}", val.tostring(true))
+log_debug("get: {}-{}", val.get(3), val.get(2))
+
+val.load("010000101")
+log_debug("load: {}", val.tostring())
+
+val.set(4, true)
+val.set(2, true)
+log_debug("set: {}", val.tostring())
+log_debug("check 4-5: {},{}", val.check(4), val.check(5))
+
+local bin = val.binary()
+local bval = codec.bitset()
+bval.loadbin(bin)
+log_debug("loadbin: {}", bval.tostring())
+bval.reset(2)
+log_debug("reset: {}", bval.tostring())
+
+local hex = val.hex()
+log_debug("hex: {}", hex)
+local hval = codec.bitset()
+hval.loadhex(hex)
+log_debug("loadhex: {}", hval.tostring(0))
 

@@ -7,7 +7,7 @@ stds.quanta = {
         "import", "class", "enum", "mixin", "property", "singleton", "super", "implemented",
         "logfeature", "db_property", "classof", "is_class", "is_subclass", "instanceof", "conv_class", "class_review",
         "codec", "stdfs", "luabus", "luakit", "json", "protobuf", "timer", "aoi", "log", "worker", "http", "bson",
-        "detour", "lmdb", "unqlite", "sqlite", "ssl", "xml", "zip", "yaml", "toml", "csv"
+        "detour", "lmdb", "unqlite", "sqlite", "ssl", "xml", "zip", "yaml", "toml", "csv", "xlsx", "smdb"
     }
 }
 std = "max+quanta"

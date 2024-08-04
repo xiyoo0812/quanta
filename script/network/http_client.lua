@@ -148,7 +148,6 @@ function HttpClient:call_del(url, querys, headers, timeout)
     return self:send_request(url, timeout, querys, headers, "DELETE")
 end
 
-
 function HttpClient:format_url(url, query)
     if query then
         local qtype = type(query)

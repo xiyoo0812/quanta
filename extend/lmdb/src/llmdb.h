@@ -255,9 +255,6 @@ namespace llmdb {
             int type = lua_type(L, idx);
             if (m_jcodec) {
                 switch (type) {
-                case LUA_TNIL:
-                    val.mv_size = 0;
-                    break;
                 case LUA_TNUMBER: {
                         size_t len;
                         char* body = (char*)m_jcodec->encode(L, idx, &len);

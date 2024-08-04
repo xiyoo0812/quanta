@@ -1,4 +1,5 @@
 --unqlite.lua
+local log_dump          = logger.dump
 local log_debug         = logger.debug
 local sformat           = string.format
 
@@ -11,7 +12,7 @@ local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK         = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY        = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
-local UNQLITE_PATH      = environ.get("QUANTA_UNQLITE_PATH", "./unqlite/")
+local KVDB_PATH         = environ.get("QUANTA_KVDB_PATH", "./unqlite/")
 
 local Unqlite = singleton()
 local prop = property(Unqlite)
@@ -19,7 +20,7 @@ prop:reader("driver", nil)
 prop:reader("jcodec", nil)
 
 function Unqlite:__init()
-    stdfs.mkdir(UNQLITE_PATH)
+    stdfs.mkdir(KVDB_PATH)
     update_mgr:attach_quit(self)
 end
 
@@ -38,19 +39,19 @@ function Unqlite:open(name)
         driver.set_codec(jcodec)
         self.driver = driver
         self.jcodec = jcodec
-        local rc = driver.open(sformat("%s%s.db", UNQLITE_PATH, name))
+        local rc = driver.open(sformat("%s%s.db", KVDB_PATH, name))
         log_debug("[Unqlite][open] open Unqlite {}:{}!", name, rc)
     end
 end
 
 function Unqlite:put(key, value)
-    log_debug("[Unqlite][put] {}={}", key, value)
+    log_dump("[Unqlite][put] {}={}", key, value)
     return self.driver.put(key, value) == UNQLITE_OK
 end
 
 function Unqlite:get(key)
     local data, rc = self.driver.get(key)
-    log_debug("[Unqlite][get] {}={}={}", key, data, rc)
+    log_dump("[Unqlite][get] {}={}={}", key, data, rc)
     if rc == UNQLITE_NOTFOUND or rc == UNQLITE_OK then
         return data, true
     end
@@ -58,7 +59,7 @@ function Unqlite:get(key)
 end
 
 function Unqlite:del(key)
-    local rc =  self.driver.quick_del(key)
+    local rc =  self.driver.del(key)
     return rc == UNQLITE_NOTFOUND or rc == UNQLITE_OK
 end
 

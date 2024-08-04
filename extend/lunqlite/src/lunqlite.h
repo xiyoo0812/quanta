@@ -141,8 +141,6 @@ namespace lunqlite {
             int type = lua_type(L, idx);
             if (m_jcodec) {
                 switch (type) {
-                case LUA_TNIL:
-                    return "nil";
                 case LUA_TNUMBER:
                     return (const char*)m_jcodec->encode(L, idx, len);
                 case LUA_TSTRING:

@@ -1,7 +1,8 @@
 --test.lua
 import("kernel.lua")
 
-quanta.startup(function()--初始化test
+quanta.startup(function()
+    --初始化test
     --[[
     import("test/codec_test.lua")
     import("test/json_test.lua")
@@ -35,6 +36,7 @@ quanta.startup(function()--初始化test
     import("test/yaml_test.lua")
     import("test/toml_test.lua")
     import("test/csv_test.lua")
+    import("test/smdb_test.lua")
     ]]
-    import("test/http_test.lua")
+    import("test/smdb_test.lua")
 end)

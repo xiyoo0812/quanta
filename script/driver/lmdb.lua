@@ -1,4 +1,5 @@
 --lmdb.lua
+local log_dump      = logger.dump
 local log_debug     = logger.debug
 local sformat       = string.format
 
@@ -17,7 +18,7 @@ local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
-local LMDB_PATH     = environ.get("QUANTA_LMDB_PATH", "./lmdb/")
+local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./lmdb/")
 
 local Lmdb = singleton()
 local prop = property(Lmdb)
@@ -26,7 +27,7 @@ prop:reader("dbname", nil)
 prop:reader("jcodec", nil)
 
 function Lmdb:__init()
-    stdfs.mkdir(LMDB_PATH)
+    stdfs.mkdir(KVDB_PATH)
     update_mgr:attach_quit(self)
 end
 
@@ -47,7 +48,7 @@ function Lmdb:open(name, dbname)
         self.driver = driver
         self.jcodec = jcodec
         self.dbname = dbname
-        local rc = driver.open(sformat("%s%s.mdb", LMDB_PATH, name), MDB_NOSUBDIR, 0644)
+        local rc = driver.open(sformat("%s%s.mdb", KVDB_PATH, name), MDB_NOSUBDIR, 0644)
         log_debug("[Lmdb][open] open lmdb {}:{}!", name, rc)
     end
 end
@@ -57,13 +58,13 @@ function Lmdb:puts(objects, dbname)
 end
 
 function Lmdb:put(key, value, dbname)
-    log_debug("[Lmdb][put] {}.{}={}", key, dbname, value)
+    log_dump("[Lmdb][put] {}.{}={}", key, dbname, value)
     return self.driver.quick_put(key, value, dbname or self.dbname) == MDB_SUCCESS
 end
 
 function Lmdb:get(key, dbname)
     local data, rc = self.driver.quick_get(key, dbname or self.dbname)
-    log_debug("[Lmdb][get] {}.{}={}={}", key, dbname, data, rc)
+    log_dump("[Lmdb][get] {}.{}={}={}", key, dbname, data, rc)
     if rc == MDB_NOTFOUND or rc == MDB_SUCCESS then
         return data, true
     end

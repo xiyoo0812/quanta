@@ -38,6 +38,7 @@ local function init_network()
     socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
     import("driver/webhook.lua")
+    import("driver/loki.lua")
 end
 
 --初始化loop

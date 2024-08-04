@@ -8,6 +8,7 @@ local dtraceback    = debug.traceback
 local lprint        = log.print
 local lfilter       = log.filter
 
+local LOG_FLAG      = log.LOG_FLAG
 local LOG_LEVEL     = log.LOG_LEVEL
 
 local title         = quanta.title
@@ -34,12 +35,23 @@ function logger.daemon(daemon)
     log.daemon(daemon)
 end
 
-function logger.add_monitor(monitor)
-    MONITORS[monitor] = true
+function logger.add_monitor(monitor, level)
+    local lvl = level or LOG_LEVEL.FATAL
+    if not MONITORS[lvl] then
+        MONITORS[lvl] = {[monitor] = true}
+        return
+    end
+    MONITORS[lvl][monitor] = true
 end
 
-function logger.remove_monitor(monitor)
-    MONITORS[monitor] = nil
+function logger.remove_monitor(monitor, level)
+    local lvl = level or LOG_LEVEL.FATAL
+    if MONITORS[lvl] then
+        MONITORS[lvl][monitor] = nil
+        if not next(MONITORS[lvl]) then
+            MONITORS[lvl] = nil
+        end
+    end
 end
 
 function logger.filter(level)
@@ -50,6 +62,10 @@ function logger.filter(level)
 end
 
 local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
+    local monitors = MONITORS[lvl]
+    if monitors then
+        flag = flag | LOG_FLAG.MONITOR
+    end
     local ok, msg = pcall(lprint, lvl, flag, title, feature, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"
@@ -57,19 +73,19 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
         return
     end
     if msg then
-        for monitor in pairs(MONITORS) do
+        for monitor in pairs(monitors) do
             monitor:dispatch_log(msg, lvl_name)
         end
     end
 end
 
 local LOG_LEVEL_OPTIONS = {
-    [LOG_LEVEL.INFO]    = { "info",  0x00 },
-    [LOG_LEVEL.WARN]    = { "warn",  0x01 },
-    [LOG_LEVEL.DEBUG]   = { "debug", 0x01 },
-    [LOG_LEVEL.ERROR]   = { "err",   0x01 },
-    [LOG_LEVEL.FATAL]   = { "fatal", 0x01 },
-    [LOG_LEVEL.DUMP]    = { "dump",  0x01 | 0x02 },
+    [LOG_LEVEL.INFO]    = { "info",  LOG_FLAG.NULL },
+    [LOG_LEVEL.WARN]    = { "warn",  LOG_FLAG.FORMAT },
+    [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT },
+    [LOG_LEVEL.ERROR]   = { "err",   LOG_FLAG.FORMAT },
+    [LOG_LEVEL.FATAL]   = { "fatal", LOG_FLAG.FORMAT },
+    [LOG_LEVEL.DUMP]    = { "dump",  LOG_FLAG.FORMAT | LOG_FLAG.PRETTY },
 }
 
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do

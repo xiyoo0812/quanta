@@ -16,6 +16,11 @@ namespace ltimer {
 		return duration_cast<milliseconds>(dur).count();
 	}
 
+	inline uint64_t now_ns() {
+		system_clock::duration dur = system_clock::now().time_since_epoch();
+		return duration_cast<nanoseconds>(dur).count();
+	}
+
 	inline uint64_t steady() {
 		steady_clock::duration dur = steady_clock::now().time_since_epoch();
 		return duration_cast<seconds>(dur).count();
