@@ -44,22 +44,22 @@ function Unqlite:open(name)
     end
 end
 
-function Unqlite:put(key, value)
-    log_dump("[Unqlite][put] {}={}", key, value)
-    return self.driver.put(key, value) == UNQLITE_OK
+function Unqlite:put(key, value, sheet)
+    log_dump("[Unqlite][put] {}.{}={}", sheet, key, value)
+    return self.driver.put(sformat("%s:%s", key, sheet), value) == UNQLITE_OK
 end
 
-function Unqlite:get(key)
-    local data, rc = self.driver.get(key)
-    log_dump("[Unqlite][get] {}={}={}", key, data, rc)
+function Unqlite:get(key, sheet)
+    local data, rc = self.driver.get(sformat("%s:%s", key, sheet))
+    log_dump("[Unqlite][get] {}.{}={}={}", sheet, key, data, rc)
     if rc == UNQLITE_NOTFOUND or rc == UNQLITE_OK then
         return data, true
     end
     return nil, false
 end
 
-function Unqlite:del(key)
-    local rc =  self.driver.del(key)
+function Unqlite:del(key, sheet)
+    local rc =  self.driver.del(sformat("%s:%s", key, sheet))
     return rc == UNQLITE_NOTFOUND or rc == UNQLITE_OK
 end
 

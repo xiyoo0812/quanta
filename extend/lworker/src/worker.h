@@ -124,8 +124,10 @@ namespace lworker {
 
         void run(){
             auto quanta = m_lua->new_table(m_service.c_str());
+            auto tid = std::this_thread::get_id();
             quanta.set("title", m_name);
             quanta.set("pid", ::getpid());
+            quanta.set("tid", *(uint32_t*)&tid);
             quanta.set_function("stop", [&]() { m_running = false; });
             quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
@@ -149,6 +151,7 @@ namespace lworker {
             if (!m_stop){
                 m_schedulor->destory(m_name);
             }
+            m_lua->close();
         }
 
         void stop(){

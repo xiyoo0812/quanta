@@ -2,7 +2,6 @@
 #include "logger.h"
 
 namespace logger {
-
     // class log_filter
     // --------------------------------------------------------------------------------
     void log_filter::filter(log_level llv, bool on) {
@@ -26,14 +25,14 @@ namespace logger {
 
     // class log_message
     // --------------------------------------------------------------------------------
-    void log_message::option(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
+    void log_message::option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line) {
         log_time_ = log_time::now();
-        feature_ = std::move(feature);
-        source_ = std::move(source);
-        msg_ = std::move(msg);
-        tag_ = std::move(tag);
+        feature_ = feature;
+        source_ = source;
         level_ = level;
         line_ = line;
+        tag_ = tag;
+        msg_ = msg;
     }
 
     // class log_message_pool
@@ -136,7 +135,7 @@ namespace logger {
         if (file_) file_->flush();
     }
 
-    void log_file_base::create(path file_path, vstring file_name, const std::tm& file_time) {
+    void log_file_base::create(path file_path, sstring file_name, const std::tm& file_time) {
         if (file_) {
             file_->flush();
             file_->close();
@@ -165,7 +164,7 @@ namespace logger {
     // class log_rollingfile
     // --------------------------------------------------------------------------------
     template<class rolling_evaler>
-    log_rollingfile<rolling_evaler>::log_rollingfile(path& log_path, vstring feature, size_t max_line, size_t clean_time)
+    log_rollingfile<rolling_evaler>::log_rollingfile(path& log_path, cpchar feature, size_t max_line, size_t clean_time)
         : log_file_base(max_line), log_path_(log_path), feature_(feature), clean_time_(clean_time){
     }
 
@@ -185,7 +184,7 @@ namespace logger {
                         }
                     }
                 } catch (...) {}
-                create(log_path_, new_log_file_path(logmsg), logmsg->get_time());
+                create(log_path_, new_log_file_name(logmsg), logmsg->get_time());
                 assert(file_);
                 line_ = 0;
             }
@@ -193,34 +192,33 @@ namespace logger {
         }
 
     template<class rolling_evaler>
-    cstring log_rollingfile<rolling_evaler>::new_log_file_path(const sptr<log_message> logmsg) {
+    sstring log_rollingfile<rolling_evaler>::new_log_file_name(const sptr<log_message> logmsg) {
         return fmt::format("{}-{:%Y%m%d-%H%M%S}.{:03d}.p{}.log", feature_, logmsg->get_time(), logmsg->get_usec(), ::getpid());
     }
 
     // class log_service
     // --------------------------------------------------------------------------------
-    void log_service::option(vstring log_path, vstring service, vstring index) {
-        log_path_ = log_path, service_ = service;
-        log_path_.append(fmt::format("{}-{}", service, index));
-        create_directories(log_path_);
+    void log_service::option(cpchar log_path, cpchar service, cpchar index) {
+        create_directories(log_path);
+        service_ = fmt::format("{}-{}", service, index);
+        log_path_ = log_path;
     }
 
-    path log_service::build_path(vstring feature, vstring lpath) {
-        if (lpath.empty()) {
-            path log_path = log_path_;
-            if (feature != service_) {
-                log_path.append(feature);
-            }
-            return log_path;
+    path log_service::build_path(cpchar feature) {
+        path log_path = log_path_;
+        if (strncmp(service_.c_str(), feature, strlen(feature)) == 0) {
+            log_path.append(service_);
+        } else {
+            log_path.append(feature);
         }
-        return lpath;
+        return log_path;
     }
 
-    bool log_service::add_dest(vstring feature, vstring log_path) {
+    bool log_service::add_dest(cpchar feature) {
         std::unique_lock<spin_mutex> lock(mutex_);
         if (dest_features_.find(feature) == dest_features_.end()) {
             sptr<log_dest> logfile = nullptr;
-            path logger_path = build_path(feature, log_path);
+            path logger_path = build_path(feature);
             if (rolling_type_ == rolling_type::DAYLY) {
                 logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature, max_line_, clean_time_);
             } else {
@@ -239,31 +237,33 @@ namespace logger {
         auto names = level_names<log_level>()();
         sstring feature = names[(int)log_lvl];
         std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
-        path logger_path = build_path(feature, "");
+        path logger_path = build_path(service_.c_str());
+        logger_path.append(feature);
         std::unique_lock<spin_mutex> lock(mutex_);
         if (rolling_type_ == rolling_type::DAYLY) {
-            auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature, max_line_, clean_time_);
+            auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature.c_str(), max_line_, clean_time_);
             dest_lvls_.insert(std::make_pair(log_lvl, logfile));
         }
         else {
-            auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature, max_line_, clean_time_);
+            auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature.c_str(), max_line_, clean_time_);
             dest_lvls_.insert(std::make_pair(log_lvl, logfile));
         }
         return true;
     }
 
-    bool log_service::add_file_dest(vstring feature, vstring fname) {
+    bool log_service::add_file_dest(cpchar feature, cpchar fname) {
         std::unique_lock<spin_mutex> lock(mutex_);
         if (dest_features_.find(feature) == dest_features_.end()) {
             auto logfile = std::make_shared<log_file_base>(max_line_);
-            logfile->create(log_path_, fname, log_time::now());
+            path logger_path = build_path(service_.c_str());
+            logfile->create(logger_path, fname, log_time::now());
             logfile->ignore_prefix(true);
             dest_features_.insert(std::make_pair(feature, logfile));
         }
         return true;
     }
 
-    void log_service::del_dest(vstring feature) {
+    void log_service::del_dest(cpchar feature) {
         std::unique_lock<spin_mutex> lock(mutex_);
         auto it = dest_features_.find(feature);
         if (it != dest_features_.end()) {
@@ -279,7 +279,7 @@ namespace logger {
         }
     }
 
-    void log_service::set_dest_clean_time(vstring feature, size_t clean_time){
+    void log_service::set_dest_clean_time(cpchar feature, size_t clean_time){
         std::unique_lock<spin_mutex> lock(mutex_);
         auto it = dest_features_.find(feature);
         if (it != dest_features_.end()) {
@@ -287,7 +287,7 @@ namespace logger {
         }
     }
 
-    void log_service::ignore_prefix(vstring feature, bool prefix) {
+    void log_service::ignore_prefix(cpchar feature, bool prefix) {
         auto iter = dest_features_.find(feature);
         if (iter != dest_features_.end()) {
             iter->second->ignore_prefix(prefix);
@@ -295,7 +295,7 @@ namespace logger {
         }
     }
 
-    void log_service::ignore_suffix(vstring feature, bool suffix) {
+    void log_service::ignore_suffix(cpchar feature, bool suffix) {
         auto iter = dest_features_.find(feature);
         if (iter != dest_features_.end()) {
             iter->second->ignore_suffix(suffix);
@@ -368,10 +368,10 @@ namespace logger {
         }
     }
 
-    void log_service::output(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line) {
+    void log_service::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line) {
         if (!log_filter_.is_filter(level)) {
             auto logmsg_ = message_pool_->allocate();
-            logmsg_->option(level, msg, tag, feature, source, line);
+            logmsg_->option(level, std::move(msg), tag, feature, source, line);
             logmsgque_->put(logmsg_);
         }
     }

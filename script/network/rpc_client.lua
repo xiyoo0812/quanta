@@ -5,9 +5,9 @@ local log_err           = logger.err
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
+local make_timer        = quanta.make_timer
 
 local event_mgr         = quanta.get("event_mgr")
-local timer_mgr         = quanta.get("timer_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
@@ -24,6 +24,7 @@ local prop = property(RpcClient)
 prop:reader("id", 0)
 prop:reader("ip", nil)
 prop:reader("port", nil)
+prop:reader("timer", nil)
 prop:reader("alive", false)
 prop:reader("socket", nil)
 prop:accessor("holder", nil)    --持有者
@@ -31,14 +32,15 @@ prop:accessor("holder", nil)    --持有者
 function RpcClient:__init(holder, ip, port, id)
     self.ip = ip
     self.port = port
-    self.holder = holder
     self.id = id or 0
-    self.timer_id = timer_mgr:loop(SECOND_MS, function()
-        self:check_heartbeat()
+    self.holder = holder
+    self.timer = make_timer()
+    self.timer:loop(SECOND_MS, function()
+        self:heartbeat()
     end)
 end
 
-function RpcClient:check_heartbeat()
+function RpcClient:heartbeat()
     if not self.holder then
         return
     end
@@ -46,10 +48,10 @@ function RpcClient:check_heartbeat()
     if self.alive then
         --发送心跳
         self:send("rpc_heartbeat")
-        timer_mgr:set_period(self.timer_id, RPC_TIMEOUT)
+        self.timer:set_period(RPC_TIMEOUT)
     else
         self:connect()
-        timer_mgr:set_period(self.timer_id, SECOND_MS)
+        self.timer:set_period(SECOND_MS)
     end
 end
 
@@ -173,7 +175,7 @@ function RpcClient:on_socket_error(token, err)
         if self.holder then
             self.holder:on_socket_error(self, token, err)
             event_mgr:fire_second(function()
-                self:check_heartbeat()
+                self:heartbeat()
             end)
         end
     end)

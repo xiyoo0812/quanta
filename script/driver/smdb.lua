@@ -45,18 +45,19 @@ function SMDB:open(name)
     end
 end
 
-function SMDB:put(key, value)
-    log_dump("[SMDB][put] {}={}", key, value)
-    return self.driver.put(key, value)
+function SMDB:put(key, value, sheet)
+    log_dump("[SMDB][put] {}.{}={}", sheet, key, value)
+    return self.driver.put(sformat("%s:%s", key, sheet), value)
 end
 
-function SMDB:get(key)
-    local data = self.driver.get(key)
-    log_dump("[SMDB][get] {}={}", key, data)
+function SMDB:get(key, sheet)
+    local data = self.driver.get(sformat("%s:%s", key, sheet))
+    log_dump("[SMDB][get] {}.{}={}", sheet, key, data)
+    return data or {}, true
 end
 
-function SMDB:del(key)
-    self.driver.del(key)
+function SMDB:del(key, sheet)
+    self.driver.del(sformat("%s:%s", key, sheet))
 end
 
 function SMDB:autoinc_id()
@@ -86,6 +87,6 @@ function SMDB:iter(key)
     return iter
 end
 
-quanta.sdb_driver = SMDB()
+quanta.smdb_driver = SMDB()
 
 return SMDB

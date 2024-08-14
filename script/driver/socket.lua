@@ -72,7 +72,7 @@ function Socket:set_codec(codec)
     end
 end
 
-function Socket:connect(ip, port, ptype)
+function Socket:connect(ip, port)
     if self.session then
         if self.alive then
             return true

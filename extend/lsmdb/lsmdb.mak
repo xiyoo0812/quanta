@@ -94,7 +94,6 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 #自动生成目标
 SOURCES =
 SOURCES += src/lsmdb.cpp
-SOURCES += src/sdbm.c
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))

@@ -5,8 +5,7 @@ local jencode       = json.encode
 local sformat       = string.format
 local dgetinfo      = debug.getinfo
 
-local LOG_PATH      = environ.get("QUANTA_LOG_PATH", "./logs/")
-local log_dump      = logfeature.dump("webhooks", LOG_PATH .. "../webhooks/", true)
+local log_dump      = logfeature.dump("webhooks", true)
 
 local thread_mgr    = quanta.get("thread_mgr")
 local http_client   = quanta.get("http_client")
@@ -91,7 +90,8 @@ function Webhook:dispatch_log(content)
         hookinfo.count = hookinfo.count + 1
         if now - hookinfo.time > MINUTE_10_S then
             self:fire_hook(content, hookinfo.count)
-            hookinfo = { time = now, count = 0 }
+            self.hook_limit[hookpos] = { time = now, count = 0 }
+            return
         end
         if hookinfo.count > LIMIT_COUNT then
             return

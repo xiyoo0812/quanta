@@ -156,9 +156,11 @@ void quanta_app::load(int argc, const char* argv[]) {
 luakit::lua_table quanta_app::init() {
     //初始化lua
     auto quanta = m_lua.new_table("quanta");
+    auto tid = std::this_thread::get_id();
     quanta.set("pid", ::getpid());
     quanta.set("title", "quanta");
     quanta.set("environs", m_environs);
+    quanta.set("tid", *(uint32_t*)&tid);
     quanta.set("platform", get_platform());
     quanta.set_function("daemon", [&]() { daemon(); });
     quanta.set_function("get_signal", [&]() { return m_signal; });

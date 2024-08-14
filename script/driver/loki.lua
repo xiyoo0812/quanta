@@ -35,17 +35,21 @@ function Loki:__init()
     end
 end
 
---上报日志
 function Loki:on_second()
+    if self.log_count > 0 then
+        self:send_loki()
+    end
+end
+
+--上报日志
+function Loki:send_loki()
     local body = { streams = {}}
     for _, logdata in pairs(self.loki_data) do
         table.insert(body.streams, logdata)
     end
-    if self.log_count > 0 then
-        http_client:call_post(self.loki_url, body, { ["Content-Type"] = "application/json" })
-        self.loki_data = {}
-        self.log_count = 0
-    end
+    http_client:call_post(self.loki_url, body, { ["Content-Type"] = "application/json" })
+    self.loki_data = {}
+    self.log_count = 0
 end
 
 --dispatch_log
@@ -57,15 +61,18 @@ function Loki:dispatch_log(content, lvl_name)
             stream = {
                 level = lvl_name,
                 pid = quanta.pid,
+                tid = quanta.tid,
                 name = quanta.name,
                 host = self.host_ip,
-                thread = quanta.title,
                 service = quanta.service_name,
             }
         }
         return
     end
     tinsert(self.loki_data[lvl_name].values, { sformat("%s", tnow_ns()), content })
+    if self.log_count > 200 then
+        self:send_loki()
+    end
 end
 
 quanta.Loki = Loki()

@@ -8,7 +8,7 @@ quanta.startup(function()
     local NetServer = import("network/net_server.lua")
     local ip, port = env_addr("QUANTA_GATEWAY_ADDR")
     local client_mgr = NetServer("gateway")
-    client_mgr:setup(ip, port, true)
+    client_mgr:listen(ip, port, true)
     quanta.client_mgr = client_mgr
 
     --初始化gateway

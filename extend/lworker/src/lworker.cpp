@@ -20,6 +20,9 @@ namespace lworker {
         llworker.set_function("startup", [](vstring name, vstring entry) {
             return schedulor.startup(name, entry);
         });
+        llworker.set_function("stop", [](vstring name) {
+            return schedulor.stop(name);
+        });
         llworker.set_function("call", [](lua_State* L, vstring name) {
             return schedulor.call(L, name);
         });

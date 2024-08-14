@@ -73,11 +73,13 @@
   {{% end %}}
   </ItemGroup>
   <PropertyGroup Label="Globals">
+    <ProjectName>{{%= PROJECT_NAME %}}</ProjectName>
     <ProjectGuid>{{{%= GUID_NEW(PROJECT_NAME) %}}}</ProjectGuid>
     <RootNamespace>{{%= PROJECT_NAME %}}</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>{{%= PROJECT_NAME %}}</ProjectName>
+    <MinimumVisualStudioVersion>15.0</MinimumVisualStudioVersion>
+    <TargetRuntime>Native</TargetRuntime>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|{{%= PLATFORM %}}'" Label="Configuration">
@@ -90,7 +92,7 @@
     {{% end %}}
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v{{%= MS_VERSION %}}</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'" Label="Configuration">
     {{% if PROJECT_TYPE == "dynamic" then %}}
@@ -102,7 +104,7 @@
     {{% end %}}
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v{{%= MS_VERSION %}}</PlatformToolset>
-    <CharacterSet>MultiByte</CharacterSet>
+    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -121,17 +123,27 @@
     <TargetName>{{%= TARGET_NAME %}}</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
+    <ReferencePath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</ReferencePath>
+    <LibraryPath>$(Console_SdkLibPath)</LibraryPath>
+    <LibraryWPath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</LibraryWPath>
+    <IncludePath>$(Console_SdkIncludeRoot)</IncludePath>
+    <ExecutablePath>$(Console_SdkRoot)bin;$(Console_SdkToolPath);$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'">
     <TargetName>{{%= TARGET_NAME %}}</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
+    <ReferencePath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</ReferencePath>
+    <LibraryPath>$(Console_SdkLibPath)</LibraryPath>
+    <LibraryWPath>$(Console_SdkLibPath);$(Console_SdkWindowsMetadataPath)</LibraryWPath>
+    <IncludePath>$(Console_SdkIncludeRoot)</IncludePath>
+    <ExecutablePath>$(Console_SdkRoot)bin;$(Console_SdkToolPath);$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|{{%= PLATFORM %}}'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CRT_SECURE_NO_WARNINGS;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       {{% if STDAFX then %}}
@@ -139,8 +151,9 @@
       {{% else %}}
       <PrecompiledHeader></PrecompiledHeader>
       {{% end %}}
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <CompileAs>Default</CompileAs>
       {{% if MIMALLOC and MIMALLOC_DIR then %}}
       <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
@@ -152,16 +165,17 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       {{% end %}}
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     {{% if PROJECT_TYPE ~= "static" then %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <ImportLibrary>$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform)\$(TargetName).lib</ImportLibrary>
       <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>{{%= FMT_LIBS %}};%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(Console_Libs);%(XboxExtensionsDependencies);{{%= FMT_LIBS %}};%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>
       </ForceFileOutput>
     </Link>
@@ -197,7 +211,7 @@
     <ClCompile>
       <Optimization>{{%= OPTIMIZE and "MaxSpeed" or "Disabled" %}}</Optimization>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CRT_SECURE_NO_WARNINGS;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       {{% if STDAFX then %}}
@@ -205,8 +219,9 @@
       {{% else %}}
       <PrecompiledHeader></PrecompiledHeader>
       {{% end %}}
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <WarningLevel>Level4</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <CompileAs>Default</CompileAs>
       {{% if MIMALLOC and MIMALLOC_DIR then %}}
       <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
@@ -218,16 +233,17 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       {{% end %}}
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     {{% if PROJECT_TYPE ~= "static" then %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <ImportLibrary>$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform)\$(TargetName).lib</ImportLibrary>
       <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalDependencies>{{%= FMT_LIBS %}};%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(Console_Libs);%(XboxExtensionsDependencies);{{%= FMT_LIBS %}};%(AdditionalDependencies)</AdditionalDependencies>
       <ForceFileOutput>
       </ForceFileOutput>
     </Link>

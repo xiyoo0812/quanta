@@ -26,12 +26,15 @@ EndProject
 {{% end %}}
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Develop|x64 = Develop|x64
+		Debug|{{%= PLATFORM %}} = Debug|{{%= PLATFORM %}}
+		Release|{{%= PLATFORM %}} = Release|{{%= PLATFORM %}}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 	{{% for _, PROJ in pairs(ALL_PROJS or {}) do %}}
-		{{{%= PROJ.GUID %}}}.Develop|x64.ActiveCfg = Develop|x64
-		{{{%= PROJ.GUID %}}}.Develop|x64.Build.0 = Develop|x64
+		{{{%= PROJ.GUID %}}}.Debug|{{%= PLATFORM %}}.ActiveCfg = Debug|{{%= PLATFORM %}}
+		{{{%= PROJ.GUID %}}}.Debug|{{%= PLATFORM %}}.Build.0 = Debug|{{%= PLATFORM %}}
+		{{{%= PROJ.GUID %}}}.Release|{{%= PLATFORM %}}.ActiveCfg = Release|{{%= PLATFORM %}}
+		{{{%= PROJ.GUID %}}}.Release|{{%= PLATFORM %}}.Build.0 = Release|{{%= PLATFORM %}}
 	{{% end %}}
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution

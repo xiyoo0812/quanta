@@ -20,12 +20,15 @@
 
 #ifdef WIN32
 #define getpid _getpid
+#define gettid _get_tid
 #else
 #include <unistd.h>
 #endif
 
 using namespace std::chrono;
 using namespace std::filesystem;
+
+using cpchar    = const char*;
 using sstring   = std::string;
 using vstring   = std::string_view;
 using cstring   = const std::string;
@@ -114,7 +117,7 @@ namespace logger {
         int get_usec() { return log_time_.tm_usec; }
         log_level level() const { return level_; }
         const std::tm& get_time() const { return log_time_; }
-        void option(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line);
+        void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
 
     private:
         int                 line_ = 0;
@@ -182,7 +185,7 @@ namespace logger {
         virtual void raw_write(vstring msg, log_level lvl);
         virtual void flush();
 
-        void create(path file_path, vstring file_name, const std::tm& file_time);
+        void create(path file_path, sstring file_name, const std::tm& file_time);
 
     protected:
         std::tm         file_time_;
@@ -203,13 +206,13 @@ namespace logger {
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(path& log_path, vstring namefix, size_t max_line = 10000, size_t clean_time = CLEAN_TIME);
+        log_rollingfile(path& log_path, cpchar namefix, size_t max_line = 10000, size_t clean_time = CLEAN_TIME);
 
         virtual void write(sptr<log_message> logmsg);
         virtual void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
 
     protected:
-        cstring new_log_file_path(const sptr<log_message> logmsg);
+        sstring new_log_file_name(const sptr<log_message> logmsg);
 
         path                    log_path_;
         sstring                 feature_;
@@ -229,17 +232,17 @@ namespace logger {
         virtual void filter(log_level lv, bool on) = 0;
         virtual void set_max_line(size_t max_line) = 0;
         virtual void set_clean_time(size_t clean_time) = 0;
-        virtual void del_dest(vstring feature) = 0;
+        virtual bool add_dest(cpchar feature) = 0;
+        virtual void del_dest(cpchar feature) = 0;
         virtual void del_lvl_dest(log_level log_lvl) = 0;
         virtual bool add_lvl_dest(log_level log_lvl) = 0;
         virtual void set_rolling_type(rolling_type type) = 0;
-        virtual void ignore_prefix(vstring feature, bool prefix) = 0;
-        virtual void ignore_suffix(vstring feature, bool suffix) = 0;
-        virtual bool add_dest(vstring feature, vstring log_path) = 0;
-        virtual bool add_file_dest(vstring feature, vstring fname) = 0;
-        virtual void set_dest_clean_time(vstring feature, size_t clean_time) = 0;
-        virtual void option(vstring log_path, vstring service, vstring index) = 0;
-        virtual void output(log_level level, cstring& msg, cstring& tag, cstring& feature = "", cstring& source = "", int line = 0) = 0;
+        virtual void ignore_prefix(cpchar feature, bool prefix) = 0;
+        virtual void ignore_suffix(cpchar feature, bool suffix) = 0;
+        virtual bool add_file_dest(cpchar feature, cpchar fname) = 0;
+        virtual void set_dest_clean_time(cpchar feature, size_t clean_time) = 0;
+        virtual void option(cpchar log_path, cpchar service, cpchar index) = 0;
+        virtual void output(log_level level, sstring&& msg, cpchar tag, cpchar feature = "", cpchar source = "", int line = 0) = 0;
     };
 
     class log_service : public logger {
@@ -248,30 +251,30 @@ namespace logger {
         void start();
 
         void daemon(bool status) { log_daemon_ = status; }
-        void option(vstring log_path, vstring service, vstring index);
+        void option(cpchar log_path, cpchar service, cpchar index);
 
-        bool add_file_dest(vstring feature, vstring fname);
-        bool add_dest(vstring feature, vstring log_path);
+        bool add_dest(cpchar feature);
         bool add_lvl_dest(log_level log_lvl);
+        bool add_file_dest(cpchar feature, cpchar fname);
 
-        void del_dest(vstring feature);
+        void del_dest(cpchar feature);
         void del_lvl_dest(log_level log_lvl);
 
-        void ignore_prefix(vstring feature, bool prefix);
-        void ignore_suffix(vstring feature, bool suffix);
+        void ignore_prefix(cpchar feature, bool prefix);
+        void ignore_suffix(cpchar feature, bool suffix);
 
         void set_max_line(size_t max_line) { max_line_ = max_line; }
         void set_rolling_type(rolling_type type) { rolling_type_ = type; }
         void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
-        void set_dest_clean_time(vstring feature, size_t clean_time);
+        void set_dest_clean_time(cpchar feature, size_t clean_time);
 
         bool is_filter(log_level lv) { return log_filter_.is_filter(lv); }
         void filter(log_level lv, bool on) { log_filter_.filter(lv, on); }
 
-        void output(log_level level, cstring& msg, cstring& tag, cstring& feature, cstring& source, int line);
+        void output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
 
     protected:
-        path build_path(vstring feature, vstring fpath);
+        path build_path(cpchar feature);
         void flush();
         void run();
 

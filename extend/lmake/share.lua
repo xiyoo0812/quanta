@@ -10,6 +10,9 @@ STDCPP = "c++17"
 --是否生效
 ENABLE = true
 
+--是否优化
+OPTIMIZE = false
+
 --需要的FLAGS
 BASE_FLAGS = {
     "Wno-sign-compare",

@@ -57,10 +57,10 @@ function NetServer:on_quit()
 end
 
 --induce：根据 order 推导port
-function NetServer:setup(ip, port, induce)
+function NetServer:listen(ip, port, induce)
     -- 开启监听
     if not ip or not port then
-        log_err("[NetServer][setup] ip:{} or port:{} is nil", ip, port)
+        log_err("[NetServer][listen] ip:{} or port:{} is nil", ip, port)
         signalquit()
         return
     end
@@ -71,7 +71,7 @@ function NetServer:setup(ip, port, induce)
         signalquit()
         return
     end
-    log_info("[NetServer][setup] start listen at: {}:{}", ip, real_port)
+    log_info("[NetServer][listen] start listen at: {}:{}", ip, real_port)
     -- 安装回调
     listener.set_codec(self.codec)
     listener.on_accept = function(session)

@@ -226,7 +226,10 @@ local function build_projfile(solution_dir, project_dir, lmake_dir)
                 ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxprojps.tpl"), lrepextension(fullname, ".vcxproj"), env)
             elseif env.PLATFORM == "NX64" then
                 ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxprojns.tpl"), lrepextension(fullname, ".vcxproj"), env)
+            elseif env.PLATFORM and env.PLATFORM:find("Xbox") then
+                ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxprojx.tpl"), lrepextension(fullname, ".vcxproj"), env)
             else
+                env.PLATFORM = "x64"
                 ltmpl.render_file(lappend(lmake_dir, "tmpl/vcxproj.tpl"),  lrepextension(fullname, ".vcxproj"), env)
                 ltmpl.render_file(lappend(lmake_dir, "tmpl/make.tpl"),  lrepextension(fullname, ".mak"), env)
             end
@@ -273,12 +276,11 @@ local function build_lmak(solution_dir)
     end
     load_env_file(lappend(solution_dir, "lmake"), env)
     local ltmpl = require("ltemplate")
-    if env.PLATFORM then
-        ltmpl.render_file(lappend(lmake_dir, "tmpl/platform.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
-    else
+    if not env.PLATFORM then
+        env.PLATFORM = "x64"
         ltmpl.render_file(lappend(lmake_dir, "tmpl/makefile.tpl"), lappend(solution_dir, "Makefile"), env)
-        ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
     end
+    ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
     print(sformat("build solution %s success!", solution))
 end
 

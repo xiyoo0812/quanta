@@ -23,8 +23,8 @@ local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./lmdb/")
 local Lmdb = singleton()
 local prop = property(Lmdb)
 prop:reader("driver", nil)
-prop:reader("dbname", nil)
 prop:reader("jcodec", nil)
+prop:reader("sheet", nil)
 
 function Lmdb:__init()
     stdfs.mkdir(KVDB_PATH)
@@ -39,7 +39,7 @@ function Lmdb:on_quit()
     end
 end
 
-function Lmdb:open(name, dbname)
+function Lmdb:open(name, sheet)
     if not self.driver then
         local driver = lmdb.create()
         local jcodec = json.jsoncodec()
@@ -47,50 +47,50 @@ function Lmdb:open(name, dbname)
         driver.set_codec(jcodec)
         self.driver = driver
         self.jcodec = jcodec
-        self.dbname = dbname
+        self.sheet = sheet
         local rc = driver.open(sformat("%s%s.mdb", KVDB_PATH, name), MDB_NOSUBDIR, 0644)
         log_debug("[Lmdb][open] open lmdb {}:{}!", name, rc)
     end
 end
 
-function Lmdb:puts(objects, dbname)
-    return self.driver.batch_put(objects, dbname or self.dbname) == MDB_SUCCESS
+function Lmdb:puts(objects, sheet)
+    return self.driver.batch_put(objects, sheet or self.sheet) == MDB_SUCCESS
 end
 
-function Lmdb:put(key, value, dbname)
-    log_dump("[Lmdb][put] {}.{}={}", key, dbname, value)
-    return self.driver.quick_put(key, value, dbname or self.dbname) == MDB_SUCCESS
+function Lmdb:put(key, value, sheet)
+    log_dump("[Lmdb][put] {}.{}={}", key, sheet, value)
+    return self.driver.quick_put(key, value, sheet or self.sheet) == MDB_SUCCESS
 end
 
-function Lmdb:get(key, dbname)
-    local data, rc = self.driver.quick_get(key, dbname or self.dbname)
-    log_dump("[Lmdb][get] {}.{}={}={}", key, dbname, data, rc)
+function Lmdb:get(key, sheet)
+    local data, rc = self.driver.quick_get(key, sheet or self.sheet)
+    log_dump("[Lmdb][get] {}.{}={}={}", key, sheet, data, rc)
     if rc == MDB_NOTFOUND or rc == MDB_SUCCESS then
         return data, true
     end
     return nil, false
 end
 
-function Lmdb:gets(keys, dbname)
-    local res, rc = self.driver.batch_get(keys, dbname or self.dbname)
+function Lmdb:gets(keys, sheet)
+    local res, rc = self.driver.batch_get(keys, sheet or self.sheet)
     if rc == MDB_NOTFOUND or rc == MDB_SUCCESS then
         return res, true
     end
     return nil, false
 end
 
-function Lmdb:del(key, dbname)
-    local rc =  self.driver.quick_del(key, dbname or self.dbname)
+function Lmdb:del(key, sheet)
+    local rc =  self.driver.quick_del(key, sheet or self.sheet)
     return rc == MDB_NOTFOUND or rc == MDB_SUCCESS
 end
 
-function Lmdb:dels(keys, dbname)
-    local rc = self.driver.batch_del(keys, dbname or self.dbname)
+function Lmdb:dels(keys, sheet)
+    local rc = self.driver.batch_del(keys, sheet or self.sheet)
     return rc == MDB_NOTFOUND or rc == MDB_SUCCESS
 end
 
-function Lmdb:drop(dbname)
-    return self.driver.quick_drop(dbname or self.dbname)
+function Lmdb:drop(sheet)
+    return self.driver.quick_drop(sheet or self.sheet)
 end
 
 function Lmdb:autoinc_id()
@@ -109,10 +109,10 @@ function Lmdb:autoinc_id()
 end
 
 --迭代器
-function Lmdb:iter(dbname, key)
+function Lmdb:iter(sheet, key)
     local flag = nil
     local driver = self.driver
-    driver.cursor_open(dbname or self.dbname)
+    driver.cursor_open(sheet or self.sheet)
     local function iter()
         local _, k, v
         if not flag then

@@ -2,8 +2,9 @@
 
 local lnow_ms   = timer.now_ms
 local log_info  = logger.info
+
 local log_debug = logfeature.debug("lualog")
-local log_dump  = logfeature.dump("bilogs", "./bilogs/", true)
+local log_dump  = logfeature.dump("bilogs", true)
 
 local function logger_test(cycle)
     local t1 = lnow_ms()

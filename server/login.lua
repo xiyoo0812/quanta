@@ -6,7 +6,7 @@ quanta.startup(function()
     --创建客户端网络管理
     local NetServer = import("network/net_server.lua")
     local client_mgr = NetServer("login")
-    client_mgr:setup(env_addr("QUANTA_LOGIN_ADDR"))
+    client_mgr:listen(env_addr("QUANTA_LOGIN_ADDR"))
     quanta.client_mgr = client_mgr
 
     --加载登陆管理

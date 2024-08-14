@@ -13,6 +13,14 @@
 #define ftruncate _chsize_s
 #define filelength _filelength
 #define strncasecmp _strnicmp
+#else
+#include <unistd.h>
+#include <sys/stat.h>
+long filelength(int fd) {
+    struct stat st;
+    fstat(fd, &st);
+    return st.st_size;
+}
 #endif
 
 using namespace std;
@@ -21,9 +29,9 @@ namespace smdb {
     const uint16_t DB_FLAG_SIZE     = 4;            //DB文件前置标记
     const uint16_t DB_PAGE_MAX      = USHRT_MAX;    //DB文件最大页数
     const uint16_t DB_PAGE_SIZE     = USHRT_MAX;    //页的bytes
-    const uint8_t  KEY_SIZE_MAX     = 0x1f;         //KEY的最大长度，二进制00011111
-    const uint8_t  KEY_CHECK_FLAG   = 0xe0;         //KEY的校验标记，二进制11100000
-    const uint16_t VAL_SZIE_MAX     = 65500;        //VALUE的最大长度
+    const uint8_t  KEY_SIZE_MAX     = 0x3f;         //KEY的最大长度，二进制00111111
+    const uint8_t  KEY_CHECK_FLAG   = 0xc0;         //KEY的校验标记，二进制11000000
+    const uint16_t VAL_SZIE_MAX     = 65400;        //VALUE的最大长度
     const uint16_t PAGE_VAL_MAX     = 1500;         //每页VALUE的最大数量
     const uint16_t PAGE_VAL_FREE    = 64;           //每页FREE标志bytes
 
@@ -72,7 +80,6 @@ namespace smdb {
                 //空文件,添加文件头
                 size = sizeof(dbheader);
                 dbheader header{ { 'S', 'M', 'D', 'B' }, 0, size };
-                fseek(file, 0, SEEK_SET);
                 fwrite(&header, 1, size, file);
                 fflush(file);
             }
@@ -182,7 +189,7 @@ namespace smdb {
             return bufsza > bufszb;
         }
 
-        page(mapping* map, uint16_t id, uint32_t offset) : m_id(id), m_mapping(map), m_offset(offset){}
+        page(mapping* map, uint16_t id, uint32_t offset) : m_id(id), m_offset(offset), m_mapping(map){}
 
         bool isempty() { return count() == 0; }
         bool available() { return count() < PAGE_VAL_MAX && (m_remain + m_waste) > PAGE_VAL_FREE; }
@@ -210,7 +217,7 @@ namespace smdb {
                         offset += hkey->vsize;
                         continue;
                     }
-                    pagekey pkey = { offset, sizeof(keyheader) + ksize, hkey->vsize };
+                    pagekey pkey = { offset, (uint16_t)(sizeof(keyheader) + ksize), hkey->vsize };
                     offset += sizeof(keyheader);
                     string skey = string(cursor + offset, ksize);
                     auto vkey = m_mapping->add_key(skey, this);
@@ -246,7 +253,7 @@ namespace smdb {
             char* cursor = m_mapping->data + m_offset;
             keyheader* hkey = (keyheader*)(cursor + offset);
             hkey->ksize = (ksize & KEY_SIZE_MAX) | KEY_CHECK_FLAG;
-            hkey->vsize = (uint8_t)val.size();
+            hkey->vsize = (uint16_t)val.size();
             it->second.offset = offset;
             it->second.vsize = hkey->vsize;
             //写入key/val
@@ -270,7 +277,7 @@ namespace smdb {
             uint8_t ksize = (uint8_t)key.size();
             keyheader* hkey = (keyheader*)(cursor + offset);
             hkey->ksize = (ksize & KEY_SIZE_MAX) | KEY_CHECK_FLAG;
-            hkey->vsize = (uint8_t)val.size();
+            hkey->vsize = (uint16_t)val.size();
             auto vkey = m_mapping->add_key(key, this);
             m_keys.emplace(vkey, pagekey{ offset, (uint16_t)(sizeof(keyheader) + ksize), hkey->vsize });
             header->num++;

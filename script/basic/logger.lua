@@ -97,9 +97,9 @@ end
 
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, flag = tunpack(conf)
-    logfeature[lvl_name] = function(feature, path, prefix, clean_time)
-        log.add_dest(feature, path)
-        log.ignore_prefix(feature, prefix)
+    logfeature[lvl_name] = function(feature, ign_prefix, clean_time)
+        log.add_dest(feature)
+        log.ignore_prefix(feature, ign_prefix)
         if clean_time then
             log.set_dest_clean_time(feature, clean_time)
         end
