@@ -148,10 +148,10 @@ function WSServer:on_handshake(session, token, url, params, headers, body)
     if headers["Sec-WebSocket-Protocol"] then
         cbheaders["Sec-WebSocket-Protocol"] = "mqtt"
     end
+    session.call_data(101, cbheaders, "")
     event_mgr:fire_frame(function()
         session.set_codec(self.wcodec)
     end)
-    session.call_data(101, cbheaders, "")
     --handshake 完成
     self:add_session(session)
     log_info("[WSServer][on_handshake] handshake success {}", token)

@@ -37,6 +37,7 @@ quanta.startup(function()
     import("test/toml_test.lua")
     import("test/csv_test.lua")
     import("test/smdb_test.lua")
+    import("test/profile_test.lua")
     ]]
-    import("test/smdb_test.lua")
+    import("test/profile_test.lua")
 end)

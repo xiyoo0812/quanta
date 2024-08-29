@@ -31,8 +31,14 @@ prop:reader("db_drivers", {})   -- db_drivers
 function StoreMgr:__init()
     cache_db:add_group("group")
     --通知监听
+    update_mgr:attach_quit(self)
     update_mgr:attach_fast(self)
     update_mgr:attach_second(self)
+end
+
+function StoreMgr:on_quit()
+    update_mgr:detach_fast(self)
+    update_mgr:detach_second(self)
 end
 
 function StoreMgr:open_driver(name, dbname)
@@ -141,12 +147,17 @@ end
 
 function StoreMgr:delete(entity, primary_id, sheet_name)
     local func = entity["delete_" .. sheet_name .. "_db"]
-    local ok, err = pcall(func, entity)
+    local ok, err = pcall(func, entity, self)
     if not ok then
         log_err("[StoreMgr][delete] delete ({}) failed primary_id({}), err: {}!",  sheet_name, primary_id, err)
         return ok, err
     end
     return ok, SUCCESS
+end
+
+function StoreMgr:clean_store(store)
+    self.increases[store] = nil
+    self.wholes[store] = nil
 end
 
 function StoreMgr:save_wholes(store)

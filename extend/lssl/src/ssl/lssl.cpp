@@ -7,8 +7,6 @@
 #include "lssl.h"
 
 namespace lssl {
-    thread_local luakit::luabuf thread_buff;
-
     static char fromhex(unsigned char x) {
         if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
         else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
@@ -354,10 +352,11 @@ namespace lssl {
         return 1;
     }
 
-    static tlscodec* tls_codec(codec_base* codec) {
+    static tlscodec* tls_codec(lua_State* L, codec_base* codec) {
+        luakit::kit_state kit_state(L);
         tlscodec* tcodec = new tlscodec();
+        tcodec->set_buff(kit_state.get_buff());
         tcodec->set_codec(codec);
-        tcodec->set_buff(&thread_buff);
         return tcodec;
     }
 

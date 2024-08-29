@@ -1,17 +1,13 @@
 #pragma once
 
-#include <list>
 #include <array>
 #include <ctime>
-#include <mutex>
 #include <vector>
 #include <chrono>
-#include <atomic>
 #include <thread>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
-#include <unordered_map>
 #include <condition_variable>
 #include <assert.h>
 
@@ -25,6 +21,7 @@
 #include <unistd.h>
 #endif
 
+using namespace luakit;
 using namespace std::chrono;
 using namespace std::filesystem;
 
@@ -54,21 +51,6 @@ namespace logger {
     const size_t QUEUE_SIZE = 10000;
     const size_t MAX_LINE   = 200000;
     const size_t CLEAN_TIME = 7 * 24 * 3600;
-
-    class spin_mutex {
-    public:
-        spin_mutex() = default;
-        spin_mutex(const spin_mutex&) = delete;
-        spin_mutex& operator = (const spin_mutex&) = delete;
-        void lock() {
-            while(flag.test_and_set(std::memory_order_acquire));
-        }
-        void unlock() {
-            flag.clear(std::memory_order_release);
-        }
-    private:
-        std::atomic_flag flag = ATOMIC_FLAG_INIT;
-    }; //spin_mutex
 
     template <typename T>
     struct level_names {};

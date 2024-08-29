@@ -73,13 +73,7 @@ function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ...)
             return
         end
         thread_mgr:response(session_id, ...)
-        return
     end
-    if rpc == "rpc_heartbeat" then
-        return
-    end
-    log_err("[RpcServer][on_socket_rpc] Illegal client({}) rpc({})! will be closed!", client.ip, rpc)
-    self:close_client(client)
 end
 
 --连接关闭
@@ -107,7 +101,6 @@ function RpcServer:on_socket_accept(client)
             log_err("[RpcServer][call_rpc] call failed! code:{}", send_len)
             return false
         end
-        --proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, SUCCESS
     end
     client.on_call = function(recv_len, session_id, rpc_flag, ...)

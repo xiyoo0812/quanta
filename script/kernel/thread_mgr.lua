@@ -8,7 +8,6 @@ local co_create     = coroutine.create
 local co_resume     = coroutine.resume
 local co_running    = coroutine.running
 local qxpcall       = quanta.xpcall
-local qdefer        = quanta.defer
 local synclock      = quanta.synclock
 local mrandom       = qmath.random
 local tsize         = qtable.size
@@ -44,16 +43,14 @@ function ThreadMgr:wait_size()
     return co_yield_size + co_wait_size + 1
 end
 
-function ThreadMgr:entry(key, func)
+function ThreadMgr:entry(key, func, ...)
     if self.entry_map[key] then
         return false
     end
-    self:fork(function()
-        local _<close> = qdefer(function()
-            self.entry_map[key] = nil
-        end)
+    self:fork(function(...)
         self.entry_map[key] = quanta.clock_ms + SECOND_30_MS
-        func()
+        qxpcall(func, "[ThreadMgr][entry] error: {}", ...)
+        self.entry_map[key] = nil
     end)
     return true
 end

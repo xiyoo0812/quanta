@@ -55,10 +55,6 @@
 #define IO_EPOLL
 #endif
 
-#ifdef __NINTENDO__
-#define IO_POLL
-#endif
-
 #ifdef __APPLE__
 #define IO_KQUEUE
 #endif
@@ -91,17 +87,7 @@
 #include <netinet/tcp.h>
 #endif
 
-#if defined(__ORBIS__) || defined(__PROSPERO__)
-#define SCE_API
-#define IO_EPOLL
-#include <net.h>
-#include <unistd.h>
-#include <libnetctl.h>
-#endif
-
 #define LUA_LIB
 
 #include "lua_kit.h"
 #include <iostream>
-
-

@@ -4,31 +4,31 @@
 
 namespace lbson {
 
-    thread_local bson thread_bson;
+    thread_local bson tbson;
 
     static int encode(lua_State* L) {
-        return thread_bson.encode(L);
+        return tbson.encode(L);
     }
     static int decode(lua_State* L) {
-        return thread_bson.decode(L);
+        return tbson.decode(L);
     }
     static int pairs(lua_State* L) {
-        return thread_bson.pairs(L);
+        return tbson.pairs(L);
     }
     static int regex(lua_State* L) {
-        return thread_bson.regex(L);
+        return tbson.regex(L);
     }
     static int binary(lua_State* L) {
-        return thread_bson.binary(L);
+        return tbson.binary(L);
     }
     static int objectid(lua_State* L) {
-        return thread_bson.objectid(L);
+        return tbson.objectid(L);
     }
     static int int64(lua_State* L, int64_t value) {
-        return thread_bson.int64(L, value);
+        return tbson.int64(L, value);
     }
     static int date(lua_State* L, int64_t value) {
-        return thread_bson.date(L, value * 1000);
+        return tbson.date(L, value * 1000);
     }
 
     static void init_static_bson() {
@@ -39,14 +39,17 @@ namespace lbson {
         }
     }
 
-    static codec_base* mongo_codec() {
+    static codec_base* mongo_codec(lua_State* L) {
+        luakit::kit_state kit_state(L);
         mgocodec* codec = new mgocodec();
-        codec->set_bson(&thread_bson);
+        codec->set_buff(kit_state.get_buff());
+        codec->set_bson(&tbson);
         return codec;
     }
 
     luakit::lua_table open_lbson(lua_State* L) {
         luakit::kit_state kit_state(L);
+        tbson.set_buff(kit_state.get_buff());
         auto llbson = kit_state.new_table("bson");
         llbson.set_function("mongocodec", mongo_codec);
         llbson.set_function("objectid", objectid);

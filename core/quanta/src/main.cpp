@@ -11,9 +11,7 @@ int main(int argc, const char* argv[])
 #ifdef WIN32
     setlocale(LC_ALL, ".UTF8");
 #endif
-#if !(defined(__ORBIS__) || defined(__PROSPERO__))
     tzset();
-#endif
     quanta_app q_app;
     q_app.setup(argc, argv);
     q_app.run();

@@ -4,7 +4,6 @@ local Socket        = import("driver/socket.lua")
 
 local log_err       = logger.err
 local log_info      = logger.info
-local log_warn      = logger.warn
 local tinsert       = table.insert
 local tunpack       = table.unpack
 local qjoin         = qtable.join
@@ -16,7 +15,6 @@ local sgmatch       = string.gmatch
 local mrandom       = qmath.random
 local mtointeger    = math.tointeger
 local qhash         = codec.hash_code
-local qdefer        = quanta.defer
 local makechan      = quanta.make_channel
 
 local lmd5          = ssl.md5
@@ -28,7 +26,6 @@ local lhmac_sha1    = ssl.hmac_sha1
 local lxor_byte     = ssl.xor_byte
 local bsonpairs     = bson.pairs
 local bint64        = bson.int64
-local lclock_ms     = timer.clock_ms
 
 local timer_mgr     = quanta.get("timer_mgr")
 local event_mgr     = quanta.get("event_mgr")
@@ -36,7 +33,6 @@ local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local SLOW_MS       = quanta.enum("PeriodTime", "SLOW_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
@@ -97,7 +93,6 @@ function MongoDB:setup_pool(hosts)
         for c = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
-            socket.sessions = {}
             socket:set_id(count)
             count = count + 1
         end
@@ -200,11 +195,11 @@ function MongoDB:auth(sock, username, password)
     end
     local salt = payload_start['s']
     local rnonce = payload_start['r']
-    local iterations = tonumber(payload_start['i'])
-    if not ssub(rnonce, 1, 12) == nonce then
+    if ssub(rnonce, 1, 16) ~= nonce then
         return false, "Server returned an invalid nonce."
     end
     local without_proof = "c=biws,r=" .. rnonce
+    local iterations = tonumber(payload_start['i'])
     local pbkdf2_key = lmd5(sformat("%s:mongo:%s", username, password), 1)
     local salted_pass = self:salt_password(pbkdf2_key, lb64decode(salt), iterations)
     local client_key = lhmac_sha1(salted_pass, "Client Key")
@@ -255,11 +250,6 @@ function MongoDB:on_socket_error(sock, token, err)
     event_mgr:fire_second(function()
         self:check_alive()
     end)
-    for session_id, cmd in pairs(sock.sessions) do
-        log_warn("[MongoDB][on_socket_error] drop cmd {}-{})!", cmd, session_id)
-        thread_mgr:response(session_id, false, err)
-    end
-    sock.sessions = {}
 end
 
 function MongoDB:decode_reply(result)
@@ -287,19 +277,10 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
     if not sock then
         return false, "db not connected"
     end
-    local tick = lclock_ms()
     if not sock:send_data(session_id, cmd, ...) then
         return false, "send failed"
     end
-    sock.sessions[session_id] = cmd
     self.req_counter:count_increase()
-    local _<close> = qdefer(function()
-        sock.sessions[session_id] = nil
-        local utime = lclock_ms() - tick
-        if utime > SLOW_MS then
-            log_warn("[MongoDB][op_msg] cmd ({}:{}) execute so big {}!", cmd, session_id, utime)
-        end
-    end)
     return thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
 end
 

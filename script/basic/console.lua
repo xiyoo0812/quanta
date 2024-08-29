@@ -1,4 +1,4 @@
---trace.lua
+--console.lua
 local load          = load
 local pcall         = pcall
 local stdout        = io.stdout

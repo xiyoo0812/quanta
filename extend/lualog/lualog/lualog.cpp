@@ -6,7 +6,7 @@ using namespace luakit;
 
 namespace logger {
 
-    thread_local luabuf buf;
+    thread_local luabuf* td_buffer = nullptr;
     
     const int LOG_FLAG_FORMAT   = 1;
     const int LOG_FLAG_PRETTY   = 2;
@@ -23,9 +23,9 @@ namespace logger {
         case LUA_TBOOLEAN: return lua_toboolean(L, index) ? "true" : "false";
         case LUA_TTABLE:
             if ((flag & LOG_FLAG_FORMAT) == LOG_FLAG_FORMAT) {
-                buf.clean();
-                serialize_one(L, &buf, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
-                return string((char*)buf.head(), buf.size());
+                td_buffer->clean();
+                serialize_one(L, td_buffer, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
+                return string((char*)td_buffer->head(), td_buffer->size());
             }
             return luaL_tolstring(L, index, nullptr);
         case LUA_TNUMBER:
@@ -72,6 +72,7 @@ namespace logger {
 
     luakit::lua_table open_lualog(lua_State* L) {
         luakit::kit_state kit_state(L);
+        td_buffer = kit_state.get_buff();
         auto lualog = kit_state.new_table("log");
         lualog.new_enum("LOG_LEVEL",
             "INFO", log_level::LOG_LEVEL_INFO,
@@ -106,7 +107,8 @@ namespace logger {
             case 7: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<7>{});
             case 8: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<8>{});
             case 9: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<9>{});
-            default: luaL_error(L, "print args is more than 9!"); break;
+            case 10: return tformat(L, lvl, tag, feature, flag, vfmt, make_index_sequence<10>{});
+            default: luaL_error(L, "print args is more than 10!"); break;
             }
             return 0;
         });
@@ -125,7 +127,8 @@ namespace logger {
             case 7: return fformat(L, flag, vfmt, make_index_sequence<7>{});
             case 8: return fformat(L, flag, vfmt, make_index_sequence<8>{});
             case 9: return fformat(L, flag, vfmt, make_index_sequence<9>{});
-            default: luaL_error(L, "format args is more than 9!"); break;
+            case 10: return fformat(L, flag, vfmt, make_index_sequence<10>{});
+            default: luaL_error(L, "format args is more than 10!"); break;
             }
             return 0;
         });

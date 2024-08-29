@@ -14,6 +14,8 @@ local decode        = luakit.decode
 local serialize     = luakit.serialize
 local unserialize   = luakit.unserialize
 
+quanta.profile()
+
 --hash
 ----------------------------------------------------------------
 local hash_n1 = hash_code(12345)
@@ -97,12 +99,15 @@ log_debug("encode-> bufe: {}, {}", #bufe, lhex_encode(bufe))
 local datae = decode(bufe, #bufe)
 log_debug("decode-> {}", datae)
 
-local ip = luabus.dns("mtae-global-test-outer-zone-a-2-89e65514de3445cc.elb.us-east-1.amazonaws.com")
+local t1 = timer.clock_ms()
+local ip = luabus.dns("www.google.com")
 log_debug("luabus dns-> {}", ip)
-
+log_debug("luabus dns-> {}", timer.clock_ms() - t1)
 
 local host = luabus.host()
 log_debug("luabus host-> {}", host)
 
 --dump
 log_dump("dump-> a: {}", t)
+
+quanta.perfdump(50)

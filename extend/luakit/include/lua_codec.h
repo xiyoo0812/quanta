@@ -447,6 +447,7 @@ namespace luakit {
             m_failed = false;
         }
         virtual bool failed() { return m_failed; }
+        virtual luabuf* get_buff() { return m_buf; }
         virtual const char* err() { return m_err.c_str(); }
         virtual size_t get_packet_len() { return m_packet_len; }
         virtual void set_buff(luabuf* buf) { m_buf = buf; }

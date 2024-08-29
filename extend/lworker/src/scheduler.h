@@ -16,7 +16,7 @@ namespace lworker {
             m_service = service;
             m_sandbox = sandbox;
             m_lua = std::make_shared<kit_state>(L);
-            m_codec = m_lua->create_codec();
+            m_codec = m_lua->get_codec();
         }
 
         std::shared_ptr<worker> find_worker(vstring name) {
@@ -122,7 +122,6 @@ namespace lworker {
                 it.second->stop();
             }
             m_worker_map.clear();
-            m_lua->close();
         }
 
     private:

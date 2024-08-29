@@ -20,9 +20,11 @@ local function db_prop_op_sheet_key(class, sheet, sheetkey, storekey)
     class["flush_" .. sheet .. "_db"] = function(self, timely)
         self[storekey]:flush(self, timely)
     end
-    class["delete_" .. sheet .. "_db"] = function(self)
-        self[storekey]:delete(self)
+    class["delete_" .. sheet .. "_db"] = function(self, mgr)
+        local store = self[storekey]
+        mgr:clean_store(store)
         self[storekey] = nil
+        store:delete()
     end
     class["is_" .. sheet .. "_loaded"] = function(self)
         return self["__" .. sheet .. "_loaded"]

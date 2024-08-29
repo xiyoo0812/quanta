@@ -179,11 +179,11 @@ end
 -- 收到远程调用回调
 function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body, err)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
-        local function dispatch_rpc_message(_session, typ, cmd, cbody)
+        local function dispatch_rpc_message(socket, typ, cmd, cbody)
             if cbody then
                 local hook<close> = qdefer()
                 event_mgr:execute_hook(cmd, hook, cbody)
-                local result = event_mgr:notify_listener("on_socket_cmd", _session, typ, cmd, cbody, session_id)
+                local result = event_mgr:notify_listener("on_socket_cmd", socket, typ, cmd, cbody, session_id)
                 if not result[1] then
                     log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd)
                 end
@@ -249,7 +249,6 @@ function NetServer:add_session(session)
     if not self.sessions[token] then
         self.sessions[token] = session
         self.session_count = self.session_count + 1
-        --proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
     end
     return token
 end
@@ -260,7 +259,6 @@ function NetServer:remove_session(token)
     if session then
         self.sessions[token] = nil
         self.session_count = self.session_count - 1
-        --proxy_agent:statistics("on_conn_update", self.session_type, self.session_count)
         return session
     end
 end

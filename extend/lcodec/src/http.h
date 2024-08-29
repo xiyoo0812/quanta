@@ -43,10 +43,6 @@ namespace lcodec {
             m_jcodec = codec;
         }
 
-        void set_jsondecode(bool jsondecode) {
-            m_jsondisable = jsondecode;
-        }
-
         virtual size_t decode(lua_State* L) {
             if (!m_slice) return 0;
             int top = lua_gettop(L);
@@ -156,7 +152,7 @@ namespace lcodec {
                 lua_pushnil(L);
                 return;
             }
-            if ((!m_jsondisable) && jsonable && m_jcodec) {
+            if (jsonable && m_jcodec) {
                 try {
                     m_jcodec->set_slice(mslice);
                     m_jcodec->decode(L);
@@ -197,7 +193,6 @@ namespace lcodec {
         }
 
     protected:
-        bool m_jsondisable = false;
         codec_base* m_jcodec = nullptr;
     };
 

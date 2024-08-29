@@ -2,12 +2,12 @@ self=false
 stds.quanta = {
     globals = {
         --common
-        "coroutine", "qtable", "qstring", "qmath", "ncmd_cs",
-        "quanta", "environ", "signal", "service", "logger",
+        "qtable", "qstring", "qmath", "ncmd_cs",
+        "quanta", "environ", "signal", "service", "logger", "logfeature",
         "import", "class", "enum", "mixin", "property", "singleton", "super", "implemented",
-        "logfeature", "db_property", "classof", "is_class", "is_subclass", "instanceof", "conv_class", "class_review",
+        "db_property", "classof", "is_class", "is_subclass", "instanceof", "conv_class", "class_review",
         "codec", "stdfs", "luabus", "luakit", "json", "protobuf", "timer", "aoi", "log", "worker", "http", "bson",
-        "detour", "lmdb", "unqlite", "sqlite", "ssl", "xml", "zip", "yaml", "toml", "csv", "xlsx", "smdb"
+        "detour", "lmdb", "unqlite", "sqlite", "ssl", "xml", "zip", "yaml", "toml", "csv", "xlsx", "smdb", "profile"
     }
 }
 std = "max+quanta"

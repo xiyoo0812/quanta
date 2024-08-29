@@ -5,18 +5,15 @@ local tonumber      = tonumber
 local crc16         = ssl.crc16
 local log_err       = logger.err
 local log_info      = logger.info
-local log_warn      = logger.warn
 local log_debug     = logger.debug
 local slower        = string.lower
 local tinsert       = table.insert
 local mrandom       = qmath.random
-local qdefer        = quanta.defer
 local tdelete       = qtable.delete
 local qhash         = codec.hash_code
 local makechan      = quanta.make_channel
 local jsoncodec     = json.jsoncodec
 local rediscodec    = codec.rediscodec
-local lclock_ms     = timer.clock_ms
 
 local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -24,7 +21,6 @@ local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
-local SLOW_MS       = quanta.enum("PeriodTime", "SLOW_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
@@ -149,7 +145,6 @@ function RedisDB:setup_pool(hosts)
         for c = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
-            socket.sessions = {}
             socket:set_id(count)
             count = count + 1
         end
@@ -288,11 +283,6 @@ function RedisDB:on_socket_error(sock, token, err)
     event_mgr:fire_second(function()
         self:check_alive()
     end)
-    for session_id, cmd in pairs(sock.sessions) do
-        log_warn("[RedisDB][on_socket_error] drop cmd {}-{})!", cmd, session_id)
-        thread_mgr:response(session_id, false, err)
-    end
-    sock.sessions = {}
 end
 
 function RedisDB:on_socket_recv(sock, session_id, succ, res)
@@ -306,20 +296,11 @@ function RedisDB:on_socket_recv(sock, session_id, succ, res)
 end
 
 function RedisDB:commit(socket, cmd, ...)
-    local tick = lclock_ms()
     local session_id = thread_mgr:build_session_id()
     if not socket:send_data(session_id, cmd, ...) then
         return false, "send request failed"
     end
-    socket.sessions[session_id] = cmd
     self.req_counter:count_increase()
-    local _<close> = qdefer(function()
-        socket.sessions[session_id] = nil
-        local utime = lclock_ms() - tick
-        if utime > SLOW_MS then
-            log_warn("[RedisDB][commit] cmd ({}:{}) execute so big {}!", cmd, session_id, utime)
-        end
-    end)
     local ok, res = thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
     if not ok then
         log_err("[RedisDB][commit] exec cmd {} failed: {}", cmd, res)

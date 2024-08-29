@@ -14,11 +14,9 @@ local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 --初始化核心
 local function init_core()
-    quanta.init_coroutine()
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
     import("kernel/config_mgr.lua")
-    import("kernel/perfeval_mgr.lua")
 end
 
 --加载扩展库

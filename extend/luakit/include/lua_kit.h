@@ -5,6 +5,9 @@
 #include "lua_class.h"
 
 namespace luakit {
+    static thread_local luabuf lbuf;
+    static thread_local luacodec lcodec;
+
     class kit_state {
     public:
         kit_state() {
@@ -19,29 +22,31 @@ namespace luakit {
                 "peek", &slice::check,
                 "string", &slice::string
             );
-            m_buf = new luabuf();
             lua_checkstack(m_L, 1024);
             lua_table luakit = new_table("luakit");
-            luakit.set_function("encode", [&](lua_State* L) { return encode(L, m_buf); });
-            luakit.set_function("decode", [&](lua_State* L) { return decode(L, m_buf); });
+            luakit.set_function("encode", [&](lua_State* L) { return encode(L, &lbuf); });
+            luakit.set_function("decode", [&](lua_State* L) { return decode(L, &lbuf); });
             luakit.set_function("unserialize", [&](lua_State* L) {  return unserialize(L); });
-            luakit.set_function("serialize", [&](lua_State* L) { return serialize(L, m_buf); });
+            luakit.set_function("serialize", [&](lua_State* L) { return serialize(L, &lbuf); });
         }
         kit_state(lua_State* L) : m_L(L) {}
 
         void close() {
-            lua_close(m_L);
-            if (m_buf) { delete m_buf; }
-            if (m_codec) { delete m_codec; }
+            if (m_L) {
+                lua_close(m_L); 
+                m_L = nullptr;
+            }
         }
 
-        codec_base* create_codec() {
-            if (!m_codec) {
-                if (!m_buf) m_buf = new luabuf();
-                m_codec = new luacodec();
-                m_codec->set_buff(m_buf);
+        luabuf* get_buff() {
+            return &lbuf;
+        }
+
+        codec_base* get_codec() {
+            if (lcodec.get_buff()) {
+                lcodec.set_buff(&lbuf);
             }
-            return m_codec;
+            return &lcodec;
         }
 
         template<typename T>
@@ -231,8 +236,6 @@ namespace luakit {
         }
 
     protected:
-        luabuf* m_buf = nullptr; 
-        luacodec* m_codec = nullptr;
         lua_State* m_L = nullptr;
     };
 

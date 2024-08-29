@@ -1,7 +1,5 @@
 #ifndef __WORKER_H__
 #define __WORKER_H__
-#include <mutex>
-#include <atomic>
 #include <thread>
 
 #include "lua_kit.h"
@@ -35,21 +33,6 @@ namespace lworker {
         return nullptr;
     }
 
-    class spin_mutex {
-    public:
-        spin_mutex() = default;
-        spin_mutex(const spin_mutex&) = delete;
-        spin_mutex& operator = (const spin_mutex&) = delete;
-        void lock() {
-            while(flag.test_and_set(std::memory_order_acquire));
-        }
-        void unlock() {
-            flag.clear(std::memory_order_release);
-        }
-    private:
-        std::atomic_flag flag = ATOMIC_FLAG_INIT;
-    }; //spin_mutex
-
     class worker;
     class ischeduler {
     public:
@@ -63,7 +46,7 @@ namespace lworker {
     public:
         worker(ischeduler* schedulor, vstring name, vstring entry, vstring service, vstring sandbox)
             : m_schedulor(schedulor), m_name(name), m_entry(entry), m_service(service), m_sandbox(sandbox) {
-            m_codec = m_lua->create_codec();
+            m_codec = m_lua->get_codec();
         }
 
         ~worker() {

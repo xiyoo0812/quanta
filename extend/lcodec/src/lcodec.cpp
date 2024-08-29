@@ -4,19 +4,19 @@
 
 namespace lcodec {
 
-    thread_local luakit::luabuf thread_buff;
-
-    static codec_base* rds_codec(codec_base* codec) {
+    static codec_base* rds_codec(lua_State* L, codec_base* codec) {
+        luakit::kit_state kit_state(L);
         rdscodec* rcodec = new rdscodec();
+        rcodec->set_buff(kit_state.get_buff());
         rcodec->set_codec(codec);
-        rcodec->set_buff(&thread_buff);
         return rcodec;
     }
 
-    static codec_base* wss_codec(codec_base* codec) {
+    static codec_base* wss_codec(lua_State* L, codec_base* codec) {
+        luakit::kit_state kit_state(L);
         wsscodec* wcodec = new wsscodec();
+        wcodec->set_buff(kit_state.get_buff());
         wcodec->set_codec(codec);
-        wcodec->set_buff(&thread_buff);
         return wcodec;
     }
 
@@ -24,25 +24,26 @@ namespace lcodec {
         return new bitset();
     }
 
-    static codec_base* httpd_codec(codec_base* codec, bool jsondecode) {
+    static codec_base* httpd_codec(lua_State* L, codec_base* codec) {
+        luakit::kit_state kit_state(L);
         httpcodec* hcodec = new httpdcodec();
+        hcodec->set_buff(kit_state.get_buff());
         hcodec->set_codec(codec);
-        hcodec->set_buff(&thread_buff);
-        hcodec->set_jsondecode(jsondecode);
         return hcodec;
     }
 
-    static codec_base* httpc_codec(codec_base* codec, bool jsondecode) {
+    static codec_base* httpc_codec(lua_State* L, codec_base* codec) {
+        luakit::kit_state kit_state(L);
         httpcodec* hcodec = new httpccodec();
+        hcodec->set_buff(kit_state.get_buff());
         hcodec->set_codec(codec);
-        hcodec->set_buff(&thread_buff);
-        hcodec->set_jsondecode(jsondecode);
         return hcodec;
     }
 
-    static codec_base* mysql_codec(size_t session_id) {
+    static codec_base* mysql_codec(lua_State* L, size_t session_id) {
+        luakit::kit_state kit_state(L);
         mysqlscodec* codec = new mysqlscodec(session_id);
-        codec->set_buff(&thread_buff);
+        codec->set_buff(kit_state.get_buff());
         return codec;
     }
 

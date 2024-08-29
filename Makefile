@@ -32,6 +32,7 @@ luaext:
 	cd extend/ljson; make SOLUTION_DIR=$(CUR_DIR) -f ljson.mak;
 	cd extend/lmdb; make SOLUTION_DIR=$(CUR_DIR) -f lmdb.mak;
 	cd extend/lminiz; make SOLUTION_DIR=$(CUR_DIR) -f lminiz.mak;
+	cd extend/lprofile; make SOLUTION_DIR=$(CUR_DIR) -f lprofile.mak;
 	cd extend/lsmdb; make SOLUTION_DIR=$(CUR_DIR) -f lsmdb.mak;
 	cd extend/lsqlite; make SOLUTION_DIR=$(CUR_DIR) -f lsqlite.mak;
 	cd extend/lssl; make SOLUTION_DIR=$(CUR_DIR) -f lssl.mak;

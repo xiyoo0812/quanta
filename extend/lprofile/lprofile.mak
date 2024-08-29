@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = lsqlite
+PROJECT_NAME = lprofile
 
 #目标名字
-TARGET_NAME = lsqlite
+TARGET_NAME = lprofile
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -20,6 +20,7 @@ MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
 MYCFLAGS += -Wno-unused-but-set-variable
 MYCFLAGS += -Wno-unused-but-set-parameter
+MYCFLAGS += -Wno-misleading-indentation
 MYCFLAGS += -Wno-implicit-fallthrough
 
 #c标准库版本
@@ -35,12 +36,6 @@ MYCFLAGS += -I../lua/lua
 MYCFLAGS += -I../luakit/include
 
 #需要定义的选项
-ifeq ($(UNAME_S), Linux)
-MYCFLAGS += -DSQLITE_OS_UNIX
-endif
-ifeq ($(UNAME_S), Darwin)
-MYCFLAGS += -DSQLITE_OS_UNIX
-endif
 
 #LDFLAGS
 LDFLAGS =
@@ -49,6 +44,9 @@ LDFLAGS =
 #需要连接的库文件
 LIBS =
 ifneq ($(UNAME_S), Darwin)
+#是否启用mimalloc库
+LIBS += -lmimalloc
+MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
 endif
 #自定义库
 LIBS += -llua
@@ -95,8 +93,7 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 SOURCES =
-SOURCES += src/lsqlite.cpp
-SOURCES += src/sqlite3.c
+SOURCES += src/lprofile.cpp
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))

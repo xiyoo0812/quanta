@@ -26,9 +26,7 @@ void set_no_block(socket_t fd) {
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL, 0) | O_NONBLOCK);
 }
 void set_close_on_exec(socket_t fd) {
-#ifndef __ORBIS__
     fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
-#endif
 }
 #endif
 
@@ -86,9 +84,6 @@ bool make_ip_addr(sockaddr_storage* addr, socklen_t* len, const char ip[], int p
     ipv4->sin_port = htons(port);
     ipv4->sin_addr.s_addr = INADDR_ANY;
     *len = sizeof(*ipv4);
-#ifdef SCE_API
-    ipv4->sin_len = sizeof(*ipv4);
-#endif
     return ip[0] == '\0' || inet_pton(AF_INET, ip, &ipv4->sin_addr) == 1;
 }
 
@@ -104,9 +99,6 @@ int derive_port(int port){
     sockaddr_in addr;
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
-#ifdef SCE_API
-    addr.sin_len = sizeof(sockaddr_in);
-#endif
     int try_cnt = 20;
     while (try_cnt-- > 0) {
         addr.sin_port = htons(port);

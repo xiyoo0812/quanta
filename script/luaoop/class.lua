@@ -32,17 +32,17 @@ local function deep_copy(src, dst)
 end
 
 local function class_raw_call(method, class, object, ...)
-    local func = rawget(class.__vtbl, method)
-    if type(func) == "function" then
-        func(object, ...)
+    local class_base_func = rawget(class.__vtbl, method)
+    if type(class_base_func) == "function" then
+        class_base_func(object, ...)
     end
 end
 
 local function class_mixin_call(method, class, object, ...)
     for _, mixin in ipairs(class.__mixins) do
-        local func = rawget(mixin.__methods, method)
-        if type(func) == "function" then
-            func(object, ...)
+        local mixin_base_func = rawget(mixin.__methods, method)
+        if type(mixin_base_func) == "function" then
+            mixin_base_func(object, ...)
         end
     end
 end

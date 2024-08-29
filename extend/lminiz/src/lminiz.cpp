@@ -5,7 +5,7 @@
 
 namespace lminiz {
 
-    thread_local mz_zip_archive thread_archive;
+    thread_local mz_zip_archive tarchive;
 
     static int find_zip_file(lua_State* L, std::string filename) {
         size_t start_pos = 0;
@@ -30,7 +30,7 @@ namespace lminiz {
         size_t cur = 0, pos = 0;
         while ((pos = path.find(LUA_PATH_SEP, cur)) != std::string::npos) {
             std::string sub = path.substr(cur, pos - cur);
-            int index = mz_zip_reader_locate_file(&thread_archive, sub.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
+            int index = mz_zip_reader_locate_file(&tarchive, sub.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
             if (index > 0) {
                 return index;
             }
@@ -38,21 +38,21 @@ namespace lminiz {
         }
         if (path.size() > cur) {
             std::string sub = path.substr(cur);
-            return mz_zip_reader_locate_file(&thread_archive, sub.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
+            return mz_zip_reader_locate_file(&tarchive, sub.c_str(), nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
         }
         return -1;
     }
 
     bool zip_exist(const char* fname) {
-        return mz_zip_reader_locate_file(&thread_archive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE) > 0;
+        return mz_zip_reader_locate_file(&tarchive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE) > 0;
     }
 
     static int zip_load(lua_State* L) {
         const char* fname = luaL_optstring(L, 1, nullptr);
-        int index = mz_zip_reader_locate_file(&thread_archive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
+        int index = mz_zip_reader_locate_file(&tarchive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
         if (index <= 0) return 0;
         size_t size = 0;
-        const char* data = (const char*)mz_zip_reader_extract_to_heap(&thread_archive, index, &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
+        const char* data = (const char*)mz_zip_reader_extract_to_heap(&tarchive, index, &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
         if (!data) return 0;
         lua_pushlstring(L, data, size);
         delete[] data;
@@ -61,7 +61,7 @@ namespace lminiz {
 
     static int load_zip_data(lua_State* L, const char* filename, int index) {
         size_t size = 0;
-        const char* data = (const char*)mz_zip_reader_extract_to_heap(&thread_archive, index, &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
+        const char* data = (const char*)mz_zip_reader_extract_to_heap(&tarchive, index, &size, MZ_ZIP_FLAG_CASE_SENSITIVE);
         if (!data) {
             lua_pushstring(L, "file read failed!");
             return LUA_ERRERR;
@@ -73,7 +73,7 @@ namespace lminiz {
 
     static int load_zip_file(lua_State* L) {
         const char* fname = luaL_optstring(L, 1, nullptr);
-        int index = mz_zip_reader_locate_file(&thread_archive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
+        int index = mz_zip_reader_locate_file(&tarchive, fname, nullptr, MZ_ZIP_FLAG_CASE_SENSITIVE);
         if (index <= 0) {
             luaL_Buffer buf;
             luaL_buffinit(L, &buf);
@@ -86,15 +86,15 @@ namespace lminiz {
     }
 
     static void close_zip() {
-        if (thread_archive.m_pState) {
-            mz_zip_reader_end(&thread_archive);
-            mz_zip_zero_struct(&thread_archive);
+        if (tarchive.m_pState) {
+            mz_zip_reader_end(&tarchive);
+            mz_zip_zero_struct(&tarchive);
         }
     }
 
     bool init_zip(lua_State* L, const char* zfile) {
         close_zip();
-        if (!mz_zip_reader_init_file(&thread_archive, zfile, 0)) {
+        if (!mz_zip_reader_init_file(&tarchive, zfile, 0)) {
             return false;
         }
         luakit::kit_state lua(L);

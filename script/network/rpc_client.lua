@@ -62,7 +62,6 @@ end
 --调用rpc后续处理
 function RpcClient:on_call_router(rpc, token, send_len)
     if send_len > 0 then
-        --proxy_agent:statistics("on_rpc_send", rpc, send_len)
         return true, send_len
     end
     log_err("[RpcClient][on_call_router] rpc {} call failed! code:{}", rpc, send_len)

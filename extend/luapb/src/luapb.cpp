@@ -9,7 +9,6 @@ using namespace luakit;
 
 namespace luapb {
 
-    thread_local luabuf thread_buff; 
     thread_local std::map<uint32_t, std::string> pb_cmd_ids;
     thread_local std::map<std::string, uint32_t> pb_cmd_indexs;
     thread_local std::map<std::string, std::string> pb_cmd_names;
@@ -127,9 +126,10 @@ namespace luapb {
         }
     };
     
-    static codec_base* pb_codec() {
+    static codec_base* pb_codec(lua_State* L) {
+        luakit::kit_state kit_state(L);
         pbcodec* codec = new pbcodec();
-        codec->set_buff(&thread_buff);
+        codec->set_buff(kit_state.get_buff());
         return codec;
     }
 
