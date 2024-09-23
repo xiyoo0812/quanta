@@ -3,7 +3,6 @@
 #include <thread>
 
 #include "lua_kit.h"
-#include "ltimer.h"
 #include "fmt/core.h"
 
 #ifdef WIN32
@@ -97,7 +96,7 @@ namespace lworker {
                 }
                 m_read_buf->pop_size(plen);
                 slice = read_slice(m_read_buf, &plen);
-                if (ltimer::steady_ms() - clock_ms > 100) break;
+                if (luakit::steady_ms() - clock_ms > 100) break;
             }
         }
 

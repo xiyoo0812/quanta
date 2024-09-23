@@ -124,7 +124,7 @@ local value_func = {
         end
         return unserialize('{' .. value .. '}')
     end,
-    ["array2"] = function(value)
+    ["arrlist"] = function(value)
         value = sgsub(value, '|', ',')
         value = sgsub(value, ';', '},{')
         return unserialize('{{' .. value .. '}}')

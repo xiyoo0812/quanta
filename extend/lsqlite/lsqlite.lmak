@@ -46,10 +46,6 @@ LIBS = {
     "lua"
 }
 
-PSLIBS = {
-    "ScePosix_stub_weak"
-}
-
 --依赖项目
 DEPS = {
     "lualib"

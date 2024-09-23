@@ -6,6 +6,8 @@
 #include <chrono>
 #include <unordered_map>
 
+#include <math.h>
+
 #include "lua_kit.h"
 
 using namespace std;
@@ -142,7 +144,6 @@ namespace lprofile {
         int dump(lua_State* L, int top = 0) {
             set<eval_data> evals;
             for (auto& [_, data] : m_evals) {
-                if (top > 0 && m_evals.size() > top) break;
                 evals.insert(data);
             }
             int i = 1;

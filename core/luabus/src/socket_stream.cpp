@@ -48,13 +48,13 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
 
     m_socket = fd;
     m_link_status = elink_status::link_connected;
-    m_last_recv_time = ltimer::steady_ms();
+    m_last_recv_time = luakit::steady_ms();
     return true;
 }
 
 void socket_stream::connect(const char ip[], int port, int timeout) {
     if (resolver_ip(&m_addr, ip, port)) {
-        m_connecting_time = ltimer::steady_ms() + timeout;
+        m_connecting_time = luakit::steady_ms() + timeout;
     }
 }
 
@@ -397,7 +397,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
 }
 
 void socket_stream::dispatch_package() {
-    int64_t now = ltimer::steady_ms();
+    int64_t now = luakit::steady_ms();
     while (m_link_status == elink_status::link_connected) {
         if (!m_codec){
             on_error("codec-is-bnull");
@@ -431,7 +431,7 @@ void socket_stream::dispatch_package() {
         if (read_size == 0) break;
         // 接收缓冲读游标调整
         m_recv_buffer->pop_size(read_size);
-        m_last_recv_time = ltimer::steady_ms();
+        m_last_recv_time = luakit::steady_ms();
         // 防止单个连接处理太久，不能大于100ms
         if (m_last_recv_time - now > 100) break;
     }
@@ -458,7 +458,7 @@ void socket_stream::on_connect(bool ok, const char reason[]) {
         m_link_status = elink_status::link_closed;
     } else {
         m_link_status = elink_status::link_connected;
-        m_last_recv_time = ltimer::steady_ms();
+        m_last_recv_time = luakit::steady_ms();
     }
     m_connect_cb(ok, reason);
 }

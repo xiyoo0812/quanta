@@ -77,8 +77,8 @@ function Webhook:build_hookpos(content)
     return sformat("%s:%s", info.source, info.currentline)
 end
 
---dispatch_log
-function Webhook:dispatch_log(content)
+--collect_log
+function Webhook:collect_log(content)
     if self.mode then
         local now = quanta.now
         local hookpos = self:build_hookpos(content)

@@ -4,6 +4,7 @@
 import("enum.lua")
 import("class.lua")
 import("mixin.lua")
+import("storage.lua")
 import("property.lua")
 import("constant.lua")
 --加载基础模块

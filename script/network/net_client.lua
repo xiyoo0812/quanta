@@ -119,9 +119,9 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
     if not self.alive then
         return false
     end
-    -- call lbus
     local hook<close> = qdefer()
-    event_mgr:execute_hook("on_send_message", hook, cmd_id)
+    event_mgr:execute_hook("on_ccmd_send", hook, cmd_id, data)
+    -- call lbus
     local send_len = self.socket.call_pb(session_id, cmd_id, flag, type, 0, data)
     if send_len < 0 then
         log_err("[NetClient][write] call_pb failed! code:{}", send_len)

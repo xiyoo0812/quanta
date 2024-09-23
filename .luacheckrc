@@ -4,8 +4,8 @@ stds.quanta = {
         --common
         "qtable", "qstring", "qmath", "ncmd_cs",
         "quanta", "environ", "signal", "service", "logger", "logfeature",
-        "import", "class", "enum", "mixin", "property", "singleton", "super", "implemented",
-        "db_property", "classof", "is_class", "is_subclass", "instanceof", "conv_class", "class_review",
+        "import", "class", "enum", "mixin", "property", "singleton", "super",
+        "implemented", "storage", "classof", "is_class", "conv_class", "class_review",
         "codec", "stdfs", "luabus", "luakit", "json", "protobuf", "timer", "aoi", "log", "worker", "http", "bson",
         "detour", "lmdb", "unqlite", "sqlite", "ssl", "xml", "zip", "yaml", "toml", "csv", "xlsx", "smdb", "profile"
     }

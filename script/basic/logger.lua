@@ -74,24 +74,28 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
     end
     if msg then
         for monitor in pairs(monitors) do
-            monitor:dispatch_log(msg, lvl_name)
+            monitor:collect_log(msg, lvl_name)
         end
     end
 end
 
 local LOG_LEVEL_OPTIONS = {
-    [LOG_LEVEL.INFO]    = { "info",  LOG_FLAG.NULL },
-    [LOG_LEVEL.WARN]    = { "warn",  LOG_FLAG.FORMAT },
     [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT },
-    [LOG_LEVEL.ERROR]   = { "err",   LOG_FLAG.FORMAT },
     [LOG_LEVEL.FATAL]   = { "fatal", LOG_FLAG.FORMAT },
+    [LOG_LEVEL.INFO]    = { "info",  LOG_FLAG.NULL, "print" },
+    [LOG_LEVEL.WARN]    = { "warn",  LOG_FLAG.FORMAT, "warn" },
+    [LOG_LEVEL.ERROR]   = { "err",   LOG_FLAG.FORMAT, "error"},
     [LOG_LEVEL.DUMP]    = { "dump",  LOG_FLAG.FORMAT | LOG_FLAG.PRETTY },
 }
 
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
-    local lvl_name, flag = tunpack(conf)
+    local lvl_name, flag, sysfunc = tunpack(conf)
     logger[lvl_name] = function(fmt, ...)
         logger_output(flag, "", lvl, lvl_name, fmt, ...)
+    end
+    if sysfunc then
+        --替换系统函数
+        _G[sysfunc] = logger[lvl_name]
     end
 end
 

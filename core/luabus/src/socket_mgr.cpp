@@ -116,7 +116,7 @@ int socket_mgr::wait(int64_t now, int timeout) {
         }
         ++it;
     }
-    int escape = ltimer::steady_ms() - now;
+    int escape = luakit::steady_ms() - now;
     timeout = escape >= timeout ? 0 : timeout - escape;
 #ifdef IO_IOCP
     ULONG event_count = 0;

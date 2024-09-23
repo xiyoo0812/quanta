@@ -1,11 +1,11 @@
-#pragma once
+﻿#pragma once
 
 #include <thread>
 #include <chrono>
 
 using namespace std::chrono;
 
-namespace ltimer {
+namespace luakit {
 	inline uint64_t now() {
 		system_clock::duration dur = system_clock::now().time_since_epoch();
 		return duration_cast<seconds>(dur).count();

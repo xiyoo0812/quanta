@@ -36,7 +36,7 @@ function RobotWorker:__init()
     --协议hook
     event_mgr:add_trigger(self, "on_recv_message")
     event_mgr:add_trigger(self, "on_error_message")
-    event_mgr:register_hook(self, "on_send_message", "on_message_hook")
+    event_mgr:register_hook(self, "on_ccmd_send", "on_message_hook")
     --初始化参数
     self.review.samples = {}
     self.review.child = quanta.title
@@ -88,7 +88,7 @@ function RobotWorker:on_watch_message(cmd_name)
 end
 
 --send hook
-function RobotWorker:on_message_hook(rpc, hook, cmd_id)
+function RobotWorker:on_ccmd_send(hook, cmd_id)
     local now_ms, btime = ltime()
     hook:register(function()
         self:review_command(cmd_id, now_ms, lclock_ms() - btime)

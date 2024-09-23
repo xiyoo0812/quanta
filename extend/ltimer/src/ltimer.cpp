@@ -1,7 +1,6 @@
 #define LUA_LIB
 
 #include <list>
-#include "ltimer.h"
 #include "lua_kit.h"
 
 #define TIME_NEAR_SHIFT     8
@@ -117,7 +116,7 @@ namespace ltimer {
     }
 
     static int timer_time(lua_State* L) {
-        return luakit::variadic_return(L, now_ms(), steady_ms());
+        return luakit::variadic_return(L, luakit::now_ms(), luakit::steady_ms());
     }
 
     luakit::lua_table open_ltimer(lua_State* L) {
@@ -126,12 +125,12 @@ namespace ltimer {
         luatimer.set_function("time", timer_time);
         luatimer.set_function("insert", timer_insert);
         luatimer.set_function("update", timer_update);
-        luatimer.set_function("now", []() { return now(); });
-        luatimer.set_function("clock", []() { return steady(); });
-        luatimer.set_function("now_ms", []() { return now_ms(); });
-        luatimer.set_function("now_ns", []() { return now_ns(); });
-        luatimer.set_function("clock_ms", []() { return steady_ms(); });
-        luatimer.set_function("sleep", [](uint64_t ms) { return sleep(ms); });
+        luatimer.set_function("now", []() { return luakit::now(); });
+        luatimer.set_function("clock", []() { return luakit::steady(); });
+        luatimer.set_function("now_ms", []() { return luakit::now_ms(); });
+        luatimer.set_function("now_ns", []() { return luakit::now_ns(); });
+        luatimer.set_function("clock_ms", []() { return luakit::steady_ms(); });
+        luatimer.set_function("sleep", [](uint64_t ms) { return luakit::sleep(ms); });
         return luatimer;
     }
 }

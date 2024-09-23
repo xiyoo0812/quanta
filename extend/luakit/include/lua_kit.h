@@ -1,5 +1,6 @@
 #pragma once
 #include "lua_buff.h"
+#include "lua_time.h"
 #include "lua_codec.h"
 #include "lua_table.h"
 #include "lua_class.h"

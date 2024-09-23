@@ -30,8 +30,8 @@ prop:reader("sync_attrs", {})       --同步属性
 prop:accessor("share_attrs", {})    --共享属性
 prop:accessor("slavable", false)    --是否复制体
 
-local dbprop = db_property(AttrComponent, "player_attr", true)
-dbprop:store_values("attrs", {})  --属性集合
+local store = storage(AttrComponent, "player_attr")
+store:store_values("attrs", {})  --属性集合
 
 --委托回调
 function AttrComponent:__delegate()
@@ -137,15 +137,14 @@ function AttrComponent:init_attrset(type_attr_db, range)
 end
 
 --加载db数据
-function AttrComponent:on_db_player_attr_load(data)
-    log_debug("[AttrComponent][on_db_player_attr_load] data({})", data)
-    if data.player_id then
+function AttrComponent:on_db_attr_load(data)
+    log_debug("[AttrComponent][on_db_attr_load] data({})", data)
+    if data.attrs then
         self:load_attrs(data.attrs or {})
         event_mgr:notify_trigger("on_player_attr_init", self)
         return
     end
     event_mgr:notify_trigger("on_player_attr_init", self, true)
-    return true
 end
 
 --设置属性

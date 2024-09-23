@@ -52,12 +52,7 @@ function CacheMgr:__init()
     -- 事件监听
     event_mgr:add_listener(self, "on_cache_ready")
     -- 事件hook
-    event_mgr:register_hook(self, "rpc_cache_load", "on_cache_hook")
-    event_mgr:register_hook(self, "rpc_cache_copy", "on_cache_hook")
-    event_mgr:register_hook(self, "rpc_cache_flush", "on_cache_hook")
-    event_mgr:register_hook(self, "rpc_cache_update", "on_cache_hook")
-    event_mgr:register_hook(self, "rpc_cache_delete", "on_cache_hook")
-    event_mgr:register_hook(self, "rpc_router_update", "on_cache_hook")
+    event_mgr:register_hook(self, "on_rpc_recv", "on_cache_hook")
     --counter
     self.counter = quanta.make_sampling("cache req")
     --定时器

@@ -31,7 +31,6 @@ STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../lua/lua
-MYCFLAGS += -I../ltimer/src
 MYCFLAGS += -I../fmt/include
 MYCFLAGS += -I../luakit/include
 

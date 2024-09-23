@@ -16,9 +16,6 @@ function Store:__init(sheet, primary_id)
     self.primary_id = primary_id
 end
 
-function Store:bind_target(obj)
-end
-
 function Store:load(key)
     return false
 end

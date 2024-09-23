@@ -63,7 +63,7 @@ function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ...)
         if session_id == 0 or rpc_flag == FLAG_REQ then
             local function dispatch_rpc_message(...)
                 local hook<close> = qdefer()
-                event_mgr:execute_hook(rpc, hook, ...)
+                event_mgr:execute_hook("on_rpc_recv", hook, rpc, ...)
                 local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
                 if session_id > 0 then
                     client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))

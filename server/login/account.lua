@@ -10,15 +10,15 @@ local Account = class()
 local prop = property(Account)
 prop:reader("open_id", "")    --open_id
 
-local dprop = db_property(Account, "account", true)
-dprop:store_value("token", 0)       --token
-dprop:store_value("lobby", 0)       --lobby
-dprop:store_value("user_id", 0)     --user_id
-dprop:store_value("device_id", 0)   --device_id
-dprop:store_value("create_time", 0) --create_time
-dprop:store_value("channel","")     --channel
-dprop:store_values("params", {})    --params
-dprop:store_values("roles", {})     --roles
+local store = storage(Account, "account")
+store:store_value("token", 0)       --token
+store:store_value("lobby", 0)       --lobby
+store:store_value("user_id", 0)     --user_id
+store:store_value("device_id", 0)   --device_id
+store:store_value("create_time", 0) --create_time
+store:store_value("channel","")     --channel
+store:store_values("params", {})    --params
+store:store_values("roles", {})     --roles
 
 function Account:__init(open_id)
     self.open_id = open_id
@@ -59,14 +59,14 @@ end
 
 function Account:on_db_account_load(data)
     if data.open_id then
-        self.token = data.token
-        self.lobby = data.lobby
-        self.params = data.params
-        self.user_id = data.user_id
-        self.device_id = data.device_id
-        self.create_time = data.create_time
-        self.channel = data.channel or "default"
-        self.roles = data.roles or {}
+        self:set_token(data.token)
+        self:set_lobby(data.lobby)
+        self:set_params(data.params)
+        self:set_user_id(data.user_id)
+        self:set_device_id(data.device_id)
+        self:set_create_time(data.create_time)
+        self:set_channel(data.channel or "default")
+        self:set_roles(data.roles or {})
     end
 end
 

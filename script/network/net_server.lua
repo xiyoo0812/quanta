@@ -106,6 +106,10 @@ function NetServer:on_socket_accept(session)
         if session_id > 0 then
             session_id = session.stoken | session_id
         end
+        --消息 hook
+        local hook<close> = qdefer()
+        event_mgr:execute_hook("on_scmd_recv", hook, cmd_id, body)
+        -- 限流+CRC校验
         local now_ms = quanta.now_ms
         local cmd = session.lc_cmd[cmd_id]
         if crc8 > 0 and cmd and cmd.crc8 == crc8 and now_ms - cmd.time < SLOW_MS then
@@ -132,6 +136,8 @@ function NetServer:write(session, cmd, data, session_id, flag, type)
         log_err("[NetServer][write] session lost! cmd_id:{}-({})", cmd, data)
         return false
     end
+    local hook<close> = qdefer()
+    event_mgr:execute_hook("on_scmd_send", hook, cmd, data)
     return session.call_client(cmd, flag, type or 0, session_id, data)
 end
 
@@ -181,8 +187,6 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body,
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(socket, typ, cmd, cbody)
             if cbody then
-                local hook<close> = qdefer()
-                event_mgr:execute_hook(cmd, hook, cbody)
                 local result = event_mgr:notify_listener("on_socket_cmd", socket, typ, cmd, cbody, session_id)
                 if not result[1] then
                     log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd)

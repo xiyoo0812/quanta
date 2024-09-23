@@ -46,6 +46,9 @@ local function init_network()
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
     socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
+    --加载协议
+    import("kernel/protobuf_mgr.lua")
+    --加载监控
     import("driver/webhook.lua")
     import("driver/loki.lua")
 end
@@ -76,8 +79,6 @@ function quanta.main()
     init_network()
     --事件
     init_listener()
-    --加载协议
-    import("kernel/protobuf_mgr.lua")
 end
 
 --热更新

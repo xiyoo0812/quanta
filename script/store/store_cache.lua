@@ -8,7 +8,6 @@ local tinsert       = table.insert
 local tconcat       = table.concat
 local tunpack       = table.unpack
 local qfailed       = quanta.failed
-local qtweak        = qtable.weak
 
 local store_mgr     = quanta.get("store_mgr")
 local cache_agent   = quanta.get("cache_agent")
@@ -17,15 +16,8 @@ local mongo_agent   = quanta.get("mongo_agent")
 local Store         = import("store/store.lua")
 
 local StoreCache = class(Store)
-local prop = property(StoreCache)
-prop:reader("targets", nil)
 
 function StoreCache:__init(sheet, primary_id)
-end
-
-function StoreCache:bind_target(obj)
-    self.targets = qtweak({})
-    self.targets[obj] = true
 end
 
 function StoreCache:load(key)
@@ -75,9 +67,7 @@ function StoreCache:sync_increase()
     local code = cache_agent:update(self.primary_id, self.sheet, commits)
     if qfailed(code) then
         log_err("[StoreCache][sync_increase] update {}.{} failed! code: {}", self.primary_id, self.sheet, code)
-        for obj in pairs(self.targets) do
-            self:flush(obj)
-        end
+        store_mgr:save_increases(self)
     end
 end
 
@@ -85,9 +75,7 @@ function StoreCache:sync_whole()
     local code = cache_agent:flush(self.primary_id, self.sheet, self.wholes)
     if qfailed(code) then
         log_err("[StoreCache][sync_whole] flush {}.{} failed! code: {}", self.primary_id, self.sheet, code)
-        for obj in pairs(self.targets) do
-            self:flush(obj)
-        end
+        store_mgr:save_wholes(self)
         return
     end
     self.wholes = nil

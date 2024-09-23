@@ -80,7 +80,7 @@ function EventMgr:register_hook(listener, name, handler)
         log_warn("[EventMgr][register_hook] hook({}) repeat!", name)
         return
     end
-    local func_name = handler
+    local func_name = handler or name
     local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
         log_warn("[EventMgr][register_hook] hook({}) handler not define!", name)
@@ -93,7 +93,7 @@ function EventMgr:execute_hook(name, ...)
     local hooker_map = self.hooks[name] or {}
     for hooker, func_name in pairs(hooker_map) do
         local callback_func = hooker[func_name]
-        local ok, ret = xpcall(callback_func, dtraceback, hooker, name, ...)
+        local ok, ret = xpcall(callback_func, dtraceback, hooker, ...)
         if not ok then
             log_fatal("[EventMgr][notify_trigger] xpcall [{}:{}] failed: {}!", hooker:source(), func_name, ret)
         end

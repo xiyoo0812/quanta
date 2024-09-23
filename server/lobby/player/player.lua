@@ -20,10 +20,11 @@ local ONL_CLOSE     = quanta.enum("OnlineStatus", "CLOSE")
 local DAY_FLUSH_S   = quanta.enum("FlushType", "DAY") * 3600
 
 local Entity        = import("business/entity/entity.lua")
+local AttrComponent = import("business/component/attr_component.lua")
 local MsgComponent  = import("business/component/msg_component.lua")
 local SubComponent  = import("business/component/sub_component.lua")
 
-local Player = class(Entity, MsgComponent, SubComponent)
+local Player = class(Entity, AttrComponent, MsgComponent, SubComponent)
 
 local prop = property(Player)
 prop:reader("status", 0)            --status
@@ -34,22 +35,27 @@ prop:accessor("open_id", nil)       --open_id
 prop:accessor("account", nil)       --account
 prop:accessor("offtime", OFFTIMEOUT)    --offtime
 
-local dprop = db_property(Player, "player", true)
-dprop:store_value("nick", "")       --nick
-dprop:store_value("facade", "")     --facade
-dprop:store_value("upgrade_time", 0)--upgrade_time
-dprop:store_value("energy_tick", 0)--下次能量恢复时间
+local store = storage(Player, "player")
+store:store_value("nick", "")       --nick
+store:store_value("facade", "")     --facade
+store:store_value("upgrade_time", 0)--upgrade_time
+store:store_value("energy_tick", 0)--下次能量恢复时间
+
 function Player:__init(id)
+end
+
+function Player:on_db_player_attr_load(data)
+    self:on_db_attr_load(data)
 end
 
 function Player:on_db_player_load(data)
     if data.player_id then
-        self.nick = data.nick
-        self.facade = data.facade
-        self.create_time = data.create_time
-        self.upgrade_time = data.upgrade_time or 0
-        self.energy_tick = data.energy_tick or quanta.now
-        self.routers = data.routers or {}
+        self:set_nick(data.nick)
+        self:set_facade(data.facade)
+        self:set_create_time(data.create_time)
+        self:set_upgrade_time(data.upgrade_time or 0)
+        self:set_energy_tick(data.energy_tick or quanta.now)
+        self:set_routers(data.routers or {})
         self:set_gender(data.gender)
         self:set_custom(data.facade)
         self:set_name(data.nick)

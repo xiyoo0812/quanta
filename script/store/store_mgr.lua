@@ -1,7 +1,5 @@
 --store_mgr.lua
 
-import("store/db_property.lua")
-
 local log_err       = logger.err
 local log_debug     = logger.debug
 local tsort         = table.sort

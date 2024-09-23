@@ -12,9 +12,9 @@ prop:reader("device_id", 0)         --device_id
 prop:reader("create_time", 0)       --create_time
 prop:accessor("reload_token", 0)    --reload_token
 
-local dprop = db_property(Account, "account", true)
-dprop:store_value("lobby", 0)       --lobby
-dprop:store_values("roles", {})     --roles
+local store = storage(Account, "account")
+store:store_value("lobby", 0)       --lobby
+store:store_values("roles", {})     --roles
 
 function Account:__init(open_id)
     self.open_id = open_id
@@ -26,13 +26,13 @@ end
 
 function Account:on_db_account_load(data)
     if data.open_id then
-        self.lobby = data.lobby
-        self.roles = data.roles
-        self.params = data.params
-        self.user_id = data.user_id
-        self.device_id = data.device_id
-        self.create_time = data.create_time
-        self.channel = data.channel or "default"
+        self:set_lobby(data.lobby)
+        self:set_roles(data.roles)
+        self:set_params(data.params)
+        self:set_user_id(data.user_id)
+        self:set_device_id(data.device_id)
+        self:set_create_time(data.create_time)
+        self:set_channel(data.channel or "default")
         return true
     end
     return false

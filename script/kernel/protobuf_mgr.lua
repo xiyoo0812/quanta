@@ -46,7 +46,8 @@ function ProtobufMgr:msg_name(pb_cmd)
 end
 
 function ProtobufMgr:msg_id(pb_cmd)
-    return self.pb_indexs[pb_cmd].id
+    local info = self.pb_indexs[pb_cmd]
+    return info.id, info.cmd
 end
 
 function ProtobufMgr:error_code(err_key)
@@ -167,8 +168,9 @@ function ProtobufMgr:define_command(full_name, proto_name)
         local enum_type = package_name .. ".NCmdId"
         local msg_id = pb_enum_id(enum_type, msg_name)
         if msg_id then
-            self.pb_indexs[msg_id] = { id = msg_id, name = full_name }
-            self.pb_indexs[msg_name] = { id = msg_id, name = full_name }
+            local info = { id = msg_id, name = full_name, cmd = msg_name }
+            self.pb_indexs[msg_id] = info
+            self.pb_indexs[msg_name] = info
             if proto_isreq then
                 local msg_res_name = msg_name:sub(0, -2) .. "S"
                 local msg_res_id = pb_enum_id(enum_type, msg_res_name)
