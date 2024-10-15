@@ -11,6 +11,8 @@
 using namespace std;
 using namespace tinyxml2;
 
+using XmlDocument = tinyxml2::XMLDocument;
+
 namespace lxlsx {
     bool is_date_ime(uint32_t id) {
         return (id >= 14 && id <= 22) || (id >= 27 && id <= 36) || (id >= 45 && id <= 47)
@@ -107,7 +109,7 @@ namespace lxlsx {
         }
 
     private:
-        bool open_xml(const char* filename, XMLDocument& doc){
+        bool open_xml(const char* filename, XmlDocument& doc) {
             uint32_t index = mz_zip_reader_locate_file(&archive, filename, nullptr, 0);
             size_t size = 0;
             auto data = (const char*)mz_zip_reader_extract_to_heap(&archive, index, &size, 0);
@@ -119,7 +121,7 @@ namespace lxlsx {
         }
 
         void read_sheet(sheet* sh) {
-            XMLDocument doc;
+            XmlDocument doc;
             if (!open_xml(sh->path.c_str(), doc)) return;
 
             XMLElement* root = doc.FirstChildElement("worksheet");
@@ -150,9 +152,9 @@ namespace lxlsx {
                 }
             }
         }
-        
-        void read_styles(const char* filename){
-            XMLDocument doc;
+
+        void read_styles(const char* filename) {
+            XmlDocument doc;
             if (!open_xml(filename, doc)) return;
 
             XMLElement* styleSheet = doc.FirstChildElement("styleSheet");
@@ -188,7 +190,7 @@ namespace lxlsx {
         }
 
         void read_work_book(const char* filename) {
-            XMLDocument doc;
+            XmlDocument doc;
             if (!open_xml(filename, doc)) return;
             XMLElement* e = doc.FirstChildElement("workbook");
             e = e->FirstChildElement("sheets");
@@ -205,7 +207,7 @@ namespace lxlsx {
         }
 
         void read_shared_strings(const char* filename) {
-            XMLDocument doc;
+            XmlDocument doc;
             if (!open_xml(filename, doc)) return;
             XMLElement* e = doc.FirstChildElement("sst");
             e = e->FirstChildElement("si");
@@ -230,8 +232,8 @@ namespace lxlsx {
             }
         }
 
-        void read_work_book_rels(const char* filename){
-            XMLDocument doc;
+        void read_work_book_rels(const char* filename) {
+            XmlDocument doc;
             if (!open_xml(filename, doc)) return;
             XMLElement* e = doc.FirstChildElement("Relationships");
             e = e->FirstChildElement("Relationship");

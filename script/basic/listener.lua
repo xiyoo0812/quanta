@@ -100,7 +100,7 @@ function Listener:notify_listener(event, ...)
     end
     if not self._ignores[event] then
         self._ignores[event] = true
-        log_warn("[Listener][notify_listener] event ({}-{}) handler is nil! ", event, {...})
+        log_warn("[Listener][notify_listener] event ({}) handler is nil! {}", event, dtraceback())
     end
     return tpack(false, "event handler is nil")
 end

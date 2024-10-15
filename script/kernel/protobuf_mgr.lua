@@ -75,7 +75,7 @@ function ProtobufMgr:load_protos()
     local proto_file = env_get("QUANTA_PROTO_FILE")
     if proto_file then
         if env_get("QUANTA_ZIP_MODE") then
-            protobuf.load(zip.zload(proto_file))
+            protobuf.load(zip.read(proto_file))
             log_debug("[ProtobufMgr][load_protos] load zip pb file: {}", proto_file)
         else
             protobuf.loadfile(proto_file)

@@ -14,6 +14,7 @@ local jsoncodec     = json.jsoncodec
 local httpdcodec    = codec.httpdcodec
 local derive_port   = luabus.derive_port
 
+local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local HttpServer = class()
@@ -37,8 +38,8 @@ end
 
 function HttpServer:on_quit()
     if self.listener then
-        log_debug("[HttpServer][on_quit]")
         self.listener:close()
+        log_debug("[HttpServer][on_quit]")
     end
 end
 
@@ -47,7 +48,7 @@ function HttpServer:setup(http_addr)
     local ip, port = saddr(http_addr)
     local real_port = derive_port(port)
     if not socket:listen(ip, real_port) then
-        log_err("[HttpServer][setup] now listen {} failed", http_addr)
+        log_err("[HttpServer][setup] now listen {}:{} failed", ip, real_port)
         signalquit(1)
         return
     end
@@ -78,7 +79,7 @@ function HttpServer:on_socket_accept(socket, token)
 end
 
 function HttpServer:on_socket_recv(socket, method, url, params, headers, body)
-    log_debug("[HttpServer][on_socket_recv] recv: {}, {}, {}, {}, {}!", method, url, params, headers, body)
+    --log_debug("[HttpServer][on_socket_recv] recv: {}, {}, {}, {}, {}!", method, url, params, headers, body)
     local handlers = self.handlers[method]
     if not handlers then
         self:response(socket, 404, "this http method hasn't suppert!")
@@ -157,7 +158,10 @@ function HttpServer:response(socket, status, response, headers)
         headers["Content-Type"] = html and "text/html" or "text/plain"
     end
     socket:send_data(status, headers, response)
-    self:close(token, socket)
+    --下一帧关闭
+    event_mgr:fire_frame(function()
+        self:close(token, socket)
+    end)
 end
 
 --取消url

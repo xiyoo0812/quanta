@@ -1,5 +1,5 @@
 --wtest.lua
-import("feature/worker.lua")
+import("kernel.lua")
 
 local log_err       = logger.err
 local log_debug     = logger.debug

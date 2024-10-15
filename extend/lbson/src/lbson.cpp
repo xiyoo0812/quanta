@@ -40,16 +40,15 @@ namespace lbson {
     }
 
     static codec_base* mongo_codec(lua_State* L) {
-        luakit::kit_state kit_state(L);
         mgocodec* codec = new mgocodec();
-        codec->set_buff(kit_state.get_buff());
+        codec->set_buff(luakit::get_buff());
         codec->set_bson(&tbson);
         return codec;
     }
 
     luakit::lua_table open_lbson(lua_State* L) {
         luakit::kit_state kit_state(L);
-        tbson.set_buff(kit_state.get_buff());
+        tbson.set_buff(luakit::get_buff());
         auto llbson = kit_state.new_table("bson");
         llbson.set_function("mongocodec", mongo_codec);
         llbson.set_function("objectid", objectid);

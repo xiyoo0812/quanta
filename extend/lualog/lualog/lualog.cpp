@@ -6,11 +6,9 @@ using namespace luakit;
 
 namespace logger {
 
-    thread_local luabuf* td_buffer = nullptr;
-    
-    const int LOG_FLAG_FORMAT   = 1;
-    const int LOG_FLAG_PRETTY   = 2;
-    const int LOG_FLAG_MONITOR  = 4;
+    const int LOG_FLAG_FORMAT = 1;
+    const int LOG_FLAG_PRETTY = 2;
+    const int LOG_FLAG_MONITOR = 4;
 
     string read_args(lua_State* L, int flag, int index) {
         switch (lua_type(L, index)) {
@@ -23,9 +21,10 @@ namespace logger {
         case LUA_TBOOLEAN: return lua_toboolean(L, index) ? "true" : "false";
         case LUA_TTABLE:
             if ((flag & LOG_FLAG_FORMAT) == LOG_FLAG_FORMAT) {
-                td_buffer->clean();
-                serialize_one(L, td_buffer, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
-                return string((char*)td_buffer->head(), td_buffer->size());
+                auto buf = luakit::get_buff();
+                buf->clean();
+                serialize_one(L, buf, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
+                return string((char*)buf->head(), buf->size());
             }
             return luaL_tolstring(L, index, nullptr);
         case LUA_TNUMBER:
@@ -72,7 +71,6 @@ namespace logger {
 
     luakit::lua_table open_lualog(lua_State* L) {
         luakit::kit_state kit_state(L);
-        td_buffer = kit_state.get_buff();
         auto lualog = kit_state.new_table("log");
         lualog.new_enum("LOG_LEVEL",
             "INFO", log_level::LOG_LEVEL_INFO,

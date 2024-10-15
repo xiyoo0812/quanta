@@ -199,9 +199,10 @@ namespace logger {
     // class log_service
     // --------------------------------------------------------------------------------
     void log_service::option(cpchar log_path, cpchar service, cpchar index) {
-        create_directories(log_path);
-        service_ = fmt::format("{}-{}", service, index);
         log_path_ = log_path;
+        service_ = fmt::format("{}-{}", service, index);
+        create_directories(log_path);
+        add_dest(service);
     }
 
     path log_service::build_path(cpchar feature) {

@@ -124,8 +124,10 @@ local function define_field_deleter(class, sheet, name, suffix, is_obj)
         if value then
             self[name][key] = nil
             update_store_field(self, sheet, name, key, nil, is_obj)
-            value.__storange = nil
-            value.__layers = nil
+            if is_obj then
+                value.__storange = nil
+                value.__layers = nil
+            end
         end
     end
 end

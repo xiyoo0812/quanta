@@ -16,6 +16,7 @@
     <ClInclude Include="src\ssl\lssl.h" />
     <ClInclude Include="src\ssl\lz4.h" />
     <ClInclude Include="src\ssl\xxtea.h" />
+    <ClInclude Include="src\ssl\zstd.h" />
     <ClInclude Include="src\user_settings.h" />
     <ClInclude Include="src\wolfssl\callbacks.h" />
     <ClInclude Include="src\wolfssl\certs_test.h" />
@@ -194,6 +195,7 @@
     <ClCompile Include="src\ssl\lssl.cpp" />
     <ClCompile Include="src\ssl\lz4.c" />
     <ClCompile Include="src\ssl\xxtea.c" />
+    <ClCompile Include="src\ssl\zstd.c" />
     <ClCompile Include="src\wolfcrypt\src\aes.c" />
     <ClCompile Include="src\wolfcrypt\src\arc4.c" />
     <ClCompile Include="src\wolfcrypt\src\asm.c" />

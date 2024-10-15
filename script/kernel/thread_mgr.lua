@@ -1,7 +1,5 @@
 --thread_mgr.lua
-local select        = select
 local tsort         = table.sort
-local tunpack       = table.unpack
 local sformat       = string.format
 local co_yield      = coroutine.yield
 local co_create     = coroutine.create
@@ -108,27 +106,6 @@ function ThreadMgr:unlock(key, force)
     end
 end
 
-function ThreadMgr:create_co(f)
-    local pool = self.coroutine_pool
-    local co = pool:pop()
-    if co == nil then
-        co = co_create(function(...)
-            qxpcall(f, "[ThreadMgr][co_create] fork error: {}", ...)
-            while true do
-                f = nil
-                pool:push(co)
-                f = co_yield()
-                if type(f) == "function" then
-                    qxpcall(f, "[ThreadMgr][co_create] fork error: {}", co_yield())
-                end
-            end
-        end)
-    else
-        co_resume(co, f)
-    end
-    return co
-end
-
 function ThreadMgr:try_response(session_id, ...)
     local context = self.coroutine_yields[session_id]
     if not context then
@@ -216,16 +193,20 @@ function ThreadMgr:on_second(clock_ms)
 end
 
 function ThreadMgr:fork(f, ...)
-    local n = select("#", ...)
-    local co
-    if n == 0 then
-        co = self:create_co(f)
-    else
-        local args = { ... }
-        co = self:create_co(function() f(tunpack(args, 1, n)) end)
+    local pool = self.coroutine_pool
+    local co = pool:pop()
+    if co == nil then
+        co = co_create(function()
+            while true do
+                local rf = co_yield()
+                qxpcall(rf, "[ThreadMgr][fork] fork run error: {}", co_yield())
+                pool:push(co)
+            end
+        end)
+        co_resume(co)
     end
-    self:resume(co, ...)
-    return co
+    co_resume(co, f)
+    co_resume(co, ...)
 end
 
 function ThreadMgr:sleep(ms)

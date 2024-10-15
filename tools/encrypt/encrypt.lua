@@ -9,7 +9,7 @@ local lextension    = lstdfs.extension
 local labsolute     = lstdfs.absolute
 local lcurdir       = lstdfs.current_path
 local sformat       = string.format
-local ogetenv       = os.getenv
+local qgetenv       = quanta.getenv
 local oexec         = os.execute
 
 -- 加密lua
@@ -37,13 +37,13 @@ end
 
 local input = lcurdir()
 local output = lcurdir()
-local env_input = ogetenv("QUANTA_INPUT")
+local env_input = qgetenv("QUANTA_INPUT")
 if not env_input or #env_input == 0 then
     print("input dir not config!")
 else
     input = lappend(input, env_input)
 end
-local env_output = ogetenv("QUANTA_OUTPUT")
+local env_output = qgetenv("QUANTA_OUTPUT")
 if not env_output or #env_output == 0 then
     print("output dir not config!")
 else

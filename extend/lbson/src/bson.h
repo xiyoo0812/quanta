@@ -67,7 +67,7 @@ namespace lbson {
             m_buff->clean();
             size_t data_len = 0;
             const char* buf = lua_tolstring(L, 1, &data_len);
-            m_buff->push_data((uint8_t*)buf, data_len);
+            if (data_len > 0) m_buff->push_data((uint8_t*)buf, data_len);
             return decode_slice(L, m_buff->get_slice());
         }
 
@@ -147,7 +147,7 @@ namespace lbson {
             m_buff->write<uint8_t>((uint8_t)bson_type::BSON_BINARY);
             m_buff->write<uint8_t>(0); //subtype
             m_buff->write<int32_t>(data_len);
-            m_buff->push_data(value, data_len);
+            if (data_len > 0) m_buff->push_data(value, data_len);
             lua_pushlstring(L, (const char*)m_buff->head(), m_buff->size());
             return 1;
         }
@@ -239,7 +239,7 @@ namespace lbson {
         }
         
         void write_cstring(const char* buf, size_t len) {
-            m_buff->push_data((uint8_t*)buf, len);
+            if (len > 0) m_buff->push_data((uint8_t*)buf, len);
             m_buff->write<char>('\0');
         }
 
@@ -410,9 +410,9 @@ namespace lbson {
             case LUA_TSTRING: {
                     size_t sz;
                     const char* buf = lua_tolstring(L, -1, &sz);
-                    if (buf[0] == 0 && sz >= 2) {
+                    if (sz > 2 && buf[0] == 0 && buf[1] != 0) {
                         write_key((bson_type)buf[1], key, len);
-                        if (sz > 2) m_buff->push_data((uint8_t*)(buf + 2), sz - 2);
+                        m_buff->push_data((uint8_t*)(buf + 2), sz - 2);
                     } else {
                         write_key(bson_type::BSON_STRING, key, len);
                         write_string(buf, sz);

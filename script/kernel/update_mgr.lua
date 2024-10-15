@@ -284,6 +284,7 @@ function UpdateMgr:quit()
     end
     --退出
     timer_mgr:once(HALF_MS, function()
+        log_info("[UpdateMgr][quit] service real quit !")
         quanta.run = nil
     end)
 end

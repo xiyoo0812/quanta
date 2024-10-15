@@ -95,7 +95,7 @@ function Loki:collect_log(content, lvl_name)
                 tid = quanta.tid,
                 name = quanta.name,
                 host = self.host_ip,
-                thread = quanta.title,
+                thread = quanta.thread,
                 service = quanta.service_name,
             }
         }
@@ -120,7 +120,7 @@ function Loki:collect_pb(cmd_body, cmd_type)
                 tid = quanta.tid,
                 name = quanta.name,
                 host = self.host_ip,
-                thread = quanta.title,
+                thread = quanta.thread,
                 service = quanta.service_name,
             }
         }

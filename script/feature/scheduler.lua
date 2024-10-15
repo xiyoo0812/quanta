@@ -14,7 +14,7 @@ local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-local update_mgr    = quanta.load("update_mgr")
+local update_mgr    = quanta.get("update_mgr")
 
 local Scheduler = singleton()
 
@@ -24,7 +24,7 @@ function Scheduler:__init()
     update_mgr:attach_frame(self)
     event_mgr:add_trigger(self, "on_reload")
     --启动
-    worker.setup("quanta", environ.get("QUANTA_SANDBOX"))
+    worker.setup("quanta")
 end
 
 function Scheduler:on_reload()
@@ -40,12 +40,25 @@ function Scheduler:on_quit()
     worker.shutdown()
 end
 
-function Scheduler:startup(name, entry)
-    local ok, err = pcall(worker.startup, name, entry)
-    if not ok then
-        log_err("[Scheduler][startup] startup failed: {}", err)
+function Scheduler:startup(name, entry, params, conf)
+    local args = params or {}
+    if not conf then
+        args.entry = entry
+        args.discover = "0"
     end
-    return ok
+    local ks = quanta.new_kitstate()
+    local ok, wok_oe = pcall(worker.startup, name, conf, args, ks)
+    if not ok then
+        log_err("[Scheduler][startup] startup thread {} failed: {}", name, wok_oe)
+    end
+    return wok_oe
+end
+
+function Scheduler:stop(name)
+    local ok, err = pcall(worker.stop, name)
+    if not ok then
+        log_err("[Scheduler][stop] stop thread {} failed: {}", name, err)
+    end
 end
 
 --访问其他线程任务
@@ -68,10 +81,10 @@ function Scheduler:send(name, rpc, ...)
 end
 
 --事件分发
-local function notify_rpc(session_id, title, rpc, ...)
+local function notify_rpc(session_id, thread_name, rpc, ...)
     local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        wcall(title, session_id, FLAG_RES, tunpack(rpc_datas))
+        wcall(thread_name, session_id, FLAG_RES, tunpack(rpc_datas))
     end
 end
 

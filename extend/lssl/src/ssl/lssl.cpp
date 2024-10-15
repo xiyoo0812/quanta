@@ -1,6 +1,7 @@
 #define LUA_LIB
 #include "ssl/crc.h"
 #include "ssl/lz4.h"
+#include "ssl/zstd.h"
 #include "ssl/xxtea.h"
 #include "ssl/hmac_sha.h"
 
@@ -167,9 +168,8 @@ namespace lssl {
             lua_pushlstring(L, dest, out_len);
             return 1;
         }
-        lua_pushstring(L, "lz4 compress failed!");
-        lua_error(L);
-        return 1;
+        luaL_error(L, "lz4 compress failed!");
+        return 0;
     }
 
     static int lz4_decode(lua_State* L) {
@@ -181,9 +181,34 @@ namespace lssl {
             lua_pushlstring(L, dest, out_len);
             return 1;
         }
-        lua_pushstring(L, "lz4 decompress failed!");
-        lua_error(L);
-        return 1;
+        luaL_error(L, "lz4 decompress failed!");
+        return 0;
+    }
+
+    static int zstd_encode(lua_State* L) {
+        size_t data_len = 0;
+        char dest[USHRT_MAX];
+        const char* message = luaL_checklstring(L, 1, &data_len);
+        size_t comp_ize = ZSTD_compress(dest, USHRT_MAX, message, data_len, ZSTD_defaultCLevel());
+        if (!ZSTD_isError(comp_ize)) {
+            lua_pushlstring(L, dest, comp_ize);
+            return 1;
+        }
+        luaL_error(L, "zstd compress failed!");
+        return 0;
+    }
+
+    static int zstd_decode(lua_State* L) {
+        size_t data_len = 0;
+        char dest[USHRT_MAX];
+        const char* message = luaL_checklstring(L, 1, &data_len);
+        size_t dec_size = ZSTD_decompress(dest, USHRT_MAX, message, data_len);
+        if (!ZSTD_isError(dec_size)) {
+            lua_pushlstring(L, dest, dec_size);
+            return 1;
+        }
+        luaL_error(L, "zstd decompress failed!");
+        return 0;
     }
 
     static int lsha1(lua_State* L) {
@@ -352,10 +377,9 @@ namespace lssl {
         return 1;
     }
 
-    static tlscodec* tls_codec(lua_State* L, codec_base* codec) {
-        luakit::kit_state kit_state(L);
+    static tlscodec* tls_codec(codec_base* codec) {
         tlscodec* tcodec = new tlscodec();
-        tcodec->set_buff(kit_state.get_buff());
+        tcodec->set_buff(luakit::get_buff());
         tcodec->set_codec(codec);
         return tcodec;
     }
@@ -381,6 +405,8 @@ namespace lssl {
         luassl.set_function("randomkey", lrandomkey);
         luassl.set_function("lz4_encode", lz4_encode);
         luassl.set_function("lz4_decode", lz4_decode);
+        luassl.set_function("zstd_encode", zstd_encode);
+        luassl.set_function("zstd_decode", zstd_decode);
         luassl.set_function("hmac_sha1", lhmac_sha1);
         luassl.set_function("hmac_sha224", lhmac_sha224);
         luassl.set_function("hmac_sha256", lhmac_sha256);

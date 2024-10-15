@@ -28,7 +28,7 @@ local tsort         = table.sort
 local mfloor        = math.floor
 local mtointeger    = math.tointeger
 local slower        = string.lower
-local ogetenv       = os.getenv
+local qgetenv       = quanta.getenv
 
 --指定导出函数
 local export_method = nil
@@ -395,14 +395,14 @@ local format_methods = {
 local function read_cmdline()
     local input = lcurdir()
     local output = lcurdir()
-    local env_input = ogetenv("QUANTA_INPUT")
+    local env_input = qgetenv("QUANTA_INPUT")
     if not env_input or #env_input == 0 then
         print("input dir not config!")
         input = input
     else
         input = lappend(input, env_input)
     end
-    local env_output = ogetenv("QUANTA_OUTPUT")
+    local env_output = qgetenv("QUANTA_OUTPUT")
     if not env_output or #env_output == 0 then
         print("output dir not config!")
         output = output
@@ -410,31 +410,31 @@ local function read_cmdline()
         output = lappend(output, env_output)
         lmkdir(output)
     end
-    local env_typline = ogetenv("QUANTA_TYPLINE")
+    local env_typline = qgetenv("QUANTA_TYPLINE")
     if env_typline then
         type_line = mtointeger(env_typline)
     end
-    local env_staline = ogetenv("QUANTA_STALINE")
+    local env_staline = qgetenv("QUANTA_STALINE")
     if env_staline then
         start_line = mtointeger(env_staline)
     end
-    local env_stacol = ogetenv("QUANTA_STACOL")
+    local env_stacol = qgetenv("QUANTA_STACOL")
     if env_stacol then
         start_col = mtointeger(env_stacol)
     end
-    local env_headline = ogetenv("QUANTA_HEADLINE")
+    local env_headline = qgetenv("QUANTA_HEADLINE")
     if env_headline then
         head_line = mtointeger(env_headline)
     end
-    local env_recursion = ogetenv("QUANTA_RECURSION")
+    local env_recursion = qgetenv("QUANTA_RECURSION")
     if env_recursion then
         recursion = mtointeger(env_recursion)
     end
-    local env_allsheet = ogetenv("QUANTA_ALLSHEET")
+    local env_allsheet = qgetenv("QUANTA_ALLSHEET")
     if env_allsheet then
         allsheet = mtointeger(env_allsheet)
     end
-    local format = ogetenv("QUANTA_FORMAT")
+    local format = qgetenv("QUANTA_FORMAT")
     export_method = format_methods[format] or export_records_to_conf
     return input, output
 end

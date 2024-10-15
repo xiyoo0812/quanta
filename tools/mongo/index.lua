@@ -2,7 +2,7 @@
 local lstdfs        = require("lstdfs")
 
 local io_open       = io.open
-local ogetenv       = os.getenv
+local qgetenv       = quanta.getenv
 local tinsert       = table.insert
 local sformat       = string.format
 local lmkdir        = lstdfs.mkdir
@@ -61,13 +61,13 @@ end
 local function export_config()
     local input = lcurdir()
     local output = lcurdir()
-    local env_input = ogetenv("QUANTA_INPUT")
+    local env_input = qgetenv("QUANTA_INPUT")
     if not env_input or #env_input == 0 then
         print("input dir not config!")
         return
     end
     input = lappend(input, env_input)
-    local env_output = ogetenv("QUANTA_OUTPUT")
+    local env_output = qgetenv("QUANTA_OUTPUT")
     if not env_output or #env_output == 0 then
         print("output dir not config!")
     end

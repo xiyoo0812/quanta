@@ -11,9 +11,9 @@ local qsuccess          = quanta.success
 local jumphash          = codec.jumphash
 local signal_quit       = signal.quit
 
-local discover          = quanta.get("discover")
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
+local discover          = quanta.load("discover")
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
@@ -27,8 +27,10 @@ function RouterMgr:__init()
     --router接口
     self:build_service()
     --监听路由信息
-    discover:watch_service(self, "router")
-    event_mgr:add_listener(self, "rpc_service_kickout")
+    if discover then
+        discover:watch_service(self, "router")
+        event_mgr:add_listener(self, "rpc_service_kickout")
+    end
 end
 
 --服务关闭

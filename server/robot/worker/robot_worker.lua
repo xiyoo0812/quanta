@@ -1,5 +1,4 @@
 --robot_worker.lua
-import("feature/worker.lua")
 import("robot/robot_mgr.lua")
 import("network/http_client.lua")
 

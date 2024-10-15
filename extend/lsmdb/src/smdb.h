@@ -14,6 +14,8 @@
 #define filelength _filelength
 #define strncasecmp _strnicmp
 #else
+#include <climits>
+#include <cstring>
 #include <unistd.h>
 #include <sys/stat.h>
 long filelength(int fd) {

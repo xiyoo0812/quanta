@@ -39,5 +39,5 @@ quanta.startup(function()
     import("test/smdb_test.lua")
     import("test/profile_test.lua")
     ]]
-    import("test/profile_test.lua")
+    import("test/mongo_test.lua")
 end)

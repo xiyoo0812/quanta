@@ -1,7 +1,7 @@
 #pragma once
 
-#include "smdb.h"
 #include "lua_kit.h"
+#include "smdb.h"
 
 using namespace std;
 using namespace luakit;

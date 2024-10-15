@@ -1,6 +1,6 @@
 --store_kv.lua
 local log_err       = logger.err
-local log_debug     = logger.debug
+local log_dump      = logger.dump
 
 local store_mgr     = quanta.get("store_mgr")
 
@@ -46,12 +46,11 @@ function StoreKV:sync_whole()
     if not self.wholes[self.primary_key] then
         self.wholes[self.primary_key] = self.primary_id
     end
-    log_debug("[StoreKV][sync_whole] {}.{}={}", self.primary_id, self.sheet, self.wholes)
+    log_dump("[StoreKV][sync_whole] {}.{}={}", self.primary_id, self.sheet, self.wholes)
     if not self.driver:put(self.primary_id, self.wholes, self.sheet) then
         log_err("[StoreKV][sync_whole] sync {}.{} failed!", self.primary_id, self.sheet)
     end
 end
-
 
 if QUANTA_STORE == "sqlite" then
     import("driver/sqlite.lua")

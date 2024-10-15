@@ -5,15 +5,31 @@
 #include "lua_table.h"
 #include "lua_class.h"
 
+#ifdef WIN32
+#include <windows.h>
+#endif
+
 namespace luakit {
     static thread_local luabuf lbuf;
     static thread_local luacodec lcodec;
+
+    static luabuf* get_buff() {
+        return &lbuf;
+    }
+
+    static codec_base* get_codec() {
+        if (!lcodec.get_buff()) {
+            lcodec.set_buff(&lbuf);
+        }
+        return &lcodec;
+    }
 
     class kit_state {
     public:
         kit_state() {
             m_L = luaL_newstate();
             luaL_openlibs(m_L);
+            new_class<kit_state>();
             new_class<codec_base>();
             new_class<class_member>();
             new_class<function_wrapper>();
@@ -32,22 +48,13 @@ namespace luakit {
         }
         kit_state(lua_State* L) : m_L(L) {}
 
+        void __gc() {}
+
         void close() {
             if (m_L) {
                 lua_close(m_L); 
                 m_L = nullptr;
             }
-        }
-
-        luabuf* get_buff() {
-            return &lbuf;
-        }
-
-        codec_base* get_codec() {
-            if (lcodec.get_buff()) {
-                lcodec.set_buff(&lbuf);
-            }
-            return &lcodec;
         }
 
         template<typename T>
@@ -63,6 +70,13 @@ namespace luakit {
             return lua_to_native<T>(m_L, -1);
         }
 
+        template<typename RET>
+        bool get(const char* name, RET& ret) {
+            lua_guard g(m_L);
+            lua_getglobal(m_L, name);
+            return lua_to_native(m_L, -1, ret);
+        }
+
         template <typename F>
         void set_function(const char* function, F func) {
             lua_push_function(m_L, func);
@@ -74,11 +88,18 @@ namespace luakit {
             return lua_isfunction(m_L, -1);
         }
 
-        void set_path(const char* field, const char* path, const char* workdir) {
+        const char* get_path(const char* field) {
+            lua_guard g(m_L);
+            lua_getglobal(m_L, LUA_LOADLIBNAME);
+            lua_getfield(m_L, -1, field);
+            return lua_tostring(m_L, -1);
+        }
+
+        void set_path(const char* field, const char* path) {
             if (strcmp(field, "LUA_PATH") == 0) {
-                set_lua_path("path", path, LUA_PATH_DEFAULT, workdir);
+                set_lua_path("path", path, LUA_PATH_DEFAULT);
             } else {
-                set_lua_path("cpath", path, LUA_CPATH_DEFAULT, workdir);
+                set_lua_path("cpath", path, LUA_CPATH_DEFAULT);
             }
         }
 
@@ -208,7 +229,7 @@ namespace luakit {
         }
 
     protected:
-        void set_lua_path(const char* fieldname, const char* path, const char* dft, const char* workdir){
+        void set_lua_path(const char* fieldname, const char* path, const char* dft){
             lua_getglobal(m_L, LUA_LOADLIBNAME);
             const char* dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
             if (dftmark == nullptr) {
@@ -228,15 +249,28 @@ namespace luakit {
                 }
                 luaL_pushresult(&b);
             }
-            if (workdir) {
-                luaL_gsub(m_L, lua_tostring(m_L, -1), LUA_EXEC_DIR, workdir);
-                lua_remove(m_L, -2);  /* remove original string */
+#ifdef WIN32
+            if (strstr(path, LUA_EXEC_DIR)) {
+                char* lb;
+                char buff[MAX_PATH + 1];
+                DWORD nsize = sizeof(buff) / sizeof(char);
+                DWORD n = GetModuleFileName(NULL, buff, nsize);  /* get exec. name */
+                if (n == 0 || n == nsize || (lb = strrchr(buff, '\\')) == NULL)
+                    luaL_error(m_L, "unable to get ModuleFileName");
+                else {
+                    *lb = '\0';  /* cut name on the last '\\' to get the path */
+                    luaL_gsub(m_L, lua_tostring(m_L, -1), LUA_EXEC_DIR, buff);
+                    lua_remove(m_L, -2);  /* remove original string */
+                }
             }
+#endif // WIN32
             lua_setfield(m_L, -2, fieldname);  /* package[fieldname] = path value */
             lua_pop(m_L, 1);
         }
 
     protected:
+        luabuf* m_buf = nullptr;
+        luacodec* m_codec = nullptr;
         lua_State* m_L = nullptr;
     };
 

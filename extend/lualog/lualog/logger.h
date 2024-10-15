@@ -16,7 +16,6 @@
 
 #ifdef WIN32
 #define getpid _getpid
-#define gettid _get_tid
 #else
 #include <unistd.h>
 #endif

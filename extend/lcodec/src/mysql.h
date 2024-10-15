@@ -391,7 +391,7 @@ namespace lcodec {
             m_packet.erase(10);
             //auth-plugin-data-part-2
             char* scramble2 = nullptr;
-            auth_plugin_data_len = std::max(13, auth_plugin_data_len - 8);
+            auth_plugin_data_len = (std::max)(13, auth_plugin_data_len - 8);
             scramble2 = (char*)m_packet.erase(auth_plugin_data_len);
             lua_pushlstring(L, (char*)scramble1, 8);
             lua_pushlstring(L, scramble2, 12);

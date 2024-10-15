@@ -10,8 +10,8 @@ local lfilter       = log.filter
 
 local LOG_FLAG      = log.LOG_FLAG
 local LOG_LEVEL     = log.LOG_LEVEL
+local THREAD_NAME   = quanta.thread
 
-local title         = quanta.title
 local MONITORS      = quanta.init("MONITORS")
 
 logger = {}
@@ -25,7 +25,6 @@ function logger.init()
     --设置日志过滤
     logger.filter(environ.number("QUANTA_LOG_LVL"))
     --添加输出目标
-    log.add_dest(quanta.service_name);
     log.add_lvl_dest(LOG_LEVEL.ERROR)
     --设置daemon
     log.daemon(environ.status("QUANTA_DAEMON"))
@@ -66,10 +65,10 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
     if monitors then
         flag = flag | LOG_FLAG.MONITOR
     end
-    local ok, msg = pcall(lprint, lvl, flag, title, feature, fmt, ...)
+    local ok, msg = pcall(lprint, lvl, flag, THREAD_NAME, feature, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"
-        lprint(LOG_LEVEL.WARN, 0, title, feature, wfmt, lvl_name, msg, dtraceback())
+        lprint(LOG_LEVEL.WARN, 0, THREAD_NAME, feature, wfmt, lvl_name, msg, dtraceback())
         return
     end
     if msg then

@@ -1,32 +1,32 @@
 --sandbox.lua
 require("lualog")
 require("lstdfs")
+require("ltimer")
 
 local pairs         = pairs
 local loadfile      = loadfile
-local iopen         = io.open
 local mabs          = math.abs
 local lprint        = log.print
 local sgsub         = string.gsub
 local sformat       = string.format
-local traceback     = debug.traceback
 local qgetenv       = quanta.getenv
-local zexist        = quanta.zexist
+local traceback     = debug.traceback
+local file_time     = stdfs.last_write_time
+local fexists       = stdfs.exists
 
 local LOG_LEVEL     = log.LOG_LEVEL
-local QUANTA_ZIP    = qgetenv("QUANTA_ZIP_MODE")
 
 local FEATURE       = "devops"
-local TITLE         = quanta.title
+local THREAD_NAME   = quanta.thread
 
 local load_status = "success"
 local log_error = function(content)
     load_status = "failed"
-    lprint(LOG_LEVEL.ERROR, 0, TITLE, FEATURE, content)
+    lprint(LOG_LEVEL.ERROR, 0, THREAD_NAME, FEATURE, content)
 end
 
 local log_output = function(content)
-    lprint(LOG_LEVEL.INFO, 0, TITLE, FEATURE, content)
+    lprint(LOG_LEVEL.INFO, 0, THREAD_NAME, FEATURE, content)
 end
 
 local function ssplit(str, token)
@@ -44,6 +44,7 @@ local function ssplit(str, token)
     return t
 end
 
+
 --加载部署日志
 if qgetenv("QUANTA_LOG_PATH") then
     log.add_file_dest(FEATURE, "devops.log")
@@ -58,25 +59,6 @@ for _, path in ipairs(ssplit(package.path, ";")) do
     search_path[#search_path + 1] = sgsub(spath, "\\", "/")
 end
 
-local file_time = function(fname)
-    if QUANTA_ZIP then
-        return 1
-    end
-    return stdfs.last_write_time(fname)
-end
-
-local function fexist(fname)
-    if QUANTA_ZIP then
-        return zexist(fname)
-    end
-    local file = iopen(fname)
-    if file then
-        file:close()
-        return true
-    end
-    return false
-end
-
 local function search_load(node)
     local load_path = node.fullpath
     if load_path then
@@ -86,7 +68,7 @@ local function search_load(node)
     local filename = node.filename
     for _, path_root in pairs(search_path) do
         local fullpath = path_root .. filename
-        if fexist(fullpath) then
+        if fexists(fullpath) then
             node.fullpath = fullpath
             node.time = file_time(fullpath)
             return loadfile(fullpath)

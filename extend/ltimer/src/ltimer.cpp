@@ -33,14 +33,14 @@ namespace ltimer {
 
     protected:
         size_t time = 0;
-        timer_list near[TIME_NEAR];
+        timer_list nears[TIME_NEAR];
         timer_list t[4][TIME_LEVEL];
     };
 
     void lua_timer::add_node(timer_node& node) {
         size_t expire = node.expire;
         if ((expire | TIME_NEAR_MASK) == (time | TIME_NEAR_MASK)) {
-            near[expire & TIME_NEAR_MASK].push_back(node);
+            nears[expire & TIME_NEAR_MASK].push_back(node);
             return;
         }
         uint32_t i;
@@ -90,10 +90,10 @@ namespace ltimer {
 
     void lua_timer::execute(integer_vector& timers) {
         uint32_t idx = time & TIME_NEAR_MASK;
-        for (auto node : near[idx]) {
+        for (auto node : nears[idx]) {
             timers.push_back(node.timer_id);
         }
-        near[idx].clear();
+        nears[idx].clear();
     }
 
     integer_vector lua_timer::update(size_t elapse) {
@@ -107,7 +107,7 @@ namespace ltimer {
     }
 
     thread_local lua_timer thread_timer;
-    static void timer_insert(uint64_t timer_id, size_t escape){
+    static void timer_insert(uint64_t timer_id, size_t escape) {
         thread_timer.insert(timer_id, escape);
     }
 

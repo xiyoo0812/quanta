@@ -16,6 +16,9 @@
     <ClInclude Include="src\ssl\xxtea.h">
       <Filter>src\ssl</Filter>
     </ClInclude>
+    <ClInclude Include="src\ssl\zstd.h">
+      <Filter>src\ssl</Filter>
+    </ClInclude>
     <ClInclude Include="src\user_settings.h">
       <Filter>src</Filter>
     </ClInclude>
@@ -544,6 +547,9 @@
       <Filter>src\ssl</Filter>
     </ClCompile>
     <ClCompile Include="src\ssl\xxtea.c">
+      <Filter>src\ssl</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ssl\zstd.c">
       <Filter>src\ssl</Filter>
     </ClCompile>
     <ClCompile Include="src\wolfcrypt\src\aes.c">

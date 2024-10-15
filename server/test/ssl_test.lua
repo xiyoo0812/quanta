@@ -96,3 +96,43 @@ local rsav3 = prikey.pri_encode(pem_pri)
 log_info("rsa_sencode: {}, {}",  #rsav3, lhex_encode(rsav3))
 local rsav4 = pubkey.pub_decode(rsav3)
 log_info("rsa_pdecode: {}, {}",  #rsav4, rsav4)
+
+local data = {}
+for i = 1, 200 do
+    data[i] = {
+        index = i,
+        name = "name"..i,
+        age = i,
+        sex = i % 2 == 0 and "male" or "female"
+    }
+end
+
+local j1 = timer.now_ns()
+local jdata = json.encode(data)
+log_info("data: {}=>{}",  #jdata, timer.now_ns() - j1)
+
+local t1 = timer.now_ms()
+local zstdc = ssl.zstd_encode(jdata)
+for i = 1, 20000 do
+    ssl.zstd_encode(jdata)
+end
+log_info("zstd_encode: {}=>{}",  #zstdc, timer.now_ms() - t1)
+local t2 = timer.now_ms()
+local zstdd = ssl.zstd_decode(zstdc)
+for i = 1, 20000 do
+    ssl.zstd_decode(zstdc)
+end
+log_info("zstd_decode: {}=>{}",  #zstdd, timer.now_ms() - t2)
+
+local s1 = timer.now_ms()
+local lz4c = ssl.lz4_encode(jdata)
+for i = 1, 20000 do
+    ssl.lz4_encode(jdata)
+end
+log_info("lz4_encode: {}=>{}",  #lz4c, timer.now_ms() - s1)
+local s2 = timer.now_ms()
+local lz4d = ssl.lz4_decode(lz4c)
+for i = 1, 20000 do
+    ssl.lz4_decode(lz4c)
+end
+log_info("lz4_decode: {}=>{}",  #lz4d, timer.now_ms() - s2)

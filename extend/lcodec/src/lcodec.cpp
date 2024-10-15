@@ -4,19 +4,17 @@
 
 namespace lcodec {
 
-    static codec_base* rds_codec(lua_State* L, codec_base* codec) {
-        luakit::kit_state kit_state(L);
+    static codec_base* rds_codec(codec_base* codec) {
         rdscodec* rcodec = new rdscodec();
-        rcodec->set_buff(kit_state.get_buff());
         rcodec->set_codec(codec);
+        rcodec->set_buff(luakit::get_buff());
         return rcodec;
     }
 
-    static codec_base* wss_codec(lua_State* L, codec_base* codec) {
-        luakit::kit_state kit_state(L);
+    static codec_base* wss_codec(codec_base* codec) {
         wsscodec* wcodec = new wsscodec();
-        wcodec->set_buff(kit_state.get_buff());
         wcodec->set_codec(codec);
+        wcodec->set_buff(luakit::get_buff());
         return wcodec;
     }
 
@@ -24,26 +22,23 @@ namespace lcodec {
         return new bitset();
     }
 
-    static codec_base* httpd_codec(lua_State* L, codec_base* codec) {
-        luakit::kit_state kit_state(L);
+    static codec_base* httpd_codec(codec_base* codec) {
         httpcodec* hcodec = new httpdcodec();
-        hcodec->set_buff(kit_state.get_buff());
         hcodec->set_codec(codec);
+        hcodec->set_buff(luakit::get_buff());
         return hcodec;
     }
 
-    static codec_base* httpc_codec(lua_State* L, codec_base* codec) {
-        luakit::kit_state kit_state(L);
+    static codec_base* httpc_codec(codec_base* codec) {
         httpcodec* hcodec = new httpccodec();
-        hcodec->set_buff(kit_state.get_buff());
         hcodec->set_codec(codec);
+        hcodec->set_buff(luakit::get_buff());
         return hcodec;
     }
 
-    static codec_base* mysql_codec(lua_State* L, size_t session_id) {
-        luakit::kit_state kit_state(L);
+    static codec_base* mysql_codec(size_t session_id) {
         mysqlscodec* codec = new mysqlscodec(session_id);
-        codec->set_buff(kit_state.get_buff());
+        codec->set_buff(luakit::get_buff());
         return codec;
     }
 

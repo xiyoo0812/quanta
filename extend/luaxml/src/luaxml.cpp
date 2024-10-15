@@ -119,7 +119,7 @@ namespace luaxml {
     }
 
     static int decode_xml(lua_State* L, const char* xml) {
-        XMLDocument doc;
+        tinyxml2::XMLDocument doc;
         if (doc.Parse(xml) != XML_SUCCESS) {
             lua_pushnil(L);
             lua_pushstring(L, "parse xml doc failed!");
@@ -150,7 +150,7 @@ namespace luaxml {
     }
 
     static int open_xml(lua_State* L, const char* xmlfile) {
-        XMLDocument doc;
+        tinyxml2::XMLDocument doc;
         if (doc.LoadFile(xmlfile) != XML_SUCCESS) {
             lua_pushnil(L);
             lua_pushstring(L, "parse xml doc failed!");

@@ -5,16 +5,8 @@
 
 #include "quanta.h"
 
-#if WIN32
+#if defined(WIN32)
 #include <conio.h>
-#include <windows.h>
-int setenv(const char* k, const char* v, int o) {
-    return _putenv_s(k, v);
-}
-#else
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/stat.h>
 #endif
 
 quanta_app* g_app = nullptr;
@@ -81,22 +73,10 @@ const char* quanta_app::get_env(const char* key) {
     return nullptr;
 }
 
-void quanta_app::set_env(std::string key, std::string value, int over) {
+void quanta_app::set_env(const char* key, const char* value, int over) {
     if (over == 1 || m_environs.find(key) == m_environs.end()) {
-        setenv(key.c_str(), value.c_str(), 1);
         m_environs[key] = value;
     }
-}
-
-void quanta_app::set_path(std::string field, std::string path) {
-    set_env(field, path, 1);
-#ifdef WIN32
-    char workdir[MAX_PATH + 1];
-    GetCurrentDirectory(sizeof(workdir), workdir);
-    m_lua.set_path(field.c_str(), path.c_str(), workdir);
-#else
-    m_lua.set_path(field.c_str(), path.c_str(), nullptr);
-#endif
 }
 
 void quanta_app::setup(int argc, const char* argv[]) {
@@ -111,8 +91,10 @@ void quanta_app::setup(int argc, const char* argv[]) {
 
 void quanta_app::exception_handler(std::string_view msg, std::string_view err) {
     LOG_FATAL(fmt::format(msg, err));
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    exit(1);
+    if (m_process_mode) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        exit(1);
+    }
 }
 
 void quanta_app::load(int argc, const char* argv[]) {
@@ -132,8 +114,8 @@ void quanta_app::load(int argc, const char* argv[]) {
         if (i == 1){
             //加载LUA配置
             m_lua.set("platform", get_platform());
-            m_lua.set_function("set_env", [&](std::string key, std::string value) { return set_env(key, value, 1); });
-            m_lua.set_function("set_path", [&](std::string field, std::string path) { return set_path(field, path); });
+            m_lua.set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
+            m_lua.set_function("set_path", [&](const char* field, const char* path) { m_lua.set_path(field, path); set_env(field, path, 1); });
             m_lua.run_script(fmt::format("dofile('{}')", argv[1]), [&](std::string_view err) {
                 exception_handler("load sandbox err: {}", err);
             });
@@ -141,23 +123,25 @@ void quanta_app::load(int argc, const char* argv[]) {
     }
 }
 
-luakit::lua_table quanta_app::init() {
+bool quanta_app::init() {
     //初始化lua
-    auto quanta = m_lua.new_table("quanta");
     auto tid = std::this_thread::get_id();
+    auto quanta = m_lua.new_table("quanta");
     quanta.set("pid", ::getpid());
-    quanta.set("title", "quanta");
+    quanta.set("master", true);
+    quanta.set("thread", "quanta");
     quanta.set("environs", m_environs);
     quanta.set("tid", *(uint32_t*)&tid);
     quanta.set("platform", get_platform());
     quanta.set_function("daemon", [&]() { daemon(); });
     quanta.set_function("get_signal", [&]() { return m_signal; });
+    quanta.set_function("new_kitstate", [&]() { return new kit_state(); });
     quanta.set_function("set_signal", [&](int n, bool b) { set_signal(n, b); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
     quanta.set_function("register_signal", [](int n) { signal(n, on_signal); });
     quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
-    quanta.set_function("setenv", [&](std::string key, std::string value) { return set_env(key, value, 1); });
+    quanta.set_function("setenv", [&](const char* key, const char* value) { return set_env(key, value, 1); });
 
     const char* env_log_path = get_env("QUANTA_LOG_PATH");
     if (env_log_path) {
@@ -165,22 +149,32 @@ luakit::lua_table quanta_app::init() {
         const char* env_service = get_env("QUANTA_SERVICE");
         logger::get_logger()->option(env_log_path, env_service, env_index);
     }
-    m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string_view err) {
+    if (!m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string_view err) {
         exception_handler("load sandbox err: {}", err);
-    });
-    m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string_view err) {
+    })) return false;
+    if (!m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string_view err) {
         exception_handler("load entry err: {}", err);
-    });
-    return quanta;
+    })) return false;
+    return true;
 }
 
 void quanta_app::run() {
-    auto quanta = init();
-    while (quanta.get_function("run")) {
-        quanta.call([&](std::string_view err) {
-            LOG_FATAL(fmt::format("quanta run err: {} ", err));
-        });
-        check_input(m_lua);
-    };
-    logger::get_logger()->stop();
+    if (init()) {
+        auto quanta = m_lua.get<luakit::lua_table>("quanta");
+        while (quanta.get_function("run")) {
+            quanta.call();
+            check_input(m_lua);
+        };
+    }
+    logger::stop_logger();
+}
+
+bool quanta_app::step() {
+    auto quanta = m_lua.get<luakit::lua_table>("quanta");
+    if (quanta.get_function("run")) {
+        quanta.call();
+        return true;
+    }
+    logger::stop_logger();
+    return false;
 }

@@ -122,6 +122,7 @@ SOURCES += src/ssl/hmac_sha.c
 SOURCES += src/ssl/lssl.cpp
 SOURCES += src/ssl/lz4.c
 SOURCES += src/ssl/xxtea.c
+SOURCES += src/ssl/zstd.c
 SOURCES += src/wolfcrypt/src/aes.c
 SOURCES += src/wolfcrypt/src/arc4.c
 SOURCES += src/wolfcrypt/src/asm.c

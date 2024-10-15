@@ -1,4 +1,5 @@
 --store.lua
+local log_dump      = logger.dump
 local log_debug     = logger.debug
 local tconcat       = table.concat
 
@@ -34,7 +35,7 @@ function Store:flush(obj, timely)
 end
 
 function Store:update_value(parentkeys, key, value)
-    log_debug("[Store][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), key, value)
+    log_dump("[Store][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), key, value)
     local cur_data = self.wholes
     for _, cfield in ipairs(parentkeys) do
         if not cur_data[cfield] then
@@ -46,7 +47,7 @@ function Store:update_value(parentkeys, key, value)
 end
 
 function Store:update_field(parentkeys, field, key, value)
-    log_debug("[Store][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), field, key, value)
+    log_dump("[Store][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), field, key, value)
     local cur_data = self.wholes
     for _, cfield in ipairs(parentkeys) do
         if not cur_data[cfield] then
