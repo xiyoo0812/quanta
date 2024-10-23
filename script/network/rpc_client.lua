@@ -48,10 +48,10 @@ function RpcClient:heartbeat()
     if self.alive then
         --发送心跳
         self:send("rpc_heartbeat")
-        self.timer:set_period(RPC_TIMEOUT)
+        self.timer:change_period(RPC_TIMEOUT)
     else
         self:connect()
-        self.timer:set_period(SECOND_MS)
+        self.timer:change_period(SECOND_MS)
     end
 end
 
@@ -134,6 +134,7 @@ end
 -- 主动关闭连接
 function RpcClient:close()
     log_err("[RpcClient][close] socket {}:{}!", self.ip, self.port)
+    self.timer:unregister()
     if self.socket then
         self.socket.close()
         self.alive = false

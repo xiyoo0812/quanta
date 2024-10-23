@@ -15,7 +15,7 @@ namespace luakit {
             lua_gettable(m_L, -2);
             return lua_to_native<RET>(m_L, -1);
         }
-        
+
         template<typename RET, typename KEY>
         bool get(KEY key, RET& ret) {
             lua_guard g(m_L);

@@ -42,6 +42,11 @@ function Socket:close()
         self.codec = nil
         self.token = nil
     end
+    if self.listener then
+        self.listener.close()
+        self.listener = nil
+        self.codec = nil
+    end
 end
 
 function Socket:listen(ip, port)
@@ -105,8 +110,13 @@ function Socket:connect(ip, port)
     self.token = token
     self.session = session
     self.ip, self.port = ip, port
-    --阻塞模式挂起
-    return thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
+    --阻塞挂起
+    local ok, res = thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
+    if not ok then
+        --处理超时
+        self:close()
+    end
+    return ok, res
 end
 
 function Socket:on_socket_accept(session)

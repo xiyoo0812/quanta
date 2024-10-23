@@ -1,4 +1,6 @@
 -- unqlite_test.lua
+local unqlite       = require("lunqlite")
+
 local log_debug     = logger.debug
 local jsoncodec     = json.jsoncodec
 

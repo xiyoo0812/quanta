@@ -15,6 +15,7 @@ local sgmatch       = string.gmatch
 local mrandom       = qmath.random
 local mtointeger    = math.tointeger
 local qhash         = codec.hash_code
+local make_timer    = quanta.make_timer
 local makechan      = quanta.make_channel
 
 local lmd5          = ssl.md5
@@ -27,8 +28,6 @@ local lxor_byte     = ssl.xor_byte
 local bsonpairs     = bson.pairs
 local bint64        = bson.int64
 
-local timer_mgr     = quanta.get("timer_mgr")
-local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
@@ -42,10 +41,10 @@ local MongoDB = class()
 local prop = property(MongoDB)
 prop:reader("name", "")         --dbname
 prop:reader("user", nil)        --user
+prop:reader("timer", nil)       --timer
 prop:reader("passwd", nil)      --passwd
 prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
-prop:reader("timer_id", nil)    --timer_id
 prop:reader("connections", {})  --connections
 prop:reader("alives", {})       --alives
 prop:reader("req_counter", nil)
@@ -55,6 +54,7 @@ function MongoDB:__init(conf)
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
+    self.timer = make_timer()
     self.codec = bson.mongocodec()
     self:set_options(conf.opts)
     self:setup_pool(conf.hosts)
@@ -76,6 +76,7 @@ function MongoDB:close()
     for sock in pairs(self.connections) do
         sock:close()
     end
+    self.timer:unregister()
     self.connections = {}
     self.alives = {}
 end
@@ -97,7 +98,7 @@ function MongoDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
+    self.timer:loop(SECOND_MS, function()
         self:check_alive()
     end)
 end
@@ -126,7 +127,7 @@ function MongoDB:check_alive()
                 end)
             end
             if channel:execute(true) then
-                timer_mgr:set_period(self.timer_id, SECOND_10_MS)
+                self.timer:change_period(SECOND_10_MS)
             end
             self:set_executer()
         end)
@@ -246,10 +247,7 @@ function MongoDB:on_socket_error(sock, token, err)
     end
     self:delive(sock)
     --设置重连
-    timer_mgr:set_period(self.timer_id, SECOND_MS)
-    event_mgr:fire_second(function()
-        self:check_alive()
-    end)
+    self.timer:change_period(SECOND_MS)
 end
 
 function MongoDB:decode_reply(result)

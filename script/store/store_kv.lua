@@ -13,9 +13,7 @@ local prop = property(StoreKV)
 prop:reader("primary_key", "")  -- primary_key
 
 function StoreKV:__init(sheet, primary_id)
-    if QUANTA_STORE == "sqlite" then
-        self.driver = quanta.sdb_driver
-    end
+    self.driver = store_mgr:get_driver()
 end
 
 function StoreKV:load(key)

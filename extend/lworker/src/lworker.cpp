@@ -23,7 +23,7 @@ namespace lworker {
             return schedulor.startup(name, args, conf, lua_to_native<luakit::kit_state*>(L, 4));
         });
         llworker.set_function("stop", [](vstring name) {
-            return schedulor.stop(name);
+            schedulor.stop(name);
         });
         llworker.set_function("call", [](lua_State* L, vstring name) {
             size_t data_len;

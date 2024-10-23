@@ -1,5 +1,6 @@
 -- smdb_test.lua
-require("lsmdb")
+local smdb          = require("lsmdb")
+
 local log_debug     = logger.debug
 local jsoncodec     = json.jsoncodec
 

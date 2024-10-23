@@ -12,10 +12,9 @@ local mrandom       = qmath.random
 local lxor_byte     = ssl.xor_byte
 local qhash         = codec.hash_code
 local mysqlcodec    = codec.mysqlcodec
+local make_timer    = quanta.make_timer
 local makechan      = quanta.make_channel
 
-local event_mgr     = quanta.get("event_mgr")
-local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
@@ -38,9 +37,9 @@ local MysqlDB = class()
 local prop = property(MysqlDB)
 prop:reader("name", "")         --dbname
 prop:reader("user", nil)        --user
+prop:reader("timer", nil)       --timer
 prop:reader("passwd", nil)      --passwd
 prop:reader("executer", nil)    --执行者
-prop:reader("timer_id", nil)    --timer_id
 prop:reader("connections", {})  --connections
 prop:reader("alives", {})       --alives
 
@@ -48,6 +47,7 @@ function MysqlDB:__init(conf)
     self.name = conf.db
     self.user = conf.user
     self.passwd = conf.passwd
+    self.timer = make_timer()
     --setup
     self:set_options(conf.opts)
     self:setup_pool(conf.hosts)
@@ -66,6 +66,7 @@ function MysqlDB:close()
     for _, sock in pairs(self.connections) do
         sock:close()
     end
+    self.timer:unregister()
     self.connections = {}
     self.alives = {}
 end
@@ -104,7 +105,7 @@ function MysqlDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
+    self.timer:loop(SECOND_MS, function()
         self:check_alive()
     end)
 end
@@ -119,7 +120,7 @@ function MysqlDB:check_alive()
                 end)
             end
             if channel:execute(true) then
-                timer_mgr:set_period(self.timer_id, SECOND_10_MS)
+                self.timer:change_period(SECOND_10_MS)
             end
             self:set_executer()
         end)
@@ -171,10 +172,8 @@ function MysqlDB:on_socket_error(sock, token, err)
         self:set_executer()
     end
     self:delive(sock)
-    timer_mgr:set_period(self.timer_id, SECOND_MS)
-    event_mgr:fire_second(function()
-        self:check_alive()
-    end)
+    --设置重连
+    self.timer:change_period(SECOND_MS)
 end
 
 function MysqlDB:on_socket_recv(socket, session_id, ...)

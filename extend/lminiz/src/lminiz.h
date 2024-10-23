@@ -20,7 +20,8 @@ namespace lminiz {
 
         bool open(const char* zfile) {
             if (m_zip_data) {
-                return true;
+                free(m_zip_data);
+                m_zip_data = nullptr;
             }
             memset(&m_archive, 0, sizeof(m_archive));
             // 打开zip文件

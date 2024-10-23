@@ -61,6 +61,7 @@ end
 
 --线程结束
 quanta.stop = function()
+    log_info("[quanta][stop] worker {} exit!", THREAD_NAME)
     update_mgr:quit()
 end
 

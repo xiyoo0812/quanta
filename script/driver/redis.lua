@@ -11,11 +11,11 @@ local tinsert       = table.insert
 local mrandom       = qmath.random
 local tdelete       = qtable.delete
 local qhash         = codec.hash_code
+local make_timer    = quanta.make_timer
 local makechan      = quanta.make_channel
 local jsoncodec     = json.jsoncodec
 local rediscodec    = codec.rediscodec
 
-local timer_mgr     = quanta.get("timer_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -88,9 +88,9 @@ local rconvertors = {
 
 local RedisDB = class()
 local prop = property(RedisDB)
+prop:reader("timer", nil)           --timer
 prop:reader("passwd", nil)          --passwd
 prop:reader("jcodec", nil)          --jcodec
-prop:reader("timer_id", nil)        --timer_id
 prop:reader("connections", {})      --connections
 prop:reader("clusters", {})         --clusters
 prop:reader("alives", {})           --alives
@@ -107,6 +107,7 @@ function RedisDB:__init(conf)
     update_mgr:attach_hour(self)
     --codec
     self.jcodec = jsoncodec()
+    self.timer = make_timer()
     --setup
     self:setup(conf)
 end
@@ -122,13 +123,14 @@ function RedisDB:close()
     for _, sock in pairs(self.connections) do
         sock:close()
     end
+    self.timer:unregister()
     self.connections = {}
     self.alives = {}
 end
 
 function RedisDB:setup(conf)
     self:setup_pool(conf.hosts)
-    self.timer_id = timer_mgr:register(0, SECOND_MS, -1, function()
+    self.timer:loop(SECOND_MS, function()
         self:check_alive()
     end)
     self.req_counter = quanta.make_sampling("redis req")
@@ -225,7 +227,7 @@ function RedisDB:check_alive()
                 end)
             end
             if channel:execute(true) then
-                timer_mgr:set_period(self.timer_id, SECOND_10_MS)
+                self.timer:change_period(SECOND_10_MS)
                 self:check_clusters()
             end
         end)
@@ -279,10 +281,7 @@ end
 function RedisDB:on_socket_error(sock, token, err)
     --设置重连
     self:delive(sock)
-    timer_mgr:set_period(self.timer_id, SECOND_MS)
-    event_mgr:fire_second(function()
-        self:check_alive()
-    end)
+    self.timer:change_period(SECOND_MS)
 end
 
 function RedisDB:on_socket_recv(sock, session_id, succ, res)

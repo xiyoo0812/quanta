@@ -1,7 +1,11 @@
 --lmdb.lua
+local lmdb          = require("lmdb")
+
+local log_err       = logger.err
 local log_dump      = logger.dump
 local log_debug     = logger.debug
 local sformat       = string.format
+local scopy_file    = stdfs.copy_file
 
 local update_mgr    = quanta.get("update_mgr")
 
@@ -9,6 +13,7 @@ local MDB_SUCCESS   = lmdb.MDB_CODE.MDB_SUCCESS
 local MDB_NOTFOUND  = lmdb.MDB_CODE.MDB_NOTFOUND
 
 local MDB_NOSUBDIR  = lmdb.MDB_ENV_FLAG.MDB_NOSUBDIR
+local OVERWRITE     = stdfs.copy_options.overwrite_existing
 
 local MDB_FIRST     = lmdb.MDB_CUR_OP.MDB_FIRST
 local MDB_NEXT      = lmdb.MDB_CUR_OP.MDB_NEXT
@@ -18,13 +23,14 @@ local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
-local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./lmdb/")
+local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./kvdb/")
 
 local Lmdb = singleton()
 local prop = property(Lmdb)
 prop:reader("driver", nil)
 prop:reader("jcodec", nil)
 prop:reader("sheet", nil)
+prop:reader("name", nil)
 
 function Lmdb:__init()
     stdfs.mkdir(KVDB_PATH)
@@ -32,25 +38,41 @@ function Lmdb:__init()
 end
 
 function Lmdb:on_quit()
+    self:close()
+    log_debug("[Lmdb][on_quit]")
+end
+
+function Lmdb:close()
     if self.driver then
-        log_debug("[Lmdb][on_quit]")
         self.driver.close()
         self.driver = nil
     end
 end
 
 function Lmdb:open(name, sheet)
-    if not self.driver then
-        local driver = lmdb.create()
-        local jcodec = json.jsoncodec()
-        driver.set_max_dbs(128)
-        driver.set_codec(jcodec)
-        self.driver = driver
-        self.jcodec = jcodec
-        self.sheet = sheet
-        local rc = driver.open(sformat("%s%s.mdb", KVDB_PATH, name), MDB_NOSUBDIR, 0644)
-        log_debug("[Lmdb][open] open lmdb {}:{}!", name, rc)
+    self:close()
+    local driver = lmdb.create()
+    local jcodec = json.jsoncodec()
+    driver.set_max_dbs(128)
+    driver.set_codec(jcodec)
+    self.driver = driver
+    self.jcodec = jcodec
+    self.sheet = sheet
+    self.name = sformat("%s%s.mdb", KVDB_PATH, name)
+    local rc = driver.open(self.name, MDB_NOSUBDIR, 0644)
+    log_debug("[Lmdb][open] open lmdb {}:{}!", name, rc)
+end
+
+function Lmdb:saveas(new_name)
+    self:close()
+    local nfname = sformat("%s%s.mdb", KVDB_PATH, new_name)
+    local ok, err = scopy_file(self.name, nfname, OVERWRITE)
+    if not ok then
+        log_err("[Lmdb][saveas] copy {} to  {} fail: {}", self.name, nfname, err)
+        return false
     end
+    self:open(new_name)
+    return true
 end
 
 function Lmdb:puts(objects, sheet)

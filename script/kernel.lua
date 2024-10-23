@@ -23,7 +23,6 @@ local function init_library()
     require("ljson")
     require("lbson")
     require("lcodec")
-    require("lsqlite")
     --加载基础库
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
@@ -81,8 +80,8 @@ end
 local function init_discover()
     if environ.status("QUANTA_DISCOVER") then
         import("agent/discover_agent.lua")
-        import("kernel/router_mgr.lua")
     end
+    import("kernel/router_mgr.lua")
 end
 
 function quanta.main()

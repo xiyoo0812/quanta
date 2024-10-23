@@ -1,4 +1,6 @@
 -- lmdb_test.lua
+local lmdb          = require("lmdb")
+
 local log_debug     = logger.debug
 local jsoncodec     = json.jsoncodec
 

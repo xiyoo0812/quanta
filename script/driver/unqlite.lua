@@ -1,23 +1,29 @@
 --unqlite.lua
+local unqlite           = require("lunqlite")
+
+local log_err           = logger.err
 local log_dump          = logger.dump
 local log_debug         = logger.debug
 local sformat           = string.format
+local scopy_file        = stdfs.copy_file
 
 local update_mgr        = quanta.get("update_mgr")
 
 local UNQLITE_OK        = unqlite.UNQLITE_CODE.UNQLITE_OK
 local UNQLITE_NOTFOUND  = unqlite.UNQLITE_CODE.UNQLITE_NOTFOUND
+local OVERWRITE         = stdfs.copy_options.overwrite_existing
 
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK         = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY        = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
-local KVDB_PATH         = environ.get("QUANTA_KVDB_PATH", "./unqlite/")
+local KVDB_PATH         = environ.get("QUANTA_KVDB_PATH", "./kvdb/")
 
 local Unqlite = singleton()
 local prop = property(Unqlite)
 prop:reader("driver", nil)
 prop:reader("jcodec", nil)
+prop:reader("name", nil)
 
 function Unqlite:__init()
     stdfs.mkdir(KVDB_PATH)
@@ -25,23 +31,39 @@ function Unqlite:__init()
 end
 
 function Unqlite:on_quit()
+    self:close()
+    log_debug("[Unqlite][on_quit]")
+end
+
+function Unqlite:close()
     if self.driver then
-        log_debug("[Unqlite][on_quit]")
         self.driver.close()
         self.driver = nil
     end
 end
 
 function Unqlite:open(name)
-    if not self.driver then
-        local driver = unqlite.create()
-        local jcodec = json.jsoncodec()
-        driver.set_codec(jcodec)
-        self.driver = driver
-        self.jcodec = jcodec
-        local rc = driver.open(sformat("%s%s.db", KVDB_PATH, name))
-        log_debug("[Unqlite][open] open Unqlite {}:{}!", name, rc)
+    self:close()
+    local driver = unqlite.create()
+    local jcodec = json.jsoncodec()
+    driver.set_codec(jcodec)
+    self.driver = driver
+    self.jcodec = jcodec
+    self.name = sformat("%s%s.db", KVDB_PATH, name)
+    local rc = driver.open(self.name)
+    log_debug("[Unqlite][open] open Unqlite {}:{}!", name, rc)
+end
+
+function Unqlite:saveas(new_name)
+    self:close()
+    local nfname = sformat("%s%s.db", KVDB_PATH, new_name)
+    local ok, err = scopy_file(self.name, nfname, OVERWRITE)
+    if not ok then
+        log_err("[Unqlite][saveas] copy {} to  {} fail: {}", self.name, nfname, err)
+        return false
     end
+    self:open(new_name)
+    return true
 end
 
 function Unqlite:put(key, value, sheet)

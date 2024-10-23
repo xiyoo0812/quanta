@@ -11,6 +11,10 @@ namespace lworker {
     class scheduler : public ischeduler
     {
     public:
+        ~scheduler() {
+            shutdown();
+        }
+
         void setup(lua_State* L, vstring ns) {
             m_namespace = ns;
             m_lua = std::make_shared<kit_state>(L);
@@ -85,6 +89,10 @@ namespace lworker {
         }
 
         void update(uint64_t clock_ms) {
+            if (clock_ms - m_last_tick > 1000) {
+                m_last_tick = clock_ms;
+                check_worker();
+            }
             if (m_read_buf->empty()) {
                 if (m_write_buf->empty()) {
                     return;
@@ -108,11 +116,14 @@ namespace lworker {
             }
         }
 
-        void destory(vstring name) {
+        void check_worker() {
             std::unique_lock<spin_mutex> lock(m_mutex);
-            auto it = m_worker_map.find(name);
-            if (it != m_worker_map.end()) {
-                m_worker_map.erase(it);
+            for (auto& [name, worker] : m_worker_map) {
+                if (!worker->running()) {
+                    worker->stop();
+                    m_worker_map.erase(name);
+                    break;
+                }
             }
         }
 
@@ -135,6 +146,7 @@ namespace lworker {
 
     private:
         spin_mutex m_mutex;
+        uint64_t m_last_tick = 0;
         environ_map m_environs = {};
         codec_base* m_codec = nullptr;
         sstring m_namespace, m_platform;

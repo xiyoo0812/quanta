@@ -254,7 +254,7 @@ namespace luakit {
                 char* lb;
                 char buff[MAX_PATH + 1];
                 DWORD nsize = sizeof(buff) / sizeof(char);
-                DWORD n = GetModuleFileName(NULL, buff, nsize);  /* get exec. name */
+                DWORD n = GetModuleFileNameA(NULL, buff, nsize);  /* get exec. name */
                 if (n == 0 || n == nsize || (lb = strrchr(buff, '\\')) == NULL)
                     luaL_error(m_L, "unable to get ModuleFileName");
                 else {
@@ -269,8 +269,6 @@ namespace luakit {
         }
 
     protected:
-        luabuf* m_buf = nullptr;
-        luacodec* m_codec = nullptr;
         lua_State* m_L = nullptr;
     };
 

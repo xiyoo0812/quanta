@@ -89,10 +89,24 @@ function TimerMgr:unregister(timer_id)
 end
 
 function TimerMgr:set_period(timer_id, period)
-    local info = self.timers[timer_id]
-    if info then
-        info.period = period // TIMER_ACCURYACY
+    local timer_info = self.timers[timer_id]
+    if timer_info then
+        timer_info.period = period // TIMER_ACCURYACY
     end
+end
+
+function TimerMgr:change_period(timer_id, period)
+    local timer_info = self.timers[timer_id]
+    if timer_info then
+        self.timers[timer_id] = nil
+        local new_timer_id = new_guid(period, period)
+        timer_info.timer_id = new_timer_id
+        timer_info.period = period // TIMER_ACCURYACY
+        ltinsert(new_timer_id, timer_info.period)
+        self.timers[new_timer_id] = timer_info
+        return new_timer_id
+    end
+    return timer_id
 end
 
 quanta.timer_mgr = TimerMgr()

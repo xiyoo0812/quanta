@@ -20,6 +20,7 @@ local STORE_WHOLE   = STORE_INCRE // 10
 
 local StoreMgr = singleton()
 local prop = property(StoreMgr)
+prop:reader("driver", nil)      -- cur driver
 prop:reader("groups", {})       -- groups
 prop:reader("wholes", {})       -- wholes
 prop:reader("increases", {})    -- increases
@@ -43,6 +44,7 @@ function StoreMgr:open_driver(name, dbname)
     local driver = self.db_drivers[QUANTA_STORE]
     if driver then
         driver:open(name, dbname)
+        self.driver = driver
     end
 end
 

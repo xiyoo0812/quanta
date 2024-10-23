@@ -98,8 +98,6 @@ void quanta_app::exception_handler(std::string_view msg, std::string_view err) {
 }
 
 void quanta_app::load(int argc, const char* argv[]) {
-    //设置默认参数
-    set_env("QUANTA_SANDBOX", "sandbox", 1);
     //将启动参数转负责覆盖环境变量
     for (int i = 1; i < argc; ++i) {
         std::string argvi = argv[i];
@@ -117,7 +115,7 @@ void quanta_app::load(int argc, const char* argv[]) {
             m_lua.set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
             m_lua.set_function("set_path", [&](const char* field, const char* path) { m_lua.set_path(field, path); set_env(field, path, 1); });
             m_lua.run_script(fmt::format("dofile('{}')", argv[1]), [&](std::string_view err) {
-                exception_handler("load sandbox err: {}", err);
+                exception_handler("load config err: {}", err);
             });
         }
     }
@@ -149,9 +147,12 @@ bool quanta_app::init() {
         const char* env_service = get_env("QUANTA_SERVICE");
         logger::get_logger()->option(env_log_path, env_service, env_index);
     }
-    if (!m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_SANDBOX")), [&](std::string_view err) {
-        exception_handler("load sandbox err: {}", err);
-    })) return false;
+    auto sandbox = get_env("QUANTA_SANDBOX");
+    if (sandbox) {
+        if (!m_lua.run_script(fmt::format("require '{}'", sandbox), [&](std::string_view err) {
+            exception_handler("load sandbox err: {}", err);
+        })) return false;
+    }
     if (!m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string_view err) {
         exception_handler("load entry err: {}", err);
     })) return false;

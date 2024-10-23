@@ -1,14 +1,18 @@
 -- sqlite.lua
+local sqlite        = require("lsqlite")
+
 local log_err       = logger.err
 local log_dump      = logger.dump
 local log_debug     = logger.debug
 local sformat       = string.format
+local scopy_file    = stdfs.copy_file
 
 local update_mgr    = quanta.get("update_mgr")
 
 local SQLITE_OK     = sqlite.SQLITE_CODE.SQLITE_OK
 local SQLITE_DONE   = sqlite.SQLITE_CODE.SQLITE_DONE
 local SQLITE_NFOUND = sqlite.SQLITE_CODE.SQLITE_NOTFOUND
+local OVERWRITE     = stdfs.copy_options.overwrite_existing
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
@@ -18,8 +22,8 @@ local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOIN
 
 local Sqlite = singleton()
 local prop = property(Sqlite)
+prop:reader("name", nil)
 prop:reader("driver", nil)
-prop:reader("dbname", nil)
 prop:reader("prepares", {})
 
 function Sqlite:__init()
@@ -28,7 +32,13 @@ function Sqlite:__init()
 end
 
 function Sqlite:on_quit()
+    self:close()
+    log_debug("[Sqlite][on_quit]")
+end
+
+function Sqlite:close()
     if self.driver then
+        log_debug("[Sqlite][close] close sqlite!")
         for _, stmts in pairs(self.prepares) do
             for _, stmt in pairs(stmts) do
                 stmt.close()
@@ -37,22 +47,32 @@ function Sqlite:on_quit()
         self.prepares = {}
         self.driver.close()
         self.driver = nil
-        log_debug("[Sqlite][on_quit]")
     end
 end
 
-function Sqlite:open(dbname)
-    if not self.driver then
-        local driver = sqlite.create()
-        local jcodec = json.jsoncodec()
-        driver.set_codec(jcodec)
-        self.driver = driver
-        self.jcodec = jcodec
-        self.dbname = dbname
-        driver.open(sformat("%s%s.db", KVDB_PATH, dbname))
-        self:init_db()
-        log_debug("[Sqlite][open] open smdb {}!", dbname)
+function Sqlite:open(name)
+    self:close()
+    local driver = sqlite.create()
+    local jcodec = json.jsoncodec()
+    driver.set_codec(jcodec)
+    self.driver = driver
+    self.jcodec = jcodec
+    self.name = sformat("%s%s.db", KVDB_PATH, name)
+    driver.open(self.name)
+    self:init_db()
+    log_debug("[Sqlite][open] open sqlite {}!", name)
+end
+
+function Sqlite:saveas(new_name)
+    self:close()
+    local nfname = sformat("%s%s.db", KVDB_PATH, new_name)
+    local ok, err = scopy_file(self.name, nfname, OVERWRITE)
+    if not ok then
+        log_err("[Sqlite][saveas] copy {} to  {} fail: {}", self.name, nfname, err)
+        return false
     end
+    self:open(new_name)
+    return true
 end
 
 function Sqlite:register_prepare(sheet)
@@ -96,7 +116,7 @@ function Sqlite:put(primary_id, data, sheet)
     log_dump("[Sqlite][put] primary_id:{} data:{} sheet:{}", primary_id, data, sheet)
     local rc = self:get_prepare(sheet, primary_id).update.run(primary_id, data)
     if rc ~= SQLITE_DONE then
-        log_err("[Sqlite][put] fail rc={}", rc)
+        log_debug("[Sqlite][put] fail rc={}", rc)
         return false
     end
     return true

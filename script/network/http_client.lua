@@ -110,6 +110,8 @@ function HttpClient:init_http_socket(ipinfo, port, proto, headers)
     if not ok then
         return nil, cerr
     end
+    headers["Host"] = host
+    headers["User-Agent"] = "quanta"
     if proto == "https" then
         local codec = tlscodec(self.hcodec)
         if not codec then
@@ -118,8 +120,6 @@ function HttpClient:init_http_socket(ipinfo, port, proto, headers)
         codec:init_tls()
         socket:set_codec(codec)
         socket:send_data()
-        headers["Host"] = host
-        headers["User-Agent"] = "quanta"
         local session_id = thread_mgr:build_session_id()
         socket.session_id = session_id
         return thread_mgr:yield(session_id, host, HTTP_TIMEOUT)

@@ -1,4 +1,6 @@
 -- sqlite_test.lua
+local sqlite        = require("lsqlite")
+
 local sformat       = string.format
 local log_debug     = logger.debug
 local jsoncodec     = json.jsoncodec
