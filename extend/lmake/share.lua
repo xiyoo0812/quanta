@@ -16,6 +16,7 @@ OPTIMIZE = false
 --需要的FLAGS
 BASE_FLAGS = {
     "Wno-sign-compare",
+    "Wno-unused-function",
     "Wno-unused-variable",
     "Wno-unused-parameter",
     "Wno-unused-but-set-variable",

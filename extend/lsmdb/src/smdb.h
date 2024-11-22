@@ -1,22 +1,17 @@
 #pragma once
 #include <set>
-#include <map>
 #include <vector>
 #include <string>
 #include <unordered_map>
 
 #ifdef WIN32
 #include <io.h>
-#include <fcntl.h>
-#include <stdio.h>
 #define fileno _fileno
-#define ftruncate _chsize_s
 #define filelength _filelength
-#define strncasecmp _strnicmp
 #else
 #include <climits>
-#include <cstring>
 #include <unistd.h>
+#include <sys/mman.h>
 #include <sys/stat.h>
 long filelength(int fd) {
     struct stat st;
@@ -26,525 +21,267 @@ long filelength(int fd) {
 #endif
 
 using namespace std;
+using sptr = shared_ptr<string_view>;
 
-namespace smdb {
-    const uint16_t DB_FLAG_SIZE     = 4;            //DB文件前置标记
-    const uint16_t DB_PAGE_MAX      = USHRT_MAX;    //DB文件最大页数
-    const uint16_t DB_PAGE_SIZE     = USHRT_MAX;    //页的bytes
-    const uint8_t  KEY_SIZE_MAX     = 0x3f;         //KEY的最大长度，二进制00111111
-    const uint8_t  KEY_CHECK_FLAG   = 0xc0;         //KEY的校验标记，二进制11000000
-    const uint16_t VAL_SZIE_MAX     = 65400;        //VALUE的最大长度
-    const uint16_t PAGE_VAL_MAX     = 1500;         //每页VALUE的最大数量
-    const uint16_t PAGE_VAL_FREE    = 64;           //每页FREE标志bytes
+namespace lsmdb {
+    const uint8_t  KEY_SIZE_MAX     = 0xff;         //KEY的最大长度
+    const uint32_t DB_PAGE_SIZE     = 0x20000;      //DB内存页大小 128K
+    const uint32_t SHRINK_SIZE      = 0x800000;     //缩容界限尺寸 8M
+    const uint32_t EXPAND_SIZE      = 0xFFFFFF;     //缩容界限尺寸 4G-1
+    const uint32_t VAL_SZIE_MAX     = 0x1fffff;     //VALUE的最大长度, 1 << 21 (2M-1)
+    const uint32_t KEY_CHECK_FLAG   = 0xe0000000;   //KV的校验标记
+    const char     TSMDB[4]         = { 'S', 'M', 'D', 'B' };   //文件格式标志位
 
-#pragma pack(1)
- /*+------------+----------+----------+----------+---------+
- * |  3 bytes   |  5 bytes | 16 bytes |  n bytes | n bytes |
- * +------------+----------+----------+----------+---------+
- * | check flag | key size | val size |    key   |   val   |
- * +------------+----------+----------+----------+---------+*/
-    struct keyheader {
-        uint8_t ksize = 0;              //key的长度，前3字节为校验标记，后5bytes
-        uint16_t vsize = 0;             //value的长度，ksize为0则表示空位置长度
+    enum class smdb_code : uint8_t {
+        SMDB_SUCCESS,
+        SMDB_DB_NOT_INIT,
+        SMDB_SIZE_KEY_FAIL,
+        SMDB_SIZE_VAL_FAIL,
+        SMDB_FILE_OPEN_FAIL,
+        SMDB_FILE_FDNO_FAIL,
+        SMDB_FILE_MMAP_FAIL,
+        SMDB_FILE_HANDLE_FAIL,
+        SMDB_FILE_MAPPING_FAIL,
+        SMDB_FILE_EXPAND_FAIL,
     };
 
-    struct pageheader {
-        uint16_t num = 0;               //页内KV数量
-        uint32_t offset = 0;            //页在文件内的偏移
+ /*+------------+-----------+----------+----------+---------+
+ * |  3 bytes   |  21 bytes | 8 bytes  |  n bytes | n bytes |
+ * +------------+-----------+----------+----------+---------+
+ * | check flag |  val size | key size |    key   |   val   |
+ * +------------+-----------+----------+----------+---------+*/
+    struct dbval {
+        uint32_t offset = 0;            //offset
+        uint32_t voffset = 0;           //val offset
+        uint32_t vsize = 0;             //val size
     };
 
-    struct dbheader {
-        char fmt[DB_FLAG_SIZE] = {};    //文件格式标志位
-        uint16_t page_num = 0;          //当前页数
-        uint32_t filesize = 0;          //当前文件大小
-    };
-
-    struct pagekey {
-        uint16_t offset = 0;
-        uint16_t voffset = 0;
-        uint16_t vsize = 0;
-    };
-#pragma pack()
-
-    class page;
-    class mapping {
+    class smdb {
     public:
-        bool open(const char* path) {
-            file = fopen(path, "rb+");
-            if (!file) {
-                file = fopen(path, "wb+");
-                if (!file) return false;
+        smdb_code open(const char* path) {
+            m_file = fopen(path, "rb+");
+            if (!m_file) {
+                m_file = fopen(path, "wb+");
+                if (!m_file) return smdb_code::SMDB_FILE_OPEN_FAIL;
             }
-            fd = fileno(file);
-            if (fd < 0) return false;
-            uint32_t size = filelength(fd);
-            if (size == 0) {
-                //空文件,添加文件头
-                size = sizeof(dbheader);
-                dbheader header{ { 'S', 'M', 'D', 'B' }, 0, size };
-                fwrite(&header, 1, size, file);
-                fflush(file);
-            }
-            return atach(size);
+            m_fd = fileno(m_file);
+            if (m_fd < 0) return smdb_code::SMDB_FILE_FDNO_FAIL;
+            return load_file();
         }
 
         void close() {
-            m_keys.clear();
-            if (file) fclose(file);
-            if (data) free(data);
+            unmap_file();
+            m_values.clear();
+            if (m_file) fclose(m_file);
         }
 
-        bool atach(uint32_t size) {
-            data = (char*)realloc(data, size);
-            if (data == nullptr) return false;
-            fseek(file, 0, SEEK_SET);
-            if (fread(data, 1, size, file) < 0) return false;
-            return true;
+        smdb_code put(string& key, string_view val) {
+            uint32_t ksz = key.size(), vsz = val.size();
+            if (ksz > KEY_SIZE_MAX) return smdb_code::SMDB_SIZE_KEY_FAIL;
+            if (vsz > VAL_SZIE_MAX) return smdb_code::SMDB_SIZE_VAL_FAIL;
+            uint32_t kvsize = ksz + vsz + sizeof(uint32_t);
+            auto code = check_space(kvsize);
+            if (is_error(code)) return code;
+            uint32_t offset = m_offset;
+            uint32_t voffset = offset + sizeof(uint32_t) + ksz;
+            uint32_t flagsz = KEY_CHECK_FLAG | (vsz << 8) | (ksz & UCHAR_MAX);
+            memcpy(m_buffer + offset, &flagsz, sizeof(uint32_t));
+            memcpy(m_buffer + offset + sizeof(uint32_t), key.data(), ksz);
+            memcpy(m_buffer + voffset, val.data(), vsz);
+            auto nh = m_values.extract(key);
+            if (!nh.empty()) {
+                //清理久值
+                auto& dval = nh.mapped();
+                uint32_t size = ksz + dval.vsize + sizeof(uint32_t);
+                memcpy(m_buffer + dval.offset, &size, sizeof(size));
+                m_waste += size;
+                //更新新值
+                nh.key() = key;
+                dval.vsize = vsz;
+                dval.offset = offset;
+                dval.voffset = voffset;
+                m_values.insert(std::move(nh));
+                m_offset += kvsize;
+                return smdb_code::SMDB_SUCCESS;
+            }
+            m_values.emplace(key, dbval{ m_offset, voffset, vsz });
+            m_offset += kvsize;
+            return smdb_code::SMDB_SUCCESS;
         }
 
-        //扩展数据页
-        bool extend_page(uint32_t& offset) {
-            if (data == nullptr) return false;
-            dbheader* header = (dbheader*)data;
-            if (header->page_num >= DB_PAGE_MAX) return false;
-            uint32_t fsize = header->filesize;
-            uint32_t nfsize = fsize + DB_PAGE_SIZE;
-            offset = fsize;
-            //写入dbheader
-            header->page_num++;
-            header->filesize = nfsize;
-            fseek(file, 0, SEEK_SET);
-            fwrite(header, 1, sizeof(dbheader), file);
-            //写入pageheader
-            fseek(file, fsize, SEEK_SET);
-            pageheader hpage{ 0, offset };
-            fwrite((char*)&hpage, 1, sizeof(pageheader), file);
-            //更改文件大小
-            ftruncate(fd, nfsize);
-            fflush(file);
-            return atach(nfsize);
+        string_view get(string& key) {
+            auto it = m_values.find(key);
+            if (it != m_values.end()) {
+                auto& val = it->second;
+                return string_view(m_buffer + val.voffset, val.vsize);
+            }
+            return  "";
         }
 
-        //回收数据页
-        bool shrink_page(uint16_t page_num) {
-            dbheader* header = (dbheader*)data;
-            if (header->page_num > page_num) {
-                //修改内存
-                uint32_t fsize = header->filesize - page_num * DB_PAGE_SIZE;
-                header->page_num -= page_num;
-                header->filesize = fsize;
-                //写入文件
-                fseek(file, 0, SEEK_SET);
-                fwrite(header, 1, sizeof(dbheader), file);
-                //重新分配内存,因为是减少,所以不需要读文件
-                data = (char*)realloc(data, fsize);
-                //更改文件大小
-                ftruncate(fd, fsize);
-                fflush(file);
+        void del(string& key) {
+            auto it = m_values.find(key);
+            if (it != m_values.end()) {
+                auto& dval = it->second;
+                uint32_t size = key.size() + dval.vsize + sizeof(uint32_t);
+                memcpy(m_buffer + dval.offset, &size, sizeof(size));
+                m_values.erase(it);
+                m_waste += size;
+            }
+        }
+
+        bool first(string_view& key, string_view& val) {
+            m_iter = m_values.begin();
+            if (m_iter != m_values.end()) {
+                key = m_iter->first;
+                auto& dval = m_iter->second;
+                val = string_view(m_buffer + dval.voffset, dval.vsize);
                 return true;
             }
             return false;
         }
 
-        string_view add_key(string& key, page* pg) {
-            auto rc = m_keys.emplace(key, pg);
-            return rc.first->first;
-        }
-
-        void erase_key(string& key) {
-            m_keys.erase(key);
-        }
-
-        page* first(string& key) {
-            m_iter = m_keys.begin();
-            if (m_iter != m_keys.end()) {
-                key = m_iter->first;
-                return m_iter->second;
-            }
-            return nullptr;
-        }
-
-        page* next(string& key) {
+        bool next(string_view& key, string_view& val) {
             m_iter++;
-            if (m_iter != m_keys.end()) {
+            if (m_iter != m_values.end()) {
                 key = m_iter->first;
-                return m_iter->second;
+                auto& dval = m_iter->second;
+                val = string_view(m_buffer + dval.voffset, dval.vsize);
+                return true;
             }
-            return nullptr;
+            return false;
         }
 
-        FILE* file = 0;
-        uint32_t fd = 0;
-        char* data = nullptr;
-        unordered_map<string, page*> m_keys;    //KEY索引列表
-        unordered_map<string, page*>::iterator m_iter;   //KEY索引迭代器
-    };
-
-    class page {
-    friend class smdb;
-    public:
-        //自定义比较函数
-        bool operator<(const page& b) {
-            uint16_t bufsza = m_remain + m_waste;
-            uint16_t bufszb = b.m_remain + b.m_waste;
-            if (bufsza == bufszb) return m_id > b.m_id;
-            return bufsza > bufszb;
+        void flush() {
+#ifdef WIN32
+            FlushViewOfFile(m_buffer, m_alloc);
+#else
+            msync(m_buffer, m_alloc, MS_ASYNC);
+#endif
         }
 
-        page(mapping* map, uint16_t id, uint32_t offset) : m_id(id), m_offset(offset), m_mapping(map){}
-
-        bool isempty() { return count() == 0; }
-        bool available() { return count() < PAGE_VAL_MAX && (m_remain + m_waste) > PAGE_VAL_FREE; }
-
-        uint16_t count() {
-            char* cursor = m_mapping->data + m_offset;
-            pageheader* header = (pageheader*)cursor;
-            return header->num;
+        bool is_error(smdb_code code) {
+            return code != smdb_code::SMDB_SUCCESS;
         }
 
-        //加载数据页面
-        bool read_keys() {
-            char* cursor = m_mapping->data + m_offset;
-            pageheader* header = (pageheader*)cursor;
-            uint16_t offset = sizeof(pageheader);
-            if (header->num > 0) {
-                uint16_t load_num = 0;
-                while (load_num < header->num){
-                    keyheader* hkey = (keyheader*)(cursor + offset);
-                    if ((hkey->ksize & KEY_CHECK_FLAG) != KEY_CHECK_FLAG) return false;
-                    uint8_t ksize = hkey->ksize & KEY_SIZE_MAX;
-                    if (ksize == 0) {
-                        //占位空间
-                        m_waste += hkey->vsize;
-                        offset += hkey->vsize;
-                        continue;
-                    }
-                    pagekey pkey = { offset, (uint16_t)(sizeof(keyheader) + ksize), hkey->vsize };
-                    offset += sizeof(keyheader);
-                    string skey = string(cursor + offset, ksize);
-                    auto vkey = m_mapping->add_key(skey, this);
-                    m_keys.emplace(vkey, pkey);
-                    offset += (ksize + hkey->vsize);
-                    load_num++;
+    protected:
+        smdb_code load_file() {
+            uint32_t size = filelength(m_fd);
+            if (size == 0) {
+                //空文件,添加文件头
+                size = sizeof(TSMDB);
+                fwrite(TSMDB, sizeof(TSMDB), 1, m_file);
+                fflush(m_file);
+            }
+            //映射文件
+            m_alloc = (size + DB_PAGE_SIZE - 1) / DB_PAGE_SIZE * DB_PAGE_SIZE;
+            auto code = map_file();
+            if (is_error(code)) return code;
+            //整理内存
+            arrvage();
+            //缩容
+            if (m_alloc >= SHRINK_SIZE && m_offset < m_alloc * 0.3) {
+                size = (m_alloc / 2 + DB_PAGE_SIZE - 1) / DB_PAGE_SIZE * DB_PAGE_SIZE;
+                if (size < m_alloc) {
+                    return truncate_space(size);
                 }
             }
-            m_remain = DB_PAGE_SIZE - offset;
-            arrange();
-            return true;
+            return smdb_code::SMDB_SUCCESS;
         }
 
-        //尝试更新
-        bool update(string& key, string_view val) {
-            if (!canput(val.size())) {
-                del(key);
-                return false;
+        smdb_code map_file() {
+#ifdef WIN32
+            HANDLE hf = (HANDLE)_get_osfhandle(m_fd);
+            if (!hf) return smdb_code::SMDB_FILE_HANDLE_FAIL;
+            HANDLE hfm = OpenFileMapping(FILE_MAP_ALL_ACCESS, false, "__smdb__");
+            if (!hfm) hfm = CreateFileMapping(hf, 0, PAGE_READWRITE, 0, m_alloc, "__smdb__");
+            if (!hfm) return smdb_code::SMDB_FILE_MAPPING_FAIL;
+            m_buffer = (char*)MapViewOfFileEx(hfm, FILE_MAP_ALL_ACCESS, 0, 0, 0, 0);
+            CloseHandle(hfm);
+#else
+            ftruncate(m_fd, m_alloc);
+            m_buffer = (char*)mmap(NULL, m_alloc, PROT_WRITE, MAP_SHARED, m_fd, 0);
+#endif // WIN32
+            if (!m_buffer) return smdb_code::SMDB_FILE_MMAP_FAIL;
+            return smdb_code::SMDB_SUCCESS;
+        }
+
+        void unmap_file() {
+#ifdef WIN32
+            if (m_buffer) UnmapViewOfFile(m_buffer);
+#else
+            if (m_buffer) munmap(m_buffer, m_alloc);
+#endif // WIN32
+            m_buffer = nullptr;
+        }
+
+        smdb_code check_space(size_t size) {
+            auto need = m_offset + size;
+            if (m_alloc >= need) return smdb_code::SMDB_SUCCESS;
+            if (m_waste > m_alloc * 0.9) {
+                //整理当前内存
+                arrvage();
+                need = m_offset + size;
+                if (m_alloc >= need) {
+                    //缩容检查
+                    if (m_alloc >= SHRINK_SIZE && need < m_alloc * 0.3) {
+                        size = (m_alloc / 2 + DB_PAGE_SIZE - 1) / DB_PAGE_SIZE * DB_PAGE_SIZE;
+                        if (size < m_alloc) {
+                            return truncate_space(size);
+                        }
+                    }
+                    return smdb_code::SMDB_SUCCESS;
+                }
             }
-            auto it = m_keys.find(key);
-            if (it == m_keys.end()) {
-                m_mapping->erase_key(key);
-                return false;
-            }
-            //清除旧数据
-            uint8_t ksize = (uint8_t)key.size();
-            keyheader* ohkey = (keyheader*)(m_mapping->data + m_offset + it->second.offset);
-            ohkey->vsize = it->second.vsize + ksize + sizeof(keyheader);
-            ohkey->ksize = KEY_CHECK_FLAG;
-            m_waste += ohkey->vsize;
-            //更新索引
-            uint16_t offset = DB_PAGE_SIZE - m_remain;
-            char* cursor = m_mapping->data + m_offset;
-            keyheader* hkey = (keyheader*)(cursor + offset);
-            hkey->ksize = (ksize & KEY_SIZE_MAX) | KEY_CHECK_FLAG;
-            hkey->vsize = (uint16_t)val.size();
-            it->second.offset = offset;
-            it->second.vsize = hkey->vsize;
-            //写入key/val
-            offset += sizeof(keyheader);
-            memcpy(cursor + offset, key.data(), ksize);
-            offset += ksize;
-            memcpy(cursor + offset, val.data(), hkey->vsize);
-            offset += hkey->vsize;
-            m_remain = DB_PAGE_SIZE - offset;
-            //更新文件
-            flush();
-            return true;
+            //扩容
+            size = (need + DB_PAGE_SIZE - 1) / DB_PAGE_SIZE * DB_PAGE_SIZE;
+            if (size > EXPAND_SIZE) return smdb_code::SMDB_FILE_EXPAND_FAIL;
+            return truncate_space(size);
         }
 
-        //插入KV
-        bool put(string& key, string_view val) {
-            uint16_t offset = DB_PAGE_SIZE - m_remain;
-            char* cursor = m_mapping->data + m_offset;
-            pageheader* header = (pageheader*)cursor;
-            //更新索引
-            uint8_t ksize = (uint8_t)key.size();
-            keyheader* hkey = (keyheader*)(cursor + offset);
-            hkey->ksize = (ksize & KEY_SIZE_MAX) | KEY_CHECK_FLAG;
-            hkey->vsize = (uint16_t)val.size();
-            auto vkey = m_mapping->add_key(key, this);
-            m_keys.emplace(vkey, pagekey{ offset, (uint16_t)(sizeof(keyheader) + ksize), hkey->vsize });
-            header->num++;
-            //写入key/val
-            offset += sizeof(keyheader);
-            memcpy(cursor + offset, key.data(), ksize);
-            offset += ksize;
-            memcpy(cursor + offset, val.data(), hkey->vsize);
-            offset += hkey->vsize;
-            m_remain = DB_PAGE_SIZE - offset;
-            //更新文件
-            flush();
-            return true;
+        smdb_code truncate_space(size_t size) {
+            unmap_file();
+            m_alloc = size;
+            return map_file();
         }
 
-        //查询KV
-        string_view get(string& key) {
-            auto it = m_keys.find(key);
-            if (it == m_keys.end()) return "";
-            char* cursor = m_mapping->data + m_offset + it->second.offset;
-            return string_view(cursor + it->second.voffset, it->second.vsize);
-        }
-
-        //删除KV
-        void del(string key, bool sync = true) {
-            auto it = m_keys.find(key);
-            if (it == m_keys.end()) {
-                m_mapping->erase_key(key);
-                return;
-            }
-            char* cursor = m_mapping->data + m_offset;
-            pageheader* header = (pageheader*)cursor;
-            //清空KV索引，修改内存
-            cursor += it->second.offset;
-            keyheader* hkey = (keyheader*)cursor;
-            hkey->vsize = it->second.vsize + (uint8_t)key.size() + sizeof(keyheader);
-            hkey->ksize = KEY_CHECK_FLAG;
-            //修改索引
-            m_waste += hkey->vsize;
-            m_keys.erase(it);
-            m_mapping->erase_key(key);
-            header->num--;
-            //刷新文件
-            if (sync) flush();
-        }
-
-        //能否插入
-        bool canput(size_t size) {
-            auto need_sz = size + sizeof(pagekey);
-            if ((m_remain + m_waste) < need_sz) return false;
-            if (m_remain < need_sz) arrange();
-            return true;
-        }
-
-        //重定向
-        void relocation(uint32_t off) {
-            char* dst = m_mapping->data + off;
-            char* src = m_mapping->data + m_offset;
-            pageheader* header = (pageheader*)src;
-            header->offset = off;
-            m_offset = off;
-            migrate(src, dst);
-        }
-
-    protected:
-        //整理数据
-        void arrange() {
-            if (m_waste == 0) return;
-            char* buf = (char*)malloc(DB_PAGE_SIZE);
-            char* cursor = m_mapping->data + m_offset;
-            memcpy(buf, cursor, DB_PAGE_SIZE);
-            migrate(buf, cursor);
-            free(buf);
-        }
-
-        //转移数据
-        void migrate(char* source, char* target) {
-            memset(target, 0, DB_PAGE_SIZE);
-            uint16_t offset = sizeof(pageheader);
-            memcpy(target, source, sizeof(pageheader));
-            for (auto& [key, pkey] : m_keys) {
-                //内存复制
-                uint8_t ksize = (uint8_t)key.size();
-                uint16_t kvsize = sizeof(keyheader) + ksize + pkey.vsize;
-                memcpy(target + offset, source + pkey.offset, kvsize);
-                //修改索引
-                pkey.offset = offset;
-                offset += kvsize;
-            }
-            //整理数据
-            m_remain = DB_PAGE_SIZE - offset;
-            m_waste = 0;
-            //刷新文件
-            flush();
-        }
-
-        //刷内存到文件
-        void flush() {
-            char* cursor = m_mapping->data + m_offset;
-            fseek(m_mapping->file, m_offset, SEEK_SET);
-            fwrite(cursor, 1, DB_PAGE_SIZE, m_mapping->file);
-        }
-
-    protected:
-        uint16_t m_id = 0;
-        uint16_t m_waste = 0;
-        uint16_t m_remain = 0;
-        uint32_t m_offset = 0;
-        mapping* m_mapping = nullptr;
-        unordered_map<string_view, pagekey> m_keys;
-    };
-
-    class smdb {
-    public:
-        bool open(const char* path) {
-            if (!m_mapping.open(path)) return false;
-            m_dbheader = (dbheader*)m_mapping.data;
-            uint32_t offset = sizeof(dbheader);
-            for (uint16_t i = 0; i < m_dbheader->page_num; ++i) {
-                pageheader* hpage = (pageheader*)(m_mapping.data + offset);
-                if (offset != hpage->offset) return false;
-                if (offset + DB_PAGE_SIZE > m_dbheader->filesize) return false;
-                auto page = load_page(hpage->offset);
-                if (!page) return false;
-                add_available(page);
-                offset += DB_PAGE_SIZE;
-            }
-            arrange();
-            return true;
-        }
-
-        void close() {
-            m_mapping.close();
-            m_availables.clear();
-            for (auto& [_, page] : m_pages) {
-                delete page;
-            }
-            m_pages.clear();
-        }
-
-        bool put(string& key, string_view val) {
-            if (key.size() > KEY_SIZE_MAX) return false;
-            if (val.size() > VAL_SZIE_MAX) return false;
-            page* opage = find_page(key, true);
-            if (opage) {
-                bool ok = opage->update(key, val);
-                add_available(opage);
-                if (ok) return true;
-            }
-            page* npage = choose_page(key.size() + val.size());
-            if (!npage) return false;
-            bool ok = npage->put(key, val);
-            add_available(npage);
-            return ok;
-        }
-
-        string_view get(string& key) {
-            page* page = find_page(key);
-            return page ? page->get(key) : "";
-        }
-
-        void del(string& key) {
-            page* page = find_page(key, true);
-            if (!page) return;
-            page->del(key);
-            add_available(page);
-        }
-
-        bool first(string& key, string& val) {
-            auto page = m_mapping.first(key);
-            if (!page) return false;
-            val = page->get(key);
-            return true;
-        }
-
-        bool next(string& key, string& val) {
-            auto page = m_mapping.next(key);
-            if (!page) return false;
-            val = page->get(key);
-            return true;
-        }
-
-        void arrange(bool timely = false) {
-            vector<page*> deletes;
-            map<uint32_t, page*> migrates;
-            auto rit = m_pages.rbegin();
-            for (auto it = m_pages.begin(); it != m_pages.end() && rit != m_pages.rend();) {
-                page *lpage = it->second, *rpage = rit->second;
-                //相遇退出循环
-                if (lpage->m_id >= rpage->m_id) break;
-                //right页面为空，进删除列表
-                if (rpage->isempty()) {
-                    deletes.push_back(rpage);
-                    rit++;
+        void arrvage() {
+            m_values.clear();
+            uint32_t offset = sizeof(TSMDB);
+            uint32_t noffset = sizeof(TSMDB);
+            while (offset < m_alloc) {
+                uint32_t flagsz = *(uint32_t*)(m_buffer + offset);
+                if (flagsz == 0) break;
+                if ((flagsz & KEY_CHECK_FLAG) == 0) {
+                    offset += flagsz;
                     continue;
                 }
-                //left页面为空，将right迁移到left，left进删除列表，right进迁移列表
-                if (lpage->isempty()) {
-                    rpage->relocation(lpage->m_offset);
-                    migrates.emplace(lpage->m_id, rpage);
-                    deletes.push_back(lpage);
-                    rit++;
+                uint8_t ksz = flagsz & KEY_SIZE_MAX;
+                uint32_t vsz = (flagsz >> 8) & VAL_SZIE_MAX;
+                uint32_t size = ksz + vsz + sizeof(uint32_t);
+                if (offset > noffset) {
+                    memcpy(m_buffer + noffset, m_buffer + offset, size);
                 }
-                it++;
+                auto key = string_view(m_buffer + noffset + sizeof(uint32_t), ksz);
+                uint32_t voffset = noffset + ksz + sizeof(uint32_t);
+                m_values.emplace(key, dbval{ noffset, voffset, vsz });
+                noffset += size;
+                offset += size;
             }
-            //删除标记删除的页面
-            for (auto& page : deletes) {
-                m_pages.erase(page->m_id);
-                m_availables.erase(page);
-                delete page;
+            if (offset > noffset) {
+                memset(m_buffer + noffset, 0, offset - noffset);
             }
-            //重新插入迁移的页面
-            for (auto& [id, page]: migrates) {
-                m_pages.erase(page->m_id);
-                m_pages.emplace(id, page);
-                page->m_id = id;
-            }
-            //剪裁文件
-            m_mapping.shrink_page(deletes.size());
+            m_offset = noffset;
+            m_waste = 0;
         }
 
     protected:
-        page* choose_page(size_t need_size) {
-            for (auto it = m_availables.begin(); it != m_availables.end(); ++it) {
-                auto page = *it;
-                if (page->canput(need_size)) {
-                    m_availables.erase(it);
-                    return page;
-                }
-            }
-            uint32_t offset = 0;
-            if (!m_mapping.extend_page(offset)) return nullptr;
-            return load_page(offset);
-        }
-
-        page* find_page(string& key, bool pop = false) {
-            auto it = m_mapping.m_keys.find(key);
-            if (it != m_mapping.m_keys.end()) {
-                auto pge = it->second;
-                if (pop) m_availables.erase(pge);
-                return pge;
-            }
-            return nullptr;
-        }
-
-        page* load_page(uint32_t offset) {
-            uint16_t page_id = m_page_id++;
-            auto pge = new page(&m_mapping, page_id, offset);
-            if (!pge->read_keys()) {
-                delete pge;
-                return nullptr;
-            }
-            m_pages.emplace(page_id, pge);
-            return pge;
-        }
-
-        void add_available(page* pge) {
-            if (pge->available()) m_availables.insert(pge);
-        }
-
-    protected:
-        mapping m_mapping;                      //文件内容映射
-        uint16_t m_page_id = 0;                 //页起始id
-        set<page*> m_availables;                //可用的页列表
-        map<uint16_t, page*> m_pages;           //页列表
-        dbheader* m_dbheader = nullptr;         //DB文件头
+        int32_t m_fd = 0;
+        uint32_t m_waste = 0;                               //浪费的bytes
+        uint32_t m_offset = 0;                              //当前位置
+        uint32_t m_alloc = 0;                               //分配的bytes
+        unordered_map<string, dbval> m_values;              //kv列表
+        unordered_map<string, dbval>::iterator m_iter;      //迭代器
+        char* m_buffer = nullptr;
+        FILE* m_file = nullptr;
     };
 }

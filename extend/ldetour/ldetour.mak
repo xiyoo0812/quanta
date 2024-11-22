@@ -16,6 +16,7 @@ MYCFLAGS =
 
 #需要定义的FLAG
 MYCFLAGS += -Wno-sign-compare
+MYCFLAGS += -Wno-unused-function
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
 MYCFLAGS += -Wno-unused-but-set-variable

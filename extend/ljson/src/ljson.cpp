@@ -17,6 +17,7 @@ namespace ljson {
         luakit::kit_state kit_state(L);
         auto ljson = kit_state.new_table("json");
         ljson.set_function("jsoncodec", json_codec);
+        ljson.set_function("realloc", [](size_t sz) { return tjson.reset_alc(sz); });
         ljson.set_function("pretty", [](lua_State* L) { return tjson.pretty(L); });
         ljson.set_function("encode", [](lua_State* L) { return tjson.encode(L); });
         ljson.set_function("decode", [](lua_State* L) { return tjson.decode(L); });

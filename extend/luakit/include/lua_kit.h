@@ -10,14 +10,14 @@
 #endif
 
 namespace luakit {
-    static thread_local luabuf lbuf;
-    static thread_local luacodec lcodec;
+    inline thread_local luabuf lbuf;
+    inline thread_local luacodec lcodec;
 
-    static luabuf* get_buff() {
+    inline luabuf* get_buff() {
         return &lbuf;
     }
 
-    static codec_base* get_codec() {
+    inline codec_base* get_codec() {
         if (!lcodec.get_buff()) {
             lcodec.set_buff(&lbuf);
         }

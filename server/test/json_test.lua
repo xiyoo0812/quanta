@@ -71,9 +71,15 @@ end
 local x1 = jencode(test)
 log_debug("tt1:{}", x1, #x1)
 
-local aaa = lencode(test)
+local t1 = timer.clock_ms()
+local aaa = lencode(value)
 local bbb = ldecode(aaa)
-log_debug("tt22:{}", bbb, #aaa)
+for i = 1, 100000 do
+    local ccc = lencode(value)
+    ldecode(ccc)
+end
+local t2 = timer.clock_ms() - t1
+log_debug("tt22:{}, {}, {}", t2, bbb, #aaa)
 
 local aaa1 = bencode(test)
 local bbb1 = bdecode(aaa1)

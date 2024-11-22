@@ -27,6 +27,7 @@ namespace llmdb {
             return mdb_env_sync(_env, force);
         }
         int32_t open(const char* path, uint32_t flags, int mode) {
+            close();
             return mdb_env_open(_env, path, flags, mode);
         }
         int32_t set_flags(uint32_t flags, bool onoff = true) {

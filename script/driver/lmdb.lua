@@ -5,7 +5,6 @@ local log_err       = logger.err
 local log_dump      = logger.dump
 local log_debug     = logger.debug
 local sformat       = string.format
-local scopy_file    = stdfs.copy_file
 
 local update_mgr    = quanta.get("update_mgr")
 
@@ -13,7 +12,6 @@ local MDB_SUCCESS   = lmdb.MDB_CODE.MDB_SUCCESS
 local MDB_NOTFOUND  = lmdb.MDB_CODE.MDB_NOTFOUND
 
 local MDB_NOSUBDIR  = lmdb.MDB_ENV_FLAG.MDB_NOSUBDIR
-local OVERWRITE     = stdfs.copy_options.overwrite_existing
 
 local MDB_FIRST     = lmdb.MDB_CUR_OP.MDB_FIRST
 local MDB_NEXT      = lmdb.MDB_CUR_OP.MDB_NEXT
@@ -50,7 +48,6 @@ function Lmdb:close()
 end
 
 function Lmdb:open(name, sheet)
-    self:close()
     local driver = lmdb.create()
     local jcodec = json.jsoncodec()
     driver.set_max_dbs(128)
@@ -63,25 +60,17 @@ function Lmdb:open(name, sheet)
     log_debug("[Lmdb][open] open lmdb {}:{}!", name, rc)
 end
 
-function Lmdb:saveas(new_name)
-    self:close()
-    local nfname = sformat("%s%s.mdb", KVDB_PATH, new_name)
-    local ok, err = scopy_file(self.name, nfname, OVERWRITE)
-    if not ok then
-        log_err("[Lmdb][saveas] copy {} to  {} fail: {}", self.name, nfname, err)
-        return false
-    end
-    self:open(new_name)
-    return true
-end
-
 function Lmdb:puts(objects, sheet)
     return self.driver.batch_put(objects, sheet or self.sheet) == MDB_SUCCESS
 end
 
 function Lmdb:put(key, value, sheet)
     log_dump("[Lmdb][put] {}.{}={}", key, sheet, value)
-    return self.driver.quick_put(key, value, sheet or self.sheet) == MDB_SUCCESS
+    local code = self.driver.quick_put(key, value, sheet or self.sheet)
+    if code ~= MDB_SUCCESS then
+        log_err("[Lmdb][put] put key {} failed: {}!", key, code)
+        return false
+    end
 end
 
 function Lmdb:get(key, sheet)

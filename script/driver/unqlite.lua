@@ -5,13 +5,11 @@ local log_err           = logger.err
 local log_dump          = logger.dump
 local log_debug         = logger.debug
 local sformat           = string.format
-local scopy_file        = stdfs.copy_file
 
 local update_mgr        = quanta.get("update_mgr")
 
 local UNQLITE_OK        = unqlite.UNQLITE_CODE.UNQLITE_OK
 local UNQLITE_NOTFOUND  = unqlite.UNQLITE_CODE.UNQLITE_NOTFOUND
-local OVERWRITE         = stdfs.copy_options.overwrite_existing
 
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK         = environ.number("QUANTA_DB_BENCHMARK")
@@ -43,7 +41,6 @@ function Unqlite:close()
 end
 
 function Unqlite:open(name)
-    self:close()
     local driver = unqlite.create()
     local jcodec = json.jsoncodec()
     driver.set_codec(jcodec)
@@ -54,21 +51,14 @@ function Unqlite:open(name)
     log_debug("[Unqlite][open] open Unqlite {}:{}!", name, rc)
 end
 
-function Unqlite:saveas(new_name)
-    self:close()
-    local nfname = sformat("%s%s.db", KVDB_PATH, new_name)
-    local ok, err = scopy_file(self.name, nfname, OVERWRITE)
-    if not ok then
-        log_err("[Unqlite][saveas] copy {} to  {} fail: {}", self.name, nfname, err)
-        return false
-    end
-    self:open(new_name)
-    return true
-end
-
 function Unqlite:put(key, value, sheet)
     log_dump("[Unqlite][put] {}.{}={}", sheet, key, value)
-    return self.driver.put(sformat("%s:%s", key, sheet), value) == UNQLITE_OK
+    local code = self.driver.put(sformat("%s:%s", key, sheet), value)
+    if code ~= UNQLITE_OK then
+        log_err("[Unqlite][put] put key {} failed: {}!", key, code)
+        return false
+    end
+    return true
 end
 
 function Unqlite:get(key, sheet)

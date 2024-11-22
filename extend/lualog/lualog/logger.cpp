@@ -25,7 +25,7 @@ namespace logger {
 
     // class log_message
     // --------------------------------------------------------------------------------
-    void log_message::option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line) {
+    void log_message::option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line) {
         log_time_ = log_time::now();
         feature_ = feature;
         source_ = source;
@@ -91,14 +91,14 @@ namespace logger {
     // class log_dest
     // --------------------------------------------------------------------------------
     void log_dest::write(sptr<log_message> logmsg) {
-        auto logtxt = fmt::format("{} {}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+        auto logtxt = fmt::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
         raw_write(logtxt, logmsg->level());
     }
 
     cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
             auto names = level_names<log_level>()();
-            return fmt::format("[{:%Y-%m-%d %H:%M:%S}.{:03d}][{}][{}]", logmsg->get_time(), logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
+            return fmt::format("[{:%Y-%m-%d %H:%M:%S}.{:03d}][{}][{}] ", logmsg->get_time(), logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
         }
         return "";
     }
@@ -112,37 +112,78 @@ namespace logger {
 
     // class stdio_dest
     // --------------------------------------------------------------------------------
-    void stdio_dest::raw_write(vstring msg, log_level lvl) {
+    void stdio_dest::write(sptr<log_message> logmsg) {
+        auto logtxt = fmt::format("{}{}{}", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+        raw_write(logtxt, logmsg->level());
+    }
+
+    void stdio_dest::raw_write(sstring& msg, log_level lvl) {
 #ifdef WIN32
         auto colors = level_colors<log_level>()();
         std::cout << colors[(int)lvl];
 #endif // WIN32
-        std::cout << msg;
+        std::cout << msg << std::endl;
     }
 
     // class log_file_base
     // --------------------------------------------------------------------------------
     log_file_base::~log_file_base() {
-        if (file_) {
-            file_->flush();
-            file_->close();
-        }
-    }
-    void log_file_base::raw_write(vstring msg, log_level lvl) {
-        if (file_) file_->write(msg.data(), msg.size());
-    }
-    void log_file_base::flush() {
-        if (file_) file_->flush();
+        unmap_file();
     }
 
-    void log_file_base::create(path file_path, sstring file_name, const std::tm& file_time) {
-        if (file_) {
-            file_->flush();
-            file_->close();
+    void log_file_base::raw_write(sstring& msg, log_level lvl) {
+        if (size_ + msg.size() > alc_size_) {
+            alc_size_ += PAGE_SIZE;
+            unmap_file();
+            map_file();
         }
+        if (buff_) {
+            memcpy(buff_ + size_, msg.data(), msg.size());
+            size_ += msg.size();
+        }
+    }
+
+    void log_file_base::map_file() {
+#ifdef WIN32
+        HANDLE hf = CreateFile(file_path_.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (!hf) return;
+        HANDLE hfm = CreateFileMapping(hf, 0, PAGE_READWRITE, 0, alc_size_, NULL);
+        if (!hfm) return;
+        buff_ = (char*)MapViewOfFile(hfm, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+        CloseHandle(hfm);
+        CloseHandle(hf);
+#else
+        FILE* f = fopen(file_path_.c_str(), "wb+");
+        if (!f) return;
+        int fd = fileno(f);
+        ftruncate(fd, alc_size_);
+        buff_ = (char*)mmap(NULL, alc_size_, PROT_WRITE, MAP_SHARED, fileno(f), 0);
+        fclose(f);
+#endif // WIN32
+    }
+
+    void log_file_base::unmap_file() {
+#ifdef WIN32
+        if (buff_) UnmapViewOfFile(buff_);
+#else
+        if (buff_) munmap(buff_, alc_size_);
+#endif // WIN32
+        buff_ = nullptr;
+    }
+
+    bool log_file_base::check_full(size_t size) {
+        return alc_size_ > max_size_;
+    }
+
+    bool log_file_base::create(path file_path, sstring file_name, const std::tm& file_time) {
+        unmap_file();
+        size_ = 0;
+        alc_size_ = PAGE_SIZE;
         file_time_ = file_time;
         file_path.append(file_name);
-        file_ = std::make_unique<std::ofstream>(file_path, std::ios::binary | std::ios::out | std::ios::app);
+        file_path_ = file_path.string();
+        map_file();
+        return buff_ != nullptr;
     }
 
     // class rolling_hourly
@@ -164,14 +205,14 @@ namespace logger {
     // class log_rollingfile
     // --------------------------------------------------------------------------------
     template<class rolling_evaler>
-    log_rollingfile<rolling_evaler>::log_rollingfile(path& log_path, cpchar feature, size_t max_line, size_t clean_time)
-        : log_file_base(max_line), log_path_(log_path), feature_(feature), clean_time_(clean_time){
+    log_rollingfile<rolling_evaler>::log_rollingfile(path& log_path, cpchar feature, size_t max_size, size_t clean_time)
+        : log_file_base(max_size), log_path_(log_path), feature_(feature), clean_time_(clean_time){
     }
 
     template<class rolling_evaler>
     void log_rollingfile<rolling_evaler>::write(sptr<log_message> logmsg) {
-            line_++;
-            if (file_ == nullptr || rolling_evaler_.eval(this, logmsg) || line_ >= max_line_) {
+            auto logtxt = fmt::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+            if (buff_ == nullptr || rolling_evaler_.eval(this, logmsg) || check_full(logtxt.size())) {
                 create_directories(log_path_);
                 try {
                     for (auto entry : recursive_directory_iterator(log_path_)) {
@@ -185,10 +226,9 @@ namespace logger {
                     }
                 } catch (...) {}
                 create(log_path_, new_log_file_name(logmsg), logmsg->get_time());
-                assert(file_);
-                line_ = 0;
+                assert(buff_);
             }
-            log_file_base::write(logmsg);
+            raw_write(logtxt, logmsg->level());
         }
 
     template<class rolling_evaler>
@@ -221,9 +261,9 @@ namespace logger {
             sptr<log_dest> logfile = nullptr;
             path logger_path = build_path(feature);
             if (rolling_type_ == rolling_type::DAYLY) {
-                logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature, max_line_, clean_time_);
+                logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature, max_size_, clean_time_);
             } else {
-                logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature, max_line_, clean_time_);
+                logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature, max_size_, clean_time_);
             }
             if (!def_dest_) {
                 def_dest_ = logfile;
@@ -242,11 +282,11 @@ namespace logger {
         logger_path.append(feature);
         std::unique_lock<spin_mutex> lock(mutex_);
         if (rolling_type_ == rolling_type::DAYLY) {
-            auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature.c_str(), max_line_, clean_time_);
+            auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
             dest_lvls_.insert(std::make_pair(log_lvl, logfile));
         }
         else {
-            auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature.c_str(), max_line_, clean_time_);
+            auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
             dest_lvls_.insert(std::make_pair(log_lvl, logfile));
         }
         return true;
@@ -255,9 +295,12 @@ namespace logger {
     bool log_service::add_file_dest(cpchar feature, cpchar fname) {
         std::unique_lock<spin_mutex> lock(mutex_);
         if (dest_features_.find(feature) == dest_features_.end()) {
-            auto logfile = std::make_shared<log_file_base>(max_line_);
+            auto logfile = std::make_shared<log_file_base>(max_size_);
             path logger_path = build_path(service_.c_str());
-            logfile->create(logger_path, fname, log_time::now());
+            create_directories(logger_path);
+            if (!logfile->create(logger_path, fname, log_time::now())) {
+                return false;
+            }
             logfile->ignore_prefix(true);
             dest_features_.insert(std::make_pair(feature, logfile));
         }

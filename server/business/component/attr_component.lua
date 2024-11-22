@@ -1,7 +1,6 @@
 --attr_component.lua
 local qenum         = quanta.enum
 local log_warn      = logger.warn
-local log_debug     = logger.debug
 local tinsert       = table.insert
 local supper        = string.upper
 local sformat       = string.format
@@ -33,10 +32,24 @@ prop:accessor("slavable", false)    --是否复制体
 local store = storage(AttrComponent, "player_attr")
 store:store_values("attrs", {})  --属性集合
 
+--加载db数据
+function AttrComponent:on_db_player_attr_load(data)
+    if data.player_id then
+        self:load_attrs(data.attrs or {})
+        event_mgr:notify_trigger("on_player_attr_init", self)
+        return
+    end
+    event_mgr:notify_trigger("on_player_attr_init", self, true)
+    return true
+end
+
 --委托回调
 function AttrComponent:__delegate()
     local function delegate_attr(attr)
         AttrComponent["get_" .. attr.nick] = function(this)
+            if attr.type ~= "string" then
+                return this:get_attr(attr.id) // 1
+            end
             return this:get_attr(attr.id)
         end
         AttrComponent["set_" .. attr.nick] = function(this, value)
@@ -74,7 +87,7 @@ function AttrComponent:__delegate()
             local complex_id = COMPLEX_ID + attr.id * 4
             delegate_complex_attr(complex_id, attr)
             AttrComponent["get_" .. attr.nick] = function(this)
-                return this:get_attr(attr.id)
+                return this:get_attr(attr.id) // 1
             end
         else
             delegate_attr(attr)
@@ -105,7 +118,9 @@ end
 function AttrComponent:bind_attr(attr_id, attr, service_name)
     local oattr_info = self.attr_set[attr_id]
     if oattr_info then
-        oattr_info.services[service_name] = true
+        if service_name then
+            oattr_info.services[service_name] = true
+        end
         return
     end
     local attr_opt = attr_db:find_one(attr_id)
@@ -136,16 +151,6 @@ function AttrComponent:init_attrset(type_attr_db, range)
     end
 end
 
---加载db数据
-function AttrComponent:on_db_attr_load(data)
-    log_debug("[AttrComponent][on_db_attr_load] data({})", data)
-    if data.attrs then
-        self:load_attrs(data.attrs or {})
-        event_mgr:notify_trigger("on_player_attr_init", self)
-        return
-    end
-    event_mgr:notify_trigger("on_player_attr_init", self, true)
-end
 
 --设置属性
 --service_id 表示修改源，用于同步和回写
@@ -175,7 +180,7 @@ function AttrComponent:set_attr(attr_id, value, service_id)
     end
     local cur_val = self.attrs[attr_id]
     if cur_val == value then
-        return true
+        return true, value, value
     end
     --修改属性
     if attr.save then
@@ -188,7 +193,7 @@ function AttrComponent:set_attr(attr_id, value, service_id)
         self:update_attr(attr.base)
     end
     self:on_attr_changed(attr_id, attr, value, cur_val, service_id)
-    return true
+    return true, value, cur_val
 end
 
 --强制保存属性
@@ -229,7 +234,7 @@ function AttrComponent:update_attr(attr_id)
     local inc = self:get_attr(complex_id + 2)
     local per = self:get_attr(complex_id + 3)
     local fin = self:get_attr(complex_id + 4)
-    local value = ((base + inc) * (1 + per) + fin) // 1
+    local value = ((base + inc) * (1 + per) + fin)
     local cur_val = self.attrs[attr_id]
     if cur_val == value then
         return

@@ -26,6 +26,7 @@ namespace lunqlite {
         }
 
         int open(lua_State* L, const char* path, int mode) {
+            close();
             int rc = unqlite_open(&m_udb, path, UNQLITE_OPEN_CREATE);
             if (rc != UNQLITE_OK) return handler_err(L, rc);
             rc = unqlite_kv_cursor_init(m_udb, &m_ucur);

@@ -5,11 +5,10 @@ local log_err       = logger.err
 local log_dump      = logger.dump
 local log_debug     = logger.debug
 local sformat       = string.format
-local scopy_file    = stdfs.copy_file
 
 local update_mgr    = quanta.get("update_mgr")
 
-local OVERWRITE     = stdfs.copy_options.overwrite_existing
+local SMDB_SUCCESS  = smdb.smdb_code.SMDB_SUCCESS
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
@@ -41,10 +40,10 @@ function SMDB:close()
 end
 
 function SMDB:open(name)
-    self:close()
     local driver = smdb.create()
-    if not driver.open(sformat("%s%s.db", KVDB_PATH, name)) then
-        log_err("[SMDB][open] open SMDB {} failed!", name)
+    local code = driver.open(sformat("%s%s.db", KVDB_PATH, name))
+    if code ~= SMDB_SUCCESS then
+        log_err("[SMDB][open] open SMDB {} failed: {}!", name, code)
         return
     end
     local jcodec = json.jsoncodec()
@@ -54,21 +53,14 @@ function SMDB:open(name)
     log_debug("[SMDB][open] open SMDB {} success!", name)
 end
 
-function SMDB:saveas(new_name)
-    self:close()
-    local nfname = sformat("%s%s.db", KVDB_PATH, new_name)
-    local ok, err = scopy_file(self.name, nfname, OVERWRITE)
-    if not ok then
-        log_err("[Sqlite][saveas] copy {} to  {} fail: {}", self.name, nfname, err)
-        return false
-    end
-    self:open(new_name)
-    return true
-end
-
 function SMDB:put(key, value, sheet)
     log_dump("[SMDB][put] {}.{}={}", sheet, key, value)
-    return self.driver.put(sformat("%s:%s", key, sheet), value)
+    local code = self.driver.put(sformat("%s:%s", key, sheet), value)
+    if code ~= SMDB_SUCCESS then
+        log_err("[SMDB][put] put key {} failed: {}!", key, code)
+        return false
+    end
+    return true
 end
 
 function SMDB:get(key, sheet)

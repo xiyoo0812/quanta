@@ -110,6 +110,7 @@
       <ForcedIncludeFiles>{{%= FORCE_INCLUDE %}}</ForcedIncludeFiles>
       {{% end %}}
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizationLevel>{{%= OPTIMIZE and "Level2" or "Level0" %}}</OptimizationLevel>
       <PreprocessorDefinitions>_DEBUG;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>     
     </ClCompile>
@@ -164,6 +165,7 @@
       <ForcedIncludeFiles>{{%= FORCE_INCLUDE %}}</ForcedIncludeFiles>
       {{% end %}}
       <GenerateDebugInformation>false</GenerateDebugInformation>
+      <OptimizationLevel>{{%= OPTIMIZE and "Level2" or "Level0" %}}</OptimizationLevel>
       <PreprocessorDefinitions>NDEBUG;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>     
     </ClCompile>

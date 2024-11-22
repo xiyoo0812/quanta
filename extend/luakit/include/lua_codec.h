@@ -16,15 +16,23 @@ namespace luakit {
     const uint8_t type_int16        = 6;
     const uint8_t type_int32        = 7;
     const uint8_t type_int64        = 8;
-    const uint8_t type_string       = 9;
-    const uint8_t type_undefine     = 10;
-    const uint8_t type_max          = 11;
+    const uint8_t type_string8      = 9;
+    const uint8_t type_string16     = 10;
+    const uint8_t type_string32     = 11;
+    const uint8_t type_istring      = 12;
+    const uint8_t type_strindex     = 13;
+    const uint8_t type_undefine     = 14;
+    const uint8_t type_max          = 15;
 
     const uint8_t max_encode_depth  = 16;
+    const uint8_t max_share_string  = 128;
     const uint8_t max_uint8         = UCHAR_MAX - type_max;
+    const uint32_t max_string_size  = 0xffffff;
+
+    inline thread_local std::vector<std::string_view> t_sshares(max_share_string);
 
     int decode_one(lua_State* L, slice* slice);
-    void encode_one(lua_State* L, luabuf* buff, int idx, int depth);
+    void encode_one(lua_State* L, luabuf* buff, int idx, int depth, bool isindex = false);
     void serialize_one(lua_State* L, luabuf* buff, int index, int depth, int line);
 
     template<typename T>
@@ -36,8 +44,19 @@ namespace luakit {
         buff->push_data((const uint8_t*)data, len);
     }
 
+    inline int8_t find_index(std::string_view& str) {
+        for (int i = 0; i < t_sshares.size(); ++i) {
+            if (t_sshares[i] == str) return i;
+        }
+        return -1;
+    }
+
+    inline std::string_view find_string(size_t index) {
+        return (index < t_sshares.size()) ? t_sshares[index] : "";
+    }
+
     template<typename T>
-    T value_decode(lua_State* L, slice* slice) {
+    T value_decode(slice* slice) {
         T* value = slice->read<T>();
         if (value == nullptr) {
             throw lua_exception("decode can't unpack one value");
@@ -45,18 +64,58 @@ namespace luakit {
         return *value;
     }
 
-    inline void string_encode(lua_State* L, luabuf* buff, int index) {
-        size_t sz = 0;
-        const char* ptr = lua_tolstring(L, index, &sz);
-        if (sz > USHRT_MAX) {
-            luaL_error(L, "encode can't pack too long string");
-            return;
+    inline void string_write(luabuf* buff, const char* ptr, size_t sz) {
+        if (sz <= UCHAR_MAX) {
+            value_encode(buff, type_string8);
+            value_encode<uint8_t>(buff, sz);
+        } else if (sz <= USHRT_MAX) {
+            value_encode(buff, type_string16);
+            value_encode<uint16_t>(buff, sz);
+        } else {
+            value_encode(buff, type_string32);
+            value_encode<uint32_t>(buff, sz);
         }
-        value_encode(buff, type_string);
-        value_encode<uint16_t>(buff, sz);
         if (sz > 0) {
             value_encode(buff, ptr, sz);
         }
+    }
+
+    inline void string_encode(lua_State* L, luabuf* buff, int index) {
+        size_t sz = 0;
+        const char* ptr = lua_tolstring(L, index, &sz);
+        if (sz >= max_string_size) {
+            luaL_error(L, "encode string can't pack too long (%d) string", sz);
+            return;
+        }
+        string_write(buff, ptr, sz);
+    }
+
+    inline void index_encode(lua_State* L, luabuf* buff, int index) {
+        size_t sz = 0;
+        const char* ptr = lua_tolstring(L, index, &sz);
+        if (sz > USHRT_MAX) {
+            luaL_error(L, "encode index can't pack too long (%d) string", sz);
+            return;
+        }
+        if (sz > UCHAR_MAX || sz == 0) {
+            string_write(buff, ptr, sz);
+            return;
+        }
+        std::string_view value(ptr, sz);
+        int8_t sindex = find_index(value);
+        if (sindex < 0){
+            if (t_sshares.size() < max_share_string) {
+                value_encode(buff, type_istring);
+                t_sshares.push_back(value);
+            } else {
+                value_encode(buff, type_string8);
+            }
+            value_encode<uint8_t>(buff, sz);
+            value_encode(buff, ptr, sz);
+            return;
+        }
+        value_encode(buff, type_strindex);
+        value_encode<uint8_t>(buff, sindex);
     }
 
     inline void integer_encode(luabuf* buff, int64_t integer) {
@@ -87,26 +146,16 @@ namespace luakit {
     inline void table_encode(lua_State* L, luabuf* buff, int index, int depth) {
         index = lua_absindex(L, index);
         value_encode(buff, type_tab_head);
-        if (is_lua_array(L, index)) {
-            int rawlen = lua_rawlen(L, index);
-            for (int i = 1; i <= rawlen; ++i) {
-                lua_rawgeti(L, index, i);
-                integer_encode(buff, i);
-                encode_one(L, buff, -1, depth);
-                lua_pop(L, 1);
-            }
-        } else {
-            lua_pushnil(L);
-            while (lua_next(L, index) != 0) {
-                encode_one(L, buff, -2, depth);
-                encode_one(L, buff, -1, depth);
-                lua_pop(L, 1);
-            }
+        lua_pushnil(L);
+        while (lua_next(L, index) != 0) {
+            encode_one(L, buff, -2, depth, true);
+            encode_one(L, buff, -1, depth);
+            lua_pop(L, 1);
         }
         value_encode(buff, type_tab_tail);
     }
 
-    inline void encode_one(lua_State* L, luabuf* buff, int idx, int depth) {
+    inline void encode_one(lua_State* L, luabuf* buff, int idx, int depth, bool isindex) {
         if (depth > max_encode_depth) {
             luaL_error(L, "encode can't pack too depth table");
         }
@@ -116,7 +165,7 @@ namespace luakit {
             value_encode(buff, type_nil);
             break;
         case LUA_TSTRING:
-            string_encode(L, buff, idx);
+            isindex ? index_encode(L, buff, idx) : string_encode(L, buff, idx);
             break;
         case LUA_TTABLE:
             table_encode(L, buff, idx, depth + 1);
@@ -135,6 +184,7 @@ namespace luakit {
 
     inline slice* encode_slice(lua_State* L, luabuf* buff) {
         buff->clean();
+        t_sshares.clear();
         int n = lua_gettop(L);
         if (n > UCHAR_MAX) {
             luaL_error(L, "encode can't pack too many args");
@@ -154,17 +204,24 @@ namespace luakit {
         return 1;
     }
 
-    inline void string_decode(lua_State* L, uint16_t sz, slice* slice) {
+    inline void string_decode(lua_State* L, uint32_t sz, slice* slice, bool isindex = false) {
         if (sz == 0) {
             lua_pushstring(L, "");
             return;
         }
         auto str = (const char*)slice->peek(sz);
-        if (str == nullptr || sz > USHRT_MAX) {
+        if (str == nullptr || sz > max_string_size) {
             throw lua_exception("decode string is out of range");
         }
         slice->erase(sz);
+        if (isindex) t_sshares.push_back(std::string_view(str, sz));
         lua_pushlstring(L, str, sz);
+    }
+
+    inline void index_decode(lua_State* L, slice* buf) {
+        uint8_t index = value_decode<uint8_t>(buf);
+        std::string_view str = find_string(index);
+        lua_pushlstring(L, str.data(), str.size());
     }
 
     inline void table_decode(lua_State* L, slice* slice) {
@@ -190,10 +247,22 @@ namespace luakit {
             lua_pushboolean(L, false);
             break;
         case type_number:
-            lua_pushnumber(L, value_decode<double>(L, slice));
+            lua_pushnumber(L, value_decode<double>(slice));
             break;
-        case type_string:
-            string_decode(L, value_decode<uint16_t>(L, slice), slice);
+        case type_string8:
+            string_decode(L, value_decode<uint8_t>(slice), slice);
+            break;
+        case type_string16:
+            string_decode(L, value_decode<uint16_t>(slice), slice);
+            break;
+        case type_string32:
+            string_decode(L, value_decode<uint32_t>(slice), slice);
+            break;
+        case type_istring:
+            string_decode(L, value_decode<uint8_t>(slice), slice, true);
+            break;
+        case type_strindex:
+            index_decode(L, slice);
             break;
         case type_tab_head:
             table_decode(L, slice);
@@ -201,13 +270,13 @@ namespace luakit {
         case type_tab_tail:
             break;
         case type_int16:
-            lua_pushinteger(L, value_decode<int16_t>(L, slice));
+            lua_pushinteger(L, value_decode<int16_t>(slice));
             break;
         case type_int32:
-            lua_pushinteger(L, value_decode<int32_t>(L, slice));
+            lua_pushinteger(L, value_decode<int32_t>(slice));
             break;
         case type_int64:
-            lua_pushinteger(L, value_decode<int64_t>(L, slice));
+            lua_pushinteger(L, value_decode<int64_t>(slice));
             break;
         case type_undefine:
             lua_pushstring(L, "undefine");
@@ -219,15 +288,16 @@ namespace luakit {
     }
 
     inline int decode_one(lua_State* L, slice* slice) {
-        uint8_t type = value_decode<uint8_t>(L, slice);
+        uint8_t type = value_decode<uint8_t>(slice);
         decode_value(L, slice, type);
         return type;
     }
 
     inline int decode_slice(lua_State* L, slice* slice) {
-        int top = lua_gettop(L);
         try {
-            uint8_t argnum = value_decode<uint8_t>(L, slice);
+            t_sshares.clear();
+            int top = lua_gettop(L);
+            uint8_t argnum = value_decode<uint8_t>(slice);
             lua_checkstack(L, argnum);
             while (1) {
                 uint8_t* type = slice->read();
@@ -474,11 +544,12 @@ namespace luakit {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf->clean();
             int n = lua_gettop(L);
             if (n > UCHAR_MAX) {
                 luaL_error(L, "encode can't pack too many args");
             }
+            m_buf->clean();
+            t_sshares.clear();
             m_buf->write<uint8_t>(n - index + 1);
             for (int i = index; i <= n; i++) {
                 encode_one(L, m_buf, i, 0);
@@ -488,8 +559,9 @@ namespace luakit {
 
         virtual size_t decode(lua_State* L) {
             if (!m_slice) return 0;
+            t_sshares.clear();
             int top = lua_gettop(L);
-            uint8_t argnum = value_decode<uint8_t>(L, m_slice);
+            uint8_t argnum = value_decode<uint8_t>(m_slice);
             lua_checkstack(L, argnum);
             while (1) {
                 uint8_t* type = m_slice->read();

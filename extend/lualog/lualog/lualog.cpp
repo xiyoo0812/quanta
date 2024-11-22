@@ -17,8 +17,12 @@ namespace logger {
         case LUA_TFUNCTION: return "function";
         case LUA_TUSERDATA:  return "userdata";
         case LUA_TLIGHTUSERDATA: return "userdata";
-        case LUA_TSTRING: return lua_tostring(L, index);
         case LUA_TBOOLEAN: return lua_toboolean(L, index) ? "true" : "false";
+        case LUA_TSTRING: {
+            size_t len;
+            const char* buf = lua_tolstring(L, index, &len);
+            return string(buf, len);
+        }
         case LUA_TTABLE:
             if ((flag & LOG_FLAG_FORMAT) == LOG_FLAG_FORMAT) {
                 auto buf = luakit::get_buff();
@@ -131,7 +135,7 @@ namespace logger {
         });
         
         lualog.set_function("daemon", [](bool status) { get_logger()->daemon(status); });
-        lualog.set_function("set_max_line", [](size_t line) { get_logger()->set_max_line(line); });
+        lualog.set_function("set_max_size", [](size_t size) { get_logger()->set_max_size(size); });
         lualog.set_function("set_clean_time", [](size_t time) { get_logger()->set_clean_time(time); });
         lualog.set_function("filter", [](int lv, bool on) { get_logger()->filter((log_level)lv, on); });
         lualog.set_function("is_filter", [](int lv) { return get_logger()->is_filter((log_level)lv); });

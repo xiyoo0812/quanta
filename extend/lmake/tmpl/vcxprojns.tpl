@@ -66,6 +66,7 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     {{% else %}}
     <ConfigurationType>Application</ConfigurationType>
+    <ApplicationProgramFormat>Nsp</ApplicationProgramFormat>
     {{% end %}}
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
@@ -80,6 +81,7 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     {{% else %}}
     <ConfigurationType>Application</ConfigurationType>
+    <ApplicationProgramFormat>Nsp</ApplicationProgramFormat>
     {{% end %}}
     <UseDebugLibraries>false</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
@@ -110,7 +112,7 @@
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
     {{% if PROJECT_TYPE == "exe" then %}}
-    <NRODeployPath>$(SolutionDir)bin</NRODeployPath>
+    <NRODeployPath>$(SolutionDir)bin\nro</NRODeployPath>
     <ApplicationDataDir>$(SolutionDir)bin</ApplicationDataDir>
     {{% end %}}
   </PropertyGroup>
@@ -126,7 +128,7 @@
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
     {{% if PROJECT_TYPE == "exe" then %}}
-    <NRODeployPath>$(SolutionDir)bin</NRODeployPath>
+    <NRODeployPath>$(SolutionDir)bin\nro</NRODeployPath>
     <ApplicationDataDir>$(SolutionDir)bin</ApplicationDataDir>
     {{% end %}}
   </PropertyGroup>
@@ -138,6 +140,7 @@
       <ForcedIncludeFiles>{{%= FORCE_INCLUDE %}}</ForcedIncludeFiles>
       {{% end %}}
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizationLevel>{{%= OPTIMIZE and "O2" or "O0" %}}</OptimizationLevel>
       <PreprocessorDefinitions>{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -174,9 +177,7 @@
       {{% else %}}
       {{% local dst_dir = string.gsub(DST_DIR, '/', '\\') %}}
       {{% if PROJECT_TYPE == "dynamic" then %}}
-      {{% local dst_lib_dir = string.format("$(SolutionDir)%s/$(Platform)", DST_LIB_DIR) %}}
-      {{% local dst_dir = string.gsub(dst_lib_dir, '/', '\\') %}}
-      {{% table.insert(post_commands, string.format("copy /y $(OutDir)$(TargetName).nrs %s", dst_dir)) %}}
+      {{% table.insert(post_commands, string.format("copy /y $(OutDir)$(TargetName).nrs $(SolutionDir)%s", dst_dir)) %}}
       {{% end %}}
       {{% table.insert(post_commands, string.format("copy /y $(TargetPath) $(SolutionDir)%s", dst_dir)) %}}
       {{% end %}}
@@ -195,6 +196,7 @@
       <ForcedIncludeFiles>{{%= FORCE_INCLUDE %}}</ForcedIncludeFiles>
       {{% end %}}
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizationLevel>{{%= OPTIMIZE and "O2" or "O0" %}}</OptimizationLevel>
       <PreprocessorDefinitions>{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -229,12 +231,10 @@
       {{% local dst_dir = string.gsub(dst_lib_dir, '/', '\\') %}}
       {{% table.insert(post_commands, string.format("copy /y $(TargetPath) %s", dst_dir)) %}}
       {{% else %}}
-      {{% if PROJECT_TYPE == "dynamic" then %}}
-      {{% local dst_lib_dir = string.format("$(SolutionDir)%s/$(Platform)", DST_LIB_DIR) %}}
-      {{% local dst_dir = string.gsub(dst_lib_dir, '/', '\\') %}}
-      {{% table.insert(post_commands, string.format("copy /y $(OutDir)$(TargetName).nrs %s", dst_dir)) %}}
-      {{% end %}}
       {{% local dst_dir = string.gsub(DST_DIR, '/', '\\') %}}
+      {{% if PROJECT_TYPE == "dynamic" then %}}
+      {{% table.insert(post_commands, string.format("copy /y $(OutDir)$(TargetName).nrs $(SolutionDir)%s", dst_dir)) %}}
+      {{% end %}}
       {{% table.insert(post_commands, string.format("copy /y $(TargetPath) $(SolutionDir)%s", dst_dir)) %}}
       {{% end %}}
       {{% for _, POSTBUILD_CMD in pairs(WINDOWS_POSTBUILDS) do %}}

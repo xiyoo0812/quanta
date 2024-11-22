@@ -16,10 +16,12 @@ MYCFLAGS =
 
 #需要定义的FLAG
 MYCFLAGS += -Wno-sign-compare
+MYCFLAGS += -Wno-unused-function
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
 MYCFLAGS += -Wno-unused-but-set-variable
 MYCFLAGS += -Wno-unused-but-set-parameter
+MYCFLAGS += -Wno-unused-value
 
 #c标准库版本
 #gnu99/gnu11/gnu17

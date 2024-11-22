@@ -5,14 +5,12 @@ local log_err       = logger.err
 local log_dump      = logger.dump
 local log_debug     = logger.debug
 local sformat       = string.format
-local scopy_file    = stdfs.copy_file
 
 local update_mgr    = quanta.get("update_mgr")
 
 local SQLITE_OK     = sqlite.SQLITE_CODE.SQLITE_OK
 local SQLITE_DONE   = sqlite.SQLITE_CODE.SQLITE_DONE
 local SQLITE_NFOUND = sqlite.SQLITE_CODE.SQLITE_NOTFOUND
-local OVERWRITE     = stdfs.copy_options.overwrite_existing
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
@@ -51,7 +49,6 @@ function Sqlite:close()
 end
 
 function Sqlite:open(name)
-    self:close()
     local driver = sqlite.create()
     local jcodec = json.jsoncodec()
     driver.set_codec(jcodec)
@@ -61,18 +58,6 @@ function Sqlite:open(name)
     driver.open(self.name)
     self:init_db()
     log_debug("[Sqlite][open] open sqlite {}!", name)
-end
-
-function Sqlite:saveas(new_name)
-    self:close()
-    local nfname = sformat("%s%s.db", KVDB_PATH, new_name)
-    local ok, err = scopy_file(self.name, nfname, OVERWRITE)
-    if not ok then
-        log_err("[Sqlite][saveas] copy {} to  {} fail: {}", self.name, nfname, err)
-        return false
-    end
-    self:open(new_name)
-    return true
 end
 
 function Sqlite:register_prepare(sheet)

@@ -162,7 +162,7 @@ end
 function Socket:send_data(...)
     if self.alive then
         local send_len = self.session.call_data(...)
-        return send_len >= 0
+        return send_len > 0
     end
     return false, "socket not alive"
 end

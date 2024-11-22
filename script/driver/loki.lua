@@ -12,6 +12,7 @@ local update_mgr    = quanta.get("update_mgr")
 local http_client   = quanta.get("http_client")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
+local MAX_LOKI_CNT  = 100
 local LOG_LEVEL     = log.LOG_LEVEL
 local HOST_IP       = environ.get("QUANTA_HOST_IP")
 
@@ -102,7 +103,7 @@ function Loki:collect_log(content, lvl_name)
         return
     end
     tinsert(self.log_data[lvl_name].values, { sformat("%s", tnow_ns()), content })
-    if self.loki_count > 200 then
+    if self.loki_count > MAX_LOKI_CNT then
         self:send_loki()
     end
 end

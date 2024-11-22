@@ -25,11 +25,11 @@ for i = 1, 6 do
     log_debug("get-{}: {}", key, da)
 end
 
-local k, v = driver.first()
-while v do
-    log_debug("cursor: {}={}", k, v)
-    k, v = driver.next()
-end
+-- local k, v = driver.first()
+-- while v do
+--     log_debug("cursor: {}={}", k, v)
+--     k, v = driver.next()
+-- end
 
 b = driver.del("abc2")
 a = driver.del("abc5")
@@ -42,3 +42,16 @@ for i = 1, 6 do
     local da = driver.get(key)
     log_debug("del_get-{}: {}", key, da)
 end
+
+local t1 = timer.clock_ms()
+local cc = 100000
+for i = 1, cc do
+    local key = "abc" .. i
+    local val = { a = i, t = timer.clock_ms() , key = key}
+    local code = driver.put(key, val)
+    if code ~= 0 then
+        log_debug("put error: {}, {}", key, code)
+    end
+end
+local t2 = timer.clock_ms()
+log_debug("put -{}: {}", t2-t1, cc * 1000 / (t2-t1))

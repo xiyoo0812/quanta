@@ -14,6 +14,11 @@ INCLUDES = {
     "../luakit/include"
 }
 
+--FLAGS
+FLAGS = {
+    "Wno-unused-value"
+}
+
 DEFINES = {
     "YAML_DECLARE_EXPORT"
 }

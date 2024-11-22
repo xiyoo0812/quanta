@@ -22,22 +22,29 @@ namespace lsmdb {
             m_jcodec = codec;
         }
 
-        bool open(const char* path) {
-            if (m_smdb) return true;
-            auto smdb = new smdb::smdb();
-            if (!smdb->open(path)) {
-                delete smdb;
-                return false;
-            }
-            m_smdb = smdb;
-            return true;
+        void flush() {
+            if (m_smdb) m_smdb->flush();
         }
 
-        bool put(lua_State* L) {
-            if (!m_smdb) return false;
-            auto key = read_key(L, 1);
-            auto val = read_value(L, 2);
-            return m_smdb->put(key, val);
+        smdb_code open(const char* path) {
+            close();
+            m_smdb = new smdb();
+            auto code = m_smdb->open(path);
+            if (m_smdb->is_error(code)) {
+                m_smdb->close();
+                delete m_smdb;
+                return code;
+            }
+            return code;
+        }
+
+        smdb_code put(lua_State* L) {
+            if (m_smdb) {
+                auto key = read_key(L, 1);
+                auto val = read_value(L, 2);
+                return m_smdb->put(key, val);
+            }
+            return smdb_code::SMDB_DB_NOT_INIT;
         }
 
         bool del(lua_State* L) {
@@ -59,16 +66,9 @@ namespace lsmdb {
             return 0;
         }
 
-        int arrange(lua_State* L) {
-            if (m_smdb) {
-                m_smdb->arrange(true);
-            }
-            return 0;
-        }
-
         int first(lua_State* L) {
             if (m_smdb) {
-                string key, val;
+                string_view key, val;
                 if (m_smdb->first(key, val)) {
                     push_value(L, key.data(), key.size());
                     push_value(L, val.data(), val.size());
@@ -80,7 +80,7 @@ namespace lsmdb {
 
         int next(lua_State* L) {
             if (m_smdb) {
-                string key, val;
+                string_view key, val;
                 if (m_smdb->next(key, val)) {
                     push_value(L, key.data(), key.size());
                     push_value(L, val.data(), val.size());
@@ -147,7 +147,7 @@ namespace lsmdb {
         }
 
     protected:
-        smdb::smdb* m_smdb = nullptr;
+        smdb* m_smdb = nullptr;
         codec_base* m_jcodec = nullptr;
     };
 }

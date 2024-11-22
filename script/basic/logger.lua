@@ -19,7 +19,7 @@ logfeature = {}
 
 function logger.init()
     --配置日志信息
-    log.set_max_line(environ.number("QUANTA_LOG_LINE", 100000))
+    log.set_max_size(environ.number("QUANTA_LOG_SIZE", 16777216))
     log.set_clean_time(environ.number("QUANTA_LOG_TIME", 648000))
     log.set_rolling_type(environ.number("QUANTA_LOG_ROLL", 0))
     --设置日志过滤

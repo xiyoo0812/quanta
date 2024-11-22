@@ -87,7 +87,7 @@ function CacheMgr:build_fields(field)
 end
 
 --RPC hook
-function CacheMgr:on_cache_hook(rpc, hook, primary_id)
+function CacheMgr:on_cache_hook(hook, rpc, primary_id)
     hook:register(function()
         thread_mgr:unlock(primary_id)
     end)

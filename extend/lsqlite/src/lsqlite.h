@@ -165,6 +165,7 @@ namespace lsqlite {
         }
         
         int open(lua_State* L) {
+            close();
             const char* path = luaL_optstring(L, 1, ":memory:");
             int rc = sqlite3_open(path, &m_sdb);
             return handler_err(L, rc);

@@ -70,7 +70,9 @@ local function define_setter(class, sheet, name, default, is_obj)
             self[name] = value or default
             if is_obj and value then
                 local store, layers = get_storage_layers(self, sheet)
-                gen_storage_layers(value, store, layers, name)
+                if store then
+                    gen_storage_layers(value, store, layers, name)
+                end
             end
         end
     end
@@ -81,7 +83,7 @@ local function define_saver(class, sheet, name, is_obj)
         if self[name] ~= value then
             self[name] = value
             local store, layers = update_store_value(self, sheet, name, value)
-            if is_obj and value then
+            if store and is_obj and value then
                 gen_storage_layers(value, store, layers, name)
             end
         end
@@ -99,7 +101,7 @@ local function define_field_setter(class, sheet, name, suffix, is_obj)
         if self[name][key] ~= value then
             self[name][key] = value
             local store, layers = get_storage_layers(self, sheet)
-            if is_obj and value then
+            if store and is_obj and value then
                 gen_storage_layers(value, store, layers, name, key)
             end
         end
@@ -111,7 +113,7 @@ local function define_field_saver(class, sheet, name, suffix, is_obj)
         if self[name][key] ~= value then
             self[name][key] = value
             local store, layers = update_store_field(self, sheet, name, key, value, is_obj)
-            if is_obj and value then
+            if store and is_obj and value then
                 gen_storage_layers(value, store, layers, name, key)
             end
         end
@@ -123,8 +125,8 @@ local function define_field_deleter(class, sheet, name, suffix, is_obj)
         local value = self[name][key]
         if value then
             self[name][key] = nil
-            update_store_field(self, sheet, name, key, nil, is_obj)
-            if is_obj then
+            local store = update_store_field(self, sheet, name, key, nil, is_obj)
+            if store and is_obj then
                 value.__storange = nil
                 value.__layers = nil
             end

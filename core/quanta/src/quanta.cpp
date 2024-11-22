@@ -7,6 +7,9 @@
 
 #if defined(WIN32)
 #include <conio.h>
+#else
+#include <fcntl.h>
+#include <sys/stat.h>
 #endif
 
 quanta_app* g_app = nullptr;

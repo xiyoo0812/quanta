@@ -18,6 +18,7 @@
 #define getpid _getpid
 #else
 #include <unistd.h>
+#include <sys/mman.h>
 #endif
 
 using namespace luakit;
@@ -48,7 +49,8 @@ namespace logger {
     }; //rolling_type
 
     const size_t QUEUE_SIZE = 10000;
-    const size_t MAX_LINE   = 200000;
+    const size_t PAGE_SIZE  = 65536;
+    const size_t MAX_SIZE   = 1024 * 1024 * 16;
     const size_t CLEAN_TIME = 7 * 24 * 3600;
 
     template <typename T>
@@ -88,9 +90,9 @@ namespace logger {
 
     class log_message {
     public:
-        int line() const { return line_; }
         vstring tag() const { return tag_; }
         vstring msg() const { return msg_; }
+        int32_t line() const { return line_; }
         vstring source() const { return source_; }
         vstring feature() const { return feature_; }
         bool is_grow() const { return grow_; }
@@ -98,11 +100,11 @@ namespace logger {
         int get_usec() { return log_time_.tm_usec; }
         log_level level() const { return level_; }
         const std::tm& get_time() const { return log_time_; }
-        void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
+        void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
 
     private:
-        int                 line_ = 0;
         bool                grow_ = false;
+        int32_t             line_ = 0;
         log_time            log_time_;
         sstring             source_, msg_, feature_, tag_;
         log_level           level_ = log_level::LOG_LEVEL_DEBUG;
@@ -141,7 +143,7 @@ namespace logger {
         virtual void flush() {};
         virtual void write(sptr<log_message> logmsg);
         virtual void set_clean_time(size_t clean_time) {}
-        virtual void raw_write(vstring msg, log_level lvl) = 0;
+        virtual void raw_write(sstring& msg, log_level lvl) = 0;
         virtual void ignore_prefix(bool prefix) { ignore_prefix_ = prefix; }
         virtual void ignore_suffix(bool suffix) { ignore_suffix_ = suffix; }
         virtual cstring build_prefix(sptr<log_message> logmsg);
@@ -154,24 +156,29 @@ namespace logger {
 
     class stdio_dest : public log_dest {
     public:
-        virtual void raw_write(vstring msg, log_level lvl);
+        virtual void write(sptr<log_message> logmsg);
+        virtual void raw_write(sstring& msg, log_level lvl);
     }; // class stdio_dest
 
     class log_file_base : public log_dest {
     public:
-        log_file_base(size_t max_line) : line_(0), max_line_(max_line) {}
+        log_file_base(size_t max_size) : size_(0), alc_size_(USHRT_MAX), max_size_(max_size > USHRT_MAX ? max_size : USHRT_MAX) {}
         virtual ~log_file_base();
 
         const std::tm& file_time() const { return file_time_; }
-        virtual void raw_write(vstring msg, log_level lvl);
-        virtual void flush();
+        virtual void raw_write(sstring& msg, log_level lvl);
+        bool create(path file_path, sstring file_name, const std::tm& file_time);
 
-        void create(path file_path, sstring file_name, const std::tm& file_time);
+    protected:
+        void map_file();
+        void unmap_file();
+        bool check_full(size_t size);
 
     protected:
         std::tm         file_time_;
-        size_t          line_, max_line_;
-        std::unique_ptr<std::ofstream> file_ = nullptr;
+        size_t          size_, alc_size_, max_size_;
+        char*           buff_ = nullptr;
+        sstring         file_path_;
     }; // class log_file
 
     class rolling_hourly {
@@ -187,7 +194,7 @@ namespace logger {
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(path& log_path, cpchar namefix, size_t max_line = 10000, size_t clean_time = CLEAN_TIME);
+        log_rollingfile(path& log_path, cpchar namefix, size_t max_szie = MAX_SIZE, size_t clean_time = CLEAN_TIME);
 
         virtual void write(sptr<log_message> logmsg);
         virtual void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
@@ -211,7 +218,7 @@ namespace logger {
         virtual void daemon(bool status) = 0;
         virtual bool is_filter(log_level lv) = 0;
         virtual void filter(log_level lv, bool on) = 0;
-        virtual void set_max_line(size_t max_line) = 0;
+        virtual void set_max_size(size_t max_size) = 0;
         virtual void set_clean_time(size_t clean_time) = 0;
         virtual bool add_dest(cpchar feature) = 0;
         virtual void del_dest(cpchar feature) = 0;
@@ -244,7 +251,7 @@ namespace logger {
         void ignore_prefix(cpchar feature, bool prefix);
         void ignore_suffix(cpchar feature, bool suffix);
 
-        void set_max_line(size_t max_line) { max_line_ = max_line; }
+        void set_max_size(size_t max_size) { max_size_ = max_size; }
         void set_rolling_type(rolling_type type) { rolling_type_ = type; }
         void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
         void set_dest_clean_time(cpchar feature, size_t clean_time);
@@ -271,7 +278,7 @@ namespace logger {
         sptr<log_message_pool> message_pool_ = nullptr;
         std::map<log_level, sptr<log_dest>> dest_lvls_;
         std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
-        size_t max_line_ = MAX_LINE, clean_time_ = CLEAN_TIME;
+        size_t max_size_ = MAX_SIZE, clean_time_ = CLEAN_TIME;
         bool log_daemon_ = false, ignore_postfix_ = true;
         rolling_type rolling_type_ = rolling_type::DAYLY;
     }; // class log_service

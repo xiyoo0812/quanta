@@ -147,6 +147,10 @@ namespace lstdfs {
         return fspath(path).make_preferred().string();
     }
 
+    size_t lstdfs_file_size(string_view path) {
+        return file_size(path);
+    }
+
     string lstdfs_stem(string_view path) {
         return fspath(path).stem().string();
     }
@@ -252,6 +256,7 @@ namespace lstdfs {
         lstdfs.set_function("filetype", lstdfs_filetype);
         lstdfs.set_function("filename", lstdfs_filename);
         lstdfs.set_function("copy_file", lstdfs_copy_file);
+        lstdfs.set_function("file_size", lstdfs_file_size);
         lstdfs.set_function("extension", lstdfs_extension);
         lstdfs.set_function("root_name", lstdfs_root_name);
         lstdfs.set_function("root_path", lstdfs_root_path);
