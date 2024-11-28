@@ -17,6 +17,7 @@
     <ClInclude Include="src\http.h" />
     <ClInclude Include="src\lcodec.h" />
     <ClInclude Include="src\mysql.h" />
+    <ClInclude Include="src\pgsql.h" />
     <ClInclude Include="src\redis.h" />
     <ClInclude Include="src\url.h" />
     <ClInclude Include="src\websocket.h" />

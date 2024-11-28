@@ -65,37 +65,33 @@ quanta.bat
 - cachesvr: 提供基础的数据缓存服务。
 - discover: 提供服务发现功能，以及基于http提供启停、监控的服务。
 
-# 依赖
-- lua
-- lbson
-- lcurl
-- ljson
-- luabus
-- lcrypt
-- lstdfs
-- luakit
-- lualog
-- lcodec
-- luaxlsx
-- lua-protobuf
-
 # 数据库支持
 - mongo
-- mysql
 - redis
+- mysql
+- pgsql
+- sqlite
 - clickhouse
 
+# KV存储支持
+- redis
+- lmdb
+- smdb
+- unqite
+
 # 支持功能
-- protobuf协议支持
 - json协议支持
-- http服务器支持
-- http客户端访问
-- websocket支持
-- excel(xlsx/xlsm)配置导出
-- tcp服务器/客户端支持
+- protobuf协议支持
+- SSL支持
+- HTTP C/S支持
+- TCP/UDP C/S支持
+- websocket C/S支持
+- xml/yaml/toml配置支持
+- excel(xlsx/xlsm/csv)配置导出
+- 常用压缩算法(lz4,minizip,zstd)支持
+- 常用加密算法(BASE64,MD5,RSA,SHA系列,hmac系列)支持
 - rpc调用机制支持
 - 协议加密和压缩功能支持
-- ai功能支持
 - 文件系统支持
 - 异步日志功能支持
 - lua面向对象机制支持
@@ -105,12 +101,12 @@ quanta.bat
 - 游戏逻辑/配置热更新机制支持
 - 协程调用框架
 - 游戏GM功能框架
+- 服务发现功能框架
 - 基于行为树的机器人测试框架
 - 星型分布式服务器框架
 
 # 辅助工具
 - GMWeb工具
 - 协议测试Web工具
-- redis服务发现系统
 - zipkin/jager调用链系统
 - dingding/wechat/lark等webhook通知

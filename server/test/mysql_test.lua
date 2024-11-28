@@ -1,12 +1,12 @@
 -- mysql_test.lua
+import("db/mysql_mgr.lua")
+
 local log_debug = logger.debug
 
 local timer_mgr = quanta.get("timer_mgr")
+local mysql_mgr = quanta.get("mysql_mgr")
 
-local MysqlMgr  = import("db/mysql_mgr.lua")
-local mysql_mgr = MysqlMgr()
-
-timer_mgr:once(3000, function()
+timer_mgr:once(2000, function()
     log_debug("mysql db start test!")
     local code, res_oe = mysql_mgr:query(1, "drop table test_mysql")
     log_debug("db drop table code: {}, res = {}", code, res_oe)
@@ -27,9 +27,19 @@ timer_mgr:once(3000, function()
     code, res_oe = mysql_mgr:query(1, "delete from test_mysql where pid = 123457")
     log_debug("db delete code: {}, err = {}", code, res_oe)
     code, res_oe = mysql_mgr:query(1, "replace into test_mysql (id, pid, value) values (1, 123457, 40)")
-    log_debug("db replace code: {}, count = {}", code, res_oe)
+    log_debug("db replace code: {}, res_oe = {}", code, res_oe)
     code, res_oe = mysql_mgr:query(1, "select * from test_mysql")
     log_debug("db select code: {}, res_oe = {}", code, res_oe)
     code, res_oe = mysql_mgr:query(1, "select count(*) as count from test_mysql where pid=123454")
     log_debug("db count code: {}, count = {}", code, res_oe)
+
+    --Prepared Statements
+    code, res_oe = mysql_mgr:prepare("myinsert", "insert into test_mysql (pid, value) values (?, ?)")
+    log_debug("db prepare code: {}, res_oe = {}", code, res_oe)
+    code, res_oe = mysql_mgr:execute(1, "myinsert", 55555, 66666)
+    log_debug("db execute code: {}, res_oe = {}", code, res_oe)
+    code, res_oe = mysql_mgr:prepare("myselect", "select * from test_mysql where pid = ?")
+    log_debug("db prepare2 code: {}, res_oe = {}", code, res_oe)
+    code, res_oe = mysql_mgr:execute(1, "myselect", 55555)
+    log_debug("db execute2 code: {}, res_oe = {}", code, res_oe)
 end)

@@ -8,15 +8,11 @@ local lb64decode    = ssl.b64_decode
 local lhex_encode   = ssl.hex_encode
 
 local lsha1         = ssl.sha1
-local lsha224       = ssl.sha224
 local lsha256       = ssl.sha256
-local lsha384       = ssl.sha384
 local lsha512       = ssl.sha512
 
 local lhmac_sha1    = ssl.hmac_sha1
-local lhmac_sha224  = ssl.hmac_sha224
 local lhmac_sha256  = ssl.hmac_sha256
-local lhmac_sha384  = ssl.hmac_sha384
 local lhmac_sha512  = ssl.hmac_sha512
 
 --base64
@@ -31,12 +27,8 @@ log_info("b64encode-> nonce: {}, dnonce:{}", lhex_encode(nonce), dnonce)
 local value = "123456779"
 local sha1 = lhex_encode(lsha1(value))
 log_info("sha1: {}", sha1)
-local sha224 = lhex_encode(lsha224(value))
-log_info("sha224: {}", sha224)
 local sha256 = lhex_encode(lsha256(value))
 log_info("sha256: {}", sha256)
-local sha384 = lhex_encode(lsha384(value))
-log_info("sha384: {}", sha384)
 local sha512 = lhex_encode(lsha512(value))
 log_info("sha512: {}", sha512)
 
@@ -51,12 +43,8 @@ log_info("omd5: {}, hmd5: {}", omd5, hmd5)
 local key = "1235456"
 local hmac_sha1 = lhex_encode(lhmac_sha1(key, value))
 log_info("hmac_sha1: {}", hmac_sha1)
-local hmac_sha224 = lhex_encode(lhmac_sha224(key, value))
-log_info("hmac_sha224: {}", hmac_sha224)
 local hmac_sha256 = lhex_encode(lhmac_sha256(key, value))
 log_info("hmac_sha256: {}", hmac_sha256)
-local hmac_sha384 = lhex_encode(lhmac_sha384(key, value))
-log_info("hmac_sha384: {}", hmac_sha384)
 local hmac_sha512 = lhex_encode(lhmac_sha512(key, value))
 log_info("hmac_sha512: {}", hmac_sha512)
 

@@ -7,11 +7,13 @@
 using namespace std;
 using namespace luakit;
 
+//https://dev.mysql.com/doc/dev/mysql-server/latest/PAGE_PROTOCOL.html
 namespace lcodec {
     // cmd constants
     const uint8_t COM_SLEEP                 = 0x00;
     const uint8_t COM_CONNECT               = 0x0b;
     const uint8_t COM_STMT_PREPARE          = 0x16;
+    const uint8_t COM_STMT_EXECUTE          = 0x17;
     const uint8_t COM_STMT_CLOSE            = 0x19;
 
     // constants
@@ -213,33 +215,69 @@ namespace lcodec {
             columns.push_back(mysql_column { name, type, decimals });
         }
 
-        packet_type rows_decode(lua_State* L, mysql_columns& columns) {
+        void rows_bin_decode(lua_State* L, uint8_t type) {
+            switch (type) {
+            case MYSQL_TYPE_FLOAT:
+                lua_pushnumber(L, *(float*)m_packet.read<float>()); return;
+            case MYSQL_TYPE_DOUBLE:
+                lua_pushnumber(L, *(double*)m_packet.read<double>()); return;
+            case MYSQL_TYPE_TINY:
+                lua_pushinteger(L, *(int8_t*)m_packet.read<int8_t>()); return;
+            case MYSQL_TYPE_YEAR:
+            case MYSQL_TYPE_SHORT:
+                lua_pushinteger(L, *(int16_t*)m_packet.read<int16_t>()); return;
+            case MYSQL_TYPE_LONG:
+            case MYSQL_TYPE_INT24:
+                lua_pushinteger(L, *(int32_t*)m_packet.read<int32_t>()); return;
+            case MYSQL_TYPE_LONGLONG:
+                lua_pushinteger(L, *(int64_t*)m_packet.read<int64_t>()); return;
+            }
+            auto value = decode_length_encoded_string();
+            lua_pushlstring(L, value.data(), value.size());
+        }
+
+        void rows_text_decode(lua_State* L, uint8_t type) {
+            auto value = decode_length_encoded_string();
+            switch (type) {
+            case MYSQL_TYPE_FLOAT:
+            case MYSQL_TYPE_DOUBLE:
+                lua_pushnumber(L, strtod(value.data(), nullptr));
+                break;
+            case MYSQL_TYPE_TINY:
+            case MYSQL_TYPE_SHORT:
+            case MYSQL_TYPE_LONG:
+            case MYSQL_TYPE_INT24:
+            case MYSQL_TYPE_YEAR:
+            case MYSQL_TYPE_LONGLONG:
+            case MYSQL_TYPE_NEWDECIMAL:
+                lua_pushinteger(L, strtoll(value.data(), nullptr, 10));
+                break;
+            default:
+                lua_pushlstring(L, value.data(), value.size());
+                break;
+            }
+        }
+
+        packet_type rows_decode(lua_State* L, mysql_columns& columns, bool binary) {
             // rows
             size_t row_indx = 1;
             packet_type type = recv_packet();
-            while (type == packet_type::MP_DATA){
+            packet_type expect = binary ? packet_type::MP_OK : packet_type::MP_DATA;
+            while (type == expect){
                 // row
+                if (binary) {
+                    // null map bytes
+                    uint16_t len = (columns.size() + 7 + 2) / 8;
+                    // head + null map
+                    m_packet.erase(len + 1);
+                }
                 lua_createtable(L, 0, 8);
                 for (const mysql_column& column : columns) {
-                    auto value = decode_length_encoded_string();
                     lua_pushlstring(L, column.name.data(), column.name.size());
-                    switch (column.type) {
-                    case MYSQL_TYPE_FLOAT:
-                    case MYSQL_TYPE_DOUBLE:
-                        lua_pushnumber(L, strtod(value.data(), nullptr));
-                        break;
-                    case MYSQL_TYPE_TINY:
-                    case MYSQL_TYPE_SHORT:
-                    case MYSQL_TYPE_LONG:
-                    case MYSQL_TYPE_INT24:
-                    case MYSQL_TYPE_YEAR:
-                    case MYSQL_TYPE_LONGLONG:
-                    case MYSQL_TYPE_NEWDECIMAL:
-                        lua_pushinteger(L, strtoll(value.data(), nullptr, 10));
-                        break;
-                    default:
-                        lua_pushlstring(L, value.data(), value.size());
-                        break;
+                    if (binary) {
+                        rows_bin_decode(L, column.type);
+                    } else {
+                        rows_text_decode(L, column.type);
                     }
                     lua_rawset(L, -3);
                 }
@@ -265,7 +303,9 @@ namespace lcodec {
                 eof_packet_decode();
             }
             // rows data
-            packet_type type = rows_decode(L, columns);
+            mysql_cmd cmd = sessions.front();
+            bool binary = cmd.cmd_id == COM_STMT_EXECUTE;
+            packet_type type = rows_decode(L, columns, binary);
             lua_seti(L, -2, rset_idx);
             // terminator
             if (type == packet_type::MP_ERR) {
@@ -316,20 +356,14 @@ namespace lcodec {
             //type
             m_packet.read<uint8_t>();
             lua_pushboolean(L, false);
-            lua_createtable(L, 0, 4);
             //errnoo
-            lua_pushinteger(L, *(uint16_t*)m_packet.read<uint16_t>());
-            lua_setfield(L, -2, "errnoo");
+            uint16_t error_code = *(uint16_t*)m_packet.read<uint16_t>();
             //1 byte sql_state_marker (skip)
-            m_packet.erase(1);
-            //5 byte sql_state
-            char* sql_state = (char*)m_packet.erase(5);
-            lua_pushlstring(L, sql_state, 5);
-            lua_setfield(L, -2, "sql_state");
+            //5 byte sql_state (skip)
+            m_packet.erase(6);
             //error_message
-            auto error_message = m_packet.eof();
-            lua_pushlstring(L, error_message.data(), error_message.size());
-            lua_setfield(L, -2, "error_message");
+            auto message = m_packet.head();
+            lua_pushfstring(L, "Error(%d): %s !\0", error_code, message);
         }
 
         bool eof_packet_decode() {
@@ -351,15 +385,22 @@ namespace lcodec {
         }
 
         void prepare_decode(lua_State* L) {
-            recv_packet();
+            packet_type type = recv_packet();
+            if (type == packet_type::MP_ERR) {
+                return err_packet_decode(L);
+            }
             uint8_t status = *(uint8_t*)m_packet.read<uint8_t>();
             uint32_t statement_id = *(uint32_t*)m_packet.read<uint32_t>();
             uint16_t num_columns = *(uint16_t*)m_packet.read<uint16_t>();
             uint16_t num_params = *(uint16_t*)m_packet.read<uint16_t>();
-            int top = lua_gettop(L);
+            for (uint16_t i = 0; i < num_params; ++i) {
+                recv_packet();
+            }
+            for (uint16_t i = 0; i < num_columns; ++i) {
+                recv_packet();
+            }
+            lua_pushboolean(L, true);
             lua_pushinteger(L, statement_id);
-            lua_pushinteger(L, num_columns);
-            lua_pushinteger(L, num_params);
         }
 
         void auth_decode(lua_State* L) {

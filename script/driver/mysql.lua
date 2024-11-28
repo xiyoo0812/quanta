@@ -42,6 +42,7 @@ prop:reader("passwd", nil)      --passwd
 prop:reader("executer", nil)    --执行者
 prop:reader("connections", {})  --connections
 prop:reader("alives", {})       --alives
+prop:reader("stmts", {})        --预处理列表
 
 function MysqlDB:__init(conf)
     self.name = conf.db
@@ -60,6 +61,9 @@ function MysqlDB:__release()
 end
 
 function MysqlDB:close()
+    for name in pairs(self.stmts) do
+        self:stmt_close(name)
+    end
     for _, sock in pairs(self.alives) do
         sock:close()
     end
@@ -69,6 +73,7 @@ function MysqlDB:close()
     self.timer:unregister()
     self.connections = {}
     self.alives = {}
+    self.stmts = {}
 end
 
 function MysqlDB:set_options(opts)
@@ -197,23 +202,40 @@ function MysqlDB:query(query)
 end
 
 -- 注册预处理语句
-function MysqlDB:prepare(sql)
-    return self:request(COM_STMT_PREPARE, "mysql prepare", sql)
+function MysqlDB:prepare(name, sql)
+    local ok, stmt_id = self:request(COM_STMT_PREPARE, "mysql prepare", sql)
+    if ok then
+        self.stmts[name] = stmt_id
+        return true, stmt_id
+    end
+    return false, stmt_id
 end
 
 --执行预处理语句
-function MysqlDB:execute(prepare_id, ...)
-    return self:request(COM_STMT_EXECUTE, "mysql_execute", prepare_id, ...)
+function MysqlDB:execute(name, ...)
+    local stmt_id = self.stmts[name]
+    if stmt_id then
+        return self:request(COM_STMT_EXECUTE, "mysql execute", stmt_id, ...)
+    end
+    return false, "stmt not found"
 end
 
 --重置预处理句柄
-function MysqlDB:stmt_reset(prepare_id)
-    return self:request(COM_STMT_RESET , "mysql stmt_reset", prepare_id)
+function MysqlDB:stmt_reset(name)
+    local stmt_id = self.stmts[name]
+    if stmt_id then
+        return self:request(COM_STMT_RESET , "mysql stmt reset", stmt_id)
+    end
+    return false, "stmt not found"
 end
 
 --关闭预处理句柄，无返回包
-function MysqlDB:stmt_close(prepare_id)
-    return self:request(COM_STMT_CLOSE , "mysql stmt_close", prepare_id)
+function MysqlDB:stmt_close(name)
+    local stmt_id = self.stmts[name]
+    if stmt_id then
+        return self:request(COM_STMT_CLOSE , "mysql stmt close", stmt_id)
+    end
+    return false, "stmt not found"
 end
 
 local escape_map = {

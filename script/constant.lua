@@ -17,6 +17,7 @@ KernCode.LOGIC_FAILED       = 101   --业务执行失败
 KernCode.MYSQL_FAILED       = 102   --MYSQL执行失败
 KernCode.MONGO_FAILED       = 103   --MONGO执行失败
 KernCode.REDIS_FAILED       = 104   --REDIS执行失败
+KernCode.PGSQL_FAILED       = 105   --PGSQL执行失败
 
 --服务模式
 local QuantaMode = enum("QuantaMode", 0)

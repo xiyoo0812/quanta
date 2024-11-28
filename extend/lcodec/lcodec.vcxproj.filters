@@ -19,6 +19,9 @@
     <ClInclude Include="src\mysql.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\pgsql.h">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="src\redis.h">
       <Filter>src</Filter>
     </ClInclude>

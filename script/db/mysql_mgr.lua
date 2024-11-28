@@ -49,10 +49,10 @@ function MysqlMgr:execute(primary_id, stmt, ...)
     return MYSQL_FAILED, "mysql db not exist"
 end
 
-function MysqlMgr:prepare(sql)
+function MysqlMgr:prepare(stmt, sql)
     local mysqldb = self.mysql_db
     if mysqldb and mysqldb:set_executer() then
-        local ok, res_oe = mysqldb:prepare(sql)
+        local ok, res_oe = mysqldb:prepare(stmt, sql)
         if not ok then
             log_err("[MysqlMgr][prepare] prepare {} failed, because: {}", sql, res_oe)
         end

@@ -1,11 +1,11 @@
 -- mongo_test.lua
-local log_debug     = logger.debug
+import("db/mongo_mgr.lua")
+
 local bdate         = bson.date
+local log_debug     = logger.debug
 
 local timer_mgr     = quanta.get("timer_mgr")
-
-local MongoMgr      = import("db/mongo_mgr.lua")
-local mongo_mgr     = MongoMgr()
+local mongo_mgr     = quanta.get("mongo_mgr")
 
 local primary_id    = 1234567
 

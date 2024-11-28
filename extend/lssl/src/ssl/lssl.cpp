@@ -8,18 +8,22 @@
 #include "lssl.h"
 
 namespace lssl {
-    static char fromhex(unsigned char x) {
+    inline uint8_t* alloc_buff(size_t sz) {
+        auto buf = luakit::get_buff();
+        return buf->peek_space(sz);
+    }
+
+    inline char fromhex(unsigned char x) {
         if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
         else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
         else if (x >= '0' && x <= '9') return x - '0';
         else return x;
     }
 
-    static void hash(const char* str, int sz, char key[8]) {
+    inline void hash(const char* str, int sz, char key[8]) {
         long djb_hash = 5381L;
         long js_hash = 1315423911L;
-        int i;
-        for (i = 0; i < sz; i++) {
+        for (int i = 0; i < sz; i++) {
             char c = (char)str[i];
             djb_hash += (djb_hash << 5) + c;
             js_hash ^= ((js_hash << 5) + c + (js_hash >> 2));
@@ -36,16 +40,7 @@ namespace lssl {
         key[7] = (js_hash >> 24) & 0xff;
     }
 
-    static int lhashkey(lua_State* L) {
-        size_t sz = 0;
-        const char* key = luaL_checklstring(L, 1, &sz);
-        char realkey[8];
-        hash(key, (int)sz, realkey);
-        lua_pushlstring(L, (const char*)realkey, 8);
-        return 1;
-    }
-
-    static int tohex(lua_State* L, const unsigned char* text, size_t sz)     {
+    inline int tohex(lua_State* L, const unsigned char* text, size_t sz)     {
         static char hex[] = "0123456789abcdef";
         char tmp[UCHAR_MAX];
         char* buffer = tmp;
@@ -60,6 +55,15 @@ namespace lssl {
         return 1;
     }
 
+    static int lhashkey(lua_State* L) {
+        size_t sz = 0;
+        const char* key = luaL_checklstring(L, 1, &sz);
+        char realkey[8];
+        hash(key, (int)sz, realkey);
+        lua_pushlstring(L, (const char*)realkey, 8);
+        return 1;
+    }
+
     static int ltohex(lua_State* L) {
         size_t sz = 0;
         const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
@@ -67,15 +71,15 @@ namespace lssl {
     }
 
     static int lrandomkey(lua_State* L) {
-        char tmp[12];
-        int i;
-        for (i = 0; i < 12; i++) {
+        int size = luaL_optinteger(L, 1, 12);
+        auto tmp = alloc_buff(size);
+        for (int i = 0; i < size; i++) {
             tmp[i] = rand() & 0xff;
         }
-        if (luaL_optinteger(L, 1, 0)) {
-            return tohex(L, (const unsigned char*)tmp, 12);
+        if (luaL_optinteger(L, 2, 0)) {
+            return tohex(L, (const unsigned char*)tmp, size);
         }
-        lua_pushlstring(L, tmp, 12);
+        lua_pushlstring(L, (const char*)tmp, size);
         return 1;
     }
 
@@ -85,13 +89,9 @@ namespace lssl {
         if (sz & 2) {
             return luaL_error(L, "Invalid hex text size %lu", (int)sz);
         }
-        char tmp[UCHAR_MAX];
-        char* buffer = tmp;
-        if (sz > UCHAR_MAX * 2) {
-            buffer = (char*)lua_newuserdata(L, sz / 2);
-        }
-        size_t i;
-        for (i = 0; i < sz; i += 2) {
+        size_t len = sz / 2;
+        auto buffer = alloc_buff(len);
+        for (size_t i = 0; i < sz; i += 2) {
             char hi = fromhex(text[i]);
             char low = fromhex(text[i + 1]);
             if (hi > 16 || low > 16) {
@@ -99,7 +99,7 @@ namespace lssl {
             }
             buffer[i / 2] = hi << 4 | low;
         }
-        lua_pushlstring(L, buffer, i / 2);
+        lua_pushlstring(L, (const char*)buffer, len);
         return 1;
     }
 
@@ -129,10 +129,9 @@ namespace lssl {
         size_t data_len = 0;
         const char* input = luaL_checklstring(L, 1, &data_len);
         uint32_t out_len = BASE64_ENCODE_OUT_SIZE(data_len);
-        unsigned char* output = (unsigned char*)malloc(out_len);
+        unsigned char* output = alloc_buff(out_len);
         Base64_Encode_NoNl((unsigned char*)input, data_len, output, &out_len);
         lua_pushlstring(L, (const char*)output, out_len);
-        free(output);
         return 1;
     }
 
@@ -140,10 +139,9 @@ namespace lssl {
         size_t data_len = 0;
         const char* input = luaL_checklstring(L, 1, &data_len);
         uint32_t out_len = BASE64_DECODE_OUT_SIZE(data_len);
-        unsigned char* output = (unsigned char*)malloc(out_len);
+        unsigned char* output = alloc_buff(out_len);
         Base64_Decode((const unsigned char*)input, data_len, output, &out_len);
         lua_pushlstring(L, (const char*)output, out_len);
-        free(output);
         return 1;
     }
 
@@ -187,28 +185,64 @@ namespace lssl {
 
     static int zstd_encode(lua_State* L) {
         size_t data_len = 0;
-        char dest[USHRT_MAX];
         const char* message = luaL_checklstring(L, 1, &data_len);
-        size_t comp_ize = ZSTD_compress(dest, USHRT_MAX, message, data_len, ZSTD_defaultCLevel());
-        if (!ZSTD_isError(comp_ize)) {
-            lua_pushlstring(L, dest, comp_ize);
-            return 1;
+        size_t zsize = ZSTD_compressBound(data_len);
+        if (!ZSTD_isError(zsize)) {
+            auto buf = luakit::get_buff();
+            uint8_t* dest = buf->peek_space(zsize);
+            if (dest) {
+                size_t comp_ize = ZSTD_compress(dest, zsize, message, data_len, ZSTD_defaultCLevel());
+                if (!ZSTD_isError(comp_ize)) {
+                    lua_pushlstring(L, (const char*)dest, comp_ize);
+                    return 1;
+                }
+            }
         }
-        luaL_error(L, "zstd compress failed!");
-        return 0;
+        lua_pushnil(L);
+        lua_pushstring(L, "zstd compress failed!");
+        return 2;
     }
 
     static int zstd_decode(lua_State* L) {
         size_t data_len = 0;
-        char dest[USHRT_MAX];
         const char* message = luaL_checklstring(L, 1, &data_len);
-        size_t dec_size = ZSTD_decompress(dest, USHRT_MAX, message, data_len);
-        if (!ZSTD_isError(dec_size)) {
-            lua_pushlstring(L, dest, dec_size);
-            return 1;
+        size_t size = ZSTD_getFrameContentSize(message, data_len);
+        if (!ZSTD_isError(size)) {
+            auto buf = luakit::get_buff();
+            uint8_t* dest = buf->peek_space(size);
+            if (dest) {
+                size_t dec_size = ZSTD_decompress(dest, size, message, data_len);
+                if (!ZSTD_isError(dec_size)) {
+                    lua_pushlstring(L, (const char*)dest, dec_size);
+                    return 1;
+                }
+            }
         }
-        luaL_error(L, "zstd decompress failed!");
-        return 0;
+        lua_pushnil(L);
+        lua_pushstring(L, "zstd decompress failed!");
+        return 2;
+    }
+
+    static int pbkdf2_sha1(lua_State* L) {
+        size_t psz = 0, ssz = 0;
+        uint8_t digest[WC_SHA_DIGEST_SIZE];
+        const char* passwd = luaL_checklstring(L, 1, &psz);
+        const unsigned char* salt = (const unsigned char*)luaL_checklstring(L, 2, &ssz);
+        int iter = lua_tointeger(L, 3);
+        PKCS5_PBKDF2_HMAC_SHA1(passwd, psz, salt, ssz, iter, WC_SHA_DIGEST_SIZE, digest);
+        lua_pushlstring(L, (const char*)digest, WC_SHA_DIGEST_SIZE);
+        return 1;
+    }
+
+    static int pbkdf2_sha256(lua_State* L) {
+        size_t psz = 0, ssz = 0;
+        uint8_t digest[WC_SHA256_DIGEST_SIZE];
+        const char* passwd = luaL_checklstring(L, 1, &psz);
+        const unsigned char* salt = (const unsigned char*)luaL_checklstring(L, 2, &ssz);
+        int iter = lua_tointeger(L, 3);
+        PKCS5_PBKDF2_HMAC(passwd, psz, salt, ssz, iter, EVP_sha256(), WC_SHA256_DIGEST_SIZE, digest);
+        lua_pushlstring(L, (const char*)digest, WC_SHA256_DIGEST_SIZE);
+        return 1;
     }
 
     static int lsha1(lua_State* L) {
@@ -220,30 +254,12 @@ namespace lssl {
         return 1;
     }
 
-    static int lsha224(lua_State* L) {
-        size_t sz = 0;
-        uint8_t digest[WC_SHA224_DIGEST_SIZE];
-        const uint8_t* buffer = (const uint8_t*)luaL_checklstring(L, 1, &sz);
-        SHA224(buffer, sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA224_DIGEST_SIZE);
-        return 1;
-    }
-
     static int lsha256(lua_State* L) {
         size_t sz = 0;
         uint8_t digest[WC_SHA256_DIGEST_SIZE];
         const uint8_t* buffer = (const uint8_t*)luaL_checklstring(L, 1, &sz);
         SHA256(buffer, sz, digest);
         lua_pushlstring(L, (const char*)digest, WC_SHA256_DIGEST_SIZE);
-        return 1;
-    }
-
-    static int lsha384(lua_State* L) {
-        size_t sz = 0;
-        uint8_t digest[WC_SHA384_DIGEST_SIZE];
-        const uint8_t* buffer = (const uint8_t*)luaL_checklstring(L, 1, &sz);
-        SHA384(buffer, sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA384_DIGEST_SIZE);
         return 1;
     }
 
@@ -266,16 +282,6 @@ namespace lssl {
         return 1;
     }
 
-    static int lhmac_sha224(lua_State* L) {
-        size_t key_sz = 0, text_sz = 0;
-        uint8_t digest[WC_SHA224_DIGEST_SIZE];
-        const uint8_t* key = (const uint8_t*)luaL_checklstring(L, 1, &key_sz);
-        const uint8_t* text = (const uint8_t*)luaL_checklstring(L, 2, &text_sz);
-        hmac_sha224(key, key_sz, text, text_sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA224_DIGEST_SIZE);
-        return 1;
-    }
-
     static int lhmac_sha256(lua_State* L) {
         size_t key_sz = 0, text_sz = 0;
         uint8_t digest[WC_SHA256_DIGEST_SIZE];
@@ -283,16 +289,6 @@ namespace lssl {
         const uint8_t* text = (const uint8_t*)luaL_checklstring(L, 2, &text_sz);
         hmac_sha256(key, key_sz, text, text_sz, digest);
         lua_pushlstring(L, (const char*)digest, WC_SHA256_DIGEST_SIZE);
-        return 1;
-    }
-
-    static int lhmac_sha384(lua_State* L) {
-        size_t key_sz = 0, text_sz = 0;
-        uint8_t digest[WC_SHA384_DIGEST_SIZE];
-        const uint8_t* key = (const uint8_t*)luaL_checklstring(L, 1, &key_sz);
-        const uint8_t* text = (const uint8_t*)luaL_checklstring(L, 2, &text_sz);
-        hmac_sha384(key, key_sz, text, text_sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA384_DIGEST_SIZE);
         return 1;
     }
 
@@ -310,17 +306,14 @@ namespace lssl {
         size_t len1, len2;
         const char* s1 = luaL_checklstring(L, 1, &len1);
         const char* s2 = luaL_checklstring(L, 2, &len2);
-        if (len2 == 0) {
-            return luaL_error(L, "Can't xor empty string");
+        if (len2 < len1) {
+            return luaL_error(L, "Can't xor short src string");
         }
-        luaL_Buffer b;
-        char* buffer = luaL_buffinitsize(L, &b, len1);
-        size_t i;
-        for (i = 0; i < len1; i++) {
-            buffer[i] = s1[i] ^ s2[i % len2];
+        auto buffer = alloc_buff(len1);
+        for (size_t i = 0; i < len1; i++) {
+            buffer[i] = s1[i] ^ s2[i];
         }
-        luaL_addsize(&b, len1);
-        luaL_pushresult(&b);
+        lua_pushlstring(L, (const char*)buffer, len1);
         return 1;
     }
 
@@ -394,9 +387,7 @@ namespace lssl {
         luassl.set_function("crc16", lcrc16);
         luassl.set_function("crc8_msb", lcrc8_msb);
         luassl.set_function("sha1", lsha1);
-        luassl.set_function("sha224", lsha224);
         luassl.set_function("sha256", lsha256);
-        luassl.set_function("sha384", lsha384);
         luassl.set_function("sha512", lsha512);
         luassl.set_function("hashkey", lhashkey);
         luassl.set_function("xor_byte", lxor_byte);
@@ -408,10 +399,10 @@ namespace lssl {
         luassl.set_function("zstd_encode", zstd_encode);
         luassl.set_function("zstd_decode", zstd_decode);
         luassl.set_function("hmac_sha1", lhmac_sha1);
-        luassl.set_function("hmac_sha224", lhmac_sha224);
         luassl.set_function("hmac_sha256", lhmac_sha256);
-        luassl.set_function("hmac_sha384", lhmac_sha384);
         luassl.set_function("hmac_sha512", lhmac_sha512);
+        luassl.set_function("pbkdf2_sha1", pbkdf2_sha1);
+        luassl.set_function("pbkdf2_sha256", pbkdf2_sha256);
         luassl.set_function("b64_encode", lbase64_encode);
         luassl.set_function("b64_decode", lbase64_decode);
         luassl.set_function("xxtea_encode", lxxtea_encode);

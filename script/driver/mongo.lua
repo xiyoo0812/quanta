@@ -8,7 +8,6 @@ local tinsert       = table.insert
 local tunpack       = table.unpack
 local qjoin         = qtable.join
 local tdelete       = qtable.delete
-local ssub          = string.sub
 local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch
@@ -20,11 +19,13 @@ local makechan      = quanta.make_channel
 
 local lmd5          = ssl.md5
 local lsha1         = ssl.sha1
+local lxor_byte     = ssl.xor_byte
 local lrandomkey    = ssl.randomkey
 local lb64encode    = ssl.b64_encode
 local lb64decode    = ssl.b64_decode
 local lhmac_sha1    = ssl.hmac_sha1
-local lxor_byte     = ssl.xor_byte
+local pbkdf2_sha1   = ssl.pbkdf2_sha1
+
 local bsonpairs     = bson.pairs
 local bint64        = bson.int64
 
@@ -168,61 +169,47 @@ function MongoDB:salt_password(password, salt, iter)
     if self.salted_pass then
         return self.salted_pass
     end
-    salt = salt .. "\0\0\0\1"
-    local output = lhmac_sha1(password, salt)
-    local inter = output
-    for i = 2, iter do
-        inter = lhmac_sha1(password, inter)
-        output = lxor_byte(output, inter)
-    end
+    local output = pbkdf2_sha1(password, salt, iter)
     self.salted_pass = output
     return output
 end
 
 function MongoDB:auth(sock, username, password)
-    local nonce = lb64encode(lrandomkey())
+    local nonce = lrandomkey(16, 1)
     local user = sgsub(sgsub(username, '=', '=3D'), ',', '=2C')
-    local first_bare = "n="  .. user .. ",r="  .. nonce
-    local sasl_start_payload = lb64encode("n,," .. first_bare)
-    local sok, sdoc = self:adminCommand(sock, "saslStart", 1, "autoAuthorize", 1, "mechanism", "SCRAM-SHA-1", "payload", sasl_start_payload)
+    local first_bare = sformat("n=%s,r=%s", user, nonce)
+    local sasl_payload = lb64encode("n,," .. first_bare)
+    local sok, sdoc = self:adminCommand(sock, "saslStart", 1, "autoAuthorize", 1, "mechanism", "SCRAM-SHA-1", "payload", sasl_payload)
     if not sok then
         return sok, sdoc
     end
-    local conversationId = sdoc['conversationId']
-    local str_payload_start = lb64decode(sdoc['payload'])
-    local payload_start = {}
-    for k, v in sgmatch(str_payload_start, "(%w+)=([^,]*)") do
-        payload_start[k] = v
+    local payload = {}
+    local conversationId = sdoc.conversationId
+    local payload_start = lb64decode(sdoc.payload)
+    for k, v in sgmatch(payload_start, "(%w+)=([^,]*)") do
+        payload[k] = v
     end
-    local salt = payload_start['s']
-    local rnonce = payload_start['r']
-    if ssub(rnonce, 1, 16) ~= nonce then
-        return false, "Server returned an invalid nonce."
-    end
-    local without_proof = "c=biws,r=" .. rnonce
-    local iterations = tonumber(payload_start['i'])
+    local iterations = tonumber(payload.i)
     local pbkdf2_key = lmd5(sformat("%s:mongo:%s", username, password), 1)
-    local salted_pass = self:salt_password(pbkdf2_key, lb64decode(salt), iterations)
+    local salted_pass = self:salt_password(pbkdf2_key, lb64decode(payload.s), iterations)
     local client_key = lhmac_sha1(salted_pass, "Client Key")
-    local stored_key = lsha1(client_key)
-    local auth_msg = first_bare .. ',' .. str_payload_start .. ',' .. without_proof
-    local client_sig = lhmac_sha1(stored_key, auth_msg)
-    local client_key_xor_sig = lxor_byte(client_key, client_sig)
-    local client_proof = "p=" .. lb64encode(client_key_xor_sig)
-    local client_final = lb64encode(without_proof .. ',' .. client_proof)
-
+    local without_proof = sformat("c=biws,r=%s", payload.r)
+    local auth_msg = sformat("%s,%s,%s", first_bare, payload_start, without_proof)
+    local client_sig = lhmac_sha1(lsha1(client_key), auth_msg)
+    local client_xor_sig = lxor_byte(client_key, client_sig)
+    local client_proof = sformat("%s,p=%s", without_proof, lb64encode(client_xor_sig))
+    local client_final = lb64encode(client_proof)
     local cok, cdoc = self:adminCommand(sock, "saslContinue", 1, "conversationId", conversationId, "payload", client_final)
     if not cok then
         return cok, cdoc
     end
-    local payload_continue = {}
-    local str_payload_continue = lb64decode(cdoc['payload'])
-    for k, v in sgmatch(str_payload_continue, "(%w+)=([^,]*)") do
-        payload_continue[k] = v
+    local payload_continue = lb64decode(cdoc.payload)
+    for k, v in sgmatch(payload_continue, "(%w+)=([^,]*)") do
+        payload[k] = v
     end
     local server_key = lhmac_sha1(salted_pass, "Server Key")
     local server_sig = lb64encode(lhmac_sha1(server_key, auth_msg))
-    if payload_continue['v'] ~= server_sig then
+    if payload.v ~= server_sig then
         return false, "Server returned an invalid signature."
     end
     if not cdoc.done then
