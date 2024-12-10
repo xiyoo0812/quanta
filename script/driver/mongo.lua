@@ -66,10 +66,6 @@ function MongoDB:__init(conf)
     self.res_counter = quanta.make_sampling("mongo res")
 end
 
-function MongoDB:__release()
-    self:close()
-end
-
 function MongoDB:close()
     for sock in pairs(self.alives) do
         sock:close()

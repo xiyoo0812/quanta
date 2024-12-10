@@ -30,10 +30,6 @@ function Socket:__init(host, ip, port)
     self.ip = ip
 end
 
-function Socket:__release()
-    self:close()
-end
-
 function Socket:close()
     if self.session then
         self.session.close()

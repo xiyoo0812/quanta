@@ -14,8 +14,11 @@ namespace lsmdb {
         ~smdb_driver() { close(); }
 
         void close() {
-            if (m_smdb) m_smdb->close();
-            m_smdb = nullptr;
+            if (m_smdb) {
+                m_smdb->close();
+                delete m_smdb;
+                m_smdb = nullptr;
+            }
         }
 
         void set_codec(codec_base* codec) {

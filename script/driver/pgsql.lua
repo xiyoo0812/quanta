@@ -33,8 +33,7 @@ local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
---local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 1)
-local POOL_COUNT    = 1
+local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 1)
 
 local AUTH_TYPE     = codec.auth_type_t
 local REQUEST_CMD   = codec.pgsql_type_f
@@ -51,8 +50,8 @@ prop:reader("passwd", nil)      --passwd
 prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
 prop:reader("connections", {})  --connections
+prop:reader("stmt_querys", {})  --预处理列表
 prop:reader("alives", {})       --alives
-prop:reader("stmts", {})        --预处理列表
 
 function PgsqlDB:__init(conf)
     self.name = conf.db
@@ -66,10 +65,6 @@ function PgsqlDB:__init(conf)
     update_mgr:attach_hour(self)
 end
 
-function PgsqlDB:__release()
-    self:close()
-end
-
 function PgsqlDB:close()
     for _, sock in pairs(self.alives) do
         sock:close()
@@ -79,8 +74,8 @@ function PgsqlDB:close()
     end
     self.timer:unregister()
     self.connections = {}
+    self.stmt_querys = {}
     self.alives = {}
-    self.stmts = {}
 end
 
 function PgsqlDB:set_options(opts)
@@ -114,6 +109,7 @@ function PgsqlDB:setup_pool(hosts)
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
             socket:set_id(count)
+            socket.stmts = {}
             count = count + 1
         end
     end
@@ -233,6 +229,7 @@ function PgsqlDB:auth(socket)
 end
 
 function PgsqlDB:delive(sock)
+    sock.stmts = {}
     tdelete(self.alives, sock)
     self.connections[sock.id] = sock
 end
@@ -272,25 +269,45 @@ function PgsqlDB:request(cmd, quote, ...)
     return false, "send request failed"
 end
 
-function PgsqlDB:send(cmd, ...)
-    if self.executer then
-        self.executer:send_data(cmd, 0, ...)
-    end
-end
-
 function PgsqlDB:query(query)
     return self:request(REQUEST_CMD.query, "pgsql query", query .. '\0')
 end
 
+function PgsqlDB:send(cmd, ...)
+    self.executer:send_data(cmd, 0, ...)
+end
+
 -- 注册预处理语句
 function PgsqlDB:prepare(name, sql)
-    local query = sformat("%s\0%s\0%s", name, sql, ZERO_BIT2)
+    self.stmt_querys[name] = sformat("%s\0%s\0%s", name, sql, ZERO_BIT2)
+    return true
+end
+
+function PgsqlDB:prepare_check(name)
+    if not self.executer then
+        return false, "db not connected"
+    end
+    if self.executer.stmts[name] then
+        return true
+    end
+    local query = self.stmt_querys[name]
+    if not query then
+        return false, "prepare statement not found"
+    end
     self:send(REQUEST_CMD.parse, query)
-    return self:request(REQUEST_CMD.sync, "pgsql prepare")
+    local ok, res_err = self:request(REQUEST_CMD.sync, "pgsql prepare")
+    if not ok then
+        return false, res_err
+    end
+    self.executer.stmts[name] = true
+    return true
 end
 
 --执行预处理语句
 function PgsqlDB:execute(name, ...)
+    if not self:prepare_check(name) then
+        return false, "prepare statement not found"
+    end
     local argfmt = ""
     local bind_args = {...}
     for _, val in pairs(bind_args) do
@@ -302,12 +319,6 @@ function PgsqlDB:execute(name, ...)
     self:send(REQUEST_CMD.discribe, 'S' .. name .. '\0')
     self:send(REQUEST_CMD.execute, sformat("%s\0%s", name, ZERO_BIT4))
     return self:request(REQUEST_CMD.sync, "pgsql execute")
-end
-
---关闭预处理句柄
-function PgsqlDB:stmt_close(name)
-    self:send(REQUEST_CMD.close, 'S' .. name .. '\0')
-    return self:request(REQUEST_CMD.sync, "pgsql stmt close")
 end
 
 local escape_map = {

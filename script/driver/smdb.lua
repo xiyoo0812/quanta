@@ -54,8 +54,9 @@ function SMDB:open(name)
 end
 
 function SMDB:put(key, value, sheet)
-    log_dump("[SMDB][put] {}.{}={}", sheet, key, value)
-    local code = self.driver.put(sformat("%s:%s", key, sheet), value)
+    --log_dump("[SMDB][put] {}.{}={}", sheet, key, value)
+    key = sheet and sformat("%s:%s", sheet, key) or key
+    local code = self.driver.put(key, value)
     if code ~= SMDB_SUCCESS then
         log_err("[SMDB][put] put key {} failed: {}!", key, code)
         return false
@@ -64,13 +65,15 @@ function SMDB:put(key, value, sheet)
 end
 
 function SMDB:get(key, sheet)
-    local data = self.driver.get(sformat("%s:%s", key, sheet))
+    key = sheet and sformat("%s:%s", sheet, key) or key
+    local data = self.driver.get(key)
     log_dump("[SMDB][get] {}.{}={}", sheet, key, data)
     return data or {}, true
 end
 
 function SMDB:del(key, sheet)
-    self.driver.del(sformat("%s:%s", key, sheet))
+    key = sheet and sformat("%s:%s", sheet, key) or key
+    self.driver.del(key)
 end
 
 function SMDB:autoinc_id()
@@ -84,16 +87,16 @@ function SMDB:autoinc_id()
 end
 
 --迭代器
-function SMDB:iter(key)
+function SMDB:iter()
     local flag = nil
     local driver = self.driver
     local function iter()
         local k, v
         if not flag then
             flag = true
-            k, v = driver.cursor_first()
+            k, v = driver.first()
         else
-            k, v = driver.cursor_next()
+            k, v = driver.next()
         end
         return k, v
     end

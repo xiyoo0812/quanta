@@ -70,9 +70,12 @@ namespace lsmdb {
         }
 
         void close() {
-            unmap_file();
-            m_values.clear();
-            if (m_file) fclose(m_file);
+            if (m_file) {
+                unmap_file();
+                m_values.clear();
+                fclose(m_file);
+                m_file = nullptr;
+            }
         }
 
         smdb_code put(string& key, string_view val) {

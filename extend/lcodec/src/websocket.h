@@ -7,8 +7,6 @@ using namespace luakit;
 
 namespace lcodec {
 
-    
-
     class wsscodec : public codec_base {
     public:
         virtual int load_packet(size_t data_len) {

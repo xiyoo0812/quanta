@@ -30,8 +30,6 @@ local COM_CONNECT       = 0x0b
 local COM_PING          = 0x0e
 local COM_STMT_PREPARE  = 0x16
 local COM_STMT_EXECUTE  = 0x17
-local COM_STMT_CLOSE    = 0x19
-local COM_STMT_RESET    = 0x1a
 
 local MysqlDB = class()
 local prop = property(MysqlDB)
@@ -41,8 +39,8 @@ prop:reader("timer", nil)       --timer
 prop:reader("passwd", nil)      --passwd
 prop:reader("executer", nil)    --执行者
 prop:reader("connections", {})  --connections
+prop:reader("stmt_querys", {})  --预处理列表
 prop:reader("alives", {})       --alives
-prop:reader("stmts", {})        --预处理列表
 
 function MysqlDB:__init(conf)
     self.name = conf.db
@@ -56,14 +54,7 @@ function MysqlDB:__init(conf)
     update_mgr:attach_hour(self)
 end
 
-function MysqlDB:__release()
-    self:close()
-end
-
 function MysqlDB:close()
-    for name in pairs(self.stmts) do
-        self:stmt_close(name)
-    end
     for _, sock in pairs(self.alives) do
         sock:close()
     end
@@ -72,8 +63,8 @@ function MysqlDB:close()
     end
     self.timer:unregister()
     self.connections = {}
+    self.stmt_querys = {}
     self.alives = {}
-    self.stmts = {}
 end
 
 function MysqlDB:set_options(opts)
@@ -106,6 +97,7 @@ function MysqlDB:setup_pool(hosts)
         for c = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
+            socket.stmts = {}
             socket:set_id(count)
             count = count + 1
         end
@@ -166,6 +158,7 @@ function MysqlDB:auth(socket)
 end
 
 function MysqlDB:delive(sock)
+    sock.stmts = {}
     tdelete(self.alives, sock)
     self.connections[sock.id] = sock
 end
@@ -203,39 +196,37 @@ end
 
 -- 注册预处理语句
 function MysqlDB:prepare(name, sql)
-    local ok, stmt_id = self:request(COM_STMT_PREPARE, "mysql prepare", sql)
-    if ok then
-        self.stmts[name] = stmt_id
+    self.stmt_querys[name] = sql
+    return true
+end
+
+function MysqlDB:prepare_check(name)
+    if not self.executer then
+        return false, "db not connected"
+    end
+    local stmt_id = self.executer.stmts[name]
+    if stmt_id then
         return true, stmt_id
     end
-    return false, stmt_id
+    local query = self.stmt_querys[name]
+    if not query then
+        return false, "prepare statement not found"
+    end
+    local ok, stmtid_or_err = self:request(COM_STMT_PREPARE, "mysql prepare", query)
+    if not ok then
+        return true, stmtid_or_err
+    end
+    self.executer.stmts[name] = stmtid_or_err
+    return true, stmtid_or_err
 end
 
 --执行预处理语句
 function MysqlDB:execute(name, ...)
-    local stmt_id = self.stmts[name]
-    if stmt_id then
-        return self:request(COM_STMT_EXECUTE, "mysql execute", stmt_id, ...)
+    local stmt_id = self:check_prepare(name)
+    if not stmt_id then
+        return false, "prepare statement not found"
     end
-    return false, "stmt not found"
-end
-
---重置预处理句柄
-function MysqlDB:stmt_reset(name)
-    local stmt_id = self.stmts[name]
-    if stmt_id then
-        return self:request(COM_STMT_RESET , "mysql stmt reset", stmt_id)
-    end
-    return false, "stmt not found"
-end
-
---关闭预处理句柄，无返回包
-function MysqlDB:stmt_close(name)
-    local stmt_id = self.stmts[name]
-    if stmt_id then
-        return self:request(COM_STMT_CLOSE , "mysql stmt close", stmt_id)
-    end
-    return false, "stmt not found"
+    return self:request(COM_STMT_EXECUTE, "mysql execute", stmt_id, ...)
 end
 
 local escape_map = {

@@ -53,7 +53,8 @@ end
 
 function Unqlite:put(key, value, sheet)
     log_dump("[Unqlite][put] {}.{}={}", sheet, key, value)
-    local code = self.driver.put(sformat("%s:%s", key, sheet), value)
+    key = sheet and sformat("%s:%s", sheet, key) or key
+    local code = self.driver.put(key, value)
     if code ~= UNQLITE_OK then
         log_err("[Unqlite][put] put key {} failed: {}!", key, code)
         return false
@@ -62,7 +63,8 @@ function Unqlite:put(key, value, sheet)
 end
 
 function Unqlite:get(key, sheet)
-    local data, rc = self.driver.get(sformat("%s:%s", key, sheet))
+    key = sheet and sformat("%s:%s", sheet, key) or key
+    local data, rc = self.driver.get(key)
     log_dump("[Unqlite][get] {}.{}={}={}", sheet, key, data, rc)
     if rc == UNQLITE_NOTFOUND or rc == UNQLITE_OK then
         return data, true
@@ -71,7 +73,8 @@ function Unqlite:get(key, sheet)
 end
 
 function Unqlite:del(key, sheet)
-    local rc =  self.driver.del(sformat("%s:%s", key, sheet))
+    key = sheet and sformat("%s:%s", sheet, key) or key
+    local rc =  self.driver.del(key)
     return rc == UNQLITE_NOTFOUND or rc == UNQLITE_OK
 end
 

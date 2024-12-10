@@ -112,10 +112,6 @@ function RedisDB:__init(conf)
     self:setup(conf)
 end
 
-function RedisDB:__release()
-    self:close()
-end
-
 function RedisDB:close()
     for _, sock in pairs(self.alives) do
         sock:close()
