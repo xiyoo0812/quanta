@@ -2,12 +2,13 @@
 local smdb          = require("lsmdb")
 
 local log_debug     = logger.debug
-local jsoncodec     = json.jsoncodec
+--local jsoncodec     = json.jsoncodec
+local luacodec      = luakit.luacodec
 
 local driver = smdb.create()
-local jcodec = jsoncodec()
+local lcodec = luacodec()
 
-driver.set_codec(jcodec)
+driver.set_codec(lcodec)
 local ok = driver.open("./smdb/xxx.db")
 log_debug("open: {}", ok)
 
@@ -43,15 +44,20 @@ for i = 1, 6 do
     log_debug("del_get-{}: {}", key, da)
 end
 
+log_debug("status: {}, {}, {}", driver.count(), driver.size(), driver.capacity())
+
 local t1 = timer.clock_ms()
-local cc = 100000
-for i = 1, cc do
-    local key = "abc" .. i
-    local val = { a = i, t = timer.clock_ms() , key = key}
-    local code = driver.put(key, val)
-    if code ~= 0 then
-        log_debug("put error: {}, {}", key, code)
+local cc, dd = 100, 10000
+for i = 1, dd do
+    for j = 1, cc do
+        local key = "abc" .. j
+        local val = { a = i, b=j, t = timer.clock_ms() , key = key}
+        local code = driver.put(key, val)
+        if code ~= 0 then
+            log_debug("put error: {}, {}", key, code)
+        end
     end
 end
 local t2 = timer.clock_ms()
-log_debug("put -{}: {}", t2-t1, cc * 1000 / (t2-t1))
+log_debug("profile： {}, {}", t2-t1, cc * dd * 1000 / (t2-t1))
+log_debug("status: {}, {}, {}", driver.count(), driver.size(), driver.capacity())

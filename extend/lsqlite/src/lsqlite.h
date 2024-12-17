@@ -9,7 +9,7 @@ using namespace luakit;
 namespace lsqlite {
     class sqlite_stmt {
     public:
-        sqlite_stmt(sqlite3* db, sqlite3_stmt* stmt, codec_base* codec) : m_sdb(db), m_stmt(stmt), m_jcodec(codec){}
+        sqlite_stmt(sqlite3* db, sqlite3_stmt* stmt, codec_base* codec) : m_sdb(db), m_stmt(stmt), m_codec(codec){}
         ~sqlite_stmt() { close(); }
 
         void close() {
@@ -88,7 +88,7 @@ namespace lsqlite {
             case SQLITE_TEXT: lua_pushlstring(L, (const char*)sqlite3_column_text(m_stmt, col), sqlite3_column_bytes(m_stmt, col)); break;
             case SQLITE_BLOB: {
                 try {
-                    m_jcodec->decode(L, (uint8_t*)sqlite3_column_blob(m_stmt, col), sqlite3_column_bytes(m_stmt, col));
+                    m_codec->decode(L, (uint8_t*)sqlite3_column_blob(m_stmt, col), sqlite3_column_bytes(m_stmt, col));
                 } catch (...) {
                     lua_pushlstring(L, (const char*)sqlite3_column_blob(m_stmt, col), sqlite3_column_bytes(m_stmt, col));
                 }
@@ -121,8 +121,8 @@ namespace lsqlite {
             break;
             case LUA_TTABLE: {
                 size_t len;
-                if (!m_jcodec) luaL_error(L, "sqlite bind_value value type %s not suppert!", lua_typename(L, vidx));
-                const char* str = (const char*)m_jcodec->encode(L, vidx, &len);
+                if (!m_codec) luaL_error(L, "sqlite bind_value value type %s not suppert!", lua_typename(L, vidx));
+                const char* str = (const char*)m_codec->encode(L, vidx, &len);
                 sqlite3_bind_blob(m_stmt, param_index, str, len, SQLITE_TRANSIENT);
             }
             break;
@@ -143,7 +143,7 @@ namespace lsqlite {
     private:
         sqlite3* m_sdb = nullptr;
         sqlite3_stmt* m_stmt = nullptr;
-        codec_base* m_jcodec = nullptr;
+        codec_base* m_codec = nullptr;
     };
 
     class sqlite_driver {
@@ -157,11 +157,11 @@ namespace lsqlite {
         }
 
         void set_codec(codec_base* codec) {
-            m_jcodec = codec;
+            m_codec = codec;
         }
 
         codec_base* get_codec() {
-            return m_jcodec;
+            return m_codec;
         }
         
         int open(lua_State* L) {
@@ -233,7 +233,7 @@ namespace lsqlite {
                 return handler_err(L, rc);
             }
             lua_pushinteger(L, rc);
-            lua_push_object(L, new sqlite_stmt(m_sdb, stmt, m_jcodec));
+            lua_push_object(L, new sqlite_stmt(m_sdb, stmt, m_codec));
             return 2;
         }
 
@@ -249,6 +249,6 @@ namespace lsqlite {
 
     protected:
         sqlite3* m_sdb = nullptr;
-        codec_base* m_jcodec = nullptr;
+        codec_base* m_codec = nullptr;
     };
 }

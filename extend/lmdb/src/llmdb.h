@@ -20,7 +20,7 @@ namespace llmdb {
         }
 
         void set_codec(codec_base* codec) {
-            m_jcodec = codec;
+            m_codec = codec;
         }
 
         int32_t sync(bool force = true) {
@@ -254,11 +254,11 @@ namespace llmdb {
     protected:
         void read_key(lua_State* L, int idx, MDB_val& val) {
             int type = lua_type(L, idx);
-            if (m_jcodec) {
+            if (m_codec) {
                 switch (type) {
                 case LUA_TNUMBER: {
                         size_t len;
-                        char* body = (char*)m_jcodec->encode(L, idx, &len);
+                        char* body = (char*)m_codec->encode(L, idx, &len);
                         strncpy(m_keys, body, len);
                         val = MDB_val{ len, (void*)m_keys };
                     }
@@ -284,7 +284,7 @@ namespace llmdb {
 
         void read_value(lua_State* L, int idx, MDB_val& val) {
             int type = lua_type(L, idx);
-            if (m_jcodec) {
+            if (m_codec) {
                 switch (type) {
                 case LUA_TNIL:
                 case LUA_TTABLE:
@@ -292,7 +292,7 @@ namespace llmdb {
                 case LUA_TSTRING:
                 case LUA_TBOOLEAN: {
                         size_t len;
-                        char* body = (char*)m_jcodec->encode(L, idx, &len);
+                        char* body = (char*)m_codec->encode(L, idx, &len);
                         val = MDB_val{ len, (void*)body };
                     }
                     break;
@@ -317,9 +317,9 @@ namespace llmdb {
         }
 
         void push_value(lua_State* L, MDB_val& val) {
-            if (m_jcodec) {
+            if (m_codec) {
                 try {
-                    m_jcodec->decode(L, (uint8_t*)val.mv_data, val.mv_size);
+                    m_codec->decode(L, (uint8_t*)val.mv_data, val.mv_size);
                 } catch (...) {
                     lua_pushlstring(L, (const char*)val.mv_data, val.mv_size);
                 }
@@ -337,7 +337,7 @@ namespace llmdb {
         MDB_txn* _txn = nullptr;
         MDB_txn* _ro_txn = nullptr;
         MDB_cursor* _cur = nullptr;
-        codec_base* m_jcodec = nullptr;
+        codec_base* m_codec = nullptr;
         char m_keys[max_key_size];
     };
 }

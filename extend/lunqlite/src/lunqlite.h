@@ -22,7 +22,7 @@ namespace lunqlite {
         }
 
         void set_codec(codec_base* codec) {
-            m_jcodec = codec;
+            m_codec = codec;
         }
 
         int open(lua_State* L, const char* path, int mode) {
@@ -140,10 +140,10 @@ namespace lunqlite {
 
         const char* read_key(lua_State* L, int idx, size_t* len) {
             int type = lua_type(L, idx);
-            if (m_jcodec) {
+            if (m_codec) {
                 switch (type) {
                 case LUA_TNUMBER:
-                    return (const char*)m_jcodec->encode(L, idx, len);
+                    return (const char*)m_codec->encode(L, idx, len);
                 case LUA_TSTRING:
                     return lua_tolstring(L, idx, len);
                 default:
@@ -157,14 +157,14 @@ namespace lunqlite {
 
         const char* read_value(lua_State* L, int idx, size_t* len) {
             int type = lua_type(L, idx);
-            if (m_jcodec) {
+            if (m_codec) {
                 switch (type) {
                 case LUA_TNIL:
                 case LUA_TTABLE:
                 case LUA_TNUMBER:
                 case LUA_TSTRING:
                 case LUA_TBOOLEAN:
-                    return (const char*)m_jcodec->encode(L, idx, len);
+                    return (const char*)m_codec->encode(L, idx, len);
                 default:
                     luaL_error(L, "lunqlite read value type %s not suppert!", lua_typename(L, idx));
                     break;
@@ -182,9 +182,9 @@ namespace lunqlite {
         }
 
         void push_value(lua_State* L, size_t len) {
-            if (m_jcodec) {
+            if (m_codec) {
                 try {
-                    m_jcodec->decode(L, (uint8_t*)m_buf, len);
+                    m_codec->decode(L, (uint8_t*)m_buf, len);
                 } catch (...) {
                     lua_pushlstring(L, (const char*)m_buf, len);
                 }
@@ -198,7 +198,7 @@ namespace lunqlite {
     protected:
         unqlite* m_udb = nullptr;
         unqlite_kv_cursor* m_ucur = nullptr;
-        codec_base* m_jcodec = nullptr;
+        codec_base* m_codec = nullptr;
         char m_buf[max_jsonbuf_size];
     };
 }

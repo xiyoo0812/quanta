@@ -11,17 +11,14 @@
 
 namespace luakit {
     inline thread_local luabuf lbuf;
-    inline thread_local luacodec lcodec;
-
     inline luabuf* get_buff() {
         return &lbuf;
     }
 
-    inline codec_base* get_codec() {
-        if (!lcodec.get_buff()) {
-            lcodec.set_buff(&lbuf);
-        }
-        return &lcodec;
+    inline codec_base* lua_codec() {
+        luacodec* codec = new luacodec();
+        codec->set_buff(&lbuf);
+        return codec;
     }
 
     class kit_state {
@@ -41,6 +38,7 @@ namespace luakit {
             );
             lua_checkstack(m_L, 1024);
             lua_table luakit = new_table("luakit");
+            luakit.set_function("luacodec", lua_codec);
             luakit.set_function("encode", [&](lua_State* L) { return encode(L, &lbuf); });
             luakit.set_function("decode", [&](lua_State* L) { return decode(L, &lbuf); });
             luakit.set_function("unserialize", [&](lua_State* L) {  return unserialize(L); });

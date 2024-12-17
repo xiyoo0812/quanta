@@ -5,7 +5,7 @@
 #include "socket_mgr.h"
 #include "socket_router.h"
 
-class luarpc_codec : public luacodec {
+class luarpc_codec : public codec_base {
 public:
     virtual int load_packet(size_t data_len) {
         if (!m_slice) return 0;

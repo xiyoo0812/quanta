@@ -19,6 +19,19 @@ using environ_map = std::map<sstring, sstring>;
 
 namespace lworker {
 
+    class worker_codec : public codec_base {
+    public:
+        virtual int load_packet(size_t data_len) {
+            if (!m_slice) return 0;
+            uint32_t* packet_len = (uint32_t*)m_slice->peek(sizeof(uint32_t));
+            if (!packet_len) return 0;
+            if (m_packet_len > 0xffffff) return -1;
+            if (m_packet_len > data_len) return 0;
+            if (!m_slice->peek(m_packet_len)) return 0;
+            return m_packet_len;
+        }
+    };
+
     static slice* read_slice(std::shared_ptr<luabuf> buff, size_t* pack_len) {
         uint8_t* plen = buff->peek_data(sizeof(uint32_t));
         if (plen) {
@@ -48,6 +61,7 @@ namespace lworker {
         }
 
         ~worker() {
+            m_codec.set_buff(nullptr);
             m_lua->close();
         }
 
@@ -86,9 +100,9 @@ namespace lworker {
             const char* ns = m_namespace.c_str();
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
-                m_codec->set_slice(slice);
-                m_lua->table_call(ns, "on_worker", nullptr, m_codec, std::tie());
-                if (m_codec->failed()) {
+                m_codec.set_slice(slice);
+                m_lua->table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
+                if (m_codec.failed()) {
                     m_read_buf->clean();
                     break;
                 }
@@ -126,7 +140,7 @@ namespace lworker {
         }
 
         void run(){
-            m_codec = luakit::get_codec();
+            m_codec.set_buff(luakit::get_buff());
             auto quanta = m_lua->new_table(m_namespace.c_str());
             auto tid = std::this_thread::get_id();
             quanta.set("thread", m_name);
@@ -139,7 +153,7 @@ namespace lworker {
             quanta.set_function("setenv", [&](const char* key, const char* value) { return set_env(key, value, 1); });
             quanta.set_function("call", [&](lua_State* L, vstring name) {
                 size_t data_len;
-                uint8_t* data = m_codec->encode(L, 2, &data_len);
+                uint8_t* data = m_codec.encode(L, 2, &data_len);
                 return m_schedulor->call(L, name, data, data_len);
             });
             auto ehandler = [&](vstring err) {
@@ -179,8 +193,8 @@ namespace lworker {
         std::thread m_thread;
         bool m_stop = false;
         bool m_running = true;
+        worker_codec m_codec;
         environ_map m_environs = {};
-        codec_base* m_codec = nullptr;
         ischeduler* m_schedulor = nullptr;
         std::shared_ptr<kit_state> m_lua = nullptr;
         std::string m_name, m_namespace, m_platform;

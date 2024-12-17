@@ -133,6 +133,8 @@ namespace lyaml {
         case YAML_MAPPING_NODE:
             decode_mapping(L, doc, node);
             break;
+        default:
+            break;
         }
     }
 

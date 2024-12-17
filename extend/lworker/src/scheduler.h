@@ -12,6 +12,7 @@ namespace lworker {
     {
     public:
         ~scheduler() {
+            m_codec.set_buff(nullptr);
             shutdown();
         }
 
@@ -21,7 +22,7 @@ namespace lworker {
             lua_table quanta = m_lua->get<lua_table>(ns.data());
             m_platform = quanta.get<sstring>("platform");
             quanta.get("environs", m_environs);
-            m_codec = luakit::get_codec();
+            m_codec.set_buff(luakit::get_buff());
         }
 
         std::shared_ptr<worker> find_worker(vstring name) {
@@ -46,12 +47,12 @@ namespace lworker {
         }
 
         uint8_t* encode(lua_State* L, size_t& data_len) {
-            return m_codec->encode(L, 2, &data_len);
+            return m_codec.encode(L, 2, &data_len);
         }
 
         int broadcast(lua_State* L) {
             size_t data_len;
-            uint8_t* data = m_codec->encode(L, 2, &data_len);
+            uint8_t* data = m_codec.encode(L, 2, &data_len);
             if (data) {
                 std::unique_lock<spin_mutex> lock(m_mutex);
                 for (auto it : m_worker_map) {
@@ -104,9 +105,9 @@ namespace lworker {
             const char* ns = m_namespace.c_str();
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
-                m_codec->set_slice(slice);
-                m_lua->table_call(ns, "on_scheduler", nullptr, m_codec, std::tie());
-                if (m_codec->failed()) {
+                m_codec.set_slice(slice);
+                m_lua->table_call(ns, "on_scheduler", nullptr, &m_codec, std::tie());
+                if (m_codec.failed()) {
                     m_read_buf->clean();
                     break;
                 }
@@ -146,9 +147,9 @@ namespace lworker {
 
     private:
         spin_mutex m_mutex;
+        worker_codec m_codec;
         uint64_t m_last_tick = 0;
         environ_map m_environs = {};
-        codec_base* m_codec = nullptr;
         sstring m_namespace, m_platform;
         std::shared_ptr<kit_state> m_lua = nullptr;
         std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();

@@ -126,7 +126,7 @@ namespace luapb {
         }
     };
     
-    static codec_base* pb_codec() {
+    inline codec_base* pb_codec() {
         pbcodec* codec = new pbcodec();
         codec->set_buff(luakit::get_buff());
         return codec;

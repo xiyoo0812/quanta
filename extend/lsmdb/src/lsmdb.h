@@ -21,13 +21,12 @@ namespace lsmdb {
             }
         }
 
-        void set_codec(codec_base* codec) {
-            m_jcodec = codec;
-        }
-
-        void flush() {
-            if (m_smdb) m_smdb->flush();
-        }
+        void flush() { if (m_smdb) m_smdb->flush(); }
+        void set_codec(codec_base* codec) { m_codec = codec; }
+        
+        size_t size() { return m_smdb ? m_smdb->size() : 0; }
+        size_t count() { return m_smdb ? m_smdb->count() : 0; }
+        size_t capacity() { return m_smdb ? m_smdb->capacity() : 0; }
 
         smdb_code open(const char* path) {
             close();
@@ -50,11 +49,19 @@ namespace lsmdb {
             return smdb_code::SMDB_DB_NOT_INIT;
         }
 
-        bool del(lua_State* L) {
-            if (!m_smdb) return false;
-            auto key = read_key(L, 1);
-            m_smdb->del(key);
-            return true;
+        smdb_code del(lua_State* L) {
+            if (m_smdb){
+                auto key = read_key(L, 1);
+                return m_smdb->del(key);
+            }
+            return smdb_code::SMDB_DB_NOT_INIT;
+        }
+
+        smdb_code clear(lua_State* L) {
+            if (m_smdb){
+                return m_smdb->clear();
+            }
+            return smdb_code::SMDB_DB_NOT_INIT;
         }
 
         int get(lua_State* L) {
@@ -113,14 +120,14 @@ namespace lsmdb {
         string_view read_value(lua_State* L, int idx) {
             size_t len;
             int type = lua_type(L, idx);
-            if (m_jcodec) {
+            if (m_codec) {
                 switch (type) {
                 case LUA_TNIL:
                 case LUA_TTABLE:
                 case LUA_TNUMBER:
                 case LUA_TSTRING:
                 case LUA_TBOOLEAN: {
-                    const char* buf = (const char*)m_jcodec->encode(L, idx, &len);
+                    const char* buf = (const char*)m_codec->encode(L, idx, &len);
                     return string_view(buf, len);
                 }
                 default:
@@ -136,9 +143,9 @@ namespace lsmdb {
         }
 
         void push_value(lua_State* L, const char* buf, size_t len) {
-            if (m_jcodec) {
+            if (m_codec) {
                 try {
-                    m_jcodec->decode(L, (uint8_t*)buf, len);
+                    m_codec->decode(L, (uint8_t*)buf, len);
                 } catch (...) {
                     lua_pushlstring(L, buf, len);
                 }
@@ -151,6 +158,6 @@ namespace lsmdb {
 
     protected:
         smdb* m_smdb = nullptr;
-        codec_base* m_jcodec = nullptr;
+        codec_base* m_codec = nullptr;
     };
 }

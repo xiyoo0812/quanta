@@ -14,6 +14,7 @@ namespace lsmdb {
         smdb.new_enum("smdb_code",
             "SMDB_SUCCESS", smdb_code::SMDB_SUCCESS,
             "SMDB_DB_NOT_INIT", smdb_code::SMDB_DB_NOT_INIT,
+            "SMDB_DB_ITER_ING", smdb_code::SMDB_DB_ITER_ING,
             "SMDB_SIZE_KEY_FAIL", smdb_code::SMDB_SIZE_KEY_FAIL,
             "SMDB_SIZE_VAL_FAIL", smdb_code::SMDB_SIZE_VAL_FAIL,
             "SMDB_FILE_OPEN_FAIL", smdb_code::SMDB_FILE_OPEN_FAIL,
@@ -29,9 +30,13 @@ namespace lsmdb {
             "del", &smdb_driver::del,
             "open", &smdb_driver::open,
             "next", &smdb_driver::next,
+            "size", &smdb_driver::size,
+            "count", &smdb_driver::count,
             "first", &smdb_driver::first,
             "flush", &smdb_driver::flush,
             "close", &smdb_driver::close,
+            "clear", &smdb_driver::clear,
+            "capacity", &smdb_driver::capacity,
             "set_codec", &smdb_driver::set_codec
         );
         return smdb;
