@@ -26,11 +26,11 @@ for i = 1, 6 do
     log_debug("get-{}: {}", key, da)
 end
 
--- local k, v = driver.first()
--- while v do
---     log_debug("cursor: {}={}", k, v)
---     k, v = driver.next()
--- end
+local k, v = driver.first()
+while v do
+    log_debug("cursor: {}={}", k, v)
+    k, v = driver.next()
+end
 
 b = driver.del("abc2")
 a = driver.del("abc5")

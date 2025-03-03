@@ -6,6 +6,7 @@
 
 #ifdef WIN32
 #include <io.h>
+#include <windows.h>
 #define fileno _fileno
 #define ftruncate _chsize
 #define filelength _filelength
@@ -221,6 +222,7 @@ namespace lsmdb {
             m_buffer = (char*)mmap(NULL, m_alloc, PROT_WRITE, MAP_SHARED, m_fd, 0);
 #endif // WIN32
             if (!m_buffer) return smdb_code::SMDB_FILE_MMAP_FAIL;
+            memset(m_buffer, 0, m_alloc - m_offset);
             return smdb_code::SMDB_SUCCESS;
         }
 
@@ -284,7 +286,11 @@ namespace lsmdb {
                 uint32_t size = ksz + vsz + sizeof(uint32_t);
                 if (offset + size > m_alloc) break;
                 if (offset > noffset) {
+                    //迁移数据
                     memcpy(m_buffer + noffset, m_buffer + offset, size);
+                    //防止被中断，写入hole信息
+                    uint32_t hole_size = offset - noffset;
+                    memcpy(m_buffer + noffset + size, &hole_size, sizeof(uint32_t));
                 }
                 auto key = string_view(m_buffer + noffset + sizeof(uint32_t), ksz);
                 uint32_t voffset = noffset + ksz + sizeof(uint32_t);

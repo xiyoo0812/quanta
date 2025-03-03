@@ -12,7 +12,7 @@ local tsize         = qtable.size
 local log_warn      = logger.warn
 local log_err       = logger.err
 
-local QueueFIFO     = import("container/queue_fifo.lua")
+local Queue         = import("container/queue.lua")
 
 local SECOND_30_MS  = quanta.enum("PeriodTime", "SECOND_30_MS")
 local SYNC_FRAME    = environ.number("QUANTA_SYNCLOCK_FRAME", 50)
@@ -28,7 +28,7 @@ prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
     self.session_id = mrandom()
-    self.coroutine_pool = QueueFIFO(512)
+    self.coroutine_pool = Queue(512)
 end
 
 function ThreadMgr:idle_size()
@@ -56,7 +56,7 @@ end
 function ThreadMgr:lock(key, waiting)
     local queue = self.syncqueue_map[key]
     if not queue then
-        queue = QueueFIFO()
+        queue = Queue()
         queue.sync_num = 0
         self.syncqueue_map[key] = queue
     end

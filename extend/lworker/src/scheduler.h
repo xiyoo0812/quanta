@@ -34,11 +34,11 @@ namespace lworker {
             return nullptr;
         }
 
-        bool startup(vstring name, environ_map& envs, vstring conf, kit_state* ks) {
+        bool startup(vstring name, environ_map& envs, vstring conf) {
             std::unique_lock<spin_mutex> lock(m_mutex);
             auto it = m_worker_map.find(name);
             if (it == m_worker_map.end()) {
-                auto workor = std::make_shared<worker>(this, ks, name, m_namespace, m_platform);
+                auto workor = std::make_shared<worker>(this, name, m_namespace, m_platform);
                 m_worker_map.insert(std::make_pair(name, workor));
                 workor->startup(m_environs, envs, conf);
                 return true;
@@ -56,7 +56,7 @@ namespace lworker {
             if (data) {
                 std::unique_lock<spin_mutex> lock(m_mutex);
                 for (auto it : m_worker_map) {
-                    it.second->call(L, data, data_len);
+                    it.second->call(data, data_len);
                 }
             }
             return 0;
@@ -65,12 +65,12 @@ namespace lworker {
         int call(lua_State* L, vstring name, uint8_t* data, size_t data_len) {
             if (data) {
                 if (name == "master") {
-                    lua_pushboolean(L, call(L, data, data_len));
+                    lua_pushboolean(L, call(data, data_len));
                     return 1;
                 }
                 auto workor = find_worker(name);
                 if (workor) {
-                    lua_pushboolean(L, workor->call(L, data, data_len));
+                    lua_pushboolean(L, workor->call(data, data_len));
                     return 1;
                 }
             }
@@ -78,7 +78,7 @@ namespace lworker {
             return 1;
         }
 
-        bool call(lua_State* L, uint8_t* data, size_t data_len) {
+        bool call(uint8_t* data, size_t data_len) {
             std::unique_lock<spin_mutex> lock(m_mutex);
             uint8_t* target = m_write_buf->peek_space(data_len + sizeof(uint32_t));
             if (target) {

@@ -6,9 +6,9 @@ local qfailed       = quanta.failed
 local sformat       = string.format
 local guid_string   = codec.guid_string
 
+local Queue         = import("container/queue.lua")
 local SessionModule = import("robot/module/session.lua")
 local RobotCase     = import("robot/nodes/robot_case.lua")
-local QueueFIFO     = import("container/queue_fifo.lua")
 
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -50,7 +50,7 @@ function Robot:send_gm(gm)
 end
 
 function Robot:bind_message_eueue()
-    self.messages = QueueFIFO()
+    self.messages = Queue()
 end
 
 function Robot:check_case(case)

@@ -4,11 +4,10 @@ import("kernel.lua")
 local log_err       = logger.err
 local log_debug     = logger.debug
 
-local event_mgr     = quanta.get("event_mgr")
-
 local WorkerTest = class()
 
 function WorkerTest:__init()
+    local event_mgr = quanta.get("event_mgr")
     event_mgr:add_listener(self, "test_worker_rpc")
 end
 

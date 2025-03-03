@@ -20,7 +20,7 @@ namespace lworker {
         llworker.set_function("startup", [](lua_State* L, vstring name, vstring conf) {
             environ_map args;
             lua_to_native(L, 3, args);
-            return schedulor.startup(name, args, conf, lua_to_native<luakit::kit_state*>(L, 4));
+            return schedulor.startup(name, args, conf);
         });
         llworker.set_function("stop", [](vstring name) {
             schedulor.stop(name);

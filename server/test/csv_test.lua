@@ -1,6 +1,8 @@
 --csv_test.lua
 --luacheck: ignore 631
 
+require("lcsv")
+
 local log_dump  = logger.dump
 
 local csvdata = [[

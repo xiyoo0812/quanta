@@ -1,23 +1,21 @@
 -- cache_mgr.lua
+import("driver/smdb.lua")
 import("db/mongo_mgr.lua")
-import("db/redis_mgr.lua")
 
 local log_err       = logger.err
 local log_debug     = logger.debug
 local tsort         = table.sort
 local tinsert       = table.insert
-local ssplit        = qstring.split
 local qfailed       = quanta.failed
-local convint       = qmath.conv_integer
 local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
-local redis_mgr     = quanta.get("redis_mgr")
 local mongo_mgr     = quanta.get("mongo_mgr")
 local router_mgr    = quanta.get("router_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local update_mgr    = quanta.get("update_mgr")
+local smdb_driver   = quanta.get("smdb_driver")
 
 local cache_db      = config_mgr:init_table("cache", "sheet")
 
@@ -35,13 +33,13 @@ local CacheMgr = singleton()
 local prop = property(CacheMgr)
 prop:reader("caches", {})           -- caches
 prop:reader("groups", {})           -- groups
-prop:reader("kindexs", {})          -- kindexs
 prop:reader("collections", {})      -- collections
 prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
 prop:reader("counter", nil)
 
 function CacheMgr:__init()
+    smdb_driver:open(quanta.name)
     -- 监听rpc事件
     event_mgr:add_listener(self, "rpc_cache_load")
     event_mgr:add_listener(self, "rpc_cache_copy")
@@ -74,18 +72,6 @@ function CacheMgr:__init()
     end
 end
 
-function CacheMgr:build_fields(field)
-    local fields = self.kindexs[field]
-    if not fields then
-        fields = ssplit(field, ".")
-        for i, sfield in ipairs(fields) do
-            fields[i] = convint(sfield)
-        end
-        self.kindexs[field] = fields
-    end
-    return fields, #fields
-end
-
 --RPC hook
 function CacheMgr:on_cache_hook(hook, rpc, primary_id)
     hook:register(function()
@@ -110,9 +96,6 @@ end
 
 --更新数据
 function CacheMgr:on_frame()
-    if not redis_mgr:available() then
-        return
-    end
     if not mongo_mgr:available() then
         return
     end
@@ -133,7 +116,7 @@ function CacheMgr:on_frame()
         end
     end
     --删除数据
-    local del_channel = makechan("save cache")
+    local del_channel = makechan("del cache")
     for doc in pairs(self.del_documents) do
         del_channel:push(function()
             local ok, code = doc:destory()
@@ -186,7 +169,11 @@ function CacheMgr:load_group(coll_name, primary_id)
         return DB_LOAD_ERR
     end
     local groups = self.caches[group_name]
-    groups:set(primary_id, group)
+    local _, out_group = groups:set(primary_id, group)
+    if out_group then
+        --被LRU换出的数据需要存库
+        out_group:flush()
+    end
     router_mgr:call_cache_all("on_cache_ready", group_name, primary_id)
     return SUCCESS, group
 end
@@ -222,10 +209,10 @@ function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
             end
         end
         if router_id == 0 then
-            doc:update_commit({{}, "routers", {}, true})
+            doc:update_commit({{}, "routers", nil, {}})
         else
             local old_svr_id = routers[serv_name]
-            doc:update_commit({{}, "routers", {router = router_id, [serv_name] = serv_id }})
+            doc:update_commit({{}, "routers", nil, {router = router_id, [serv_name] = serv_id }})
             --通知节点改变
             if old_svr_id and old_svr_id > 0 and old_svr_id ~= serv_id then
                 router_mgr:send_target(old_svr_id, "rpc_service_svr_changed", primary_id)

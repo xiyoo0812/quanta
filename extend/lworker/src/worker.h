@@ -55,14 +55,13 @@ namespace lworker {
     class worker
     {
     public:
-        worker(ischeduler* schedulor, kit_state* ks, vstring name, vstring ns, vstring plat)
+        worker(ischeduler* schedulor, vstring name, vstring ns, vstring plat)
             : m_schedulor(schedulor), m_name(name), m_namespace(ns), m_platform(plat) {
-            m_lua = std::shared_ptr<kit_state>(ks);
         }
 
         ~worker() {
             m_codec.set_buff(nullptr);
-            m_lua->close();
+            m_lua.close();
         }
 
         const char* get_env(const char* key) {
@@ -77,7 +76,20 @@ namespace lworker {
             }
         }
 
-        bool call(lua_State* L, uint8_t* data, size_t data_len) {
+        void add_path(const char* field, const char* path) {
+            auto handle = m_environs.extract(field);
+            if (handle.empty()) {
+                m_environs[field] = path;
+                m_lua.set_path(field, path);
+                return;
+            }
+            auto& epath = handle.mapped();
+            epath.append(path);
+            m_environs.insert(std::move(handle));
+            m_lua.set_path(field, epath.c_str());
+        }
+
+        bool call(uint8_t* data, size_t data_len) {
             std::unique_lock<spin_mutex> lock(m_mutex);
             uint8_t* target = m_write_buf->peek_space(data_len + sizeof(uint32_t));
             if (target) {
@@ -101,7 +113,7 @@ namespace lworker {
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
                 m_codec.set_slice(slice);
-                m_lua->table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
+                m_lua.table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
                 if (m_codec.failed()) {
                     m_read_buf->clean();
                     break;
@@ -119,10 +131,11 @@ namespace lworker {
                     std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
                     set_env(ekey.c_str(), value.c_str(), 1);
                 }
-                m_lua->set("platform", m_platform);
-                m_lua->set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
-                m_lua->set_function("set_path", [&](const char* field, const char* path) { m_lua->set_path(field, path); });
-                m_lua->run_script(fmt::format("dofile('{}')", conf), [&](std::string_view err) {
+                m_lua.set("platform", m_platform);
+                m_lua.set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
+                m_lua.set_function("add_path", [&](const char* field, const char* path) { add_path(field, path); });
+                m_lua.set_function("set_path", [&](const char* field, const char* path) { m_lua.set_path(field, path); });
+                m_lua.run_script(fmt::format("dofile('{}')", conf), [&](std::string_view err) {
                     printf("worker load conf %s failed, because: %s", conf.data(), err.data());
                 });
             } else {
@@ -133,7 +146,7 @@ namespace lworker {
                     set_env(ekey.c_str(), value.c_str(), 1);
                 }
                 if (auto it = old_envs.find("LUA_PATH"); it != old_envs.end()) {
-                    m_lua->set_path(it->first.c_str(), it->second.c_str());
+                    m_lua.set_path(it->first.c_str(), it->second.c_str());
                 }
             }
             std::thread(&worker::run, this).swap(m_thread);
@@ -141,7 +154,7 @@ namespace lworker {
 
         void run(){
             m_codec.set_buff(luakit::get_buff());
-            auto quanta = m_lua->new_table(m_namespace.c_str());
+            auto quanta = m_lua.new_table(m_namespace.c_str());
             auto tid = std::this_thread::get_id();
             quanta.set("thread", m_name);
             quanta.set("pid", ::getpid());
@@ -156,24 +169,27 @@ namespace lworker {
                 uint8_t* data = m_codec.encode(L, 2, &data_len);
                 return m_schedulor->call(L, name, data, data_len);
             });
+            quanta.set_function("broadcast", [&](lua_State* L) {
+                return m_schedulor->broadcast(L);
+            });
             auto ehandler = [&](vstring err) {
                 m_running = false;
                 printf("worker load failed, because: %s\n", err.data());
             };
             auto sandbox = get_env("QUANTA_SANDBOX");
             if (sandbox) {
-                if (!m_lua->run_script(fmt::format("require '{}'", sandbox), ehandler)) return;
+                if (!m_lua.run_script(fmt::format("require '{}'", sandbox), ehandler)) return;
             }
             auto entry = get_env("QUANTA_ENTRY");
-            if (!m_lua->run_script(fmt::format("require '{}'", entry), ehandler)) return;
+            if (!m_lua.run_script(fmt::format("require '{}'", entry), ehandler)) return;
 
             const char* ns = m_namespace.c_str();
             while (m_running) {
                 if (m_stop) {
-                    m_lua->table_call(ns, "stop");
+                    m_lua.table_call(ns, "stop");
                     m_running = false;
                 }
-                m_lua->table_call(ns, "run");
+                m_lua.table_call(ns, "run");
             }
         }
 
@@ -194,9 +210,9 @@ namespace lworker {
         bool m_stop = false;
         bool m_running = true;
         worker_codec m_codec;
+        luakit::kit_state m_lua;
         environ_map m_environs = {};
         ischeduler* m_schedulor = nullptr;
-        std::shared_ptr<kit_state> m_lua = nullptr;
         std::string m_name, m_namespace, m_platform;
         std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
         std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();

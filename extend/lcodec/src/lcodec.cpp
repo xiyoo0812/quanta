@@ -62,10 +62,7 @@ namespace lcodec {
         llcodec.set_function("guid_index", guid_index);
         llcodec.set_function("guid_time", guid_time);
         llcodec.set_function("hash_code", hash_code);
-        llcodec.set_function("jumphash", jumphash_l);
-        llcodec.set_function("fnv_1_32", fnv_1_32_l);
-        llcodec.set_function("fnv_1a_32", fnv_1a_32_l);
-        llcodec.set_function("murmur3_32", murmur3_32_l);
+        llcodec.set_function("hashkey", lhashkey);
         llcodec.set_function("httpccodec", httpc_codec);
         llcodec.set_function("httpdcodec", httpd_codec);
         llcodec.set_function("mysqlcodec", mysql_codec);

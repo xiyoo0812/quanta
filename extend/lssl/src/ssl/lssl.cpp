@@ -20,26 +20,6 @@ namespace lssl {
         else return x;
     }
 
-    inline void hash(const char* str, int sz, char key[8]) {
-        long djb_hash = 5381L;
-        long js_hash = 1315423911L;
-        for (int i = 0; i < sz; i++) {
-            char c = (char)str[i];
-            djb_hash += (djb_hash << 5) + c;
-            js_hash ^= ((js_hash << 5) + c + (js_hash >> 2));
-        }
-
-        key[0] = djb_hash & 0xff;
-        key[1] = (djb_hash >> 8) & 0xff;
-        key[2] = (djb_hash >> 16) & 0xff;
-        key[3] = (djb_hash >> 24) & 0xff;
-
-        key[4] = js_hash & 0xff;
-        key[5] = (js_hash >> 8) & 0xff;
-        key[6] = (js_hash >> 16) & 0xff;
-        key[7] = (js_hash >> 24) & 0xff;
-    }
-
     inline int tohex(lua_State* L, const unsigned char* text, size_t sz)     {
         static char hex[] = "0123456789abcdef";
         char tmp[UCHAR_MAX];
@@ -52,15 +32,6 @@ namespace lssl {
             buffer[i * 2 + 1] = hex[text[i] & 0xf];
         }
         lua_pushlstring(L, buffer, sz * 2);
-        return 1;
-    }
-
-    static int lhashkey(lua_State* L) {
-        size_t sz = 0;
-        const char* key = luaL_checklstring(L, 1, &sz);
-        char realkey[8];
-        hash(key, (int)sz, realkey);
-        lua_pushlstring(L, (const char*)realkey, 8);
         return 1;
     }
 
@@ -317,22 +288,8 @@ namespace lssl {
         return 1;
     }
 
-    static lua_rsa_key* lrsa_init_pubkey(std::string_view pem_key) {
-        lua_rsa_key* key = new lua_rsa_key();
-        if (!key->init_pubkey(pem_key)) {
-            delete key;
-            key = nullptr;
-        }
-        return key;
-    }
-
-    static lua_rsa_key* lrsa_init_prikey(std::string_view pem_key) {
-        lua_rsa_key* key = new lua_rsa_key();
-        if (!key->init_prikey(pem_key)) {
-            delete key;
-            key = nullptr;
-        }
-        return key;
+    static lua_rsa_key* lrsa_key(std::string_view pem_key) {
+        return new lua_rsa_key();
     }
 
     static int lcrc8(lua_State* L) {
@@ -389,7 +346,6 @@ namespace lssl {
         luassl.set_function("sha1", lsha1);
         luassl.set_function("sha256", lsha256);
         luassl.set_function("sha512", lsha512);
-        luassl.set_function("hashkey", lhashkey);
         luassl.set_function("xor_byte", lxor_byte);
         luassl.set_function("hex_encode", ltohex);
         luassl.set_function("hex_decode", lfromhex);
@@ -407,14 +363,15 @@ namespace lssl {
         luassl.set_function("b64_decode", lbase64_decode);
         luassl.set_function("xxtea_encode", lxxtea_encode);
         luassl.set_function("xxtea_decode", lxxtea_decode);
-        luassl.set_function("rsa_init_pubkey", lrsa_init_pubkey);
-        luassl.set_function("rsa_init_prikey", lrsa_init_prikey);
         luassl.set_function("tlscodec", tls_codec);
+        luassl.set_function("rsa_key", lrsa_key);
         kit_state.new_class<lua_rsa_key>(
-            "pub_encode", &lua_rsa_key::pub_encode,
-            "pub_decode", &lua_rsa_key::pub_decode,
-            "pri_encode", &lua_rsa_key::pri_encode,
-            "pri_decode", &lua_rsa_key::pri_decode
+            "set_pubkey", &lua_rsa_key::set_pubkey,
+            "set_prikey", &lua_rsa_key::set_prikey,
+            "encrypt", &lua_rsa_key::encrypt,
+            "decrypt", &lua_rsa_key::decrypt,
+            "verify", &lua_rsa_key::verify,
+            "sign", &lua_rsa_key::sign
         );
         kit_state.new_class<tlscodec>(
             "init_tls", &tlscodec::init_tls,

@@ -23,13 +23,6 @@ namespace lcsv {
                 type = "blank";
             }
         }
-
-        cell* clone() {
-            cell* cl = new cell();
-            cl->type = type;
-            cl->value = value;
-            return cl;
-        }
     };
 
     class sheet {

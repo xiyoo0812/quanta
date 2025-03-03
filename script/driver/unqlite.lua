@@ -20,7 +20,7 @@ local KVDB_PATH         = environ.get("QUANTA_KVDB_PATH", "./kvdb/")
 local Unqlite = singleton()
 local prop = property(Unqlite)
 prop:reader("driver", nil)
-prop:reader("jcodec", nil)
+prop:reader("lcodec", nil)
 prop:reader("name", nil)
 
 function Unqlite:__init()
@@ -42,10 +42,10 @@ end
 
 function Unqlite:open(name)
     local driver = unqlite.create()
-    local jcodec = json.jsoncodec()
-    driver.set_codec(jcodec)
+    local lcodec = luakit.luacodec()
+    driver.set_codec(lcodec)
     self.driver = driver
-    self.jcodec = jcodec
+    self.lcodec = lcodec
     self.name = sformat("%s%s.db", KVDB_PATH, name)
     local rc = driver.open(self.name)
     log_debug("[Unqlite][open] open Unqlite {}:{}!", name, rc)

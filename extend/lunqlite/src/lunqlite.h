@@ -140,18 +140,12 @@ namespace lunqlite {
 
         const char* read_key(lua_State* L, int idx, size_t* len) {
             int type = lua_type(L, idx);
-            if (m_codec) {
-                switch (type) {
-                case LUA_TNUMBER:
-                    return (const char*)m_codec->encode(L, idx, len);
-                case LUA_TSTRING:
-                    return lua_tolstring(L, idx, len);
-                default:
-                    luaL_error(L, "lunqlite read key type %s not suppert!", lua_typename(L, idx));
-                    break;
-                }
+            if (type != LUA_TSTRING && type != LUA_TNUMBER) {
+                luaL_error(L, "lsmdb read key %d type %s not suppert!", idx, lua_typename(L, idx));
             }
-            if (type != LUA_TSTRING) luaL_error(L, "lunqlite read key type %s not suppert!", lua_typename(L, idx));
+            if (m_codec) {
+                return (const char*)m_codec->encode(L, idx, len);
+            }
             return lua_tolstring(L, idx, len);
         }
 
@@ -170,15 +164,10 @@ namespace lunqlite {
                     break;
                 }
             }
-            switch (type) {
-            case LUA_TNUMBER:
-            case LUA_TSTRING:
-                return lua_tolstring(L, idx, len);
-            default:
-                luaL_error(L, "lunqlite read value type %d not suppert!", type);
-                break;
+            if (type != LUA_TSTRING && type != LUA_TNUMBER) {
+                luaL_error(L, "lunqlite read value %d type %s not suppert!", idx, lua_typename(L, idx));
             }
-            return nullptr;
+            return lua_tolstring(L, idx, len);
         }
 
         void push_value(lua_State* L, size_t len) {

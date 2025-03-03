@@ -219,7 +219,7 @@ namespace lbson {
         void pack_binary(lua_State* L) {
             lua_guard g(L);
             size_t bin_len;
-            lua_getfield(L, -1, "binrary");
+            lua_getfield(L, -1, "binary");
             const char* bin = lua_tolstring(L, -1, &bin_len);
             lua_getfield(L, -2, "subtype");
             m_buff->write<uint32_t>(bin_len);
@@ -554,7 +554,7 @@ namespace lbson {
                         lua_setfield(L, -2, "subtype");
                         const char* s = read_bytes(L, slice, len);
                         lua_pushlstring(L, s, len);
-                        lua_setfield(L, -2, "binray");
+                        lua_setfield(L, -2, "binary");
                     }
                     break;
                 case bson_type::BSON_REGEX: {

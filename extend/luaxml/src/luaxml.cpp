@@ -24,7 +24,7 @@ namespace luaxml {
             if (lua_stringtonumber(L, value) == 0) {
                 lua_pushstring(L, value);
             }
-            lua_seti(L, -2, 1);
+            lua_setfield(L, -2, "__text");
         }
         if (attr) {
             lua_createtable(L, 0, 4);
@@ -35,7 +35,7 @@ namespace luaxml {
                 lua_setfield(L, -2, attr->Name());
                 attr = attr->Next();
             }
-            lua_setfield(L, -2, "_attr");
+            lua_setfield(L, -2, "__attr");
         }
         if (count > 0) {
             const XMLElement* child = elem->FirstChildElement();
@@ -67,7 +67,7 @@ namespace luaxml {
     static void load_elem4lua(lua_State* L, XMLPrinter* printer);
     static void load_table4lua(lua_State* L, XMLPrinter* printer) {
         lua_guard g(L);
-        if (lua_getfield(L, -1, "_attr") == LUA_TTABLE) {
+        if (lua_getfield(L, -1, "__attr") == LUA_TTABLE) {
             lua_pushnil(L);
             while (lua_next(L, -2) != 0) {
                 const char* key = lua_tostring(L, -2);
@@ -80,14 +80,14 @@ namespace luaxml {
             }
         }
         lua_pushnil(L);
-        lua_setfield(L, -3, "_attr");
-        switch (lua_geti(L, -2, 1)) {
+        lua_setfield(L, -3, "__attr");
+        switch (lua_getfield(L, -2, "__text")) {
         case LUA_TSTRING: printer->PushText(lua_tostring(L, -1)); break;
         case LUA_TBOOLEAN: printer->PushText(lua_toboolean(L, -1)); break;
         case LUA_TNUMBER: lua_isinteger(L, -1) ? printer->PushText(int64_t(lua_tointeger(L, -1))) : printer->PushText(lua_tonumber(L, -1)); break;
         }
         lua_pushnil(L);
-        lua_seti(L, -4, 1);
+        lua_setfield(L, -4, "__text");
         lua_pushnil(L);
         while (lua_next(L, -4) != 0) {
             load_elem4lua(L, printer);
@@ -194,6 +194,7 @@ namespace luaxml {
             lua_pop(L, 1);
         }
         fclose(fp);
+        lua_pushboolean(L, true);
         return 1;
     }
 

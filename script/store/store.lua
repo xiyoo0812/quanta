@@ -34,10 +34,10 @@ function Store:flush(obj, timely)
     log_debug("[Store][flush] {}.{}={}", self.primary_id, self.sheet, self.wholes)
 end
 
-function Store:update_value(parentkeys, key, value)
-    log_dump("[Store][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), key, value)
+function Store:update_value(layers, key, value)
+    log_dump("[Store][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(layers, "."), key, value)
     local cur_data = self.wholes
-    for _, cfield in ipairs(parentkeys) do
+    for _, cfield in ipairs(layers) do
         if not cur_data[cfield] then
             cur_data[cfield] = {}
         end
@@ -46,10 +46,10 @@ function Store:update_value(parentkeys, key, value)
     cur_data[key] = value
 end
 
-function Store:update_field(parentkeys, field, key, value)
-    log_dump("[Store][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), field, key, value)
+function Store:update_field(layers, field, key, value)
+    log_dump("[Store][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(layers, "."), field, key, value)
     local cur_data = self.wholes
-    for _, cfield in ipairs(parentkeys) do
+    for _, cfield in ipairs(layers) do
         if not cur_data[cfield] then
             cur_data[cfield] = {}
         end

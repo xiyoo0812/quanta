@@ -46,8 +46,7 @@ function Scheduler:startup(name, entry, params, conf)
         args.entry = entry
         args.discover = "0"
     end
-    local ks = quanta.new_kitstate()
-    local ok, wok_oe = pcall(worker.startup, name, conf, args, ks)
+    local ok, wok_oe = pcall(worker.startup, name, conf, args)
     if not ok then
         log_err("[Scheduler][startup] startup thread {} failed: {}", name, wok_oe)
     end

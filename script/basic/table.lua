@@ -199,7 +199,18 @@ local function tslice(src, spos, epos)
     return dst
 end
 
---截取
+--数组是否相等
+local function tequal(src, dst)
+    local max = #src > #dst and #src or #dst
+    for i = 1, max do
+        if src[i] ~= dst[i] then
+            return false
+        end
+    end
+    return true
+end
+
+--设置弱表
 local function tweak(src, mode)
     return setmetatable(src, { __mode = mode or "kv" })
 end
@@ -224,5 +235,6 @@ qtable.tkarray      = tkarray
 qtable.kvarray      = tkvarray
 qtable.mapsort      = tmapsort
 qtable.slice        = tslice
+qtable.equal        = tequal
 qtable.weak         = tweak
 

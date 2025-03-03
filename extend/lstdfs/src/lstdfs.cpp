@@ -66,6 +66,16 @@ namespace lstdfs {
         }
     }
 
+    int lstdfs_remove_file(lua_State* L, string_view path) {
+        try {
+            bool res = remove(path);
+            return variadic_return(L, res);
+        }
+        catch (filesystem_error const& e) {
+            return variadic_return(L, false, e.what());
+        }
+    }
+
     int lstdfs_copy(lua_State* L, string_view from, string_view to, copy_options option) {
         try {
             filesystem::copy(from, to, option);
@@ -121,6 +131,10 @@ namespace lstdfs {
 
     string lstdfs_relative_path(string_view path) {
         return fspath(path).relative_path().string();
+    }
+
+    string lstdfs_relative(string_view path, string_view base) {
+        return relative(path, base).string();
     }
 
     string lstdfs_append(string_view path, string_view append_path) {
@@ -253,6 +267,7 @@ namespace lstdfs {
         lstdfs.set_function("concat", lstdfs_concat);
         lstdfs.set_function("temp_dir", lstdfs_temp_dir);
         lstdfs.set_function("absolute", lstdfs_absolute);
+        lstdfs.set_function("relative", lstdfs_relative);
         lstdfs.set_function("filetype", lstdfs_filetype);
         lstdfs.set_function("filename", lstdfs_filename);
         lstdfs.set_function("copy_file", lstdfs_copy_file);
@@ -260,8 +275,9 @@ namespace lstdfs {
         lstdfs.set_function("extension", lstdfs_extension);
         lstdfs.set_function("root_name", lstdfs_root_name);
         lstdfs.set_function("root_path", lstdfs_root_path);
-        lstdfs.set_function("is_absolute", lstdfs_is_absolute);
         lstdfs.set_function("parent_path", lstdfs_parent_path);
+        lstdfs.set_function("remove_file", lstdfs_remove_file);
+        lstdfs.set_function("is_absolute", lstdfs_is_absolute);
         lstdfs.set_function("is_directory", lstdfs_is_directory);
         lstdfs.set_function("current_path", lstdfs_current_path);
         lstdfs.set_function("relative_path", lstdfs_relative_path);

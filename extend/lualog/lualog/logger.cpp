@@ -1,19 +1,11 @@
 #define LUA_LIB
 #include "logger.h"
 
-namespace logger {
-    // class log_filter
-    // --------------------------------------------------------------------------------
-    void log_filter::filter(log_level llv, bool on) {
-        if (on)
-            switch_bits_ |= (1 << ((int)llv - 1));
-        else
-            switch_bits_ &= ~(1 << ((int)llv - 1));
-    }
-    bool log_filter::is_filter(log_level llv) const {
-        return 0 == (switch_bits_ & (1 << ((int)llv - 1)));
-    }
+#ifdef WIN32
+#include <windows.h>
+#endif
 
+namespace logger {
     // class log_time
     // --------------------------------------------------------------------------------
     log_time log_time::now() {
@@ -82,8 +74,7 @@ namespace logger {
             read_messages_.swap(write_messages_);
         }
         if (read_messages_->empty()) {
-            std::unique_lock<std::mutex> lock(mutex_);
-            condv_.wait_for(lock, milliseconds(5));
+            std::this_thread::sleep_for(milliseconds(5));
         }
         return read_messages_;
     }
@@ -145,7 +136,7 @@ namespace logger {
 
     void log_file_base::map_file() {
 #ifdef WIN32
-        HANDLE hf = CreateFile(file_path_.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+        HANDLE hf = CreateFile(file_path_.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         if (!hf) return;
         HANDLE hfm = CreateFileMapping(hf, 0, PAGE_READWRITE, 0, alc_size_, NULL);
         if (!hfm) return;
@@ -238,11 +229,20 @@ namespace logger {
 
     // class log_service
     // --------------------------------------------------------------------------------
+    void log_service::filter(log_level llv, bool on) {
+        if (on)
+            filter_bits_ |= (1 << ((int)llv - 1));
+        else
+            filter_bits_ &= ~(1 << ((int)llv - 1));
+    }
+
     void log_service::option(cpchar log_path, cpchar service, cpchar index) {
         log_path_ = log_path;
         service_ = fmt::format("{}-{}", service, index);
         create_directories(log_path);
         add_dest(service);
+        //启动日志线程
+        std::thread(&log_service::run, this).swap(thread_);
     }
 
     path log_service::build_path(cpchar feature) {
@@ -265,8 +265,8 @@ namespace logger {
             } else {
                 logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature, max_size_, clean_time_);
             }
-            if (!def_dest_) {
-                def_dest_ = logfile;
+            if (!main_dest_) {
+                main_dest_ = logfile;
                 return true;
             }
             dest_features_.insert(std::make_pair(feature, logfile));
@@ -348,12 +348,11 @@ namespace logger {
     }
 
     void log_service::start(){
-        if (!stop_msg_ && !std_dest_) {
+        if (!stop_msg_) {
             logmsgque_ = std::make_shared<log_message_queue>();
             message_pool_ = std::make_shared<log_message_pool>(QUEUE_SIZE);
-            std_dest_ = std::make_shared<stdio_dest>();
             stop_msg_ = message_pool_->allocate();
-            std::thread(&log_service::run, this).swap(thread_);
+            std_dest_ = std::make_shared<stdio_dest>();
         }
     }
 
@@ -365,7 +364,7 @@ namespace logger {
             thread_.join();
             dest_lvls_.clear();
             dest_features_.clear();
-            def_dest_ = nullptr;
+            main_dest_ = nullptr;
             std_dest_ = nullptr;
             stop_msg_ = nullptr;
             logmsgque_ = nullptr;
@@ -379,13 +378,14 @@ namespace logger {
             dest.second->flush();
         for (auto dest : dest_lvls_)
             dest.second->flush();
-        if (def_dest_) {
-            def_dest_->flush();
+        if (main_dest_) {
+            main_dest_->flush();
         }
     }
    
     void log_service::run() {
         bool loop = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         while (loop) {
             auto logmsgs = logmsgque_->timed_getv().get();
             for (auto logmsg : *logmsgs) {
@@ -396,6 +396,7 @@ namespace logger {
                 if (!log_daemon_) {
                     std_dest_->write(logmsg);
                 }
+                main_dest_->write(logmsg);
                 auto it_lvl = dest_lvls_.find(logmsg->level());
                 if (it_lvl != dest_lvls_.end()) {
                     it_lvl->second->write(logmsg);
@@ -403,8 +404,6 @@ namespace logger {
                 auto it_fea = dest_features_.find(logmsg->feature());
                 if (it_fea != dest_features_.end()) {
                     it_fea->second->write(logmsg);
-                } else if (def_dest_) {
-                    def_dest_->write(logmsg);
                 }
                 message_pool_->release(logmsg);
             }
@@ -413,27 +412,10 @@ namespace logger {
     }
 
     void log_service::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line) {
-        if (!log_filter_.is_filter(level)) {
+        if (!is_filter(level)) {
             auto logmsg_ = message_pool_->allocate();
             logmsg_->option(level, std::move(msg), tag, feature, source, line);
             logmsgque_->put(logmsg_);
-        }
-    }
-
-    static logger* s_logger = nullptr;
-    extern "C" {
-        LUALIB_API logger* get_logger() {
-            if (s_logger == nullptr) {
-                s_logger = new log_service();
-                s_logger->start();
-            }
-            return s_logger;
-        }
-        LUALIB_API void stop_logger() {
-            if (s_logger) {
-                s_logger->stop();
-                s_logger = nullptr;
-            }
         }
     }
 }

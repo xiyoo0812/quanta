@@ -4,7 +4,7 @@
 
 namespace lxlsx {
 
-    static excel_file* open_xcel(const char* filename) {
+    static excel_file* open_excel(const char* filename) {
         auto excel = new excel_file();
         if (!excel->open(filename)) {
             delete excel;
@@ -16,7 +16,7 @@ namespace lxlsx {
     luakit::lua_table open_luaxlsx(lua_State* L) {
         luakit::kit_state kit_state(L);
         luakit::lua_table luaxlsx = kit_state.new_table("xlsx");
-        luaxlsx.set_function("open", open_xcel);
+        luaxlsx.set_function("open", open_excel);
         kit_state.new_class<cell>(
             "type", &cell::type,
             "value", &cell::value,

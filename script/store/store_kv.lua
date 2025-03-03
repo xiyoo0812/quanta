@@ -30,13 +30,13 @@ function StoreKV:delete()
     self.driver:del(self.primary_id, self.sheet)
 end
 
-function StoreKV:update_value(parentkeys, key, value)
-    Store.update_value(self, parentkeys, key, value)
+function StoreKV:update_value(layers, key, value)
+    Store.update_value(self, layers, key, value)
     store_mgr:save_wholes(self)
 end
 
-function StoreKV:update_field(parentkeys, field, key, value)
-    Store.update_field(self, parentkeys, field, key, value)
+function StoreKV:update_field(layers, field, key, value)
+    Store.update_field(self, layers, field, key, value)
     store_mgr:save_wholes(self)
 end
 

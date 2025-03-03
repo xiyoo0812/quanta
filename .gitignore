@@ -70,3 +70,4 @@ bin/configs
 *.mdb-lock
 *.prx
 *.elf
+*.xml

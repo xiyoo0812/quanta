@@ -26,7 +26,7 @@ local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./kvdb/")
 local Lmdb = singleton()
 local prop = property(Lmdb)
 prop:reader("driver", nil)
-prop:reader("jcodec", nil)
+prop:reader("lcodec", nil)
 prop:reader("sheet", nil)
 prop:reader("name", nil)
 
@@ -49,11 +49,11 @@ end
 
 function Lmdb:open(name, sheet)
     local driver = lmdb.create()
-    local jcodec = json.jsoncodec()
+    local lcodec = luakit.luacodec()
     driver.set_max_dbs(128)
-    driver.set_codec(jcodec)
+    driver.set_codec(lcodec)
     self.driver = driver
-    self.jcodec = jcodec
+    self.lcodec = lcodec
     self.sheet = sheet
     self.name = sformat("%s%s.mdb", KVDB_PATH, name)
     local rc = driver.open(self.name, MDB_NOSUBDIR, 0644)

@@ -61,7 +61,7 @@ namespace ltimer {
 
     void lua_timer::move_list(uint32_t level, uint32_t idx) {
         timer_list& list = t[level][idx];
-        for (auto node : t[level][idx]) {
+        for (auto node : list) {
             add_node(node);
         }
         list.clear();
@@ -75,15 +75,15 @@ namespace ltimer {
         }
         uint32_t i = 0;
         int mask = TIME_NEAR;
-        size_t time = ct >> TIME_NEAR_SHIFT;
+        size_t stime = ct >> TIME_NEAR_SHIFT;
         while ((ct & (mask - 1)) == 0) {
-            uint32_t idx = time & TIME_LEVEL_MASK;
+            uint32_t idx = stime & TIME_LEVEL_MASK;
             if (idx != 0) {
                 move_list(i, idx);
                 break;
             }
             mask <<= TIME_LEVEL_SHIFT;
-            time >>= TIME_LEVEL_SHIFT;
+            stime >>= TIME_LEVEL_SHIFT;
             ++i;
         }
     }

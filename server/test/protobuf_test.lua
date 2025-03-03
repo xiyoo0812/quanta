@@ -16,9 +16,9 @@ local data2 = protobuf_mgr:decode(NCmdId.NID_HEARTBEAT_REQ, pb_str2)
 log_debug("name test1:{}", data1)
 log_debug("name test2:{}", data2)
 
-local ppb_data = {master=1001014162,elems={[107216333761938434]={proto_id=0}},part_sync=true}
-local ppb_str = protobuf_mgr:encode_byname("ncmd_cs.building_building_ntf", ppb_data)
-local pdata = protobuf_mgr:decode_byname("ncmd_cs.building_building_ntf", ppb_str)
+local ppb_data = {error_code=1001014162,role={role_id=107216333761938434,name="aaa", gender = 2, model = 3}}
+local ppb_str = protobuf_mgr:encode_byname("ncmd_cs.login_role_create_res", ppb_data)
+local pdata = protobuf_mgr:decode_byname("ncmd_cs.login_role_create_res", ppb_str)
 
 log_debug("pb test:{}", #ppb_str)
 log_debug("pb test:{}", pdata)

@@ -4,11 +4,7 @@ local log_debug     = logger.debug
 local log_dump      = logger.dump
 local lhex_encode   = ssl.hex_encode
 
-local crc8          = ssl.crc8
 local hash_code     = codec.hash_code
-local fnv_32a       = codec.fnv_1a_32
-local fnv_32        = codec.fnv_1_32
-local jumphash      = codec.jumphash
 local encode        = luakit.encode
 local decode        = luakit.decode
 local serialize     = luakit.serialize
@@ -25,21 +21,6 @@ log_debug("hash_code number: {}, {}", hash_n1, hash_n2)
 local hash_s1 = hash_code("12345")
 local hash_s2 = hash_code("a0b0c0d0a0b0c0d0", 1000)
 log_debug("hash_code string: {}, {}", hash_s1, hash_s2)
-
-local fnv_s1 = fnv_32("")
-local fnv_s2 = fnv_32("12345", fnv_s1)
-local fnv_s3 = fnv_32("12345", fnv_s2)
-log_debug("fnv_32 string: {}, {}, {}", fnv_s1, fnv_s2, fnv_s3)
-
-local fnv_as1 = fnv_32a("12345")
-local fnv_as2 = fnv_32a("12345", fnv_as1)
-local fnv_as3 = fnv_32a("12345", fnv_as2)
-log_debug("fnv_32a string: {}, {}, {}", fnv_as1, fnv_as2, fnv_as3)
---fnv_32 string: 2930711257, 991336454, 3269464323
---fnv_32a string: 3601286043, 177295730, 3384461241
-
-local jmpv = jumphash("", 3)
-log_debug("jumphash value: {}", jmpv)
 
 --guid
 ----------------------------------------------------------------
@@ -65,11 +46,6 @@ local time = codec.guid_time(guid)
 log_debug("ssource-> group: {}, index: {}, time:{}", group, index, time)
 local group2, index2, time2 = codec.guid_source(guid)
 log_debug("nsource-> group: {}, index: {}, time:{}", group2, index2, time2)
-
-log_debug("crc8: {}", crc8("123214345345345"))
-log_debug("crc8: {}", crc8("dfsdfsdfsdfgsdg"))
-log_debug("crc8: {}", crc8("2213weerwbdfgd"))
-log_debug("crc8: {}", crc8("++dsfsdf++gbdfgdfg"))
 
 --serialize
 ----------------------------------------------------------------

@@ -27,10 +27,10 @@ namespace lcodec {
     const uint32_t MAX_SNUM     = ((1 << SNUM_BITS) - 1);    //8912 - 1
 
     //每一group独享一个id生成种子
-    static time_t last_time = 0;
-    static size_t serial_inedx_table[(1 << GROUP_BITS)] = { 0 };
+    static time_t LAST_TIME = 0;
+    static size_t SERIAL_INDEX_TABLE[(1 << GROUP_BITS)] = { 0 };
 
-    static char letter[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static char LETTERS[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     static uint64_t guid_new(uint32_t group, uint32_t index){
         if (group == 0) {
@@ -44,20 +44,20 @@ namespace lcodec {
         time_t now_time;
         time(&now_time);
         size_t serial_index = 0;
-        if (now_time > last_time) {
-            serial_inedx_table[group] = 0;
-            last_time = now_time;
+        if (now_time > LAST_TIME) {
+            SERIAL_INDEX_TABLE[group] = 0;
+            LAST_TIME = now_time;
         }
         else {
-            serial_index = ++serial_inedx_table[group];
+            serial_index = ++SERIAL_INDEX_TABLE[group];
             //种子溢出以后，时钟往前推
             if (serial_index >= MAX_SNUM) {
-                serial_inedx_table[group] = 0;
-                last_time = ++now_time;
+                SERIAL_INDEX_TABLE[group] = 0;
+                LAST_TIME = ++now_time;
                 serial_index = 0;
             }
         }
-        return ((last_time - BASE_TIME) << (SNUM_BITS + GROUP_BITS + INDEX_BITS)) |
+        return ((LAST_TIME - BASE_TIME) << (SNUM_BITS + GROUP_BITS + INDEX_BITS)) |
                 (serial_index << (GROUP_BITS + INDEX_BITS)) | (index << GROUP_BITS) | group;
     }
 
@@ -85,7 +85,7 @@ namespace lcodec {
         memset(tmp, 0, LETTER_LEN);
         uint64_t val = (lua_gettop(L) > 0) ? lua_tointeger(L, 1) : guid_new(0, 0);
         for (uint32_t i = 0; i < LETTER_LEN - 1; ++i) {
-            tmp[i] = letter[val % LETTER_SIZE];
+            tmp[i] = LETTERS[val % LETTER_SIZE];
             val /= LETTER_SIZE;
             if (val == 0) break;
         }
@@ -113,7 +113,7 @@ namespace lcodec {
         if (lua_type(L, 1) == LUA_TSTRING) {
             char* chEnd = NULL;
             const char* sguid = lua_tostring(L, 1);
-            return strtoull(sguid, &chEnd, 16);
+            return strtoull(sguid, &chEnd, 10);
         }
         else {
             return lua_tointeger(L, 1);

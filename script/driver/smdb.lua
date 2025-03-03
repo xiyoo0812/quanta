@@ -19,7 +19,7 @@ local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./kvdb/")
 local SMDB = singleton()
 local prop = property(SMDB)
 prop:reader("driver", nil)
-prop:reader("jcodec", nil)
+prop:reader("lcodec", nil)
 
 function SMDB:__init()
     stdfs.mkdir(KVDB_PATH)
@@ -46,10 +46,10 @@ function SMDB:open(name)
         log_err("[SMDB][open] open SMDB {} failed: {}!", name, code)
         return
     end
-    local jcodec = json.jsoncodec()
-    driver.set_codec(jcodec)
+    local lcodec = luakit.luacodec()
+    driver.set_codec(lcodec)
     self.driver = driver
-    self.jcodec = jcodec
+    self.lcodec = lcodec
     log_debug("[SMDB][open] open SMDB {} success!", name)
 end
 

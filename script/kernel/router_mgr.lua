@@ -8,7 +8,7 @@ local tsort             = table.sort
 local tunpack           = table.unpack
 local sformat           = string.format
 local qsuccess          = quanta.success
-local jumphash          = codec.jumphash
+local hash_code         = codec.hash_code
 local signal_quit       = signal.quit
 
 local event_mgr         = quanta.get("event_mgr")
@@ -109,7 +109,7 @@ end
 function RouterMgr:hash_router(hash_key)
     local count = #self.candidates
     if count > 0 then
-        local index = jumphash(hash_key, count)
+        local index = hash_code(hash_key, count)
         return self.candidates[index]
     end
 end

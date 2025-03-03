@@ -1,13 +1,12 @@
 #pragma once
+#include <regex>
+#include <filesystem>
+
 #include "lua_buff.h"
 #include "lua_time.h"
 #include "lua_codec.h"
 #include "lua_table.h"
 #include "lua_class.h"
-
-#ifdef WIN32
-#include <windows.h>
-#endif
 
 namespace luakit {
     inline thread_local luabuf lbuf;
@@ -228,42 +227,32 @@ namespace luakit {
 
     protected:
         void set_lua_path(const char* fieldname, const char* path, const char* dft){
-            lua_getglobal(m_L, LUA_LOADLIBNAME);
+            std::string buffer;
+            lua_table package = get<lua_table>(LUA_LOADLIBNAME);
             const char* dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
-            if (dftmark == nullptr) {
-                lua_pushstring(m_L, path);  /* nothing to change */
-            } else {
-                luaL_Buffer b;
-                luaL_buffinit(m_L, &b);
-                if (path < dftmark) {  /* is there a prefix before ';;'? */
-                    luaL_addlstring(&b, path, dftmark - path);  /* add it */
-                    luaL_addchar(&b, *LUA_PATH_SEP);
+            if (dftmark != nullptr) {
+                if (path < dftmark) {
+                    buffer.append(path, dftmark - path);
+                    buffer.append(LUA_PATH_SEP);
                 }
+                buffer.append(dft);
                 size_t len = strlen(path);
-                luaL_addstring(&b, dft);  /* add default */
-                if (dftmark < path + len - 2) {  /* is there a suffix after ';;'? */
-                    luaL_addchar(&b, *LUA_PATH_SEP);
-                    luaL_addlstring(&b, dftmark + 2, (path + len - 2) - dftmark);
+                if (dftmark < path + len - 2) {
+                    buffer.append(LUA_PATH_SEP);
+                    buffer.append(dftmark + 2, (path + len - 2) - dftmark);
                 }
-                luaL_pushresult(&b);
+            } else {
+                buffer.append(path);
             }
 #ifdef WIN32
             if (strstr(path, LUA_EXEC_DIR)) {
-                char* lb;
-                char buff[MAX_PATH + 1];
-                DWORD nsize = sizeof(buff) / sizeof(char);
-                DWORD n = GetModuleFileNameA(NULL, buff, nsize);  /* get exec. name */
-                if (n == 0 || n == nsize || (lb = strrchr(buff, '\\')) == NULL)
-                    luaL_error(m_L, "unable to get ModuleFileName");
-                else {
-                    *lb = '\0';  /* cut name on the last '\\' to get the path */
-                    luaL_gsub(m_L, lua_tostring(m_L, -1), LUA_EXEC_DIR, buff);
-                    lua_remove(m_L, -2);  /* remove original string */
-                }
+                auto cur_path = std::filesystem::current_path();
+                auto temp = std::regex_replace(buffer, std::regex(LUA_EXEC_DIR), cur_path.string());
+                package.set(fieldname, temp);
+                return;
             }
 #endif // WIN32
-            lua_setfield(m_L, -2, fieldname);  /* package[fieldname] = path value */
-            lua_pop(m_L, 1);
+            package.set(fieldname, buffer);
         }
 
     protected:

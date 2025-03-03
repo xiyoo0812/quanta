@@ -4,12 +4,13 @@
 using namespace std;
 using namespace luakit;
 
+static logger::log_service* s_logger = nullptr;
+
 namespace logger {
 
     const int LOG_FLAG_FORMAT = 1;
     const int LOG_FLAG_PRETTY = 2;
     const int LOG_FLAG_MONITOR = 4;
-
     string read_args(lua_State* L, int flag, int index) {
         switch (lua_type(L, index)) {
         case LUA_TNIL: return "nil";
@@ -43,10 +44,10 @@ namespace logger {
     int zformat(lua_State* L, log_level lvl, cpchar tag, cpchar feature, int flag, sstring&& msg) {
         if ((flag & LOG_FLAG_MONITOR) == LOG_FLAG_MONITOR) {
             lua_pushlstring(L, msg.c_str(), msg.size());
-            get_logger()->output(lvl, std::move(msg), tag, feature);
+            s_logger->output(lvl, std::move(msg), tag, feature);
             return 1;
         }
-        get_logger()->output(lvl, std::move(msg), tag, feature);
+        s_logger->output(lvl, std::move(msg), tag, feature);
         return 0;
     }
 
@@ -64,7 +65,7 @@ namespace logger {
     template<size_t... integers>
     int fformat(lua_State* L, int flag, cpchar vfmt, std::index_sequence<integers...>&&) {
         try {
-            auto msg = fmt::format(vfmt, read_args(L, flag, integers + 3)...);
+            auto msg = fmt::format(vfmt, read_args(L, flag, integers + 2)...);
             lua_pushlstring(L, msg.c_str(), msg.size());
             return 1;
         } catch (const exception& e) {
@@ -92,7 +93,7 @@ namespace logger {
         );
         lualog.set_function("print", [](lua_State* L) {
             log_level lvl = (log_level)lua_tointeger(L, 1);
-            if (get_logger()->is_filter(lvl)) return 0;
+            if (s_logger->is_filter(lvl)) return 0;
             size_t flag = lua_tointeger(L, 2);
             cpchar tag = lua_to_native<cpchar>(L, 3);
             cpchar feature = lua_to_native<cpchar>(L, 4);
@@ -134,21 +135,21 @@ namespace logger {
             return 0;
         });
         
-        lualog.set_function("daemon", [](bool status) { get_logger()->daemon(status); });
-        lualog.set_function("set_max_size", [](size_t size) { get_logger()->set_max_size(size); });
-        lualog.set_function("set_clean_time", [](size_t time) { get_logger()->set_clean_time(time); });
-        lualog.set_function("filter", [](int lv, bool on) { get_logger()->filter((log_level)lv, on); });
-        lualog.set_function("is_filter", [](int lv) { return get_logger()->is_filter((log_level)lv); });
-        lualog.set_function("del_dest", [](cpchar feature) { get_logger()->del_dest(feature); });
-        lualog.set_function("del_lvl_dest", [](int lv) { get_logger()->del_lvl_dest((log_level)lv); });
-        lualog.set_function("add_lvl_dest", [](int lv) { return get_logger()->add_lvl_dest((log_level)lv); });
-        lualog.set_function("set_rolling_type", [](rolling_type type) { get_logger()->set_rolling_type(type); });
-        lualog.set_function("ignore_prefix", [](cpchar feature, bool prefix) { get_logger()->ignore_prefix(feature, prefix); });
-        lualog.set_function("ignore_suffix", [](cpchar feature, bool suffix) { get_logger()->ignore_suffix(feature, suffix); });
-        lualog.set_function("add_dest", [](cpchar feature) { return get_logger()->add_dest(feature); });
-        lualog.set_function("add_file_dest", [](cpchar feature, cpchar fname) { return get_logger()->add_file_dest(feature, fname); });
-        lualog.set_function("set_dest_clean_time", [](cpchar feature, size_t time) { get_logger()->set_dest_clean_time(feature, time); });
-        lualog.set_function("option", [](cpchar log_path, cpchar service, cpchar index) { get_logger()->option(log_path, service, index); });
+        lualog.set_function("daemon", [](bool status) { s_logger->daemon(status); });
+        lualog.set_function("set_max_size", [](size_t size) { s_logger->set_max_size(size); });
+        lualog.set_function("set_clean_time", [](size_t time) { s_logger->set_clean_time(time); });
+        lualog.set_function("filter", [](int lv, bool on) { s_logger->filter((log_level)lv, on); });
+        lualog.set_function("is_filter", [](int lv) { return s_logger->is_filter((log_level)lv); });
+        lualog.set_function("del_dest", [](cpchar feature) { s_logger->del_dest(feature); });
+        lualog.set_function("del_lvl_dest", [](int lv) { s_logger->del_lvl_dest((log_level)lv); });
+        lualog.set_function("add_lvl_dest", [](int lv) { return s_logger->add_lvl_dest((log_level)lv); });
+        lualog.set_function("set_rolling_type", [](rolling_type type) { s_logger->set_rolling_type(type); });
+        lualog.set_function("ignore_prefix", [](cpchar feature, bool prefix) { s_logger->ignore_prefix(feature, prefix); });
+        lualog.set_function("ignore_suffix", [](cpchar feature, bool suffix) { s_logger->ignore_suffix(feature, suffix); });
+        lualog.set_function("add_dest", [](cpchar feature) { return s_logger->add_dest(feature); });
+        lualog.set_function("add_file_dest", [](cpchar feature, cpchar fname) { return s_logger->add_file_dest(feature, fname); });
+        lualog.set_function("set_dest_clean_time", [](cpchar feature, size_t time) { s_logger->set_dest_clean_time(feature, time); });
+        lualog.set_function("option", [](cpchar log_path, cpchar service, cpchar index) { s_logger->option(log_path, service, index); });
         return lualog;
     }
 }
@@ -157,5 +158,31 @@ extern "C" {
     LUALIB_API int luaopen_lualog(lua_State* L) {
         auto llog = logger::open_lualog(L);
         return llog.push_stack();
+    }
+
+     LUALIB_API void init_logger() {
+        if (s_logger == nullptr) {
+            s_logger = new logger::log_service();
+            s_logger->start();
+        }
+    }
+
+    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index) {
+        if (s_logger) {
+            s_logger->option(log_path, service, index);
+        }
+    }
+
+    LUALIB_API void stop_logger() {
+        if (s_logger) {
+            s_logger->stop();
+            s_logger = nullptr;
+        }
+    }
+    
+    LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line){
+        if (s_logger) {
+            s_logger->output(level, std::move(msg), tag, feature, source, line);
+        }
     }
 }

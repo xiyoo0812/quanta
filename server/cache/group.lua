@@ -46,21 +46,12 @@ function Group:clear()
     self.documents = {}
 end
 
---更新数据
-function Group:update_field(document, field, field_data)
-    document:update_field(field, field_data)
-end
-
---移除数据
-function Group:remove_field(document, field)
-    document:remove_field(field)
-end
-
 --flush
 function Group:flush()
     for _, doc in pairs(self.documents) do
-        doc:flush()
+        doc:check_flush(true)
     end
+    self.documents = {}
 end
 
 

@@ -182,15 +182,14 @@ namespace luakit {
         }
     }
 
-    inline slice* encode_slice(lua_State* L, luabuf* buff, size_t index) {
-        int n = lua_gettop(L) - index + 1;
-        if (n > UCHAR_MAX) {
+    inline slice* encode_slice(lua_State* L, luabuf* buff, size_t index, int num) {
+        if (num > UCHAR_MAX || num < 0) {
             luaL_error(L, "encode can't pack too many args");
         }
         buff->clean();
         t_sshares.clear();
-        buff->write<uint8_t>(n);
-        for (int i = 0; i < n; i++) {
+        buff->write<uint8_t>(num);
+        for (int i = 0; i < num; i++) {
             encode_one(L, buff, index + i, 0);
         }
         return buff->get_slice();
@@ -198,7 +197,7 @@ namespace luakit {
 
     inline int encode(lua_State* L, luabuf* buff) {
         size_t data_len = 0;
-        slice* slice = encode_slice(L, buff, 1);
+        slice* slice = encode_slice(L, buff, 1, 1);
         const char* data = (const char*)slice->data(&data_len);
         lua_pushlstring(L, data, data_len);
         return 1;
@@ -380,7 +379,7 @@ namespace luakit {
                 lua_pushvalue(L, 3);
                 lua_pushvalue(L, index);
                 //执行sort方法，再序列化
-                if (lua_pcall(L, 1, 1, -2)) {
+                if (lua_pcall(L, 1, 1, 0)) {
                     luaL_error(L, lua_tostring(L, -1));
                     return;
                 }
@@ -504,7 +503,8 @@ namespace luakit {
             return decode_slice(L, m_slice);
         }
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            slice* slice = encode_slice(L, m_buf, index);
+            int n = lua_gettop(L) - index + 1;
+            slice* slice = encode_slice(L, m_buf, index, n);
             return slice->data(len);
         }
         size_t decode(lua_State* L, uint8_t* data, size_t len) {
@@ -550,8 +550,7 @@ namespace luakit {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            lua_settop(L, index);
-            slice* slice = encode_slice(L, m_buf, index);
+            slice* slice = encode_slice(L, m_buf, index, 1);
             return slice->data(len);
         }
     };

@@ -100,11 +100,7 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     socket.session_id = session_id
     self.clients[socket.token] = socket
     socket:send_data(fmt_url, method, headers, datas or "")
-    local ok, status, body, rheaders = thread_mgr:yield(session_id, url, timeout or HTTP_TIMEOUT)
-    if not ok then
-        self:on_socket_error(socket, socket.token, status)
-    end
-    return ok, status, body, rheaders
+    return thread_mgr:yield(session_id, url, timeout or HTTP_TIMEOUT)
 end
 
 function HttpClient:init_http_socket(ipinfo, port, proto, headers)

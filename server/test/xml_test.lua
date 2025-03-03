@@ -1,6 +1,7 @@
 --xml_test.lua
 --luacheck: ignore 631
 
+require "luaxml"
 local log_dump  = logger.dump
 
 local cxml = [[
@@ -15,7 +16,7 @@ local cxml = [[
     <tag id="emptyAttr" attr="" />
   </applicationInfo>
 
-<!--  initialization of the glWindow -->
+  <!--  initialization of the glWindow -->
   <deviceWindow id="0" name="window" deviceContainer="input">
     <string id="winTitle">   veLua </string>
     <float id="mouseRelative">     0 </float>
@@ -60,7 +61,7 @@ local cxml = [[
     <camera object="observer" pos="0 -3 1.6 0 0 0"/>
   </deviceGraphics>
 
- <!--  audio device initialization  -->
+  <!--  audio device initialization  -->
   <deviceAudio id="0" class="deviceAudioAL">      <!-- specific global settings for OpenAL -->
     <int   id="distanceModel">       1   </int>   <!-- valid arguments are NONE=0, INVERSE_DISTANCE=1 (default), INVERSE_DISTANCE_CLAMPED=2, see OpenAL ref. man. p.21 -->
     <float id="dopplerVelocity">   330.0 </float> <!-- corresponds to sonic speed for doppler effect calculations -->

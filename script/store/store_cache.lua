@@ -2,11 +2,11 @@
 import("agent/mongo_agent.lua")
 import("agent/cache_agent.lua")
 
+local mmin          = math.min
 local log_err       = logger.err
 local log_debug     = logger.debug
 local tinsert       = table.insert
 local tconcat       = table.concat
-local tunpack       = table.unpack
 local qfailed       = quanta.failed
 
 local store_mgr     = quanta.get("store_mgr")
@@ -42,23 +42,23 @@ function StoreCache:flush(obj, timely)
     Store.flush(self, obj, timely)
 end
 
-function StoreCache:update_value(parentkeys, key, value)
+function StoreCache:update_value(layers, key, value)
     if self.wholes then
-        Store.update_value(self, parentkeys, key, value)
+        Store.update_value(self, layers, key, value)
         return
     end
-    log_debug("[StoreCache][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), key, value)
-    tinsert(self.increases, {parentkeys, value or "nil", key})
+    log_debug("[StoreCache][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(layers, "."), key, value)
+    tinsert(self.increases, {layers, value or "nil", key})
     store_mgr:save_increases(self)
 end
 
-function StoreCache:update_field(parentkeys, field, key, value)
+function StoreCache:update_field(layers, field, key, value)
     if self.wholes then
-        Store.update_field(self, parentkeys, field, key, value)
+        Store.update_field(self, layers, field, key, value)
         return
     end
-    log_debug("[StoreCache][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(parentkeys, "."), field, key, value)
-    tinsert(self.increases, {parentkeys, value or "nil", key, field })
+    log_debug("[StoreCache][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(layers, "."), field, key, value)
+    tinsert(self.increases, { layers, value or "nil", key, field })
     store_mgr:save_increases(self)
 end
 
@@ -83,64 +83,42 @@ end
 
 --内部方法
 --------------------------------------------------------------
-function StoreCache:can_merge(increase, commit)
-    --parents
-    if increase[1] ~= commit[1] then
+--判断commit是否increase的父节点或者本节点
+local function is_parent_or_self(commit, inc_layers, inc_field)
+    local clayers, cfield = commit[1], commit[4]
+    local len1, len2 = #clayers, #inc_layers
+    if len1 > len2 then
         return false
     end
-    --field
-    if increase[4] ~= commit[2]  then
-        return false
-    end
-    return true
-end
-
-function StoreCache:alike(increase, commit)
-    local max = #increase > #commit and #increase or #commit
-    for i = 1, max do
-        if increase[i] and commit[i] and increase[i] ~= commit[i] then
+    -- 比较前 n 个元素
+    local mix = mmin(len1, len2)
+    for i = 1, mix do
+        -- 如果元素类型不同或值不同，返回 false
+        if clayers[i] ~= inc_layers[i] then
             return false
         end
     end
+    if len1 == len2 then
+        return cfield == inc_field
+    end
     return true
 end
 
-function StoreCache:break_merge(increase, commit)
-    if self:alike(increase[1], commit[1]) then
-        if #increase[1] ~= #commit[1] then
-            return true
-        end
-        if increase[4] ~= commit[2]  then
-            return true
-        end
-    end
-    return false
-end
-
+--倒序合并，cache也需要倒序读取
 function StoreCache:merge_commits()
     local commits = {}
-    for _, increase in ipairs(self.increases) do
-        local parents, value, key, field = tunpack(increase)
-        for i = #commits, 1, -1 do
-            local commit = commits[i]
-            if self:break_merge(increase, commit) then
-                break
-            end
-            if self:can_merge(increase, commit) then
-                if commit[3] == "nil" then
-                    commit[3] = key and {[key] = value } or value
-                    goto continue
-                end
-                if key then
-                    commit[3][key] = value
-                    goto continue
-                end
-                commit[3] = value
-                commit[4] = true
+    --倒序遍历所有提交
+    for i = #self.increases, 1, -1 do
+        local increase = self.increases[i]
+        --遍历已经合并的提交
+        for _, commit in ipairs(commits) do
+            --如果commit是increase的父节点或者本节点，则表示increase已经失效，需要丢弃
+            if is_parent_or_self(commit, increase[1], increase[4]) then
                 goto continue
             end
         end
-        tinsert(commits, { parents, field,  key and {[key] = value } or value, (key == nil) and true or nil })
+        --开始提交
+        tinsert(commits, increase)
         :: continue ::
     end
     self.increases = {}

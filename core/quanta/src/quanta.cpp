@@ -82,10 +82,23 @@ void quanta_app::set_env(const char* key, const char* value, int over) {
     }
 }
 
+void quanta_app::add_path(const char* field, const char* path) {
+    auto handle = m_environs.extract(field);
+    if (handle.empty()) {
+        m_environs[field] = path;
+        m_lua.set_path(field, path);
+        return;
+    }
+    auto& epath = handle.mapped();
+    epath.append(path);
+    m_environs.insert(std::move(handle));
+    m_lua.set_path(field, epath.c_str());
+}
+
 void quanta_app::setup(int argc, const char* argv[]) {
     srand((unsigned)time(nullptr));
     //初始化日志
-    logger::get_logger();
+    logger::init_logger();
     //加载配置
     load(argc, argv);
     //设置
@@ -94,7 +107,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
 
 void quanta_app::exception_handler(std::string_view msg, std::string_view err) {
     LOG_FATAL(fmt::format(msg, err));
-    if (m_process_mode) {
+    if (m_process) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         exit(1);
     }
@@ -116,6 +129,7 @@ void quanta_app::load(int argc, const char* argv[]) {
             //加载LUA配置
             m_lua.set("platform", get_platform());
             m_lua.set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
+            m_lua.set_function("add_path", [&](const char* field, const char* path) { add_path(field, path); });
             m_lua.set_function("set_path", [&](const char* field, const char* path) { m_lua.set_path(field, path); set_env(field, path, 1); });
             m_lua.run_script(fmt::format("dofile('{}')", argv[1]), [&](std::string_view err) {
                 exception_handler("load config err: {}", err);
@@ -136,7 +150,6 @@ bool quanta_app::init() {
     quanta.set("platform", get_platform());
     quanta.set_function("daemon", [&]() { daemon(); });
     quanta.set_function("get_signal", [&]() { return m_signal; });
-    quanta.set_function("new_kitstate", [&]() { return new kit_state(); });
     quanta.set_function("set_signal", [&](int n, bool b) { set_signal(n, b); });
     quanta.set_function("ignore_signal", [](int n) { signal(n, SIG_IGN); });
     quanta.set_function("default_signal", [](int n) { signal(n, SIG_DFL); });
@@ -148,7 +161,7 @@ bool quanta_app::init() {
     if (env_log_path) {
         const char* env_index = get_env("QUANTA_INDEX");
         const char* env_service = get_env("QUANTA_SERVICE");
-        logger::get_logger()->option(env_log_path, env_service, env_index);
+        logger::option_logger(env_log_path, env_service, env_index);
     }
     auto sandbox = get_env("QUANTA_SANDBOX");
     if (sandbox) {

@@ -12,8 +12,9 @@ public:
     void setup(int argc, const char* argv[]);
     void load(int argc, const char* argv[]);
     void set_signal(uint32_t n, bool b = true);
+    void add_path(const char* field, const char* path);
     void set_env(const char* key, const char* value, int over = 0);
-    void set_library() { m_process_mode = false; }
+    void set_library() { m_process = false; }
 
     luakit::kit_state* state() { return &m_lua; };
     
@@ -24,9 +25,9 @@ protected:
     const char* get_env(const char* key);
 
 private:
+    bool m_process = true;
     uint64_t m_signal = 0;
     luakit::kit_state m_lua;
-    bool m_process_mode = true;
     std::map<std::string, std::string> m_environs;
 };
 
