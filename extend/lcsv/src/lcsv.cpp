@@ -11,8 +11,6 @@ using namespace luakit;
 
 namespace lcsv {
 
-    using csv_reader = Reader<delimiter<','>, quote_character<'"'>, first_row_is_header<true>, trim_policy::trim_characters<' ', '\t', '\r', '\n'>>;
-
     inline void decode_value(lua_State* L, string key) {
         const char* value = key.data();
         if (lua_stringtonumber(L, value) == 0) {

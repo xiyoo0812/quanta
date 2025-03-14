@@ -11,7 +11,9 @@ public:
 
     bool setup();
 
-    int listen(lua_State* L, const char* ip, int port);
+    void set_no_block();
+
+    int bind(lua_State* L, const char* ip, int port, bool noblock);
 
     int send(lua_State* L, const char* buf, size_t len, const char* ip, int port);
 

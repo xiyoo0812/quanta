@@ -18,11 +18,14 @@ bool socket_udp::setup() {
         return false;
     }
     m_fd = fd;
-    set_no_block(fd);
     return true;
 }
 
-int socket_udp::listen(lua_State* L, const char* ip, int port) {
+void socket_udp::set_no_block(){
+    ::set_no_block(m_fd);
+}
+
+int socket_udp::bind(lua_State* L, const char* ip, int port, bool noblock) {
     socklen_t addr_len = 0;
     sockaddr_storage addr;
     make_ip_addr(&addr, &addr_len, ip, port);
@@ -30,6 +33,9 @@ int socket_udp::listen(lua_State* L, const char* ip, int port) {
         lua_pushboolean(L, false);
         lua_pushstring(L, "udp bind failed!");
         return 2;
+    }
+    if (noblock) {
+        ::set_no_block(m_fd);
     }
     lua_pushboolean(L, true);
     return 1;

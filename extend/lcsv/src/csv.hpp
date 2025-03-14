@@ -1731,11 +1731,6 @@ public:
       const auto new_start_end = trim_policy::trim(buffer_, start_, end_);
       for (size_t i = new_start_end.first; i < new_start_end.second; ++i)
         result.push_back(buffer_[i]);
-      for (size_t i = 1; i < result.size(); ++i) {
-        if (result[i] == quote_character::value && result[i - 1] == quote_character::value) {
-          result.erase(i - 1, 1);
-        }
-      }
     }
   };
 
@@ -1805,7 +1800,7 @@ public:
               } else {
                 escaped = (last_quote_location == i - 1);
                 last_quote_location += (i - last_quote_location) * size_t(!escaped);
-                quote_opened = escaped || (buffer_[i + 1] != delimiter::value);
+                quote_opened = false;
               }
             }
           }

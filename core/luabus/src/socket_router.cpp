@@ -2,7 +2,6 @@
 #include "socket_router.h"
 
 uint32_t get_service_id(uint32_t node_id) { return  (node_id >> 16) & 0xff; }
-uint32_t build_node_id(uint16_t service_id, uint16_t index) { return (service_id & 0xff) << 16 | index; }
 
 uint32_t socket_router::map_token(uint32_t node_id, uint32_t token) {
     uint32_t service_id = get_service_id(node_id);
@@ -102,7 +101,7 @@ bool socket_router::do_forward_broadcast(router_header* header, int source, char
 
 bool socket_router::do_forward_hash(router_header* header, char* data, size_t data_len) {
 	uint16_t hash = header->target_id & 0xffff;
-    uint16_t service_id = header->target_id >> 16 & 0xffff;
+    uint16_t service_id = get_service_id(header->target_id);
 
     auto& services = m_services[service_id];
     auto& nodes = services.nodes;

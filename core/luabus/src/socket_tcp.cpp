@@ -31,8 +31,11 @@ bool socket_tcp::setup() {
         return false;
     }
     m_fd = fd;
-    set_no_block(fd);
     return true;
+}
+
+void socket_tcp::set_no_block(){
+    ::set_no_block(m_fd);
 }
 
 bool socket_tcp::invalid() {
@@ -56,7 +59,7 @@ int socket_tcp::socket_waitfd(socket_t fd, int sw, size_t tm) {
 
 int socket_tcp::listen(lua_State* L, const char* ip, int port) {
     //set status
-    set_no_block(m_fd);
+    ::set_no_block(m_fd);
     set_reuseaddr(m_fd);
     set_close_on_exec(m_fd);
     //bind && listen

@@ -65,16 +65,18 @@ namespace lcsv {
             if (!csv.mmap(filename)) {
                 return false;
             }
-            sheet* s = new sheet();
+            auto ncol = 0;
             const auto header = csv.header();
-            if (header.length() > 0) {
+            for (const auto& cel : header) ncol++;
+            sheet* s = new sheet();
+            if (ncol > 0) {
                 s->first_row = 1;
                 s->first_col = 1;
-                s->name = fspath(filename).stem().string();
-                s->last_col = header.length();
+                s->last_col = ncol;
                 s->last_row = csv.rows() + 1;
-                s->cells.resize(s->last_col * s->last_row);
+                s->name = fspath(filename).stem().string();
                 int irow = 1, icol = 1;
+                s->cells.resize(s->last_col * s->last_row);
                 for (const auto& cel : header) {
                     cell* co = new cell;
                     co->read(cel);

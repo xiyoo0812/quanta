@@ -12,6 +12,7 @@ if quanta.index == 1 then
         local index = 0
         local client = nil
         while true do
+            thread_mgr:sleep(1000)
             if not client then
                 local socket = tcp.accept(500)
                 if socket then
@@ -23,7 +24,7 @@ if quanta.index == 1 then
                 if ok2 then
                     index = index + 1
                     log_debug("tcp-svr recv: {}", buf)
-                    local buff = string.format("server send {}", index)
+                    local buff = string.format("server send %d", index)
                     client.send(buff, #buff)
                 else
                     if buf ~= "timeout" then
@@ -39,6 +40,7 @@ elseif quanta.index == 2 then
         local index = 0
         local client = nil
         while true do
+            thread_mgr:sleep(1000)
             if not client then
                 local socket = luabus.tcp()
                 local ok, err = socket.connect("127.0.0.1", 8700, 500)
@@ -55,7 +57,7 @@ elseif quanta.index == 2 then
                 if ok then
                     index = index + 1
                     log_debug("tcp-cli recv: {}", buf)
-                    local buff = string.format("client send {}", index)
+                    local buff = string.format("client send %d", index)
                     client.send(buff, #buff)
                 else
                     if buf ~= "timeout" then

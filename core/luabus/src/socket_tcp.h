@@ -16,6 +16,8 @@ public:
 
     bool invalid();
 
+    void set_no_block();
+
     int accept(lua_State* L, int timeout);
 
     int listen(lua_State* L, const char* ip, int port);

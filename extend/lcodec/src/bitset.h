@@ -24,23 +24,24 @@ namespace lcodec {
         }
 
         bool load(std::string_view val) {
-            if (val.empty()) return false;
-            size_t val_szie = val.size();
-            if (val_szie > MAX_BITSET_SIZE) return false;
-            m_bits.resize((val_szie + 7) / 8 * 8);
-            for (size_t i = 0; i < val_szie; ++i) {
-                m_bits[i] = (val[val_szie - i - 1] == '1');
+            size_t vsz = val.size();
+            if (vsz == 0) return false;
+            if (vsz > MAX_BITSET_SIZE) return false;
+            m_bits.resize((vsz + 7) / 8 * 8);
+            for (size_t i = 0; i < vsz; ++i) {
+                m_bits[i] = (val[vsz - i - 1] == '1');
             }
             return true;
         }
 
         bool loadhex(std::string_view val) {
-            if (val.empty() || val.size() % 2 != 0) return false;
-            if (val.size() * 4 > MAX_BITSET_SIZE) return false;
-            m_bits.resize(val.size() * 4);
-            for (size_t i = 0; i < val.size(); i += 2) {
-                uint8_t hi = fromhex(val[i]);
-                uint8_t low = fromhex(val[i + 1]);
+            size_t vsz = val.size();
+            if (vsz == 0 || vsz % 2 != 0) return false;
+            if (vsz * 4 > MAX_BITSET_SIZE) return false;
+            m_bits.resize(vsz * 4);
+            for (size_t i = 0; i < vsz; i += 2) {
+                uint8_t hi = fromhex(val[vsz - i - 2]);
+                uint8_t low = fromhex(val[vsz - i - 1]);
                 uint8_t byte = hi << 4 | low;
                 for (size_t j = 0; j < 8; ++j) {
                     uint8_t flag = 1 << j;
@@ -51,10 +52,11 @@ namespace lcodec {
         }
 
         bool loadbin(std::string_view val) {
-            if (val.empty()) return false;
-            if (val.size() * 8 > MAX_BITSET_SIZE) return false;
-            m_bits.resize(val.size() * 8);
-            for (size_t i = 0; i < val.size(); ++i) {
+            size_t vsz = val.size();
+            if (vsz == 0) return false;
+            if (vsz * 8 > MAX_BITSET_SIZE) return false;
+            m_bits.resize(vsz * 8);
+            for (size_t i = 0; i < vsz; ++i) {
                 uint8_t byte = val[i];
                 for (size_t j = 0; j < 8; ++j) {
                     uint8_t flag = 1 << j;
@@ -84,8 +86,8 @@ namespace lcodec {
             size_t casz = (vsz + 7) / 8;
             for (size_t i = 0; i < casz; ++i) {
                 uint8_t byte = 0;
-                for (size_t j = 0; j < 8 && i * 8 + j < vsz; ++j) {
-                    if (m_bits[i * 8 + j]) {
+                for (size_t j = 0; j < 8 && (casz - i - 1) * 8 + j < vsz; ++j) {
+                    if (m_bits[(casz - i - 1) * 8 + j]) {
                         byte |= (1 << j);
                     }
                 }
@@ -113,7 +115,7 @@ namespace lcodec {
         bool set(size_t pos, bool bval) {
             if (pos > MAX_BITSET_SIZE || pos == 0) return false;
             if (pos > m_bits.size()) {
-                size_t nsz = (m_bits.size() + 7) / 8 * 8;
+                size_t nsz = (pos + 7) / 8 * 8;
                 m_bits.resize(nsz);
             }
             m_bits[pos - 1] = bval;
