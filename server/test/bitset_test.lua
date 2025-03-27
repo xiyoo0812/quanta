@@ -28,5 +28,5 @@ local hex = val.hex()
 log_debug("hex: {}", hex)
 local hval = codec.bitset()
 hval.loadhex(hex)
-log_debug("loadhex: {}", hval.tostring(0))
+log_debug("loadhex: {}", hval.tostring())
 

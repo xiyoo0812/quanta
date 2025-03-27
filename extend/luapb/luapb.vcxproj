@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\pb.h" />
+    <ClInclude Include="src\luapb.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\luapb.cpp" />

@@ -1,17 +1,15 @@
 #define LUA_LIB
-#include <algorithm>
 
-#include "pb.c"
-#include "lua_kit.h"
+#include "luapb.h"
 
 using namespace std;
 using namespace luakit;
 
 namespace luapb {
 
-    thread_local std::map<uint32_t, std::string> pb_cmd_ids;
+    thread_local std::map<uint32_t, pb_message*>    pb_cmd_ids;
+    thread_local std::map<std::string, pb_message*> pb_cmd_names;
     thread_local std::map<std::string, uint32_t> pb_cmd_indexs;
-    thread_local std::map<std::string, std::string> pb_cmd_names;
 
     #pragma pack(1)
     struct pb_header {
@@ -23,6 +21,39 @@ namespace luapb {
         uint8_t     crc8;           // crc8
     };
     #pragma pack()
+
+    pb_message* pbmsg_from_cmdid(lua_State* L, size_t cmd_id) {
+        auto it = pb_cmd_ids.find(cmd_id);
+        if (it == pb_cmd_ids.end()) return nullptr;
+        return it->second;
+    }
+
+    pb_message* pbmsg_from_stack(lua_State* L, int index, uint16_t* cmd_id = nullptr) {
+        if (lua_isnumber(L, index)) {
+            auto cmdid = lua_tointeger(L, index);
+            auto it = pb_cmd_ids.find(cmdid);
+            if (it == pb_cmd_ids.end()) luaL_error(L, "invalid pb cmd: %d", cmdid);
+            if (cmd_id) *cmd_id = cmdid;
+            return it->second;
+        }
+        if (lua_isstring(L, index)) {
+            string cmd_name = lua_tostring(L, index);
+            auto it = pb_cmd_names.find(cmd_name);
+            if (it == pb_cmd_names.end()) {
+                if (cmd_id == nullptr) {
+                    auto msg = find_message(cmd_name);
+                    if (msg == nullptr) {
+                        luaL_error(L, "invalid pb cmd_name: %s", cmd_name.c_str());
+                    }
+                    return msg;
+                }
+                luaL_error(L, "invalid pb cmd_name: %s", cmd_name.c_str());
+            }
+            if (cmd_id) *cmd_id = pb_cmd_indexs[cmd_name];
+            return it->second;
+        }
+        return nullptr;
+    }
 
     class pbcodec : public codec_base {
     public:
@@ -41,56 +72,48 @@ namespace luapb {
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             //header
             pb_header header;
-            lpb_State *LS = lpb_lstate(L);
             //session_id
             header.session_id = (lua_tointeger(L, index++) & 0xffff);
             //cmdid
-            const pb_Type* t = pb_type_from_stack(L, LS, &header, index++);
-            if (t == nullptr) luaL_error(L, "pb message not define cmd: %d", header.cmd_id);
-            pb_Slice sh = pb_lslice((const char*)&header, sizeof(header));
+            pb_message* msg = pbmsg_from_stack(L, index++, &header.cmd_id);
+            if (msg == nullptr) luaL_error(L, "invalid pb cmd type");
             //other
             header.flag = (uint8_t)lua_tointeger(L, index++);
             header.type = (uint8_t)lua_tointeger(L, index++);
             header.crc8 = (uint8_t)lua_tointeger(L, index++);
             //encode
-            lpb_Env e;
-            e.L = L, e.LS = LS;
-            pb_resetbuffer(e.b = &LS->buffer);
+            auto buf = luakit::get_buff();
+            buf->clean();
             lua_pushvalue(L, index);
-            pb_addslice(e.b, sh);
-            lpbE_encode(&e, t, -1);
-            *len = pb_bufflen(e.b);
-            ((pb_header*)pb_buffer(e.b))->len = *len;
-            return (uint8_t*)pb_buffer(e.b);
+            try {
+                encode_message(L, buf, msg);
+            } catch (const exception& e) {
+                luaL_error(L, e.what());
+            }
+            *len =  buf->size();
+            header.len = *len;
+            return buf->head();
         }
 
         virtual size_t decode(lua_State* L) {
             //header
             pb_header* header = (pb_header*)m_slice->erase(sizeof(pb_header));
-            //data
-            size_t data_len;
-            const char* data = (const char*)m_slice->data(&data_len);
             //return
             int top = lua_gettop(L);
-            lua_pushinteger(L, data_len);
+            lua_pushinteger(L, m_slice->size());
             lua_pushinteger(L, header->session_id);
             lua_pushinteger(L, header->cmd_id);
             lua_pushinteger(L, header->flag);
             lua_pushinteger(L, header->type);
             lua_pushinteger(L, header->crc8);
             //cmd_id
-            lpb_State* LS = lpb_lstate(L);
-            const pb_Type* t = pb_type_from_enum(L, LS, header->cmd_id);
-            if (t == nullptr) {
+            pb_message* msg = pbmsg_from_cmdid(L, header->cmd_id);
+            if (msg == nullptr) {
                 return lua_gettop(L) - top;
             }
             //decode
             lua_push_function(L, [&](lua_State* L) {
-                lpb_Env e;
-                pb_Slice s = pb_lslice(data, data_len);
-                lpb_pushtypetable(L, LS, t);
-                e.L = L, e.LS = LS, e.s = &s;
-                lpbD_message(&e, t);
+                decode_message(L, m_slice, msg);
                 return 1;
             });
             if (lua_pcall(L, 0, 1, 0)) {
@@ -98,31 +121,6 @@ namespace luapb {
                 lua_insert(L, -2);
             }
             return lua_gettop(L) - top;
-        }
-
-    protected:
-        const pb_Type* pb_type_from_enum(lua_State* L, lpb_State* LS, size_t cmd_id) {
-            auto it = pb_cmd_ids.find(cmd_id);
-            if (it == pb_cmd_ids.end()) return nullptr;
-            return lpb_type(L, LS, pb_lslice(it->second.c_str(), it->second.size()));
-        }
-
-        const pb_Type* pb_type_from_stack(lua_State* L, lpb_State* LS, pb_header* header, int index) {
-            if (lua_type(L, index) == LUA_TNUMBER) {
-                header->cmd_id = lua_tointeger(L, index);
-                auto it = pb_cmd_ids.find(header->cmd_id);
-                if (it == pb_cmd_ids.end()) luaL_error(L, "invalid pb cmd: %d", header->cmd_id);
-                return lpb_type(L, LS, pb_lslice(it->second.c_str(), it->second.size()));
-            }
-            if (lua_type(L, index) == LUA_TSTRING) {
-                std::string cmd_name = lua_tostring(L, index);
-                auto it = pb_cmd_names.find(cmd_name);
-                if (it == pb_cmd_names.end()) luaL_error(L, "invalid pb cmd_name: %s", cmd_name.c_str());
-                header->cmd_id = pb_cmd_indexs[cmd_name];
-                return lpb_type(L, LS, pb_lslice(it->second.c_str(), it->second.size()));
-            }
-            luaL_error(L, "invalid pb cmd type");
-            return nullptr;
         }
     };
     
@@ -132,16 +130,100 @@ namespace luapb {
         return codec;
     }
 
+    int load_pb(lua_State* L) {
+        size_t len;
+        auto data = (uint8_t*)lua_tolstring(L, 2, &len);
+        auto buf = luakit::get_buff();
+        auto lbuf = buf->peek_space(len);
+        buf->push_data(data, len);
+        buf->pop_space(len);
+        read_file_descriptor_set(buf->get_slice());
+        return 1;
+    }
+
+    int load_file(lua_State* L, const char* filename) {
+        FILE* fp = fopen(filename, "rb");
+        if (!fp) return 0;
+        auto buf = luakit::get_buff();
+        auto len = filesystem::file_size(filename);
+        auto lbuf = buf->peek_space(len);
+        fread(lbuf, 1, len, fp);
+        buf->pop_space(len);
+        read_file_descriptor_set(buf->get_slice());
+        fclose(fp);
+        return 1;
+    }
+
+
+    int pb_encode(lua_State* L) {
+        auto buf = luakit::get_buff();
+        buf->clean();
+        auto msg = pbmsg_from_stack(L, 1);
+        if (msg == nullptr) luaL_error(L, "invalid pb cmd type");
+        try {
+            encode_message(L, buf, msg);
+        } catch (const exception& e){
+            luaL_error(L, e.what());
+        }
+        lua_pushlstring(L, (char*)buf->head(), buf->size());
+        return 1;
+    }
+
+    int pb_decode(lua_State* L) {
+        size_t len;
+        auto val = (uint8_t*)lua_tolstring(L, 2, &len);
+        slice s = slice(val, len);
+        auto msg = pbmsg_from_stack(L, 1);
+        try {
+            decode_message(L, &s, msg);
+        } catch (const exception& e) {
+            luaL_error(L, e.what());
+        }
+        return 1;
+    }
+
+    int pb_enum_id(lua_State* L, string efullname) {
+        auto penum = find_enum(efullname);
+        if (penum) {
+            if (lua_isstring(L, 2)) {
+                string key = lua_tostring(L, 2);
+                auto it = penum->kvpair.find(key);
+                if (it != penum->kvpair.end()) {
+                    lua_pushinteger(L, it->second);
+                    return 1;
+                }
+            }
+            if (lua_isnumber(L, 2)) {
+                int32_t key = lua_tointeger(L, 2);
+                auto it = penum->vkpair.find(key);
+                if (it != penum->vkpair.end()) {
+                    lua_pushlstring(L, it->second.data(), it->second.size());
+                    return 1;
+                }
+            }
+        }
+        return 0;
+    }
+
     luakit::lua_table open_luapb(lua_State* L) {
-        luaopen_pb(L);
-        lua_table luapb(L);
         kit_state kit_state(L);
-        kit_state.set("protobuf", luapb);
+        lua_table luapb = kit_state.new_table("protobuf");
+        luapb.set_function("load", load_pb);
+        luapb.set_function("enum", pb_enum_id);
+        luapb.set_function("enums", pb_enums);
+        luapb.set_function("clear", pb_clear);
+        luapb.set_function("decode", pb_decode);
+        luapb.set_function("encode", pb_encode);
         luapb.set_function("pbcodec", pb_codec);
+        luapb.set_function("loadfile", load_file);
+        luapb.set_function("messages", pb_messages);
         luapb.set_function("bind_cmd", [](uint32_t cmd_id, std::string name, std::string fullname) {
-            pb_cmd_indexs[name] = cmd_id;
-            pb_cmd_names[name] = fullname;
-            pb_cmd_ids[cmd_id] = fullname;
+            auto message = find_message(fullname);
+            if (message) {
+                pb_cmd_names[name] = message;
+                pb_cmd_ids[cmd_id] = message;
+                pb_cmd_indexs[name] = cmd_id;
+            }
         });
         return luapb;
     }

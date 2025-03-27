@@ -12,3 +12,24 @@ enum BtNodeId
     BT_LOGOUT       = 1003;     //登出
     BT_LOGIN_WAIT   = 1004;     //登陆
 }
+
+message child_message
+{
+    uint32 id                       = 1;        // id
+    string name                     = 2;        // name
+    map<string, string> values      = 3;
+}
+
+message test_message
+{
+    uint32 id                       = 1;        // id
+    child_message child             = 2;
+    repeated int32 custom2          = 3;
+    map<string, string> custom      = 4;
+    repeated child_message childs   = 5;
+    map<string, child_message> kvs  = 6;
+    oneof custom3 {
+        string str                  = 8;
+        int32 num                   = 9;
+    }
+}

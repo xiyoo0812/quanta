@@ -54,6 +54,23 @@ namespace luakit {
             return 0;
         }
 
+        size_t hold_place(size_t offset) {
+            size_t base = m_tail - m_head;
+            pop_space(offset);
+            return base;
+        }
+        
+        slice* truncature(size_t base, size_t offset) {
+            auto data = m_head + base + offset;
+            size_t data_len = m_tail - data;
+            if (data_len > 0) {
+                m_slice.attach(data, data_len);
+                m_tail = m_head + base;
+                return &m_slice;
+            }
+            return nullptr;
+        }
+
         size_t push_data(const uint8_t* src, size_t push_len) {
             uint8_t* target = peek_space(push_len);
             if (target) {
@@ -103,7 +120,7 @@ namespace luakit {
             return 0;
         }
 
-        slice* get_slice(size_t len = 0, uint16_t offset = 0) {
+        slice* get_slice(size_t len = 0, uint32_t offset = 0) {
             size_t data_len = m_tail - (m_head + offset);
             m_slice.attach(m_head + offset, len == 0 ? data_len : len);
             return &m_slice;

@@ -17,6 +17,7 @@ local blank = "[%s]+"
 --参数类型模式定义
 --参数支持类型：table/float/integer/string
 local patterns = {
+    bool = "(.+)",
     table = "({.+})",
     integer = "([%-]?%d+)",
     float = "([%-]?%d+[%.]?%d+)",

@@ -55,13 +55,13 @@ function ProtobufMgr:error_code(err_key)
 end
 
 function ProtobufMgr:enum(ename, ekey)
-    local emun = ncmd_cs[ename]
-    if not emun then
+    local lenum = ncmd_cs[ename]
+    if not lenum then
         local info = dgetinfo(2, "S")
         log_warn("[ProtobufMgr][enum] {} not initial! source({}:{})", ename, info.short_src, info.linedefined)
         return
     end
-    local value = emun[ekey]
+    local value = lenum[ekey]
     if not value then
         local info = dgetinfo(2, "S")
         log_warn("[ProtobufMgr][enum] {}.{} not defined! source({}:{})", ename, ekey, info.short_src, info.linedefined)
@@ -81,20 +81,13 @@ function ProtobufMgr:load_protos()
             protobuf.loadfile(proto_file)
             log_debug("[ProtobufMgr][load_protos] load pb file: {}", proto_file)
         end
-        --设置枚举解析成number
-        protobuf.option("enum_as_value")
-        protobuf.option("encode_default_values")
         --注册枚举
-        for name, _, typ in protobuf.types() do
-            if typ == "enum" then
-                self:define_enum(name)
-            end
+        for _, name in pairs(protobuf.enums()) do
+            self:define_enum(name)
         end
         --注册CMDID和PB的映射
-        for name, basename, typ in protobuf.types() do
-            if typ == "message" then
-                self:define_command(name, basename)
-            end
+        for full_name, name in pairs(protobuf.messages()) do
+            self:define_command(full_name, name)
         end
     end
     self.allow_reload = true
@@ -139,11 +132,12 @@ function ProtobufMgr:decode(pb_cmd, pb_str)
 end
 
 local function pbenum(full_name)
-    return function(_, enum_name)
+    return function(enum, enum_name)
         local enum_val = pb_enum_id(full_name, enum_name)
         if not enum_val then
             log_warn("[pbenum] no enum {}.{}", full_name, enum_name)
         end
+        enum[enum_name] = enum_val
         return enum_val
     end
 end

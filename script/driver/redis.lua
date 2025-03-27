@@ -250,7 +250,7 @@ function RedisDB:login(socket)
     tinsert(self.alives, socket)
     log_info("[RedisDB][login] login db({}:{}:{}) success!", ip, port, id)
     event_mgr:fire_frame(function()
-        self:on_socket_alive()
+        self:on_socket_alive(socket)
     end)
     return true, SUCCESS
 end
@@ -259,7 +259,7 @@ function RedisDB:auth(sock)
     return self:commit(sock, "AUTH", self.passwd)
 end
 
-function RedisDB:on_socket_alive()
+function RedisDB:on_socket_alive(socket)
 end
 
 function RedisDB:delive(sock)

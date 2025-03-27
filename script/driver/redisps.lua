@@ -2,24 +2,29 @@
 local log_err       = logger.err
 local tunpack       = table.unpack
 
-local event_mgr     = quanta.get("event_mgr")
-
 local Redis         = import("driver/redis.lua")
 local Socket        = import("driver/socket.lua")
 
 local subscribe_commands = {
     subscribe       = { cmd = "SUBSCRIBE"   },  -- >= 2.0
-    unsubscribe     = { cmd = "UNSUBSCRIBE" },  -- >= 2.0
     psubscribe      = { cmd = "PSUBSCRIBE"  },  -- >= 2.0
+}
+
+local unsubscribe_commands = {
+    unsubscribe     = { cmd = "UNSUBSCRIBE" },  -- >= 2.0
     punsubscribe    = { cmd = "PUNSUBSCRIBE"},  -- >= 2.0
 }
 
 local _redis_subscribe_replys = {
     message = function(self, channel, data)
-        event_mgr:notify_trigger("on_subscribe_ready", channel, data)
+        if self.callbacks[channel] then
+            self.callbacks[channel](channel, data)
+        end
     end,
     pmessage = function(self, pattern, channel, data)
-        event_mgr:notify_trigger("on_subscribe_ready", channel, data)
+        if self.callbacks[channel] then
+            self.callbacks[channel](channel, data)
+        end
     end,
     subscribe = function(self, channel, status)
         self.subscribes[channel] = true
@@ -37,17 +42,35 @@ local _redis_subscribe_replys = {
 
 local PSRedis = class(Redis)
 local prop = property(PSRedis)
+prop:reader("executer", nil)
+prop:reader("callbacks", {})
 prop:reader("subscribes", {})
 prop:reader("psubscribes", {})
 
 function PSRedis:__init(conf)
     self.subscrible = true
+    self:setup_command()
 end
 
 function PSRedis:setup_command()
     for cmd, param in pairs(subscribe_commands) do
-        PSRedis[cmd] = function(this, ...)
-            return this:commit(self.executer, param, ...)
+        PSRedis[cmd] = function(this, callback, channel)
+            if self.callbacks[channel] then
+                return true
+            end
+            self.callbacks[channel] = callback
+            if self.executer then
+                return this:commit(self.executer, param, channel)
+            end
+            return false, "db not connected"
+        end
+    end
+    for cmd, param in pairs(unsubscribe_commands) do
+        PSRedis[cmd] = function(this, channel)
+            if self.executer then
+                return this:commit(self.executer, param, channel)
+            end
+            return false, "db not connected"
         end
     end
 end
@@ -65,14 +88,14 @@ function PSRedis:setup_pool(hosts)
     end
 end
 
-function PSRedis:on_socket_alive()
+function PSRedis:on_socket_alive(sock)
+    self.executer = sock
     for channel in pairs(self.subscribes) do
-        self:execute("subscribe", channel)
+        self:commit(sock, "subscribe", channel)
     end
     for channel in pairs(self.psubscribes) do
-        self:execute("psubscribes", channel)
+        self:commit(sock, "psubscribes", channel)
     end
-    event_mgr:notify_trigger("on_subscribe_alive")
 end
 
 function PSRedis:do_socket_recv(res)

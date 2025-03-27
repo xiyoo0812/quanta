@@ -44,7 +44,6 @@ local function ssplit(str, token)
     return t
 end
 
-
 --加载部署日志
 if qgetenv("QUANTA_LOG_PATH") then
     log.add_file_dest(FEATURE, "devops.log")
