@@ -123,14 +123,16 @@ namespace logger {
     }
 
     void log_file_base::raw_write(sstring& msg, log_level lvl) {
-        if (size_ + msg.size() > alc_size_) {
-            alc_size_ += PAGE_SIZE;
+        size_t msize = msg.size();
+        if (size_ + msize > alc_size_) {
+            size_t required_pages = (size_ + msize - alc_size_ + PAGE_SIZE - 1) / PAGE_SIZE;
+            alc_size_ += required_pages * PAGE_SIZE;
             unmap_file();
             map_file();
         }
         if (buff_) {
-            memcpy(buff_ + size_, msg.data(), msg.size());
-            size_ += msg.size();
+            memcpy(buff_ + size_, msg.data(), msize);
+            size_ += msize;
         }
     }
 

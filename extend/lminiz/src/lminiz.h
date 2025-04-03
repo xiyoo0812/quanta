@@ -5,6 +5,23 @@
 
 namespace lminiz {
 
+    struct mini_gzip {
+        size_t      total_len;
+        size_t      data_len;
+        size_t      chunk_size;
+
+        uint16_t    fcrc;
+        uint16_t    fextra_len;
+
+        uint8_t*    hdr_ptr;
+        uint8_t*    fextra_ptr;
+        uint8_t*    fname_ptr;
+        uint8_t*    fcomment_ptr;
+
+        uint8_t*    data_ptr;
+        uint8_t     pad[3];
+    };
+
     class zip_file {
     public:
         ~zip_file() {

@@ -9,8 +9,10 @@ local http_client   = quanta.get("http_client")
 local data = {aaa = 123}
 
 if quanta.index == 1 then
-    local ok, status, res, headers = http_client:call_get("https://www.baidu.com/")
-    log_debug("node_status4 : {}, {}, {}, {}", ok, status, headers, res)
+    thread_mgr:fork(function()
+        local ok, status, body, headers = http_client:call_get("https://www.hao123.com/")
+        log_debug("node_status4 : {}, {}, {}, {}", ok, status, headers, body)
+    end)
 elseif quanta.index == 2 then
     local on_post = function(path, body, params)
         log_debug("on_post: path: {}, params: {}, body: {}", path, params, body)

@@ -13,6 +13,17 @@ local type      = type
 
 local NULL      = "null"
 
+local function clone_arg(arg)
+    if type(arg) ~= "table" then
+        return arg
+    end
+    local dst = {}
+    for field, value in pairs(arg or {}) do
+        dst[field] = value
+    end
+    return dst
+end
+
 local function get_storage_layers(obj, sheet)
     if sheet ~= NULL then
         return obj["__storage_" .. sheet], {}
@@ -67,7 +78,10 @@ end
 local function define_setter(class, sheet, name, default, is_obj)
     class["set_" .. name] = function(self, value)
         if self[name] ~= value then
-            self[name] = value or default
+            if value == nil then
+                value = clone_arg(default)
+            end
+            self[name] = value
             if is_obj and value then
                 local store, layers = get_storage_layers(self, sheet)
                 if store then

@@ -400,7 +400,7 @@ void socket_stream::dispatch_package() {
     int64_t now = luakit::steady_ms();
     while (m_link_status == elink_status::link_connected) {
         if (!m_codec){
-            on_error("codec-is-bnull");
+            on_error("codec-is-null");
             break;
         }
         size_t data_len;

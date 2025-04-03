@@ -159,8 +159,7 @@ namespace lssl {
         const char* message = luaL_checklstring(L, 1, &data_len);
         size_t zsize = ZSTD_compressBound(data_len);
         if (!ZSTD_isError(zsize)) {
-            auto buf = luakit::get_buff();
-            uint8_t* dest = buf->peek_space(zsize);
+            auto dest = alloc_buff(zsize);
             if (dest) {
                 size_t comp_ize = ZSTD_compress(dest, zsize, message, data_len, ZSTD_defaultCLevel());
                 if (!ZSTD_isError(comp_ize)) {
@@ -179,8 +178,7 @@ namespace lssl {
         const char* message = luaL_checklstring(L, 1, &data_len);
         size_t size = ZSTD_getFrameContentSize(message, data_len);
         if (!ZSTD_isError(size)) {
-            auto buf = luakit::get_buff();
-            uint8_t* dest = buf->peek_space(size);
+            auto dest = alloc_buff(size);
             if (dest) {
                 size_t dec_size = ZSTD_decompress(dest, size, message, data_len);
                 if (!ZSTD_isError(dec_size)) {
@@ -327,9 +325,10 @@ namespace lssl {
         return 1;
     }
 
-    static tlscodec* tls_codec(codec_base* codec) {
+    static tlscodec* tls_codec(lua_State* L, codec_base* codec, bool is_client) {
         tlscodec* tcodec = new tlscodec();
         tcodec->set_buff(luakit::get_buff());
+        tcodec->init_tls(L, is_client);
         tcodec->set_codec(codec);
         return tcodec;
     }
@@ -374,7 +373,6 @@ namespace lssl {
             "sign", &lua_rsa_key::sign
         );
         kit_state.new_class<tlscodec>(
-            "init_tls", &tlscodec::init_tls,
             "set_cert", &tlscodec::set_cert,
             "isfinish", &tlscodec::isfinish,
             "set_ciphers", &tlscodec::set_ciphers

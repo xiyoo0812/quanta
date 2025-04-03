@@ -143,10 +143,12 @@ namespace lssl {
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             if (!is_handshake) {
+                m_buf->clean();
                 uint8_t* data = (uint8_t*)lua_tolstring(L, index, len);
                 if (*len > 0) bio_write(L, data, *len);
                 tls_handshake(L);
-                return m_buf->data(len);
+                data = m_buf->data(len);
+                return data;
             }
             size_t slen = 0;
             uint8_t* body = m_hcodec->encode(L, index, &slen);
@@ -161,7 +163,8 @@ namespace lssl {
                 slen -= written;
             }
             bio_read(L);
-            return m_buf->data(len);
+            body = m_buf->data(len);
+            return body;
         }
 
         virtual size_t decode(lua_State* L) {
@@ -178,14 +181,14 @@ namespace lssl {
             if (!is_recving) {
                 m_buf->clean();
             }
+            m_packet_len = sz;
             bio_write(L, m_slice->head(), sz);
             do {
                 uint8_t* outbuff = m_buf->peek_space(SSL_TLS_READ_SIZE);
                 int read = SSL_read(ssl, outbuff, SSL_TLS_READ_SIZE);
                 if (read == 0) break;
-                if (read < 0 || read > SSL_TLS_READ_SIZE) {
+                if (read < 0) {
                     int err = SSL_get_error(ssl, read);
-                    ERR_clear_error();
                     if (err == SSL_ERROR_WANT_READ) {
                         break;
                     }
@@ -196,8 +199,7 @@ namespace lssl {
             m_slice->erase(sz);
             m_hcodec->set_slice(m_buf->get_slice());
             is_recving = true;
-            m_packet_len = sz;
-            size_t argnum = m_hcodec->decode(L);
+            int argnum = m_hcodec->decode(L);
             is_recving = false;
             return argnum;
         }
@@ -211,7 +213,7 @@ namespace lssl {
             m_hcodec = codec;
         }
 
-        int init_tls(lua_State* L, bool is_client) {
+        void init_tls(lua_State* L, bool is_client) {
             ctx = SSL_CTX_new(SSLv23_method());
             if (!ctx) {
                 char buf[256];
@@ -233,7 +235,6 @@ namespace lssl {
             else {
                 SSL_set_accept_state(ssl);
             }
-            return 0;
         }
 
         int set_ciphers(lua_State* L, std::string_view cipher) {
@@ -259,20 +260,14 @@ namespace lssl {
     protected:
         void tls_handshake(lua_State* L) {
             int ret = SSL_do_handshake(ssl);
-            if (ret == 1) {
-                m_buf->clean();
-                return;
-            }
-            if (ret < 0) {
-                int err = SSL_get_error(ssl, ret);
-                ERR_clear_error();
-                if (err == SSL_ERROR_WANT_READ) {
-                    bio_read(L);
-                }
+            if (ret == SSL_SUCCESS) {
                 return;
             }
             int err = SSL_get_error(ssl, ret);
-            ERR_clear_error();
+            if (err == SSL_ERROR_WANT_READ) {
+                bio_read(L);
+                return;
+            }
             luaL_error(L, "SSL_do_handshake error:%d ret:%d", err, ret);
         }
 
@@ -288,7 +283,6 @@ namespace lssl {
         }
 
         void bio_read(lua_State* L) {
-            m_buf->clean();
             int pending = BIO_ctrl_pending(out_bio);
             while (pending > 0) {
                 uint8_t* outbuff = m_buf->peek_space(SSL_TLS_READ_SIZE);

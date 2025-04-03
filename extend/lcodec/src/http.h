@@ -84,10 +84,9 @@ namespace lcodec {
         virtual void parse_http_packet(lua_State* L, string_view& buf) = 0;
 
         void http_parse_body(lua_State* L, string_view header, string_view& buf) {
-            m_buf->clean();
+            string body;
             bool jsonable = false;
             bool contentlenable = false;
-            slice* mslice = nullptr;
             vector<string_view> headers;
             split(header, CRLF, headers);
             lua_createtable(L, 0, 4);
@@ -100,12 +99,11 @@ namespace lcodec {
                     if (hpos != string_view::npos) header.remove_prefix(hpos);
                     if (!strncasecmp(key.data(), "Content-Length", key.size())) {
                         contentlenable = true;
-                        mslice = m_buf->get_slice();
                         size_t content_size = atol(header.data());
                         if (buf.size() < content_size) {
                             throw length_error("http text not full");
                         }
-                        mslice->attach((uint8_t*)buf.data(), content_size);
+                        body.append(buf.data(), content_size);
                         buf.remove_prefix(content_size);
                     }
                     else if (!strncasecmp(key.data(), "Transfer-Encoding", key.size()) && !strncasecmp(header.data(), "chunked", header.size())) {
@@ -125,13 +123,12 @@ namespace lcodec {
                             if (buf.size() < chunk_size) {
                                 throw length_error("http text not full");
                             }
-                            m_buf->push_data((const uint8_t*)next + LCRLF, chunk_size);
+                            body.append((const char*)next + LCRLF, chunk_size);
                             buf.remove_prefix(pos + chunk_size + 2 * LCRLF);
                         }
                         if (!complate) {
                             throw length_error("http text not full");
                         }
-                        mslice = m_buf->get_slice();
                     }
                     else if (!strncasecmp(key.data(), "Content-Type", key.size()) && header.find("json") != string_view::npos) {
                         jsonable = true;
@@ -144,25 +141,25 @@ namespace lcodec {
             }
             if (!contentlenable) {
                 if (!buf.empty()) {
-                    mslice = m_buf->get_slice();
-                    mslice->attach((uint8_t*)buf.data(), buf.size());
+                    body.append((const char*)buf.data(), buf.size());
                     buf.remove_prefix(buf.size());
                 }
             }
-            if (!mslice || mslice->empty()) {
+            if (body.empty()) {
                 lua_pushnil(L);
                 return;
             }
             if (jsonable && m_jcodec) {
                 try {
-                    m_jcodec->set_slice(mslice);
+                    auto mslice = luakit::slice((uint8_t*)body.c_str(), body.size());
+                    m_jcodec->set_slice(&mslice);
                     m_jcodec->decode(L);
                 } catch (...) {
-                    lua_pushlstring(L, (char*)mslice->head(), mslice->size());
+                    lua_pushlstring(L, body.c_str(), body.size());
                 }
                 return;
             }
-            lua_pushlstring(L, (char*)mslice->head(), mslice->size());
+            lua_pushlstring(L, body.c_str(), body.size());
         }
 
         void format_http_header(string_view key, string_view val) {
