@@ -14,6 +14,7 @@
 #include "lua_kit.h"
 
 #ifdef WIN32
+#define NOMINMAX
 #define getpid _getpid
 #else
 #include <unistd.h>
@@ -29,6 +30,8 @@ using sstring   = std::string;
 using vstring   = std::string_view;
 using cstring   = const std::string;
 
+template <class T>
+using wptr      = std::weak_ptr<T>;
 template <class T>
 using sptr      = std::shared_ptr<T>;
 
@@ -47,7 +50,7 @@ namespace logger {
         DAYLY = 1,
     }; //rolling_type
 
-    const size_t QUEUE_SIZE = 10000;
+    const size_t QUEUE_SIZE = 3000;
     const size_t PAGE_SIZE  = 65536;
     const size_t MAX_SIZE   = 1024 * 1024 * 16;
     const size_t CLEAN_TIME = 7 * 24 * 3600;
@@ -71,11 +74,11 @@ namespace logger {
     class log_time : public std::tm {
     public:
         static log_time now();
-        log_time(const std::tm& tm, int usec) : std::tm(tm), tm_usec(usec) { }
+        log_time(const std::tm& tm, time_t sec, int usec) : std::tm(tm), tm_time(sec), tm_usec(usec) { }
         log_time() { }
 
-    public:
         int tm_usec = 0;
+        time_t tm_time = 0;
     }; // class log_time
 
     class log_message {
@@ -85,45 +88,38 @@ namespace logger {
         int32_t line() const { return line_; }
         vstring source() const { return source_; }
         vstring feature() const { return feature_; }
-        bool is_grow() const { return grow_; }
-        void set_grow(bool grow) { grow_ = grow; }
         int get_usec() { return log_time_.tm_usec; }
         log_level level() const { return level_; }
-        const std::tm& get_time() const { return log_time_; }
+        time_t time() const { return log_time_.tm_time; }
+        const std::tm& logtime() const { return log_time_; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
 
     private:
-        bool                grow_ = false;
         int32_t             line_ = 0;
         log_time            log_time_;
         sstring             source_, msg_, feature_, tag_;
         log_level           level_ = log_level::LOG_LEVEL_DEBUG;
     }; // class log_message
-    typedef std::list<sptr<log_message>> log_message_list;
+    typedef std::vector<sptr<log_message>> log_messages;
 
     class log_message_pool {
     public:
-        log_message_pool(size_t msg_size);
-        ~log_message_pool();
-
         sptr<log_message> allocate();
-        void release(sptr<log_message> logmsg);
-
+        void recycle(sptr<log_messages> logmsgs);
     private:
         spin_mutex mutex_;
-        sptr<log_message_list> free_messages_ = std::make_shared<log_message_list>();
-        sptr<log_message_list> alloc_messages_ = std::make_shared<log_message_list>();
+        sptr<log_messages> free_msgs_ = std::make_shared<log_messages>();
+        sptr<log_messages> alloc_msgs_ = std::make_shared<log_messages>();
     }; // class log_message_pool
 
     class log_message_queue {
     public:
         void put(sptr<log_message> logmsg);
-        sptr<log_message_list> timed_getv();
-
+        sptr<log_messages> timed_getv(bool running);
     private:
-        spin_mutex                  spin_;
-        sptr<log_message_list> read_messages_ = std::make_shared<log_message_list>();
-        sptr<log_message_list> write_messages_ = std::make_shared<log_message_list>();
+        spin_mutex mutex_;
+        sptr<log_messages> read_msgs_ = std::make_shared<log_messages>();
+        sptr<log_messages> write_msgs_ = std::make_shared<log_messages>();
     }; // class log_message_queue
 
     class log_dest {
@@ -138,6 +134,8 @@ namespace logger {
         virtual cstring build_suffix(sptr<log_message> logmsg);
 
     protected:
+        time_t last_time_ = 0;
+        char time_buf_[32] = {0};
         bool ignore_suffix_ = true;
         bool ignore_prefix_ = false;
     }; // class log_dest
@@ -165,7 +163,7 @@ namespace logger {
     protected:
         std::tm         file_time_;
         size_t          size_, alc_size_, max_size_;
-        char*           buff_ = nullptr;
+        char* buff_ = nullptr;
         sstring         file_path_;
     }; // class log_file
 
@@ -199,10 +197,30 @@ namespace logger {
     typedef log_rollingfile<rolling_hourly> log_hourlyrollingfile;
     typedef log_rollingfile<rolling_daily> log_dailyrollingfile;
 
-    class log_service {
+    class log_service;
+    class log_agent : public std::enable_shared_from_this<log_agent> {
     public:
-        void stop();
-        void start();
+        log_agent();
+        ~log_agent();
+        uint32_t get_id();
+        void filter(log_level lv, bool on);
+        void attach(wptr<log_service> service);
+        void recycle(sptr<log_messages> logmsgs) { message_pool_->recycle(logmsgs); }
+        bool is_filter(log_level lv) { return 0 == (filter_bits_ & (1 << ((int)lv - 1))); }
+        sptr<log_messages> timed_getv(bool running) {  return logmsgque_->timed_getv(running); }
+        void output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source = "", int line = 0);
+
+    protected:
+        int32_t filter_bits_ = -1;
+        wptr<log_service> service_;
+        sptr<log_message_queue> logmsgque_ = nullptr;
+        sptr<log_message_pool> message_pool_ = nullptr;
+    }; // class log_agent
+
+    class log_service : public std::enable_shared_from_this<log_service> {
+    public:
+        log_service();
+        ~log_service();
 
         void daemon(bool status) { log_daemon_ = status; }
         void option(cpchar log_path, cpchar service, cpchar index);
@@ -214,6 +232,9 @@ namespace logger {
         void del_dest(cpchar feature);
         void del_lvl_dest(log_level log_lvl);
 
+        void del_agent(uint32_t tid);
+        void add_agent(sptr<log_agent> agent);
+
         void ignore_prefix(cpchar feature, bool prefix);
         void ignore_suffix(cpchar feature, bool suffix);
 
@@ -221,11 +242,6 @@ namespace logger {
         void set_rolling_type(rolling_type type) { rolling_type_ = type; }
         void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
         void set_dest_clean_time(cpchar feature, size_t clean_time);
-
-        void filter(log_level lv, bool on);
-        bool is_filter(log_level lv) { return 0 == (filter_bits_ & (1 << ((int)lv - 1))); }
-
-        void output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source = "", int line = 0);
 
     protected:
         path build_path(cpchar feature);
@@ -238,23 +254,19 @@ namespace logger {
         sstring         service_;
         sptr<log_dest>  std_dest_ = nullptr;
         sptr<log_dest>  main_dest_ = nullptr;
-        sptr<log_message> stop_msg_ = nullptr;
-        sptr<log_message_queue> logmsgque_ = nullptr;
-        sptr<log_message_pool> message_pool_ = nullptr;
+        std::map<uint64_t, sptr<log_agent>> agents_;
         std::map<log_level, sptr<log_dest>> dest_lvls_;
         std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
         size_t max_size_ = MAX_SIZE, clean_time_ = CLEAN_TIME;
         rolling_type rolling_type_ = rolling_type::DAYLY;
-        int32_t filter_bits_ = -1;
         bool log_daemon_ = false;
+        bool running_ = false;
     }; // class log_service
+}
 
-    extern "C" {
-        LUALIB_API void init_logger();
-        LUALIB_API void stop_logger();
-        LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index);
-        LUALIB_API void output_logger(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
-    }
+extern "C" {
+    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index);
+    LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
 }
 
 #define LOG_WARN(msg) output_logger(logger::log_level::LOG_LEVEL_WARN, msg, "", "", __FILE__, __LINE__)

@@ -59,7 +59,7 @@ namespace luakit {
             pop_space(offset);
             return base;
         }
-        
+
         slice* truncature(size_t base, size_t offset) {
             auto data = m_head + base + offset;
             size_t data_len = m_tail - data;

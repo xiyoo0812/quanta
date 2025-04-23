@@ -94,7 +94,22 @@ namespace luakit {
         spin_mutex(const spin_mutex&) = delete;
         spin_mutex& operator = (const spin_mutex&) = delete;
         void lock() {
-            while(flag.test_and_set(std::memory_order_acquire));
+            for (;;) {
+                if (!flag.test_and_set(std::memory_order_relaxed)) {
+                    std::atomic_thread_fence(std::memory_order_acquire);
+                    break;
+                }
+                #if defined(_M_X64)
+                    _mm_pause();
+                #elif defined(__x86_64__)
+                    __builtin_ia32_pause();
+                #elif defined(__aarch64__)
+                    __builtin_arm_yield();
+                #endif
+            }
+        }
+        bool try_lock() {
+            return !flag.test_and_set(std::memory_order_acquire);
         }
         void unlock() {
             flag.clear(std::memory_order_release);

@@ -147,6 +147,9 @@ local function get_sheet_value(sheet, row, col, field_type, header)
     local cell = sheet.get_cell(row, col)
     if cell and cell.type ~= "blank" then
         local value = cell.value
+        if not value or value == "" then
+            return
+        end
         local fvalue = cell_value_fmt_parse(cell)
         if fvalue then
             value = fvalue

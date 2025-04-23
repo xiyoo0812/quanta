@@ -70,8 +70,10 @@ namespace luapb{
     }
 
     template<typename T>
-    size_t decode_sint(T val) {
-        return (val >> 1) ^ -(val & 1);
+    int64_t decode_sint(T val) {
+        using signedt = typename std::make_signed<T>::type;
+        signedt ival = static_cast<signedt>(val);
+        return (ival >> 1) ^ -(ival & 1);
     }
 
     template<typename T>
@@ -108,15 +110,13 @@ namespace luapb{
 
     template<typename T>
     void write_varint(luabuf* buf, T val) {
-        using unsignedt = typename std::make_unsigned<T>::type;
-        unsignedt uval = static_cast<unsignedt>(val);
         do {
-            uint8_t byte = static_cast<uint8_t>(uval & 0x7F);
-            uval >>= 7;
+            uint8_t byte = static_cast<uint8_t>(val & 0x7F);
+            val >>= 7;
             //设置最高位表示还有后续字节
-            if (uval != 0) byte |= 0x80;
+            if (val != 0) byte |= 0x80;
             if (buf->push_data(&byte, 1) == 0) throw length_error("length error");
-        } while (uval != 0);
+        } while (val != 0);
     }
 
     template<typename T>
@@ -281,10 +281,10 @@ namespace luapb{
             case field_type::TYPE_UINT32: lua_pushinteger(L, read_varint<uint32_t>(slice)); break;
             case field_type::TYPE_INT64: lua_pushinteger(L, read_varint<int64_t>(slice)); break;
             case field_type::TYPE_UINT64: lua_pushinteger(L, read_varint<uint64_t>(slice)); break;
-            case field_type::TYPE_SINT32: lua_pushinteger(L, decode_sint(read_varint<int32_t>(slice))); break;
-            case field_type::TYPE_SINT64: lua_pushinteger(L, decode_sint(read_varint<int64_t>(slice))); break;
-            case field_type::TYPE_SFIXED32: lua_pushinteger(L, decode_sint(read_fixtype<int32_t>(slice))); break;
-            case field_type::TYPE_SFIXED64: lua_pushinteger(L, decode_sint(read_fixtype<int64_t>(slice))); break;
+            case field_type::TYPE_SINT32: lua_pushinteger(L, decode_sint(read_varint<uint32_t>(slice))); break;
+            case field_type::TYPE_SINT64: lua_pushinteger(L, decode_sint(read_varint<uint64_t>(slice))); break;
+            case field_type::TYPE_SFIXED32: lua_pushinteger(L, decode_sint(read_fixtype<uint64_t>(slice))); break;
+            case field_type::TYPE_SFIXED64: lua_pushinteger(L, decode_sint(read_fixtype<uint64_t>(slice))); break;
             case field_type::TYPE_ENUM: lua_pushinteger(L, read_varint<int32_t>(slice)); break;
             case field_type::TYPE_MESSAGE: {
                 auto mslice = read_len_prefixed(slice);
@@ -588,9 +588,8 @@ namespace luapb{
     }
 
     
-    int pb_clear(lua_State* L) {
+    void pb_clear() {
         descriptor.clean();
-        return 0;
     }
 
     int pb_enums(lua_State* L) {

@@ -39,5 +39,5 @@ quanta.startup(function()
     import("test/profile_test.lua")
     import("test/pgsql_test.lua")
     ]]
-    import("test/http_test.lua")
+    import("test/protobuf_test.lua")
 end)

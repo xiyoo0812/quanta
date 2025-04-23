@@ -97,8 +97,6 @@ void quanta_app::add_path(const char* field, const char* path) {
 
 void quanta_app::setup(int argc, const char* argv[]) {
     srand((unsigned)time(nullptr));
-    //初始化日志
-    logger::init_logger();
     //加载配置
     load(argc, argv);
     //设置
@@ -161,7 +159,7 @@ bool quanta_app::init() {
     if (env_log_path) {
         const char* env_index = get_env("QUANTA_INDEX");
         const char* env_service = get_env("QUANTA_SERVICE");
-        logger::option_logger(env_log_path, env_service, env_index);
+        option_logger(env_log_path, env_service, env_index);
     }
     auto sandbox = get_env("QUANTA_SANDBOX");
     if (sandbox) {
@@ -183,7 +181,6 @@ void quanta_app::run() {
             check_input(m_lua);
         };
     }
-    logger::stop_logger();
 }
 
 bool quanta_app::step() {
@@ -192,6 +189,5 @@ bool quanta_app::step() {
         quanta.call();
         return true;
     }
-    logger::stop_logger();
     return false;
 }

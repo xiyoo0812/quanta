@@ -1,6 +1,7 @@
 #pragma once
 #include <deque>
 #include <string>
+#include <charconv>
 
 #ifdef WIN32
 #define strncasecmp _strnicmp
@@ -31,7 +32,7 @@ namespace lcodec {
             for (int i = index; i <= n; ++i) {
                 encode_bulk_string(L, i);
             }
-            sessions.push_back(session_id);
+            m_sessions.push_back(session_id);
             return m_buf->data(len);
         }
 
@@ -39,11 +40,10 @@ namespace lcodec {
             int top = lua_gettop(L);
             size_t osize = m_slice->size();
             string_view buf = m_slice->contents();
-            lua_pushinteger(L, sessions.empty() ? 0 : sessions.front());
+            lua_pushinteger(L, m_sessions.empty() ? 0 : m_sessions.front());
             parse_redis_packet(L, buf);
-            if (!sessions.empty()) sessions.pop_front();
+            if (!m_sessions.empty()) m_sessions.pop_front();
             m_packet_len = osize - buf.size();
-            m_slice->erase(m_packet_len);
             return lua_gettop(L) - top;
         }
 
@@ -158,13 +158,13 @@ namespace lcodec {
         }
 
         void number_encode(double value) {
-            auto svalue = std::to_string(value);
-            m_buf->write(fmt::format("${}\r\n{}\r\n", svalue.size(), svalue.c_str()));
+            auto res = to_chars(m_buffer, m_buffer + sizeof(m_buffer), value, chars_format::general, 25);
+            m_buf->write(fmt::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
         }
 
         void integer_encode(int64_t integer) {
-            auto svalue = std::to_string(integer);
-            m_buf->write(fmt::format("${}\r\n{}\r\n", svalue.size(), svalue.c_str()));
+            auto res = to_chars(m_buffer, m_buffer + sizeof(m_buffer), integer);
+            m_buf->write(fmt::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
         }
 
         void string_encode(lua_State* L, int idx) {
@@ -201,7 +201,8 @@ namespace lcodec {
         }
 
     protected:
-        deque<uint32_t> sessions;
+        char m_buffer[64];
         codec_base* m_jcodec = nullptr;
+        deque<uint32_t> m_sessions;
     };
 }

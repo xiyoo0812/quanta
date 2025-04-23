@@ -12,7 +12,7 @@ namespace logger {
         system_clock::duration dur = system_clock::now().time_since_epoch();
         time_t time = duration_cast<seconds>(dur).count();
         auto time_ms = duration_cast<milliseconds>(dur).count();
-        return log_time(*std::localtime(&time), time_ms % 1000);
+        return log_time(*std::localtime(&time), time, time_ms % 1000);
     }
 
     // class log_message
@@ -29,54 +29,56 @@ namespace logger {
 
     // class log_message_pool
     // --------------------------------------------------------------------------------
-    log_message_pool::log_message_pool(size_t msg_size) {
-        for (size_t i = 0; i < msg_size; ++i) {
-            alloc_messages_->push_back(std::make_shared<log_message>());
-        }
-    }
-    log_message_pool::~log_message_pool() {
-        alloc_messages_->clear();
-        free_messages_->clear();
-    }
     sptr<log_message> log_message_pool::allocate() {
-        if (alloc_messages_->empty()) {
-            std::unique_lock<spin_mutex> lock(mutex_);
-            alloc_messages_.swap(free_messages_);
+        if (alloc_msgs_->empty()) {
+            if (free_msgs_->empty()) {
+                free_msgs_->reserve(QUEUE_SIZE);
+                alloc_msgs_->reserve(QUEUE_SIZE);
+                for (size_t i = 0; i < QUEUE_SIZE; ++i) {
+                    alloc_msgs_->push_back(std::make_shared<log_message>());
+                }
+            } else {
+                std::unique_lock<spin_mutex> lock(mutex_);
+                alloc_msgs_.swap(free_msgs_);
+            }
         }
-        if (alloc_messages_->empty()) {
-            auto logmsg = std::make_shared<log_message>();
-            logmsg->set_grow(true);
-            return logmsg;
+        if (alloc_msgs_->empty()) {
+            return std::make_shared<log_message>();
         }
-        std::unique_lock<spin_mutex> lock(mutex_);
-        auto logmsg = alloc_messages_->front();
-        alloc_messages_->pop_front();
+        auto logmsg = alloc_msgs_->back();
+        alloc_msgs_->pop_back();
         return logmsg;
     }
-    void log_message_pool::release(sptr<log_message> logmsg) {
-        if (!logmsg->is_grow()) {
-            std::unique_lock<spin_mutex> lock(mutex_);
-            free_messages_->push_back(logmsg);
-        }
+
+    void log_message_pool::recycle(sptr<log_messages> logmsgs) {
+        std::unique_lock<spin_mutex> lock(mutex_);
+        size_t fspace = free_msgs_->capacity() - free_msgs_->size();
+        size_t n = std::min(fspace, logmsgs->size());
+        if (n == 0) return;
+        auto siter = logmsgs->begin();
+        free_msgs_->insert(free_msgs_->end(), std::make_move_iterator(siter), std::make_move_iterator(siter + n));
     }
 
     // class log_message_queue
     // --------------------------------------------------------------------------------
     void log_message_queue::put(sptr<log_message> logmsg) {
-        std::unique_lock<spin_mutex> lock(spin_);
-        write_messages_->push_back(logmsg);
+        std::unique_lock<spin_mutex> lock(mutex_);
+        write_msgs_->push_back(std::move(logmsg));
     }
 
-    sptr<log_message_list> log_message_queue::timed_getv() {
-        {
-            read_messages_->clear();
-            std::unique_lock<spin_mutex> lock(spin_);
-            read_messages_.swap(write_messages_);
+    sptr<log_messages> log_message_queue::timed_getv(bool running) {
+        if (running) {
+            if (write_msgs_->empty()) return nullptr;
+            std::unique_lock<spin_mutex> lock(mutex_, std::try_to_lock);
+            if (lock.owns_lock()) {
+                read_msgs_.swap(write_msgs_);
+                return read_msgs_;
+            }
+            return nullptr;
         }
-        if (read_messages_->empty()) {
-            std::this_thread::sleep_for(milliseconds(5));
-        }
-        return read_messages_;
+        std::unique_lock<spin_mutex> lock(mutex_);
+        read_msgs_.swap(write_msgs_);
+        return read_msgs_;
     }
 
     // class log_dest
@@ -88,15 +90,18 @@ namespace logger {
 
     cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
+            if (last_time_ != logmsg->time()) {
+                fmt::format_to(time_buf_, "{:%Y-%m-%d %H:%M:%S}", logmsg->logtime());
+            }
             auto names = level_names<log_level>()();
-            return fmt::format("[{:%Y-%m-%d %H:%M:%S}.{:03d}][{}][{}] ", logmsg->get_time(), logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
+            return fmt::format("[{}.{:03d}][{}][{}] ", time_buf_, logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
         }
         return "";
     }
 
     cstring log_dest::build_suffix(sptr<log_message> logmsg) {
         if (!ignore_suffix_) {
-            return fmt::format("[{}:{}]", logmsg->source().data(), logmsg->line());
+            return fmt::format("[{}:{}]", logmsg->source(), logmsg->line());
         }
         return "";
     }
@@ -182,17 +187,13 @@ namespace logger {
     // class rolling_hourly
     // --------------------------------------------------------------------------------
     bool rolling_hourly::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        auto& ltime = logmsg->get_time();
-        auto& ftime = log_file->file_time();
-        return ltime.tm_mday != ftime.tm_mday || ltime.tm_hour != ftime.tm_hour;
+        return logmsg->logtime().tm_hour != log_file->file_time().tm_hour;
     }
 
     // class rolling_daily
     // --------------------------------------------------------------------------------
     bool rolling_daily::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        auto& ltime = logmsg->get_time();
-        auto& ftime = log_file->file_time();
-        return ltime.tm_mon != ftime.tm_mon || ltime.tm_mday != ftime.tm_mday;
+        return logmsg->logtime().tm_mday != log_file->file_time().tm_mday;
     }
 
     // class log_rollingfile
@@ -218,7 +219,7 @@ namespace logger {
                         }
                     }
                 } catch (...) {}
-                create(log_path_, new_log_file_name(logmsg), logmsg->get_time());
+                create(log_path_, new_log_file_name(logmsg), logmsg->logtime());
                 assert(buff_);
             }
             raw_write(logtxt, logmsg->level());
@@ -226,17 +227,12 @@ namespace logger {
 
     template<class rolling_evaler>
     sstring log_rollingfile<rolling_evaler>::new_log_file_name(const sptr<log_message> logmsg) {
-        return fmt::format("{}-{:%Y%m%d-%H%M%S}.{:03d}.p{}.log", feature_, logmsg->get_time(), logmsg->get_usec(), ::getpid());
+        return fmt::format("{}-{:%Y%m%d-%H%M%S}.{:03d}.p{}.log", feature_, logmsg->logtime(), logmsg->get_usec(), ::getpid());
     }
 
     // class log_service
     // --------------------------------------------------------------------------------
-    void log_service::filter(log_level llv, bool on) {
-        if (on)
-            filter_bits_ |= (1 << ((int)llv - 1));
-        else
-            filter_bits_ &= ~(1 << ((int)llv - 1));
-    }
+
 
     void log_service::option(cpchar log_path, cpchar service, cpchar index) {
         log_path_ = log_path;
@@ -309,6 +305,16 @@ namespace logger {
         return true;
     }
 
+    void log_service::del_agent(uint32_t tid) {
+        std::unique_lock<spin_mutex> lock(mutex_);
+        agents_.erase(tid);
+    }
+
+    void log_service::add_agent(sptr<log_agent> agent) {
+        std::unique_lock<spin_mutex> lock(mutex_);
+        agents_.insert(std::make_pair(agent->get_id(), agent));
+    }
+
     void log_service::del_dest(cpchar feature) {
         std::unique_lock<spin_mutex> lock(mutex_);
         auto it = dest_features_.find(feature);
@@ -349,28 +355,20 @@ namespace logger {
         }
     }
 
-    void log_service::start(){
-        if (!stop_msg_) {
-            logmsgque_ = std::make_shared<log_message_queue>();
-            message_pool_ = std::make_shared<log_message_pool>(QUEUE_SIZE);
-            stop_msg_ = message_pool_->allocate();
-            std_dest_ = std::make_shared<stdio_dest>();
-        }
+    log_service::log_service(){
+        std_dest_ = std::make_shared<stdio_dest>();
     }
 
-    void log_service::stop() {
-        if (stop_msg_) {
-            logmsgque_->put(stop_msg_);
-        }
+    log_service::~log_service() {
+        auto tid = std::this_thread::get_id();
+        running_ = false;
         if (thread_.joinable()) {
             thread_.join();
+            agents_.clear();
             dest_lvls_.clear();
             dest_features_.clear();
             main_dest_ = nullptr;
             std_dest_ = nullptr;
-            stop_msg_ = nullptr;
-            logmsgque_ = nullptr;
-            message_pool_ = nullptr;
         }
     }
 
@@ -386,38 +384,76 @@ namespace logger {
     }
    
     void log_service::run() {
-        bool loop = true;
+        running_ = true;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        while (loop) {
-            auto logmsgs = logmsgque_->timed_getv().get();
-            for (auto logmsg : *logmsgs) {
-                if (logmsg == stop_msg_) {
-                    loop = false;
-                    continue;
+        while (true) {
+            bool empty = true;
+            for (auto [_, agent] : agents_) {
+                auto logmsgs = agent->timed_getv(running_);
+                if (logmsgs == nullptr) continue;
+                for (auto logmsg : *logmsgs) {
+                    if (!log_daemon_) {
+                        std_dest_->write(logmsg);
+                    }
+                    main_dest_->write(logmsg);
+                    auto it_lvl = dest_lvls_.find(logmsg->level());
+                    if (it_lvl != dest_lvls_.end()) {
+                        it_lvl->second->write(logmsg);
+                    }
+                    auto it_fea = dest_features_.find(logmsg->feature());
+                    if (it_fea != dest_features_.end()) {
+                        it_fea->second->write(logmsg);
+                    }
                 }
-                if (!log_daemon_) {
-                    std_dest_->write(logmsg);
-                }
-                main_dest_->write(logmsg);
-                auto it_lvl = dest_lvls_.find(logmsg->level());
-                if (it_lvl != dest_lvls_.end()) {
-                    it_lvl->second->write(logmsg);
-                }
-                auto it_fea = dest_features_.find(logmsg->feature());
-                if (it_fea != dest_features_.end()) {
-                    it_fea->second->write(logmsg);
-                }
-                message_pool_->release(logmsg);
+                empty = false;
+                agent->recycle(logmsgs);
+                logmsgs->clear();
+                flush();
             }
-            flush();
+            if (!running_ && empty) {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }
 
-    void log_service::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line) {
+    log_agent::log_agent() {
+        logmsgque_ = std::make_shared<log_message_queue>();
+        message_pool_ = std::make_shared<log_message_pool>();
+    }
+
+    log_agent::~log_agent() {
+        auto service = service_.lock();
+        if (service) {
+            service->del_agent(get_id());
+        }
+    }
+
+    void log_agent::attach(wptr<log_service> service) { 
+        service_ = service;
+        auto lservice = service_.lock();
+        if (lservice) {
+            lservice->add_agent(shared_from_this());
+        }
+    }
+
+    void log_agent::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line) {
         if (!is_filter(level)) {
             auto logmsg_ = message_pool_->allocate();
             logmsg_->option(level, std::move(msg), tag, feature, source, line);
             logmsgque_->put(logmsg_);
         }
+    }
+
+    uint32_t log_agent::get_id() {
+        auto tid = std::this_thread::get_id();
+        return *(uint32_t*)&tid;
+    }
+
+    void log_agent::filter(log_level llv, bool on) {
+        if (on)
+            filter_bits_ |= (1 << ((int)llv - 1));
+        else
+            filter_bits_ &= ~(1 << ((int)llv - 1));
     }
 }

@@ -44,8 +44,7 @@ function LobbyServlet:on_attr_synchronous(entity, entity_id, attrs, battrs)
             entity:send("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = attrs })
         end
         if next(battrs) then
-            --如果需要广播
-            entity:broadcast_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = battrs })
+            player_mgr:broadcast_message("NID_ENTITY_ATTR_UPDATE_NTF", { id = entity_id, attrs = battrs }, entity_id)
         end
     end
 end

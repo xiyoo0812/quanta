@@ -174,7 +174,6 @@ namespace lssl {
                 lua_pushstring(L, "TLS");
                 lua_push_object(L, this);
                 lua_pushlstring(L, (const char*)m_slice->head(), sz);
-                m_slice->erase(sz);
                 m_packet_len = sz;
                 return lua_gettop(L) - top;
             }
@@ -196,9 +195,11 @@ namespace lssl {
                 }
                 m_buf->pop_space(read);
             } while (true);
-            m_slice->erase(sz);
-            m_hcodec->set_slice(m_buf->get_slice());
             is_recving = true;
+            m_hcodec->set_slice(m_buf->get_slice());
+            if (m_hcodec->load_packet(m_buf->size()) == 0) {
+                throw std::length_error("http text not full");
+            }
             int argnum = m_hcodec->decode(L);
             is_recving = false;
             return argnum;

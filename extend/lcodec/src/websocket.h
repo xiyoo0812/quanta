@@ -77,7 +77,6 @@ namespace lcodec {
             } else {
                 lua_pushlstring(L, (char*)m_slice->head(), osize);
             }
-            m_slice->erase(osize);
             return lua_gettop(L) - top;
         }
 

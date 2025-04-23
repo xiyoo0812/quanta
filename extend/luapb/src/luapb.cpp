@@ -22,7 +22,7 @@ namespace luapb {
     };
     #pragma pack()
 
-    pb_message* pbmsg_from_cmdid(lua_State* L, size_t cmd_id) {
+    pb_message* pbmsg_from_cmdid(size_t cmd_id) {
         auto it = pb_cmd_ids.find(cmd_id);
         if (it == pb_cmd_ids.end()) return nullptr;
         return it->second;
@@ -107,7 +107,7 @@ namespace luapb {
             lua_pushinteger(L, header->type);
             lua_pushinteger(L, header->crc8);
             //cmd_id
-            pb_message* msg = pbmsg_from_cmdid(L, header->cmd_id);
+            pb_message* msg = pbmsg_from_cmdid(header->cmd_id);
             if (msg == nullptr) {
                 return lua_gettop(L) - top;
             }
@@ -132,12 +132,11 @@ namespace luapb {
 
     int load_pb(lua_State* L) {
         size_t len;
-        auto data = (uint8_t*)lua_tolstring(L, 2, &len);
+        auto data = (uint8_t*)lua_tolstring(L, 1, &len);
         auto buf = luakit::get_buff();
-        auto lbuf = buf->peek_space(len);
         buf->push_data(data, len);
-        buf->pop_space(len);
         read_file_descriptor_set(buf->get_slice());
+        lua_pushboolean(L, 1);
         return 1;
     }
 
@@ -150,16 +149,17 @@ namespace luapb {
         fread(lbuf, 1, len, fp);
         buf->pop_space(len);
         read_file_descriptor_set(buf->get_slice());
+        lua_pushboolean(L, 1);
         fclose(fp);
         return 1;
     }
 
 
     int pb_encode(lua_State* L) {
-        auto buf = luakit::get_buff();
-        buf->clean();
         auto msg = pbmsg_from_stack(L, 1);
         if (msg == nullptr) luaL_error(L, "invalid pb cmd type");
+        auto buf = luakit::get_buff();
+        buf->clean();
         try {
             encode_message(L, buf, msg);
         } catch (const exception& e){

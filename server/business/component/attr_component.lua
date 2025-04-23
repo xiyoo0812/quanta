@@ -342,7 +342,7 @@ end
 function AttrComponent:encode_attr(attr_id, attr)
     local value = self.attrs[attr_id]
     if attr.type == "uint" or attr.type == "int" then
-        return { attr_id = attr_id, attr_f = value }
+        return { attr_id = attr_id, attr_i = value // 1 }
     end
     if attr.type == "string" then
         return { attr_id = attr_id, attr_s = value }
@@ -368,10 +368,10 @@ end
 function AttrComponent:on_attr_update()
     local attrs, battrs = {}, {}
     for attr_id, attr in pairs(self.sync_attrs) do
-        if attr.range == 1 then
-            tinsert(attrs, self:encode_attr(attr_id, attr))
-        else
-            tinsert(battrs, self:encode_attr(attr_id, attr))
+        local eattr = self:encode_attr(attr_id, attr)
+        tinsert(attrs, eattr)
+        if attr.range > 1 then
+            tinsert(battrs, eattr)
         end
     end
     event_mgr:notify_trigger("on_attr_synchronous", self, self.id, attrs, battrs)

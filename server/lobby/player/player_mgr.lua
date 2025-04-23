@@ -93,9 +93,11 @@ function PlayerMgr:load_account(open_id, player_id)
 end
 
 -- 广播消息
-function PlayerMgr:broadcast_message(cmd_id, data)
-    for _, player in self:iterator() do
-        player:send(cmd_id, data)
+function PlayerMgr:broadcast_message(cmd_id, data, exclude_id)
+    for player_id, player in self:iterator() do
+        if exclude_id ~= player_id then
+            player:send(cmd_id, data)
+        end
     end
 end
 

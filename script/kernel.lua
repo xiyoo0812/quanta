@@ -59,6 +59,7 @@ local function init_mainloop()
         end
     else
         --子线程
+        logger.init_worker()
         import("feature/worker.lua")
     end
 end
