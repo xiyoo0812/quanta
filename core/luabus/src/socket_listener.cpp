@@ -182,7 +182,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
         set_no_delay(fd, 1);
         set_close_on_exec(fd);
 
-        m_mgr->accept_stream(m_socket, fd, ip);
+        m_mgr->accept_stream(m_token, fd, ip);
         m_accept_cb(fd);
     }
 }

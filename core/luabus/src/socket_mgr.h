@@ -109,7 +109,7 @@ public:
     bool watch_connecting(socket_t fd, socket_object* object);
     bool watch_connected(socket_t fd, socket_object* object);
     bool watch_send(socket_t fd, socket_object* object, bool enable);
-    int accept_stream(socket_t lfd, socket_t fd, const char ip[]);
+    int accept_stream(uint32_t ltoken, socket_t fd, const char ip[]);
 
     void increase_count() { m_count++; }
     void decrease_count() { m_count--; }
@@ -148,7 +148,13 @@ private:
         return nullptr;
     }
 
-    int m_count = 0;
-    int m_max_count = 0;
-    std::unordered_map<socket_t, socket_object*> m_objects;
+    uint32_t new_token() {
+        while (++m_token == 0 || m_objects.find(m_token) != m_objects.end()) {}
+        return m_token;
+    }
+
+    uint32_t m_count = 0;
+    uint32_t m_token = 0;
+    uint32_t m_max_count = 0;
+    std::unordered_map<uint32_t, socket_object*> m_objects;
 };

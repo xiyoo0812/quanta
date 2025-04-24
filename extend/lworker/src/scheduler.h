@@ -26,7 +26,7 @@ namespace lworker {
         }
 
         std::shared_ptr<worker> find_worker(vstring name) {
-            std::unique_lock<spin_mutex> lock(m_mutex);
+            std::lock_guard<spin_mutex> lock(m_mutex);
             auto it = m_worker_map.find(name);
             if (it != m_worker_map.end()) {
                 return it->second;
@@ -35,7 +35,7 @@ namespace lworker {
         }
 
         bool startup(vstring name, environ_map& envs, vstring conf) {
-            std::unique_lock<spin_mutex> lock(m_mutex);
+            std::lock_guard<spin_mutex> lock(m_mutex);
             auto it = m_worker_map.find(name);
             if (it == m_worker_map.end()) {
                 auto workor = std::make_shared<worker>(this, name, m_namespace, m_platform);
@@ -54,7 +54,7 @@ namespace lworker {
             size_t data_len;
             uint8_t* data = m_codec.encode(L, 2, &data_len);
             if (data) {
-                std::unique_lock<spin_mutex> lock(m_mutex);
+                std::lock_guard<spin_mutex> lock(m_mutex);
                 for (auto it : m_worker_map) {
                     it.second->call(data, data_len);
                 }
@@ -79,7 +79,7 @@ namespace lworker {
         }
 
         bool call(uint8_t* data, size_t data_len) {
-            std::unique_lock<spin_mutex> lock(m_mutex);
+            std::lock_guard<spin_mutex> lock(m_mutex);
             uint8_t* target = m_write_buf->peek_space(data_len + sizeof(uint32_t));
             if (target) {
                 m_write_buf->write<uint32_t>(data_len);
@@ -98,7 +98,7 @@ namespace lworker {
                 if (m_write_buf->empty()) {
                     return;
                 }
-                std::unique_lock<spin_mutex> lock(m_mutex);
+                std::lock_guard<spin_mutex> lock(m_mutex);
                 m_read_buf.swap(m_write_buf);
             }
             size_t plen = 0;
@@ -118,7 +118,7 @@ namespace lworker {
         }
 
         void check_worker() {
-            std::unique_lock<spin_mutex> lock(m_mutex);
+            std::lock_guard<spin_mutex> lock(m_mutex);
             for (auto& [name, worker] : m_worker_map) {
                 if (!worker->running()) {
                     worker->stop();
@@ -129,7 +129,7 @@ namespace lworker {
         }
 
         void stop(vstring name) {
-            std::unique_lock<spin_mutex> lock(m_mutex);
+            std::lock_guard<spin_mutex> lock(m_mutex);
             auto it = m_worker_map.find(name);
             if (it != m_worker_map.end()) {
                 it->second->stop();
@@ -138,7 +138,7 @@ namespace lworker {
         }
 
         void shutdown() {
-            std::unique_lock<spin_mutex> lock(m_mutex);
+            std::lock_guard<spin_mutex> lock(m_mutex);
             for (auto it : m_worker_map) {
                 it.second->stop();
             }

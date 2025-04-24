@@ -88,15 +88,15 @@ namespace logger {
         int32_t line() const { return line_; }
         vstring source() const { return source_; }
         vstring feature() const { return feature_; }
-        int get_usec() { return log_time_.tm_usec; }
+        int get_usec() { return time_.tm_usec; }
         log_level level() const { return level_; }
-        time_t time() const { return log_time_.tm_time; }
-        const std::tm& logtime() const { return log_time_; }
+        const std::tm& logtime() const { return time_; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
+        bool check_sec(time_t& last) { if (time_.tm_time != last) { last = time_.tm_time; return true; } else return false; }
 
     private:
+        log_time            time_;
         int32_t             line_ = 0;
-        log_time            log_time_;
         sstring             source_, msg_, feature_, tag_;
         log_level           level_ = log_level::LOG_LEVEL_DEBUG;
     }; // class log_message

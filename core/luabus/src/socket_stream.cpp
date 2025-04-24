@@ -59,6 +59,9 @@ void socket_stream::connect(const char ip[], int port, int timeout) {
 }
 
 void socket_stream::close() {
+    if (m_link_status == elink_status::link_closed) {
+        return;
+    }
     if (m_socket == INVALID_SOCKET) {
         m_link_status = elink_status::link_closed;
         return;
@@ -440,10 +443,6 @@ void socket_stream::dispatch_package() {
 void socket_stream::on_error(const char err[]) {
     if (m_link_status == elink_status::link_connected) {
         // kqueue实现下,如果eof时不及时关闭或unwatch,则会触发很多次eof
-        if (m_socket != INVALID_SOCKET) {
-            closesocket(m_socket);
-            m_socket = INVALID_SOCKET;
-        }
         m_link_status = elink_status::link_closed;
         m_error_cb(err);
     }
@@ -451,10 +450,6 @@ void socket_stream::on_error(const char err[]) {
 
 void socket_stream::on_connect(bool ok, const char reason[]) {
     if (!ok) {
-        if (m_socket != INVALID_SOCKET) {
-            closesocket(m_socket);
-            m_socket = INVALID_SOCKET;
-        }
         m_link_status = elink_status::link_closed;
     } else {
         m_link_status = elink_status::link_connected;

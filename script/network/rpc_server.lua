@@ -39,7 +39,8 @@ function RpcServer:__init(holder, ip, port, induce)
         signalquit()
         return
     end
-    local real_port = derive_port(induce and (port + quanta.order - 1) or port)
+    local induce_port = induce and (port + quanta.order - 1) or port
+    local real_port = derive_port(induce_port, ip)
     local listener = socket_mgr.listen(ip, real_port)
     if not listener then
         log_err("[RpcServer][setup] now listen {}:{} failed", ip, real_port)

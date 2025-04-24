@@ -46,7 +46,7 @@ end
 function HttpServer:setup(http_addr)
     local socket = Socket(self)
     local ip, port = saddr(http_addr)
-    local real_port = derive_port(port)
+    local real_port = derive_port(port, ip)
     if not socket:listen(ip, real_port) then
         log_err("[HttpServer][setup] now listen {}:{} failed", ip, real_port)
         signalquit(1)

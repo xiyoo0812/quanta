@@ -18,7 +18,7 @@ namespace logger {
     // class log_message
     // --------------------------------------------------------------------------------
     void log_message::option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line) {
-        log_time_ = log_time::now();
+        time_ = log_time::now();
         feature_ = feature;
         source_ = source;
         level_ = level;
@@ -38,7 +38,7 @@ namespace logger {
                     alloc_msgs_->push_back(std::make_shared<log_message>());
                 }
             } else {
-                std::unique_lock<spin_mutex> lock(mutex_);
+                std::lock_guard<spin_mutex> lock(mutex_);
                 alloc_msgs_.swap(free_msgs_);
             }
         }
@@ -51,7 +51,7 @@ namespace logger {
     }
 
     void log_message_pool::recycle(sptr<log_messages> logmsgs) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         size_t fspace = free_msgs_->capacity() - free_msgs_->size();
         size_t n = std::min(fspace, logmsgs->size());
         if (n == 0) return;
@@ -62,7 +62,7 @@ namespace logger {
     // class log_message_queue
     // --------------------------------------------------------------------------------
     void log_message_queue::put(sptr<log_message> logmsg) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         write_msgs_->push_back(std::move(logmsg));
     }
 
@@ -76,7 +76,7 @@ namespace logger {
             }
             return nullptr;
         }
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         read_msgs_.swap(write_msgs_);
         return read_msgs_;
     }
@@ -90,7 +90,7 @@ namespace logger {
 
     cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
-            if (last_time_ != logmsg->time()) {
+            if (logmsg->check_sec(last_time_)) {
                 fmt::format_to(time_buf_, "{:%Y-%m-%d %H:%M:%S}", logmsg->logtime());
             }
             auto names = level_names<log_level>()();
@@ -254,7 +254,7 @@ namespace logger {
     }
 
     bool log_service::add_dest(cpchar feature) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         if (dest_features_.find(feature) == dest_features_.end()) {
             sptr<log_dest> logfile = nullptr;
             path logger_path = build_path(feature);
@@ -278,7 +278,7 @@ namespace logger {
         std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
         path logger_path = build_path(service_.c_str());
         logger_path.append(feature);
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         if (rolling_type_ == rolling_type::DAYLY) {
             auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
             dest_lvls_.insert(std::make_pair(log_lvl, logfile));
@@ -291,7 +291,7 @@ namespace logger {
     }
 
     bool log_service::add_file_dest(cpchar feature, cpchar fname) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         if (dest_features_.find(feature) == dest_features_.end()) {
             auto logfile = std::make_shared<log_file_base>(max_size_);
             path logger_path = build_path(service_.c_str());
@@ -306,17 +306,17 @@ namespace logger {
     }
 
     void log_service::del_agent(uint32_t tid) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         agents_.erase(tid);
     }
 
     void log_service::add_agent(sptr<log_agent> agent) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         agents_.insert(std::make_pair(agent->get_id(), agent));
     }
 
     void log_service::del_dest(cpchar feature) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         auto it = dest_features_.find(feature);
         if (it != dest_features_.end()) {
             dest_features_.erase(it);
@@ -324,7 +324,7 @@ namespace logger {
     }
 
     void log_service::del_lvl_dest(log_level log_lvl) {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         auto it = dest_lvls_.find(log_lvl);
         if (it != dest_lvls_.end()) {
             dest_lvls_.erase(it);
@@ -332,7 +332,7 @@ namespace logger {
     }
 
     void log_service::set_dest_clean_time(cpchar feature, size_t clean_time){
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         auto it = dest_features_.find(feature);
         if (it != dest_features_.end()) {
             it->second->set_clean_time(clean_time);
@@ -373,7 +373,7 @@ namespace logger {
     }
 
     void log_service::flush() {
-        std::unique_lock<spin_mutex> lock(mutex_);
+        std::lock_guard<spin_mutex> lock(mutex_);
         for (auto dest : dest_features_)
             dest.second->flush();
         for (auto dest : dest_lvls_)

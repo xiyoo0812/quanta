@@ -199,10 +199,11 @@ int socket_mgr::listen(std::string& err, const char ip[], int port) {
     if(ret == SOCKET_ERROR) goto Exit0;
 
     if (watch_listen(fd, listener) && listener->setup(fd)) {
-        listener->set_kind(fd);
-        listener->set_token(fd);
-        m_objects[fd] = listener;
-        return fd;
+        int token = new_token();
+        listener->set_kind(token);
+        listener->set_token(token);
+        m_objects[token] = listener;
+        return token;
     }
 
 Exit0:
@@ -230,11 +231,11 @@ int socket_mgr::connect(std::string& err, const char ip[], int port, int timeout
 #else
     socket_stream* stm = new socket_stream(this, fd);
 #endif
-
+    uint32_t token = new_token();
     stm->connect(ip, port, timeout);
-    stm->set_token(fd);
-    m_objects[fd] = stm;
-    return fd;
+    stm->set_token(token);
+    m_objects[token] = stm;
+    return token;
 }
 
 void socket_mgr::set_timeout(uint32_t token, int duration) {
@@ -477,13 +478,14 @@ bool socket_mgr::watch_send(socket_t fd, socket_object* object, bool enable) {
 #endif
 }
 
-int socket_mgr::accept_stream(socket_t lfd, socket_t fd, const char ip[]) {
+int socket_mgr::accept_stream(uint32_t ltoken, socket_t fd, const char ip[]) {
     auto* stm = new socket_stream(this, fd);
     if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip)) {
-        stm->set_kind(lfd);
-        stm->set_token(fd);
-        m_objects[fd] = stm;
-        return fd;
+        uint32_t token = new_token();
+        stm->set_kind(ltoken);
+        stm->set_token(token);
+        m_objects[token] = stm;
+        return token;
     }
     delete stm;
     return 0;

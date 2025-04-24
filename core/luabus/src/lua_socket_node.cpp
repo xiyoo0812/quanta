@@ -10,9 +10,7 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, stdsptr<socket_mg
         m_lvm->object_call(this, "on_connect", nullptr, std::tie(), ok ? "ok" : reason);
     });
     m_mgr->set_error_callback(token, [=](const char* err) {
-        auto token = m_token;
-        m_token = 0;
-        m_lvm->object_call(this, "on_error", nullptr, std::tie(), token, err);
+        m_lvm->object_call(this, "on_error", nullptr, std::tie(), m_token, err);
     });
     m_mgr->set_package_callback(token, [=](slice* slice){
         return on_recv(slice);

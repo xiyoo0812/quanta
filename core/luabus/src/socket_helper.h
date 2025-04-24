@@ -38,7 +38,7 @@ void set_no_delay(socket_t fd, int enable);
 void set_close_on_exec(socket_t fd);
 void set_reuseaddr(socket_t fd);
 
-int derive_port(int port);
+int derive_port(int port, char* ip);
 
 #define MAX_ERROR_TXT 128
 

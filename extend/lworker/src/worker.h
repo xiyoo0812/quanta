@@ -90,7 +90,7 @@ namespace lworker {
         }
 
         bool call(uint8_t* data, size_t data_len) {
-            std::unique_lock<spin_mutex> lock(m_mutex);
+            std::lock_guard<spin_mutex> lock(m_mutex);
             uint8_t* target = m_write_buf->peek_space(data_len + sizeof(uint32_t));
             if (target) {
                 m_write_buf->write<uint32_t>(data_len);
@@ -105,7 +105,7 @@ namespace lworker {
                 if (m_write_buf->empty()) {
                     return;
                 }
-                std::unique_lock<spin_mutex> lock(m_mutex);
+                std::lock_guard<spin_mutex> lock(m_mutex);
                 m_read_buf.swap(m_write_buf);
             }
             size_t plen = 0;

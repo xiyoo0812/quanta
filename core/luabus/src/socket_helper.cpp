@@ -94,12 +94,16 @@ bool get_ip_string(char ip[], size_t ip_size, const void* addr) {
 }
 
 
-int derive_port(int port){
-    socket_t fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+int derive_port(int port, char* ip){
     sockaddr_in addr;
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    if (ip) {
+        if (inet_pton(AF_INET, ip, &addr.sin_addr) != 1) return 0;
+    } else {
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    }
     int try_cnt = 20;
+    socket_t fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     while (try_cnt-- > 0) {
         addr.sin_port = htons(port);
         if (::bind(fd, (sockaddr*)&addr, sizeof(sockaddr_in)) != SOCKET_ERROR) {

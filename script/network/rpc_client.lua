@@ -80,6 +80,7 @@ function RpcClient:connect()
         log_err("[RpcClient][connect] failed to connect: {}:{} err={}", self.ip, self.port, cerr)
         return false, cerr
     end
+    self.socket = socket
     local token = socket.token
     socket.on_call = function(recv_len, session_id, rpc_flag, ...)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, session_id, rpc_flag, recv_len, ...)
@@ -128,7 +129,6 @@ function RpcClient:connect()
             self:on_socket_error(token, res)
         end
     end
-    self.socket = socket
 end
 
 -- 主动关闭连接

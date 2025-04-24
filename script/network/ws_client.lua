@@ -6,7 +6,6 @@ local jsoncodec         = json.jsoncodec
 local wsscodec          = codec.wsscodec
 local httpccodec        = codec.httpccodec
 local make_timer        = quanta.make_timer
-local derive_port       = luabus.derive_port
 
 local proto_text        = luabus.eproto_type.text
 
@@ -65,8 +64,7 @@ function WSClient:connect(ws_addr)
         return false, "socket in connecting"
     end
     local ip, port = saddr(ws_addr)
-    local real_port = derive_port(port)
-    local session, cerr = socket_mgr.connect(ip, real_port, CONNECT_TIMEOUT, proto_text)
+    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_text)
     if not session then
         log_err("[WSClient][connect] failed to connect: {}:{} err={}", ip, port, cerr)
         return false, cerr
