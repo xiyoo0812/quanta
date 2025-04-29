@@ -140,7 +140,7 @@ namespace logger {
         lualog.set_function("daemon", [](bool status) { s_logger->daemon(status); });
         lualog.set_function("set_max_size", [](size_t size) { s_logger->set_max_size(size); });
         lualog.set_function("set_clean_time", [](size_t time) { s_logger->set_clean_time(time); });
-        lualog.set_function("attach", []() { s_agent->attach(s_logger->weak_from_this()); });
+        lualog.set_function("display", []() { s_agent->attach(s_logger->weak_from_this()); });
         lualog.set_function("filter", [](int lv, bool on) { s_agent->filter((log_level)lv, on); });
         lualog.set_function("is_filter", [](int lv) { return s_agent->is_filter((log_level)lv); });
         lualog.set_function("del_dest", [](cpchar feature) { s_logger->del_dest(feature); });

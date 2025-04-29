@@ -46,20 +46,19 @@ end
 --初始化loop
 local function init_mainloop()
     environ.init()
+    logger.init()
     service.init()
     import("kernel/update_mgr.lua")
     update_mgr = quanta.get("update_mgr")
     --初始化线程
     if THREAD_MASTER then
         signal.init()
-        logger.init()
         if environ.status("QUANTA_THREAD") then
             require("lworker")
             import("feature/scheduler.lua")
         end
     else
         --子线程
-        logger.init_worker()
         import("feature/worker.lua")
     end
 end

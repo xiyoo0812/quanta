@@ -49,7 +49,7 @@ namespace luapb{
     wiretype wiretype_by_fieldtype(field_type t) {
         switch (t) {
         case field_type::TYPE_FLOAT:    return wiretype::I64;
-        case field_type::TYPE_INT64:    return wiretype::I32;
+        case field_type::TYPE_INT64:    return wiretype::VARINT;
         case field_type::TYPE_UINT64:   return wiretype::VARINT;
         case field_type::TYPE_INT32:    return wiretype::VARINT;
         case field_type::TYPE_FIXED64:  return wiretype::I64;
@@ -152,9 +152,11 @@ namespace luapb{
     }
 
     void write_len_prefixed(luabuf* buf, slice* lslice) {
-        uint32_t length = lslice->size();
+        uint32_t length = lslice ? lslice->size() : 0;
         write_varint(buf, length);
-        if (buf->push_data(lslice->head(), length) == 0) throw length_error("length error");
+        if (length > 0) {
+            if (buf->push_data(lslice->head(), length) == 0) throw length_error("length error");
+        }
     }
 
     void write_field_type(luabuf* buf, int field_num, field_type type) {
@@ -204,7 +206,7 @@ namespace luapb{
         }
         ~pb_descriptor() { clean(); }
     };
-    static pb_descriptor descriptor;
+    thread_local pb_descriptor descriptor;
 
     pb_message* find_message(string& name) {
         auto it = descriptor.messages.find(name);
@@ -269,6 +271,52 @@ namespace luapb{
         return nullptr;
     }
 
+    void fill_message(lua_State* L, pb_message* msg) {
+        lua_createtable(L, 0, msg->fields.size());
+        for (auto& [name, field] : msg->sfields) {
+            switch (field->type) {
+                case field_type::TYPE_ENUM:
+                case field_type::TYPE_FLOAT:
+                case field_type::TYPE_INT32:
+                case field_type::TYPE_INT64:
+                case field_type::TYPE_SINT32:
+                case field_type::TYPE_SINT64:
+                case field_type::TYPE_UINT32:
+                case field_type::TYPE_UINT64:
+                case field_type::TYPE_FIXED32:
+                case field_type::TYPE_FIXED64:
+                case field_type::TYPE_SFIXED32:
+                case field_type::TYPE_SFIXED64: {
+                    lua_pushnumber(L, 0);
+                    lua_setfield(L, -2, name.c_str());
+                    break;
+                }
+                case field_type::TYPE_BOOL: {
+                    lua_pushboolean(L, 1);
+                    lua_setfield(L, -2, name.c_str());
+                    break;
+                }
+                case field_type::TYPE_BYTES:
+                case field_type::TYPE_STRING: {
+                    lua_pushstring(L, "");
+                    lua_setfield(L, -2, name.c_str());
+                    break;
+                }
+                case field_type::TYPE_MESSAGE: {
+                    if (field->is_repeated()) {
+                        lua_createtable(L, 4, 0);
+                        lua_setfield(L, -2, name.c_str());
+                    }
+                    if (field->is_map()) {
+                        lua_createtable(L, 0, 4);
+                        lua_setfield(L, -2, name.c_str());
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
     void decode_message(lua_State* L, slice* slice, pb_message* msg);
     void decode_field(lua_State* L, slice* slice, pb_field* field) {
         switch (field->type) {
@@ -303,12 +351,6 @@ namespace luapb{
 
     void decode_map(lua_State* L, slice* slice, pb_field* field) {
         lua_getfield(L, -1, field->name.c_str());
-        if (!lua_istable(L, -1)) {
-            lua_pop(L, 1);
-            lua_createtable(L, 0, 4);
-            lua_pushvalue(L, -1);
-            lua_setfield(L, -3, field->name.c_str());
-        }
         auto msg = field->get_message();
         auto mslice = read_len_prefixed(slice);
         while (!mslice.empty()) {
@@ -321,18 +363,24 @@ namespace luapb{
     }
 
     void decode_repeated(lua_State* L, slice* slice, pb_field* field) {
-        int len = 1;
-        lua_createtable(L, 0, 4);
-        auto rslice = read_len_prefixed(slice);
-        while (!rslice.empty()) {
-            decode_field(L, &rslice, field);
-            lua_rawseti(L, -2, len++);
+        lua_getfield(L, -1, field->name.c_str());
+        if (field->packed) {
+            int len = 1;
+            auto rslice = read_len_prefixed(slice);
+            while (!rslice.empty()) {
+                decode_field(L, &rslice, field);
+                lua_rawseti(L, -2, len++);
+            }
+        } else {
+            int len = lua_rawlen(L, -1);
+            decode_field(L, slice, field);
+            lua_rawseti(L, -2, len + 1);
         }
-        lua_setfield(L, -2, field->name.c_str());
+        lua_pop(L, 1);
     }
 
     void decode_message(lua_State* L, slice* slice, pb_message* msg) {
-        lua_createtable(L, 0, msg->fields.size());
+        fill_message(L, msg);
         while (!slice->empty()) {
             uint32_t tag = read_varint<uint32_t>(slice);
             pb_field* field = find_field(msg, tag);
@@ -415,16 +463,25 @@ namespace luapb{
     }
     
     void encode_repeated(lua_State* L, luabuf* buff, pb_field* field, int index) {
-        write_field_type(buff, field->number, field_type::TYPE_MESSAGE);
-        size_t base = buff->hold_place(HOLD_OFFSET);
-        index = lua_absindex(L, index);
-        lua_pushnil(L);
-        while (lua_next(L, index)) {
-            encode_field(L, buff, field, -1);
-            lua_pop(L, 1);
+        int rawlen = lua_rawlen(L, index);
+        if (field->packed) {
+            write_field_type(buff, field->number, field_type::TYPE_MESSAGE);
+            size_t base = buff->hold_place(HOLD_OFFSET);
+            for (int i = 1; i <= rawlen; ++i) {
+                lua_geti(L, index, i);
+                encode_field(L, buff, field, -1);
+                lua_pop(L, 1);
+            }
+            slice* slice = buff->truncature(base, HOLD_OFFSET);
+            write_len_prefixed(buff, slice);
+        } else {
+            for (int i = 1; i <= rawlen; ++i) {
+                lua_geti(L, index, i);
+                write_field_type(buff, field->number, field_type::TYPE_MESSAGE);
+                encode_field(L, buff, field, -1);
+                lua_pop(L, 1);
+            }
         }
-        slice* slice = buff->truncature(base, HOLD_OFFSET);
-        write_len_prefixed(buff, slice);
     }
 
     void encode_message(lua_State* L, luabuf* buff, pb_message* msg) {
@@ -539,6 +596,8 @@ namespace luapb{
                 default: skip_field(&fslice, tag); break;
             }
         }
+        //Only repeated fields of primitive numeric types (types which use the varint, 32-bit, or 64-bit wire types) can be declared as packed.
+        if (wiretype_by_fieldtype(field->type) == wiretype::LEN) field->packed = false;
         msg->fields.emplace(field->number, field);
         msg->sfields.emplace(field->name, field);
     }
@@ -581,13 +640,12 @@ namespace luapb{
         while (!slice->empty()) {
             uint32_t tag = read_varint<uint32_t>(slice);
             switch (tag) {
-                case pb_tag(1, wiretype::LEN): read_file_descriptor(slice); break;
-                default: skip_field(slice, tag); break;
+            case pb_tag(1, wiretype::LEN): read_file_descriptor(slice); break;
+            default: skip_field(slice, tag); break;
             }
         }
     }
 
-    
     void pb_clear() {
         descriptor.clean();
     }
@@ -599,7 +657,6 @@ namespace luapb{
         }
         return luakit::variadic_return(L, enums);
     }
-
 
     int pb_messages(lua_State* L) {
         map<string, string> messages;

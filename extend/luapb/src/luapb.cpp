@@ -9,7 +9,7 @@ namespace luapb {
 
     thread_local std::map<uint32_t, pb_message*>    pb_cmd_ids;
     thread_local std::map<std::string, pb_message*> pb_cmd_names;
-    thread_local std::map<std::string, uint32_t> pb_cmd_indexs;
+    thread_local std::map<std::string, uint32_t>    pb_cmd_indexs;
 
     #pragma pack(1)
     struct pb_header {
@@ -84,14 +84,15 @@ namespace luapb {
             //encode
             auto buf = luakit::get_buff();
             buf->clean();
-            lua_pushvalue(L, index);
+            buf->hold_place(sizeof(pb_header));
             try {
                 encode_message(L, buf, msg);
             } catch (const exception& e) {
                 luaL_error(L, e.what());
             }
-            *len =  buf->size();
+            *len = buf->size();
             header.len = *len;
+            buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
             return buf->head();
         }
 
@@ -109,7 +110,7 @@ namespace luapb {
             //cmd_id
             pb_message* msg = pbmsg_from_cmdid(header->cmd_id);
             if (msg == nullptr) {
-                return lua_gettop(L) - top;
+                throw lua_exception("pb message not define cmd: %d", header->cmd_id);
             }
             //decode
             lua_push_function(L, [&](lua_State* L) {
@@ -117,13 +118,12 @@ namespace luapb {
                 return 1;
             });
             if (lua_pcall(L, 0, 1, 0)) {
-                lua_pushnil(L);
-                lua_insert(L, -2);
+                throw lua_exception("decode pb cmdid: %d failed: %s", header->cmd_id, lua_tostring(L, -1));
             }
             return lua_gettop(L) - top;
         }
     };
-    
+
     inline codec_base* pb_codec() {
         pbcodec* codec = new pbcodec();
         codec->set_buff(luakit::get_buff());
@@ -153,7 +153,6 @@ namespace luapb {
         fclose(fp);
         return 1;
     }
-
 
     int pb_encode(lua_State* L) {
         auto msg = pbmsg_from_stack(L, 1);

@@ -18,6 +18,8 @@ logger = {}
 logfeature = {}
 
 function logger.init()
+    --设置日志过滤
+    logger.filter(environ.number("QUANTA_LOG_LVL"))
     --配置日志信息
     log.set_max_size(environ.number("QUANTA_LOG_SIZE", 16777216))
     log.set_clean_time(environ.number("QUANTA_LOG_TIME", 648000))
@@ -26,14 +28,8 @@ function logger.init()
     log.add_lvl_dest(LOG_LEVEL.ERROR)
     --设置daemon
     log.daemon(environ.status("QUANTA_DAEMON"))
-    --设置日志过滤
-    logger.init_worker()
-end
-
-function logger.init_worker()
-    log.attach()
-    --设置日志过滤
-    logger.filter(environ.number("QUANTA_LOG_LVL"))
+    --附加日志代理
+    log.display()
 end
 
 function logger.daemon(daemon)

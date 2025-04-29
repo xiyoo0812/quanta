@@ -235,6 +235,7 @@ namespace logger {
 
 
     void log_service::option(cpchar log_path, cpchar service, cpchar index) {
+        if (main_dest_) return;
         log_path_ = log_path;
         service_ = fmt::format("{}-{}", service, index);
         create_directories(log_path);
@@ -273,19 +274,21 @@ namespace logger {
     }
 
     bool log_service::add_lvl_dest(log_level log_lvl) {
-        auto names = level_names<log_level>()();
-        sstring feature = names[(int)log_lvl];
-        std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
-        path logger_path = build_path(service_.c_str());
-        logger_path.append(feature);
-        std::lock_guard<spin_mutex> lock(mutex_);
-        if (rolling_type_ == rolling_type::DAYLY) {
-            auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
-            dest_lvls_.insert(std::make_pair(log_lvl, logfile));
-        }
-        else {
-            auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
-            dest_lvls_.insert(std::make_pair(log_lvl, logfile));
+        if (dest_lvls_.find(log_lvl) == dest_lvls_.end()) {
+            auto names = level_names<log_level>()();
+            sstring feature = names[(int)log_lvl];
+            std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
+            path logger_path = build_path(service_.c_str());
+            logger_path.append(feature);
+            std::lock_guard<spin_mutex> lock(mutex_);
+            if (rolling_type_ == rolling_type::DAYLY) {
+                auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
+                dest_lvls_.insert(std::make_pair(log_lvl, logfile));
+            }
+            else {
+                auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
+                dest_lvls_.insert(std::make_pair(log_lvl, logfile));
+            }
         }
         return true;
     }
