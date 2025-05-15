@@ -512,6 +512,7 @@ namespace luakit {
             m_slice = &mslice;
             return decode(L);
         }
+
         virtual void error(const std::string& err) {
             m_err = err;
             m_failed = true;

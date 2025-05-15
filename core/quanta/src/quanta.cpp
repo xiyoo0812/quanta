@@ -167,7 +167,12 @@ bool quanta_app::init() {
             exception_handler("load sandbox err: {}", err);
         })) return false;
     }
-    if (!m_lua.run_script(fmt::format("require '{}'", get_env("QUANTA_ENTRY")), [&](std::string_view err) {
+    auto entry = get_env("QUANTA_ENTRY");
+    if  (!entry) {
+        exception_handler("load entry err: {}", "entry not found");
+        return false;
+    }
+    if (!m_lua.run_script(fmt::format("require '{}'", entry), [&](std::string_view err) {
         exception_handler("load entry err: {}", err);
     })) return false;
     return true;

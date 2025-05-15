@@ -60,12 +60,12 @@ namespace luakit {
             return base;
         }
 
-        slice* truncature(size_t base, size_t offset) {
+        slice* free_place(size_t base, size_t offset) {
             auto data = m_head + base + offset;
             size_t data_len = m_tail - data;
+            m_tail = m_head + base;
             if (data_len > 0) {
                 m_slice.attach(data, data_len);
-                m_tail = m_head + base;
                 return &m_slice;
             }
             return nullptr;
