@@ -3,11 +3,11 @@
 #include "lua_kit.h"
 
 #include <set>
-#include <map>
 #include <list>
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <unordered_map>
 #include <stdlib.h>
 
 using namespace std;
@@ -43,7 +43,7 @@ namespace laoi {
     typedef set<aoi_obj*> object_set;
     typedef vector<object_set*> grid_array;
     typedef vector<grid_array> grid_map;
-    typedef map<uint32_t, uint16_t> hotarea_map;
+    typedef unordered_map<uint32_t, uint16_t> hotarea_map;
     thread_local list<object_set*> grid_pools = {};
 
     class aoi

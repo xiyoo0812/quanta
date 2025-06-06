@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <cstdint>
-#include <variant>
 #include <string_view>
 #include <unordered_map>
 
@@ -9,8 +8,6 @@
 
 using namespace std;
 using namespace luakit;
-
-using pbvariant = std::variant<std::monostate, lua_Number, lua_Integer, string_view, slice*>;
 
 namespace luapb{
     const uint32_t HOLD_OFFSET = 10;
@@ -49,44 +46,19 @@ namespace luapb{
         return ((fieldnum << 3) | (((uint32_t)wiretype) & 7));
     }
 
-    wiretype wiretype_by_fieldtype(field_type t) {
-        switch (t) {
-        case field_type::TYPE_DOUBLE:   return wiretype::I64;
-        case field_type::TYPE_FLOAT:    return wiretype::I32;
-        case field_type::TYPE_INT64:    return wiretype::VARINT;
-        case field_type::TYPE_UINT64:   return wiretype::VARINT;
-        case field_type::TYPE_INT32:    return wiretype::VARINT;
-        case field_type::TYPE_FIXED64:  return wiretype::I64;
-        case field_type::TYPE_FIXED32:  return wiretype::I32;
-        case field_type::TYPE_BOOL:     return wiretype::VARINT;
-        case field_type::TYPE_STRING:   return wiretype::LEN;
-        case field_type::TYPE_GROUP:    return wiretype::LEN;
-        case field_type::TYPE_MESSAGE:  return wiretype::LEN;
-        case field_type::TYPE_BYTES:    return wiretype::LEN;
-        case field_type::TYPE_UINT32:   return wiretype::VARINT;
-        case field_type::TYPE_ENUM:     return wiretype::VARINT;
-        case field_type::TYPE_SFIXED32: return wiretype::I32;
-        case field_type::TYPE_SFIXED64: return wiretype::I64;
-        case field_type::TYPE_SINT32:   return wiretype::VARINT;
-        case field_type::TYPE_SINT64:   return wiretype::VARINT;
-        default:                        return wiretype::EGROUP;
-        }
+    template<typename T>
+    inline int64_t decode_sint(T val) {
+        int64_t mask = static_cast<int64_t>(val & 1) * -1;
+        return (val >> 1) ^ mask;
     }
 
     template<typename T>
-    int64_t decode_sint(T val) {
-        using signedt = typename std::make_signed<T>::type;
-        signedt ival = static_cast<signedt>(val);
-        return (ival >> 1) ^ -(ival & 1);
-    }
-
-    template<typename T>
-    size_t encode_sint(T val) {
+    inline size_t encode_sint(T val) {
         return (val << 1) ^ -(val < 0);
     }
 
     template<typename T>
-    T read_varint(slice* slice) {
+    inline T read_varint(slice* slice) {
         size_t len = 0;
         auto head = slice->data(&len);
         if (len == 0) throw length_error("read_varint buffer length not engugh");
@@ -112,9 +84,8 @@ namespace luapb{
         throw length_error("read_varint invalid binrary");
     }
 
-    //需确保T是无符号
     template<typename T>
-    void write_varint(luabuf* buf, T val) {
+    inline void write_varint(luabuf* buf, T val) {
         size_t len = 0;
         uint8_t* data = buf->peek_space(HOLD_OFFSET);
         if (data == nullptr) throw lua_exception("write_varint buffer overflow");
@@ -130,38 +101,38 @@ namespace luapb{
     }
 
     template<typename T>
-    T read_fixtype(slice* slice) {
+    inline T read_fixtype(slice* slice) {
         auto data = slice->read<T>();
         if (data == nullptr) throw length_error("read_fixtype buffer length not engugh");
         return *data;
     }
 
     template<typename T>
-    void write_fixtype(luabuf* buf, T value) {
-        buf->push_data((uint8_t*)&value, sizeof(T));
+    inline void write_fixtype(luabuf* buf, T value) {
+        buf->write<T>(value);
     }
 
-    string_view read_string(slice* slice) {
+    inline string_view read_string(slice* slice) {
         uint32_t length = read_varint<uint32_t>(slice);
         const char* data = (const char*)slice->erase(length);
         if (data == nullptr) throw length_error("read_string buffer length not engugh");
         return string_view(data, length);
     }
 
-    void write_string(luabuf* buf, string_view value) {
+    inline void write_string(luabuf* buf, string_view value) {
         uint32_t length = value.size();
         write_varint(buf, length);
         buf->push_data((uint8_t*)value.data(), length);
     }
 
-    slice read_len_prefixed(slice* slice) {
+    inline slice read_len_prefixed(slice* slice) {
         uint32_t length = read_varint<uint32_t>(slice);
         auto data = slice->erase(length);
         if (data == nullptr) throw length_error("read_len_prefixed buffer length not engugh");
         return luakit::slice(data, length);
     }
 
-    void write_len_prefixed(luabuf* buf, slice* lslice) {
+    inline void write_len_prefixed(luabuf* buf, slice* lslice) {
         uint32_t length = lslice ? lslice->size() : 0;
         write_varint(buf, length);
         if (length > 0) {
@@ -171,12 +142,7 @@ namespace luapb{
         }
     }
 
-    void write_wiretype(luabuf* buf, int field_num, wiretype wtype) {
-        uint32_t value = (field_num << 3) | (((uint32_t)wtype) & 7);
-        write_varint(buf, value);
-    }
-
-    void skip_field(slice* slice, uint32_t field_tag) {
+    inline void skip_field(slice* slice, uint32_t field_tag) {
         wiretype wire_type = (wiretype)(field_tag & 0x07);
         switch (wire_type) {
             case wiretype::VARINT: read_varint<uint64_t>(slice); break;
@@ -194,6 +160,16 @@ namespace luapb{
         unordered_map<int32_t, string> vkpair;
     };
 
+    struct field {
+        string name;
+        string type_name;
+        int32_t number;
+        int32_t label;
+        field_type type;
+        int32_t oneof_index = -1;
+        bool packed = false;
+    };
+
     class pb_field;
     using pb_field_imap = unordered_map<int32_t, pb_field*>;
     using pb_field_smap = unordered_map<string_view, pb_field*>;
@@ -201,19 +177,24 @@ namespace luapb{
     public:
         ~pb_message();
         string name;
-        string meta_name;
+        int32_t meta_ref;
         pb_field_imap fields;
+        pb_field_imap tfields;
         pb_field_smap sfields;
         vector<string> oneof_decl;
         bool is_map = false;
+
+        void create_metatable(lua_State* L);
     };
 
     class pb_descriptor {
     public:
         string syntax;
-        bool ignore_empty = true;
+        bool use_mteatable = false;
+        bool encode_default = false;
         unordered_map<string, pb_enum*> enums;
         unordered_map<string, pb_message*> messages;
+        unordered_map<string_view, int32_t> field_refs;
         void clean() {
             for (auto& [_, e] : enums) delete e;
             for (auto& [_, m] : messages) delete m;
@@ -224,13 +205,22 @@ namespace luapb{
     };
     thread_local pb_descriptor descriptor;
 
-    pb_message* find_message(const char* name) {
+    inline pb_message* find_message(const char* name) {
         auto it = descriptor.messages.find(name);
         if (it != descriptor.messages.end()) return it->second;
         return nullptr;
     }
 
-    pb_enum* find_enum(const char* name) {
+    inline int32_t find_ref(lua_State* L, string& name) {
+        auto it = descriptor.field_refs.find(name);
+        if (it != descriptor.field_refs.end()) return it->second;
+        lua_pushlstring(L, name.c_str(), name.size());
+        int32_t ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        descriptor.field_refs.emplace(name, ref);
+        return ref;
+    }
+
+    inline pb_enum* find_enum(const char* name) {
         auto it = descriptor.enums.find(name);
         if (it != descriptor.enums.end()) return it->second;
         return nullptr;
@@ -242,123 +232,212 @@ namespace luapb{
         string type_name;
         int32_t number;
         int32_t label;
-        field_type type;
         wiretype wtype;
+        field_type type;
+        int32_t name_ref = 0;
         int32_t oneof_index = -1;
         pb_message* message = nullptr;
+        uint32_t tag = 0;
+        bool fill = false;
         bool packed = false;
 
-        bool is_repeated() { return label == 3; }
-        bool is_map() { return get_message() && message->is_map; }
-        pb_message* get_message() {
-            if (message) return message;
+        pb_field(const field& f, wiretype w) : name(f.name), type_name(f.type_name), number(f.number), label(f.label)
+            , wtype(w), type(f.type), oneof_index(f.oneof_index) {
+            tag = (number << 3) | (((uint32_t)wtype) & 7);
+        }
+        virtual ~pb_field() {};
+
+        virtual void push_field(lua_State* L) = 0;
+        virtual void push_default(lua_State* L) = 0;
+        virtual void decode(lua_State* L, slice* s) = 0;
+        virtual void encode(lua_State* L, int idx, luabuf* buff, bool enc_tag = true, bool enc_default = false) = 0;
+        inline bool is_repeated() { return label == 3; }
+        inline bool is_map() { return message && message->is_map; }
+        inline bool need_fill() {
+            if (fill) { fill = false; return false; }
+            return true;
+        }
+        inline bool not_fill() {
+            if (fill) return false;
+            fill = true;
+            return true;
+        }
+        inline void location(lua_State* L) {
+            name_ref = find_ref(L, name);
             if (type == field_type::TYPE_MESSAGE && !type_name.empty()) {
                 message = find_message(type_name.c_str());
             }
-            return message;
         }
     };
+
+    void decode_message(lua_State* L, slice* slice, pb_message* msg);
+    void encode_message(lua_State* L, int index, luabuf* buff, pb_message* msg);
+
+    template<typename T, field_type FT>
+    class pb_field_impl : public pb_field {
+    public:
+        pb_field_impl(const field& f, wiretype w) : pb_field(f, w) {}
+
+        virtual void push_field(lua_State* L) {
+            if (name_ref > 0) {
+                lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
+            } else {
+                lua_pushlstring(L, name.c_str(), name.size());
+            }
+        }
+        virtual void push_default(lua_State* L) {
+            lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
+            if constexpr (is_integral_v<T>) lua_pushinteger(L, 0);
+            else if constexpr (is_floating_point_v<T>) lua_pushnumber(L, 0);
+            else if constexpr (is_same_v<T, bool>) lua_pushboolean(L, false);
+            else if constexpr (is_same_v<T, string_view>) lua_pushstring(L, "");
+            else if constexpr (is_pointer_v<T>) decode_message(L, nullptr, message);
+        }
+        virtual void decode(lua_State* L, slice* s) {
+            if constexpr (FT == field_type::TYPE_FLOAT) lua_pushnumber(L, read_fixtype<float>(s));
+            else if constexpr (FT == field_type::TYPE_DOUBLE) lua_pushnumber(L, read_fixtype<double>(s));
+            else if constexpr (FT == field_type::TYPE_FIXED32) lua_pushinteger(L, read_fixtype<uint32_t>(s));
+            else if constexpr (FT == field_type::TYPE_FIXED64) lua_pushinteger(L, read_fixtype<uint64_t>(s));
+            else if constexpr (FT == field_type::TYPE_BOOL) lua_pushboolean(L, read_varint<uint32_t>(s));
+            // TYPE_INT32在负数的时候，会被扩展位uint64编码，因此使用int64_t去解码
+            else if constexpr (FT == field_type::TYPE_INT32) lua_pushinteger(L, read_varint<int64_t>(s));
+            else if constexpr (FT == field_type::TYPE_INT64) lua_pushinteger(L, read_varint<int64_t>(s));
+            else if constexpr (FT == field_type::TYPE_UINT32) lua_pushinteger(L, read_varint<uint32_t>(s));
+            else if constexpr (FT == field_type::TYPE_UINT64) lua_pushinteger(L, read_varint<uint64_t>(s));
+            else if constexpr (FT == field_type::TYPE_SINT32) lua_pushinteger(L, decode_sint(read_varint<uint32_t>(s)));
+            else if constexpr (FT == field_type::TYPE_SINT64) lua_pushinteger(L, decode_sint(read_varint<uint64_t>(s)));
+            else if constexpr (FT == field_type::TYPE_SFIXED32) lua_pushinteger(L, read_fixtype<int32_t>(s));
+            else if constexpr (FT == field_type::TYPE_SFIXED64) lua_pushinteger(L, read_fixtype<int64_t>(s));
+            else if constexpr (FT == field_type::TYPE_ENUM) lua_pushinteger(L, read_varint<uint32_t>(s));
+            else if constexpr (FT == field_type::TYPE_MESSAGE) {
+                auto mslice = read_len_prefixed(s);
+                decode_message(L, &mslice, message);
+            }
+            else if constexpr (FT == field_type::TYPE_BYTES || FT == field_type::TYPE_STRING) {
+                auto str = read_string(s);
+                lua_pushlstring(L, str.data(), str.size());
+            }
+            else throw length_error("decode_field invalid field_type");
+        }
+        virtual void encode(lua_State* L, int idx, luabuf* buff, bool enc_tag = true, bool enc_default = false) {
+            T val = read_field(L, idx, buff);
+            if (enc_default || not_default(val)) {
+                if (enc_tag) write_varint(buff, tag);
+                write_field(buff, val);
+            }
+        }
+    private:
+        inline T read_field(lua_State* L, int idx, luabuf* buff) {
+            if constexpr (is_integral_v<T>) return static_cast<T>(lua_tointeger(L, idx));
+            else if constexpr (is_floating_point_v<T>) return static_cast<T>(lua_tonumber(L, idx));
+            else if constexpr (is_same_v<T, bool>) return lua_toboolean(L, idx);
+            else if constexpr (is_same_v<T, string_view>) {
+                size_t len;
+                const char* str = lua_tolstring(L, idx, &len);
+                return (str == nullptr ? "" : string_view(str, len));
+            }
+            else if constexpr (is_pointer_v<T>) {
+                size_t base = buff->hold_place(HOLD_OFFSET);
+                encode_message(L, idx, buff, message);
+                return buff->free_place(base, HOLD_OFFSET);
+            }
+        }
+        inline bool not_default(T& val) {
+            if constexpr (is_integral_v<T>) return val != 0;
+            else if constexpr (is_floating_point_v<T>) return val != 0;
+            else if constexpr (is_same_v<T, bool>) return val == true;
+            else if constexpr (is_same_v<T, string_view>) return val.size() > 0;
+            return true;
+        }
+        inline void write_field(luabuf* buff, T& val) {
+            if constexpr (FT == field_type::TYPE_UINT32) write_varint<uint32_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_UINT64) write_varint<uint64_t>(buff, val);
+            //int32, int64的负数会被视为 64 位无符号整数，因此使用uint64_t去生成varint
+            else if constexpr (FT == field_type::TYPE_INT32) write_varint<uint64_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_INT64) write_varint<uint64_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_STRING) write_string(buff, val);
+            else if constexpr (FT == field_type::TYPE_MESSAGE) write_len_prefixed(buff, val);
+            else if constexpr (FT == field_type::TYPE_BOOL) write_varint<uint32_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_BYTES) write_string(buff, val);
+            else if constexpr (FT == field_type::TYPE_SINT32) write_varint<uint32_t>(buff, encode_sint<int32_t>(val));
+            else if constexpr (FT == field_type::TYPE_SINT64) write_varint<uint64_t>(buff, encode_sint<int64_t>(val));
+            else if constexpr (FT == field_type::TYPE_SFIXED32) write_fixtype<int32_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_SFIXED64) write_fixtype<int64_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_ENUM) write_varint<uint32_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_FLOAT) write_fixtype<float>(buff, val);
+            else if constexpr (FT == field_type::TYPE_DOUBLE) write_fixtype<double>(buff, val);
+            else if constexpr (FT == field_type::TYPE_FIXED32) write_fixtype<uint32_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_FIXED64) write_fixtype<uint64_t>(buff, val);
+            else throw lua_exception("encode failed: %s use unsuppert field type!", name.c_str());
+        }
+    };
+
+    pb_field* new_pbfield(const field& f) {
+        switch (f.type) {
+        case field_type::TYPE_DOUBLE:   return new pb_field_impl<double, field_type::TYPE_DOUBLE>(f, wiretype::I64);
+        case field_type::TYPE_FLOAT:    return new pb_field_impl<float, field_type::TYPE_FLOAT>(f, wiretype::I32);
+        case field_type::TYPE_INT64:    return new pb_field_impl<int64_t, field_type::TYPE_INT64>(f, wiretype::VARINT);
+        case field_type::TYPE_UINT64:   return new pb_field_impl<uint64_t, field_type::TYPE_UINT64>(f, wiretype::VARINT);
+        case field_type::TYPE_INT32:    return new pb_field_impl<int32_t, field_type::TYPE_INT32>(f, wiretype::VARINT);
+        case field_type::TYPE_FIXED64:  return new pb_field_impl<int64_t, field_type::TYPE_FIXED64>(f, wiretype::I64);
+        case field_type::TYPE_FIXED32:  return new pb_field_impl<int32_t, field_type::TYPE_FIXED32>(f, wiretype::I32);
+        case field_type::TYPE_BOOL:     return new pb_field_impl<bool, field_type::TYPE_BOOL>(f, wiretype::VARINT);
+        case field_type::TYPE_STRING:   return new pb_field_impl<string_view, field_type::TYPE_STRING>(f, wiretype::LEN);
+        case field_type::TYPE_GROUP:    return new pb_field_impl<int64_t, field_type::TYPE_GROUP>(f, wiretype::LEN);
+        case field_type::TYPE_MESSAGE:  return new pb_field_impl<slice*, field_type::TYPE_MESSAGE>(f, wiretype::LEN);
+        case field_type::TYPE_BYTES:    return new pb_field_impl<string_view, field_type::TYPE_BYTES>(f, wiretype::LEN);
+        case field_type::TYPE_UINT32:   return new pb_field_impl<uint32_t, field_type::TYPE_UINT32>(f, wiretype::VARINT);
+        case field_type::TYPE_ENUM:     return new pb_field_impl<uint32_t, field_type::TYPE_ENUM>(f, wiretype::VARINT);
+        case field_type::TYPE_SFIXED32: return new pb_field_impl<uint32_t, field_type::TYPE_SFIXED32>(f, wiretype::I32);
+        case field_type::TYPE_SFIXED64: return new pb_field_impl<uint64_t, field_type::TYPE_SFIXED64>(f, wiretype::I64);
+        case field_type::TYPE_SINT32:   return new pb_field_impl<uint32_t, field_type::TYPE_SINT32>(f, wiretype::VARINT);
+        case field_type::TYPE_SINT64:   return new pb_field_impl<uint64_t, field_type::TYPE_SINT64>(f, wiretype::VARINT);
+        default:                        return new pb_field_impl<uint32_t, field_type::MAX_TYPE>(f, wiretype::EGROUP);
+        }
+    }
 
     pb_message::~pb_message() {
         for (auto& [_, f] : fields) delete f;
     }
 
-    pb_field* find_field_by_number(pb_message* msg, uint32_t field_num) {
+    void pb_message::create_metatable(lua_State* L) {
+        lua_createtable(L, 0, 1);
+        lua_createtable(L, 0, fields.size());
+        for (auto& [name, field] : sfields) {
+            if (field->is_map() || field->is_repeated()) continue;
+            field->push_default(L);
+            lua_settable(L, -3);
+        }
+        lua_setfield(L, -2, "__index");
+        meta_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+
+    inline pb_field* find_field_by_number(pb_message* msg, uint32_t field_num) {
         auto it = msg->fields.find(field_num);
         if (it != msg->fields.end()) return it->second;
         return nullptr;
     }
 
-    pb_field* find_field(pb_message* msg, uint32_t tag) {
-        return find_field_by_number(msg, tag >> 3);
+    inline pb_field* find_field(pb_message* msg, uint32_t tag) {
+        auto it = msg->tfields.find(tag);
+        if (it != msg->tfields.end()) return it->second;
+        return nullptr;
     }
 
-    pb_field* find_field(pb_message* msg, const char* name) {
+    inline pb_field* find_field(pb_message* msg, const char* name) {
         auto it = msg->sfields.find(name);
         if (it != msg->sfields.end()) return it->second;
         return nullptr;
     }
 
-    bool is_field_value_empty(pbvariant& val) {
-        if (auto* pv = std::get_if<lua_Integer>(&val)) return *pv == 0;
-        if (auto* pv = std::get_if<string_view>(&val)) return pv->size() == 0;
-        if (auto* pv = std::get_if<lua_Number>(&val)) return *pv == 0;
-        return false;
-    }
-
-    void fill_message(lua_State* L, pb_message* msg) {
-        lua_createtable(L, 0, msg->fields.size());
-        for (auto& [name, field] : msg->sfields) {
-            auto bmap = field->is_map(), brepeated = field->is_repeated();
-            if (brepeated || bmap) {
-                lua_createtable(L, brepeated ? 4 : 0, bmap ? 4 : 0);
-                lua_setfield(L, -2, name.data());
-                continue;
-            }
-        }
-        luaL_getmetatable(L, msg->meta_name.c_str());
-        if (lua_isnil(L, -1)) {
-            lua_pop(L, 1);
-            luaL_newmetatable(L, msg->meta_name.c_str());
-            lua_createtable(L, 0, msg->fields.size());
-            for (auto& [name, field] : msg->sfields) {
-                if (field->is_map() || field->is_repeated()) continue;
-                switch (field->type) {
-                    case field_type::TYPE_BOOL: lua_pushboolean(L, 0); break;
-                    case field_type::TYPE_DOUBLE: lua_pushnumber(L, 0); break;
-                    case field_type::TYPE_FLOAT: lua_pushnumber(L, 0); break;
-                    case field_type::TYPE_BYTES: lua_pushstring(L, ""); break;
-                    case field_type::TYPE_STRING: lua_pushstring(L, ""); break;
-                    default: lua_pushinteger(L, 0); break;
-                }
-                lua_setfield(L, -2, name.data());
-            }
-            lua_setfield(L, -2, "__index");
-        }
-        lua_setmetatable(L, -2);
-    }
-
-    void decode_message(lua_State* L, slice* slice, pb_message* msg);
-    void decode_field(lua_State* L, slice* slice, pb_field* field) {
-        switch (field->type) {
-            case field_type::TYPE_FLOAT: lua_pushnumber(L, read_fixtype<float>(slice)); break;
-            case field_type::TYPE_DOUBLE: lua_pushnumber(L, read_fixtype<double>(slice)); break;
-            case field_type::TYPE_FIXED32: lua_pushinteger(L, read_fixtype<int32_t>(slice)); break;
-            case field_type::TYPE_FIXED64: lua_pushinteger(L, read_fixtype<int64_t>(slice)); break;
-            case field_type::TYPE_BOOL: lua_pushboolean(L, read_varint<uint32_t>(slice)); break;
-            // TYPE_INT32在负数的时候，会被扩展位uint64编码，因此使用int64_t去解码
-            case field_type::TYPE_INT32: lua_pushinteger(L, read_varint<int64_t>(slice)); break;
-            case field_type::TYPE_INT64: lua_pushinteger(L, read_varint<int64_t>(slice)); break;
-            case field_type::TYPE_UINT32: lua_pushinteger(L, read_varint<uint32_t>(slice)); break;
-            case field_type::TYPE_UINT64: lua_pushinteger(L, read_varint<uint64_t>(slice)); break;
-            case field_type::TYPE_SINT32: lua_pushinteger(L, decode_sint(read_varint<uint32_t>(slice))); break;
-            case field_type::TYPE_SINT64: lua_pushinteger(L, decode_sint(read_varint<uint64_t>(slice))); break;
-            case field_type::TYPE_SFIXED32: lua_pushinteger(L, decode_sint(read_fixtype<uint32_t>(slice))); break;
-            case field_type::TYPE_SFIXED64: lua_pushinteger(L, decode_sint(read_fixtype<uint64_t>(slice))); break;
-            case field_type::TYPE_ENUM: lua_pushinteger(L, read_varint<uint32_t>(slice)); break;
-            case field_type::TYPE_MESSAGE: {
-                auto mslice = read_len_prefixed(slice);
-                decode_message(L, &mslice, field->get_message());
-                break;
-            }
-            case field_type::TYPE_BYTES:
-            case field_type::TYPE_STRING: {
-                auto s = read_string(slice);
-                lua_pushlstring(L, s.data(), s.size());
-                break;
-            }
-            default: throw length_error("decode_field invalid field_type");
-        }
-    }
-
     void decode_map(lua_State* L, slice* slice, pb_field* field) {
         lua_getfield(L, -1, field->name.c_str());
-        auto msg = field->get_message();
+        auto msg = field->message;
         auto mslice = read_len_prefixed(slice);
         while (!mslice.empty()) {
             uint32_t tag = read_varint<uint32_t>(&mslice);
             pb_field* kvfield = find_field(msg, tag);
-            decode_field(L, &mslice, kvfield);
+            kvfield->decode(L, &mslice);
             if (kvfield->number == 2) lua_rawset(L, -3);
         }
         lua_pop(L, 1);
@@ -370,115 +449,81 @@ namespace luapb{
             int len = 1;
             auto rslice = read_len_prefixed(slice);
             while (!rslice.empty()) {
-                decode_field(L, &rslice, field);
+                field->decode(L, &rslice);
                 lua_rawseti(L, -2, len++);
             }
-        } else {
+        }
+        else {
             int len = lua_rawlen(L, -1);
-            decode_field(L, slice, field);
+            field->decode(L, slice);
             lua_rawseti(L, -2, len + 1);
         }
         lua_pop(L, 1);
     }
 
     void decode_message(lua_State* L, slice* slice, pb_message* msg) {
-        fill_message(L, msg);
-        while (!slice->empty()) {
+        lua_createtable(L, 0, msg->fields.size());
+        while (slice && !slice->empty()) {
             uint32_t tag = read_varint<uint32_t>(slice);
             pb_field* field = find_field(msg, tag);
             if (!field) {
                 skip_field(slice, tag);
                 continue;
             }
+            bool nfill = field->not_fill();
             if (field->is_map()) {
+                if (nfill) {
+                    field->push_field(L);
+                    lua_createtable(L, 0, 4);
+                    lua_settable(L, -3);
+                }
                 decode_map(L, slice, field);
                 continue;
             }
             if (field->is_repeated()) {
+                if (nfill) {
+                    field->push_field(L);
+                    lua_createtable(L, 0, 4);
+                    lua_settable(L, -3);
+                }
                 decode_repeated(L, slice, field);
                 continue;
             }
-            decode_field(L, slice, field);
+            field->push_field(L);
+            field->decode(L, slice);
             //oneof名字引用
             if (field->oneof_index < 0) {
-                lua_setfield(L, -2, field->name.c_str());
-            } else {
-                lua_setfield(L, -2, field->name.c_str());
-                lua_pushstring(L, field->name.c_str());
+                lua_settable(L, -3);
+            }
+            else {
+                lua_settable(L, -3);
+                field->push_field(L);
                 lua_setfield(L, -2, msg->oneof_decl[field->oneof_index].c_str());
             }
         }
-    }
-
-    void encode_message(lua_State* L, luabuf* buff, pb_message* msg);
-    pbvariant get_field_value(lua_State* L, luabuf* buff, pb_field* field, int index) {
-        switch (field->type) {
-            case field_type::TYPE_ENUM: return lua_tointeger(L, index);
-            case field_type::TYPE_FLOAT: return lua_tonumber(L, index);
-            case field_type::TYPE_DOUBLE: return lua_tonumber(L, index);
-            case field_type::TYPE_FIXED32: return lua_tointeger(L, index);
-            case field_type::TYPE_FIXED64: return lua_tointeger(L, index);
-            case field_type::TYPE_INT32: return lua_tointeger(L, index);
-            case field_type::TYPE_INT64: return lua_tointeger(L, index);
-            case field_type::TYPE_UINT32: return lua_tointeger(L, index);
-            case field_type::TYPE_UINT64: return lua_tointeger(L, index);
-            case field_type::TYPE_SINT32: return lua_tointeger(L, index);
-            case field_type::TYPE_SINT64: return lua_tointeger(L, index);
-            case field_type::TYPE_SFIXED32: return lua_tointeger(L, index);
-            case field_type::TYPE_SFIXED64: return lua_tointeger(L, index);
-            case field_type::TYPE_BOOL: return (lua_Integer)lua_toboolean(L, index);
-            case field_type::TYPE_BYTES:
-            case field_type::TYPE_STRING: {
-                size_t len;
-                auto s = lua_tolstring(L, index, &len);
-                return string_view(s, len);
-            }
-            case field_type::TYPE_MESSAGE: {
-                size_t base = buff->hold_place(HOLD_OFFSET);
-                encode_message(L, buff, field->get_message());
-                return buff->free_place(base, HOLD_OFFSET);
-            }
-            default: return std::monostate();
+        if (descriptor.use_mteatable) {
+            lua_rawgeti(L, LUA_REGISTRYINDEX, msg->meta_ref);
+            lua_setmetatable(L, -2);
         }
-    }
-
-    void encode_field(luabuf* buff, pb_field* field, pbvariant&& val) {
-        switch (field->type) {
-            case field_type::TYPE_FLOAT: write_fixtype<float>(buff, std::get<lua_Number>(val)); break;
-            case field_type::TYPE_DOUBLE: write_fixtype<double>(buff, std::get<lua_Number>(val)); break;
-            case field_type::TYPE_FIXED32: write_fixtype<int32_t>(buff, std::get<lua_Integer>(val)); break;
-            case field_type::TYPE_FIXED64: write_fixtype<int64_t>(buff, std::get<lua_Integer>(val)); break;
-            case field_type::TYPE_BOOL: write_varint<int32_t>(buff, std::get<lua_Integer>(val)); break;
-            //int32, int64的负数会被视为 64 位无符号整数，因此使用uint64_t去生成varint
-            case field_type::TYPE_INT32: write_varint<uint64_t>(buff, std::get<lua_Integer>(val)); break;
-            case field_type::TYPE_INT64: write_varint<uint64_t>(buff, std::get<lua_Integer>(val)); break;
-            case field_type::TYPE_UINT32: write_varint<uint32_t>(buff, std::get<lua_Integer>(val)); break;
-            case field_type::TYPE_UINT64: write_varint<uint64_t>(buff, std::get<lua_Integer>(val)); break;
-            case field_type::TYPE_SINT32: write_varint<uint32_t>(buff, encode_sint(std::get<lua_Integer>(val))); break;
-            case field_type::TYPE_SINT64: write_varint<uint64_t>(buff, encode_sint(std::get<lua_Integer>(val))); break;
-            case field_type::TYPE_SFIXED32: write_fixtype<uint32_t>(buff, encode_sint(std::get<lua_Integer>(val))); break;
-            case field_type::TYPE_SFIXED64: write_fixtype<uint64_t>(buff, encode_sint(std::get<lua_Integer>(val))); break;
-            case field_type::TYPE_ENUM: write_varint<uint32_t>(buff, std::get<lua_Integer>(val)); break;
-            case field_type::TYPE_BYTES: write_string(buff, std::get<string_view>(val)); break;
-            case field_type::TYPE_STRING: write_string(buff, std::get<string_view>(val)); break;
-            case field_type::TYPE_MESSAGE: write_len_prefixed(buff, std::get<slice*>(val)); break;
-            default: throw lua_exception("encode failed: %s use unsuppert field type!", field->name);
+        for (auto& [name, field] : msg->sfields) {
+            if (field->need_fill() && !descriptor.use_mteatable) {
+                field->push_default(L);
+                lua_settable(L, -3);
+            }
         }
     }
 
     void encode_map(lua_State* L, luabuf* buff, pb_field* field, int index) {
-        auto message = field->get_message();
+        auto message = field->message;
         index = lua_absindex(L, index);
         lua_pushnil(L);
         while (lua_next(L, index)) {
-            write_wiretype(buff, field->number, field->wtype);
+            write_varint(buff, field->tag);
             size_t base = buff->hold_place(HOLD_OFFSET);
             pb_field* kfield = find_field_by_number(message, 1);
-            write_wiretype(buff, kfield->number, kfield->wtype);
-            encode_field(buff, kfield, get_field_value(L, buff, kfield, -2));
+            kfield->encode(L, -2, buff);
             pb_field* vfield = find_field_by_number(message, 2);
-            write_wiretype(buff, vfield->number, vfield->wtype);
-            encode_field(buff, vfield, get_field_value(L, buff, vfield, -1));
+            vfield->encode(L, -1, buff);
             slice* slice = buff->free_place(base, HOLD_OFFSET);
             write_len_prefixed(buff, slice);
             lua_pop(L, 1);
@@ -487,13 +532,13 @@ namespace luapb{
 
     void encode_repeated(lua_State* L, luabuf* buff, pb_field* field, int index) {
         int rawlen = lua_rawlen(L, index);
-        if (rawlen == 0 && descriptor.ignore_empty) return;
+        if (rawlen == 0 && descriptor.encode_default) return;
         if (field->packed) {
-            write_wiretype(buff, field->number, wiretype::LEN);
+            write_varint(buff, field->tag);
             size_t base = buff->hold_place(HOLD_OFFSET);
             for (int i = 1; i <= rawlen; ++i) {
                 lua_geti(L, index, i);
-                encode_field(buff, field, get_field_value(L, buff, field, -1));
+                field->encode(L, -1, buff, false);
                 lua_pop(L, 1);
             }
             slice* slice = buff->free_place(base, HOLD_OFFSET);
@@ -501,17 +546,17 @@ namespace luapb{
         } else {
             for (int i = 1; i <= rawlen; ++i) {
                 lua_geti(L, index, i);
-                write_wiretype(buff, field->number, wiretype::LEN);
-                encode_field(buff, field, get_field_value(L, buff, field, -1));
+                field->encode(L, -1, buff);
                 lua_pop(L, 1);
             }
         }
     }
 
-    void encode_message(lua_State* L, luabuf* buff, pb_message* msg) {
+    void encode_message(lua_State* L, int index, luabuf* buff, pb_message* msg) {
+        int idx = lua_absindex(L, index);
         lua_pushnil(L);
         bool oneofencode = false;
-        while (lua_next(L, -2) != 0) {
+        while (lua_next(L, idx) != 0) {
             if (lua_isstring(L, -2)) {
                 pb_field* field = find_field(msg, lua_tostring(L, -2));
                 if (field) {
@@ -528,11 +573,7 @@ namespace luapb{
                             }
                             oneofencode = true;
                         }
-                        auto val = get_field_value(L, buff, field, -1);
-                        if (!(descriptor.ignore_empty && is_field_value_empty(val))) {
-                            write_wiretype(buff, field->number, field->wtype);
-                            encode_field(buff, field, std::move(val));
-                        }
+                        field->encode(L, -1, buff, true, descriptor.encode_default);
                     }
                 }
             }
@@ -569,13 +610,13 @@ namespace luapb{
         descriptor.enums.emplace(package, penum);
     }
 
-    void read_field_option(slice* slice, pb_field* field) {
+    void read_field_option(slice* slice, field* f) {
         auto oslice = read_len_prefixed(slice);
         while (!oslice.empty()) {
             uint32_t tag = read_varint<uint32_t>(&oslice);
             switch (tag) {
                 case pb_tag(2, wiretype::VARINT): {
-                    field->packed = read_varint<uint32_t>(&oslice);
+                    f->packed = read_varint<uint32_t>(&oslice);
                     break;
                 }
                 default: skip_field(&oslice, tag); break;
@@ -606,26 +647,27 @@ namespace luapb{
     }
 
     void read_field(slice* slice, pb_message* msg) {
-        pb_field* field = new pb_field();
+        field f;
         auto fslice = read_len_prefixed(slice);
         while (!fslice.empty()) {
             uint32_t tag = read_varint<uint32_t>(&fslice);
             switch (tag) {
-                case pb_tag(1, wiretype::LEN): field->name = read_string(&fslice); break;
-                case pb_tag(3, wiretype::VARINT): field->number = read_varint<int32_t>(&fslice); break;
-                case pb_tag(4, wiretype::VARINT): field->label = read_varint<int32_t>(&fslice); break;
-                case pb_tag(5, wiretype::VARINT): field->type = (field_type)read_varint<int32_t>(&fslice); break;
-                case pb_tag(6, wiretype::LEN): field->type_name = read_string(&fslice).substr(1); break;
-                case pb_tag(9, wiretype::VARINT): field->oneof_index = read_varint<int32_t>(&fslice); break;
-                case pb_tag(8, wiretype::LEN): read_field_option(&fslice, field); break;
+                case pb_tag(1, wiretype::LEN): f.name = read_string(&fslice); break;
+                case pb_tag(3, wiretype::VARINT): f.number = read_varint<int32_t>(&fslice); break;
+                case pb_tag(4, wiretype::VARINT): f.label = read_varint<int32_t>(&fslice); break;
+                case pb_tag(5, wiretype::VARINT): f.type = (field_type)read_varint<int32_t>(&fslice); break;
+                case pb_tag(6, wiretype::LEN): f.type_name = read_string(&fslice).substr(1); break;
+                case pb_tag(9, wiretype::VARINT): f.oneof_index = read_varint<int32_t>(&fslice); break;
+                case pb_tag(8, wiretype::LEN): read_field_option(&fslice, &f); break;
                 default: skip_field(&fslice, tag); break;
             }
         }
-        field->wtype = wiretype_by_fieldtype(field->type);
+        auto field = new_pbfield(f);
         //Only repeated fields of primitive numeric types (types which use the varint, 32-bit, or 64-bit wire types) can be declared as packed.
-        field->packed = (field->wtype != wiretype::LEN) && (field->packed || (field->label == 3 && descriptor.syntax == "proto3"));
+        field->packed = (field->wtype != wiretype::LEN) && (f.packed || (f.label == 3 && descriptor.syntax == "proto3"));
+        msg->sfields.emplace(field->name.c_str(), field);
+        msg->tfields.emplace(field->tag, field);
         msg->fields.emplace(field->number, field);
-        msg->sfields.emplace(field->name, field);
     }
 
     void read_message(slice* slice, string package) {
@@ -643,7 +685,6 @@ namespace luapb{
                 default: skip_field(&mslice, tag); break;
             }
         }
-        message->meta_name = "__protobuf_meta_" + package;
         descriptor.messages.emplace(package, message);
     }
 
@@ -662,7 +703,7 @@ namespace luapb{
         }
     }
 
-    void read_file_descriptor_set(slice* slice) {
+    void read_file_descriptor_set(lua_State* L, slice* slice) {
         descriptor.clean();
         while (!slice->empty()) {
             uint32_t tag = read_varint<uint32_t>(slice);
@@ -671,10 +712,25 @@ namespace luapb{
             default: skip_field(slice, tag); break;
             }
         }
+        for (auto& [_, message] : descriptor.messages) {
+            for (auto& [_, field] : message->fields) {
+                field->location(L);
+            }
+        }
+        for (auto& [_, message] : descriptor.messages) {
+            message->create_metatable(L);
+        }
     }
 
-    void pb_clear() {
+    int pb_clear(lua_State* L) {
+        for (auto& [_, ref] : descriptor.field_refs) {
+            luaL_unref(L, LUA_REGISTRYINDEX, ref);
+        }
+        for (auto& [_, message] : descriptor.messages) {
+            luaL_unref(L, LUA_REGISTRYINDEX, message->meta_ref);
+        }
         descriptor.clean();
+        return 0;
     }
 
     int pb_enums(lua_State* L) {

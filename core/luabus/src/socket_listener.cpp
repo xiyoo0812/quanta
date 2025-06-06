@@ -97,8 +97,8 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
 
     set_no_block(node->fd);
 
-    m_mgr->accept_stream(m_token, node->fd, ip);
-    m_accept_cb(node->fd);
+    int token = m_mgr->accept_stream(m_token, node->fd, ip);
+    m_accept_cb(token);
     node->fd = INVALID_SOCKET;
     queue_accept(ovl);
 }

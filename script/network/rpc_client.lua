@@ -36,7 +36,7 @@ function RpcClient:__init(holder, ip, port, id)
     self.holder = holder
     self.timer = make_timer()
     self.timer:loop(SECOND_MS, function()
-        self:heartbeat()
+    --    self:heartbeat()
     end)
 end
 

@@ -74,7 +74,7 @@ namespace logger {
     class log_time : public std::tm {
     public:
         static log_time now();
-        log_time(const std::tm& tm, time_t sec, int usec) : std::tm(tm), tm_time(sec), tm_usec(usec) { }
+        log_time(const std::tm& tm, time_t sec, int usec) : std::tm(tm), tm_usec(usec), tm_time(sec) { }
         log_time() { }
 
         int tm_usec = 0;

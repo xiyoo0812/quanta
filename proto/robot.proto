@@ -20,6 +20,22 @@ message child_message
     map<string, string> values      = 3;
 }
 
+message num_message
+{
+    int32 i32                       = 1;
+    uint32 u32                      = 2;
+    int64 i64                       = 3;
+    uint64 u64                      = 4;
+    sint32 s32                      = 5;
+    sint64 s64                      = 6;
+    fixed32 f32                     = 7;
+    fixed64 f64                     = 8;
+    sfixed32 sf32                   = 9;
+    sfixed64 sf64                   = 10;
+    float d32                       = 11;
+    double d64                      = 12;
+}
+
 message test_message
 {
     uint32 id                       = 1;        // id

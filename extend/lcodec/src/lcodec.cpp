@@ -11,10 +11,11 @@ namespace lcodec {
         return rcodec;
     }
 
-    static codec_base* wss_codec(codec_base* codec) {
+    static codec_base* wss_codec(codec_base* codec, bool mask) {
         wsscodec* wcodec = new wsscodec();
         wcodec->set_codec(codec);
         wcodec->set_buff(luakit::get_buff());
+        if (mask) wcodec->build_mask();
         return wcodec;
     }
 

@@ -264,7 +264,7 @@ namespace lcodec {
 
         void notice_error_decode(lua_State* L) {
             size_t len;
-            std::map<uint8_t, const char*> values;
+            std::unordered_map<uint8_t, const char*> values;
             while (true) {
                 uint8_t flag = read_uint8(&m_packet);
                 if (flag == 0) break;

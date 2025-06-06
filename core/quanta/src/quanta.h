@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <map>
 
 #include "logger.h"
 
@@ -28,7 +27,7 @@ private:
     bool m_process = true;
     uint64_t m_signal = 0;
     luakit::kit_state m_lua;
-    std::map<std::string, std::string> m_environs;
+    std::unordered_map<std::string, std::string> m_environs;
 };
 
 extern quanta_app* g_app;

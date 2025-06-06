@@ -12,7 +12,7 @@ namespace luakit {
         luabuf() { _alloc(); }
         ~luabuf() { free(m_data); }
 
-        void reset() {
+        inline void reset() {
             if (m_size != BUFFER_DEF) {
                 m_data = (uint8_t*)realloc(m_data, BUFFER_DEF);
             }
@@ -21,23 +21,23 @@ namespace luakit {
             m_size = BUFFER_DEF;
         }
 
-        size_t size() {
+        inline size_t size() {
             return m_tail - m_head;
         }
 
-        size_t capacity() {
+        inline size_t capacity() {
             return m_size;
         }
 
-        size_t empty() {
+        inline size_t empty() {
             return m_tail == m_head;
         }
 
-        uint8_t* head() {
+        inline uint8_t* head() {
             return m_head;
         }
 
-        void clean() {
+        inline void clean() {
             size_t data_len = m_tail - m_head;
             if (m_size > m_max && data_len < BUFFER_DEF) {
                 _resize(m_size / 2);
@@ -45,7 +45,7 @@ namespace luakit {
             m_head = m_tail = m_data;
         }
 
-        size_t copy(size_t offset, const uint8_t* src, size_t src_len) {
+        inline size_t copy(size_t offset, const uint8_t* src, size_t src_len) {
             size_t data_len = m_tail - m_head;
             if (offset + src_len <= data_len) {
                 memcpy(m_head + offset, src, src_len);
@@ -54,13 +54,13 @@ namespace luakit {
             return 0;
         }
 
-        size_t hold_place(size_t offset) {
+        inline size_t hold_place(size_t offset) {
             size_t base = m_tail - m_head;
             pop_space(offset);
             return base;
         }
 
-        slice* free_place(size_t base, size_t offset) {
+        inline slice* free_place(size_t base, size_t offset) {
             auto data = m_head + base + offset;
             size_t data_len = m_tail - data;
             m_tail = m_head + base;
@@ -71,7 +71,7 @@ namespace luakit {
             return nullptr;
         }
 
-        size_t push_data(const uint8_t* src, size_t push_len) {
+        inline size_t push_data(const uint8_t* src, size_t push_len) {
             uint8_t* target = peek_space(push_len);
             if (target) {
                 memcpy(target, src, push_len);
@@ -81,7 +81,7 @@ namespace luakit {
             return 0;
         }
 
-        size_t pop_data(uint8_t* dest, size_t pop_len) {
+        inline size_t pop_data(uint8_t* dest, size_t pop_len) {
             size_t data_len = m_tail - m_head;
             if (pop_len > 0 && data_len >= pop_len) {
                 memcpy(dest, m_head, pop_len);
@@ -91,7 +91,7 @@ namespace luakit {
             return 0;
         }
 
-        size_t pop_size(size_t erase_len) {
+        inline size_t pop_size(size_t erase_len) {
             if (m_head + erase_len <= m_tail) {
                 m_head += erase_len;
                 size_t data_len = (size_t)(m_tail - m_head);
@@ -104,7 +104,7 @@ namespace luakit {
             return 0;
         }
 
-        uint8_t* peek_data(size_t peek_len, size_t offset = 0) {
+        inline uint8_t* peek_data(size_t peek_len, size_t offset = 0) {
             size_t data_len = m_tail - m_head - offset;
             if (peek_len > 0 && data_len >= peek_len) {
                 return m_head + offset;
@@ -112,7 +112,7 @@ namespace luakit {
             return nullptr;
         }
 
-        size_t pop_space(size_t space_len) {
+        inline size_t pop_space(size_t space_len) {
             if (m_tail + space_len <= m_end) {
                 m_tail += space_len;
                 return space_len;
@@ -120,13 +120,13 @@ namespace luakit {
             return 0;
         }
 
-        slice* get_slice(size_t len = 0, uint32_t offset = 0) {
+        inline slice* get_slice(size_t len = 0, uint32_t offset = 0) {
             size_t data_len = m_tail - (m_head + offset);
             m_slice.attach(m_head + offset, len == 0 ? data_len : len);
             return &m_slice;
         }
 
-        uint8_t* peek_space(size_t len) {
+        inline uint8_t* peek_space(size_t len) {
             size_t space_len = m_end - m_tail;
             if (space_len < len) {
                 space_len = _regularize();
@@ -148,31 +148,37 @@ namespace luakit {
             return m_tail;
         }
 
-        uint8_t* data(size_t* len) {
+        inline uint8_t* data(size_t* len) {
             *len = (size_t)(m_tail - m_head);
             return m_head;
         }
 
-        std::string_view string() {
+        inline std::string_view string() {
             size_t len = (size_t)(m_tail - m_head);
             return std::string_view((const char*)m_head, len);
         }
 
-        size_t write(const char* src) {
+        inline size_t write(const char* src) {
             return push_data((const uint8_t*)src, strlen(src));
         }
 
-        size_t write(const std::string& src) {
+        inline size_t write(const std::string& src) {
             return push_data((const uint8_t*)src.c_str(), src.size());
         }
 
         template<typename T>
-        size_t write(T value) {
-            return push_data((const uint8_t*)&value, sizeof(T));
+        inline size_t write(T value) {
+            T* target = (T*)peek_space(sizeof(T));
+            if (target) {
+                *target = value;
+                m_tail += sizeof(T);
+                return sizeof(T);
+            }
+            return 0;
         }
 
         template<typename T = uint8_t>
-        T* read() {
+        inline T* read() {
             size_t tpe_len = sizeof(T);
             size_t data_len = m_tail - m_head;
             if (tpe_len > 0 && data_len >= tpe_len) {

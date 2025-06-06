@@ -33,21 +33,29 @@ namespace lcodec {
             uint8_t* body = nullptr;
             size_t opcode = lua_tointeger(L, index);
             if (lua_type(L, index + 1) == LUA_TTABLE) {
-                body = m_jcodec->encode(L, index + 1, len);
+                if (!m_codec) luaL_error(L, "ws encode table need a codec!");
+                body = m_codec->encode(L, index + 1, len);
             } else {
                 body = (uint8_t*)lua_tolstring(L, index + 1, len);
             }
+            size_t masklen = m_mask.size();
+            uint8_t maskflag = masklen > 0 ? 0x80 : 0;
             m_buf->write<uint8_t>((0x80 | opcode));
             if (*len < 0x7e) {
-                m_buf->write<uint8_t>(*len);
+                m_buf->write<uint8_t>(maskflag | *len);
             } else if (*len <= 0xffff) {
-                m_buf->write<uint8_t>(0x7e);
+                m_buf->write<uint8_t>(maskflag | 0x7e);
                 m_buf->write<uint16_t>(byteswap2(*len));
             } else {
-                m_buf->write<uint8_t>(0x7f);
+                m_buf->write<uint8_t>(maskflag | 0x7f);
                 m_buf->write<uint64_t>(byteswap8(*len));
             }
-            m_buf->push_data(body, *len);
+            if (masklen > 0) {
+                m_buf->push_data((uint8_t*)m_mask.data(), masklen);
+                xor_byte((char*)body, m_mask.data(), *len, masklen, m_buf);
+            } else {
+                m_buf->push_data(body, *len);
+            }
             return m_buf->data(len);
         }
 
@@ -71,9 +79,9 @@ namespace lcodec {
                 xor_byte(data, maskkey, data_len, 4);
             }
             size_t osize = m_slice->size();
-            if (opcode == 0x02) {
-                m_jcodec->set_slice(m_slice);
-                m_jcodec->decode(L);
+            if (m_codec && opcode == 0x02) {
+                m_codec->set_slice(m_slice);
+                m_codec->decode(L);
             } else {
                 lua_pushlstring(L, (char*)m_slice->head(), osize);
             }
@@ -81,18 +89,29 @@ namespace lcodec {
         }
 
         void set_codec(codec_base* codec) {
-            m_jcodec = codec;
+            m_codec = codec;
         }
 
-    protected:
-        char* xor_byte(char* buffer, char* mask, size_t blen, size_t mlen) {
-            for (size_t i = 0; i < blen; i++) {
-                buffer[i] = buffer[i] ^ mask[i % mlen];
+        void build_mask() {
+            m_mask.resize(4);
+            const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+            const size_t max_index = sizeof(charset) - 1;
+            for (int i = 0; i < 4; ++i) {
+                m_mask[i] = charset[std::rand() % max_index];
             }
-            return buffer;
         }
 
     protected:
-        codec_base* m_jcodec = nullptr;
+        void xor_byte(char* buffer, char* mask, size_t blen, size_t mlen, luabuf* buf = nullptr) {
+            auto data = buf ? buf->peek_space(blen) : (uint8_t*)buffer;
+            for (size_t i = 0; i < blen; i++) {
+                data[i] = buffer[i] ^ mask[i % mlen];
+            }
+            if (buf) buf->pop_space(blen);
+        }
+
+    protected:
+        string m_mask = "";
+        codec_base* m_codec = nullptr;
     };
 }

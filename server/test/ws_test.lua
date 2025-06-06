@@ -11,7 +11,7 @@ local WST = class()
 
 function WST:listen()
     self.server = WSServer()
-    self.server:listen("127.0.0.1", 8191)
+    self.server:listen("0.0.0.0", 8191)
 
     event_mgr:add_listener(self, "on_socket_cmd")
     event_mgr:add_listener(self, "on_socket_accept")

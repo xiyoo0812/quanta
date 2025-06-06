@@ -39,7 +39,7 @@ namespace luaxml {
         }
         if (count > 0) {
             const XMLElement* child = elem->FirstChildElement();
-            std::map<std::string, std::vector<const XMLElement*>> elems;
+            std::unordered_map<std::string, std::vector<const XMLElement*>> elems;
             while (child) {
                 auto it = elems.find(child->Name());
                 if (it != elems.end()) {

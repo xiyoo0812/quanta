@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <math.h>
@@ -162,7 +162,7 @@ namespace lxlsx {
             XMLElement* numFmts = styleSheet->FirstChildElement("numFmts");
             if (numFmts == nullptr) return;
 
-            map<int, string> custom_date_formats;
+            unordered_map<int, string> custom_date_formats;
             for (XMLElement* numFmt = numFmts->FirstChildElement(); numFmt; numFmt = numFmt->NextSiblingElement()) {
                 uint32_t id = atoi(numFmt->Attribute("numFmtId"));
                 string fmt = numFmt->Attribute("formatCode");
@@ -178,7 +178,7 @@ namespace lxlsx {
                 if (fi) {
                     string fmt;
                     uint32_t formatId = atoi(fi);
-                    map<int, string>::iterator iter = custom_date_formats.find(formatId);
+                    auto iter = custom_date_formats.find(formatId);
                     if (iter != custom_date_formats.end()) {
                         fmt = iter->second;
                     }
@@ -351,7 +351,7 @@ namespace lxlsx {
         mz_zip_archive archive;
         vector<sheet*> excel_sheets;
         vector<string> shared_string;
-        map<uint32_t, uint32_t> form_ids;
-        map<uint32_t, string> fmt_codes;
+        unordered_map<uint32_t, uint32_t> form_ids;
+        unordered_map<uint32_t, string> fmt_codes;
     };
 }

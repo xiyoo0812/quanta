@@ -79,7 +79,7 @@ namespace lcodec {
         }
 
         void set_codec(codec_base* codec) {
-            m_jcodec = codec;
+            m_codec = codec;
         }
 
         virtual size_t decode(lua_State* L) {
@@ -105,8 +105,8 @@ namespace lcodec {
             //body
             uint8_t* body = nullptr;
             if (lua_type(L, index + 1) == LUA_TTABLE) {
-                if (!m_jcodec) luaL_error(L, "http json not suppert, con't use lua table!");
-                body = m_jcodec->encode(L, index + 1, len);
+                if (!m_codec) luaL_error(L, "http json not suppert, con't use lua table!");
+                body = m_codec->encode(L, index + 1, len);
             }
             else {
                 body = (uint8_t*)lua_tolstring(L, index + 1, len);
@@ -131,41 +131,30 @@ namespace lcodec {
             for (auto header : headers) {
                 size_t pos = header.find(":");
                 if (pos != string_view::npos) {
+                    size_t hpos = pos + 1;
                     string_view key = header.substr(0, pos);
-                    header.remove_prefix(pos + 1);
-                    size_t hpos = header.find_first_not_of(" ");
-                    if (hpos != string_view::npos) header.remove_prefix(hpos);
+                    while (hpos < header.size() && isspace(header[hpos])) ++hpos;
+                    header.remove_prefix(hpos);
                     if (!strncasecmp(key.data(), "Content-Length", key.size())) {
                         contentlenable = true;
                         size_t content_size = atol(header.data());
-                        if (buf.size() < content_size) {
-                            throw length_error("http text not full");
-                        }
                         m_buffer.append(buf.data(), content_size);
                         buf.remove_prefix(content_size);
                     }
-                    else if (!strncasecmp(key.data(), "Transfer-Encoding", key.size()) && !strncasecmp(header.data(), "chunked", header.size())) {
+                    else if (!strncasecmp(key.data(), "Transfer-Encoding", key.size()) && !strncasecmp(header.data(), CHUNKED, header.size())) {
                         contentlenable = true;
                         bool complate = false;
                         while (buf.size() > 0) {
-                            size_t pos = buf.find(CRLF);
-                            if (pos == string_view::npos) {
-                                throw length_error("http text not full");
-                            }
                             char* next;
+                            size_t pos = buf.find(CRLF);
                             size_t chunk_size = strtol(buf.data(), &next, 16);
                             if (chunk_size == 0) {
+                                buf.remove_prefix(pos + 2 * LCRLF);
                                 complate = true;
                                 break;
                             }
-                            if (buf.size() < chunk_size) {
-                                throw length_error("http text not full");
-                            }
                             m_buffer.append((const char*)next + LCRLF, chunk_size);
                             buf.remove_prefix(pos + chunk_size + 2 * LCRLF);
-                        }
-                        if (!complate) {
-                            throw length_error("http text not full");
                         }
                     }
                     else if (!strncasecmp(key.data(), "Content-Type", key.size()) && header.find("json") != string_view::npos) {
@@ -187,11 +176,11 @@ namespace lcodec {
                 lua_pushnil(L);
                 return;
             }
-            if (jsonable && m_jcodec) {
+            if (jsonable && m_codec) {
                 try {
                     auto mslice = luakit::slice((uint8_t*)m_buffer.c_str(), m_buffer.size());
-                    m_jcodec->set_slice(&mslice);
-                    m_jcodec->decode(L);
+                    m_codec->set_slice(&mslice);
+                    m_codec->decode(L);
                 } catch (...) {
                     lua_pushlstring(L, m_buffer.c_str(), m_buffer.size());
                 }
@@ -230,7 +219,7 @@ namespace lcodec {
 
     protected:
         string m_buffer;
-        codec_base* m_jcodec = nullptr;
+        codec_base* m_codec = nullptr;
     };
 
     class httpdcodec : public httpcodec {

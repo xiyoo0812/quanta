@@ -15,7 +15,7 @@ using namespace luakit;
 
 using sstring = std::string;
 using vstring = std::string_view;
-using environ_map = std::map<sstring, sstring>;
+using environ_map = std::unordered_map<sstring, sstring>;
 
 namespace lworker {
 

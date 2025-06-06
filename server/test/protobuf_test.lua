@@ -1,30 +1,93 @@
 --protobuf_test.lua
+local pb = require("pb")
 
-local protobuf_mgr  = quanta.get("protobuf_mgr")
+pb.loadfile("proto/ncmd_cs.pb")
 
 local log_dump      = logger.dump
-local pbdecode      = protobuf.decode
-local pbencode      = protobuf.encode
-local NCmdId        = ncmd_cs.NCmdId
+local pbdecode      = pb.decode
+local pbencode      = pb.encode
+local lpbdecode     = protobuf.decode
+local lpbencode     = protobuf.encode
 
-local pb_data  = {
-    serial = 1,
-    time = 801000000
+local intmin = {
+    u32 = 0,
+    u64 = 0,
+    f32 = 0,
+    f64 = 0,
+    i32 = -2147483648,
+    s32 = -2147483648,
+    sf32 = -2147483648,
+    i64 = -9223372036854775808,
+    s64 = -9223372036854775808,
+    sf64 = -9223372036854775808,
+    d32 = 0,
+    d64 = 0,
 }
-local pb_str1 = protobuf_mgr:encode("NID_HEARTBEAT_REQ", pb_data)
-local data1 = protobuf_mgr:decode("NID_HEARTBEAT_REQ", pb_str1)
-local pb_str2 = protobuf_mgr:encode(NCmdId.NID_HEARTBEAT_REQ, pb_data)
-local data2 = protobuf_mgr:decode(NCmdId.NID_HEARTBEAT_REQ, pb_str2)
-log_dump("name test1:{}", data1)
-log_dump("name test2:{}", data2)
 
-local ppb_data = {error_code=1001014162,role={role_id=107216333761938434,name="aaa", gender = 2, model = 3}}
-local ppb_str = protobuf_mgr:encode_byname("ncmd_cs.login_role_create_res", ppb_data)
-local pdata = protobuf_mgr:decode_byname("ncmd_cs.login_role_create_res", ppb_str)
+local intnor = {
+    i32 = -60,
+    s32 = -666,
+    u32 = 98656,
+    f32 = 9865688,
+    sf32 = -6665,
+    i64 = -554545,
+    sf64 = 6568454,
+    u64 = 98456445645,
+    s64 = 645645,
+    f64 = 88654465465,
+    d32 = 3.141592,
+    d64 = 3.1415926535,
+}
 
-log_dump("pb test:{}", #ppb_str)
-log_dump("pb test:{}", pdata)
+local intmax = {
+    i32 = 2147483647,
+    s32 = 2147483647,
+    u32 = 4294967295,
+    f32 = 4294967295,
+    sf32 = 2147483647,
+    i64 = 9223372036854775807,
+    sf64 = 9223372036854775807,
+    s64 = 9223372036854775807,
+    u64 = 0xFFFFFFFFFFFFFFFF,
+    f64 = 0xFFFFFFFFFFFFFFFF,
+    d32 = math.huge,
+    d64 = 1.7976931348623157e308,
+}
 
+local min_str = pbencode("ncmd_cs.num_message", intmin)
+log_dump("pb min encode: {}", #min_str)
+local lmin_str = lpbencode("ncmd_cs.num_message", intmin)
+log_dump("lpb min encode: {}", #lmin_str)
+
+local tdata = pbdecode("ncmd_cs.num_message", min_str)
+local ltdata = lpbdecode("ncmd_cs.num_message", lmin_str)
+for k in pairs(intmin) do
+    log_dump("pb min decode: key {}, value=> pb={} : lpb={}", k, tdata[k], ltdata[k])
+end
+
+local max_str = pbencode("ncmd_cs.num_message", intmax)
+log_dump("pb max encode: {}", #max_str)
+local lmax_str = lpbencode("ncmd_cs.num_message", intmax)
+log_dump("lpb max encode: {}", #lmax_str)
+
+local tdata = pbdecode("ncmd_cs.num_message", max_str)
+local ltdata = lpbdecode("ncmd_cs.num_message", lmax_str)
+
+for k in pairs(intmax) do
+    log_dump("pb max decode: key {}, value=> pb={} : lpb={}", k, tdata[k], ltdata[k])
+end
+
+local nor_str = pbencode("ncmd_cs.num_message", intnor)
+log_dump("pb nor encode: {}", #nor_str)
+local lnor_str = lpbencode("ncmd_cs.num_message", intnor)
+log_dump("lpb nor encode: {}", #lnor_str)
+
+local tdata = pbdecode("ncmd_cs.num_message", lnor_str)
+local ltdata = lpbdecode("ncmd_cs.num_message", nor_str)
+
+for k in pairs(intnor) do
+    log_dump("pb nor decode: key {}, value=> pb={} : lpb={}", k, tdata[k], ltdata[k])
+end
 
 local tpb_data = {
     id=1001014162,
@@ -47,4 +110,3 @@ local tpb_str = pbencode("ncmd_cs.test_message", tpb_data)
 log_dump("pb encode: {}", #tpb_str)
 local tdata = pbdecode("ncmd_cs.test_message", tpb_str)
 log_dump("pb decode:{}", tdata)
-

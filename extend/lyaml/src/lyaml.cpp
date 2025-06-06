@@ -305,7 +305,6 @@ namespace lyaml {
             yaml_emitter_error(L, &emitter);
         }
         lua_pushboolean(L, true);
-        fclose(fp);
         return 1;
     }
 

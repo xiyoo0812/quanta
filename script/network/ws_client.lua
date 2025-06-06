@@ -40,8 +40,8 @@ function WSClient:__init(host)
     self.host = host
     self.timer = make_timer()
     self.jcodec = jsoncodec()
-    self.wcodec = wsscodec(self.jcodec)
     self.hcodec = httpccodec(self.jcodec)
+    self.wcodec = wsscodec(self.jcodec, true)
 end
 
 function WSClient:close()
@@ -74,6 +74,7 @@ function WSClient:connect(ws_addr)
     local block_id = thread_mgr:build_session_id()
     session.on_connect = function(res)
         if res == "ok" then
+            WS_HEADERS["Host"] = ip
             session.set_codec(self.hcodec)
             session.call_data("/", "GET", WS_HEADERS, "")
             return
@@ -140,17 +141,17 @@ function WSClient:on_handshake(session, token, status, headers, body)
     return true
 end
 
-function WSClient:send_data(...)
+function WSClient:send_data(opcode, data)
     if self.alive then
-        local send_len = self.session.call_data(...)
+        local send_len = self.session.call_data(opcode, data)
         return send_len > 0
     end
     return false, "socket not alive"
 end
 
 --发送帧
-function WSClient:send(data)
-    return self:send_data(0x01, data)
+function WSClient:send(data, opcode)
+    return self:send_data(opcode or 0x01, data)
 end
 
 return WSClient
