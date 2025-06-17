@@ -6,7 +6,6 @@ local crc16         = ssl.crc16
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
-local slower        = string.lower
 local tinsert       = table.insert
 local mrandom       = qmath.random
 local tdelete       = qtable.delete
@@ -301,7 +300,7 @@ function RedisDB:commit(socket, cmd, ...)
         log_err("[RedisDB][commit] exec cmd {} failed: {}", cmd, res)
         return ok, res
     end
-    local convertor = rconvertors[slower(cmd)]
+    local convertor = rconvertors[cmd:lower()]
     if convertor then
         return ok, convertor(res)
     end

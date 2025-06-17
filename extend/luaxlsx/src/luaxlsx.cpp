@@ -4,37 +4,36 @@
 
 namespace lxlsx {
 
-    static excel_file* open_excel(const char* filename) {
+    static excel_file* open_excel(lua_State* L, const char* filename) {
         auto excel = new excel_file();
-        if (!excel->open(filename)) {
+        try {
+            excel->open(filename);
+            return excel;
+        } catch (const std::exception& e) {
             delete excel;
-            return nullptr;
+            luaL_error(L, "open excel failed: %s", e.what());
         }
-        return excel;
+        return nullptr;
     }
 
     luakit::lua_table open_luaxlsx(lua_State* L) {
         luakit::kit_state kit_state(L);
         luakit::lua_table luaxlsx = kit_state.new_table("xlsx");
         luaxlsx.set_function("open", open_excel);
-        kit_state.new_class<cell>(
-            "type", &cell::type,
-            "value", &cell::value,
-            "fmt_id", &cell::fmt_id,
-            "fmt_code", &cell::fmt_code
-            );
-        kit_state.new_class<sheet>(
-            "name", &sheet::name,
-            "last_row", &sheet::last_row,
-            "last_col", &sheet::last_col,
-            "first_row", &sheet::first_row,
-            "first_col", &sheet::first_col,
-            "get_cell", &sheet::get_cell
-            );
+        kit_state.new_class<workbook>(
+            "name", &workbook::name,
+            "last_row", &workbook::last_row,
+            "last_col", &workbook::last_col,
+            "first_row", &workbook::first_row,
+            "first_col", &workbook::first_col,
+            "get_cell_value", &workbook::get_cell_value,
+            "set_cell_value", &workbook::set_cell_value
+        );
         kit_state.new_class<excel_file>(
-            "sheets", &excel_file::sheets,
-            "get_sheet", &excel_file::get_sheet
-            );
+            "save", &excel_file::save,
+            "open", &excel_file::open_workbook,
+            "workbooks", &excel_file::all_workbooks
+        );
         return luaxlsx;
     }
 }

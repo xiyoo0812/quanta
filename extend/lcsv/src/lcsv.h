@@ -13,21 +13,15 @@ namespace lcsv {
 
     class cell {
     public:
-        void __gc() {}
-        string type = "string";
         string value = "";
-
         void read(const csv_reader::Cell& c) {
             c.read_value(value);
-            if (value.size() == 0) {
-                type = "blank";
-            }
         }
     };
 
-    class sheet {
+    class workbook {
     public:
-        ~sheet() {
+        ~workbook() {
             for (auto cell : cells){ if (cell) delete cell; }
         }
 
@@ -45,6 +39,15 @@ namespace lcsv {
             uint32_t index = (row - 1) * (last_col - first_col + 1) + (col - first_col);
             cells[index] = co;
         }
+        
+        int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
+            cell* cell = get_cell(row, col);
+            if (cell) {
+                lua_pushstring(L, cell->value.c_str());
+                return 1;
+            }
+            return 0;
+        }
 
         string name;
         uint32_t last_row = 0;
@@ -57,7 +60,7 @@ namespace lcsv {
     class csv_file {
     public:
         ~csv_file() { 
-            for (auto sh : csv_sheets) { if (sh) delete sh; }
+            for (auto book : workbooks) { delete book; }
         }
 
         bool open(const char* filename) {
@@ -68,46 +71,43 @@ namespace lcsv {
             auto ncol = 0;
             const auto header = csv.header();
             for (const auto& cel : header) ncol++;
-            sheet* s = new sheet();
+            workbook* book = new workbook();
             if (ncol > 0) {
-                s->first_row = 1;
-                s->first_col = 1;
-                s->last_col = ncol;
-                s->last_row = csv.rows() + 1;
-                s->name = fspath(filename).stem().string();
+                book->first_row = 1;
+                book->first_col = 1;
+                book->last_col = ncol;
+                book->last_row = csv.rows() + 1;
+                book->name = fspath(filename).stem().string();
                 int irow = 1, icol = 1;
-                s->cells.resize(s->last_col * s->last_row);
+                book->cells.resize(book->last_col * book->last_row);
                 for (const auto& cel : header) {
                     cell* co = new cell;
                     co->read(cel);
-                    s->add_cell(irow, icol++, co);
+                    book->add_cell(irow, icol++, co);
                 }
                 for (const auto& row : csv) {
                     irow++; icol = 1;
                     for (const auto& cel : row) {
                         cell* co = new cell;
                         co->read(cel);
-                        s->add_cell(irow, icol++, co);
+                        book->add_cell(irow, icol++, co);
                     }
                 }
             }
-            csv_sheets.push_back(s);
+            workbooks.push_back(book);
             return true;
         }
 
-        sheet* get_sheet(const char* name){
-            for (auto sh : csv_sheets) {
-                if (sh->name == name) return sh;
-            }
-            return nullptr;
+        workbook* open_workbook(const char* name){
+            auto it = find_if(workbooks.begin(), workbooks.end(), [name](workbook* p) { return p->name == name; });
+            return (it != workbooks.end()) ? *it : nullptr;
         }
 
-        luakit::reference sheets(lua_State* L) { 
-            luakit::kit_state kit_state(L);
-            return kit_state.new_reference(csv_sheets);
+        vector<workbook*> all_workbooks(lua_State* L) { 
+            return workbooks;
         }
 
     private:
-        vector<sheet*> csv_sheets;
+        vector<workbook*> workbooks;
     };
 }

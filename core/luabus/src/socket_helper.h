@@ -34,6 +34,7 @@ bool make_ip_addr(sockaddr_storage* addr, socklen_t* len, const char ip[], int p
 // ip字符串建议大小: char ip[INET6_ADDRSTRLEN];
 bool get_ip_string(char ip[], size_t ip_size, const void* addr);
 void set_no_block(socket_t fd);
+void set_broadcast(socket_t fd);
 void set_no_delay(socket_t fd, int enable);
 void set_close_on_exec(socket_t fd);
 void set_reuseaddr(socket_t fd);

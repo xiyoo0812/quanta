@@ -25,17 +25,15 @@ void socket_tcp::close() {
     }
 }
 
-bool socket_tcp::setup() {
+bool socket_tcp::setup(bool noblock, bool reuse) {
     socket_t fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (fd == INVALID_SOCKET) {
         return false;
     }
     m_fd = fd;
+    if (reuse) set_reuseaddr(fd);
+    if (noblock) set_no_block(fd);
     return true;
-}
-
-void socket_tcp::set_no_block(){
-    ::set_no_block(m_fd);
 }
 
 bool socket_tcp::invalid() {
@@ -59,8 +57,6 @@ int socket_tcp::socket_waitfd(socket_t fd, int sw, size_t tm) {
 
 int socket_tcp::listen(lua_State* L, const char* ip, int port) {
     //set status
-    ::set_no_block(m_fd);
-    set_reuseaddr(m_fd);
     set_close_on_exec(m_fd);
     //bind && listen
     socklen_t addr_len = 0;
@@ -106,7 +102,7 @@ int socket_tcp::connect(lua_State* L, const char* ip, int port, int timeout) {
     return 2;
 }
 
-int socket_tcp::accept(lua_State* L, int timeout) {
+int socket_tcp::accept(lua_State* L, int timeout, bool noblock) {
     if (m_fd == INVALID_SOCKET) {
         lua_pushnil(L);
         lua_pushstring(L, "socket invalid");
@@ -118,6 +114,7 @@ int socket_tcp::accept(lua_State* L, int timeout) {
     while (true) {
         socket_t new_fd = ::accept(m_fd, (sockaddr*)&addr, &addr_len);
         if (new_fd != INVALID_SOCKET) {
+            if (noblock) set_no_block(new_fd);
             luakit::native_to_lua(L, new socket_tcp(new_fd));
             return 1;
         }

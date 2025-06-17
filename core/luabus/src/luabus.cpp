@@ -16,18 +16,18 @@ namespace luabus {
         return mgr;
     }
 
-    static socket_udp* create_udp() {
+    static socket_udp* create_udp(bool noblock, bool broadcast, bool reuse) {
         socket_udp* udp = new socket_udp();
-        if (!udp->setup()) {
+        if (!udp->setup(noblock, broadcast, reuse)) {
             delete udp;
             return nullptr;
         }
         return udp;
     }
 
-    static socket_tcp* create_tcp() {
+    static socket_tcp* create_tcp(bool noblock, bool reuse) {
         socket_tcp* tcp = new socket_tcp();
-        if (!tcp->setup()) {
+        if (!tcp->setup(noblock, reuse)) {
             delete tcp;
             return nullptr;
         }
@@ -53,9 +53,8 @@ namespace luabus {
             "send", &socket_udp::send,
             "recv", &socket_udp::recv,
             "bind", &socket_udp::bind,
-            "close", &socket_udp::close,
-            "set_no_block", &socket_udp::set_no_block
-            );
+            "close", &socket_udp::close
+        );
         kit_state.new_class<socket_tcp>(
             "send", &socket_tcp::send,
             "recv", &socket_tcp::recv,
@@ -63,9 +62,8 @@ namespace luabus {
             "accept", &socket_tcp::accept,
             "listen", &socket_tcp::listen,
             "invalid", &socket_tcp::invalid,
-            "connect", &socket_tcp::connect,
-            "set_no_block", &socket_tcp::set_no_block
-            );
+            "connect", &socket_tcp::connect
+        );
         kit_state.new_class<lua_socket_mgr>(
             "wait", &lua_socket_mgr::wait,
             "listen", &lua_socket_mgr::listen,
@@ -75,7 +73,7 @@ namespace luabus {
             "broadgroup", &lua_socket_mgr::broadgroup,
             "get_sendbuf_size", &lua_socket_mgr::get_sendbuf_size,
             "get_recvbuf_size", &lua_socket_mgr::get_recvbuf_size
-            );
+        );
         kit_state.new_class<lua_socket_node>(
             "ip", &lua_socket_node::m_ip,
             "token", &lua_socket_node::m_token,
@@ -96,7 +94,7 @@ namespace luabus {
             "forward_transfer", &lua_socket_node::forward_transfer,
             "forward_master", &lua_socket_node::forward_by_group<rpc_type::forward_master>,
             "forward_broadcast", &lua_socket_node::forward_by_group<rpc_type::forward_broadcast>
-            );
+        );
         return lluabus;
     }
 }

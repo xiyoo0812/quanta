@@ -35,6 +35,7 @@ namespace lcodec {
             if (lua_type(L, index + 1) == LUA_TTABLE) {
                 if (!m_codec) luaL_error(L, "ws encode table need a codec!");
                 body = m_codec->encode(L, index + 1, len);
+                opcode = 0x02;
             } else {
                 body = (uint8_t*)lua_tolstring(L, index + 1, len);
             }

@@ -12,20 +12,19 @@ void socket_udp::close() {
     }
 }
 
-bool socket_udp::setup() {
+bool socket_udp::setup(bool noblock, bool broadcast, bool reuse) {
     socket_t fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (fd <= 0) {
         return false;
     }
     m_fd = fd;
+    if (reuse) set_reuseaddr(fd);
+    if (noblock) set_no_block(fd);
+    if (broadcast) set_broadcast(fd);
     return true;
 }
 
-void socket_udp::set_no_block(){
-    ::set_no_block(m_fd);
-}
-
-int socket_udp::bind(lua_State* L, const char* ip, int port, bool noblock) {
+int socket_udp::bind(lua_State* L, const char* ip, int port) {
     socklen_t addr_len = 0;
     sockaddr_storage addr;
     make_ip_addr(&addr, &addr_len, ip, port);
@@ -33,9 +32,6 @@ int socket_udp::bind(lua_State* L, const char* ip, int port, bool noblock) {
         lua_pushboolean(L, false);
         lua_pushstring(L, "udp bind failed!");
         return 2;
-    }
-    if (noblock) {
-        ::set_no_block(m_fd);
     }
     lua_pushboolean(L, true);
     return 1;

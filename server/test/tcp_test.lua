@@ -5,7 +5,7 @@ local log_debug     = logger.debug
 local thread_mgr    = quanta.get("thread_mgr")
 
 if quanta.index == 1 then
-    local tcp = luabus.tcp()
+    local tcp = luabus.tcp(true)
     local ok, err = tcp.listen("127.0.0.1", 8700)
     log_debug("tcp-svr listen: {}, err: {}", ok, err)
     thread_mgr:fork(function()
@@ -14,7 +14,7 @@ if quanta.index == 1 then
         while true do
             thread_mgr:sleep(1000)
             if not client then
-                local socket = tcp.accept(500)
+                local socket = tcp.accept(500, true)
                 if socket then
                     client = socket
                     log_debug("tcp-svr accept success!")
@@ -42,7 +42,7 @@ elseif quanta.index == 2 then
         while true do
             thread_mgr:sleep(1000)
             if not client then
-                local socket = luabus.tcp()
+                local socket = luabus.tcp(true)
                 local ok, err = socket.connect("127.0.0.1", 8700, 500)
                 if ok then
                     client = socket

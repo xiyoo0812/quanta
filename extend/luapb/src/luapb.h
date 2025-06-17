@@ -10,7 +10,8 @@ using namespace std;
 using namespace luakit;
 
 namespace luapb{
-    const uint32_t HOLD_OFFSET = 10;
+    const uint32_t HOLD_OFFSET = 1;
+    const uint32_t VARI_OFFSET = 10;
     enum class wiretype : uint8_t {
         VARINT          = 0,    //int32, int64, uint32, uint64, sint32, sint64, bool, enum
         I64             = 1,    //fixed64, sfixed64, double
@@ -85,19 +86,20 @@ namespace luapb{
     }
 
     template<typename T>
-    inline void write_varint(luabuf* buf, T val) {
-        size_t len = 0;
-        uint8_t* data = buf->peek_space(HOLD_OFFSET);
+    inline size_t write_varint(luabuf* buf, T val) {
+        uint8_t* data = buf->peek_space(VARI_OFFSET);
         if (data == nullptr) throw lua_exception("write_varint buffer overflow");
-        do {
-            uint8_t byte = val & 0x7F;
+        if (val < 0x80) {
+            *data = static_cast<uint8_t>(val);
+            return buf->pop_space(1);
+        }
+        size_t len = 0;
+        while (val >= 0x80) {
+            data[len++] = static_cast<uint8_t>((val & 0x7F) | 0x80);
             val >>= 7;
-            //设置最高位表示还有后续字节
-            if (val != 0) byte |= 0x80;
-            *data++ = byte;
-            len++;
-        } while (val != 0);
-        buf->pop_space(len);
+        }
+        data[len++] = static_cast<uint8_t>(val);
+        return buf->pop_space(len);
     }
 
     template<typename T>
@@ -134,12 +136,24 @@ namespace luapb{
 
     inline void write_len_prefixed(luabuf* buf, slice* lslice) {
         uint32_t length = lslice ? lslice->size() : 0;
-        write_varint(buf, length);
-        if (length > 0) {
-            if (buf->push_data(lslice->head(), length) == 0) {
-                throw lua_exception("write_len_prefixed buffer overflow");
-            }
+        if (length < 0x80) {
+            buf->write(static_cast<uint8_t>(length));
+            buf->pop_space(length);
+            return;
         }
+        if (length < 0x4000) {
+            buf->copy(buf->size() + 2, lslice->head(), length);
+            size_t len = write_varint(buf, length);
+            buf->pop_space(length);
+            return;
+        }
+        size_t offset = length + VARI_OFFSET + HOLD_OFFSET;
+        size_t base = buf->hold_place(offset);
+        size_t len = write_varint(buf, length);
+        buf->copy(base + len, lslice->head(), length);
+        slice* var = buf->free_place(base, offset);
+        buf->copy(base, var->head(), len);
+        buf->pop_space(length + len);
     }
 
     inline void skip_field(slice* slice, uint32_t field_tag) {
@@ -323,7 +337,7 @@ namespace luapb{
             T val = read_field(L, idx, buff);
             if (enc_default || not_default(val)) {
                 if (enc_tag) write_varint(buff, tag);
-                write_field(buff, val);
+                write_field(L, idx, buff, val);
             }
         }
     private:
@@ -331,15 +345,11 @@ namespace luapb{
             if constexpr (is_integral_v<T>) return static_cast<T>(lua_tointeger(L, idx));
             else if constexpr (is_floating_point_v<T>) return static_cast<T>(lua_tonumber(L, idx));
             else if constexpr (is_same_v<T, bool>) return lua_toboolean(L, idx);
+            else if constexpr (is_pointer_v<T>) return nullptr;
             else if constexpr (is_same_v<T, string_view>) {
                 size_t len;
                 const char* str = lua_tolstring(L, idx, &len);
                 return (str == nullptr ? "" : string_view(str, len));
-            }
-            else if constexpr (is_pointer_v<T>) {
-                size_t base = buff->hold_place(HOLD_OFFSET);
-                encode_message(L, idx, buff, message);
-                return buff->free_place(base, HOLD_OFFSET);
             }
         }
         inline bool not_default(T& val) {
@@ -349,14 +359,13 @@ namespace luapb{
             else if constexpr (is_same_v<T, string_view>) return val.size() > 0;
             return true;
         }
-        inline void write_field(luabuf* buff, T& val) {
+        inline void write_field(lua_State* L, int idx, luabuf* buff, T& val) {
             if constexpr (FT == field_type::TYPE_UINT32) write_varint<uint32_t>(buff, val);
             else if constexpr (FT == field_type::TYPE_UINT64) write_varint<uint64_t>(buff, val);
             //int32, int64的负数会被视为 64 位无符号整数，因此使用uint64_t去生成varint
             else if constexpr (FT == field_type::TYPE_INT32) write_varint<uint64_t>(buff, val);
             else if constexpr (FT == field_type::TYPE_INT64) write_varint<uint64_t>(buff, val);
             else if constexpr (FT == field_type::TYPE_STRING) write_string(buff, val);
-            else if constexpr (FT == field_type::TYPE_MESSAGE) write_len_prefixed(buff, val);
             else if constexpr (FT == field_type::TYPE_BOOL) write_varint<uint32_t>(buff, val);
             else if constexpr (FT == field_type::TYPE_BYTES) write_string(buff, val);
             else if constexpr (FT == field_type::TYPE_SINT32) write_varint<uint32_t>(buff, encode_sint<int32_t>(val));
@@ -368,6 +377,11 @@ namespace luapb{
             else if constexpr (FT == field_type::TYPE_DOUBLE) write_fixtype<double>(buff, val);
             else if constexpr (FT == field_type::TYPE_FIXED32) write_fixtype<uint32_t>(buff, val);
             else if constexpr (FT == field_type::TYPE_FIXED64) write_fixtype<uint64_t>(buff, val);
+            else if constexpr (FT == field_type::TYPE_MESSAGE) {
+                size_t base = buff->hold_place(HOLD_OFFSET);
+                encode_message(L, idx, buff, message);
+                write_len_prefixed(buff, buff->free_place(base, HOLD_OFFSET));
+            }
             else throw lua_exception("encode failed: %s use unsuppert field type!", name.c_str());
         }
     };
@@ -435,10 +449,13 @@ namespace luapb{
         auto msg = field->message;
         auto mslice = read_len_prefixed(slice);
         while (!mslice.empty()) {
-            uint32_t tag = read_varint<uint32_t>(&mslice);
-            pb_field* kvfield = find_field(msg, tag);
-            kvfield->decode(L, &mslice);
-            if (kvfield->number == 2) lua_rawset(L, -3);
+            uint32_t ktag = read_varint<uint32_t>(&mslice);
+            pb_field* kfield = find_field(msg, ktag);
+            kfield->decode(L, &mslice);
+            uint32_t vtag = read_varint<uint32_t>(&mslice);
+            pb_field* vfield = find_field(msg, vtag);
+            vfield->decode(L, &mslice);
+            lua_rawset(L, -3);
         }
         lua_pop(L, 1);
     }
@@ -532,7 +549,7 @@ namespace luapb{
 
     void encode_repeated(lua_State* L, luabuf* buff, pb_field* field, int index) {
         int rawlen = lua_rawlen(L, index);
-        if (rawlen == 0 && descriptor.encode_default) return;
+        if (rawlen == 0 && !descriptor.encode_default) return;
         if (field->packed) {
             write_varint(buff, field->tag);
             size_t base = buff->hold_place(HOLD_OFFSET);

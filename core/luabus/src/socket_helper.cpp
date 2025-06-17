@@ -12,6 +12,15 @@ void set_no_delay(socket_t fd, int enable) {
 #endif
 }
 
+void set_broadcast(socket_t fd) {
+    int one = 1;
+#ifdef WIN32
+    setsockopt(fd, SOL_SOCKET, SO_BROADCAST, (const char*)&one, sizeof(one));
+#else
+    setsockopt(fd, SOL_SOCKET, SO_BROADCAST, &one, sizeof(one));
+#endif
+}
+
 void set_reuseaddr(socket_t fd) {
     int one = 1;
 #ifdef WIN32

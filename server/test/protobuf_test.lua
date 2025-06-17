@@ -59,10 +59,10 @@ log_dump("pb min encode: {}", #min_str)
 local lmin_str = lpbencode("ncmd_cs.num_message", intmin)
 log_dump("lpb min encode: {}", #lmin_str)
 
-local tdata = pbdecode("ncmd_cs.num_message", min_str)
-local ltdata = lpbdecode("ncmd_cs.num_message", lmin_str)
+local mtdata = pbdecode("ncmd_cs.num_message", min_str)
+local lmtdata = lpbdecode("ncmd_cs.num_message", lmin_str)
 for k in pairs(intmin) do
-    log_dump("pb min decode: key {}, value=> pb={} : lpb={}", k, tdata[k], ltdata[k])
+    log_dump("pb min decode: key {}, value=> pb={} : lpb={}", k, mtdata[k], lmtdata[k])
 end
 
 local max_str = pbencode("ncmd_cs.num_message", intmax)
@@ -70,11 +70,11 @@ log_dump("pb max encode: {}", #max_str)
 local lmax_str = lpbencode("ncmd_cs.num_message", intmax)
 log_dump("lpb max encode: {}", #lmax_str)
 
-local tdata = pbdecode("ncmd_cs.num_message", max_str)
-local ltdata = lpbdecode("ncmd_cs.num_message", lmax_str)
+local xtdata = pbdecode("ncmd_cs.num_message", max_str)
+local lxtdata = lpbdecode("ncmd_cs.num_message", lmax_str)
 
 for k in pairs(intmax) do
-    log_dump("pb max decode: key {}, value=> pb={} : lpb={}", k, tdata[k], ltdata[k])
+    log_dump("pb max decode: key {}, value=> pb={} : lpb={}", k, xtdata[k], lxtdata[k])
 end
 
 local nor_str = pbencode("ncmd_cs.num_message", intnor)
@@ -82,11 +82,11 @@ log_dump("pb nor encode: {}", #nor_str)
 local lnor_str = lpbencode("ncmd_cs.num_message", intnor)
 log_dump("lpb nor encode: {}", #lnor_str)
 
-local tdata = pbdecode("ncmd_cs.num_message", lnor_str)
-local ltdata = lpbdecode("ncmd_cs.num_message", nor_str)
+local ntdata = pbdecode("ncmd_cs.num_message", lnor_str)
+local lntdata = lpbdecode("ncmd_cs.num_message", nor_str)
 
 for k in pairs(intnor) do
-    log_dump("pb nor decode: key {}, value=> pb={} : lpb={}", k, tdata[k], ltdata[k])
+    log_dump("pb nor decode: key {}, value=> pb={} : lpb={}", k, ntdata[k], lntdata[k])
 end
 
 local tpb_data = {

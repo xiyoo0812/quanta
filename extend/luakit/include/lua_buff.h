@@ -46,9 +46,8 @@ namespace luakit {
         }
 
         inline size_t copy(size_t offset, const uint8_t* src, size_t src_len) {
-            size_t data_len = m_tail - m_head;
-            if (offset + src_len <= data_len) {
-                memcpy(m_head + offset, src, src_len);
+            if (offset + src_len <= m_size) {
+                memmove(m_head + offset, src, src_len);
                 return src_len;
             }
             return 0;

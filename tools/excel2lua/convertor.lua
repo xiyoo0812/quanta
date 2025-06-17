@@ -25,7 +25,6 @@ local tconcat       = table.concat
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local tsort         = table.sort
-local mfloor        = math.floor
 local mtointeger    = math.tointeger
 local slower        = string.lower
 local qgetenv       = quanta.getenv
@@ -42,8 +41,8 @@ local start_line    = 5
 local head_line     = nil
 --是否递归
 local recursion     = false
---是否导出所有sheet
-local allsheet      = false
+--是否导出所有workbook
+local allbook      = false
 
 --设置utf8
 if quanta.platform == "linux" then
@@ -72,23 +71,6 @@ local function tsize(t)
         c = c + 1
     end
     return c
-end
-
---28800 => 3600 * 8
---86400 => 3600 * 24
---25569 => 1970.1.1 0:0:0
---根据fmt_code和fmt_id解析自定义格式
-local function cell_value_fmt_parse(cell)
-    if cell.type == "date" then
-        return mfloor(86400 * (cell.value - 25569) - 28800)
-    elseif cell.type == "custom" then
-        if sfind(cell.fmt_code, "yy") then
-            return mfloor(86400 * (cell.value - 25569) - 28800)
-        end
-        if sfind(cell.fmt_code, "mm:ss") then
-            return mfloor(86400 * cell.value)
-        end
-    end
 end
 
 local value_func = {
@@ -143,25 +125,18 @@ local value_func = {
 }
 
 --获取cell value
-local function get_sheet_value(sheet, row, col, field_type, header)
-    local cell = sheet.get_cell(row, col)
-    if cell and cell.type ~= "blank" then
-        local value = cell.value
-        if not value or value == "" then
-            return
-        end
-        local fvalue = cell_value_fmt_parse(cell)
-        if fvalue then
-            value = fvalue
-        end
-        if field_type then
-            local func = value_func[slower(field_type)]
-            if func then
-                return func(value)
-            end
-        end
-        return value
+local function get_cell_value(book, row, col, field_type)
+    local value = book.get_cell_value(row, col)
+    if not value or value == "" then
+        return
     end
+    if field_type then
+        local func = value_func[slower(field_type)]
+        if func then
+            return func(value)
+        end
+    end
+    return value
 end
 
 local function mapsort(src)
@@ -281,17 +256,17 @@ local function export_records_to_json(output, title, fname, records)
     export_file:close()
 end
 
-local function find_sheet_data_struct(sheet)
+local function find_workbook_data_struct(book)
     local headers = {}
     local field_types = {}
     if not head_line then
         head_line = start_line - 1
     end
-    for col = sheet.first_col, sheet.last_col do
+    for col = book.first_col, book.last_col do
         -- 读取第四行作为表头
-        headers[col] = get_sheet_value(sheet, head_line, col)
+        headers[col] = get_cell_value(book, head_line, col)
         -- 读取类型行，作为筛选条件
-        local field_type = get_sheet_value(sheet, type_line, col)
+        local field_type = get_cell_value(book, type_line, col)
         if field_type and field_type ~= "" then
             field_types[col] = field_type
         end
@@ -300,22 +275,22 @@ local function find_sheet_data_struct(sheet)
 end
 
 --导出到目标文件
-local function export_sheet_to_output(sheet, output, fname, shname)
-    local headers, field_types = find_sheet_data_struct(sheet)
+local function export_workbook_to_output(book, output, fname, bookname)
+    local headers, field_types = find_workbook_data_struct(book)
     if tsize(field_types) <= 1 then
-        --未定义数据定义，不导出此sheet
-        print(sformat("export config %s sheet %s not need export!", fname, shname))
+        --未定义数据定义，不导出此book
+        print(sformat("export config %s workbook %s not need export!", fname, bookname))
         return
     end
     -- 开始处理
     local records = {}
-    for row = start_line, sheet.last_row do
+    for row = start_line, book.last_row do
         local record = {}
         -- 遍历每一列
-        for col = start_col, sheet.last_col do
+        for col = start_col, book.last_col do
             -- 过滤掉没有配置的行
             if field_types[col] and headers[col] then
-                local value = get_sheet_value(sheet, row, col, field_types[col], headers[col])
+                local value = get_cell_value(book, row, col, field_types[col], headers[col])
                 if value ~= nil then
                     tinsert(record, {headers[col], value, field_types[col]})
                 end
@@ -323,9 +298,9 @@ local function export_sheet_to_output(sheet, output, fname, shname)
         end
         tinsert(records, record)
     end
-    local title = allsheet and shname or slower(lstem(fname))
+    local title = allbook and bookname or slower(lstem(fname))
     export_method(output, title, fname, build_records(records))
-    print(sformat("export file: %s sheet: %s to %s success!", fname, shname, title))
+    print(sformat("export file: %s book: %s to %s success!", fname, bookname, title))
 end
 
 local function is_config_file(ext)
@@ -371,15 +346,15 @@ local function export_config(input, output)
                 print(sformat("open config %s failed!", fullname))
                 goto continue
             end
-            local sheets = workbook.sheets()
-            for _, sheet in ipairs(sheets) do
-                local title = slower(sheet.name)
-                if sheet.last_row < start_line or sheet.last_col <= 0 then
-                    print(sformat("export config %s sheet %s empty!", fullname, title))
+            local workbooks = workbook.workbooks()
+            for _, book in ipairs(workbooks) do
+                local bookname = slower(book.name)
+                if book.last_row < start_line or book.last_col <= 0 then
+                    print(sformat("export config %s book %s empty!", fullname, bookname))
                     goto next
                 end
-                export_sheet_to_output(sheet, output, fname, title)
-                if not allsheet then
+                export_workbook_to_output(book, output, fname, bookname)
+                if not allbook then
                     break
                 end
                 :: next ::
@@ -433,9 +408,9 @@ local function read_cmdline()
     if env_recursion then
         recursion = mtointeger(env_recursion)
     end
-    local env_allsheet = qgetenv("QUANTA_ALLSHEET")
-    if env_allsheet then
-        allsheet = mtointeger(env_allsheet)
+    local env_allbook = qgetenv("QUANTA_ALLSHEET")
+    if env_allbook then
+        allbook = mtointeger(env_allbook)
     end
     local format = qgetenv("QUANTA_FORMAT")
     export_method = format_methods[format] or export_records_to_conf
