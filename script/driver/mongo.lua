@@ -13,6 +13,7 @@ local sformat       = string.format
 local sgmatch       = string.gmatch
 local mrandom       = qmath.random
 local mtointeger    = math.tointeger
+local bint64        = bson.int64
 local qhash         = codec.hash_code
 local make_timer    = quanta.make_timer
 local makechan      = quanta.make_channel
@@ -25,9 +26,6 @@ local lb64encode    = ssl.b64_encode
 local lb64decode    = ssl.b64_decode
 local lhmac_sha1    = ssl.hmac_sha1
 local pbkdf2_sha1   = ssl.pbkdf2_sha1
-
-local bsonpairs     = bson.pairs
-local bint64        = bson.int64
 
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -344,7 +342,8 @@ function MongoDB:format_pairs(args)
         if type(next(args)) == "string" then
             return args
         end
-        return bsonpairs(tunpack(args))
+        args.__order = true
+        return args
     end
 end
 
@@ -382,10 +381,39 @@ function MongoDB:find_and_modify(co_name, update, selector, upsert, fields, new)
 end
 
 -- https://docs.mongodb.com/manual/reference/command/aggregate/
+-- co_name: collection name || 1
 -- pipeline: { { ["$match"]={pid = 123456} }, { ["$group"]={_id="date",count={["$sum"]=1}} } }
--- options: { [key, value] ... }
+-- options: { [key, value] ... }，请参考文档
 function MongoDB:aggregate(co_name, pipeline, options)
-    return self:runCommand("aggregate", co_name, "pipeline", pipeline, tunpack(options))
+    return self:runCommand("aggregate", co_name, "pipeline", pipeline, tunpack(options or {}))
+end
+
+-- https://www.mongodb.com/zh-cn/docs/manual/reference/command/bulkWrite/
+-- datas：{
+--      //insert, 必须按下面的格式传入，额外的字段请参考文档
+--      {"insert", "xxx", "document", {count=0}},
+--      //delete, 必须按下面的格式传入，额外的字段请参考文档
+--      {"delete", "xxx", "filter", {id = 2}, "multi", true},
+--      //update, 必须按下面的格式传入，额外的字段请参考文档
+--      {"update", "xxx", "updateMods", {["$set"] = {count = 2}}, "filter", {id = 2}, "multi", true},
+--}
+-- ordered: true/false, 顺序(默认)/并行执行，顺序则操作失败后停止执行返回失败；并行则所有操作完成后返回结果
+-- options: { [key, value] ... }，请参考文档
+-- bulkwrite不要超过1000个op
+function MongoDB:bulkwrite(datas, ordered, options)
+    local ns, indexs = {}, {}
+    for _, data in ipairs(datas) do
+        local fullns = sformat("%s.%s", self.name, data[2])
+        local ns_idx = indexs[fullns]
+        if not ns_idx then
+            ns_idx = #ns
+            indexs[fullns] = ns_idx
+            ns[ns_idx + 1] = { ns = fullns }
+        end
+        data[2] = ns_idx
+        data.__order = true
+    end
+    return self:adminCommand(self.executer, "bulkWrite", 1, "ops", datas, "nsInfo", ns, "ordered", ordered, tunpack(options or {}))
 end
 
 return MongoDB

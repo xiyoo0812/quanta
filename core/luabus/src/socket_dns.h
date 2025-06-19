@@ -66,3 +66,36 @@ inline int gethostbydomain(lua_State* L, std::string domain) {
     }
     return 0;
 }
+
+inline int get_ipconfig(lua_State* L) {
+#ifdef WIN32
+    ULONG len = 0;
+    GetAdaptersInfo(nullptr, &len);
+    PIP_ADAPTER_INFO adapter = (PIP_ADAPTER_INFO)::GlobalAlloc(GPTR, len);
+    if (GetAdaptersInfo(adapter, &len) == ERROR_SUCCESS) {
+        if (adapter) {
+            in_addr addr;
+            addr.S_un.S_addr = ::inet_addr(adapter->IpAddressList.IpAddress.String);
+            lua_pushstring(L, ::inet_ntoa(addr));
+            addr.S_un.S_addr = ::inet_addr(adapter->IpAddressList.IpMask.String);
+            lua_pushstring(L, ::inet_ntoa(addr));
+            return 2;
+        }
+    }
+    return 0;
+#else
+    struct ifaddrs* ifaddr;
+    if (getifaddrs(&ifaddr) != -1) {
+        for (auto* ifa = ifaddr; ifa; ifa = ifa->ifa_next) {
+            if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET) continue;
+            sockaddr_in* ip = reinterpret_cast<sockaddr_in*>(ifa->ifa_addr);
+            lua_pushstring(L, ip ? ::inet_ntoa(ip->sin_addr) : "127.0.0.1");
+            sockaddr_in* mask = reinterpret_cast<sockaddr_in*>(ifa->ifa_netmask);
+            lua_pushstring(L, mask ? ::inet_ntoa(mask->sin_addr) : "255.255.255.0");
+            return 2;
+        }
+        freeifaddrs(ifaddr);
+    }
+    return 0;
+#endif
+}

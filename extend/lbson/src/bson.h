@@ -248,14 +248,14 @@ namespace lbson {
             write_cstring(buf, len);
         }
 
-        void write_key(bson_type type, const char* key, size_t len) {
+        void write_key(bson_type type, const char* key, size_t klen) {
             m_buff->write<uint8_t>((uint8_t)type);
-            write_cstring(key, len);
+            write_cstring(key, klen);
         }
 
         template<typename T>
-        void write_pair(bson_type type, const char* key, size_t len, T value) {
-            write_key(type, key, len);
+        void write_pair(bson_type type, const char* key, size_t klen, T value) {
+            write_key(type, key, klen);
             m_buff->write(value);
         }
 
@@ -291,16 +291,16 @@ namespace lbson {
             }
         }
 
-        void write_number(lua_State *L, const char* key, size_t len) {
+        void write_number(lua_State *L, const char* key, size_t klen) {
             if (lua_isinteger(L, -1)) {
                 int64_t v = lua_tointeger(L, -1);
                 if (v >= INT32_MIN && v <= INT32_MAX) {
-                    write_pair<int32_t>(bson_type::BSON_INT32, key, len, v);
+                    write_pair<int32_t>(bson_type::BSON_INT32, key, klen, v);
                 } else {
-                    write_pair<int64_t>(bson_type::BSON_INT64, key, len, v);
+                    write_pair<int64_t>(bson_type::BSON_INT64, key, klen, v);
                 }
             } else {
-                write_pair<double>(bson_type::BSON_REAL, key, len, lua_tonumber(L, -1));
+                write_pair<double>(bson_type::BSON_REAL, key, klen, lua_tonumber(L, -1));
             }
         }
 
@@ -314,6 +314,25 @@ namespace lbson {
                 size_t len = bson_index(numkey, i - 1);
                 pack_one(L, numkey, len, depth);
                 lua_pop(L, 1);
+            }
+            m_buff->write<uint8_t>(0);
+            uint32_t size = m_buff->size() - offset;
+            m_buff->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+        }
+
+        void pack_order(lua_State* L, int depth, size_t len) {
+            size_t sz;
+            size_t offset = m_buff->size();
+            m_buff->write<uint32_t>(0);
+            for (int i = 1; i + 1 <= len; i += 2) {
+                lua_rawgeti(L, -1, i);
+                if (!lua_isstring(L, -1)) {
+                    luaL_error(L, "Argument %d need a string", i);
+                }
+                const char* key = lua_tolstring(L, -1, &sz);
+                lua_rawgeti(L, -2, i + 1);
+                pack_one(L, key, sz, depth);
+                lua_pop(L, 2);
             }
             m_buff->write<uint8_t>(0);
             uint32_t size = m_buff->size() - offset;
@@ -347,7 +366,16 @@ namespace lbson {
             bson_type type = check_doctype(L, raw_len);
             write_key(type, key, len);
             if (type == bson_type::BSON_DOCUMENT) {
-                pack_dict(L, depth);
+                lua_getfield(L, -1, "__order");
+                auto no_order = lua_isnil(L, -1);
+                lua_pop(L, 1);
+                if (no_order) {
+                    pack_dict(L, depth);
+                } else {
+                    lua_pushnil(L);
+                    lua_setfield(L, -2, "__order");
+                    pack_order(L, depth, raw_len);
+                }
             } else {
                 pack_array(L, depth, raw_len);
             }
@@ -385,25 +413,25 @@ namespace lbson {
             }
         }
 
-        void pack_one(lua_State *L, const char* key, size_t len, int depth) {
+        void pack_one(lua_State *L, const char* key, size_t klen, int depth) {
             int vt = lua_type(L, -1);
             switch(vt) {
             case LUA_TNUMBER:
-                write_number(L, key, len);
+                write_number(L, key, klen);
                 break;
             case LUA_TBOOLEAN:
-                write_pair<bool>(bson_type::BSON_BOOLEAN, key, len, lua_toboolean(L, -1));
+                write_pair<bool>(bson_type::BSON_BOOLEAN, key, klen, lua_toboolean(L, -1));
                 break;
-            case LUA_TTABLE:{
+            case LUA_TTABLE: {
                     lua_getfield(L, -1, "__type");
                     if (lua_type(L, -1) == LUA_TNUMBER) {
                         bson_type type = (bson_type)lua_tointeger(L, -1);
-                        write_key(type, key, len);
+                        write_key(type, key, klen);
                         lua_pop(L, 1);
                         pack_bson_value(L, type);
                     } else {
                         lua_pop(L, 1);
-                        pack_table(L, key, len, depth + 1);
+                        pack_table(L, key, klen, depth + 1);
                     }
                 }
                 break;
@@ -411,10 +439,10 @@ namespace lbson {
                     size_t sz;
                     const char* buf = lua_tolstring(L, -1, &sz);
                     if (sz > 2 && buf[0] == 0 && buf[1] != 0) {
-                        write_key((bson_type)buf[1], key, len);
+                        write_key((bson_type)buf[1], key, klen);
                         m_buff->push_data((uint8_t*)(buf + 2), sz - 2);
                     } else {
-                        write_key(bson_type::BSON_STRING, key, len);
+                        write_key(bson_type::BSON_STRING, key, klen);
                         write_string(buf, sz);
                     }
                 }

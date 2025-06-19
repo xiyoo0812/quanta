@@ -50,4 +50,12 @@ timer_mgr:once(2000, function()
     local acode, id = mongo_mgr:autoinc_id("splayer")
     log_debug("db autoinc code: {}, id = {}", acode, id)
     ]]
+    local bcode, bres = mongo_mgr:bulkwrite({
+        {"insert", "test_mongo_1", "document", {pid = 123456, val = 1, data = {a =1, b=2}}},
+        {"insert", "test_mongo_1", "document", {pid = 123456, val = 1, data = {a =2, b=3}}},
+        {"insert", "test_mongo_1", "document", {pid = 123457, val = 1, data = {a =2, b=3}}},
+        {"update", "test_mongo_1", "updateMods", {["$set"] = {val = 2}}, "filter", {pid = 123456}, "multi", true},
+        {"delete", "test_mongo_1", "filter", {pid = 123457}, "multi", true},
+    }, true)
+    log_debug("db bulkwrite code: {}, res = {}", bcode, bres)
 end)

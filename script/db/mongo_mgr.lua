@@ -24,6 +24,7 @@ function MongoMgr:__init()
     event_mgr:add_listener(self, "rpc_mongo_execute", "execute")
     event_mgr:add_listener(self, "rpc_mongo_find_one", "find_one")
     event_mgr:add_listener(self, "rpc_mongo_aggregate", "aggregate")
+    event_mgr:add_listener(self, "rpc_mongo_bulkwrite", "bulkwrite")
     event_mgr:add_listener(self, "rpc_mongo_autoinc_id", "autoinc_id")
     event_mgr:add_listener(self, "rpc_mongo_drop_indexes", "drop_indexes")
     event_mgr:add_listener(self, "rpc_mongo_create_indexes", "create_indexes")
@@ -98,11 +99,20 @@ function MongoMgr:find_and_modify(primary_id, coll_name, obj, selector, upsert, 
     return MONGO_FAILED, "mongo db not exist"
 end
 
-function MongoMgr:aggregate(coll_name, pipeline, cursor, ...)
+function MongoMgr:bulkwrite(datas, ordered, options)
+    local mongodb = self.mongo_db
+    if mongodb then
+        local ok, res_oe = mongodb:bulkwrite(datas, ordered, options)
+        return ok and SUCCESS or MONGO_FAILED, res_oe
+    end
+    return MONGO_FAILED, "mongo db not exist"
+end
+
+function MongoMgr:aggregate(coll_name, pipeline, options)
     log_debug("[MongoMgr][aggregate]: {}, pipeline:{}", coll_name, pipeline)
     local mongodb = self.mongo_db
     if mongodb then
-        local ok, res_oe = mongodb:aggregate(coll_name, pipeline, cursor, ...)
+        local ok, res_oe = mongodb:aggregate(coll_name, pipeline, options)
         return ok and SUCCESS or MONGO_FAILED, res_oe
     end
     return MONGO_FAILED, "mongo db not exist"

@@ -45,10 +45,16 @@ function MongoAgent:find_and_modify(db_query, hash_key)
     return router_mgr:call_mongo_hash(key, "rpc_mongo_find_and_modify", key, tunpack(db_query))
 end
 
---db_query: {pipeline, cursor, [xxkey, xxvalue] ...}
+--db_query: {coll_name, pipeline, { [xxkey, xxvalue], ...}
 function MongoAgent:aggregate(db_query, hash_key)
     local key = hash_key or mrandom()
     return router_mgr:call_mongo_hash(key, "rpc_mongo_aggregate", key, tunpack(db_query))
+end
+
+--db_query: {datas, ordered, { [xxkey, xxvalue], ...}
+function MongoAgent:bulkwrite(db_query, hash_key)
+    local key = hash_key or mrandom()
+    return router_mgr:call_mongo_hash(key, "rpc_mongo_bulkwrite", key, tunpack(db_query))
 end
 
 --db_query: {coll_name, selector}

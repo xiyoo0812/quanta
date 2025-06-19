@@ -32,6 +32,8 @@
 #include <Ws2tcpip.h>
 #include <mswsock.h>
 #include <windows.h>
+#include <iphlpapi.h>
+#pragma comment(lib, "iphlpapi.lib")
 
 // TODO: reference additional headers your program requires here
 #pragma warning(disable: 4996)
@@ -80,6 +82,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstring>
+#include <ifaddrs.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>

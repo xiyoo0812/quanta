@@ -42,6 +42,7 @@ namespace luabus {
         lluabus.set_function("host", gethostip);
         lluabus.set_function("ping", socket_ping);
         lluabus.set_function("dns", gethostbydomain);
+        lluabus.set_function("ipconfig", get_ipconfig);
         lluabus.set_function("derive_port", derive_port);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
@@ -53,7 +54,8 @@ namespace luabus {
             "send", &socket_udp::send,
             "recv", &socket_udp::recv,
             "bind", &socket_udp::bind,
-            "close", &socket_udp::close
+            "close", &socket_udp::close,
+            "add_group", &socket_udp::add_group
         );
         kit_state.new_class<socket_tcp>(
             "send", &socket_tcp::send,
