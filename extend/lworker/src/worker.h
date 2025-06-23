@@ -3,7 +3,6 @@
 #include <thread>
 
 #include "lua_kit.h"
-#include "fmt/core.h"
 
 #ifdef WIN32
 #define getpid _getpid
@@ -127,7 +126,7 @@ namespace lworker {
         void startup(environ_map& old_envs, environ_map& new_envs, vstring conf){
             if (!conf.empty()) {
                 for (auto& [key, value] : new_envs) {
-                    auto ekey = fmt::format("QUANTA_{}", key);
+                    auto ekey = std::format("QUANTA_{}", key);
                     std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
                     set_env(ekey.c_str(), value.c_str(), 1);
                 }
@@ -135,13 +134,13 @@ namespace lworker {
                 m_lua.set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
                 m_lua.set_function("add_path", [&](const char* field, const char* path) { add_path(field, path); });
                 m_lua.set_function("set_path", [&](const char* field, const char* path) { m_lua.set_path(field, path); });
-                m_lua.run_script(fmt::format("dofile('{}')", conf), [&](std::string_view err) {
+                m_lua.run_script(std::format("dofile('{}')", conf), [&](std::string_view err) {
                     printf("worker load conf %s failed, because: %s", conf.data(), err.data());
                 });
             } else {
                 m_environs = old_envs;
                 for (auto& [key, value] : new_envs) {
-                    auto ekey = fmt::format("QUANTA_{}", key);
+                    auto ekey = std::format("QUANTA_{}", key);
                     std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
                     set_env(ekey.c_str(), value.c_str(), 1);
                 }
@@ -178,10 +177,10 @@ namespace lworker {
             };
             auto sandbox = get_env("QUANTA_SANDBOX");
             if (sandbox) {
-                if (!m_lua.run_script(fmt::format("require '{}'", sandbox), ehandler)) return;
+                if (!m_lua.run_script(std::format("require '{}'", sandbox), ehandler)) return;
             }
             auto entry = get_env("QUANTA_ENTRY");
-            if (!m_lua.run_script(fmt::format("require '{}'", entry), ehandler)) return;
+            if (!m_lua.run_script(std::format("require '{}'", entry), ehandler)) return;
 
             const char* ns = m_namespace.c_str();
             while (m_running) {

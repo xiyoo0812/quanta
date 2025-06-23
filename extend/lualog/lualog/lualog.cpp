@@ -1,9 +1,31 @@
 #define LUA_LIB
+#include <variant>
 #include "logger.h"
 
 using namespace std;
 using namespace luakit;
 
+using lua_variant = variant<lua_Integer, lua_Number, string_view, string>;
+
+template <>
+struct std::formatter<lua_variant> {
+    std::string fmt_spec;
+    constexpr auto parse(format_parse_context& ctx) {
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && *it != '}') {
+            auto start = it;
+            while (it != end && *it != '}') ++it;
+            fmt_spec = "{:" + std::string(start, it) + "}";
+        }
+        return it;
+    }
+    auto format(const lua_variant& var, format_context& ctx) const {
+        return std::visit([&](auto&& arg) {
+            if (fmt_spec.empty()) return std::format_to(ctx.out(), "{}", arg);
+            return std::vformat_to(ctx.out(), fmt_spec, std::make_format_args(arg));
+        }, var);
+    }
+};
 
 namespace logger {
 
@@ -13,18 +35,18 @@ namespace logger {
     const int LOG_FLAG_FORMAT = 1;
     const int LOG_FLAG_PRETTY = 2;
     const int LOG_FLAG_MONITOR = 4;
-    string read_args(lua_State* L, int flag, int index) {
+    lua_variant read_args(lua_State* L, int flag, int index) {
         switch (lua_type(L, index)) {
-        case LUA_TNIL: return "nil";
-        case LUA_TTHREAD: return "thread";
-        case LUA_TFUNCTION: return "function";
-        case LUA_TUSERDATA:  return "userdata";
-        case LUA_TLIGHTUSERDATA: return "userdata";
-        case LUA_TBOOLEAN: return lua_toboolean(L, index) ? "true" : "false";
+        case LUA_TNIL: return string_view("nil");
+        case LUA_TTHREAD: return string_view("thread");
+        case LUA_TFUNCTION: return string_view("function");
+        case LUA_TUSERDATA:  return string_view("userdata");
+        case LUA_TLIGHTUSERDATA: return string_view("userdata");
+        case LUA_TBOOLEAN: return string_view(lua_toboolean(L, index) ? "true" : "false");
         case LUA_TSTRING: {
             size_t len;
             const char* buf = lua_tolstring(L, index, &len);
-            return string(buf, len);
+            return string_view(buf, len);
         }
         case LUA_TTABLE:
             if ((flag & LOG_FLAG_FORMAT) == LOG_FLAG_FORMAT) {
@@ -33,14 +55,14 @@ namespace logger {
                 serialize_one(L, buf, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
                 return string((char*)buf->head(), buf->size());
             }
-            return luaL_tolstring(L, index, nullptr);
+            return string_view(luaL_tolstring(L, index, nullptr));
         case LUA_TNUMBER:
             if (lua_isinteger(L, index)) {
-                return fmt::format("{}", lua_tointeger(L, index));
+                return lua_tointeger(L, index);
             }
-            return fmt::format("{}", lua_tonumber(L, index));
+            return lua_tonumber(L, index);
         }
-        return "unsuppert data type";
+        return string_view("unsuppert data type");
     }
 
     int zformat(lua_State* L, log_level lvl, cpchar tag, cpchar feature, int flag, sstring&& msg) {
@@ -56,7 +78,8 @@ namespace logger {
     template<size_t... integers>
     int tformat(lua_State* L, log_level lvl, cpchar tag, cpchar feature, int flag, cpchar vfmt, std::index_sequence<integers...>&&) {
         try {
-            auto msg = fmt::format(vfmt, read_args(L, flag, integers + 6)...);
+            std::tuple args = std::make_tuple(read_args(L, flag, integers + 6)...);
+            auto msg = std::vformat(vfmt, std::make_format_args(std::get<integers>(args)...));
             return zformat(L, lvl, tag, feature, flag, std::move(msg));
         } catch (const exception& e) {
             luaL_error(L, "log format failed: %s!", e.what());
@@ -67,7 +90,8 @@ namespace logger {
     template<size_t... integers>
     int fformat(lua_State* L, int flag, cpchar vfmt, std::index_sequence<integers...>&&) {
         try {
-            auto msg = fmt::format(vfmt, read_args(L, flag, integers + 2)...);
+            std::tuple args = std::make_tuple(read_args(L, flag, integers + 6)...);
+            auto msg = std::vformat(vfmt, std::make_format_args(std::get<integers>(args)...));
             lua_pushlstring(L, msg.c_str(), msg.size());
             return 1;
         } catch (const exception& e) {

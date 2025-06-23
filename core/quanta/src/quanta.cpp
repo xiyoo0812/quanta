@@ -56,7 +56,7 @@ static void check_input(luakit::kit_state& lua) {
                 return;
             }
         }
-        lua.run_script(fmt::format("quanta.console({:d})", cur));
+        lua.run_script(std::format("quanta.console({:d})", cur));
     }
 #endif
 }
@@ -104,7 +104,7 @@ void quanta_app::setup(int argc, const char* argv[]) {
 }
 
 void quanta_app::exception_handler(std::string_view msg, std::string_view err) {
-    LOG_FATAL(fmt::format(msg, err));
+    LOG_FATAL(std::vformat(msg, std::make_format_args(err)));
     if (m_process) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         exit(1);
@@ -118,7 +118,7 @@ void quanta_app::load(int argc, const char* argv[]) {
         auto pos = argvi.find("=");
         if (pos != std::string::npos) {
             auto evalue = argvi.substr(pos + 1);
-            auto ekey = fmt::format("QUANTA_{}", argvi.substr(2, pos - 2));
+            auto ekey = std::format("QUANTA_{}", argvi.substr(2, pos - 2));
             std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });
             set_env(ekey.c_str(), evalue.c_str(), 1);
             continue;
@@ -129,7 +129,7 @@ void quanta_app::load(int argc, const char* argv[]) {
             m_lua.set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
             m_lua.set_function("add_path", [&](const char* field, const char* path) { add_path(field, path); });
             m_lua.set_function("set_path", [&](const char* field, const char* path) { m_lua.set_path(field, path); set_env(field, path, 1); });
-            m_lua.run_script(fmt::format("dofile('{}')", argv[1]), [&](std::string_view err) {
+            m_lua.run_script(std::format("dofile('{}')", argv[1]), [&](std::string_view err) {
                 exception_handler("load config err: {}", err);
             });
         }
@@ -163,7 +163,7 @@ bool quanta_app::init() {
     }
     auto sandbox = get_env("QUANTA_SANDBOX");
     if (sandbox) {
-        if (!m_lua.run_script(fmt::format("require '{}'", sandbox), [&](std::string_view err) {
+        if (!m_lua.run_script(std::format("require '{}'", sandbox), [&](std::string_view err) {
             exception_handler("load sandbox err: {}", err);
         })) return false;
     }
@@ -172,7 +172,7 @@ bool quanta_app::init() {
         exception_handler("load entry err: {}", "entry not found");
         return false;
     }
-    if (!m_lua.run_script(fmt::format("require '{}'", entry), [&](std::string_view err) {
+    if (!m_lua.run_script(std::format("require '{}'", entry), [&](std::string_view err) {
         exception_handler("load entry err: {}", err);
     })) return false;
     return true;

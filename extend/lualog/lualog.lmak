@@ -9,7 +9,6 @@ PROJECT_TYPE = "dynamic"
 
 --需要定义的选项
 DEFINES = {
-    "FMT_HEADER_ONLY"
 }
 
 --WINDOWS需要定义的选项
@@ -20,7 +19,6 @@ WINDOWS_DEFINES = {
 --需要的include目录
 INCLUDES = {
     "../lua/lua",
-    "../fmt/include",
     "../luakit/include"
 }
 

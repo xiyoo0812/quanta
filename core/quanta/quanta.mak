@@ -28,17 +28,15 @@ STDC = -std=gnu99
 
 #c++标准库版本
 #c++11/c++14/c++17/c++20
-STDCPP = -std=c++17
+STDCPP = -std=c++20
 
 #需要的include目录
 MYCFLAGS += -I../../extend/lua/lua
-MYCFLAGS += -I../../extend/fmt/include
 MYCFLAGS += -I../../extend/luakit/include
 MYCFLAGS += -I../../extend/lualog/lualog
 MYCFLAGS += -I../../extend/luaxlsx/src
 
 #需要定义的选项
-MYCFLAGS += -DFMT_HEADER_ONLY
 
 #LDFLAGS
 LDFLAGS =

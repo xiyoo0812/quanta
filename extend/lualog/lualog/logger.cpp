@@ -84,24 +84,24 @@ namespace logger {
     // class log_dest
     // --------------------------------------------------------------------------------
     void log_dest::write(sptr<log_message> logmsg) {
-        auto logtxt = fmt::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+        auto logtxt = std::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
         raw_write(logtxt, logmsg->level());
     }
 
     cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
             if (logmsg->check_sec(last_time_)) {
-                fmt::format_to(time_buf_, "{:%Y-%m-%d %H:%M:%S}", logmsg->logtime());
+                std::strftime(time_buf_, sizeof(time_buf_), "%Y-%m-%d %H:%M:%S", logmsg->logtime());
             }
             auto names = level_names<log_level>()();
-            return fmt::format("[{}.{:03d}][{}][{}] ", time_buf_, logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
+            return std::format("[{}.{:03d}][{}][{}] ", time_buf_, logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
         }
         return "";
     }
 
     cstring log_dest::build_suffix(sptr<log_message> logmsg) {
         if (!ignore_suffix_) {
-            return fmt::format("[{}:{}]", logmsg->source(), logmsg->line());
+            return std::format("[{}:{}]", logmsg->source(), logmsg->line());
         }
         return "";
     }
@@ -109,7 +109,7 @@ namespace logger {
     // class stdio_dest
     // --------------------------------------------------------------------------------
     void stdio_dest::write(sptr<log_message> logmsg) {
-        auto logtxt = fmt::format("{}{}{}", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+        auto logtxt = std::format("{}{}{}", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
         raw_write(logtxt, logmsg->level());
     }
 
@@ -187,13 +187,13 @@ namespace logger {
     // class rolling_hourly
     // --------------------------------------------------------------------------------
     bool rolling_hourly::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        return logmsg->logtime().tm_hour != log_file->file_time().tm_hour;
+        return logmsg->logtime()->tm_hour != log_file->file_time()->tm_hour;
     }
 
     // class rolling_daily
     // --------------------------------------------------------------------------------
     bool rolling_daily::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        return logmsg->logtime().tm_mday != log_file->file_time().tm_mday;
+        return logmsg->logtime()->tm_mday != log_file->file_time()->tm_mday;
     }
 
     // class log_rollingfile
@@ -205,7 +205,7 @@ namespace logger {
 
     template<class rolling_evaler>
     void log_rollingfile<rolling_evaler>::write(sptr<log_message> logmsg) {
-            auto logtxt = fmt::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+            auto logtxt = std::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
             if (buff_ == nullptr || rolling_evaler_.eval(this, logmsg) || check_full(logtxt.size())) {
                 create_directories(log_path_);
                 try {
@@ -219,7 +219,7 @@ namespace logger {
                         }
                     }
                 } catch (...) {}
-                create(log_path_, new_log_file_name(logmsg), logmsg->logtime());
+                create(log_path_, new_log_file_name(logmsg), *logmsg->logtime());
                 assert(buff_);
             }
             raw_write(logtxt, logmsg->level());
@@ -227,7 +227,9 @@ namespace logger {
 
     template<class rolling_evaler>
     sstring log_rollingfile<rolling_evaler>::new_log_file_name(const sptr<log_message> logmsg) {
-        return fmt::format("{}-{:%Y%m%d-%H%M%S}.{:03d}.p{}.log", feature_, logmsg->logtime(), logmsg->get_usec(), ::getpid());
+        char time[20];
+        std::strftime(time, sizeof(time), "%Y%m%d-%H%M%S", logmsg->logtime());
+        return std::format("{}-{}.{:03d}.p{}.log", feature_, time, logmsg->get_usec(), ::getpid());
     }
 
     // class log_service
@@ -237,7 +239,7 @@ namespace logger {
     void log_service::option(cpchar log_path, cpchar service, cpchar index) {
         if (main_dest_) return;
         log_path_ = log_path;
-        service_ = fmt::format("{}-{}", service, index);
+        service_ = std::format("{}-{}", service, index);
         create_directories(log_path);
         add_dest(service);
         //启动日志线程

@@ -10,7 +10,6 @@
 #include <filesystem>
 #include <assert.h>
 
-#include "fmt/chrono.h"
 #include "lua_kit.h"
 
 #ifdef WIN32
@@ -90,7 +89,7 @@ namespace logger {
         vstring feature() const { return feature_; }
         int get_usec() { return time_.tm_usec; }
         log_level level() const { return level_; }
-        const std::tm& logtime() const { return time_; }
+        const std::tm* logtime() const { return &time_; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
         bool check_sec(time_t& last) { if (time_.tm_time != last) { last = time_.tm_time; return true; } else return false; }
 
@@ -151,7 +150,7 @@ namespace logger {
         log_file_base(size_t max_size) : size_(0), alc_size_(USHRT_MAX), max_size_(max_size > USHRT_MAX ? max_size : USHRT_MAX) {}
         virtual ~log_file_base();
 
-        const std::tm& file_time() const { return file_time_; }
+        const std::tm* file_time() const { return &file_time_; }
         virtual void raw_write(sstring& msg, log_level lvl);
         bool create(path file_path, sstring file_name, const std::tm& file_time);
 
