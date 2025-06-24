@@ -1,8 +1,6 @@
 #pragma once
 
-#include <stdlib.h>
 #include <time.h>
-#include <math.h>
 
 //i  - group，10位，(0~1023)
 //g  - index，10位(0~1023)

@@ -49,7 +49,8 @@
 
 #endif
 
-#include <string>
+#include <array>
+#include <iostream>
 #include <exception>
 #include <assert.h>
 
@@ -93,4 +94,3 @@
 #define LUA_LIB
 
 #include "lua_kit.h"
-#include <iostream>

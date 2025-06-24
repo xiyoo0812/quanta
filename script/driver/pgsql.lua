@@ -94,7 +94,7 @@ end
 function PgsqlDB:on_hour()
     for _, sock in pairs(self.alives) do
         self.executer = sock
-        self:request(REQUEST_CMD.sync, "pgsql ping")
+        self:request(REQUEST_CMD.SYNC, "pgsql ping")
     end
 end
 
@@ -168,8 +168,8 @@ function PgsqlDB:md5_auth(socket, salt)
     local user = sgsub(sgsub(self.user, '=', '=3D'), ',', '=2C')
     local passwd = sgsub(sgsub(self.passwd, '=', '=3D'), ',', '=2C')
     local md5_passwd = sformat("md5%s\0",  lmd5(lmd5(passwd .. user, 1) .. salt, 1))
-    local ok, auth_type = self:auth_request(socket, REQUEST_CMD.password, "pgsql md5 auth", md5_passwd)
-    if not ok or auth_type ~= AUTH_TYPE.ok then
+    local ok, auth_type = self:auth_request(socket, REQUEST_CMD.PASSWORD, "pgsql md5 auth", md5_passwd)
+    if not ok or auth_type ~= AUTH_TYPE.OK then
         return false, sformat("auth md5 failed: %s", auth_type)
     end
     return ok
@@ -181,8 +181,8 @@ function PgsqlDB:sasl_auth(socket)
     local cli_first_bare = sformat("n=%s,r=%s", user, nonce)
     local init_data = sformat("n,,%s", cli_first_bare)
     local sasl_start = sformat("SCRAM-SHA-256\0%s%s", spack(">i", #init_data), init_data)
-    local sok, aauth_type, svr_first_bare = self:auth_request(socket, REQUEST_CMD.password, "pgsql sasl start", sasl_start)
-    if not sok or aauth_type ~= AUTH_TYPE.sasl_continue then
+    local sok, aauth_type, svr_first_bare = self:auth_request(socket, REQUEST_CMD.PASSWORD, "pgsql sasl start", sasl_start)
+    if not sok or aauth_type ~= AUTH_TYPE.SASL_CONTINUE then
         return false, sformat("auth asal start failed: %s", aauth_type)
     end
     local payload = {}
@@ -198,8 +198,8 @@ function PgsqlDB:sasl_auth(socket)
     local client_sig = lhmac_sha256(lsha256(client_key), auth_msg)
     local client_xor_sig = lxor_byte(client_key, client_sig)
     local client_proof = sformat("%s,p=%s", without_proof, lb64encode(client_xor_sig))
-    local cok, cauth_type, svr_final_bare = self:auth_request(socket, REQUEST_CMD.password, "pgsql sasl continue", client_proof)
-    if not cok or cauth_type ~= AUTH_TYPE.ok then
+    local cok, cauth_type, svr_final_bare = self:auth_request(socket, REQUEST_CMD.PASSWORD, "pgsql sasl continue", client_proof)
+    if not cok or cauth_type ~= AUTH_TYPE.OK then
         return false, sformat("auth asal continue failed: %s", cauth_type)
     end
     for k, v in sgmatch(svr_final_bare, "(%w+)=([^,]*)") do
@@ -215,14 +215,14 @@ end
 
 function PgsqlDB:auth(socket)
     socket:set_codec(pgsqlcodec())
-    local ok, method, args = self:auth_request(socket, REQUEST_CMD.startup, "pgsql auth", self.user, self.name)
+    local ok, method, args = self:auth_request(socket, REQUEST_CMD.STARTUP, "pgsql auth", self.user, self.name)
     if not ok then
         return false, sformat("auth failed: %s", method)
     end
-    if method == AUTH_TYPE.sasl then
+    if method == AUTH_TYPE.SASL then
         return self:sasl_auth(socket)
     end
-    if method == AUTH_TYPE.md5 then
+    if method == AUTH_TYPE.MD5 then
         return self:md5_auth(socket, args)
     end
     return false, "auth method not support"
@@ -270,7 +270,7 @@ function PgsqlDB:request(cmd, quote, ...)
 end
 
 function PgsqlDB:query(query)
-    return self:request(REQUEST_CMD.query, "pgsql query", query .. '\0')
+    return self:request(REQUEST_CMD.QUERY, "pgsql query", query .. '\0')
 end
 
 function PgsqlDB:send(cmd, ...)
@@ -294,8 +294,8 @@ function PgsqlDB:prepare_check(name)
     if not query then
         return false, "prepare statement not found"
     end
-    self:send(REQUEST_CMD.parse, query)
-    local ok, res_err = self:request(REQUEST_CMD.sync, "pgsql prepare")
+    self:send(REQUEST_CMD.PARSE, query)
+    local ok, res_err = self:request(REQUEST_CMD.SYNC, "pgsql prepare")
     if not ok then
         return false, res_err
     end
@@ -315,10 +315,10 @@ function PgsqlDB:execute(name, ...)
         argfmt = argfmt .. spack(">i", #args) .. args
     end
     local bquery = sformat("%s\0%s\0%s%s%s%s", name, name, ZERO_BIT2, spack(">h", #bind_args), argfmt, ZERO_BIT2)
-    self:send(REQUEST_CMD.bind, bquery)
-    self:send(REQUEST_CMD.discribe, 'S' .. name .. '\0')
-    self:send(REQUEST_CMD.execute, sformat("%s\0%s", name, ZERO_BIT4))
-    return self:request(REQUEST_CMD.sync, "pgsql execute")
+    self:send(REQUEST_CMD.BIND, bquery)
+    self:send(REQUEST_CMD.DISCRIBE, 'S' .. name .. '\0')
+    self:send(REQUEST_CMD.EXECUTE, sformat("%s\0%s", name, ZERO_BIT4))
+    return self:request(REQUEST_CMD.SYNC, "pgsql execute")
 end
 
 local escape_map = {

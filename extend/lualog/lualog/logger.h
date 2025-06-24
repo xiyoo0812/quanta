@@ -1,13 +1,11 @@
 #pragma once
 
+#include <map>
 #include <array>
-#include <ctime>
 #include <vector>
 #include <chrono>
 #include <thread>
-#include <fstream>
 #include <iostream>
-#include <filesystem>
 #include <assert.h>
 
 #include "lua_kit.h"
@@ -34,6 +32,8 @@ using wptr      = std::weak_ptr<T>;
 template <class T>
 using sptr      = std::shared_ptr<T>;
 
+using log_time  = time_point<system_clock, milliseconds>;
+
 namespace logger {
     enum class log_level {
         LOG_LEVEL_DEBUG = 1,
@@ -43,11 +43,13 @@ namespace logger {
         LOG_LEVEL_ERROR,
         LOG_LEVEL_FATAL,
     };
+    using enum log_level;
 
     enum class rolling_type {
         HOURLY = 0,
         DAYLY = 1,
     }; //rolling_type
+    using enum rolling_type;
 
     const size_t QUEUE_SIZE = 3000;
     const size_t PAGE_SIZE  = 65536;
@@ -70,16 +72,6 @@ namespace logger {
         }
     };
 
-    class log_time : public std::tm {
-    public:
-        static log_time now();
-        log_time(const std::tm& tm, time_t sec, int usec) : std::tm(tm), tm_usec(usec), tm_time(sec) { }
-        log_time() { }
-
-        int tm_usec = 0;
-        time_t tm_time = 0;
-    }; // class log_time
-
     class log_message {
     public:
         vstring tag() const { return tag_; }
@@ -87,17 +79,15 @@ namespace logger {
         int32_t line() const { return line_; }
         vstring source() const { return source_; }
         vstring feature() const { return feature_; }
-        int get_usec() { return time_.tm_usec; }
         log_level level() const { return level_; }
-        const std::tm* logtime() const { return &time_; }
+        log_time logtime() const { return time_; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
-        bool check_sec(time_t& last) { if (time_.tm_time != last) { last = time_.tm_time; return true; } else return false; }
 
     private:
         log_time            time_;
         int32_t             line_ = 0;
         sstring             source_, msg_, feature_, tag_;
-        log_level           level_ = log_level::LOG_LEVEL_DEBUG;
+        log_level           level_ = LOG_LEVEL_DEBUG;
     }; // class log_message
     typedef std::vector<sptr<log_message>> log_messages;
 
@@ -150,9 +140,9 @@ namespace logger {
         log_file_base(size_t max_size) : size_(0), alc_size_(USHRT_MAX), max_size_(max_size > USHRT_MAX ? max_size : USHRT_MAX) {}
         virtual ~log_file_base();
 
-        const std::tm* file_time() const { return &file_time_; }
+        log_time filetime() const { return file_time_; }
         virtual void raw_write(sstring& msg, log_level lvl);
-        bool create(path file_path, sstring file_name, const std::tm& file_time);
+        bool create(path file_path, sstring file_name, log_time file_time);
 
     protected:
         void map_file();
@@ -160,7 +150,7 @@ namespace logger {
         bool check_full(size_t size);
 
     protected:
-        std::tm         file_time_;
+        log_time        file_time_;
         size_t          size_, alc_size_, max_size_;
         char* buff_ = nullptr;
         sstring         file_path_;
@@ -257,7 +247,7 @@ namespace logger {
         std::map<log_level, sptr<log_dest>> dest_lvls_;
         std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
         size_t max_size_ = MAX_SIZE, clean_time_ = CLEAN_TIME;
-        rolling_type rolling_type_ = rolling_type::DAYLY;
+        rolling_type rolling_type_ = DAYLY;
         bool log_daemon_ = false;
         bool running_ = false;
     }; // class log_service
@@ -268,21 +258,21 @@ extern "C" {
     LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
 }
 
-#define LOG_WARN(msg) output_logger(logger::log_level::LOG_LEVEL_WARN, msg, "", "", __FILE__, __LINE__)
-#define LOG_INFO(msg) output_logger(logger::log_level::LOG_LEVEL_INFO, msg, "", "", __FILE__, __LINE__)
-#define LOG_DUMP(msg) output_logger(logger::log_level::LOG_LEVEL_DUMP, msg, "", "", __FILE__, __LINE__)
-#define LOG_DEBUG(msg) output_logger(logger::log_level::LOG_LEVEL_DEBUG, msg, "", "", __FILE__, __LINE__)
-#define LOG_ERROR(msg) output_logger(logger::log_level::LOG_LEVEL_ERROR, msg, "", "", __FILE__, __LINE__)
-#define LOG_FATAL(msg) output_logger(logger::log_level::LOG_LEVEL_FATAL, msg, "", "", __FILE__, __LINE__)
-#define LOGF_WARN(msg, feature) output_logger(logger::log_level::LOG_LEVEL_WARN, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_INFO(msg, feature) output_logger(logger::log_level::LOG_LEVEL_INFO, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_DUMP(msg, feature) output_logger(logger::log_level::LOG_LEVEL_DUMP, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_DEBUG(msg, feature) output_logger(logger::log_level::LOG_LEVEL_DEBUG, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_ERROR(msg, feature) output_logger(logger::log_level::LOG_LEVEL_ERROR, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_FATAL(msg, feature) output_logger(logger::log_level::LOG_LEVEL_FATAL, msg, "", feature, __FILE__, __LINE__)
-#define LOGTF_WARN(msg, tag, feature) output_logger(logger::log_level::LOG_LEVEL_WARN, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_INFO(msg, tag, feature) output_logger(logger::log_level::LOG_LEVEL_INFO, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_DUMP(msg, tag, feature) output_logger(logger::log_level::LOG_LEVEL_DUMP, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_DEBUG(msg, tag, feature) output_logger(logger::log_level::LOG_LEVEL_DEBUG, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_ERROR(msg, tag, feature) output_logger(logger::log_level::LOG_LEVEL_ERROR, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_FATAL(msg, tag, feature) output_logger(logger::log_level::LOG_LEVEL_FATAL, msg, tag, feature, __FILE__, __LINE__)
+#define LOG_WARN(msg) output_logger(logger::LOG_LEVEL_WARN, msg, "", "", __FILE__, __LINE__)
+#define LOG_INFO(msg) output_logger(logger::LOG_LEVEL_INFO, msg, "", "", __FILE__, __LINE__)
+#define LOG_DUMP(msg) output_logger(logger::LOG_LEVEL_DUMP, msg, "", "", __FILE__, __LINE__)
+#define LOG_DEBUG(msg) output_logger(logger::LOG_LEVEL_DEBUG, msg, "", "", __FILE__, __LINE__)
+#define LOG_ERROR(msg) output_logger(logger::LOG_LEVEL_ERROR, msg, "", "", __FILE__, __LINE__)
+#define LOG_FATAL(msg) output_logger(logger::LOG_LEVEL_FATAL, msg, "", "", __FILE__, __LINE__)
+#define LOGF_WARN(msg, feature) output_logger(logger::LOG_LEVEL_WARN, msg, "", feature, __FILE__, __LINE__)
+#define LOGF_INFO(msg, feature) output_logger(logger::LOG_LEVEL_INFO, msg, "", feature, __FILE__, __LINE__)
+#define LOGF_DUMP(msg, feature) output_logger(logger::LOG_LEVEL_DUMP, msg, "", feature, __FILE__, __LINE__)
+#define LOGF_DEBUG(msg, feature) output_logger(logger::LOG_LEVEL_DEBUG, msg, "", feature, __FILE__, __LINE__)
+#define LOGF_ERROR(msg, feature) output_logger(logger::LOG_LEVEL_ERROR, msg, "", feature, __FILE__, __LINE__)
+#define LOGF_FATAL(msg, feature) output_logger(logger::LOG_LEVEL_FATAL, msg, "", feature, __FILE__, __LINE__)
+#define LOGTF_WARN(msg, tag, feature) output_logger(logger::LOG_LEVEL_WARN, msg, tag, feature, __FILE__, __LINE__)
+#define LOGTF_INFO(msg, tag, feature) output_logger(logger::LOG_LEVEL_INFO, msg, tag, feature, __FILE__, __LINE__)
+#define LOGTF_DUMP(msg, tag, feature) output_logger(logger::LOG_LEVEL_DUMP, msg, tag, feature, __FILE__, __LINE__)
+#define LOGTF_DEBUG(msg, tag, feature) output_logger(logger::LOG_LEVEL_DEBUG, msg, tag, feature, __FILE__, __LINE__)
+#define LOGTF_ERROR(msg, tag, feature) output_logger(logger::LOG_LEVEL_ERROR, msg, tag, feature, __FILE__, __LINE__)
+#define LOGTF_FATAL(msg, tag, feature) output_logger(logger::LOG_LEVEL_FATAL, msg, tag, feature, __FILE__, __LINE__)

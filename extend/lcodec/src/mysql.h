@@ -47,6 +47,7 @@ namespace lcodec {
         MP_DATA = 3,
         MP_INF  = 4,
     };
+    using enum packet_type;
 
     struct mysql_cmd {
         uint8_t  cmd_id;
@@ -122,12 +123,12 @@ namespace lcodec {
             }
             m_packet.attach(data, length);
             switch (*data) {
-            case 0xfb: return packet_type::MP_INF;
-            case 0xfe: return packet_type::MP_EOF;
-            case 0x00: return packet_type::MP_OK;
-            case 0xff: return packet_type::MP_ERR;
+            case 0xfb: return MP_INF;
+            case 0xfe: return MP_EOF;
+            case 0x00: return MP_OK;
+            case 0xff: return MP_ERR;
             }
-            return packet_type::MP_DATA;
+            return MP_DATA;
         }
 
         uint8_t* comand_encode(lua_State* L, uint8_t cmd_id, size_t session_id, int index, size_t* len) {
@@ -136,8 +137,7 @@ namespace lcodec {
             if (index <= top) {
                 if (lua_type(L, index) == LUA_TNUMBER) {
                     m_buf->write<uint32_t>(lua_tointeger(L, index++));
-                }
-                else {
+                } else {
                     size_t data_len;
                     uint8_t* query = (uint8_t*)lua_tolstring(L, index++, &data_len);
                     m_buf->push_data(query, data_len);
@@ -186,13 +186,12 @@ namespace lcodec {
         }
 
         void command_decode(lua_State* L) {
-            packet_type type = recv_packet();
-            switch (type) {
-            case packet_type::MP_OK:
+            switch (recv_packet()) {
+            case MP_OK:
                 return ok_packet_decode(L);
-            case packet_type::MP_DATA:
+            case MP_DATA:
                 return data_packet_decode(L);
-            case packet_type::MP_ERR:
+            case MP_ERR:
                 return err_packet_decode(L);
             default: throw lua_exception("unsuppert mysql packet type");
             }
@@ -262,7 +261,7 @@ namespace lcodec {
             // rows
             size_t row_indx = 1;
             packet_type type = recv_packet();
-            packet_type expect = binary ? packet_type::MP_OK : packet_type::MP_DATA;
+            packet_type expect = binary ? MP_OK : MP_DATA;
             while (type == expect){
                 // row
                 if (binary) {
@@ -308,7 +307,7 @@ namespace lcodec {
             packet_type type = rows_decode(L, columns, binary);
             lua_seti(L, -2, rset_idx);
             // terminator
-            if (type == packet_type::MP_ERR) {
+            if (type == MP_ERR) {
                 lua_settop(L, top);
                 err_packet_decode(L);
                 return false;
@@ -385,8 +384,7 @@ namespace lcodec {
         }
 
         void prepare_decode(lua_State* L) {
-            packet_type type = recv_packet();
-            if (type == packet_type::MP_ERR) {
+            if (auto type = recv_packet(); type == MP_ERR) {
                 return err_packet_decode(L);
             }
             uint8_t status = *(uint8_t*)m_packet.read<uint8_t>();
@@ -476,8 +474,7 @@ namespace lcodec {
         }
 
         void encode_args_type(lua_State* L, int index) {
-            int type = lua_type(L, index);
-            switch (type) {
+            switch (lua_type(L, index)) {
             case LUA_TNIL:
                 m_buf->write<uint16_t>(MYSQL_TYPE_NULL);
                 break;
@@ -508,15 +505,12 @@ namespace lcodec {
                     uint8_t* data = (uint8_t*)lua_tolstring(L, index, (size_t*)&data_len);
                     if (data_len < 0xfb) {
                         m_buf->write<uint8_t>(data_len);
-                    }
-                    else if (data_len < 0xffff) {
+                    } else if (data_len < 0xffff) {
                         m_buf->write<uint8_t>(0xfc);
                         m_buf->write<uint16_t>(data_len);
-                    }
-                    else if (data_len < 0xffffff) {
+                    } else if (data_len < 0xffffff) {
                         m_buf->write<uint32_t>((0xfd << 24) | data_len);
-                    }
-                    else {
+                    } else {
                         m_buf->write<uint8_t>(0xfe);
                         m_buf->write<uint64_t>(data_len);
                     }
@@ -536,11 +530,9 @@ namespace lcodec {
         }
 
         string_view decode_length_encoded_string() {
-            size_t length = decode_length_encoded_number();
-            if (length > 0) {
-                char* data = (char*)m_packet.erase(length);
-                if (!data) throw lua_exception("invalid length coded string");
-                return string_view(data, length);
+            if (size_t length = decode_length_encoded_number(); length > 0) {
+                if (auto data = (char*)m_packet.erase(length); data) return string_view(data, length);
+                throw lua_exception("invalid length coded string");
             }
             return "";
         }

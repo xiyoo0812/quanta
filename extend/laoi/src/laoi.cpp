@@ -18,7 +18,7 @@ namespace laoi {
         auto llaoi = kit_state.new_table("aoi");
         llaoi.set_function("create_aoi", create_aoi);
         llaoi.set_function("create_object", create_object);
-        llaoi.new_enum("aoi_type", "watcher", aoi_type::watcher, "marker", aoi_type::marker);
+        llaoi.new_enum("aoi_type", "watcher", WATCHER, "marker", MARKER);
         kit_state.new_class<aoi_obj>(
             "x", &aoi_obj::grid_x,
             "z", &aoi_obj::grid_z

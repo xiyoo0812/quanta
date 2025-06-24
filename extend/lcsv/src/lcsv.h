@@ -1,11 +1,11 @@
 #pragma once
-#include  <filesystem>
 
 #include "csv.hpp"
 #include "lua_kit.h"
 
 using namespace std;
 using namespace csv2;
+
 using fspath = std::filesystem::path;
 
 namespace lcsv {
@@ -41,8 +41,7 @@ namespace lcsv {
         }
         
         int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
-            cell* cell = get_cell(row, col);
-            if (cell) {
+            if (cell* cell = get_cell(row, col); cell) {
                 lua_pushstring(L, cell->value.c_str());
                 return 1;
             }

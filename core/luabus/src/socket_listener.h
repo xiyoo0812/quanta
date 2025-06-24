@@ -1,10 +1,4 @@
-﻿/*
-** repository: https://github.com/trumanzhao/luna
-** trumanzhao, 2016-11-01, trumanzhao@foxmail.com
-*/
-
-#pragma once
-
+﻿#pragma once
 #include "socket_helper.h"
 #include "socket_mgr.h"
 

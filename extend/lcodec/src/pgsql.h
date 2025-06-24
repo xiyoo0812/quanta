@@ -13,72 +13,76 @@ namespace lcodec {
 
     // cmd constants
     enum class cmd_type_b : uchar {
-        null                    = 0,
-        auth                    = 'R',
-        error                   = 'E',
-        notice                  = 'N',
-        no_data                 = 'n',
-        data_row                = 'D',
-        backend_key             = 'K',
-        empty_query             = 'I',
-        notification            = 'A',
-        function_call           = 'V',
-        bind_complete           = '2',
-        close_complete          = '3',
-        parse_complete          = '1',
-        ready_for_query         = 'Z',
-        row_description         = 'T',
-        parameter_status        = 'S',
-        command_complete        = 'C',
-        parameter_description   = 't',
+        NONE                    = 0,
+        AUTH                    = 'R',
+        ERROR                   = 'E',
+        NOTICE                  = 'N',
+        NO_DATA                 = 'n',
+        DATA_ROW                = 'D',
+        BACKEND_KEY             = 'K',
+        EMPTY_QUERY             = 'I',
+        NOTIFICATION            = 'A',
+        FUNCTION_CALL           = 'V',
+        BIND_COMPLETE           = '2',
+        CLOSE_COMPLETE          = '3',
+        PARSE_COMPLETE          = '1',
+        READY_FOR_QUERY         = 'Z',
+        ROW_DESCRIPTION         = 'T',
+        PARAMETER_STATUS        = 'S',
+        COMMAND_COMPLETE        = 'C',
+        PARAMETER_DESCRIPTION   = 't',
     };
+    using enum cmd_type_b;
 
     enum class cmd_type_f : uchar {
-        bind                    = 'B',
-        sync                    = 'S',
-        close                   = 'C',
-        query                   = 'Q',
-        parse                   = 'P',
-        flush                   = 'H',
-        execute                 = 'E',
-        discribe                = 'D',
-        password                = 'p',
-        function_call           = 'F',
-        startup                 = 'U',  // start up: FAKE CMD
+        BIND                    = 'B',
+        SYNC                    = 'S',
+        CLOSE                   = 'C',
+        QUERY                   = 'Q',
+        PARSE                   = 'P',
+        FLUSH                   = 'H',
+        EXECUTE                 = 'E',
+        DISCRIBE                = 'D',
+        PASSWORD                = 'p',
+        FUNC_CALL               = 'F',
+        STARTUP                 = 'U',  // start up: FAKE CMD
     };
+    using enum cmd_type_f;
 
     enum class auth_type_t : uint8_t {
-        ok                      = 0,
-        v5                      = 2,
-        cleartext               = 3,
-        md5                     = 5,
-        scm                     = 6,
-        gss                     = 7,
-        gss_continue            = 8,
-        sspi                    = 9,
-        sasl                    = 10,
-        sasl_continue           = 11,
-        sasl_final              = 12,
+        OK                      = 0,
+        V5                      = 2,
+        CLEARTEXT               = 3,
+        MD5                     = 5,
+        SCM                     = 6,
+        GSS                     = 7,
+        GSS_CONTINUE            = 8,
+        SSPI                    = 9,
+        SASL                    = 10,
+        SASL_CONTINUE           = 11,
+        SASL_FINAL              = 12,
     };
+    using enum auth_type_t;
     
     //SELECT* FROM pg_type;
     enum class pg_type_t : uint16_t {
-        tundefine               = 0,
-        tboolean                = 16,
-        tbytea                  = 17,
-        tchar                   = 18,
-        tbigint                 = 20,
-        tsmallint               = 21,
-        tint                    = 23,
-        ttext                   = 25,
-        tfloat                  = 700,
-        tdouble                 = 701,
-        tvarchar                = 1043,
-        ttimestamp              = 1114,
-        tdate                   = 1082,
-        ttime                   = 1083,
-        tnumeric                = 1700,
+        PTUNDEFINE              = 0,
+        PTBOOLEAN               = 16,
+        PTBYTEA                 = 17,
+        PTCHAR                  = 18,
+        PTBIGINT                = 20,
+        PTSMALLINT              = 21,
+        PTINT                   = 23,
+        PTTEXT                  = 25,
+        PTFLOAT                 = 700,
+        PTDOUBLE                = 701,
+        PTVARCHAR               = 1043,
+        PTTIMESTAMP             = 1114,
+        PTDATE                  = 1082,
+        PTTIME                  = 1083,
+        PTNUMERIC               = 1700,
     };
+    using enum pg_type_t;
 
     // constants
     const uint32_t PGSQL_HEADER_LEN         = 5;
@@ -107,7 +111,7 @@ namespace lcodec {
             // session_id
             size_t session_id = lua_tointeger(L, index++);
             switch (cmd_type) {
-            case cmd_type_f::startup:
+            case STARTUP:
                 return encode_startup(L, session_id, index, len);
                 break;
             default:
@@ -129,8 +133,8 @@ namespace lcodec {
             cmd_type_b cmd_type = recv_packet();
             size_t session_id = sessions.front();
             lua_pushinteger(L, session_id);
-            lua_pushboolean(L, cmd_type != cmd_type_b::error);
-            if (cmd_type != cmd_type_b::auth) {
+            lua_pushboolean(L, cmd_type != ERROR);
+            if (cmd_type != AUTH) {
                 command_decode(L, cmd_type);
             } else {
                 auth_decode(L);
@@ -147,12 +151,11 @@ namespace lcodec {
             }
             cmd_type_b cmd_type = (cmd_type_b)read_uint8(m_slice);
             size_t length = read_int32(m_slice) - sizeof(uint32_t);
-            uint8_t* data = m_slice->erase(length);
-            if (!data) {
-                throw length_error("pgsql text not full");
+            if (uint8_t* data = m_slice->erase(length); data) {
+                m_packet.attach(data, length);
+                return cmd_type;
             }
-            m_packet.attach(data, length);
-            return cmd_type;
+            throw length_error("pgsql text not full");
         }
 
         uint8_t* comand_encode(lua_State* L, cmd_type_f cmd_type, size_t session_id, int index, size_t* len) {
@@ -191,18 +194,18 @@ namespace lcodec {
 
         void command_decode(lua_State* L, cmd_type_b cmd) {
             switch (cmd) {
-            case cmd_type_b::empty_query:
-            case cmd_type_b::close_complete:
-            case cmd_type_b::parse_complete:
-            case cmd_type_b::notification:
-            case cmd_type_b::function_call:
+            case EMPTY_QUERY:
+            case CLOSE_COMPLETE:
+            case PARSE_COMPLETE:
+            case NOTIFICATION:
+            case FUNCTION_CALL:
                 break;
-            case cmd_type_b::error:
-            case cmd_type_b::notice:
+            case ERROR:
+            case NOTICE:
                 return notice_error_decode(L);
-            case cmd_type_b::row_description:
+            case ROW_DESCRIPTION:
                 return row_description_decode(L);
-            case cmd_type_b::command_complete:
+            case COMMAND_COMPLETE:
                 return command_complete_decode(L);
             default: throw lua_exception("unsuppert pgsql packet type");
             }
@@ -215,17 +218,17 @@ namespace lcodec {
             auto auth_args = m_packet.contents();
             lua_pushinteger(L, (uint8_t)auth_type);
             lua_pushlstring(L, auth_args.data(), auth_args.size());
-            if (auth_type == auth_type_t::sasl_final) {
-                wait_cmd_type(cmd_type_b::auth);
+            if (auth_type == SASL_FINAL) {
+                wait_cmd_type(AUTH);
                 auto ok_auth_type = (auth_type_t)read_int32(&m_packet);
-                if (ok_auth_type != auth_type_t::ok) {
+                if (ok_auth_type != OK) {
                     throw lua_exception("invaild pgsql auth sasl final packet");
                 }
                 auth_type = ok_auth_type;
             }
-            if (auth_type == auth_type_t::ok) {
+            if (auth_type == OK) {
                 auto cmdtype = recv_packet();
-                if (cmdtype == cmd_type_b::error) {
+                if (cmdtype == ERROR) {
                     lua_pop(L, 3);
                     lua_pushboolean(L, false);
                     notice_error_decode(L);
@@ -234,12 +237,12 @@ namespace lcodec {
                 lua_pushinteger(L, (uint8_t)auth_type);
                 lua_replace(L, -3);
                 lua_createtable(L, 4, 0);
-                while (cmdtype == cmd_type_b::parameter_status) {
+                while (cmdtype == PARAMETER_STATUS) {
                     parameter_status_decode(L);
                     lua_settable(L, -3);
                     cmdtype = recv_packet();
                 }
-                wait_cmd_type(cmd_type_b::backend_key, cmdtype);
+                wait_cmd_type(BACKEND_KEY, cmdtype);
                 backend_key_decode(L);
                 return;
             }
@@ -301,7 +304,7 @@ namespace lcodec {
             size_t row_indx = 1;
             lua_createtable(L, 0, 4);
             auto cmdtype = recv_packet();
-            while (cmdtype == cmd_type_b::data_row) {
+            while (cmdtype == DATA_ROW) {
                 lua_createtable(L, 0, 4);
                 int32_t nfield = read_int16(&m_packet);
                 for (size_t i = 0; i < nfield; ++i) {
@@ -310,18 +313,18 @@ namespace lcodec {
                     const char* data = (const char*)m_packet.erase(dlen);
                     lua_pushlstring(L, column.name.data(), column.name.size());
                     switch (column.type) {
-                    case pg_type_t::tboolean:
+                    case PTBOOLEAN:
                         lua_pushboolean(L, strtoll(data, nullptr, 10));
                         break;
-                    case pg_type_t::tfloat:
-                    case pg_type_t::tdouble:
-                    case pg_type_t::tnumeric:
+                    case PTFLOAT:
+                    case PTDOUBLE:
+                    case PTNUMERIC:
                         lua_pushnumber(L, strtod(data, nullptr));
                         break;
-                    case pg_type_t::tint:
-                    case pg_type_t::tchar:
-                    case pg_type_t::tbigint:
-                    case pg_type_t::tsmallint:
+                    case PTINT:
+                    case PTCHAR:
+                    case PTBIGINT:
+                    case PTSMALLINT:
                         lua_pushinteger(L, strtoll(data, nullptr, 10));
                         break;
                     default:
@@ -334,14 +337,14 @@ namespace lcodec {
                 cmdtype = recv_packet();
             }
             lua_seti(L, -2, 1);
-            wait_cmd_type(cmd_type_b::command_complete, cmdtype);
+            wait_cmd_type(COMMAND_COMPLETE, cmdtype);
         }
 
         bool check_idle_cmd_type() {
             if (m_slice->size() > PGSQL_HEADER_LEN) {
                 auto cmd =  *(cmd_type_b*)m_slice->peek(1);
-                if (cmd == cmd_type_b::ready_for_query || cmd == cmd_type_b::bind_complete
-                    || cmd == cmd_type_b::parameter_description || cmd == cmd_type_b::no_data) {
+                if (cmd == READY_FOR_QUERY || cmd == BIND_COMPLETE
+                    || cmd == PARAMETER_DESCRIPTION || cmd == NO_DATA) {
                     auto len = byteswap4(*(int32_t*)m_slice->peek(sizeof(int32_t), 1));
                     m_slice->erase(len + 1);
                     return true;
@@ -350,8 +353,8 @@ namespace lcodec {
             return false;
         }
 
-        void wait_cmd_type(cmd_type_b target, cmd_type_b src = cmd_type_b::null) {
-            if (src == cmd_type_b::null) {
+        void wait_cmd_type(cmd_type_b target, cmd_type_b src = NONE) {
+            if (src == NONE) {
                 src = recv_packet();
             }
             if (src != target) {

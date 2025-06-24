@@ -1,6 +1,8 @@
 ﻿#include "stdafx.h"
 #include "socket_router.h"
 
+#include <ranges>
+
 uint32_t get_service_id(uint32_t node_id) { return  (node_id >> 16) & 0xff; }
 
 uint32_t socket_router::map_token(uint32_t node_id, uint32_t token) {
@@ -85,17 +87,17 @@ bool socket_router::do_forward_broadcast(router_header* header, int source, char
 	header->context = (uint8_t)rpc_type::remote_call << 4 | flag;
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
 
-    std::vector<uint32_t> tokens;
-    for (auto& target : m_services[service_id].nodes) {
-        if (target.token != 0 && target.token != source) {
-            tokens.push_back(target.token);
-        }
-    }
-    for (auto& token : tokens) {
+    auto& nodes = m_services[service_id].nodes;
+    auto actions = nodes | std::views::filter([source](const auto& target) {
+        return target.token != 0 && target.token != source;
+    }) | std::views::transform([](const auto& target) {
+        return target.token;
+    });
+    std::ranges::for_each(actions, [&](uint32_t token) {
         m_mgr->sendv(token, items, _countof(items));
         m_route_count++;
         broadcast_num++;
-    }
+    });
     return broadcast_num > 0;
 }
 

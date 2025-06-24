@@ -104,12 +104,12 @@ namespace logger {
         luakit::kit_state kit_state(L);
         auto lualog = kit_state.new_table("log");
         lualog.new_enum("LOG_LEVEL",
-            "INFO", log_level::LOG_LEVEL_INFO,
-            "WARN", log_level::LOG_LEVEL_WARN,
-            "DUMP", log_level::LOG_LEVEL_DUMP,
-            "DEBUG", log_level::LOG_LEVEL_DEBUG,
-            "ERROR", log_level::LOG_LEVEL_ERROR,
-            "FATAL", log_level::LOG_LEVEL_FATAL
+            "INFO", LOG_LEVEL_INFO,
+            "WARN", LOG_LEVEL_WARN,
+            "DUMP", LOG_LEVEL_DUMP,
+            "DEBUG", LOG_LEVEL_DEBUG,
+            "ERROR", LOG_LEVEL_ERROR,
+            "FATAL", LOG_LEVEL_FATAL
         );
         lualog.new_enum("LOG_FLAG",
             "NULL", 0,

@@ -60,23 +60,23 @@ namespace lbson {
         llbson.set_function("regex", regex);
         llbson.set_function("date", date);
         llbson.new_enum("BSON_TYPE",
-            "BSON_EOO", bson_type::BSON_EOO,
-            "BSON_REAL", bson_type::BSON_REAL,
-            "BSON_STRING", bson_type::BSON_STRING,
-            "BSON_DOCUMENT", bson_type::BSON_DOCUMENT,
-            "BSON_ARRAY", bson_type::BSON_ARRAY,
-            "BSON_BINARY", bson_type::BSON_BINARY,
-            "BSON_OBJECTID", bson_type::BSON_OBJECTID,
-            "BSON_BOOLEAN", bson_type::BSON_BOOLEAN,
-            "BSON_DATE", bson_type::BSON_DATE,
-            "BSON_NULL", bson_type::BSON_NULL,
-            "BSON_REGEX", bson_type::BSON_REGEX,
-            "BSON_JSCODE", bson_type::BSON_JSCODE,
-            "BSON_INT32", bson_type::BSON_INT32,
-            "BSON_INT64", bson_type::BSON_INT64,
-            "BSON_INT128", bson_type::BSON_INT128,
-            "BSON_MINKEY", bson_type::BSON_MINKEY,
-            "BSON_MAXKEY", bson_type::BSON_MAXKEY
+            "BSON_EOO", BSON_EOO,
+            "BSON_REAL", BSON_REAL,
+            "BSON_STRING", BSON_STRING,
+            "BSON_DOCUMENT", BSON_DOCUMENT,
+            "BSON_ARRAY", BSON_ARRAY,
+            "BSON_BINARY", BSON_BINARY,
+            "BSON_OBJECTID", BSON_OBJECTID,
+            "BSON_BOOLEAN", BSON_BOOLEAN,
+            "BSON_DATE", BSON_DATE,
+            "BSON_NULL", BSON_NULL,
+            "BSON_REGEX", BSON_REGEX,
+            "BSON_JSCODE", BSON_JSCODE,
+            "BSON_INT32", BSON_INT32,
+            "BSON_INT64", BSON_INT64,
+            "BSON_INT128", BSON_INT128,
+            "BSON_MINKEY", BSON_MINKEY,
+            "BSON_MAXKEY", BSON_MAXKEY
         );
         return llbson;
     }

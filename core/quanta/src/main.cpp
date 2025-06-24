@@ -1,5 +1,4 @@
-﻿#include <stdio.h>
-#include <locale>
+﻿#include <locale>
 #include "quanta.h"
 
 #ifdef WIN32

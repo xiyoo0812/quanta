@@ -1,11 +1,6 @@
 #pragma once
 #include <deque>
-#include <string>
 #include <charconv>
-
-#ifdef WIN32
-#define strncasecmp _strnicmp
-#endif
 
 #include "lua_kit.h"
 
@@ -67,19 +62,17 @@ namespace lcodec {
         }
 
         void parse_redis_string(lua_State* L, string_view line, string_view& buf, bool rootable = false) {
-            int64_t length = atoll(line.data());
-            if (length >= 0) {
+            if (int64_t length = atoll(line.data()); length >= 0) {
                 string_view nline;
                 if (!read_line(buf, nline))
                     throw length_error("redis text not full");
-                if (!strncasecmp(nline.data(), "[js]", 4)) {
+                if (nline.starts_with("[js]")) {
                     nline.remove_prefix(4);
                     m_jcodec->decode(L, (uint8_t*)nline.data(), nline.size());
                 } else {
                     lua_pushlstring(L, nline.data(), nline.size());
                 }
-            }
-            else {
+            } else {
                 lua_pushnil(L);
             }
             if (rootable) {
@@ -89,8 +82,7 @@ namespace lcodec {
         }
 
         void parse_redis_array(lua_State* L, string_view line, string_view& buf, bool rootable = false) {
-            int64_t length = atoll(line.data());
-            if (length >= 0) {
+            if (int64_t length = atoll(line.data()); length >= 0) {
                 lua_createtable(L, 0, 4);
                 for (int i = 1; i <= length; ++i) {
                     string_view line;
@@ -147,8 +139,7 @@ namespace lcodec {
         }
 
         bool read_line(string_view& buf, string_view& line) {
-            size_t pos = buf.find(RDS_CRLF);
-            if (pos != string_view::npos) {
+            if (size_t pos = buf.find(RDS_CRLF); pos != string_view::npos) {
                 line = buf.substr(0, pos);
                 buf.remove_prefix(pos + CRLF_LEN);
                 return true;
@@ -179,8 +170,7 @@ namespace lcodec {
         }
 
         void encode_bulk_string(lua_State* L, int idx) {
-            int type = lua_type(L, idx);
-            switch (type) {
+            switch (lua_type(L, idx)) {
             case LUA_TSTRING:
                 string_encode(L, idx);
                 break;

@@ -1,7 +1,4 @@
-﻿#include <locale>
-#include <stdlib.h>
-#include <signal.h>
-#include <functional>
+﻿#include <signal.h>
 
 #include "quanta.h"
 
@@ -77,7 +74,7 @@ const char* quanta_app::get_env(const char* key) {
 }
 
 void quanta_app::set_env(const char* key, const char* value, int over) {
-    if (over == 1 || m_environs.find(key) == m_environs.end()) {
+    if (over == 1 || !m_environs.contains(key)) {
         m_environs[key] = value;
     }
 }
@@ -115,8 +112,7 @@ void quanta_app::load(int argc, const char* argv[]) {
     //将启动参数转负责覆盖环境变量
     for (int i = 1; i < argc; ++i) {
         std::string argvi = argv[i];
-        auto pos = argvi.find("=");
-        if (pos != std::string::npos) {
+        if (auto pos = argvi.find("="); pos != std::string::npos) {
             auto evalue = argvi.substr(pos + 1);
             auto ekey = std::format("QUANTA_{}", argvi.substr(2, pos - 2));
             std::transform(ekey.begin(), ekey.end(), ekey.begin(), [](auto c) { return std::toupper(c); });

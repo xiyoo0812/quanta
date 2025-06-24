@@ -12,17 +12,17 @@ namespace lsmdb {
         auto smdb = kit_state.new_table("smdb");
         smdb.set_function("create", create_criver);
         smdb.new_enum("smdb_code",
-            "SMDB_SUCCESS", smdb_code::SMDB_SUCCESS,
-            "SMDB_DB_NOT_INIT", smdb_code::SMDB_DB_NOT_INIT,
-            "SMDB_DB_ITER_ING", smdb_code::SMDB_DB_ITER_ING,
-            "SMDB_SIZE_KEY_FAIL", smdb_code::SMDB_SIZE_KEY_FAIL,
-            "SMDB_SIZE_VAL_FAIL", smdb_code::SMDB_SIZE_VAL_FAIL,
-            "SMDB_FILE_OPEN_FAIL", smdb_code::SMDB_FILE_OPEN_FAIL,
-            "SMDB_FILE_FDNO_FAIL", smdb_code::SMDB_FILE_FDNO_FAIL,
-            "SMDB_FILE_MMAP_FAIL", smdb_code::SMDB_FILE_MMAP_FAIL,
-            "SMDB_FILE_HANDLE_FAIL", smdb_code::SMDB_FILE_HANDLE_FAIL,
-            "SMDB_FILE_MAPPING_FAIL", smdb_code::SMDB_FILE_MAPPING_FAIL,
-            "SMDB_FILE_EXPAND_FAIL", smdb_code::SMDB_FILE_EXPAND_FAIL
+            "SMDB_SUCCESS", SMDB_SUCCESS,
+            "SMDB_DB_NOT_INIT", SMDB_DB_NOT_INIT,
+            "SMDB_DB_ITER_ING", SMDB_DB_ITER_ING,
+            "SMDB_SIZE_KEY_FAIL", SMDB_SIZE_KEY_FAIL,
+            "SMDB_SIZE_VAL_FAIL", SMDB_SIZE_VAL_FAIL,
+            "SMDB_FILE_OPEN_FAIL", SMDB_FILE_OPEN_FAIL,
+            "SMDB_FILE_FDNO_FAIL", SMDB_FILE_FDNO_FAIL,
+            "SMDB_FILE_MMAP_FAIL", SMDB_FILE_MMAP_FAIL,
+            "SMDB_FILE_HANDLE_FAIL", SMDB_FILE_HANDLE_FAIL,
+            "SMDB_FILE_MAPPING_FAIL", SMDB_FILE_MAPPING_FAIL,
+            "SMDB_FILE_EXPAND_FAIL", SMDB_FILE_EXPAND_FAIL
         );
         kit_state.new_class<smdb_driver>(
             "get", &smdb_driver::get,

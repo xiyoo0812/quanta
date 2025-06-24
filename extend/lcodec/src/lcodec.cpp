@@ -74,30 +74,30 @@ namespace lcodec {
         llcodec.set_function("url_decode", url_decode);
         llcodec.set_function("bitset", bitset_new);
         llcodec.new_enum("pgsql_type_f",
-            "bind", cmd_type_f::bind,
-            "sync", cmd_type_f::sync,
-            "close", cmd_type_f::close,
-            "query", cmd_type_f::query,
-            "parse", cmd_type_f::parse,
-            "flush", cmd_type_f::flush,
-            "execute", cmd_type_f::execute,
-            "discribe", cmd_type_f::discribe,
-            "password", cmd_type_f::password,
-            "function_call", cmd_type_f::function_call,
-            "startup", cmd_type_f::startup
+            "BIND", BIND,
+            "SYNC", SYNC,
+            "CLOSE", CLOSE,
+            "QUERY", QUERY,
+            "PARSE", PARSE,
+            "FLUSH", FLUSH,
+            "EXECUTE", EXECUTE,
+            "DISCRIBE", DISCRIBE,
+            "PASSWORD", PASSWORD,
+            "FUNC_CALL", FUNC_CALL,
+            "STARTUP", STARTUP
         );
         llcodec.new_enum("auth_type_t",
-            "ok", auth_type_t::ok,
-            "v5", auth_type_t::v5,
-            "md5", auth_type_t::md5,
-            "scm", auth_type_t::scm,
-            "gss", auth_type_t::gss,
-            "sspi", auth_type_t::sspi,
-            "sasl", auth_type_t::sasl,
-            "cleartext", auth_type_t::cleartext,
-            "sasl_final", auth_type_t::sasl_final,
-            "gss_continue", auth_type_t::gss_continue,
-            "sasl_continue", auth_type_t::sasl_continue
+            "OK", OK,
+            "V5", V5,
+            "MD5", MD5,
+            "SCM", SCM,
+            "GSS", GSS,
+            "SSPI", SSPI,
+            "SASL", SASL,
+            "CLEARTEXT", CLEARTEXT,
+            "SASL_FINAL", SASL_FINAL,
+            "GSS_CONTINUE", GSS_CONTINUE,
+            "SASL_CONTINUE", SASL_CONTINUE
         );
         kit_state.new_class<bitset>(
             "get", &bitset::get,

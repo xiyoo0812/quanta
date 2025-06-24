@@ -46,7 +46,7 @@ namespace lsmdb {
                 auto val = read_value(L, 2);
                 return m_smdb->put(key, val);
             }
-            return smdb_code::SMDB_DB_NOT_INIT;
+            return SMDB_DB_NOT_INIT;
         }
 
         smdb_code del(lua_State* L) {
@@ -54,14 +54,14 @@ namespace lsmdb {
                 auto key = read_key(L, 1);
                 return m_smdb->del(key);
             }
-            return smdb_code::SMDB_DB_NOT_INIT;
+            return SMDB_DB_NOT_INIT;
         }
 
         smdb_code clear(lua_State* L) {
             if (m_smdb){
                 return m_smdb->clear();
             }
-            return smdb_code::SMDB_DB_NOT_INIT;
+            return SMDB_DB_NOT_INIT;
         }
 
         int get(lua_State* L) {
@@ -103,8 +103,7 @@ namespace lsmdb {
     protected:
         string read_key(lua_State* L, int idx) {
             size_t len;
-            int type = lua_type(L, idx);
-            if (type != LUA_TSTRING && type != LUA_TNUMBER) {
+            if (int type = lua_type(L, idx); type != LUA_TSTRING && type != LUA_TNUMBER) {
                 luaL_error(L, "lsmdb read key %d type %s not suppert!", idx, lua_typename(L, idx));
             }
             if (m_codec) {

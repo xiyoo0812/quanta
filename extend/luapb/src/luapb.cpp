@@ -23,9 +23,8 @@ namespace luapb {
     #pragma pack()
 
     pb_message* pbmsg_from_cmdid(size_t cmd_id) {
-        auto it = pb_cmd_ids.find(cmd_id);
-        if (it == pb_cmd_ids.end()) return nullptr;
-        return it->second;
+        if (auto it = pb_cmd_ids.find(cmd_id); it != pb_cmd_ids.end()) return it->second;
+        return nullptr;
     }
 
     pb_message* pbmsg_from_stack(lua_State* L, int index, uint16_t* cmd_id = nullptr) {
@@ -181,8 +180,7 @@ namespace luapb {
 
     int pb_enum_id(lua_State* L) {
         auto efullname = lua_tostring(L, 1);
-        auto penum = find_enum(efullname);
-        if (penum) {
+        if (auto penum = find_enum(efullname); penum) {
             if (lua_isstring(L, 2)) {
                 auto key = lua_tostring(L, 2);
                 auto it = penum->kvpair.find(key);
@@ -226,8 +224,7 @@ namespace luapb {
         luapb.set_function("loadfile", load_file);
         luapb.set_function("messages", pb_messages);
         luapb.set_function("bind_cmd", [](uint32_t cmd_id, std::string name, std::string fullname) {
-            auto message = find_message(fullname.c_str());
-            if (message) {
+            if (auto message = find_message(fullname.c_str()); message) {
                 pb_cmd_names[name] = message;
                 pb_cmd_ids[cmd_id] = message;
                 pb_cmd_indexs[name] = cmd_id;

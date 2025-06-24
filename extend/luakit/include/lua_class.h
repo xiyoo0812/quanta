@@ -78,12 +78,12 @@ namespace luakit {
         }
 
         const char* key = lua_tostring(L, 2);
-        const char* meta_name = lua_get_meta_name<T>();
-        if (!key || !meta_name) {
+        if (!key) {
             lua_pushnil(L);
             return 1;
         }
-        luaL_getmetatable(L, meta_name);
+        auto meta_name = lua_get_meta_name<T>();
+        luaL_getmetatable(L, meta_name.c_str());
         lua_pushstring(L, key);
         lua_rawget(L, -2);
 
@@ -103,10 +103,10 @@ namespace luakit {
         if (!obj) return 0;
 
         const char* key = lua_tostring(L, 2);
-        const char* meta_name = lua_get_meta_name<T>();
-        if (!key || !meta_name) return 0;
+        if (!key) return 0;
 
-        luaL_getmetatable(L, meta_name);
+        auto meta_name = lua_get_meta_name<T>();
+        luaL_getmetatable(L, meta_name.c_str());
         lua_pushstring(L, key);
         lua_rawget(L, -2);
 
@@ -161,8 +161,8 @@ namespace luakit {
     template <typename T, typename... arg_types>
     void lua_wrap_class(lua_State* L, arg_types... args) {
         lua_guard g(L);
-        const char* meta_name = lua_get_meta_name<T>();
-        luaL_getmetatable(L, meta_name);
+        auto meta_name = lua_get_meta_name<T>();
+        luaL_getmetatable(L, meta_name.c_str());
         if (lua_isnil(L, -1)) {
             //创建类元表以及基础元方法
             luaL_Reg meta[] = {
@@ -172,7 +172,7 @@ namespace luakit {
                 {NULL, NULL}
             };
             lua_pop(L, 1);
-            luaL_newmetatable(L, meta_name);
+            luaL_newmetatable(L, meta_name.c_str());
             luaL_setfuncs(L, meta, 0);
             //注册类成员
             static_assert(sizeof...(args) % 2 == 0, "You must have an even number of arguments for a key, value ... list.");

@@ -249,8 +249,8 @@ namespace luakit {
             lua_pushlightuserdata(L, obj);
             lua_setfield(L, -2, "__pointer__");
             // stack: __objects__, table
-            const char* meta_name = lua_get_meta_name<T>();
-            luaL_getmetatable(L, meta_name);
+            auto meta_name = lua_get_meta_name<T>();
+            luaL_getmetatable(L, meta_name.c_str());
             if (lua_isnil(L, -1)) {
                 lua_pop(L, 3);
                 lua_pushlightuserdata(L, obj);

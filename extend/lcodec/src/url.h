@@ -1,5 +1,4 @@
 #pragma once
-#include <string>
 
 namespace lcodec {
 
@@ -34,8 +33,7 @@ namespace lcodec {
     static std::string url_decode(std::string str) {
         std::string temp = "";
         size_t length = str.length();
-        for (size_t i = 0; i < length; i++)
-        {
+        for (size_t i = 0; i < length; i++) {
             if (str[i] == '+') temp += ' ';
             else if (str[i] == '%'){
                 unsigned char high = fromhex((unsigned char)str[++i]);

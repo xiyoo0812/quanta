@@ -1,12 +1,5 @@
 ﻿#pragma once
 
-#include <string>
-#include <vector>
-#include <thread>
-#include <mutex>
-#include <limits.h>
-#include <functional>
-#include <unordered_map>
 #include "socket_helper.h"
 
 using namespace luakit;
@@ -149,7 +142,7 @@ private:
     }
 
     uint32_t new_token() {
-        while (++m_token == 0 || m_objects.find(m_token) != m_objects.end()) {}
+        while (++m_token == 0 || m_objects.contains(m_token)) {}
         return m_token;
     }
 

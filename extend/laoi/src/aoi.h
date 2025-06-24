@@ -1,14 +1,11 @@
 #ifndef __AOI_H__
 #define __AOI_H__
-#include "lua_kit.h"
 
 #include <set>
 #include <list>
 #include <vector>
-#include <memory>
-#include <algorithm>
-#include <unordered_map>
-#include <stdlib.h>
+
+#include "lua_kit.h"
 
 using namespace std;
 using namespace luakit;
@@ -19,9 +16,10 @@ namespace laoi {
 
     enum class aoi_type : uint16_t
     {
-        watcher     = 0,    //观察者
-        marker      = 1,    //被观察者
+        WATCHER     = 0,    //观察者
+        MARKER      = 1,    //被观察者
     };
+    using enum aoi_type;
 
     class aoi;
     #pragma pack(2)
@@ -98,8 +96,7 @@ namespace laoi {
             uint16_t nxgrid = convert_x(x, m_grid_hot);
             uint16_t nzgrid = convert_z(z, m_grid_hot);
             uint32_t index = nxgrid << 16 | nzgrid;
-            auto it = m_hotmaps.find(index);
-            if (it != m_hotmaps.end()) {
+            if (auto it = m_hotmaps.find(index); it != m_hotmaps.end()) {
                 return it->second;
             }
             return 0;
@@ -171,11 +168,11 @@ namespace laoi {
             std::vector<uint64_t> eenters;
             for (auto cobj : objs) {
                 if (obj == cobj) continue;
-                if (cobj->type == aoi_type::watcher) {
+                if (cobj->type == WATCHER) {
                     eenters.push_back(cobj->eid);
                     eenters.push_back(obj->eid);
                 }
-                if (obj->type == aoi_type::watcher) {
+                if (obj->type == WATCHER) {
                     eenters.push_back(obj->eid);
                     eenters.push_back(cobj->eid);
                 }
@@ -211,11 +208,11 @@ namespace laoi {
             std::vector<uint64_t> eleaves;
             for (auto cobj : objs) {
                 if (obj == cobj) continue;
-                if (cobj->type == aoi_type::watcher) {
+                if (cobj->type == WATCHER) {
                     eleaves.push_back(cobj->eid);
                     eleaves.push_back(obj->eid);
                 }
-                if (obj->type == aoi_type::watcher) {
+                if (obj->type == WATCHER) {
                     eleaves.push_back(obj->eid);
                     eleaves.push_back(cobj->eid);
                 }
@@ -255,11 +252,11 @@ namespace laoi {
             std::vector<uint64_t> eenters, eleaves;
             for (auto cobj : enters) {
                 if (obj == cobj) continue;
-                if (cobj->type == aoi_type::watcher) {
+                if (cobj->type == WATCHER) {
                     eenters.push_back(cobj->eid);
                     eenters.push_back(obj->eid);
                 }
-                if (obj->type == aoi_type::watcher) {
+                if (obj->type == WATCHER) {
                     eenters.push_back(obj->eid);
                     eenters.push_back(cobj->eid);
                 }
@@ -267,11 +264,11 @@ namespace laoi {
             //退出视野
             for (auto cobj : leaves) {
                 if (obj == cobj) continue;
-                if (cobj->type == aoi_type::watcher) {
+                if (cobj->type == WATCHER) {
                     eleaves.push_back(cobj->eid);
                     eleaves.push_back(obj->eid);
                 }
-                if (obj->type == aoi_type::watcher) {
+                if (obj->type == WATCHER) {
                     eleaves.push_back(obj->eid);
                     eleaves.push_back(cobj->eid);
                 }

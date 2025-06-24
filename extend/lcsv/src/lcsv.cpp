@@ -12,8 +12,7 @@ using namespace luakit;
 namespace lcsv {
 
     inline void decode_value(lua_State* L, string key) {
-        const char* value = key.data();
-        if (lua_stringtonumber(L, value) == 0) {
+        if (const char* value = key.data(); lua_stringtonumber(L, value) == 0) {
             lua_pushlstring(L, value, key.length());
         }
     }

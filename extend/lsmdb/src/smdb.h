@@ -1,8 +1,4 @@
 #pragma once
-#include <set>
-#include <vector>
-#include <string>
-#include <unordered_map>
 
 #ifdef WIN32
 #include <io.h>
@@ -48,6 +44,7 @@ namespace lsmdb {
         SMDB_FILE_MAPPING_FAIL,
         SMDB_FILE_EXPAND_FAIL,
     };
+    using enum smdb_code;
 
  /*+------------+-----------+----------+----------+---------+
  * |  2 bytes   |  22 bytes | 8 bytes  |  n bytes | n bytes |
@@ -66,10 +63,10 @@ namespace lsmdb {
             m_file = fopen(path, "rb+");
             if (!m_file) {
                 m_file = fopen(path, "wb+");
-                if (!m_file) return smdb_code::SMDB_FILE_OPEN_FAIL;
+                if (!m_file) return SMDB_FILE_OPEN_FAIL;
             }
             m_fd = fileno(m_file);
-            if (m_fd < 0) return smdb_code::SMDB_FILE_FDNO_FAIL;
+            if (m_fd < 0) return SMDB_FILE_FDNO_FAIL;
             return load_file();
         }
 
@@ -94,14 +91,14 @@ namespace lsmdb {
                 memset(m_buffer + m_offset, 0, m_alloc - m_offset);
                 return shrink(m_offset);
             }
-            return smdb_code::SMDB_DB_ITER_ING;
+            return SMDB_DB_ITER_ING;
         }
 
         smdb_code put(string& key, string_view val) {
-            if (m_itering) return smdb_code::SMDB_DB_ITER_ING;
+            if (m_itering) return SMDB_DB_ITER_ING;
             uint32_t ksz = key.size(), vsz = val.size();
-            if (ksz > KEY_SIZE_MAX) return smdb_code::SMDB_SIZE_KEY_FAIL;
-            if (vsz > VAL_SZIE_MAX) return smdb_code::SMDB_SIZE_VAL_FAIL;
+            if (ksz > KEY_SIZE_MAX) return SMDB_SIZE_KEY_FAIL;
+            if (vsz > VAL_SZIE_MAX) return SMDB_SIZE_VAL_FAIL;
             uint32_t kvsize = ksz + vsz + sizeof(uint32_t);
             auto code = check_space(kvsize);
             if (is_error(code)) return code;
@@ -111,8 +108,7 @@ namespace lsmdb {
             memcpy(m_buffer + offset, &flagsz, sizeof(uint32_t));
             memcpy(m_buffer + offset + sizeof(uint32_t), key.data(), ksz);
             memcpy(m_buffer + voffset, val.data(), vsz);
-            auto nh = m_values.extract(key);
-            if (!nh.empty()) {
+            if (auto nh = m_values.extract(key); !nh.empty()) {
                 //清理旧值
                 auto& dval = nh.mapped();
                 uint32_t osize = ksz + dval.vsize + sizeof(uint32_t);
@@ -128,12 +124,11 @@ namespace lsmdb {
                 m_values.emplace(key, dbval{ m_offset, voffset, vsz });
             }
             m_offset += kvsize;
-            return smdb_code::SMDB_SUCCESS;
+            return SMDB_SUCCESS;
         }
 
         string_view get(string& key) {
-            auto it = m_values.find(key);
-            if (it != m_values.end()) {
+            if (auto it = m_values.find(key); it != m_values.end()) {
                 auto& val = it->second;
                 return string_view(m_buffer + val.voffset, val.vsize);
             }
@@ -141,16 +136,14 @@ namespace lsmdb {
         }
 
         smdb_code del(string& key) {
-            if (m_itering) return smdb_code::SMDB_DB_ITER_ING;
-            auto it = m_values.find(key);
-            if (it != m_values.end()) {
-                auto& dval = it->second;
+            if (m_itering) return SMDB_DB_ITER_ING;
+            if (auto nh = m_values.extract(key); !nh.empty()) {
+                auto& dval = nh.mapped();
                 uint32_t size = key.size() + dval.vsize + sizeof(uint32_t);
                 memcpy(m_buffer + dval.offset, &size, sizeof(size));
-                m_values.erase(it);
                 m_waste += size;
             }
-            return smdb_code::SMDB_SUCCESS;
+            return SMDB_SUCCESS;
         }
 
         bool first(string_view& key, string_view& val) {
@@ -186,7 +179,7 @@ namespace lsmdb {
         }
 
         bool is_error(smdb_code code) {
-            return code != smdb_code::SMDB_SUCCESS;
+            return code != SMDB_SUCCESS;
         }
 
     protected:
@@ -212,18 +205,18 @@ namespace lsmdb {
             ftruncate(m_fd, m_alloc);
 #ifdef WIN32
             HANDLE hf = (HANDLE)_get_osfhandle(m_fd);
-            if (!hf) return smdb_code::SMDB_FILE_HANDLE_FAIL;
+            if (!hf) return SMDB_FILE_HANDLE_FAIL;
             HANDLE hfm = OpenFileMapping(FILE_MAP_ALL_ACCESS, false, "__smdb__");
             if (!hfm) hfm = CreateFileMapping(hf, 0, PAGE_READWRITE, 0, m_alloc, "__smdb__");
-            if (!hfm) return smdb_code::SMDB_FILE_MAPPING_FAIL;
+            if (!hfm) return SMDB_FILE_MAPPING_FAIL;
             m_buffer = (char*)MapViewOfFileEx(hfm, FILE_MAP_ALL_ACCESS, 0, 0, 0, 0);
             CloseHandle(hfm);
 #else
             m_buffer = (char*)mmap(NULL, m_alloc, PROT_WRITE, MAP_SHARED, m_fd, 0);
 #endif // WIN32
-            if (!m_buffer) return smdb_code::SMDB_FILE_MMAP_FAIL;
+            if (!m_buffer) return SMDB_FILE_MMAP_FAIL;
             memset(m_buffer, 0, m_alloc - m_offset);
-            return smdb_code::SMDB_SUCCESS;
+            return SMDB_SUCCESS;
         }
 
         void unmap_file() {
@@ -237,7 +230,7 @@ namespace lsmdb {
 
         smdb_code check_space(size_t size) {
             auto need = m_offset + size;
-            if (m_alloc >= need) return smdb_code::SMDB_SUCCESS;
+            if (m_alloc >= need) return SMDB_SUCCESS;
             if (m_alloc > ARRVAGE_SIZE && m_waste > m_alloc * 0.9) {
                 //整理当前内存
                 arrvage();
@@ -249,7 +242,7 @@ namespace lsmdb {
             }
             //扩容
             size = (need + DB_PAGE_SIZE - 1) / DB_PAGE_SIZE * DB_PAGE_SIZE;
-            if (size >= EXPAND_SIZE) return smdb_code::SMDB_FILE_EXPAND_FAIL;
+            if (size >= EXPAND_SIZE) return SMDB_FILE_EXPAND_FAIL;
             return truncate_space(size);
         }
 
@@ -266,7 +259,7 @@ namespace lsmdb {
                     return truncate_space(size);
                 }
             }
-            return smdb_code::SMDB_SUCCESS;
+            return SMDB_SUCCESS;
         }
 
         void arrvage() {

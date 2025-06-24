@@ -2,11 +2,7 @@
 
 #include <set>
 #include <list>
-#include <string>
 #include <chrono>
-#include <unordered_map>
-
-#include <math.h>
 
 #include "lua_kit.h"
 
@@ -185,15 +181,14 @@ namespace lprofile {
             if (old_ci && old_ci->co != L) {
                 old_ci->leave_tick = nowtick;
             }
-            auto it = m_call_infos.find(L);
-            if (it == m_call_infos.end()) {
-                m_cur_ci = new call_info{ L };
-                m_call_infos.emplace(L, m_cur_ci);
-            } else {
+            if (auto it = m_call_infos.find(L); it != m_call_infos.end()) {
                 m_cur_ci = it->second;
                 if (old_ci != m_cur_ci && m_cur_ci->leave_tick > 0) {
                     co_cost = nowtick - m_cur_ci->leave_tick;
                 }
+            } else {
+                m_cur_ci = new call_info{ L };
+                m_call_infos.emplace(L, m_cur_ci);
             }
             if (arv->event == LUA_HOOKCALL || arv->event == LUA_HOOKTAILCALL) {
                 lua_Debug ar;
@@ -246,18 +241,18 @@ namespace lprofile {
             //load加载的函数, 不记录
             if (frame.line == 0) return true;
             //观察的函数，需要记录
-            if (m_watch_funcs.find(frame.pointer) != m_watch_funcs.end()) return false;
+            if (m_watch_funcs.contains(frame.pointer)) return false;
             //命中函数名过滤，不记录
-            if (m_ignore_names.find(frame.name) != m_ignore_names.end()) return true;
+            if (m_ignore_names.contains(frame.name)) return true;
             //命中系统函数，不记录
             if (!frame.inlua) {
-                if (m_ignore_funcs.find(frame.pointer) != m_ignore_funcs.end()) return true;
+                if (m_ignore_funcs.contains(frame.pointer)) return true;
             }
             if (m_watch_files.empty()) {
                 //关注文件为空，检查过滤文件
-                return m_ignore_files.find(frame.source) != m_ignore_files.end();
+                return m_ignore_files.contains(frame.source);
             }
-            return m_watch_files.find(frame.source) != m_watch_files.end();
+            return m_watch_files.contains(frame.source);
         }
 
         void record_eval(call_frame& frame, uint64_t call_cost) {

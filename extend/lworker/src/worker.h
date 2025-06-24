@@ -1,5 +1,6 @@
 #ifndef __WORKER_H__
 #define __WORKER_H__
+#include <map>
 #include <thread>
 
 #include "lua_kit.h"
@@ -64,13 +65,12 @@ namespace lworker {
         }
 
         const char* get_env(const char* key) {
-            auto it = m_environs.find(key);
-            if (it != m_environs.end()) return it->second.c_str();
+            if (auto it = m_environs.find(key); it != m_environs.end()) return it->second.c_str();
             return nullptr;
         }
 
         void set_env(const char* key, const char* value, int over = 0) {
-            if (over == 1 || m_environs.find(key) == m_environs.end()) {
+            if (over == 1 || !m_environs.contains(key)) {
                 m_environs[key] = value;
             }
         }

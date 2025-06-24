@@ -6,19 +6,10 @@
 #endif
 
 namespace logger {
-    // class log_time
-    // --------------------------------------------------------------------------------
-    log_time log_time::now() {
-        system_clock::duration dur = system_clock::now().time_since_epoch();
-        time_t time = duration_cast<seconds>(dur).count();
-        auto time_ms = duration_cast<milliseconds>(dur).count();
-        return log_time(*std::localtime(&time), time, time_ms % 1000);
-    }
-
     // class log_message
     // --------------------------------------------------------------------------------
     void log_message::option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line) {
-        time_ = log_time::now();
+        time_ = time_point_cast<milliseconds>(system_clock::now());
         feature_ = feature;
         source_ = source;
         level_ = level;
@@ -90,11 +81,8 @@ namespace logger {
 
     cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
-            if (logmsg->check_sec(last_time_)) {
-                std::strftime(time_buf_, sizeof(time_buf_), "%Y-%m-%d %H:%M:%S", logmsg->logtime());
-            }
             auto names = level_names<log_level>()();
-            return std::format("[{}.{:03d}][{}][{}] ", time_buf_, logmsg->get_usec(), logmsg->tag(), names[(int)logmsg->level()]);
+            return std::format("[{:%Y-%m-%d %H:%M:%S}][{}][{}] ", logmsg->logtime(), logmsg->tag(), names[(int)logmsg->level()]);
         }
         return "";
     }
@@ -173,7 +161,7 @@ namespace logger {
         return alc_size_ > max_size_;
     }
 
-    bool log_file_base::create(path file_path, sstring file_name, const std::tm& file_time) {
+    bool log_file_base::create(path file_path, sstring file_name, log_time file_time) {
         unmap_file();
         size_ = 0;
         alc_size_ = PAGE_SIZE;
@@ -187,13 +175,13 @@ namespace logger {
     // class rolling_hourly
     // --------------------------------------------------------------------------------
     bool rolling_hourly::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        return logmsg->logtime()->tm_hour != log_file->file_time()->tm_hour;
+        return time_point_cast<hours>(logmsg->logtime()) != time_point_cast<hours>(log_file->filetime());
     }
 
     // class rolling_daily
     // --------------------------------------------------------------------------------
     bool rolling_daily::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        return logmsg->logtime()->tm_mday != log_file->file_time()->tm_mday;
+        return time_point_cast<days>(logmsg->logtime()) != time_point_cast<days>(log_file->filetime());
     }
 
     // class log_rollingfile
@@ -219,7 +207,7 @@ namespace logger {
                         }
                     }
                 } catch (...) {}
-                create(log_path_, new_log_file_name(logmsg), *logmsg->logtime());
+                create(log_path_, new_log_file_name(logmsg), logmsg->logtime());
                 assert(buff_);
             }
             raw_write(logtxt, logmsg->level());
@@ -227,9 +215,7 @@ namespace logger {
 
     template<class rolling_evaler>
     sstring log_rollingfile<rolling_evaler>::new_log_file_name(const sptr<log_message> logmsg) {
-        char time[20];
-        std::strftime(time, sizeof(time), "%Y%m%d-%H%M%S", logmsg->logtime());
-        return std::format("{}-{}.{:03d}.p{}.log", feature_, time, logmsg->get_usec(), ::getpid());
+        return std::format("{}-{:%Y%m%d-%H%M%S}.p{}.log", feature_, logmsg->logtime(), ::getpid());
     }
 
     // class log_service
@@ -258,10 +244,10 @@ namespace logger {
 
     bool log_service::add_dest(cpchar feature) {
         std::lock_guard<spin_mutex> lock(mutex_);
-        if (dest_features_.find(feature) == dest_features_.end()) {
+        if (!dest_features_.contains(feature)) {
             sptr<log_dest> logfile = nullptr;
             path logger_path = build_path(feature);
-            if (rolling_type_ == rolling_type::DAYLY) {
+            if (rolling_type_ == DAYLY) {
                 logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature, max_size_, clean_time_);
             } else {
                 logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature, max_size_, clean_time_);
@@ -276,18 +262,17 @@ namespace logger {
     }
 
     bool log_service::add_lvl_dest(log_level log_lvl) {
-        if (dest_lvls_.find(log_lvl) == dest_lvls_.end()) {
+        if (!dest_lvls_.contains(log_lvl)) {
             auto names = level_names<log_level>()();
             sstring feature = names[(int)log_lvl];
             std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
             path logger_path = build_path(service_.c_str());
             logger_path.append(feature);
             std::lock_guard<spin_mutex> lock(mutex_);
-            if (rolling_type_ == rolling_type::DAYLY) {
+            if (rolling_type_ == DAYLY) {
                 auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
                 dest_lvls_.insert(std::make_pair(log_lvl, logfile));
-            }
-            else {
+            } else {
                 auto logfile = std::make_shared<log_hourlyrollingfile>(logger_path, feature.c_str(), max_size_, clean_time_);
                 dest_lvls_.insert(std::make_pair(log_lvl, logfile));
             }
@@ -297,11 +282,11 @@ namespace logger {
 
     bool log_service::add_file_dest(cpchar feature, cpchar fname) {
         std::lock_guard<spin_mutex> lock(mutex_);
-        if (dest_features_.find(feature) == dest_features_.end()) {
+        if (!dest_features_.contains(feature)) {
             auto logfile = std::make_shared<log_file_base>(max_size_);
             path logger_path = build_path(service_.c_str());
             create_directories(logger_path);
-            if (!logfile->create(logger_path, fname, log_time::now())) {
+            if (!logfile->create(logger_path, fname, time_point_cast<milliseconds>(system_clock::now()))) {
                 return false;
             }
             logfile->ignore_prefix(true);
@@ -322,41 +307,30 @@ namespace logger {
 
     void log_service::del_dest(cpchar feature) {
         std::lock_guard<spin_mutex> lock(mutex_);
-        auto it = dest_features_.find(feature);
-        if (it != dest_features_.end()) {
-            dest_features_.erase(it);
-        }
+        dest_features_.erase(feature);
     }
 
     void log_service::del_lvl_dest(log_level log_lvl) {
         std::lock_guard<spin_mutex> lock(mutex_);
-        auto it = dest_lvls_.find(log_lvl);
-        if (it != dest_lvls_.end()) {
-            dest_lvls_.erase(it);
-        }
+        dest_lvls_.erase(log_lvl);
     }
 
     void log_service::set_dest_clean_time(cpchar feature, size_t clean_time){
         std::lock_guard<spin_mutex> lock(mutex_);
-        auto it = dest_features_.find(feature);
-        if (it != dest_features_.end()) {
+        if (auto it = dest_features_.find(feature); it != dest_features_.end()) {
             it->second->set_clean_time(clean_time);
         }
     }
 
     void log_service::ignore_prefix(cpchar feature, bool prefix) {
-        auto iter = dest_features_.find(feature);
-        if (iter != dest_features_.end()) {
-            iter->second->ignore_prefix(prefix);
-            return;
+        if (auto it = dest_features_.find(feature); it != dest_features_.end()) {
+            it->second->ignore_prefix(prefix);
         }
     }
 
     void log_service::ignore_suffix(cpchar feature, bool suffix) {
-        auto iter = dest_features_.find(feature);
-        if (iter != dest_features_.end()) {
-            iter->second->ignore_suffix(suffix);
-            return;
+        if (auto it = dest_features_.find(feature); it != dest_features_.end()) {
+            it->second->ignore_suffix(suffix);
         }
     }
 
@@ -365,7 +339,6 @@ namespace logger {
     }
 
     log_service::~log_service() {
-        auto tid = std::this_thread::get_id();
         running_ = false;
         if (thread_.joinable()) {
             thread_.join();
@@ -401,13 +374,11 @@ namespace logger {
                         std_dest_->write(logmsg);
                     }
                     main_dest_->write(logmsg);
-                    auto it_lvl = dest_lvls_.find(logmsg->level());
-                    if (it_lvl != dest_lvls_.end()) {
-                        it_lvl->second->write(logmsg);
+                    if (auto it = dest_lvls_.find(logmsg->level()); it != dest_lvls_.end()) {
+                        it->second->write(logmsg);
                     }
-                    auto it_fea = dest_features_.find(logmsg->feature());
-                    if (it_fea != dest_features_.end()) {
-                        it_fea->second->write(logmsg);
+                    if (auto it = dest_features_.find(logmsg->feature()); it != dest_features_.end()) {
+                        it->second->write(logmsg);
                     }
                 }
                 empty = false;
@@ -428,16 +399,14 @@ namespace logger {
     }
 
     log_agent::~log_agent() {
-        auto service = service_.lock();
-        if (service) {
+        if (auto service = service_.lock(); service) {
             service->del_agent(get_id());
         }
     }
 
     void log_agent::attach(wptr<log_service> service) { 
         service_ = service;
-        auto lservice = service_.lock();
-        if (lservice) {
+        if (auto lservice = service_.lock(); lservice) {
             lservice->add_agent(shared_from_this());
         }
     }

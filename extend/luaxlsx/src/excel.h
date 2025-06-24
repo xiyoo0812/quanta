@@ -1,8 +1,7 @@
 #pragma once
 
-#include <math.h>
+#include <map>
 #include <vector>
-#include <string>
 #include <unordered_map>
 
 #include "miniz.h"
@@ -63,8 +62,7 @@ namespace lxlsx {
         }
 
         int get_value(lua_State* L) {
-            auto ev = elem->FirstChildElement("v");
-            if (ev) {
+            if (auto ev = elem->FirstChildElement("v"); ev) {
                 auto v = ev->GetText();
                 if (!v) return 0;
                 if (fmt_id > 0) {
@@ -87,8 +85,7 @@ namespace lxlsx {
                     lua_pushstring(L, fmt_code.c_str());
                     return 3;
                 }
-                auto t = elem->Attribute("t");
-                if (t && !strcmp(t, "s")) {
+                if (auto t = elem->Attribute("t"); t && !strcmp(t, "s")) {
                     lua_pushlstring(L, shared.c_str(), shared.size());
                     return 1;
                 }
@@ -126,8 +123,7 @@ namespace lxlsx {
         }
 
         int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
-            cell* cell = get_cell(row, col);
-            if (cell) return cell->get_value(L);
+            if (auto cell = get_cell(row, col);  cell) return cell->get_value(L);
             return 0;
         }
 
@@ -244,7 +240,7 @@ namespace lxlsx {
             return (it != workbooks.end()) ? *it : nullptr;
         }
 
-        vector<workbook*> all_workbooks(lua_State* L) { 
+        vector<workbook*> all_workbooks(lua_State* L) {
             return workbooks;
         }
 
@@ -285,8 +281,7 @@ namespace lxlsx {
                 }
                 row = row->NextSiblingElement("row");
             }
-            XMLElement* mcell = root->FirstChildElement("mergeCells");
-            if (mcell) {
+            if (auto mcell = root->FirstChildElement("mergeCells"); mcell) {
                 mcell = mcell->FirstChildElement("mergeCell");
                 while (mcell) {
                     merge_cells(book, mcell->Attribute("ref"));
@@ -315,8 +310,7 @@ namespace lxlsx {
 
             uint32_t i = 0;
             for (XMLElement* cellXf = cellXfs->FirstChildElement(); cellXf; cellXf = cellXf->NextSiblingElement()) {
-                const char* fi = cellXf->Attribute("numFmtId");
-                if (fi) {
+                if (auto fi = cellXf->Attribute("numFmtId"); fi) {
                     string fmt;
                     uint32_t formatId = atoi(fi);
                     auto iter = custom_date_formats.find(formatId);
@@ -415,8 +409,7 @@ namespace lxlsx {
         }
 
         void merge_cells(workbook* sh, const string& value) {
-            size_t index = value.find_first_of(':');
-            if (index != string::npos) {
+            if (auto index = value.find_first_of(':'); index != string::npos) {
                 uint32_t first_row = 0, first_col = 0, last_row = 0, last_col = 0;
                 parse_cell(value.substr(0, index), first_row, first_col);
                 parse_cell(value.substr(index + 1), last_row, last_col);

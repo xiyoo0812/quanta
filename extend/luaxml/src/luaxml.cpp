@@ -41,26 +41,24 @@ namespace luaxml {
             const XMLElement* child = elem->FirstChildElement();
             std::unordered_map<std::string, std::vector<const XMLElement*>> elems;
             while (child) {
-                auto it = elems.find(child->Name());
-                if (it != elems.end()) {
+                if (auto it = elems.find(child->Name()); it != elems.end()) {
                     it->second.push_back(child);
                 } else {
                     elems.insert(std::make_pair(child->Name(), std::vector{ child }));
                 }
                 child = child->NextSiblingElement();
             }
-            for (auto it : elems) {
-                size_t child_size = it.second.size();
-                if (child_size == 1) {
-                    push_elem2lua(L, it.second[0]);
+            for (auto& [key, velem] : elems) {
+                if (size_t child_size = velem.size(); child_size == 1) {
+                    push_elem2lua(L, velem[0]);
                 } else {
                     lua_createtable(L, 0, 4);
                     for (size_t i = 0; i < child_size; ++i) {
-                        push_elem2lua(L, it.second[i]);
+                        push_elem2lua(L, velem[i]);
                         lua_seti(L, -2, i + 1);
                     }
                 }
-                lua_setfield(L, -2, it.first.c_str());
+                lua_setfield(L, -2, key.c_str());
             }
         }
     }

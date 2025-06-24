@@ -44,6 +44,7 @@ namespace lbson {
         BSON_MINKEY     = 255,
         BSON_MAXKEY     = 127,
     };
+    using enum bson_type;
 
     class mgocodec;
     class bson {
@@ -113,11 +114,11 @@ namespace lbson {
         }
 
         int date(lua_State* L, int64_t value) {
-            return make_bson_value(L, bson_type::BSON_DATE, (uint8_t*)&value, sizeof(value));
+            return make_bson_value(L, BSON_DATE, (uint8_t*)&value, sizeof(value));
         }
 
         int int64(lua_State* L, int64_t value) {
-            return make_bson_value(L, bson_type::BSON_INT64, (uint8_t*)&value, sizeof(value));
+            return make_bson_value(L, BSON_INT64, (uint8_t*)&value, sizeof(value));
         }
 
         int objectid(lua_State* L) {
@@ -126,14 +127,14 @@ namespace lbson {
             if (data_len != 24) return luaL_error(L, "Invalid object id");
             char buffer[16] = { 0 };
             write_objectid(L, buffer, value);
-            return make_bson_value(L, bson_type::BSON_OBJECTID, (uint8_t*)buffer, 12);
+            return make_bson_value(L, BSON_OBJECTID, (uint8_t*)buffer, 12);
         }
 
         int pairs(lua_State* L) {
             m_buff->clean();
             size_t data_len = 0;
             m_buff->write<uint8_t>(0);
-            m_buff->write<uint8_t>((uint8_t)bson_type::BSON_DOCUMENT);
+            m_buff->write<uint8_t>((uint8_t)BSON_DOCUMENT);
             uint8_t* data = encode_pairs(L, &data_len);
             lua_pushlstring(L, (const char*)data, data_len);
             return 1;
@@ -144,7 +145,7 @@ namespace lbson {
             size_t data_len = 0;
             uint8_t* value = (uint8_t*)lua_tolstring(L, 1, &data_len);
             m_buff->write<uint8_t>(0);
-            m_buff->write<uint8_t>((uint8_t)bson_type::BSON_BINARY);
+            m_buff->write<uint8_t>((uint8_t)BSON_BINARY);
             m_buff->write<uint8_t>(0); //subtype
             m_buff->write<int32_t>(data_len);
             if (data_len > 0) m_buff->push_data(value, data_len);
@@ -156,7 +157,7 @@ namespace lbson {
             m_buff->clean();
             size_t data_len = 0;
             m_buff->write<uint8_t>(0);
-            m_buff->write<uint8_t>((uint8_t)bson_type::BSON_REGEX);
+            m_buff->write<uint8_t>((uint8_t)BSON_REGEX);
             uint8_t* val1 = (uint8_t*)lua_tolstring(L, 1, &data_len);
             m_buff->push_data(val1, data_len);
             m_buff->write<uint8_t>(0);
@@ -295,12 +296,12 @@ namespace lbson {
             if (lua_isinteger(L, -1)) {
                 int64_t v = lua_tointeger(L, -1);
                 if (v >= INT32_MIN && v <= INT32_MAX) {
-                    write_pair<int32_t>(bson_type::BSON_INT32, key, klen, v);
+                    write_pair<int32_t>(BSON_INT32, key, klen, v);
                 } else {
-                    write_pair<int64_t>(bson_type::BSON_INT64, key, klen, v);
+                    write_pair<int64_t>(BSON_INT64, key, klen, v);
                 }
             } else {
-                write_pair<double>(bson_type::BSON_REAL, key, klen, lua_tonumber(L, -1));
+                write_pair<double>(BSON_REAL, key, klen, lua_tonumber(L, -1));
             }
         }
 
@@ -340,22 +341,22 @@ namespace lbson {
         }
 
         bson_type check_doctype(lua_State *L, size_t raw_len) {
-            if (raw_len == 0) return bson_type::BSON_DOCUMENT;
+            if (raw_len == 0) return BSON_DOCUMENT;
             lua_guard g(L);
             lua_pushnil(L);
             size_t cur_len = 0;
             while(lua_next(L, -2) != 0) {
                 if (!lua_isinteger(L, -2)) {
-                    return bson_type::BSON_DOCUMENT;
+                    return BSON_DOCUMENT;
                 }
                 size_t key = lua_tointeger(L, -2);
                 if (key <= 0 || key > raw_len) {
-                    return bson_type::BSON_DOCUMENT;
+                    return BSON_DOCUMENT;
                 }
                 cur_len++;
                 lua_pop(L, 1);
             }
-            return cur_len == raw_len ? bson_type::BSON_ARRAY : bson_type::BSON_DOCUMENT;
+            return cur_len == raw_len ? BSON_ARRAY : BSON_DOCUMENT;
         }
 
         void pack_table(lua_State *L, const char* key, size_t len, int depth) {
@@ -365,7 +366,7 @@ namespace lbson {
             int raw_len = lua_rawlen(L, -1);
             bson_type type = check_doctype(L, raw_len);
             write_key(type, key, len);
-            if (type == bson_type::BSON_DOCUMENT) {
+            if (type == BSON_DOCUMENT) {
                 lua_getfield(L, -1, "__order");
                 auto no_order = lua_isnil(L, -1);
                 lua_pop(L, 1);
@@ -383,29 +384,29 @@ namespace lbson {
 
         void pack_bson_value(lua_State* L, bson_type type){
             switch(type) {
-            case bson_type::BSON_MINKEY:
-            case bson_type::BSON_MAXKEY:
-            case bson_type::BSON_NULL:
+            case BSON_MINKEY:
+            case BSON_MAXKEY:
+            case BSON_NULL:
                 break;
-            case bson_type::BSON_BINARY:
+            case BSON_BINARY:
                 pack_binary(L);
                 break;
-            case bson_type::BSON_DATE:
+            case BSON_DATE:
                 pack_date(L);
                 break;
-            case bson_type::BSON_INT64:
-            case bson_type::BSON_TIMESTAMP:
+            case BSON_INT64:
+            case BSON_TIMESTAMP:
                 pack_int64(L);
                 break;
-            case bson_type::BSON_ARRAY:
-            case bson_type::BSON_JSCODE:
-            case bson_type::BSON_DOCUMENT:
+            case BSON_ARRAY:
+            case BSON_JSCODE:
+            case BSON_DOCUMENT:
                 pack_string(L);
                 break;
-            case bson_type::BSON_OBJECTID:
+            case BSON_OBJECTID:
                 pack_objectid(L);
                 break;
-            case bson_type::BSON_REGEX:
+            case BSON_REGEX:
                 pack_regex(L);
                 break;
             default:
@@ -420,7 +421,7 @@ namespace lbson {
                 write_number(L, key, klen);
                 break;
             case LUA_TBOOLEAN:
-                write_pair<bool>(bson_type::BSON_BOOLEAN, key, klen, lua_toboolean(L, -1));
+                write_pair<bool>(BSON_BOOLEAN, key, klen, lua_toboolean(L, -1));
                 break;
             case LUA_TTABLE: {
                     lua_getfield(L, -1, "__type");
@@ -442,7 +443,7 @@ namespace lbson {
                         write_key((bson_type)buf[1], key, klen);
                         m_buff->push_data((uint8_t*)(buf + 2), sz - 2);
                     } else {
-                        write_key(bson_type::BSON_STRING, key, klen);
+                        write_key(BSON_STRING, key, klen);
                         write_string(buf, sz);
                     }
                 }
@@ -545,35 +546,35 @@ namespace lbson {
             while (!slice->empty()) {
                 size_t klen = 0;
                 bson_type bt = (bson_type)read_val<uint8_t>(L, slice);
-                if (bt == bson_type::BSON_EOO) break;
+                if (bt == BSON_EOO) break;
                 unpack_key(L, slice, isarray);
                 switch (bt) {
-                case bson_type::BSON_REAL:
+                case BSON_REAL:
                     lua_pushnumber(L, read_val<double>(L, slice));
                     break;
-                case bson_type::BSON_BOOLEAN:
+                case BSON_BOOLEAN:
                     lua_pushboolean(L, read_val<bool>(L, slice));
                     break;
-                case bson_type::BSON_INT32:
+                case BSON_INT32:
                     lua_pushinteger(L, read_val<int32_t>(L, slice));
                     break;
-                case bson_type::BSON_DATE:
+                case BSON_DATE:
                     lua_pushinteger(L, read_val<int64_t>(L, slice) / 1000);
                     break;
-                case bson_type::BSON_INT64:
-                case bson_type::BSON_TIMESTAMP:
+                case BSON_INT64:
+                case BSON_TIMESTAMP:
                     lua_pushinteger(L, read_val<int64_t>(L, slice));
                     break;
-                case bson_type::BSON_OBJECTID:
+                case BSON_OBJECTID:
                     read_objectid(L, slice);
                     break;
-                case bson_type::BSON_JSCODE:
-                case bson_type::BSON_STRING:{
+                case BSON_JSCODE:
+                case BSON_STRING:{
                         const char* s = read_string(L, slice, klen);
                         lua_pushlstring(L, s, klen);
                     }
                     break;
-                case bson_type::BSON_BINARY: {
+                case BSON_BINARY: {
                         lua_createtable(L, 0, 4);
                         int32_t len = read_val<int32_t>(L, slice);
                         lua_pushinteger(L, (uint32_t)bt);
@@ -585,7 +586,7 @@ namespace lbson {
                         lua_setfield(L, -2, "binary");
                     }
                     break;
-                case bson_type::BSON_REGEX: {
+                case BSON_REGEX: {
                         lua_createtable(L, 0, 4);
                         lua_pushinteger(L, (uint32_t)bt);
                         lua_setfield(L, -2, "__type");
@@ -595,15 +596,15 @@ namespace lbson {
                         lua_setfield(L, -2, "option");
                     }
                     break;
-                case bson_type::BSON_DOCUMENT:
+                case BSON_DOCUMENT:
                     unpack_dict(L, slice, false);
                     break;
-                case bson_type::BSON_ARRAY:
+                case BSON_ARRAY:
                     unpack_dict(L, slice, true);
                     break;
-                case bson_type::BSON_MINKEY:
-                case bson_type::BSON_MAXKEY:
-                case bson_type::BSON_NULL: {
+                case BSON_MINKEY:
+                case BSON_MAXKEY:
+                case BSON_NULL: {
                         lua_createtable(L, 0, 2);
                         lua_pushinteger(L, (uint32_t)bt);
                         lua_setfield(L, -2, "__type");

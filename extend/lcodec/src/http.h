@@ -1,13 +1,7 @@
 #pragma once
 #include <vector>
-#include <string>
-#include <string.h>
 
 #include "lua_kit.h"
-
-#ifdef _MSC_VER
-#define strncasecmp _strnicmp
-#endif
 
 using namespace std;
 using namespace luakit;
@@ -107,8 +101,7 @@ namespace lcodec {
             if (lua_type(L, index + 1) == LUA_TTABLE) {
                 if (!m_codec) luaL_error(L, "http json not suppert, con't use lua table!");
                 body = m_codec->encode(L, index + 1, len);
-            }
-            else {
+            } else {
                 body = (uint8_t*)lua_tolstring(L, index + 1, len);
             }
             format_http_header("Content-Length", std::to_string(*len));
@@ -129,19 +122,18 @@ namespace lcodec {
             split(header, CRLF, headers);
             lua_createtable(L, 0, 4);
             for (auto header : headers) {
-                size_t pos = header.find(":");
-                if (pos != string_view::npos) {
+                if (size_t pos = header.find(":"); pos != string_view::npos) {
                     size_t hpos = pos + 1;
                     string_view key = header.substr(0, pos);
                     while (hpos < header.size() && isspace(header[hpos])) ++hpos;
                     header.remove_prefix(hpos);
-                    if (!strncasecmp(key.data(), "Content-Length", key.size())) {
+                    if (key.starts_with("Content-Length")) {
                         contentlenable = true;
                         size_t content_size = atol(header.data());
                         m_buffer.append(buf.data(), content_size);
                         buf.remove_prefix(content_size);
                     }
-                    else if (!strncasecmp(key.data(), "Transfer-Encoding", key.size()) && !strncasecmp(header.data(), CHUNKED, header.size())) {
+                    else if (key.starts_with("Transfer-Encoding") && header.starts_with(CHUNKED)) {
                         contentlenable = true;
                         bool complate = false;
                         while (buf.size() > 0) {
@@ -157,7 +149,7 @@ namespace lcodec {
                             buf.remove_prefix(pos + chunk_size + 2 * LCRLF);
                         }
                     }
-                    else if (!strncasecmp(key.data(), "Content-Type", key.size()) && header.find("json") != string_view::npos) {
+                    else if (key.starts_with("Content-Type") && header.find("json") != string_view::npos) {
                         jsonable = true;
                     }
                     //压栈
@@ -262,12 +254,11 @@ namespace lcodec {
 
         void http_parse_url(lua_State* L, string_view url) {
             string_view sparams;
-            size_t pos = url.find("?");
-            if (pos != string_view::npos) {
+            if (size_t pos = url.find("?"); pos != string_view::npos) {
                 sparams = url.substr(pos + 1);
                 url = url.substr(0, pos);
             }
-            if (url.size() > 1 && url.back() == '/') {
+            if (url.size() > 1 && url.ends_with('/')) {
                 url.remove_suffix(1);
             }
             //url
@@ -278,8 +269,7 @@ namespace lcodec {
                 vector<string_view> params;
                 split(sparams, "&", params);
                 for (string_view param : params) {
-                    size_t pos = param.find("=");
-                    if (pos != string_view::npos) {
+                    if (size_t pos = param.find("="); pos != string_view::npos) {
                         string_view key = param.substr(0, pos);
                         param.remove_prefix(pos + 1);
                         lua_pushlstring(L, key.data(), key.size());
@@ -326,5 +316,4 @@ namespace lcodec {
         }
     };
 }
-
 

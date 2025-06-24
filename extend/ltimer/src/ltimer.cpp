@@ -77,8 +77,7 @@ namespace ltimer {
         int mask = TIME_NEAR;
         size_t stime = ct >> TIME_NEAR_SHIFT;
         while ((ct & (mask - 1)) == 0) {
-            uint32_t idx = stime & TIME_LEVEL_MASK;
-            if (idx != 0) {
+            if (auto idx = stime & TIME_LEVEL_MASK; idx != 0) {
                 move_list(i, idx);
                 break;
             }

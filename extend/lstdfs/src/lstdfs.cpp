@@ -1,8 +1,7 @@
 #define LUA_LIB
 
 #include <chrono>
-#include <iostream>
-#include <filesystem>
+
 #include "lua_kit.h"
 
 using namespace std;
@@ -190,8 +189,7 @@ namespace lstdfs {
     }
 
     string get_file_type(fspath path) {
-        file_status s = status(path);
-        switch (s.type()) {
+        switch (auto s = status(path); s.type()) {
         case file_type::none: return "none";
         case file_type::not_found: return "not_found";
         case file_type::regular: return "regular";

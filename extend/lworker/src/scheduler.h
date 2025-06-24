@@ -1,6 +1,5 @@
 #ifndef __SCHEDULER_H__
 #define __SCHEDULER_H__
-#include <condition_variable>
 
 #include "worker.h"
 
@@ -27,8 +26,7 @@ namespace lworker {
 
         std::shared_ptr<worker> find_worker(vstring name) {
             std::lock_guard<spin_mutex> lock(m_mutex);
-            auto it = m_worker_map.find(name);
-            if (it != m_worker_map.end()) {
+            if (auto it = m_worker_map.find(name); it != m_worker_map.end()) {
                 return it->second;
             }
             return nullptr;
@@ -36,8 +34,7 @@ namespace lworker {
 
         bool startup(vstring name, environ_map& envs, vstring conf) {
             std::lock_guard<spin_mutex> lock(m_mutex);
-            auto it = m_worker_map.find(name);
-            if (it == m_worker_map.end()) {
+            if (auto it = m_worker_map.find(name); it == m_worker_map.end()) {
                 auto workor = std::make_shared<worker>(this, name, m_namespace, m_platform);
                 m_worker_map.insert(std::make_pair(name, workor));
                 workor->startup(m_environs, envs, conf);
@@ -130,8 +127,7 @@ namespace lworker {
 
         void stop(vstring name) {
             std::lock_guard<spin_mutex> lock(m_mutex);
-            auto it = m_worker_map.find(name);
-            if (it != m_worker_map.end()) {
+            if (auto it = m_worker_map.find(name); it != m_worker_map.end()) {
                 it->second->stop();
                 m_worker_map.erase(it);
             }
