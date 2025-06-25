@@ -357,12 +357,12 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
 void socket_stream::do_recv(size_t max_len, bool is_eof) {
     size_t total_recv = 0;
     while (total_recv < max_len && m_link_status == elink_status::link_connected) {
-        auto* space = m_recv_buffer->peek_space(SOCKET_RECV_LEN);
+        auto* space = m_recv_buffer->peek_space(SOCKET_TCP_RECV_LEN);
         if (space == nullptr) {
             on_error("recv-buffer-full");
             return;
         }
-        int recv_len = ::recv(m_socket, (char*)space, SOCKET_RECV_LEN, 0);
+        int recv_len = ::recv(m_socket, (char*)space, SOCKET_TCP_RECV_LEN, 0);
         if (recv_len < 0) {
             int err = get_socket_error();
 #ifdef IO_IOCP

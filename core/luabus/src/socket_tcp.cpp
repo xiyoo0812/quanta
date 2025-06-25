@@ -170,7 +170,7 @@ int socket_tcp::recv(lua_State* L, int timeout) {
         return 2;
     }
     while (true) {
-        int recv_len = ::recv(m_fd, m_recv_buf, SOCKET_RECV_LEN, 0);
+        int recv_len = ::recv(m_fd, m_recv_buf, SOCKET_TCP_RECV_LEN, 0);
         if (recv_len > 0) {
             lua_pushboolean(L, true);
             lua_pushlstring(L, m_recv_buf, recv_len);

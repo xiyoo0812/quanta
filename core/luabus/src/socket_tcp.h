@@ -30,5 +30,5 @@ protected:
 
 protected:
     socket_t m_fd;
-    char m_recv_buf[SOCKET_RECV_LEN];
+    char m_recv_buf[SOCKET_TCP_RECV_LEN];
 };

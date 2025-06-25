@@ -1,6 +1,5 @@
 #ifndef __WORKER_H__
 #define __WORKER_H__
-#include <map>
 #include <thread>
 
 #include "lua_kit.h"
@@ -148,10 +147,11 @@ namespace lworker {
                     m_lua.set_path(it->first.c_str(), it->second.c_str());
                 }
             }
-            std::thread(&worker::run, this).swap(m_thread);
+            //Æô¶¯Ïß³Ì
+            m_thread = std::jthread(std::bind(&worker::run, this, std::placeholders::_1));
         }
 
-        void run(){
+        void run(std::stop_token stoken){
             m_codec.set_buff(luakit::get_buff());
             auto quanta = m_lua.new_table(m_namespace.c_str());
             auto tid = std::this_thread::get_id();
@@ -184,7 +184,7 @@ namespace lworker {
 
             const char* ns = m_namespace.c_str();
             while (m_running) {
-                if (m_stop) {
+                if (stoken.stop_requested()) {
                     m_lua.table_call(ns, "stop");
                     m_running = false;
                 }
@@ -193,10 +193,8 @@ namespace lworker {
         }
 
         void stop(){
-            m_stop = true;
-            if (m_thread.joinable()) {
-                m_thread.join();
-            }
+            m_thread.request_stop();
+            m_thread.join();
         }
 
         bool running() {
@@ -204,17 +202,16 @@ namespace lworker {
         }
 
     private:
+        kit_state m_lua;
         spin_mutex m_mutex;
-        std::thread m_thread;
-        bool m_stop = false;
-        bool m_running = true;
         worker_codec m_codec;
-        luakit::kit_state m_lua;
         environ_map m_environs = {};
         ischeduler* m_schedulor = nullptr;
-        std::string m_name, m_namespace, m_platform;
+        sstring m_name, m_namespace, m_platform;
         std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
         std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();
+        std::jthread m_thread;
+        bool m_running = true;
     };
 }
 

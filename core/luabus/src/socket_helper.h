@@ -1,7 +1,8 @@
 ﻿#pragma once
 
-const int SOCKET_RECV_LEN   = 4096;
-const int SOCKET_PACKET_MAX = 1024 * 1024 * 16; //16m
+const int SOCKET_TCP_RECV_LEN   = 4096;
+const int SOCKET_UDP_RECV_LEN   = 65507;
+const int SOCKET_PACKET_MAX     = 1024 * 1024 * 16; //16m
 
 #ifdef POSIXI_API
 using socket_t = int;

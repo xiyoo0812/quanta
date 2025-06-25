@@ -234,12 +234,12 @@ namespace logger {
 
     protected:
         path build_path(cpchar feature);
+        void run(std::stop_token stoken);
         void flush();
-        void run();
 
         path            log_path_;
         spin_mutex      mutex_;
-        std::thread     thread_;
+        std::jthread    thread_;
         sstring         service_;
         sptr<log_dest>  std_dest_ = nullptr;
         sptr<log_dest>  main_dest_ = nullptr;
@@ -249,7 +249,7 @@ namespace logger {
         size_t max_size_ = MAX_SIZE, clean_time_ = CLEAN_TIME;
         rolling_type rolling_type_ = DAYLY;
         bool log_daemon_ = false;
-        bool running_ = false;
+        bool running_ = true;
     }; // class log_service
 }
 

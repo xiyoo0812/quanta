@@ -229,7 +229,7 @@ namespace logger {
         create_directories(log_path);
         add_dest(service);
         //启动日志线程
-        std::thread(&log_service::run, this).swap(thread_);
+        thread_ = std::jthread(std::bind(&log_service::run, this, std::placeholders::_1));
     }
 
     path log_service::build_path(cpchar feature) {
@@ -339,15 +339,13 @@ namespace logger {
     }
 
     log_service::~log_service() {
-        running_ = false;
-        if (thread_.joinable()) {
-            thread_.join();
-            agents_.clear();
-            dest_lvls_.clear();
-            dest_features_.clear();
-            main_dest_ = nullptr;
-            std_dest_ = nullptr;
-        }
+        thread_.request_stop();
+        thread_.join();
+        agents_.clear();
+        dest_lvls_.clear();
+        dest_features_.clear();
+        main_dest_ = nullptr;
+        std_dest_ = nullptr;
     }
 
     void log_service::flush() {
@@ -361,10 +359,12 @@ namespace logger {
         }
     }
    
-    void log_service::run() {
-        running_ = true;
+    void log_service::run(std::stop_token stoken) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         while (true) {
+            if (stoken.stop_requested()) {
+                running_ = false;
+            }
             bool empty = true;
             for (auto [_, agent] : agents_) {
                 auto logmsgs = agent->timed_getv(running_);

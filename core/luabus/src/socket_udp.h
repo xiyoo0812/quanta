@@ -21,5 +21,5 @@ public:
 protected:
     socket_t m_fd;
     ip_mreq* m_mreq = nullptr;
-    char m_recv_buf[SOCKET_RECV_LEN];
+    char m_recv_buf[SOCKET_UDP_RECV_LEN];
 };
