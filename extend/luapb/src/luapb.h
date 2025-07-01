@@ -589,7 +589,7 @@ namespace luapb{
     }
 
     void read_enum_value(slice* slice, pb_enum* info) {
-        int32_t value;
+        int32_t value = 0;
         auto pslice = read_len_prefixed(slice);
         while (!pslice.empty()) {
             uint32_t tag = read_varint<uint32_t>(&pslice);

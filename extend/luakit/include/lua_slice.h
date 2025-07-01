@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include "lua_base.h"
 
 namespace luakit {

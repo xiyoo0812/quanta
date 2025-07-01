@@ -2,6 +2,7 @@
 #include "socket_router.h"
 
 #include <ranges>
+#include <algorithm>
 
 uint32_t get_service_id(uint32_t node_id) { return  (node_id >> 16) & 0xff; }
 

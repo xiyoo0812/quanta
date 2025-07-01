@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <mutex>
+#include <format>
 #include <atomic>
 #include <string>
 #include <cstdint>
@@ -10,16 +11,15 @@
 #include <type_traits>
 #include <unordered_map>
 
-extern "C"
-{
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
+extern "C" {
+    #include "lua.h"
+    #include "lualib.h"
+    #include "lauxlib.h"
 }
 
 namespace luakit {
 
-    #define MAX_LUA_META_KEY 128
+    const int MAX_LUA_META_KEY = 128;
 
     //错误函数
     using error_fn = std::function<void(std::string_view err)>;

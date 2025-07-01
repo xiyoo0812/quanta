@@ -182,10 +182,7 @@ namespace lcodec {
         }
 
         void format_http_header(string_view key, string_view val) {
-            m_buf->push_data((uint8_t*)key.data(), key.size());
-            m_buf->push_data((uint8_t*)": ", LCRLF);
-            m_buf->push_data((uint8_t*)val.data(), val.size());
-            m_buf->push_data((const uint8_t*)CRLF, LCRLF);
+            m_buf->write(std::format("{}: {}\r\n", key, val));
         }
 
         void split(string_view str, string_view delim, vector<string_view>& res) {

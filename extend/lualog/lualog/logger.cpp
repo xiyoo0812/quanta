@@ -175,13 +175,13 @@ namespace logger {
     // class rolling_hourly
     // --------------------------------------------------------------------------------
     bool rolling_hourly::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        return time_point_cast<hours>(logmsg->logtime()) != time_point_cast<hours>(log_file->filetime());
+        return floor<hours>(logmsg->logtime()) != floor<hours>(log_file->filetime());
     }
 
     // class rolling_daily
     // --------------------------------------------------------------------------------
     bool rolling_daily::eval(const log_file_base* log_file, const sptr<log_message> logmsg) const {
-        return time_point_cast<days>(logmsg->logtime()) != time_point_cast<days>(log_file->filetime());
+        return floor<days>(logmsg->logtime()) != floor<days>(log_file->filetime());
     }
 
     // class log_rollingfile

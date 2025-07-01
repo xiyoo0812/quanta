@@ -25,6 +25,10 @@ void socket_tcp::close() {
     }
 }
 
+bool socket_tcp::invalid() {
+    return m_fd == INVALID_SOCKET;
+}
+
 bool socket_tcp::setup(bool noblock, bool reuse) {
     socket_t fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (fd == INVALID_SOCKET) {
@@ -36,8 +40,9 @@ bool socket_tcp::setup(bool noblock, bool reuse) {
     return true;
 }
 
-bool socket_tcp::invalid() {
-    return m_fd == INVALID_SOCKET;
+void socket_tcp::set_buff_size(int rcv_size, int snd_size) {
+    if (rcv_size > 0) setsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, (char*)&rcv_size, sizeof(rcv_size));
+    if (snd_size > 0) setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, (char*)&snd_size, sizeof(snd_size));
 }
 
 int socket_tcp::socket_waitfd(socket_t fd, int sw, size_t tm) {

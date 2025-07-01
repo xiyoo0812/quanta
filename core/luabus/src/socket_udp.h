@@ -14,6 +14,8 @@ public:
 
     int add_group(lua_State* L, const char* ip, bool loop);
 
+    void set_buff_size(int rcv_size, int snd_size = 0);
+
     int send(lua_State* L, const char* buf, size_t len, const char* ip, int port);
 
     int recv(lua_State* L);

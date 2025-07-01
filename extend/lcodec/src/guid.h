@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <time.h>
 
 //i  - group，10位，(0~1023)

@@ -2,6 +2,7 @@
 
 #include <set>
 #include <list>
+#include <cmath>
 #include <chrono>
 
 #include "lua_kit.h"

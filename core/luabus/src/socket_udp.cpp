@@ -16,6 +16,11 @@ void socket_udp::close() {
     }
 }
 
+void socket_udp::set_buff_size(int rcv_size, int snd_size) {
+    if (rcv_size > 0) setsockopt(m_fd, SOL_SOCKET, SO_RCVBUF, (char*)&rcv_size, sizeof(rcv_size));
+    if (snd_size > 0) setsockopt(m_fd, SOL_SOCKET, SO_SNDBUF, (char*)&snd_size, sizeof(snd_size));
+}
+
 bool socket_udp::setup(bool noblock, bool broadcast, bool reuse) {
     socket_t fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (fd <= 0) {

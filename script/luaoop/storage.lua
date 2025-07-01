@@ -94,7 +94,7 @@ end
 
 local function define_saver(class, sheet, name, is_obj)
     class["save_" .. name] = function(self, value)
-        if self[name] ~= value then
+        if self[name] ~= value or type(value) == "table" then
             self[name] = value
             local store, layers = update_store_value(self, sheet, name, value)
             if store and is_obj and value then
@@ -124,7 +124,7 @@ end
 
 local function define_field_saver(class, sheet, name, suffix, is_obj)
     class["save_" .. name .. suffix] = function(self, key, value)
-        if self[name][key] ~= value then
+        if self[name][key] ~= value or type(value) == "table" then
             self[name][key] = value
             local store, layers = update_store_field(self, sheet, name, key, value, is_obj)
             if store and is_obj and value then

@@ -55,7 +55,8 @@ namespace luabus {
             "recv", &socket_udp::recv,
             "bind", &socket_udp::bind,
             "close", &socket_udp::close,
-            "add_group", &socket_udp::add_group
+            "add_group", &socket_udp::add_group,
+            "set_buff_size", &socket_udp::set_buff_size
         );
         kit_state.new_class<socket_tcp>(
             "send", &socket_tcp::send,
@@ -64,7 +65,8 @@ namespace luabus {
             "accept", &socket_tcp::accept,
             "listen", &socket_tcp::listen,
             "invalid", &socket_tcp::invalid,
-            "connect", &socket_tcp::connect
+            "connect", &socket_tcp::connect,
+            "set_buff_size", &socket_udp::set_buff_size
         );
         kit_state.new_class<lua_socket_mgr>(
             "wait", &lua_socket_mgr::wait,

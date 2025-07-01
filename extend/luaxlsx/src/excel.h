@@ -67,16 +67,16 @@ namespace lxlsx {
                 if (!v) return 0;
                 if (fmt_id > 0) {
                     if (is_date_ime(fmt_id)) {
-                        lua_pushinteger(L, 86400 * (atoi(v) - 25569) -28800);
+                        lua_pushinteger(L, SECOND_DAY * (atoi(v) - SECOND_ROOT) - SECOND_HOUR8);
                         return 1;
                     }
                     if (is_custom(fmt_id)) {
                         if (fmt_code.find_first_of("yy") != std::string::npos) {
-                            lua_pushinteger(L, 86400 * (atoi(v) - 25569) -28800);
+                            lua_pushinteger(L, SECOND_DAY * (atoi(v) - SECOND_ROOT) - SECOND_HOUR8);
                             return 1;
                         }
                         if (fmt_code.find_first_of("mm:ss") != std::string::npos) {
-                            lua_pushnumber(L, atof(v) * 86400);
+                            lua_pushnumber(L, atof(v) * SECOND_DAY);
                             return 1;
                         }
                     }
