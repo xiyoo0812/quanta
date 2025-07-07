@@ -2,10 +2,9 @@
 local tonumber  = tonumber
 local tunpack   = table.unpack
 local sgmatch   = string.gmatch
+local ssplit    = string.split
 local qgetenv   = quanta.getenv
 local saddr     = qstring.addr
-local ssplit    = qstring.split
-local usplit    = qstring.usplit
 
 environ = {}
 
@@ -63,7 +62,7 @@ local function parse_options(value)
     local opts = {}
     local strs = ssplit(value, "&")
     for _, str in pairs(strs) do
-        local k, v = usplit(str, "=")
+        local k, v = ssplit(str, "=", false)
         if k and v then
             opts[k] = v
         end

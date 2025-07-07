@@ -8,6 +8,7 @@ local loadfile      = loadfile
 local mabs          = math.abs
 local lprint        = log.print
 local sgsub         = string.gsub
+local ssplit        = string.split
 local sformat       = string.format
 local qgetenv       = quanta.getenv
 local traceback     = debug.traceback
@@ -27,21 +28,6 @@ end
 
 local log_output = function(content)
     lprint(LOG_LEVEL.INFO, 0, THREAD_NAME, FEATURE, content)
-end
-
-local function ssplit(str, token)
-    local t = {}
-    while #str > 0 do
-        local pos = str:find(token)
-        if pos then
-            t[#t + 1] = str:sub(1, pos - 1)
-            str = str:sub(pos + 1, #str)
-        else
-            t[#t + 1] = str
-            break
-        end
-    end
-    return t
 end
 
 --加载部署日志

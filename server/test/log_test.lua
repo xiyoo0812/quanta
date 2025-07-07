@@ -27,9 +27,10 @@ for _, cycle in ipairs(params2) do
     log_dump("logger_test: cycle {} use time {} ms!", cycle, time)
 end
 
+local count = 100000
 local sformat = string.format
 local t1 = timer.clock_ms()
-for i = 1, 100000 do
+for i = 1, count do
     local x = sformat("test_%d, %s, %s", i, "sas", 3.14159)
     if i == 1 then
         log_debug("============1:{}", x)
@@ -41,7 +42,7 @@ log_debug("tt22:{}", t2)
 
 local lformat = log.format
 local t3 = timer.clock_ms()
-for i = 1, 100000 do
+for i = 1, count do
     local x = lformat("test_{}, {}, {}", i, "sas", 3.14159)
     if i == 1 then
         log_debug("============2:{}", x)

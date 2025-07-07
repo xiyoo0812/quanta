@@ -10,7 +10,7 @@ local ssub          = string.sub
 local sfind         = string.find
 local supper        = string.upper
 local sformat       = string.format
-local ssplit        = qstring.split
+local ssplit        = string.split
 local pb_enum_id    = protobuf.enum
 
 local HttpServer    = import("network/http_server.lua")

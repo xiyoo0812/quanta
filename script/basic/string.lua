@@ -1,6 +1,6 @@
 --string.lua
-local type = type
-local load = load
+local type      = type
+local load      = load
 local pcall     = pcall
 local tostring  = tostring
 local tunpack   = table.unpack
@@ -8,8 +8,6 @@ local ssub      = string.sub
 local sbyte     = string.byte
 local sfind     = string.find
 local sgsub     = string.gsub
-local supper    = string.upper
-local slower    = string.lower
 local sformat   = string.format
 local sgmatch   = string.gmatch
 
@@ -32,14 +30,6 @@ function qstring.trim(value)
     return sgsub(value, " ", "")
 end
 
-function qstring.title(value)
-    return supper(ssub(value, 1, 1)) .. ssub(value, 2, #value)
-end
-
-function qstring.untitle(value)
-    return slower(ssub(value, 1, 1)) .. ssub(value, 2, #value)
-end
-
 function qstring.count(value, chl)
     local c, p = 0, 0
     while true do
@@ -50,30 +40,6 @@ function qstring.count(value, chl)
         c = c + 1
     end
     return c
-end
-
-function qstring.split(str, token)
-    local pos, t = 0, {}
-    if #str > 0 then
-        for st, sp in function() return sfind(str, token, pos, true) end do
-            if st > 1 then
-                t[#t + 1] = ssub(str, pos, st - 1)
-            end
-            pos = sp + 1
-        end
-        if pos <= #str then
-            t[#t + 1] = ssub(str, pos)
-        end
-    end
-    return t
-end
-
-function qstring.start_with(str, start)
-    return str:sub(1, #start) == start
-end
-
-function qstring.ends_with(str, ending)
-    return str:sub(-#ending) == ending
 end
 
 function qstring.chars(src)
@@ -104,7 +70,7 @@ end
 
 --辅助接口
 --------------------------------------------------------------------------------
-local ssplit = qstring.split
+local ssplit = string.split
 function qstring.addr(value)
     local ip, port = tunpack(ssplit(value, ":"))
     return ip, tonumber(port)
@@ -132,8 +98,4 @@ function qstring.url(url)
         port = proto == "https" and 443 or 80
     end
     return proto, host, port, path
-end
-
-function qstring.usplit(str, token)
-    return tunpack(ssplit(str, token))
 end

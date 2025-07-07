@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <vector>
+#include <ranges>
 #include <string_view>
 
 #include "lua_kit.h"
@@ -130,7 +131,6 @@ namespace luapb{
         uint32_t length = read_varint<uint32_t>(slice);
         if (auto data = slice->erase(length); data) return luakit::slice(data, length);
         throw length_error("read_len_prefixed buffer length not engugh");
-        
     }
 
     inline void write_len_prefixed(luabuf* buf, slice* lslice) {
@@ -249,6 +249,7 @@ namespace luapb{
         uint32_t tag = 0;
         bool fill = false;
         bool packed = false;
+        bool complex = false;
 
         pb_field(const field& f, wiretype w) : name(f.name), type_name(f.type_name), number(f.number), label(f.label)
             , wtype(w), type(f.type), oneof_index(f.oneof_index) {
@@ -262,19 +263,22 @@ namespace luapb{
         virtual void encode(lua_State* L, int idx, luabuf* buff, bool enc_tag = true, bool enc_default = false) = 0;
         inline bool is_repeated() { return label == 3; }
         inline bool is_map() { return message && message->is_map; }
-        inline bool need_fill() {
-            if (fill) { fill = false; return false; }
-            return true;
-        }
-        inline bool not_fill() {
-            if (fill) return false;
-            fill = true;
-            return true;
-        }
         inline void location(lua_State* L) {
             name_ref = find_ref(L, name);
             if (type == TYPE_MESSAGE && !type_name.empty()) {
                 message = find_message(type_name.c_str());
+            }
+            complex = is_repeated() || is_map();
+        }
+        inline void check_table(lua_State* L, bool repeated) {
+            lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
+            lua_gettable(L, -2);
+            if (lua_isnil(L, -1)) {
+                lua_pop(L, 1);
+                lua_createtable(L, repeated ? 4 : 0, repeated ? 0 : 4);
+                lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
+                lua_pushvalue(L, -2);
+                lua_settable(L, -4);
             }
         }
     };
@@ -288,11 +292,7 @@ namespace luapb{
         pb_field_impl(const field& f, wiretype w) : pb_field(f, w) {}
 
         virtual void push_field(lua_State* L) {
-            if (name_ref > 0) {
-                lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
-            } else {
-                lua_pushlstring(L, name.c_str(), name.size());
-            }
+            lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
         }
         virtual void push_default(lua_State* L) {
             lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
@@ -413,7 +413,7 @@ namespace luapb{
         lua_createtable(L, 0, 1);
         lua_createtable(L, 0, fields.size());
         for (auto& [name, field] : sfields) {
-            if (field->is_map() || field->is_repeated()) continue;
+            if (field->complex) continue;
             field->push_default(L);
             lua_settable(L, -3);
         }
@@ -437,7 +437,7 @@ namespace luapb{
     }
 
     void decode_map(lua_State* L, slice* slice, pb_field* field) {
-        lua_getfield(L, -1, field->name.c_str());
+        field->check_table(L, false);
         auto msg = field->message;
         auto mslice = read_len_prefixed(slice);
         while (!mslice.empty()) {
@@ -453,7 +453,7 @@ namespace luapb{
     }
 
     void decode_repeated(lua_State* L, slice* slice, pb_field* field) {
-        lua_getfield(L, -1, field->name.c_str());
+        field->check_table(L, true);
         if (field->packed) {
             int len = 1;
             auto rslice = read_len_prefixed(slice);
@@ -478,22 +478,11 @@ namespace luapb{
                 skip_field(slice, tag);
                 continue;
             }
-            bool nfill = field->not_fill();
             if (field->is_map()) {
-                if (nfill) {
-                    field->push_field(L);
-                    lua_createtable(L, 0, 4);
-                    lua_settable(L, -3);
-                }
                 decode_map(L, slice, field);
                 continue;
             }
             if (field->is_repeated()) {
-                if (nfill) {
-                    field->push_field(L);
-                    lua_createtable(L, 0, 4);
-                    lua_settable(L, -3);
-                }
                 decode_repeated(L, slice, field);
                 continue;
             }
@@ -511,12 +500,12 @@ namespace luapb{
         if (descriptor.use_mteatable) {
             lua_rawgeti(L, LUA_REGISTRYINDEX, msg->meta_ref);
             lua_setmetatable(L, -2);
+            return;
         }
         for (auto& [name, field] : msg->sfields) {
-            if (field->need_fill() && !descriptor.use_mteatable) {
-                field->push_default(L);
-                lua_settable(L, -3);
-            }
+            if (field->complex) continue;
+            field->push_default(L);
+            lua_settable(L, -3);
         }
     }
 
@@ -707,8 +696,8 @@ namespace luapb{
         descriptor.clean();
         while (!slice->empty()) {
             switch (auto tag = read_varint<uint32_t>(slice); tag) {
-            case pb_tag(1, LEN): read_file_descriptor(slice); break;
-            default: skip_field(slice, tag); break;
+                case pb_tag(1, LEN): read_file_descriptor(slice); break;
+                default: skip_field(slice, tag); break;
             }
         }
         for (auto& [_, message] : descriptor.messages) {
@@ -733,29 +722,27 @@ namespace luapb{
     }
 
     int pb_enums(lua_State* L) {
-        vector<string_view> enums;
-        for (auto& [name, _] : descriptor.enums) {
-            enums.emplace_back(name);
-        }
-        return luakit::variadic_return(L, enums);
+        auto view = descriptor.enums | views::transform([](const auto& pair) -> string_view {
+            return pair.first;
+        });
+        return luakit::variadic_return(L, vector<string_view>(view.begin(), view.end()));
     }
 
     int pb_messages(lua_State* L) {
-        map<string_view, string_view> messages;
-        for (auto& [name, message] : descriptor.messages) {
-            messages.emplace(name, message->name);
-        }
-        return luakit::variadic_return(L, messages);
+        auto view = descriptor.messages | views::transform([](const auto& pair) {
+            return make_pair<string_view, string_view>(pair.first, pair.second->name);
+        });
+        return luakit::variadic_return(L, map<string_view, string_view>(view.begin(), view.end()));
     }
 
     int pb_fields(lua_State* L, const char* fulname) {
-        map<string_view, int> fields;
         auto message = find_message(fulname);
         if (message) {
-            for (auto& [name, field] : message->sfields) {
-                fields.emplace(name, (int)field->type);
-            }
+            auto view = message->sfields | views::transform([](const auto& pair) {
+                return make_pair(pair.first, static_cast<int>(pair.second->type));
+            });
+            return luakit::variadic_return(L, map<string_view, int>(view.begin(), view.end()));
         }
-        return luakit::variadic_return(L, fields);
+        return luakit::variadic_return(L, map<string_view, int>());
     }
 }

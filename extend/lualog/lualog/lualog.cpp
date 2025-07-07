@@ -90,7 +90,7 @@ namespace logger {
     template<size_t... integers>
     int fformat(lua_State* L, int flag, cpchar vfmt, std::index_sequence<integers...>&&) {
         try {
-            std::tuple args = std::make_tuple(read_args(L, flag, integers + 6)...);
+            std::tuple args = std::make_tuple(read_args(L, flag, integers + 2)...);
             auto msg = std::vformat(vfmt, std::make_format_args(std::get<integers>(args)...));
             lua_pushlstring(L, msg.c_str(), msg.size());
             return 1;

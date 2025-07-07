@@ -32,20 +32,6 @@ local function tindexof(tab, val)
     end
 end
 
-local function tis_array(tab)
-    if not tab then
-        return false
-    end
-    local idx = 1
-    for key in pairs(tab) do
-        if key ~= idx then
-            return false
-        end
-        idx = idx + 1
-    end
-    return true
-end
-
 local function tsize(t, filter)
     local c = 0
     for _, v in pairs(t or {}) do
@@ -219,7 +205,6 @@ qtable              = {}
 qtable.random       = trandom
 qtable.random_array = trandom_array
 qtable.indexof      = tindexof
-qtable.is_array     = tis_array
 qtable.size         = tsize
 qtable.copy         = tcopy
 qtable.deep_copy    = tdeep_copy

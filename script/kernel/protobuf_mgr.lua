@@ -12,8 +12,8 @@ local pb_encode     = protobuf.encode
 local pb_bind_cmd   = protobuf.bind_cmd
 local tunpack       = table.unpack
 local supper        = string.upper
-local ssplit        = qstring.split
-local sends_with    = qstring.ends_with
+local ssplit        = string.split
+local sends_with    = string.ends_with
 local dgetinfo      = debug.getinfo
 local setmetatable  = setmetatable
 
