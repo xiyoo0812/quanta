@@ -6,13 +6,13 @@ class luarpc_codec : public codec_base {
 public:
     virtual int load_packet(size_t data_len) {
         if (!m_slice) return 0;
-        uint32_t* packet_len = (uint32_t*)m_slice->peek(sizeof(uint32_t));
-        if (!packet_len) return 0;
-        if (*packet_len < sizeof(router_header)) return 0;
-        m_packet_len = *packet_len;
-        if (m_packet_len > 0xffffff) return -1;
-        if (m_packet_len > data_len) return 0;
-        if (!m_slice->peek(m_packet_len)) return 0;
+        router_header* header = (router_header*)m_slice->peek(sizeof(router_header));
+        if (!header) return 0;
+        uint32_t len = header->len >> 7;
+        if (len < sizeof(router_header)) return -1;
+        if (len > data_len) return 0;
+        if (!m_slice->peek(len)) return 0;
+        m_packet_len = len;
         return m_packet_len;
     }
 };

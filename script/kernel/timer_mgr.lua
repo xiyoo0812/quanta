@@ -28,7 +28,7 @@ function TimerMgr:trigger(handle, clock_ms)
     end
     --防止在定时器中阻塞
     handle.params[#handle.params] = clock_ms - handle.last
-    thread_mgr:fork(handle.cb, tunpack(handle.params))
+    thread_mgr:fork(handle.cb, nil, tunpack(handle.params))
     --更新定时器数据
     if handle.times == 0 then
         self.timers[handle.timer_id] = nil

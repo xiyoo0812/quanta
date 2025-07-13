@@ -2,10 +2,13 @@
 
 local tunpack           = table.unpack
 local log_err           = logger.err
+local log_info          = logger.info
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
 local make_timer        = quanta.make_timer
+local resume_trace      = quanta.resume_trace
+local extract_trace     = quanta.extract_trace
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
@@ -36,7 +39,7 @@ function RpcClient:__init(holder, ip, port, id)
     self.holder = holder
     self.timer = make_timer()
     self.timer:loop(SECOND_MS, function()
-    --    self:heartbeat()
+        self:heartbeat()
     end)
 end
 
@@ -82,41 +85,47 @@ function RpcClient:connect()
     end
     self.socket = socket
     local token = socket.token
-    socket.on_call = function(recv_len, session_id, rpc_flag, ...)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, session_id, rpc_flag, recv_len, ...)
+    socket.on_call = function(recv_len, session_id, ...)
+        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, session_id, ...)
     end
     socket.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = socket.call(session_id, rpc_flag, quanta.id, rpc, ...)
+        local trace_id, span_id = extract_trace()
+        local send_len = socket.call(session_id, rpc_flag, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.transfer = function(rpc, session_id, target_id, service_id, ...)
-        local send_len = socket.forward_transfer(session_id, target_id, service_id, quanta.id, rpc, ...)
+        local trace_id, span_id = extract_trace()
+        local send_len = socket.forward_transfer(session_id, FLAG_REQ, target_id, service_id, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_target = function(rpc, session_id, target, ...)
-        local send_len = socket.forward_target(session_id, FLAG_REQ, target, quanta.id, rpc, ...)
+        local trace_id, span_id = extract_trace()
+        local send_len = socket.forward_target(session_id, FLAG_REQ, target, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.callback_target = function(rpc, session_id, target, ...)
         if target == 0 then
-            local send_len = socket.call(session_id, FLAG_RES, quanta.id, rpc, ...)
+            local send_len = socket.call(session_id, FLAG_RES, 0, 0, quanta.id, rpc, ...)
             return self:on_call_router(rpc, token, send_len)
         else
-            local send_len = socket.forward_target(session_id, FLAG_RES, target, quanta.id, rpc, ...)
+            local send_len = socket.forward_target(session_id, FLAG_RES, target, 0, 0, quanta.id, rpc, ...)
             return self:on_call_router(rpc, token, send_len)
         end
     end
     socket.call_hash = function(rpc, session_id, service_id, hash_key, ...)
+        local trace_id, span_id = extract_trace()
         local hash_value = hash_code(hash_key, 0xffff)
-        local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, quanta.id, rpc, ...)
+        local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_master = function(rpc, session_id, service_id, ...)
-        local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, quanta.id, rpc, ...)
+        local trace_id, span_id = extract_trace()
+        local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_broadcast = function(rpc, session_id, service_id, ...)
-        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, quanta.id, rpc, ...)
+        local trace_id, span_id = extract_trace()
+        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.on_error = function(stoken, err)
@@ -133,7 +142,7 @@ end
 
 -- 主动关闭连接
 function RpcClient:close()
-    log_err("[RpcClient][close] socket {}:{}!", self.ip, self.port)
+    log_info("[RpcClient][close] socket {}:{}!", self.ip, self.port)
     self.timer:unregister()
     if self.socket then
         self.socket.close()
@@ -143,7 +152,7 @@ function RpcClient:close()
 end
 
 --rpc事件
-function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source, rpc, ...)
+function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, trace_id, span_id, source, rpc, ...)
     if rpc == "on_heartbeat" then
         return
     end
@@ -160,7 +169,7 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, recv_len, source,
                 socket.callback_target(rpc, session_id, source, tunpack(rpc_datas))
             end
         end
-        thread_mgr:fork(dispatch_rpc_message, ...)
+        thread_mgr:fork(dispatch_rpc_message, resume_trace(trace_id, span_id), ...)
         return
     end
     thread_mgr:response(session_id, ...)

@@ -3,6 +3,8 @@ local log_info      = logger.info
 local tunpack       = table.unpack
 local wcall         = quanta.call
 local wupdate       = quanta.update
+local resume_trace  = quanta.resume_trace
+local extract_trace = quanta.extract_trace
 
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -23,9 +25,9 @@ local function notify_rpc(session_id, thread_name, rpc, ...)
 end
 
 --rpc调用
-quanta.on_worker = function(session_id, flag, ...)
+quanta.on_worker = function(session_id, flag, trace_id, span_id, ...)
     if flag == FLAG_REQ then
-        thread_mgr:fork(notify_rpc, session_id, ...)
+        thread_mgr:fork(notify_rpc, resume_trace(trace_id, span_id), session_id, ...)
         return
     end
     thread_mgr:response(session_id, ...)
@@ -33,8 +35,9 @@ end
 
 --访问主线程
 quanta.call_master = function(rpc, ...)
+    local trace_id, span_id = extract_trace()
     local session_id = thread_mgr:build_session_id()
-    if wcall("master", session_id, FLAG_REQ, THREAD_NAME, rpc, ...) then
+    if wcall("master", session_id, FLAG_REQ, trace_id, span_id, THREAD_NAME, rpc, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end
     return false, "call failed"
@@ -42,13 +45,15 @@ end
 
 --通知主线程
 quanta.send_master = function(rpc, ...)
-    wcall("master", 0, FLAG_REQ, THREAD_NAME, rpc, ...)
+    local trace_id, span_id = extract_trace()
+    wcall("master", 0, FLAG_REQ, trace_id, span_id, THREAD_NAME, rpc, ...)
 end
 
 --访问其他线程
 quanta.call_worker = function(name, rpc, ...)
+    local trace_id, span_id = extract_trace()
     local session_id = thread_mgr:build_session_id()
-    if wcall(name, session_id, FLAG_REQ, THREAD_NAME, rpc, ...) then
+    if wcall(name, session_id, FLAG_REQ, THREAD_NAME, rpc, trace_id, span_id, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end
     return false, "call failed"
@@ -56,7 +61,8 @@ end
 
 --通知其他线程
 quanta.send_worker = function(name, rpc, ...)
-    wcall(name, 0, FLAG_REQ, THREAD_NAME, rpc, ...)
+    local trace_id, span_id = extract_trace()
+    wcall(name, 0, FLAG_REQ, trace_id, span_id, THREAD_NAME, rpc, ...)
 end
 
 --线程结束

@@ -10,6 +10,8 @@ local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local hash_code         = codec.hash_code
 local derive_port       = luabus.derive_port
+local resume_trace      = quanta.resume_trace
+local extract_trace     = quanta.extract_trace
 
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -59,7 +61,7 @@ function RpcServer:__init(holder, ip, port, induce)
 end
 
 --rpc事件
-function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ...)
+function RpcServer:on_socket_rpc(client, session_id, rpc_flag, trace_id, span_id, source, rpc, ...)
     if client.id or rpc == "rpc_register" then
         if session_id == 0 or rpc_flag == FLAG_REQ then
             local function dispatch_rpc_message(...)
@@ -70,7 +72,7 @@ function RpcServer:on_socket_rpc(client, session_id, rpc_flag, source, rpc, ...)
                     client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))
                 end
             end
-            thread_mgr:fork(dispatch_rpc_message, ...)
+            thread_mgr:fork(dispatch_rpc_message, resume_trace(trace_id, span_id), ...)
             return
         end
         thread_mgr:response(session_id, ...)
@@ -97,7 +99,7 @@ function RpcServer:on_socket_accept(client)
     self.clients[token] = client
     -- 绑定call/回调
     client.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = client.call(session_id, rpc_flag, 0, rpc, ...)
+        local send_len = client.call(session_id, rpc_flag, 0, 0, 0, rpc, ...)
         if send_len < 0 then
             log_err("[RpcServer][call_rpc] call failed! code:{}", send_len)
             return false
@@ -107,15 +109,15 @@ function RpcServer:on_socket_accept(client)
     client.on_call = function(recv_len, session_id, rpc_flag, ...)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, client, session_id, rpc_flag, ...)
     end
-    client.on_transfer = function(recv_len, session_id, service_id, target_id, slice)
+    client.on_transfer = function(recv_len, session_id, service_id, target_id, trace_id, span_id, slice)
         local function dispatch_rpc_message()
             if service_id < SERVICE_MAX then
-                event_mgr:notify_listener("on_transfer_rpc", client, session_id, service_id, target_id, slice)
+                event_mgr:notify_listener("on_transfer_rpc", client, session_id, service_id, slice)
                 return
             end
             event_mgr:notify_listener("on_broadcast_rpc", client, target_id, slice)
         end
-        thread_mgr:fork(dispatch_rpc_message)
+        thread_mgr:fork(dispatch_rpc_message, resume_trace(trace_id, span_id))
     end
     client.on_error = function(ctoken, err)
         thread_mgr:fork(function()
@@ -128,13 +130,15 @@ end
 
 --直接调用路由hash
 function RpcServer:transfer_call(session_id, target_id, slice)
-    return self.listener.transfer_call(session_id, target_id, slice)
+    local trace_id, span_id = extract_trace()
+    return self.listener.transfer_call(session_id, target_id, trace_id, span_id, slice)
 end
 
 --直接调用路由hash
 function RpcServer:transfer_hash(session_id, service_id, hash_key, rpc, ...)
+    local trace_id, span_id = extract_trace()
     local hash_value = hash_code(hash_key, 0xffff)
-    local send_len = self.listener.transfer_hash(session_id, service_id, hash_value, 0, rpc, ...)
+    local send_len = self.listener.transfer_hash(session_id, service_id, hash_value, trace_id, span_id, 0, rpc, ...)
     if send_len > 0 then
         if session_id > 0 then
             return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)

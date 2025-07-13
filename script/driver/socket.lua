@@ -123,7 +123,7 @@ end
 function Socket:on_socket_recv(token, ...)
     thread_mgr:fork(function(...)
         self.host:on_socket_recv(self, ...)
-    end, ...)
+    end, nil, ...)
 end
 
 function Socket:on_socket_error(token, err)

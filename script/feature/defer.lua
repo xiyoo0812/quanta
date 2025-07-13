@@ -19,9 +19,6 @@ function Defer:__defer()
     for _, handler in ipairs(self.triggers) do
         handler()
     end
-end
-
-function Defer:reset()
     self.triggers = {}
 end
 

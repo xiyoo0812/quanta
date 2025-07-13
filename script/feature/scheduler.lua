@@ -3,6 +3,8 @@
 local pcall         = pcall
 local log_err       = logger.err
 local tunpack       = table.unpack
+local resume_trace  = quanta.resume_trace
+local extract_trace = quanta.extract_trace
 
 local wbroadcast    = worker.broadcast
 local wupdate       = worker.update
@@ -62,13 +64,15 @@ end
 
 --访问其他线程任务
 function Scheduler:broadcast(rpc, ...)
-    wbroadcast("", 0, FLAG_REQ, "master", rpc, ...)
+    local trace_id, span_id = extract_trace()
+    wbroadcast("", 0, FLAG_REQ, trace_id, span_id, "master", rpc, ...)
 end
 
 --访问其他线程任务
 function Scheduler:call(name, rpc, ...)
+    local trace_id, span_id = extract_trace()
     local session_id = thread_mgr:build_session_id()
-    if not wcall(name, session_id, FLAG_REQ, "master", rpc, ... ) then
+    if not wcall(name, session_id, FLAG_REQ, trace_id, span_id, "master", rpc, ... ) then
         return false, "call failed!"
     end
     return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
@@ -76,7 +80,8 @@ end
 
 --访问其他线程任务
 function Scheduler:send(name, rpc, ...)
-    wcall(name, 0, FLAG_REQ, "master", rpc, ... )
+    local trace_id, span_id = extract_trace()
+    wcall(name, 0, FLAG_REQ, trace_id, span_id, "master", rpc, ... )
 end
 
 --事件分发
@@ -87,9 +92,9 @@ local function notify_rpc(session_id, thread_name, rpc, ...)
     end
 end
 
-function quanta.on_scheduler(session_id, flag, ...)
+function quanta.on_scheduler(session_id, flag, trace_id, span_id, ...)
     if flag == FLAG_REQ then
-        thread_mgr:fork(notify_rpc, session_id, ...)
+        thread_mgr:fork(notify_rpc, resume_trace(trace_id, span_id), session_id, ...)
         return
     end
     thread_mgr:response(session_id, ...)

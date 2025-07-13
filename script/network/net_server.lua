@@ -7,6 +7,7 @@ local log_debug         = logger.debug
 local signalquit        = signal.quit
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
+local new_trace         = quanta.new_trace
 local derive_port       = luabus.derive_port
 
 local proto_pb          = luabus.eproto_type.pb
@@ -196,7 +197,7 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body,
                 log_warn("[NetServer][on_socket_recv] pb cmd_id({}) decode field: {}!", cmd, err and err or "pb not define")
             end
         end
-        thread_mgr:fork(dispatch_rpc_message, session, type, cmd_id, body)
+        thread_mgr:fork(dispatch_rpc_message, new_trace(), session, type, cmd_id, body)
         return
     end
     --异步回执

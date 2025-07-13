@@ -13,11 +13,10 @@ namespace luapb {
 
     #pragma pack(1)
     struct pb_header {
-        uint16_t    len;            // 整个包的长度
-        uint8_t     flag;           // 标志位
-        uint8_t     type;           // 消息类型
+        uint32_t    len;            // 整个包的长度24bit(16M) + 标志位8bit
         uint16_t    cmd_id;         // 协议ID
         uint16_t    session_id;     // sessionId
+        uint8_t     type;           // 消息类型
         uint8_t     crc8;           // crc8
     };
     #pragma pack()
@@ -60,11 +59,11 @@ namespace luapb {
             if (!m_slice) return 0;
             pb_header* header =(pb_header*)m_slice->peek(sizeof(pb_header));
             if (!header) return 0;
-            m_packet_len = header->len;
-            if (m_packet_len < sizeof(pb_header)) return -1;
-            if (m_packet_len >= 0xffff) return -1;
-            if (!m_slice->peek(m_packet_len)) return 0;
-            if (m_packet_len > data_len) return 0;
+            uint32_t len = header->len >> 8;
+            if (len < sizeof(pb_header)) return -1;
+            if (!m_slice->peek(len)) return 0;
+            if (len > data_len) return 0;
+            m_packet_len = len;
             return m_packet_len;
         }
 
@@ -77,7 +76,7 @@ namespace luapb {
             pb_message* msg = pbmsg_from_stack(L, index++, &header.cmd_id);
             if (msg == nullptr) luaL_error(L, "invalid pb cmd type");
             //other
-            header.flag = (uint8_t)lua_tointeger(L, index++);
+            uint8_t flag = (uint8_t)lua_tointeger(L, index++);
             header.type = (uint8_t)lua_tointeger(L, index++);
             header.crc8 = (uint8_t)lua_tointeger(L, index++);
             //encode
@@ -90,7 +89,7 @@ namespace luapb {
                 luaL_error(L, e.what());
             }
             *len = buf->size();
-            header.len = *len;
+            header.len = *len << 8 | flag;
             buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
             return buf->head();
         }
@@ -103,7 +102,7 @@ namespace luapb {
             lua_pushinteger(L, m_slice->size());
             lua_pushinteger(L, header->session_id);
             lua_pushinteger(L, header->cmd_id);
-            lua_pushinteger(L, header->flag);
+            lua_pushinteger(L, header->len & 0xff);
             lua_pushinteger(L, header->type);
             lua_pushinteger(L, header->crc8);
             //cmd_id

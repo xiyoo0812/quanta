@@ -17,7 +17,7 @@ function qmath.rand(a, b)
 end
 
 function qmath.random()
-    return mrandom(0xffff, 0xfffffff)
+    return mrandom(0xffff, 0xffffffff)
 end
 
 --万分比是否命中

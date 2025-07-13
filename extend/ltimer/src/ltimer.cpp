@@ -128,6 +128,7 @@ namespace ltimer {
         luatimer.set_function("clock", []() { return luakit::steady(); });
         luatimer.set_function("now_ms", []() { return luakit::now_ms(); });
         luatimer.set_function("now_ns", []() { return luakit::now_ns(); });
+        luatimer.set_function("now_cs", []() { return luakit::now_cs(); });
         luatimer.set_function("clock_ms", []() { return luakit::steady_ms(); });
         luatimer.set_function("sleep", [](uint64_t ms) { return luakit::sleep(ms); });
         return luatimer;

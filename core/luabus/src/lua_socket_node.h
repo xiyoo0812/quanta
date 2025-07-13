@@ -29,27 +29,29 @@ public:
 
     int call_pb(lua_State* L);
     int call_data(lua_State* L);
-    int call(lua_State* L, uint32_t session_id, uint8_t flag);
+    int call(lua_State* L, uint32_t session_id, uint8_t flag, uint64_t trace_id, uint32_t span_id);
 
-    int forward_target(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t target_id);
-    int forward_hash(lua_State* L, uint32_t session_id, uint8_t flag, uint16_t service_id, uint16_t hash);
+    int forward_target(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t target_id, uint64_t trace_id, uint32_t span_id);
+    int forward_hash(lua_State* L, uint32_t session_id, uint8_t flag, uint32_t service_id, uint16_t hash, uint64_t trace_id, uint32_t span_id);
 
-    int forward_transfer(lua_State* L, uint32_t session_id, uint32_t target_id, uint8_t service_id);
+    int forward_transfer(lua_State* L, uint32_t session_id, uint32_t target_id, uint8_t service_id, uint64_t trace_id, uint32_t span_id);
 
-    int transfer_call(lua_State* L, uint32_t session_id, uint32_t target_id);
-    int transfer_hash(lua_State* L, uint32_t session_id, uint16_t service_id, uint16_t hash);
+    int transfer_call(lua_State* L, uint32_t session_id, uint32_t target_id, uint64_t trace_id, uint32_t span_id);
+    int transfer_hash(lua_State* L, uint32_t session_id, uint32_t service_id, uint16_t hash, uint64_t trace_id, uint32_t span_id);
 
     template <rpc_type forward_method>
-    int forward_by_group(lua_State* L, uint32_t session_id, uint8_t flag, uint16_t service_id) {
+    int forward_by_group(lua_State* L, uint32_t session_id, uint8_t flag, uint16_t service_id, uint64_t trace_id, uint32_t span_id) {
         size_t data_len = 0;
-        char* data = (char*)m_codec->encode(L, 4, &data_len);
-        size_t length = data_len + sizeof(router_header);
+        char* data = (char*)m_codec->encode(L, 6, &data_len);
+        uint32_t length = data_len + sizeof(router_header);
         if (length <= USHRT_MAX) {
-            router_header header;
-            header.len = length;
-            header.target_id = service_id;
-            header.session_id = session_id;
-            header.context = (uint8_t)forward_method << 4 | flag;
+            router_header header = {
+                .session_id = session_id,
+                .target_id = service_id,
+                .trace_id = trace_id,
+                .span_id = span_id
+            };
+            header.format_len(length, forward_method, flag);
             sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
             m_mgr->sendv(m_token, items, _countof(items));
             lua_pushinteger(L, length);

@@ -7,6 +7,7 @@ local co_resume     = coroutine.resume
 local co_running    = coroutine.running
 local qxpcall       = quanta.xpcall
 local synclock      = quanta.synclock
+local qbindtrace    = quanta.bind_trace
 local mrandom       = qmath.random
 local tsize         = qtable.size
 local log_warn      = logger.warn
@@ -49,7 +50,7 @@ function ThreadMgr:entry(key, func, ...)
         self.entry_map[key] = quanta.clock_ms + SECOND_30_MS
         qxpcall(func, "[ThreadMgr][entry] error: {}", ...)
         self.entry_map[key] = nil
-    end)
+    end, nil, ...)
     return true
 end
 
@@ -192,20 +193,26 @@ function ThreadMgr:on_second(clock_ms)
     end
 end
 
-function ThreadMgr:fork(f, ...)
+function ThreadMgr:fork(f, chain, ...)
     local pool = self.coroutine_pool
     local co = pool:pop()
     if co == nil then
         co = co_create(function()
             while true do
-                local rf = co_yield()
-                qxpcall(rf, "[ThreadMgr][fork] fork run error: {}", co_yield())
-                pool:push(co)
+                qxpcall(function()
+                    local func, cchain = co_yield()
+                    qbindtrace(cchain, co)
+                    func(co_yield())
+                    if cchain then
+                        cchain:output()
+                    end
+                    pool:push(co)
+                end, "[ThreadMgr][fork] fork run error: {}")
             end
         end)
         co_resume(co)
     end
-    co_resume(co, f)
+    co_resume(co, f, chain)
     co_resume(co, ...)
 end
 

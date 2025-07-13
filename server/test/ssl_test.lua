@@ -118,9 +118,9 @@ for i = 1, 200 do
     }
 end
 
-local j1 = timer.now_ns()
+local j1 = timer.now_cs()
 local jdata = json.encode(data)
-log_info("data: {}=>{}",  #jdata, timer.now_ns() - j1)
+log_info("data: {}=>{}",  #jdata, timer.now_cs() - j1)
 
 local t1 = timer.now_ms()
 local zstdc = ssl.zstd_encode(jdata)

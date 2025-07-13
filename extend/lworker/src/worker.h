@@ -147,7 +147,6 @@ namespace lworker {
                     m_lua.set_path(it->first.c_str(), it->second.c_str());
                 }
             }
-            //Æô¶¯Ïß³Ì
             m_thread = std::jthread(std::bind(&worker::run, this, std::placeholders::_1));
         }
 

@@ -47,7 +47,7 @@ function RouterServer:on_client_accept(client)
     client.on_forward_error = function(session_id, target_id, source_id, rpc)
         thread_mgr:fork(function()
             local target, source =  id2name(target_id), id2name(source_id)
-            log_err("[RouterServer][on_client_accept] on_forward_error, ssid:{}, tar:{}, src:{}, rpc:{})", session_id, target, source, rpc)
+            log_err("[RouterServer][on_forward_error] ssid:{}, tar:{}, src:{}, rpc:{})", session_id, target, source, rpc)
             self.rpc_server:callback(client, session_id, false, UNREACHABLE, "router con't find target!")
         end)
     end

@@ -53,9 +53,12 @@ namespace lcodec {
         luakit::kit_state kit_state(L);
         auto llcodec = kit_state.new_table("codec");
         llcodec.set_function("guid_new", guid_new);
+        llcodec.set_function("guid_hex", guid_hex);
+        llcodec.set_function("guid_tohex", guid_tohex);
         llcodec.set_function("guid_string", guid_string);
         llcodec.set_function("guid_tostring", guid_tostring);
-        llcodec.set_function("guid_number", guid_number);
+        llcodec.set_function("string_toguid", string_toguid);
+        llcodec.set_function("hex_toguid", string_toguid);
         llcodec.set_function("guid_encode", guid_encode);
         llcodec.set_function("guid_decode", guid_decode);
         llcodec.set_function("guid_source", guid_source);

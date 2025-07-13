@@ -5,6 +5,7 @@ local pcall         = pcall
 local pairs         = pairs
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
+local qtrace_id     = quanta.trace_id
 local lprint        = log.print
 local lfilter       = log.filter
 
@@ -67,10 +68,11 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
     if monitors then
         flag = flag | LOG_FLAG.MONITOR
     end
-    local ok, msg = pcall(lprint, lvl, flag, THREAD_NAME, feature, fmt, ...)
+    local trace_id = qtrace_id()
+    local ok, msg = pcall(lprint, lvl, flag, THREAD_NAME, trace_id, feature, fmt, ...)
     if not ok then
         local wfmt = "[logger][{}] format failed: {}=> {})"
-        lprint(LOG_LEVEL.WARN, 0, THREAD_NAME, feature, wfmt, lvl_name, msg, dtraceback())
+        lprint(LOG_LEVEL.WARN, 0, THREAD_NAME, trace_id, feature, wfmt, lvl_name, msg, dtraceback())
         return
     end
     if msg then

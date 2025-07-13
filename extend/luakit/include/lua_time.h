@@ -20,6 +20,11 @@ namespace luakit {
 		system_clock::duration dur = system_clock::now().time_since_epoch();
 		return duration_cast<nanoseconds>(dur).count();
 	}
+	
+	inline uint64_t now_cs() {
+		system_clock::duration dur = system_clock::now().time_since_epoch();
+		return duration_cast<microseconds>(dur).count();
+	}
 
 	inline uint64_t steady() {
 		steady_clock::duration dur = steady_clock::now().time_since_epoch();

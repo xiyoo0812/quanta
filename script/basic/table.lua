@@ -64,18 +64,22 @@ local function tdeep_copy(src, dst)
     return ndst
 end
 
-local function tdelete(stab, val, num)
-    num = num or 1
+local function terase(stab, func, all)
     for i = #stab, 1, -1 do
-        if stab[i] == val then
+        if func(i, stab[i]) then
             tremove(stab, i)
-            num = num - 1
-            if num <= 0 then
+            if not all then
                 break
             end
         end
     end
     return stab
+end
+
+local function tdelete(stab, val, all)
+    return terase(stab, function(i, v)
+        return v == val
+    end, all)
 end
 
 local function tjoin(src, dst)
@@ -198,7 +202,7 @@ end
 
 --设置弱表
 local function tweak(src, mode)
-    return setmetatable(src, { __mode = mode or "kv" })
+    return setmetatable(src, { __mode = mode or "k" })
 end
 
 qtable              = {}
@@ -209,6 +213,7 @@ qtable.size         = tsize
 qtable.copy         = tcopy
 qtable.deep_copy    = tdeep_copy
 qtable.delete       = tdelete
+qtable.erase        = terase
 qtable.join         = tjoin
 qtable.map          = tmap
 qtable.keys         = tkeys

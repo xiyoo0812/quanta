@@ -3,14 +3,15 @@
 #include "socket_mgr.h"
 #include "socket_helper.h"
 
-enum class rpc_type : char {
-    remote_call,
-    transfer_call,
-    forward_target,
-    forward_master,
-    forward_broadcast,
-    forward_hash,
+enum class rpc_type : uint8_t {
+    REMOTE_CALL,
+    TRANSFER_CALL,
+    FORWARD_TARGET,
+    FORWARD_MASTER,
+    FORWARD_BROADCAST,
+    FORWARD_HASH,
 };
+using enum rpc_type;
 
 const int MAX_SERVICE_GROUP = UCHAR_MAX + 1;
 
@@ -23,17 +24,25 @@ struct service_node {
 
 #pragma pack(1)
 struct router_header {
-    uint32_t len = 0;
-    uint8_t  context = 0;       //高4位为msg_id，低4位为flag
+    uint32_t len = 0;           //len 25bit(32M)，rpc_type 3bit，flag 4bit
     uint32_t session_id = 0;
     uint32_t target_id = 0;
+    uint64_t trace_id = 0;
+    uint32_t span_id = 0;
+    inline void format_len(uint32_t dlen, rpc_type rt, uint8_t flag) {
+        len = dlen << 7 | uint8_t(rt) << 4 | (flag & 0x0f);
+    }
 };
 struct transfer_header {
-    uint32_t len = 0;
-    uint8_t  context = 0;       //高4位为msg_id，低4位为flag
+    uint32_t len = 0;           //len 25bit(32M)，rpc_type 3bit，flag 4bit
     uint32_t session_id = 0;
     uint32_t target_id = 0;
+    uint64_t trace_id = 0;
+    uint32_t span_id = 0;
     uint8_t  service_id = 0;
+    inline void format_len(uint32_t dlen, rpc_type rt, uint8_t flag) {
+        len = dlen << 7 | uint8_t(rt) << 4 | (flag & 0x0f);
+    }
 };
 #pragma pack()
 

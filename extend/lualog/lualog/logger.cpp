@@ -81,8 +81,8 @@ namespace logger {
 
     cstring log_dest::build_prefix(sptr<log_message> logmsg) {
         if (!ignore_prefix_) {
-            auto names = level_names<log_level>()();
-            return std::format("[{:%Y-%m-%d %H:%M:%S}][{}][{}] ", logmsg->logtime(), logmsg->tag(), names[(int)logmsg->level()]);
+            auto lvlname = level_names[(int)logmsg->level()];
+            return std::format("[{:%Y-%m-%d %H:%M:%S}][{}][{}] ", logmsg->logtime(), logmsg->tag(), lvlname);
         }
         return "";
     }
@@ -103,8 +103,7 @@ namespace logger {
 
     void stdio_dest::raw_write(sstring& msg, log_level lvl) {
 #ifdef WIN32
-        auto colors = level_colors<log_level>()();
-        std::cout << colors[(int)lvl];
+        std::cout << level_colors[(int)lvl];
 #endif // WIN32
         std::cout << msg << std::endl;
     }
@@ -263,8 +262,7 @@ namespace logger {
 
     bool log_service::add_lvl_dest(log_level log_lvl) {
         if (!dest_lvls_.contains(log_lvl)) {
-            auto names = level_names<log_level>()();
-            sstring feature = names[(int)log_lvl];
+            sstring feature = level_names[(int)log_lvl];
             std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
             path logger_path = build_path(service_.c_str());
             logger_path.append(feature);

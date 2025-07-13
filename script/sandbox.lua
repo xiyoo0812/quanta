@@ -23,11 +23,11 @@ local THREAD_NAME   = quanta.thread
 local load_status = "success"
 local log_error = function(content)
     load_status = "failed"
-    lprint(LOG_LEVEL.ERROR, 0, THREAD_NAME, FEATURE, content)
+    lprint(LOG_LEVEL.ERROR, 0, THREAD_NAME, nil, FEATURE, content)
 end
 
 local log_output = function(content)
-    lprint(LOG_LEVEL.INFO, 0, THREAD_NAME, FEATURE, content)
+    lprint(LOG_LEVEL.INFO, 0, THREAD_NAME, nil, FEATURE, content)
 end
 
 --加载部署日志

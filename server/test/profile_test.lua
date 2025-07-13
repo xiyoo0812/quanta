@@ -75,9 +75,9 @@ if quanta.index == 2 then
         test(1)
         test1()
     end
-    local t1 = timer.now_ns()
+    local t1 = timer.now_cs()
     prof()
-    log_debug("prof-> {}", timer.now_ns() - t1)
+    log_debug("prof-> {}", timer.now_cs() - t1)
 end
 
 quanta.perfdump(50)

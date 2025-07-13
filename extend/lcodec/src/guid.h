@@ -68,6 +68,14 @@ namespace lcodec {
         return 1;
     }
 
+    static int guid_hex(lua_State* L, uint32_t group, uint32_t index) {
+        char sguid[32];
+        size_t guid = guid_new(group, index);
+        snprintf(sguid, 32, "%016zx", guid);
+        lua_pushstring(L, sguid);
+        return 1;
+    }
+
     static int guid_tostring(lua_State* L, uint64_t guid) {
         char sguid[32];
         snprintf(sguid, 32, "%zu", guid);
@@ -75,7 +83,18 @@ namespace lcodec {
         return 1;
     }
 
-    static uint64_t guid_number(std::string guid) {
+    static int guid_tohex(lua_State* L, uint64_t guid) {
+        char sguid[32];
+        snprintf(sguid, 32, "%016zx", guid);
+        lua_pushstring(L, sguid);
+        return 1;
+    }
+
+    static uint64_t string_toguid(std::string guid) {
+        return strtoull(guid.c_str(), nullptr, 10);
+    }
+
+    static uint64_t hex_toguid(std::string guid) {
         return strtoull(guid.c_str(), nullptr, 10);
     }
 

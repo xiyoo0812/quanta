@@ -56,21 +56,8 @@ namespace logger {
     const size_t MAX_SIZE   = 1024 * 1024 * 16;
     const size_t CLEAN_TIME = 7 * 24 * 3600;
 
-    template <typename T>
-    struct level_names {};
-    template <> struct level_names<log_level> {
-        constexpr std::array<const char*, 7> operator()() const {
-            return { "UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR","FATAL" };
-        }
-    };
-
-    template <typename T>
-    struct level_colors {};
-    template <> struct level_colors<log_level> {
-        constexpr std::array<const char*, 7> operator()() const {
-            return { "\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[33m", "\x1b[31m", "\x1b[32m" };
-        }
-    };
+    constexpr auto level_names = std::array{"UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR", "FATAL"};
+    constexpr auto level_colors = std::array{"\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[33m", "\x1b[31m", "\x1b[32m"};
 
     class log_message {
     public:

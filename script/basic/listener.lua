@@ -1,15 +1,18 @@
 --listener.lua
 local xpcall    = xpcall
 local tpack     = table.pack
+local tinsert   = table.insert
+local tremove   = table.remove
 local sformat   = string.format
 local qtweak    = qtable.weak
+local qterase   = qtable.erase
 local log_warn  = logger.warn
 local log_fatal = logger.fatal
 local dtraceback= debug.traceback
 
 local Listener = class()
 function Listener:__init()
-    self._triggers = {}     -- map<event, {[listener] = func_name, ...}
+    self._triggers = {}     -- map<event, {{[listener] = func_name}, ...}
     self._listeners = {}    -- map<event, {[listener] = func_name}
     self._commands = {}     -- map<cmd, {[listener] = func_name}
     self._ignores = {}      -- map<cmd, bool>
@@ -22,18 +25,26 @@ function Listener:add_trigger(trigger, event, handler)
         log_warn("[Listener][add_trigger] event({}) handler not define", event)
         return
     end
-    local trigger_map = self._triggers[event]
-    if not trigger_map then
-        self._triggers[event] = qtweak({ [trigger] = func_name })
+    local triggers = self._triggers[event]
+    if not triggers then
+        self._triggers[event] = { qtweak({ [trigger] = func_name })}
         return
     end
-    trigger_map[trigger] = func_name
+    tinsert(triggers, qtweak({ [trigger] = func_name }))
 end
 
 function Listener:remove_trigger(trigger, event)
-    local trigger_map = self._triggers[event]
-    if trigger_map then
-        trigger_map[trigger] = nil
+    if event then
+        local triggers = self._triggers[event] or {}
+        qterase(triggers, function(t)
+            return t == trigger
+        end)
+        return
+    end
+    for _, triggers in ipairs(self._triggers) do
+        qterase(triggers, function(t)
+            return t == trigger
+        end)
     end
 end
 
@@ -73,13 +84,22 @@ function Listener:remove_cmd_listener(cmd)
 end
 
 function Listener:notify_trigger(event, ...)
-    local trigger_map = self._triggers[event] or {}
-    for trigger, func_name in pairs(trigger_map) do
-        local callback_func = trigger[func_name]
-        local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)
-        if not ok then
-            log_fatal("[Listener][notify_trigger] xpcall [{}:{}] failed: {}!", trigger:source(), func_name, ret)
+    local removes = {}
+    local triggers = self._triggers[event] or {}
+    for i, info in ipairs(triggers) do
+        local trigger, func_name = next(info)
+        if trigger then
+            local callback_func = trigger[func_name]
+            local ok, ret = xpcall(callback_func, dtraceback, trigger, ...)
+            if not ok then
+                log_fatal("[Listener][notify_trigger] xpcall [{}:{}] failed: {}!", trigger:source(), func_name, ret)
+            end
+        else
+            removes[#removes + 1] = i
         end
+    end
+    for i = #removes, 1, -1 do
+        tremove(triggers, removes[i])
     end
 end
 

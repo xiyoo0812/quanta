@@ -30,5 +30,5 @@ include_files = {
     "extend/lmake/*.lua",
     "tools/*/*.lua",
 }
-ignore = {"212", "213", "512"}
+ignore = {"143", "212", "213", "512"}
 
