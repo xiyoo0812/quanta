@@ -101,12 +101,12 @@ namespace logger {
     class log_dest {
     public:
         virtual void flush() {};
-        virtual void write(sptr<log_message> logmsg);
         virtual void set_clean_time(size_t clean_time) {}
         virtual void raw_write(sstring& msg, log_level lvl) = 0;
+        virtual void write(sptr<log_message> logmsg, time_zone* zone);
         virtual void ignore_prefix(bool prefix) { ignore_prefix_ = prefix; }
         virtual void ignore_suffix(bool suffix) { ignore_suffix_ = suffix; }
-        virtual cstring build_prefix(sptr<log_message> logmsg);
+        virtual cstring build_prefix(sptr<log_message> logmsg, time_zone* zone);
         virtual cstring build_suffix(sptr<log_message> logmsg);
 
     protected:
@@ -118,7 +118,7 @@ namespace logger {
 
     class stdio_dest : public log_dest {
     public:
-        virtual void write(sptr<log_message> logmsg);
+        virtual void write(sptr<log_message> logmsg, time_zone* zone);
         virtual void raw_write(sstring& msg, log_level lvl);
     }; // class stdio_dest
 
@@ -158,11 +158,11 @@ namespace logger {
     public:
         log_rollingfile(path& log_path, cpchar namefix, size_t max_szie = MAX_SIZE, size_t clean_time = CLEAN_TIME);
 
-        virtual void write(sptr<log_message> logmsg);
+        virtual void write(sptr<log_message> logmsg, time_zone* zone);
         virtual void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
 
     protected:
-        sstring new_log_file_name(const sptr<log_message> logmsg);
+        sstring new_log_file_name(const sptr<log_message> logmsg, time_zone* zone);
 
         path                    log_path_;
         sstring                 feature_;
@@ -199,7 +199,7 @@ namespace logger {
         ~log_service();
 
         void daemon(bool status) { log_daemon_ = status; }
-        void option(cpchar log_path, cpchar service, cpchar index);
+        void option(cpchar log_path, cpchar service, cpchar index, cpchar zone);
 
         bool add_dest(cpchar feature);
         bool add_lvl_dest(log_level log_lvl);
@@ -228,6 +228,7 @@ namespace logger {
         spin_mutex      mutex_;
         std::jthread    thread_;
         sstring         service_;
+        time_zone*      zone_ = nullptr;
         sptr<log_dest>  std_dest_ = nullptr;
         sptr<log_dest>  main_dest_ = nullptr;
         std::map<uint64_t, sptr<log_agent>> agents_;
@@ -241,7 +242,7 @@ namespace logger {
 }
 
 extern "C" {
-    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index);
+    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index, cpchar zone = "Asia/Shanghai");
     LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
 }
 

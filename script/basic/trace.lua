@@ -43,9 +43,7 @@ end
 
 function quanta.resume_trace(trace_id, span_id)
     if trace_id > 0 then
-        local chain = new_chain(span_id, trace_id)
-        chain:set_shared(true)
-        return chain
+        return new_chain(span_id, trace_id)
     end
 end
 

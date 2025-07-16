@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package zipkin;
+
+//https://github.com/openzipkin/zipkin-api/blob/master/zipkin.proto
+
+enum Kind {
+    SPAN_KIND_UNSPECIFIED           = 0;
+    CLIENT                          = 1;
+    SERVER                          = 2;
+    PRODUCER                        = 3;
+    CONSUMER                        = 4;
+}
+
+message endpoint {
+    string service_name             = 1;    // 服务名（如"user-service"）
+    bytes ipv4                      = 2;    // IPv4地址（4字节二进制）
+    bytes ipv6                      = 3;    // IPv6地址（16字节二进制）
+    int32 port                      = 4;    // 端口号
+}
+
+message annotation {
+    fixed64 timestamp               = 1;    // 事件发生时间戳
+    string value                    = 2;    // 事件类型：cs, sr, ss, cr
+}
+
+message span {
+    bytes trace_id                  = 1;    // 8-16字节的Trace ID（二进制格式）
+    bytes parent_id                 = 2;    // 可选的父Span ID（8字节）
+    bytes id                        = 3;    // 当前Span ID（8字节）
+    Kind kind                       = 4;    // Span类型：CLIENT, SERVER, PRODUCER, CONSUMER
+    string name                     = 5;    // 操作名称（如HTTP请求路径）
+    fixed64 timestamp               = 6;    // 起始时间戳（微秒级）
+    uint64 duration                 = 7;    // 耗时（微秒）
+    endpoint local_endpoint         = 8;    // 本地服务信息
+    endpoint remote_endpoint        = 9;    // 远程服务信息（RPC调用时）
+    repeated annotation annotations = 10;   // 关键事件记录
+    map<string, string> tags        = 11;   // 标签（键值对）
+    bool debug                      = 12;   // 是否开启调试模式
+    bool shared                     = 13;   // 是否跨服务共享Span
+}
+
+message spans {
+    repeated span spans             = 1;
+}

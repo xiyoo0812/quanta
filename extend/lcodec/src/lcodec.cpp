@@ -55,7 +55,9 @@ namespace lcodec {
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_hex", guid_hex);
         llcodec.set_function("guid_tohex", guid_tohex);
+        llcodec.set_function("guid_tobin", guid_tobin);
         llcodec.set_function("guid_string", guid_string);
+        llcodec.set_function("guid_totrace", guid_totrace);
         llcodec.set_function("guid_tostring", guid_tostring);
         llcodec.set_function("string_toguid", string_toguid);
         llcodec.set_function("hex_toguid", string_toguid);

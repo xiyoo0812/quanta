@@ -1,16 +1,11 @@
 ﻿#include <locale>
 #include "quanta.h"
 
-#ifdef WIN32
-#define tzset _tzset
-#endif
-
 int main(int argc, const char* argv[])
 {
 #ifdef WIN32
     setlocale(LC_ALL, ".UTF8");
 #endif
-    tzset();
     quanta_app q_app;
     q_app.setup(argc, argv);
     q_app.run();

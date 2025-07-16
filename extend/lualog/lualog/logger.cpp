@@ -74,15 +74,15 @@ namespace logger {
 
     // class log_dest
     // --------------------------------------------------------------------------------
-    void log_dest::write(sptr<log_message> logmsg) {
-        auto logtxt = std::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+    void log_dest::write(sptr<log_message> logmsg, time_zone* zone) {
+        auto logtxt = std::format("{}{}{}\n", build_prefix(logmsg, zone), logmsg->msg(), build_suffix(logmsg));
         raw_write(logtxt, logmsg->level());
     }
 
-    cstring log_dest::build_prefix(sptr<log_message> logmsg) {
+    cstring log_dest::build_prefix(sptr<log_message> logmsg, time_zone* zone) {
         if (!ignore_prefix_) {
             auto lvlname = level_names[(int)logmsg->level()];
-            return std::format("[{:%Y-%m-%d %H:%M:%S}][{}][{}] ", logmsg->logtime(), logmsg->tag(), lvlname);
+            return std::format("[{:%Y-%m-%d %H:%M:%S}][{}][{}] ", zoned_time(zone, logmsg->logtime()), logmsg->tag(), lvlname);
         }
         return "";
     }
@@ -96,8 +96,8 @@ namespace logger {
 
     // class stdio_dest
     // --------------------------------------------------------------------------------
-    void stdio_dest::write(sptr<log_message> logmsg) {
-        auto logtxt = std::format("{}{}{}", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+    void stdio_dest::write(sptr<log_message> logmsg, time_zone* zone) {
+        auto logtxt = std::format("{}{}{}", build_prefix(logmsg, zone), logmsg->msg(), build_suffix(logmsg));
         raw_write(logtxt, logmsg->level());
     }
 
@@ -191,8 +191,8 @@ namespace logger {
     }
 
     template<class rolling_evaler>
-    void log_rollingfile<rolling_evaler>::write(sptr<log_message> logmsg) {
-            auto logtxt = std::format("{}{}{}\n", build_prefix(logmsg), logmsg->msg(), build_suffix(logmsg));
+    void log_rollingfile<rolling_evaler>::write(sptr<log_message> logmsg, time_zone* zone) {
+            auto logtxt = std::format("{}{}{}\n", build_prefix(logmsg, zone), logmsg->msg(), build_suffix(logmsg));
             if (buff_ == nullptr || rolling_evaler_.eval(this, logmsg) || check_full(logtxt.size())) {
                 create_directories(log_path_);
                 try {
@@ -206,27 +206,26 @@ namespace logger {
                         }
                     }
                 } catch (...) {}
-                create(log_path_, new_log_file_name(logmsg), logmsg->logtime());
+                create(log_path_, new_log_file_name(logmsg, zone), logmsg->logtime());
                 assert(buff_);
             }
             raw_write(logtxt, logmsg->level());
         }
 
     template<class rolling_evaler>
-    sstring log_rollingfile<rolling_evaler>::new_log_file_name(const sptr<log_message> logmsg) {
-        return std::format("{}-{:%Y%m%d-%H%M%S}.p{}.log", feature_, logmsg->logtime(), ::getpid());
+    sstring log_rollingfile<rolling_evaler>::new_log_file_name(const sptr<log_message> logmsg, time_zone* zone) {
+        return std::format("{}-{:%Y%m%d-%H%M%S}.p{}.log", feature_, zoned_time(zone, logmsg->logtime()), ::getpid());
     }
 
     // class log_service
     // --------------------------------------------------------------------------------
-
-
-    void log_service::option(cpchar log_path, cpchar service, cpchar index) {
+    void log_service::option(cpchar log_path, cpchar service, cpchar index, cpchar zone) {
         if (main_dest_) return;
         log_path_ = log_path;
         service_ = std::format("{}-{}", service, index);
         create_directories(log_path);
         add_dest(service);
+        zone_ = const_cast<time_zone*>(locate_zone(zone));
         //启动日志线程
         thread_ = std::jthread(std::bind(&log_service::run, this, std::placeholders::_1));
     }
@@ -369,14 +368,14 @@ namespace logger {
                 if (logmsgs == nullptr) continue;
                 for (auto logmsg : *logmsgs) {
                     if (!log_daemon_) {
-                        std_dest_->write(logmsg);
+                        std_dest_->write(logmsg, zone_);
                     }
-                    main_dest_->write(logmsg);
+                    main_dest_->write(logmsg, zone_);
                     if (auto it = dest_lvls_.find(logmsg->level()); it != dest_lvls_.end()) {
-                        it->second->write(logmsg);
+                        it->second->write(logmsg, zone_);
                     }
                     if (auto it = dest_features_.find(logmsg->feature()); it != dest_features_.end()) {
-                        it->second->write(logmsg);
+                        it->second->write(logmsg, zone_);
                     }
                 }
                 empty = false;

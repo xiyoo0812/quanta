@@ -178,7 +178,7 @@ namespace logger {
         lualog.set_function("add_dest", [](cpchar feature) { return s_logger->add_dest(feature); });
         lualog.set_function("add_file_dest", [](cpchar feature, cpchar fname) { return s_logger->add_file_dest(feature, fname); });
         lualog.set_function("set_dest_clean_time", [](cpchar feature, size_t time) { s_logger->set_dest_clean_time(feature, time); });
-        lualog.set_function("option", [](cpchar log_path, cpchar service, cpchar index) { s_logger->option(log_path, service, index); });
+        lualog.set_function("option", [](cpchar log_path, cpchar service, cpchar index, cpchar zone) { s_logger->option(log_path, service, index, zone); });
         return lualog;
     }
 }
@@ -189,8 +189,8 @@ extern "C" {
         return llog.push_stack();
     }
 
-    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index) {
-        logger::s_logger->option(log_path, service, index);
+    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index, cpchar zone) {
+        logger::s_logger->option(log_path, service, index, zone);
     }
     
     LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line){

@@ -25,22 +25,25 @@ inline bool resolver_ip(sockaddr* addr, std::string domain, int port) {
 inline int gethostip(lua_State* L) {
     int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     struct sockaddr remote_addr;
-    struct sockaddr_in local_addr;
+    struct sockaddr_in local_addr = {};
     if (!resolver_ip(&remote_addr, "1.1.1.1", 53)) {
         lua_pushstring(L, "127.0.0.1");
-        return 1;
+        lua_pushlstring(L, (char*)&local_addr.sin_addr.s_addr, 4);
+        return 2;
     }
     if (connect(sock_fd, &remote_addr, sizeof(struct sockaddr_in)) != 0) {
         lua_pushstring(L, "127.0.0.1");
+        lua_pushlstring(L, (char*)&local_addr.sin_addr.s_addr, 4);
         closesocket(sock_fd);
-        return 1;
+        return 2;
     }
     socklen_t len = sizeof(struct sockaddr_in);
     getsockname(sock_fd, (struct sockaddr*)&local_addr, &len);
     char* local_ip = inet_ntoa(local_addr.sin_addr);
     lua_pushstring(L, local_ip ? local_ip : "127.0.0.1");
+    lua_pushlstring(L, (char*)&local_addr.sin_addr.s_addr, 4);
     closesocket(sock_fd);
-    return 1;
+    return 2;
 }
 
 inline int gethostbydomain(lua_State* L, std::string domain) {

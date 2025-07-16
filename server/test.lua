@@ -40,5 +40,5 @@ quanta.startup(function()
     import("test/pgsql_test.lua")
     import("test/xlsx_test.lua")
     ]]
-    import("test/trace_test.lua")
+    import("test/timer_test.lua")
 end)

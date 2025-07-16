@@ -93,10 +93,9 @@ function Loki:collect_log(content, lvl_name)
                 module = "log",
                 level = lvl_name,
                 pid = quanta.pid,
-                tid = quanta.tid,
-                name = quanta.name,
                 host = self.host_ip,
                 thread = quanta.thread,
+                service_name = quanta.name,
                 service = quanta.service_name,
             }
         }
@@ -118,10 +117,9 @@ function Loki:collect_pb(cmd_body, cmd_type)
                 module = "proto",
                 type = cmd_type,
                 pid = quanta.pid,
-                tid = quanta.tid,
-                name = quanta.name,
                 host = self.host_ip,
                 thread = quanta.thread,
+                service_name = quanta.name,
                 service = quanta.service_name,
             }
         }
