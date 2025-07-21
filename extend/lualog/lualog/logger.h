@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <fstream>
 #include <iostream>
 #include <assert.h>
 
@@ -13,9 +14,6 @@
 #ifdef WIN32
 #define NOMINMAX
 #define getpid _getpid
-#else
-#include <unistd.h>
-#include <sys/mman.h>
 #endif
 
 using namespace luakit;
@@ -33,6 +31,7 @@ template <class T>
 using sptr      = std::shared_ptr<T>;
 
 using log_time  = time_point<system_clock, milliseconds>;
+using zone_time = zoned_time<milliseconds, time_zone*>;
 
 namespace logger {
     enum class log_level {
@@ -52,8 +51,7 @@ namespace logger {
     using enum rolling_type;
 
     const size_t QUEUE_SIZE = 3000;
-    const size_t PAGE_SIZE  = 65536;
-    const size_t MAX_SIZE   = 1024 * 1024 * 16;
+    const size_t MAX_LINE   = 100000;
     const size_t CLEAN_TIME = 7 * 24 * 3600;
 
     constexpr auto level_names = std::array{"UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR", "FATAL"};
@@ -61,20 +59,17 @@ namespace logger {
 
     class log_message {
     public:
-        vstring tag() const { return tag_; }
-        vstring msg() const { return msg_; }
-        int32_t line() const { return line_; }
-        vstring source() const { return source_; }
-        vstring feature() const { return feature_; }
         log_level level() const { return level_; }
-        log_time logtime() const { return time_; }
+        vstring feature() const { return feature_; }
+        vstring color() const { return level_colors[(int)level_]; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
+        sstring format(bool prefix, bool suffix);
+        zone_time prepare(time_zone* zone);
 
     private:
         log_time            time_;
-        int32_t             line_ = 0;
-        sstring             source_, msg_, feature_, tag_;
         log_level           level_ = LOG_LEVEL_DEBUG;
+        sstring             msg_, feature_, tag_, prefix_, suffix_;
     }; // class log_message
     typedef std::vector<sptr<log_message>> log_messages;
 
@@ -100,69 +95,61 @@ namespace logger {
 
     class log_dest {
     public:
-        virtual void flush() {};
+        virtual void flush(const zone_time& time) = 0;
         virtual void set_clean_time(size_t clean_time) {}
-        virtual void raw_write(sstring& msg, log_level lvl) = 0;
-        virtual void write(sptr<log_message> logmsg, time_zone* zone);
-        virtual void ignore_prefix(bool prefix) { ignore_prefix_ = prefix; }
-        virtual void ignore_suffix(bool suffix) { ignore_suffix_ = suffix; }
-        virtual cstring build_prefix(sptr<log_message> logmsg, time_zone* zone);
-        virtual cstring build_suffix(sptr<log_message> logmsg);
+        virtual void raw_write(vstring logtxt, vstring color, size_t size);
+        virtual void write(sptr<log_message> logmsg, const zone_time& logtime);
+        virtual void ignore_prefix(bool prefix) { prefix_ = !prefix; }
+        virtual void ignore_suffix(bool suffix) { suffix_ = !suffix; }
 
     protected:
-        time_t last_time_ = 0;
-        char time_buf_[32] = {0};
-        bool ignore_suffix_ = true;
-        bool ignore_prefix_ = false;
+        size_t size_ = 0;
+        size_t line_ = 0;
+        bool prefix_ = true;
+        bool suffix_ = false;
+        char log_buf_[USHRT_MAX] = {0};
     }; // class log_dest
 
     class stdio_dest : public log_dest {
     public:
-        virtual void write(sptr<log_message> logmsg, time_zone* zone);
-        virtual void raw_write(sstring& msg, log_level lvl);
+        virtual void flush(const zone_time& time);
+        virtual void raw_write(vstring logtxt, vstring color, size_t size);
     }; // class stdio_dest
 
     class log_file_base : public log_dest {
     public:
-        log_file_base(size_t max_size) : size_(0), alc_size_(USHRT_MAX), max_size_(max_size > USHRT_MAX ? max_size : USHRT_MAX) {}
+        log_file_base(size_t max_line, const zone_time& time) : max_line_(max_line), file_time_(time.get_local_time()){}
         virtual ~log_file_base();
 
-        log_time filetime() const { return file_time_; }
-        virtual void raw_write(sstring& msg, log_level lvl);
-        bool create(path file_path, sstring file_name, log_time file_time);
+        virtual void flush(const zone_time& time);
+        void create(path file_path, sstring file_name);
 
     protected:
-        void map_file();
-        void unmap_file();
-        bool check_full(size_t size);
-
-    protected:
-        log_time        file_time_;
-        size_t          size_, alc_size_, max_size_;
-        char* buff_ = nullptr;
-        sstring         file_path_;
+        size_t                      max_line_;
+        local_time<microseconds>    file_time_;
+        std::unique_ptr<std::ofstream> file_ = nullptr;
     }; // class log_file
 
     class rolling_hourly {
     public:
-        bool eval(const log_file_base* log_file, const sptr<log_message> logmsg) const;
+        bool eval(const local_time<microseconds>& filetime, const zone_time& logtime) const;
     }; // class rolling_hourly
 
     class rolling_daily {
     public:
-        bool eval(const log_file_base* log_file, const sptr<log_message> logmsg) const;
+        bool eval(const local_time <microseconds>& filetime, const zone_time& logtime) const;
     }; // class rolling_daily
 
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(path& log_path, cpchar namefix, size_t max_szie = MAX_SIZE, size_t clean_time = CLEAN_TIME);
+        log_rollingfile(path& log_path, const zone_time& time, vstring feature, size_t max_line = MAX_LINE, size_t clean_time = CLEAN_TIME);
 
-        virtual void write(sptr<log_message> logmsg, time_zone* zone);
+        virtual void flush(const zone_time& time);
         virtual void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
 
     protected:
-        sstring new_log_file_name(const sptr<log_message> logmsg, time_zone* zone);
+        sstring new_log_file_name(const zone_time& time);
 
         path                    log_path_;
         sstring                 feature_;
@@ -198,7 +185,7 @@ namespace logger {
         log_service();
         ~log_service();
 
-        void daemon(bool status) { log_daemon_ = status; }
+        void daemon(bool status) { log_std_ = !status; }
         void option(cpchar log_path, cpchar service, cpchar index, cpchar zone);
 
         bool add_dest(cpchar feature);
@@ -214,7 +201,7 @@ namespace logger {
         void ignore_prefix(cpchar feature, bool prefix);
         void ignore_suffix(cpchar feature, bool suffix);
 
-        void set_max_size(size_t max_size) { max_size_ = max_size; }
+        void set_max_line(size_t max_line) { max_line_ = max_line; }
         void set_rolling_type(rolling_type type) { rolling_type_ = type; }
         void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
         void set_dest_clean_time(cpchar feature, size_t clean_time);
@@ -234,9 +221,9 @@ namespace logger {
         std::map<uint64_t, sptr<log_agent>> agents_;
         std::map<log_level, sptr<log_dest>> dest_lvls_;
         std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
-        size_t max_size_ = MAX_SIZE, clean_time_ = CLEAN_TIME;
+        size_t max_line_ = MAX_LINE, clean_time_ = CLEAN_TIME;
         rolling_type rolling_type_ = DAYLY;
-        bool log_daemon_ = false;
+        bool log_std_ = true;
         bool running_ = true;
     }; // class log_service
 }
