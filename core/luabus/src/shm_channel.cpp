@@ -1,144 +1,114 @@
-#include <stdio.h>
-#include <string.h>
+#include "stdafx.h"
 #include "shm_channel.h"
 
 #ifdef WIN32
 #include <windows.h>
 #else
-#include <sys/ipc.h>
-#include <sys/shm.h>
-#include <sys/types.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #endif
 
 namespace luabus {
-    #define     MAGIN_LEN   64
 
+    void* attach_shm(uint64_t shm_id, int size) {
+        auto name = std::format("/{}", shm_id);
 #ifdef WIN32
-
-    void* attach_shm(int shm_id, int size) {
-        auto name = std::format("fm_{}", shm_id);
         HANDLE handle = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, name.c_str()); 
         if (!handle) handle = CreateFileMapping(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE, 0, size, name.c_str());  
         if (!handle) return nullptr;
         auto buf = MapViewOfFile(handle, FILE_MAP_ALL_ACCESS, 0, 0, 0);  
         CloseHandle(handle);
-        return buf;
-    }
-
-    void detach_shm(void* shm_buff) {
-        UnmapViewOfFile(shm_buff);
-    }
-
-    void delete_shm(int shm_id){}
 #else
-
-    void* attach_shm(int shm_id, int size) {
-        auto handle = shmget(shm_id, size, 0666);
-        if (handle < 0) handle = shmget(shm_id, size, 0666 | IPC_CREAT);
-        if (!handle) return nullptr;
-        void* buf = shmat(handle, size, 0666);
-        if(buf == (void*)-1) return nullptr;
+        int shm_fd = shm_open(name.c_str(), O_CREAT | O_RDWR, 0777);
+        if (shm_fd < 0) return nullptr;
+        ftruncate(shm_fd, size);
+        auto buf = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+        close(shm_fd);
+#endif
         return buf;
     }
 
-    void detach_shm(void* shm_buff) {
-        shmdt(shm_buff);
-    }
-
-    void delete_shm(int shm_id) {
-        auto handle = shmget(shm_id, size, flag);
-        if (handle > 0) shmctl(handle, IPC_RMID, nullptr);	
-    }
+    void detach_shm(void* shm_buff, int size) {
+#ifdef WIN32
+        UnmapViewOfFile(shm_buff);
+#else
+        munmap(shm_buff, int size);
 #endif
+    }
 
-    schan_code shm_channel::init(int shm_key, uint32_t chan_size, bool binit) {
-        if (chan_size == 0) return SHM_CHAN_ERR_INVALID;
+    void delete_shm(uint64_t shm_id){
+#ifndef WIN32
+        auto name = std::format("/{}", shm_id);
+        shm_unlink(name.c_str());
+#endif
+    }
+
+    chan_code shm_channel::init(uint64_t shm_id, uint32_t chan_size, uint32_t id) {
+        if (chan_size == 0) return CHAN_ERR_INVALID;
         size_t shm_size = chan_size * 2 + sizeof(schan_header) + sizeof(shm_queue) * 2;
-        char* shm_data = (char*)attach_shm(shm_key, shm_size);
-        if (!shm_data) return SHM_CHAN_SHM_GET_FAIL;
-        schan_header* shm_header = (schan_header*)shm_data;
-        if (binit) {
+        char* shm_data = (char*)attach_shm(shm_id, shm_size);
+        if (!shm_data) return CHAN_SHM_GET_FAIL;
+        auto now = luakit::now();
+        schan_header* header = (schan_header*)shm_data;
+        if (now - header->time > 60) {
             memset(shm_data, 0, shm_size);
-            shm_header->sq_offset = sizeof(schan_header);
-            shm_header->rq_offset = sizeof(schan_header) + sizeof(shm_queue) + chan_size;
-            send_queue = (shm_queue*)(shm_data + shm_header->sq_offset);
-            recv_queue = (shm_queue*)(shm_data + shm_header->rq_offset);
+            header->time = now;
+            header->offset1 = sizeof(schan_header);
+            header->offset2 = sizeof(schan_header) + sizeof(shm_queue) + chan_size;
+            send_queue = (shm_queue*)(shm_data + ((shm_id & 0xffffffff) == id) ? header->offset1 : header->offset2);
+            recv_queue = (shm_queue*)(shm_data + ((shm_id & 0xffffffff) == id) ? header->offset2 : header->offset1);
             send_queue->size = chan_size;
             recv_queue->size = chan_size;
         } else {
-            send_queue = (shm_queue*)(shm_data + shm_header->sq_offset);
-            recv_queue = (shm_queue*)(shm_data + shm_header->rq_offset);
+            send_queue = (shm_queue*)(shm_data + ((shm_id & 0xffffffff) == id) ? header->offset1 : header->offset2);
+            recv_queue = (shm_queue*)(shm_data + ((shm_id & 0xffffffff) == id) ? header->offset2 : header->offset1);
         }
-        return SHM_CHAN_SUCCCESS;
+        return CHAN_SUCCESS;
     }
 
-    uint32_t shm_channel::get_used(shm_queue* queue)  {
-        return (queue->head > queue->tail) ? (queue->size - queue->head + queue->tail) : (queue->tail - queue->head);
+    uint32_t shm_channel::get_used(size_t head, size_t tail, uint32_t size) {
+        return (head > tail) ? (size - head + tail) : (tail - head);
     }
 
-    uint32_t shm_channel::get_free(shm_queue* queue)  {
-        return (queue->head > queue->tail) ? (queue->head - queue->tail - 1) : (queue->head + queue->size - queue->tail - 1);
+    uint32_t shm_channel::get_free(size_t head, size_t tail, uint32_t size)  {
+        return (head > tail) ? (head - tail - 1) : (head + size - tail - 1);
     }
 
-    schan_code shm_channel::send(char* buf, uint32_t buf_size) {
-        if (!send_queue) return SHM_CHAN_ERR_INVALID;
-        uint32_t allsz = sizeof(uint32_t) + buf_size;
-        uint32_t free = get_free(send_queue);
-        if (free < allsz) return SHM_CHAN_ERR_FULL;
-        uint32_t t = send_queue->tail;
-        uint32_t tail_len = send_queue->size - t;
-        uint32_t hdr = allsz;
-        if (tail_len >= allsz) {
-            memcpy(&send_queue->data[t], &hdr, sizeof(hdr));
-            memcpy(&send_queue->data[t + sizeof(hdr)], buf, buf_size);
-        } else if (tail_len >= sizeof(hdr)) {
-            memcpy(&send_queue->data[t], &hdr, sizeof(hdr));
-            uint32_t len1 = tail_len - sizeof(hdr);
-            memcpy(&send_queue->data[t + sizeof(hdr)], buf, len1);
-            uint32_t len2 = buf_size - len1;
-            memcpy(&send_queue->data[0], buf + len1, len2);
+    chan_code shm_channel::send(char* buf, uint32_t buf_size) {
+        if (!send_queue) return CHAN_ERR_INVALID;
+        size_t tail = send_queue->tail.load(std::memory_order_acquire);
+        size_t head = send_queue->head.load(std::memory_order_acquire);
+        uint32_t free = get_free(head, tail, send_queue->size);
+        if (free < buf_size) return CHAN_ERR_FULL;
+        uint32_t tail_len = send_queue->size - tail;
+        if (tail_len >= buf_size) {
+            memcpy(&send_queue->data[tail], buf, buf_size);
         } else {
-            memcpy(&send_queue->data[t], &hdr, tail_len);
-            uint32_t len1 = sizeof(hdr) - tail_len;
-            memcpy(&send_queue->data[0], ((char*)&hdr) + tail_len, len1);
-            memcpy(&send_queue->data[len1], buf, buf_size);
+            memcpy(&send_queue->data[tail], buf, tail_len);
+            memcpy(&send_queue->data[0], buf + tail_len, buf_size - tail_len);
         }
-        t = (t + allsz) % send_queue->size;
-        send_queue->tail = t;
-        return SHM_CHAN_SUCCESS;
+        tail = (tail + buf_size) % send_queue->size;
+        send_queue->tail.store(tail, std::memory_order_acquire);
+        return CHAN_SUCCESS;
     }
 
-    schan_code shm_channel::recv(char* buf, uint32_t* buf_size) {
-        if (!recv_queue) return SHM_CHAN_ERR_INVALID;
-        uint32_t h = recv_queue->head;
-        uint32_t used = get_used(recv_queue);
-        if (used == 0) return SHM_CHAN_ERR_EMPTY;
-        if (used < sizeof(uint32_t)) return SHM_CHAN_ERR_HDR_EXCEED;
-        uint32_t hdr = 0;
-        if ((h + sizeof(hdr)) > recv_queue->size) {
-            uint32_t len1 = recv_queue->size - h;
-            memcpy(&hdr, &recv_queue->data[h], len1);
-            uint32_t len2 = sizeof(hdr) - len1;
-            memcpy(((char*)&hdr) + len1, &recv_queue->data[0], len2);
+    chan_code shm_channel::recv(char* buf, uint32_t* buf_size) {
+        if (!recv_queue) return CHAN_ERR_INVALID;
+        size_t tail = recv_queue->tail.load(std::memory_order_acquire);
+        size_t head = recv_queue->head.load(std::memory_order_acquire);
+        uint32_t used = get_used(head, tail, recv_queue->size);
+        if (used == 0) return CHAN_ERR_EMPTY;
+        buf = &recv_queue->data[head];
+        if (tail > head) {
+            auto size = (used > *buf_size) ? *buf_size : used;
+            recv_queue->head.store(head + size, std::memory_order_acquire);
+            *buf_size = size;
         } else {
-            memcpy(&hdr, &recv_queue->data[h], sizeof(hdr));
+            *buf_size = recv_queue->size - tail;
+            recv_queue->head.store(0, std::memory_order_acquire);
         }
-        h = (h + sizeof(hdr)) % recv_queue->size;
-        uint32_t data_len = hdr - sizeof(hdr);
-        if (data_len > (*buf_size)) return SHM_CHAN_ERR_NOT_ENOUGH;
-        if (used < (sizeof(uint32_t) + data_len)) return SHM_CHAN_ERR_DATA_EXCEED;
-        if ( (h + data_len) > recv_queue->size) {
-            uint32_t len1 = recv_queue->size - h;
-            memcpy(buf, &recv_queue->data[h], len1);
-            uint32_t len2 = data_len - len1;
-            memcpy(((char*)buf) + len1, &recv_queue->data[0], len2);
-        } else {
-            memcpy(buf, &recv_queue->data[h], data_len);
-        }
-        h = (h + data_len)%recv_queue->size;
-        recv_queue->head = h;
-        *buf_size = data_len;
-        return SHM_CHAN_SUCCESS; 
+        return CHAN_SUCCESS; 
     }
 
     void shm_channel::reset() {

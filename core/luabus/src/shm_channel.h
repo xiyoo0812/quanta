@@ -1,46 +1,46 @@
 #pragma once
 
+#include <atomic>
 #include <stdint.h>
 
 namespace luabus {
-    
-    enum class schan_code : int8_t {
-        SHM_CHAN_SUCCESS            = 0,
-        SHM_CHAN_ERR_FULL           = -1,
-        SHM_CHAN_ERR_EMPTY          = -2,
-        SHM_CHAN_ERR_NOT_ENOUGH     = -3,
-        SHM_CHAN_SHM_GET_FAIL       = -4,
-        SHM_CHAN_Q0_INVALID         = -5,
-        SHM_CHAN_Q1_INVALID         = -6,
-        SHM_CHAN_ERR_HDR_EXCEED     = -7,
-        SHM_CHAN_ERR_DATA_EXCEED    = -8,
-        SHM_CHAN_ERR_INVALID        = -9,
+   
+    enum class chan_code : int8_t {
+        CHAN_SUCCESS            = 0,
+        CHAN_ERR_FULL           = -1,
+        CHAN_ERR_EMPTY          = -2,
+        CHAN_ERR_NOT_ENOUGH     = -3,
+        CHAN_SHM_GET_FAIL       = -4,
+        CHAN_ERR_HDR_EXCEED     = -7,
+        CHAN_ERR_DATA_EXCEED    = -8,
+        CHAN_ERR_INVALID        = -9,
     };
-    using enum schan_code;
+    using enum chan_code;
 
     typedef struct{
-        uint32_t head;      //the position of the first item
-        uint32_t tail;      //the position after last item
+        alignas(64) std::atomic<size_t> head;
+        alignas(64) std::atomic<size_t> tail;
         uint32_t size;
         char data[0];
     } shm_queue;
 
     typedef struct {
-        uint32_t sq_offset;
-        uint32_t rq_offset;
+        uint32_t offset1;
+        uint32_t offset2;
+        size_t time;
     } schan_header;
 
 
     class  shm_channel{
     public:
-        schan_code init(int shm_key, uint32_t chan_size, bool binit = false);
-        schan_code recv(char* buf, uint32_t* buf_size);
-        schan_code send(char* buf, uint32_t buf_size);
+        chan_code init(uint64_t shm_key, uint32_t chan_size, uint32_t id);
+        chan_code recv(char* buf, uint32_t* buf_size);
+        chan_code send(char* buf, uint32_t buf_size);
 
         void reset();
         
-        uint32_t get_used(shm_queue* queue);
-        uint32_t get_free(shm_queue* queue);
+        uint32_t get_used(size_t head, size_t tail, uint32_t size);
+        uint32_t get_free(size_t head, size_t tail, uint32_t size);
 
         uint32_t get_send_size();
         uint32_t get_resv_size();
