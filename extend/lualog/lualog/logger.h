@@ -34,7 +34,7 @@ using log_time  = time_point<system_clock, milliseconds>;
 using zone_time = zoned_time<milliseconds, time_zone*>;
 
 namespace logger {
-    enum class log_level {
+    enum class log_level : uint8_t {
         LOG_LEVEL_DEBUG = 1,
         LOG_LEVEL_INFO,
         LOG_LEVEL_WARN,
@@ -44,7 +44,7 @@ namespace logger {
     };
     using enum log_level;
 
-    enum class rolling_type {
+    enum class rolling_type : uint8_t {
         HOURLY = 0,
         DAYLY = 1,
     }; //rolling_type
