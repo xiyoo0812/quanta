@@ -257,16 +257,22 @@ namespace lxlsx {
         }
 
     private:
-        XmlDocument* open_xml(mz_zip_archive* archive, const char* filename, bool exception = true) {
+        XmlDocument* open_xml(mz_zip_archive* archive, const char* filename, bool notfoundexception = true) {
             auto it = excelfiles.find(filename);
             if (it != excelfiles.end()) return it->second;
+            auto index = mz_zip_reader_locate_file(archive, filename, nullptr, 0);
+            if (index < 0) {
+                if (notfoundexception) throw luakit::lua_exception("open %s error: ", filename);
+                return nullptr;
+            }
             size_t size = 0;
-            XmlDocument* doc = new XmlDocument();
-            uint32_t index = mz_zip_reader_locate_file(archive, filename, nullptr, 0);
             auto data = (const char*)mz_zip_reader_extract_to_heap(archive, index, &size, 0);
-            if (!data || doc->Parse(data, size) != XML_SUCCESS) {
+            if (!data) throw luakit::lua_exception("extract %s error: ", filename);
+            XmlDocument* doc = new XmlDocument();
+            if (doc->Parse(data, size) != XML_SUCCESS) {
                 delete doc;
-                if (exception) throw luakit::lua_exception("open %s error: ", filename);
+                delete[] data;
+                throw luakit::lua_exception("parse %s error: ", filename);
             }
             excelfiles.emplace(filename, doc);
             delete[] data;
