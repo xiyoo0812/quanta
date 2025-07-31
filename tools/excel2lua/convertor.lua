@@ -262,7 +262,7 @@ local function find_workbook_data_struct(book)
     if not head_line then
         head_line = start_line - 1
     end
-    for col = book.first_col, book.last_col do
+    for col = 1, book.last_col do
         -- 读取第四行作为表头
         headers[col] = get_cell_value(book, head_line, col)
         -- 读取类型行，作为筛选条件

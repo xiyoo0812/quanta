@@ -24,8 +24,6 @@ namespace lxlsx {
             "name", &workbook::name,
             "last_row", &workbook::last_row,
             "last_col", &workbook::last_col,
-            "first_row", &workbook::first_row,
-            "first_col", &workbook::first_col,
             "get_cell_value", &workbook::get_cell_value,
             "set_cell_value", &workbook::set_cell_value
         );
