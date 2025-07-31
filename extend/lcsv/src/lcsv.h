@@ -22,24 +22,26 @@ namespace lcsv {
     class workbook {
     public:
         ~workbook() {
-            for (auto cell : cells){ if (cell) delete cell; }
+            for (auto rcells : cells){
+                for (auto cell : rcells) {
+                    if (cell) delete cell;
+                }
+            }
         }
 
         void __gc() {}
         cell* get_cell(uint32_t row, uint32_t col) {
-            if (row < first_row || row > last_row || col < first_col || col > last_col)
+            if (row < 1 || row > last_row || col < 1 || col > last_col)
                 return nullptr;
-            uint32_t index = (row - 1) * (last_col - first_col + 1) + (col - first_col);
-            return cells[index];
+            return cells[row - 1][col - 1];
         }
 
         void add_cell(uint32_t row, uint32_t col, cell* co) {
-             if (row < first_row || row > last_row || col < first_col || col > last_col)
+             if (row < 1 || row > last_row || col < 1 || col > last_col)
                 return;
-            uint32_t index = (row - 1) * (last_col - first_col + 1) + (col - first_col);
-            cells[index] = co;
+            cells[row - 1][col - 1] = co;
         }
-        
+
         int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
             if (cell* cell = get_cell(row, col); cell) {
                 lua_pushstring(L, cell->value.c_str());
@@ -51,14 +53,12 @@ namespace lcsv {
         string name;
         uint32_t last_row = 0;
         uint32_t last_col = 0;
-        uint32_t first_row = 0;
-        uint32_t first_col = 0;
-        vector<cell*> cells = {};
+        vector<vector<cell*>> cells = {};
     };
 
     class csv_file {
     public:
-        ~csv_file() { 
+        ~csv_file() {
             for (auto book : workbooks) { delete book; }
         }
 
@@ -72,13 +72,14 @@ namespace lcsv {
             for (const auto& cel : header) ncol++;
             workbook* book = new workbook();
             if (ncol > 0) {
-                book->first_row = 1;
-                book->first_col = 1;
                 book->last_col = ncol;
                 book->last_row = csv.rows() + 1;
                 book->name = fspath(filename).stem().string();
                 int irow = 1, icol = 1;
-                book->cells.resize(book->last_col * book->last_row);
+                book->cells.resize(book->last_row, {});
+                for (int i = 0; i < book->last_row; i++) {
+                    book->cells[i].resize(book->last_col, nullptr);
+                }
                 for (const auto& cel : header) {
                     cell* co = new cell;
                     co->read(cel);
@@ -102,7 +103,7 @@ namespace lcsv {
             return (it != workbooks.end()) ? *it : nullptr;
         }
 
-        vector<workbook*> all_workbooks(lua_State* L) { 
+        vector<workbook*> all_workbooks(lua_State* L) {
             return workbooks;
         }
 

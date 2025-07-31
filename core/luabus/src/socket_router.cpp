@@ -60,7 +60,7 @@ bool socket_router::do_forward_target(router_header* header, char* data, size_t 
     if (it == nodes.end() || it->id != target_id){
         return false;
     }
-    header->format_len(header->len >> 7, REMOTE_CALL, header->len & 0x0f);
+    header->head.type = REMOTE_CALL;
     sendv_item items[] = {{header, sizeof(router_header)}, {data, data_len}};
     m_mgr->sendv(it->token, items, _countof(items));
     m_route_count++;
@@ -73,7 +73,7 @@ bool socket_router::do_forward_master(router_header* header, char* data, size_t 
     if (token == 0)
 		return false;
 
-    header->format_len(header->len >> 7, REMOTE_CALL, header->len & 0x0f);
+    header->head.type = REMOTE_CALL;
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
     m_mgr->sendv(token, items, _countof(items));
     m_route_count++;
@@ -81,8 +81,8 @@ bool socket_router::do_forward_master(router_header* header, char* data, size_t 
 }
 
 bool socket_router::do_forward_broadcast(router_header* header, int source, char* data, size_t data_len, size_t& broadcast_num) {
+    header->head.type = REMOTE_CALL;
     uint16_t service_id = (uint16_t)header->target_id;
-    header->format_len(header->len >> 7, REMOTE_CALL, header->len & 0x0f);
 	sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
 
     auto& nodes = m_services[service_id].nodes;
@@ -102,7 +102,6 @@ bool socket_router::do_forward_broadcast(router_header* header, int source, char
 bool socket_router::do_forward_hash(router_header* header, char* data, size_t data_len) {
 	uint16_t hash = header->target_id & 0xffff;
     uint16_t service_id = get_service_id(header->target_id);
-
     auto& services = m_services[service_id];
     auto& nodes = services.nodes;
     int count = (int)nodes.size();
@@ -111,9 +110,8 @@ bool socket_router::do_forward_hash(router_header* header, char* data, size_t da
     }
     auto& target = nodes[hash % count];
     if (target.token != 0) {
-        header->format_len(header->len >> 7, REMOTE_CALL, header->len & 0x0f);
+        header->head.type = REMOTE_CALL;
         sendv_item items[] = { {header, sizeof(router_header)}, {data, data_len} };
-
         m_mgr->sendv(target.token, items, _countof(items));
         m_route_count++;
         return true;

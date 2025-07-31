@@ -40,7 +40,7 @@ namespace lxlsx {
             fmt_id = cell->fmt_id;
             fmt_code = cell->fmt_code;
         }
-        
+
         int set_value(lua_State* L) {
             auto ev = elem->FirstChildElement("v");
             if (!ev) ev = elem->InsertNewChildElement("v");
@@ -92,6 +92,12 @@ namespace lxlsx {
                 lua_pushstring(L, v);
                 return 1;
             }
+            if (auto is = elem->FirstChildElement("is"); is) {
+                if (auto t = is->FirstChildElement("t"); t) {
+                    lua_pushstring(L, t->GetText());
+                    return 1;
+                }
+            }
             return 0;
         }
 
@@ -109,17 +115,15 @@ namespace lxlsx {
         void __gc() {}
 
         cell* get_cell(uint32_t row, uint32_t col) {
-            if (row < first_row || row > last_row || col < first_col || col > last_col) 
+            if (row < 1 || row > last_row || col < 1 || col > last_col)
                 return nullptr;
-            uint32_t index = (row - 1) * (last_col - first_col + 1) + (col - first_col);
-            return cells[index];
+            return cells[row - 1][col - 1];
         }
 
         void add_cell(uint32_t row, uint32_t col, cell* co) {
-             if (row < first_row || row > last_row || col < first_col || col > last_col)
+            if (row < 1 || row > last_row || col < 1 || col > last_col)
                 return;
-            uint32_t index = (row - 1) * (last_col - first_col + 1) + (col - first_col);
-            cells[index] = co;
+            cells[row - 1][col - 1] = co;
         }
 
         int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
@@ -135,12 +139,11 @@ namespace lxlsx {
             }
             if (!cell) {
                 if (row <= 0 || col <= 0) return 0;
+                extend_cells(row, col);
                 auto elem = doc->NewElement("c");
                 elem->SetAttribute("r", gen_excel_id(row, col).c_str());
                 cell = new_cell(elem);
                 add_cell(row, col, cell);
-                if (row > last_row) last_row = row;
-                if (col > last_col) last_col = col;
             }
             cell->set_value(L);
             return 0;
@@ -150,26 +153,42 @@ namespace lxlsx {
             if (cells.empty()) return;
             XMLElement* root = doc->FirstChildElement("worksheet");
             XMLElement* shdata = root->FirstChildElement("sheetData");
-            for (uint32_t row = first_row; row <= last_row; ++row) {
-                XMLElement* xrow = doc->NewElement("row");
-                xrow->SetAttribute("r", row);
-                for (uint32_t col = first_col; col <= last_col; ++col) {
-                    uint32_t index = (row - 1) * (last_col - first_col + 1) + (col - first_col);
-                    auto cell = cells[index];
-                    if (cell) xrow->InsertEndChild(cell->save(doc));
+            for (uint32_t row = 1; row <= last_row; ++row) {
+                if (auto& row_cells = cells[row - 1]; !row_cells.empty()) {
+                    XMLElement* xrow = doc->NewElement("row");
+                    xrow->SetAttribute("r", row);
+                    for (auto cell : row_cells) {
+                        if(cell) xrow->InsertEndChild(cell->save(doc));
+                    }
+                    shdata->InsertEndChild(xrow);
                 }
-                shdata->InsertEndChild(xrow);
             }
             XMLElement* dim = root->FirstChildElement("dimension");
             if (!dim) dim = root->InsertNewChildElement("dimension");
-            auto ref = gen_excel_id(first_row, first_col) + ":" + gen_excel_id(last_row, last_col);
+            auto ref = "A1:" + gen_excel_id(last_row, last_col);
             dim->SetAttribute("ref", ref.c_str());
         }
-        
-        cell* new_cell(XMLNode* e) { 
-            cell* c = new cell(e); 
-            pools.push_back(c); 
+
+        cell* new_cell(XMLNode* e) {
+            cell* c = new cell(e);
+            pools.push_back(c);
             return c;
+        }
+
+        void extend_cells(uint32_t row, uint32_t col) {
+            if (col > last_col) {
+                last_col = col;
+                for (auto& row_cells : cells) {
+                    row_cells.resize(col, nullptr);
+                }
+            }
+            if (row > last_row) {
+                last_row = row;
+                cells.resize(row, {});
+                for (auto& row_cells : cells) {
+                    row_cells.resize(last_col, nullptr);
+                }
+            }
         }
 
         std::string gen_excel_id(uint32_t row, uint32_t col) {
@@ -188,10 +207,8 @@ namespace lxlsx {
         bool visible = true;
         uint32_t last_row = 0;
         uint32_t last_col = 0;
-        uint32_t first_row = 0;
-        uint32_t first_col = 0;
-        vector<cell*> cells = {};
         vector<cell*> pools = {};
+        vector<vector<cell*>> cells = {};
         XMLDocument* doc = nullptr;
     };
 
@@ -215,7 +232,7 @@ namespace lxlsx {
             open_xml(&archive, "[Content_Types].xml");
             mz_zip_reader_end(&archive);
         }
-        
+
         void save(const char* filename) {
             mz_zip_archive archive;
             memset(&archive, 0, sizeof(archive));
@@ -245,16 +262,21 @@ namespace lxlsx {
         }
 
     private:
-        XmlDocument* open_xml(mz_zip_archive* archive, const char* filename) {
-            auto it = excelfiles.find(filename);
-            if (it != excelfiles.end()) return it->second;
+        XmlDocument* open_xml(mz_zip_archive* archive, const char* filename, bool notfoundexception = true) {
+            if (auto it = excelfiles.find(filename); it != excelfiles.end()) return it->second;
+            auto index = mz_zip_reader_locate_file(archive, filename, nullptr, 0);
+            if (index < 0) {
+                if (notfoundexception) throw luakit::lua_exception("open %s error: ", filename);
+                return nullptr;
+            }
             size_t size = 0;
-            XmlDocument* doc = new XmlDocument();
-            uint32_t index = mz_zip_reader_locate_file(archive, filename, nullptr, 0);
             auto data = (const char*)mz_zip_reader_extract_to_heap(archive, index, &size, 0);
-            if (!data || doc->Parse(data, size) != XML_SUCCESS) {
+            if (!data) throw luakit::lua_exception("extract %s error: ", filename);
+            XmlDocument* doc = new XmlDocument();
+            if (doc->Parse(data, size) != XML_SUCCESS) {
                 delete doc;
-                throw luakit::lua_exception("open %s error: ", filename);
+                delete[] data;
+                throw luakit::lua_exception("parse %s error: ", filename);
             }
             excelfiles.emplace(filename, doc);
             delete[] data;
@@ -266,7 +288,6 @@ namespace lxlsx {
             XMLElement* dim = root->FirstChildElement("dimension");
             XMLElement* shdata = root->FirstChildElement("sheetData");
             parse_range(dim, shdata, book);
-            book->cells.resize(book->last_col * book->last_row, nullptr);
             XMLElement* row = shdata->FirstChildElement("row");
             while (row) {
                 uint32_t row_idx = row->IntAttribute("r");
@@ -299,11 +320,11 @@ namespace lxlsx {
             XMLElement* numFmts = styleSheet->FirstChildElement("numFmts");
             if (numFmts == nullptr) return;
 
-            unordered_map<int, string> custom_date_formats;
+            unordered_map<int, string> custom_date_fmts;
             for (XMLElement* numFmt = numFmts->FirstChildElement(); numFmt; numFmt = numFmt->NextSiblingElement()) {
                 uint32_t id = atoi(numFmt->Attribute("numFmtId"));
                 string fmt = numFmt->Attribute("formatCode");
-                custom_date_formats.insert(make_pair(id, fmt));
+                custom_date_fmts.insert(make_pair(id, fmt));
             }
             XMLElement* cellXfs = styleSheet->FirstChildElement("cellXfs");
             if (cellXfs == nullptr) return;
@@ -313,8 +334,7 @@ namespace lxlsx {
                 if (auto fi = cellXf->Attribute("numFmtId"); fi) {
                     string fmt;
                     uint32_t formatId = atoi(fi);
-                    auto iter = custom_date_formats.find(formatId);
-                    if (iter != custom_date_formats.end()) {
+                    if (auto iter = custom_date_fmts.find(formatId); iter != custom_date_fmts.end()) {
                         fmt = iter->second;
                     }
                     form_ids.insert(make_pair(i, formatId));
@@ -342,7 +362,8 @@ namespace lxlsx {
         }
 
         void read_sstrings(mz_zip_archive* archive, const char* filename) {
-            XmlDocument* doc = open_xml(archive, filename);
+            XmlDocument* doc = open_xml(archive, filename, false);
+            if (doc == nullptr) return;
             XMLElement* e = doc->FirstChildElement("sst");
             e = e->FirstChildElement("si");
             while (e) {
@@ -357,8 +378,7 @@ namespace lxlsx {
                 XMLElement* r = e->FirstChildElement("r");
                 while (r) {
                     t = r->FirstChildElement("t");
-                    const char* text = t->GetText();
-                    if (text) value.append(text);
+                    if (auto text = t->GetText(); text) value.append(text);
                     r = r->NextSiblingElement("r");
                 }
                 shared_string.push_back(value);
@@ -371,8 +391,7 @@ namespace lxlsx {
             XmlDocument* doc = open_xml(archive, filename);
             XMLElement* e = doc->FirstChildElement("Relationships")->FirstChildElement("Relationship");
             while (e) {
-                string target = e->Attribute("Target");
-                if (target.substr(target.size() - 4) == ".xml") {
+                if (string target = e->Attribute("Target"); target.substr(target.size() - 4) == ".xml") {
                     string rid = e->Attribute("Id");
                     xml_docs[rid] = open_xml(archive, (path + target).c_str());
                 }
@@ -413,13 +432,11 @@ namespace lxlsx {
                 uint32_t first_row = 0, first_col = 0, last_row = 0, last_col = 0;
                 parse_cell(value.substr(0, index), first_row, first_col);
                 parse_cell(value.substr(index + 1), last_row, last_col);
-                cell* valc = sh->get_cell(first_row, first_col);
-                if (valc) {
+                if (cell* valc = sh->get_cell(first_row, first_col); valc) {
                     for (uint32_t i = first_row;  i <= last_row; ++i) {
                         for (uint32_t j = first_col; j <= last_col; ++j) {
                             if (i != first_row || j != first_col) {
-                                cell* curc = sh->get_cell(i, j);
-                                if (curc) curc->merge(valc);
+                                if (cell* curc = sh->get_cell(i, j); curc) curc->merge(valc);
                                 else sh->add_cell(i, j, valc);
                             }
                         }
@@ -429,12 +446,12 @@ namespace lxlsx {
         }
 
         void parse_range(XMLElement* dim, XMLElement* shdata, workbook* sh) {
+            uint32_t last_row = 0, last_col = 0;
             if (dim) {
                 std::string value = dim->Attribute("ref");
-                size_t index = value.find_first_of(':');
-                if (index != string::npos) {
-                    parse_cell(value.substr(0, index), sh->first_row, sh->first_col);
-                    parse_cell(value.substr(index + 1), sh->last_row, sh->last_col);
+                if (size_t index = value.find_first_of(':'); index != string::npos) {
+                    parse_cell(value.substr(index + 1), last_row, last_col);
+                    sh->extend_cells(last_row, last_col);
                     return;
                 }
             }
@@ -444,12 +461,14 @@ namespace lxlsx {
                 XMLElement* c = row->FirstChildElement("c");
                 while (c ) {
                     last_cell = c->Attribute("r");
-                    if (sh->first_row == 0) parse_cell(last_cell, sh->first_row, sh->first_col);
                     c = c->NextSiblingElement("c");
                 }
                 row = row->NextSiblingElement("row");
             }
-            parse_cell(last_cell, sh->last_row, sh->last_col);
+            if (!last_cell.empty()) {
+                parse_cell(last_cell, last_row, last_col);
+                sh->extend_cells(last_row, last_col);
+            }
         }
 
         vector<workbook*> workbooks;

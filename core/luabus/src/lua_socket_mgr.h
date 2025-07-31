@@ -8,7 +8,7 @@ public:
         if (!m_slice) return 0;
         router_header* header = (router_header*)m_slice->peek(sizeof(router_header));
         if (!header) return 0;
-        uint32_t len = header->len >> 7;
+        uint32_t len = header->head.len;
         if (len < sizeof(router_header)) return -1;
         if (len > data_len) return 0;
         if (!m_slice->peek(len)) return 0;
