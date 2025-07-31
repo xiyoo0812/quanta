@@ -24,25 +24,33 @@ struct service_node {
 
 #pragma pack(1)
 struct router_header {
-    uint32_t len = 0;           //len 25bit(32M)，rpc_type 3bit，flag 4bit
+    union {
+        uint32_t length;
+        struct {
+            rpc_type type : 4;  //rpc_type4bit
+            uint8_t flag : 4;   //标志位4bit
+            uint32_t len : 24;  //24bit(16M)
+        } head;
+    };
     uint32_t session_id = 0;
     uint32_t target_id = 0;
     uint64_t trace_id = 0;
     uint32_t span_id = 0;
-    inline void format_len(uint32_t dlen, rpc_type rt, uint8_t flag) {
-        len = dlen << 7 | uint8_t(rt) << 4 | (flag & 0x0f);
-    }
 };
 struct transfer_header {
-    uint32_t len = 0;           //len 25bit(32M)，rpc_type 3bit，flag 4bit
+    union {
+        uint32_t length;
+        struct {
+            rpc_type type : 4;  //rpc_type4bit
+            uint8_t flag : 4;   //标志位4bit
+            uint32_t len : 24;  //24bit(16M)
+        } head;
+    };
     uint32_t session_id = 0;
     uint32_t target_id = 0;
     uint64_t trace_id = 0;
     uint32_t span_id = 0;
     uint8_t  service_id = 0;
-    inline void format_len(uint32_t dlen, rpc_type rt, uint8_t flag) {
-        len = dlen << 7 | uint8_t(rt) << 4 | (flag & 0x0f);
-    }
 };
 #pragma pack()
 

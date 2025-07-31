@@ -46,12 +46,16 @@ public:
         uint32_t length = data_len + sizeof(router_header);
         if (length <= USHRT_MAX) {
             router_header header = {
+                .head = {
+                    .type = forward_method,
+                    .flag = flag,
+                    .len = length,
+                },
                 .session_id = session_id,
                 .target_id = service_id,
                 .trace_id = trace_id,
                 .span_id = span_id
             };
-            header.format_len(length, forward_method, flag);
             sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
             m_mgr->sendv(m_token, items, _countof(items));
             lua_pushinteger(L, length);

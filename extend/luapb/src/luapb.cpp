@@ -13,7 +13,13 @@ namespace luapb {
 
     #pragma pack(1)
     struct pb_header {
-        uint32_t    len;            // 整个包的长度24bit(16M) + 标志位8bit
+        union {
+            uint32_t length;
+            struct {
+                uint8_t flag :8;    //标志位8bit
+                uint32_t len :24;   //长度24bit(16M)
+            } head;
+        };
         uint16_t    cmd_id;         // 协议ID
         uint16_t    session_id;     // sessionId
         uint8_t     type;           // 消息类型
@@ -59,7 +65,7 @@ namespace luapb {
             if (!m_slice) return 0;
             pb_header* header =(pb_header*)m_slice->peek(sizeof(pb_header));
             if (!header) return 0;
-            uint32_t len = header->len >> 8;
+            uint32_t len = header->head.len;
             if (len < sizeof(pb_header)) return -1;
             if (!m_slice->peek(len)) return 0;
             if (len > data_len) return 0;
@@ -76,7 +82,7 @@ namespace luapb {
             pb_message* msg = pbmsg_from_stack(L, index++, &header.cmd_id);
             if (msg == nullptr) luaL_error(L, "invalid pb cmd type");
             //other
-            uint8_t flag = (uint8_t)lua_tointeger(L, index++);
+            header.head.flag = (uint8_t)lua_tointeger(L, index++);
             header.type = (uint8_t)lua_tointeger(L, index++);
             header.crc8 = (uint8_t)lua_tointeger(L, index++);
             //encode
@@ -89,7 +95,7 @@ namespace luapb {
                 luaL_error(L, e.what());
             }
             *len = buf->size();
-            header.len = *len << 8 | flag;
+            header.head.len = *len;
             buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
             return buf->head();
         }
@@ -102,7 +108,7 @@ namespace luapb {
             lua_pushinteger(L, m_slice->size());
             lua_pushinteger(L, header->session_id);
             lua_pushinteger(L, header->cmd_id);
-            lua_pushinteger(L, header->len & 0xff);
+            lua_pushinteger(L, header->head.flag);
             lua_pushinteger(L, header->type);
             lua_pushinteger(L, header->crc8);
             //cmd_id

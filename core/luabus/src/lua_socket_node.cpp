@@ -73,12 +73,16 @@ int lua_socket_node::call(lua_State* L, uint32_t session_id, uint8_t flag, uint6
         if (length <= SOCKET_PACKET_MAX) {
             //组装数据
             router_header header = {
+                .head = {
+                    .type = REMOTE_CALL,
+                    .flag = flag,
+                    .len = length,
+                },
                 .session_id = session_id,
                 .trace_id = trace_id,
                 .span_id = span_id
             };
             //发送数据
-            header.format_len(length, REMOTE_CALL, flag);
             sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len}};
             m_mgr->sendv(m_token, items, _countof(items));
             lua_pushinteger(L, length);
@@ -97,6 +101,11 @@ int lua_socket_node::forward_transfer(lua_State* L, uint32_t session_id, uint32_
         if (length <= SOCKET_PACKET_MAX) {
             //组装数据
             transfer_header header = {
+                .head = {
+                    .type = TRANSFER_CALL,
+                    .flag = 0x01,
+                    .len = length,
+                },
                 .session_id = session_id,
                 .target_id = target_id,
                 .trace_id = trace_id,
@@ -104,7 +113,6 @@ int lua_socket_node::forward_transfer(lua_State* L, uint32_t session_id, uint32_
                 .service_id = service_id
             };
             //发送数据
-            header.format_len(length, TRANSFER_CALL, 0x01);
             sendv_item items[] = { { &header, sizeof(transfer_header)}, {data, data_len}};
             m_mgr->sendv(m_token, items, _countof(items));
             lua_pushinteger(L, length);
@@ -123,13 +131,17 @@ int lua_socket_node::forward_target(lua_State* L, uint32_t session_id, uint8_t f
         if (length <= SOCKET_PACKET_MAX) {
             //组装数据
             router_header header = {
+                .head = {
+                    .type = FORWARD_TARGET,
+                    .flag = flag,
+                    .len = length,
+                },
                 .session_id = session_id,
                 .target_id = target_id,
                 .trace_id = trace_id,
                 .span_id = span_id
             };
             //发送数据
-            header.format_len(length, FORWARD_TARGET, flag);
             sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
             m_mgr->sendv(m_token, items, _countof(items));
             lua_pushinteger(L, length);
@@ -148,13 +160,17 @@ int lua_socket_node::forward_hash(lua_State* L, uint32_t session_id, uint8_t fla
         if (length <= SOCKET_PACKET_MAX) {
             //组装数据
             router_header header = {
+                .head = {
+                    .type = FORWARD_HASH,
+                    .flag = flag,
+                    .len = length,
+                },
                 .session_id = session_id,
                 .target_id = service_id << 16 | hash,
                 .trace_id = trace_id,
                 .span_id = span_id
             };
             //发送数据
-            header.format_len(length, FORWARD_HASH, flag);
             sendv_item items[] = { { &header, sizeof(router_header)}, {data, data_len} };
             m_mgr->sendv(m_token, items, _countof(items));
             lua_pushinteger(L, length);
@@ -178,12 +194,16 @@ int lua_socket_node::transfer_call(lua_State* L, uint32_t session_id, uint32_t t
     if (length <= SOCKET_PACKET_MAX) {
         //组装数据
         router_header header = {
+            .head = {
+                .type = REMOTE_CALL,
+                .flag = 0x01,
+                .len = length,
+            },
             .session_id = session_id,
             .target_id = target_id,
             .trace_id = trace_id,
             .span_id = span_id
         };
-        header.format_len(length, REMOTE_CALL, 0x01);
         if (m_router->do_forward_target(&header, data, data_len)) {
             lua_pushinteger(L, length);
             return 1;
@@ -201,12 +221,16 @@ int lua_socket_node::transfer_hash(lua_State* L, uint32_t session_id, uint32_t s
         if (length <= SOCKET_PACKET_MAX) {
             //组装数据
             router_header header = {
+                .head = {
+                    .type = REMOTE_CALL,
+                    .flag = 0x01,
+                    .len = length,
+                },
                 .session_id = session_id,
                 .target_id = service_id << 16 | hash,
                 .trace_id = trace_id,
                 .span_id = span_id
             };
-            header.format_len(length, REMOTE_CALL, 0x01);
             if (m_router->do_forward_hash(&header, data, data_len)) {
                 lua_pushinteger(L, length);
                 return 1;
@@ -228,7 +252,7 @@ void lua_socket_node::on_recv(slice* slice) {
     size_t header_len = sizeof(router_header);
     auto hdata = slice->peek(header_len);
     router_header* header = (router_header*)hdata;
-    rpc_type msg = (rpc_type)((header->len & 0x7f) >> 4);
+    rpc_type msg = header->head.type;
     if (msg == TRANSFER_CALL) {
         header_len = sizeof(transfer_header);
     }
@@ -292,7 +316,7 @@ void lua_socket_node::on_transfer(transfer_header* header, slice* slice) {
     uint32_t session_id = header->session_id;
     uint64_t trace_id = header->trace_id;
     uint32_t span_id = header->span_id;
-    m_lvm->object_call(this, "on_transfer", nullptr, std::tie(), header->len, session_id, service_id, target_id, trace_id, span_id, slice);
+    m_lvm->object_call(this, "on_transfer", nullptr, std::tie(), header->head.len, session_id, service_id, target_id, trace_id, span_id, slice);
 }
 
 void lua_socket_node::on_call_pb(slice* slice) {
@@ -300,11 +324,11 @@ void lua_socket_node::on_call_pb(slice* slice) {
 }
 
 void lua_socket_node::on_call(router_header* header, slice* slice) {
-    uint8_t flag = header->len & 0x0f;
+    uint8_t flag = header->head.flag;
     uint32_t session_id = header->session_id;
     uint64_t trace_id = header->trace_id;
     uint32_t span_id = header->span_id;
-    m_lvm->object_call(this, "on_call", nullptr, m_codec, std::tie(), header->len, session_id, flag, trace_id, span_id);
+    m_lvm->object_call(this, "on_call", nullptr, m_codec, std::tie(), header->head.len, session_id, flag, trace_id, span_id);
 }
 
 void lua_socket_node::on_call_data(slice* slice) {
