@@ -325,12 +325,37 @@ namespace lssl {
         return 1;
     }
 
-    static tlscodec* tls_codec(lua_State* L, codec_base* codec, bool is_client) {
+    static tlscodec* tls_codec(lua_State* L, bool client, char* protos) {
         tlscodec* tcodec = new tlscodec();
         tcodec->set_buff(luakit::get_buff());
-        tcodec->init_tls(L, is_client);
-        tcodec->set_codec(codec);
+        tcodec->init_tls(L, client, protos);
         return tcodec;
+    }
+
+    static int lclean(lua_State* L) {
+        if (S_SSL_CTX) SSL_CTX_free(S_SSL_CTX);
+        OPENSSL_cleanup();
+        return 0;
+    }
+
+    static int init_ciphers(lua_State* L, std::string_view cipher) {
+        if (int ret = SSL_CTX_set_tlsext_use_srtp(S_SSL_CTX, cipher.data()) != 0) {
+            luaL_error(L, "SSL_CTX_set_tlsext_use_srtp error: %d", ret);
+        }
+        return 0;
+    }
+
+    static int init_cert(lua_State* L, std::string_view certfile, std::string_view key) {
+        if (int ret = SSL_CTX_use_certificate_chain_file(S_SSL_CTX, certfile.data()) != 1) {
+            luaL_error(L, "SSL_CTX_use_certificate_chain_file error:%d", ret);
+        }
+        if (int ret = SSL_CTX_use_PrivateKey_file(S_SSL_CTX, key.data(), SSL_FILETYPE_PEM) != 1) {
+            luaL_error(L, "SSL_CTX_use_PrivateKey_file error:%d", ret);
+        }
+        if (int ret = SSL_CTX_check_private_key(S_SSL_CTX) != 1) {
+            luaL_error(L, "SSL_CTX_check_private_key error:%d", ret);
+        }
+        return 0;
     }
 
     luakit::lua_table open_lssl(lua_State* L) {
@@ -362,8 +387,12 @@ namespace lssl {
         luassl.set_function("b64_decode", lbase64_decode);
         luassl.set_function("xxtea_encode", lxxtea_encode);
         luassl.set_function("xxtea_decode", lxxtea_decode);
+        luassl.set_function("init_ciphers", init_ciphers);
+        luassl.set_function("init_cert", init_cert);
         luassl.set_function("tlscodec", tls_codec);
         luassl.set_function("rsa_key", lrsa_key);
+        luassl.set_function("clean", lclean);
+        
         kit_state.new_class<lua_rsa_key>(
             "set_pubkey", &lua_rsa_key::set_pubkey,
             "set_prikey", &lua_rsa_key::set_prikey,
@@ -373,9 +402,8 @@ namespace lssl {
             "sign", &lua_rsa_key::sign
         );
         kit_state.new_class<tlscodec>(
-            "set_cert", &tlscodec::set_cert,
             "isfinish", &tlscodec::isfinish,
-            "set_ciphers", &tlscodec::set_ciphers
+            "set_codec", &tlscodec::set_codec
         );
         return luassl;
     }
@@ -388,6 +416,7 @@ extern "C" {
             SSL_IS_INIT = true;
             SSL_library_init();
             OpenSSL_add_all_algorithms();
+            lssl::S_SSL_CTX = SSL_CTX_new(SSLv23_method());
         }
         auto luassl = lssl::open_lssl(L);
         return luassl.push_stack();

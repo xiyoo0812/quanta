@@ -13,6 +13,12 @@
     <ClInclude Include="src\http.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\http2.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\huffman.h">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="src\lcodec.h">
       <Filter>src</Filter>
     </ClInclude>

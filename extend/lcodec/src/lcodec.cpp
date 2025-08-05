@@ -37,6 +37,20 @@ namespace lcodec {
         return hcodec;
     }
 
+    static codec_base* http2c_codec(codec_base* codec) {
+        http2ccodec* hcodec = new http2ccodec();
+        hcodec->set_codec(codec);
+        hcodec->set_buff(luakit::get_buff());
+        return hcodec;
+    }
+
+    static codec_base* http2d_codec(codec_base* codec) {
+        http2dcodec* hcodec = new http2dcodec();
+        hcodec->set_codec(codec);
+        hcodec->set_buff(luakit::get_buff());
+        return hcodec;
+    }
+
     static codec_base* mysql_codec(size_t session_id) {
         mysqlscodec* codec = new mysqlscodec(session_id);
         codec->set_buff(luakit::get_buff());
@@ -47,6 +61,14 @@ namespace lcodec {
         pgsqlscodec* codec = new pgsqlscodec();
         codec->set_buff(luakit::get_buff());
         return codec;
+    }
+
+    static void init_http2_static_headers(luabuf* buf) {
+        if (!STATIC_HEADERS.empty()) return;
+        STATIC_HEADERS.resize(DYNAMIC_IDX_MIN - 1);
+        for (auto& header : STATIC_INDEXS) {
+            STATIC_HEADERS[header.insert_c - 1] = (h2_header*)&header;
+        }
     }
 
     luakit::lua_table open_lcodec(lua_State* L) {
@@ -71,6 +93,8 @@ namespace lcodec {
         llcodec.set_function("hashkey", lhashkey);
         llcodec.set_function("httpccodec", httpc_codec);
         llcodec.set_function("httpdcodec", httpd_codec);
+        llcodec.set_function("http2ccodec", http2c_codec);
+        llcodec.set_function("http2dcodec", http2d_codec);
         llcodec.set_function("mysqlcodec", mysql_codec);
         llcodec.set_function("pgsqlcodec", pgsql_codec);
         llcodec.set_function("rediscodec", rds_codec);
@@ -104,6 +128,18 @@ namespace lcodec {
             "GSS_CONTINUE", GSS_CONTINUE,
             "SASL_CONTINUE", SASL_CONTINUE
         );
+        llcodec.new_enum("h2_frame_type",
+            "DATA", H2_DATA,
+            "PING", H2_PING,
+            "HEADES", H2_HEADES,
+            "GOAWAY", H2_GOAWAY,
+            "PRIORITY", H2_PRIORITY,
+            "SETTINGS", H2_SETTINGS,
+            "RST_STREAM", H2_RST_STREAM,
+            "PUSH_PROMISE", H2_PUSH_PROMISE,
+            "CONTINUATION", H2_CONTINUATION,
+            "WINDOW_UPDATE", H2_WINDOW_UPDATE
+        );
         kit_state.new_class<bitset>(
             "get", &bitset::get,
             "set", &bitset::set,
@@ -123,6 +159,8 @@ namespace lcodec {
 
 extern "C" {
     LUALIB_API int luaopen_lcodec(lua_State* L) {
+        lcodec::init_huffman_tree();
+        lcodec::init_http2_static_headers(luakit::get_buff());
         auto llcodec = lcodec::open_lcodec(L);
         return llcodec.push_stack();
     }

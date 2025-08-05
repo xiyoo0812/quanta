@@ -38,31 +38,32 @@ namespace lxlsx {
         void merge(cell* cell) {
             mirror = cell->elem;
             fmt_id = cell->fmt_id;
+            shared = cell->shared;
             fmt_code = cell->fmt_code;
         }
 
         int set_value(lua_State* L) {
-            auto ev = elem->FirstChildElement("v");
-            if (!ev) ev = elem->InsertNewChildElement("v");
+            auto e = mirror ? mirror : elem;
+            auto ev = e->FirstChildElement("v");
+            if (!ev) ev = e->InsertNewChildElement("v");
             switch (lua_type(L, 3)) {
             case LUA_TBOOLEAN:
                 ev->SetText(lua_toboolean(L, 3) ? "true" : "false");
-                elem->SetAttribute("t", "b");
+                e->SetAttribute("t", "b");
                 break;
             case LUA_TNUMBER:
                 ev->SetText(lua_tonumber(L, 3));
                 break;
             case LUA_TSTRING:
                 ev->SetText(lua_tostring(L, 3));
-                elem->SetAttribute("t", "str");
-            default:
-                break;
+                e->SetAttribute("t", "str");
             }
             return 0;
         }
 
         int get_value(lua_State* L) {
-            if (auto ev = elem->FirstChildElement("v"); ev) {
+            auto e = mirror ? mirror : elem;
+            if (auto ev = e->FirstChildElement("v"); ev) {
                 auto v = ev->GetText();
                 if (!v) return 0;
                 if (fmt_id > 0) {
@@ -85,14 +86,14 @@ namespace lxlsx {
                     lua_pushstring(L, fmt_code.c_str());
                     return 3;
                 }
-                if (auto t = elem->Attribute("t"); t && !strcmp(t, "s")) {
+                if (auto t = e->Attribute("t"); t && !strcmp(t, "s")) {
                     lua_pushlstring(L, shared.c_str(), shared.size());
                     return 1;
                 }
                 lua_pushstring(L, v);
                 return 1;
             }
-            if (auto is = elem->FirstChildElement("is"); is) {
+            if (auto is = e->FirstChildElement("is"); is) {
                 if (auto t = is->FirstChildElement("t"); t) {
                     lua_pushstring(L, t->GetText());
                     return 1;

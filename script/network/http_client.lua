@@ -1,4 +1,4 @@
---httpClient.lua
+--http_client.lua
 local Socket        = import("driver/socket.lua")
 
 local pairs         = pairs
@@ -56,6 +56,7 @@ function HttpClient:on_handshake(socket, codec, message)
         socket:send_data(message)
     end
     if codec.isfinish() then
+        codec.set_codec(self.hcodec)
         log_debug("[HttpClient][on_handshake] success!")
         thread_mgr:response(socket.session_id, socket)
     end
@@ -83,7 +84,7 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     if not headers then
         headers = {["Accept"] = "*/*" }
     end
-    local ipinfo, port, path, proto = self:parse_url(headers, url)
+    local ipinfo, port, path, proto = self:parse_url(url)
     if not ipinfo then
         log_err("[HttpClient][send_request] failed : {}", port)
         return false, port
@@ -113,7 +114,7 @@ function HttpClient:init_http_socket(ipinfo, port, proto, headers)
     headers["Host"] = host
     headers["User-Agent"] = "quanta"
     if proto == "https" then
-        local codec = tlscodec(self.hcodec, true)
+        local codec = tlscodec(true)
         if not codec then
             return nil, "tls codec create failed!"
         end
@@ -164,7 +165,7 @@ function HttpClient:format_url(url, query)
     return url
 end
 
-function HttpClient:parse_url(headers, url)
+function HttpClient:parse_url(url)
     local proto, host, port, path = qsurl(url)
     if not proto then
         return nil, "Illegal htpp url"
