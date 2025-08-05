@@ -24,7 +24,7 @@ namespace lcsv {
         ~workbook() {
             for (auto rcells : cells){
                 for (auto cell : rcells) {
-                    if (cell) delete cell; 
+                    if (cell) delete cell;
                 }
             }
         }
@@ -41,7 +41,7 @@ namespace lcsv {
                 return;
             cells[row - 1][col - 1] = co;
         }
-        
+
         int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
             if (cell* cell = get_cell(row, col); cell) {
                 lua_pushstring(L, cell->value.c_str());
@@ -58,7 +58,7 @@ namespace lcsv {
 
     class csv_file {
     public:
-        ~csv_file() { 
+        ~csv_file() {
             for (auto book : workbooks) { delete book; }
         }
 
@@ -103,7 +103,7 @@ namespace lcsv {
             return (it != workbooks.end()) ? *it : nullptr;
         }
 
-        vector<workbook*> all_workbooks(lua_State* L) { 
+        vector<workbook*> all_workbooks(lua_State* L) {
             return workbooks;
         }
 

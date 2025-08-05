@@ -61,9 +61,8 @@ namespace logger {
     public:
         log_level level() const { return level_; }
         vstring feature() const { return feature_; }
-        vstring color() const { return level_colors[(int)level_]; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
-        sstring format(bool prefix, bool suffix);
+        sstring format(bool prefix, bool suffix, bool clr = false);
         zone_time prepare(time_zone* zone);
 
     private:
@@ -95,12 +94,13 @@ namespace logger {
 
     class log_dest {
     public:
+        virtual bool color() { return false; }
         virtual void flush(const zone_time& time) = 0;
-        virtual void set_clean_time(size_t clean_time) {}
-        virtual void raw_write(vstring logtxt, vstring color, size_t size);
+        virtual void raw_write(vstring logtxt, size_t size) = 0;
         virtual void write(sptr<log_message> logmsg, const zone_time& logtime);
         virtual void ignore_prefix(bool prefix) { prefix_ = !prefix; }
         virtual void ignore_suffix(bool suffix) { suffix_ = !suffix; }
+        virtual void set_clean_time(size_t clean_time) {}
 
     protected:
         size_t size_ = 0;
@@ -112,8 +112,9 @@ namespace logger {
 
     class stdio_dest : public log_dest {
     public:
+        virtual bool color();
         virtual void flush(const zone_time& time);
-        virtual void raw_write(vstring logtxt, vstring color, size_t size);
+        virtual void raw_write(vstring logtxt, size_t size);
     }; // class stdio_dest
 
     class log_file_base : public log_dest {
@@ -122,6 +123,7 @@ namespace logger {
         virtual ~log_file_base();
 
         virtual void flush(const zone_time& time);
+        virtual void raw_write(vstring logtxt, size_t size);
         void create(path file_path, sstring file_name);
 
     protected:

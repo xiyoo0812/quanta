@@ -32,7 +32,6 @@ namespace lcodec {
     #define SC_SERVERERROR      500
     #define SC_SERVERBUSY       503
 
-
     bool is_packet_complete(const char* buffer, size_t buffer_size) {
         const char* header_end = strstr(buffer, CRLF2);
         if (!header_end) {
@@ -88,7 +87,7 @@ namespace lcodec {
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             m_buf->clean();
-            //status
+            //url,method,status
             format_http(L, &index);
             //headers
             lua_pushnil(L);

@@ -23,8 +23,8 @@ namespace logger {
         return time;
     }
 
-    sstring log_message::format(bool prefix, bool suffix) {
-        return std::format("{}{}{}\n", prefix ? prefix_ : "", msg_, suffix ? suffix_ : "");
+    sstring log_message::format(bool prefix, bool suffix, bool clr) {
+        return std::format("{}{}{}{}\n", clr ? level_colors[(int)level_] : "", prefix ? prefix_ : "", msg_, suffix ? suffix_ : "");
     }
 
     // class log_message_pool
@@ -85,30 +85,32 @@ namespace logger {
     // --------------------------------------------------------------------------------
     void log_dest::write(sptr<log_message> msg, const zone_time& logtime) {
         line_++;
-        auto logtxt = msg->format(prefix_, suffix_);
+        auto logtxt = msg->format(prefix_, suffix_, color());
         size_t msize = logtxt.size();
         if (size_ + msize >= USHRT_MAX) flush(logtime);
-        raw_write(logtxt, msg->color(), msize);
-    }
-
-    void log_dest::raw_write(vstring logtxt, vstring color, size_t size) {
-        memcpy(log_buf_ + size_, logtxt.data(), size);
-        size_ += size;
+        raw_write(logtxt, msize);
     }
 
     // class stdio_dest
     // --------------------------------------------------------------------------------
+    bool stdio_dest::color() {
+#ifdef WIN32
+        return true;
+#endif // WIN32
+        return false;
+    }
+
     void stdio_dest::flush(const zone_time& time) {
         if (size_ == 0) return;
         std::cout.write(log_buf_, size_);
         size_ = 0;
     }
 
-    void stdio_dest::raw_write(vstring logtxt, vstring color, size_t size) {
-#ifdef WIN32
-        memcpy(log_buf_ + size_, color.data(), color.size());
-        size_ += color.size();
-#endif // WIN32
+    void stdio_dest::raw_write(vstring logtxt, size_t size) {
+        if (size >= USHRT_MAX) {
+            std::cout.write(logtxt.data(), size);
+            return;
+        }
         memcpy(log_buf_ + size_, logtxt.data(), size);
         size_ += size;
     }
@@ -127,6 +129,15 @@ namespace logger {
         if (size_ == 0) return;
         file_->write(log_buf_, size_);
         size_ = 0;
+    }
+
+    void log_file_base::raw_write(vstring logtxt, size_t size) {
+        if (size >= USHRT_MAX) {
+            file_->write(log_buf_, size);
+            return;
+        }
+        memcpy(log_buf_ + size_, logtxt.data(), size);
+        size_ += size;
     }
 
     void log_file_base::create(path file_path, sstring file_name) {

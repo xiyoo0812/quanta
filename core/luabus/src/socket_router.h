@@ -3,7 +3,7 @@
 #include "socket_mgr.h"
 #include "socket_helper.h"
 
-enum class rpc_type : uint8_t {
+enum class rpc_type {
     REMOTE_CALL,
     TRANSFER_CALL,
     FORWARD_TARGET,
@@ -28,7 +28,7 @@ struct router_header {
         uint32_t length;
         struct {
             rpc_type type : 4;  //rpc_type4bit
-            uint8_t flag : 4;   //标志位4bit
+            uint32_t flag : 4;  //标志位4bit
             uint32_t len : 24;  //24bit(16M)
         } head;
     };
@@ -42,7 +42,7 @@ struct transfer_header {
         uint32_t length;
         struct {
             rpc_type type : 4;  //rpc_type4bit
-            uint8_t flag : 4;   //标志位4bit
+            uint32_t flag : 4;  //标志位4bit
             uint32_t len : 24;  //24bit(16M)
         } head;
     };

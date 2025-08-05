@@ -17,6 +17,8 @@ using namespace luakit;
 #define RSA_ENCODE_OUT_SIZE(s, m)   (((s) + (RSA_ENCODE_LEN(m)) - 1) / (RSA_ENCODE_LEN(m))) * (m) + 1
 
 namespace lssl {
+    static SSL_CTX* S_SSL_CTX   = nullptr;
+
     class lua_rsa_key {
     public:
         ~lua_rsa_key () {
@@ -133,7 +135,6 @@ namespace lssl {
     public:
         ~tlscodec() {
             if (ssl) SSL_free(ssl);
-            if (ctx) SSL_CTX_free(ctx);
         }
 
         virtual int load_packet(size_t data_len) {
@@ -142,16 +143,20 @@ namespace lssl {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
+            m_buf->clean();
             if (!is_handshake) {
-                m_buf->clean();
                 uint8_t* data = (uint8_t*)lua_tolstring(L, index, len);
                 if (*len > 0) bio_write(L, data, *len);
                 tls_handshake(L);
-                data = m_buf->data(len);
-                return data;
+                return m_buf->data(len);
             }
-            size_t slen = 0;
-            uint8_t* body = m_hcodec->encode(L, index, &slen);
+            size_t slen;
+            uint8_t* body = nullptr;
+            if (m_hcodec) {
+                body = m_hcodec->encode(L, index, &slen);
+            } else {
+                body = (uint8_t*)lua_tolstring(L, index, &slen);
+            }
             while (slen > 0) {
                 size_t written = SSL_write(ssl, body, slen);
                 if (written <= 0 || written > slen) {
@@ -163,8 +168,7 @@ namespace lssl {
                 slen -= written;
             }
             bio_read(L);
-            body = m_buf->data(len);
-            return body;
+            return m_buf->data(len);
         }
 
         virtual size_t decode(lua_State* L) {
@@ -177,9 +181,6 @@ namespace lssl {
                 m_packet_len = sz;
                 return lua_gettop(L) - top;
             }
-            if (!is_recving) {
-                m_buf->clean();
-            }
             m_packet_len = sz;
             bio_write(L, m_slice->head(), sz);
             do {
@@ -188,40 +189,47 @@ namespace lssl {
                 if (read == 0) break;
                 if (read < 0) {
                     int err = SSL_get_error(ssl, read);
-                    if (err == SSL_ERROR_WANT_READ) {
-                        break;
-                    }
+                    if (err == SSL_ERROR_WANT_READ) break;
                     throw lua_exception("SSL_read error:%d", err);
                 }
-                m_buf->pop_space(read);
+                sslbuf.append((char*)outbuff, read);
             } while (true);
-            is_recving = true;
-            m_hcodec->set_slice(m_buf->get_slice());
-            if (m_hcodec->load_packet(m_buf->size()) == 0) {
-                throw std::length_error("http text not full");
+            if (!sslbuf.empty()) {
+                slice sli((uint8_t*)sslbuf.c_str(), sslbuf.size());
+                m_hcodec->set_slice(&sli);
+                if (m_hcodec->load_packet(sslbuf.size()) > 0) {
+                    auto argnum = m_hcodec->decode(L);
+                    sslbuf.erase(0, m_hcodec->get_packet_len());
+                    return argnum;
+                }
             }
-            int argnum = m_hcodec->decode(L);
-            is_recving = false;
-            return argnum;
+            throw std::length_error("http text not full");
         }
 
-        bool isfinish() {
+        int isfinish(lua_State* L) {
             is_handshake = SSL_is_init_finished(ssl);
-            return is_handshake;
+            lua_pushboolean(L, is_handshake);
+            if (is_handshake) {
+                unsigned int len;
+                const unsigned char *data;
+                SSL_get0_alpn_selected(ssl, &data, &len);
+                lua_pushlstring(L, (const char*)data, len);
+                return 2;
+            }
+            return 1;
         }
 
         void set_codec(codec_base* codec) {
             m_hcodec = codec;
         }
 
-        void init_tls(lua_State* L, bool is_client) {
-            ctx = SSL_CTX_new(SSLv23_method());
-            if (!ctx) {
+        void init_tls(lua_State* L, bool client, const char* protos) {
+            if (!S_SSL_CTX) {
                 char buf[256];
                 ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
                 luaL_error(L, "SSL_CTX_new faild. %s\n", buf);
             }
-            ssl = SSL_new(ctx);
+            ssl = SSL_new(S_SSL_CTX);
             if (!ssl) luaL_error(L, "SSL_new faild");
             in_bio = BIO_new(BIO_s_mem());
             if (!in_bio) luaL_error(L, "new in bio faild");
@@ -230,40 +238,20 @@ namespace lssl {
             BIO_set_mem_eof_return(in_bio, -1);
             BIO_set_mem_eof_return(out_bio, -1);
             SSL_set_bio(ssl, in_bio, out_bio);
-            if (is_client) {
-                SSL_set_connect_state(ssl);
+            if (protos) {
+                SSL_set_alpn_protos(ssl, (const unsigned char*)protos, strlen(protos));
             }
-            else {
+            if (client) {
+                SSL_set_connect_state(ssl);
+            } else {
                 SSL_set_accept_state(ssl);
             }
-        }
-
-        int set_ciphers(lua_State* L, std::string_view cipher) {
-            if (int ret = SSL_CTX_set_tlsext_use_srtp(ctx, cipher.data()) != 0) {
-                luaL_error(L, "SSL_CTX_set_tlsext_use_srtp error: %d", ret);
-            }
-            return 0;
-        }
-
-        int set_cert(lua_State* L, std::string_view certfile, std::string_view key) {
-            if (int ret = SSL_CTX_use_certificate_chain_file(ctx, certfile.data()) != 1) {
-                luaL_error(L, "SSL_CTX_use_certificate_chain_file error:%d", ret);
-            }
-            if (int ret = SSL_CTX_use_PrivateKey_file(ctx, key.data(), SSL_FILETYPE_PEM) != 1) {
-                luaL_error(L, "SSL_CTX_use_PrivateKey_file error:%d", ret);
-            }
-            if (int ret = SSL_CTX_check_private_key(ctx) != 1) {
-                luaL_error(L, "SSL_CTX_check_private_key error:%d", ret);
-            }
-            return 0;
         }
 
     protected:
         void tls_handshake(lua_State* L) {
             int ret = SSL_do_handshake(ssl);
-            if (ret == SSL_SUCCESS) {
-                return;
-            }
+            if (ret == SSL_SUCCESS) return;
             int err = SSL_get_error(ssl, ret);
             if (err == SSL_ERROR_WANT_READ) {
                 bio_read(L);
@@ -300,9 +288,8 @@ namespace lssl {
         SSL* ssl = nullptr;
         BIO* in_bio = nullptr;
         BIO* out_bio = nullptr;
-        SSL_CTX* ctx = nullptr;
+        std::string sslbuf = "";
         codec_base* m_hcodec = nullptr;
         bool is_handshake = false;
-        bool is_recving = false;
     };
 }
