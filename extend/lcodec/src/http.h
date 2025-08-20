@@ -1,23 +1,20 @@
 #pragma once
 #include <vector>
 
-#include "lua_kit.h"
-
-using namespace std;
-using namespace luakit;
-
 namespace lcodec {
 
     inline size_t       LCRLF       = 2;
     inline size_t       LCRLF2      = 4;
     inline size_t       LCHUNKEND   = 5;
     inline size_t       LCONTENTL   = 15;
-    inline size_t       CHKLENGTH   = 2048;
     inline const char*  CRLF        = "\r\n";
     inline const char*  CRLF2       = "\r\n\r\n";
     inline const char*  CHUNKEND    = "0\r\n\r\n";
     inline const char*  CHUNKED     = "chunked";
-    inline const char*  CONTENTL    = "Content-Length:";
+    inline const char*  CONTENTT    = "Content-Type";
+    inline const char*  CONTENTL    = "Content-Length";
+    inline const char*  CONTENTE    = "Content-Encoding";
+    inline const char*  TRANSFER    = "Transfer-Encoding";
 
     #define SC_UNKNOWN          0
     #define SC_PROTOCOL         101
@@ -62,17 +59,34 @@ namespace lcodec {
         }
         return true;
     }
+    
+    class http_codec_base : public codec_base {
+    public:
+        virtual void set_content_codec(string_view type, codec_base* codec) {
+            m_codecs.emplace(type, codec);
+        }
 
-    class httpcodec : public codec_base {
+        codec_base* get_content_codec(string_view content) {
+            if (content.empty()) return nullptr;
+            if (auto it = m_codecs.find(content.data()); it != m_codecs.end()) {
+                return it->second;
+            }
+            return nullptr;
+        }
+    protected:
+        map<string, codec_base*> m_codecs;
+    };
+
+    class httpcodec : public http_codec_base {
     public:
         virtual int load_packet(size_t data_len) {
             if (!m_slice) return 0;
-            if (data_len > CHKLENGTH && !is_packet_complete((char*)m_slice->head(), data_len)) return 0;
+            if (!is_packet_complete((char*)m_slice->head(), data_len)) return 0;
             return data_len;
         }
 
-        void set_codec(codec_base* codec) {
-            m_codec = codec;
+        virtual void set_content_codec(string_view type, codec_base* codec) {
+            m_codecs.emplace(type, codec);
         }
 
         virtual size_t decode(lua_State* L) {
@@ -91,15 +105,17 @@ namespace lcodec {
             format_http(L, &index);
             //headers
             lua_pushnil(L);
+            string_view content_type;
             while (lua_next(L, index) != 0) {
-                format_http_header(lua_tostring(L, -2), lua_tostring(L, -1));
+                format_http_header(lua_tostring(L, -2), lua_tostring(L, -1), &content_type);
                 lua_pop(L, 1);
             }
             //body
             uint8_t* body = nullptr;
             if (lua_type(L, index + 1) == LUA_TTABLE) {
-                if (!m_codec) luaL_error(L, "http json not suppert, con't use lua table!");
-                body = m_codec->encode(L, index + 1, len);
+                auto codec = get_content_codec(content_type);
+                if (!codec) luaL_error(L, "http json not suppert, con't use lua table!");
+                body = codec->encode(L, index + 1, len);
             } else {
                 body = (uint8_t*)lua_tolstring(L, index + 1, len);
             }
@@ -113,89 +129,85 @@ namespace lcodec {
         virtual void format_http(lua_State* L, int* index) = 0;
         virtual void parse_http_packet(lua_State* L, string_view& buf) = 0;
 
-        void http_parse_body(lua_State* L, string_view header, string_view& buf) {
+        void http_parse_body(lua_State* L, string_view header_buf, string_view& buf) {
             m_buffer.clear();
-            bool jsonable = false;
-            bool contentlenable = false;
-            vector<string_view> headers;
-            split(header, CRLF, headers);
             lua_createtable(L, 0, 4);
-            for (auto header : headers) {
-                if (size_t pos = header.find(":"); pos != string_view::npos) {
+            string_view contend_type;
+            string_view contend_encoding;
+            vector<string_view> header_strs = split(header_buf, CRLF);
+            for (auto head_val : header_strs) {
+                if (size_t pos = head_val.find(":"); pos != string_view::npos) {
                     size_t hpos = pos + 1;
-                    string_view key = header.substr(0, pos);
-                    while (hpos < header.size() && isspace(header[hpos])) ++hpos;
-                    header.remove_prefix(hpos);
-                    if (key.starts_with("Content-Length")) {
-                        contentlenable = true;
-                        size_t content_size = atol(header.data());
+                    string_view key = head_val.substr(0, pos);
+                    while (hpos < head_val.size() && isspace(head_val[hpos])) ++hpos;
+                    head_val.remove_prefix(hpos);
+                    if (key.starts_with(CONTENTT)) {
+                        contend_type = head_val;
+                    }else if (key.starts_with(CONTENTE)) {
+                        contend_encoding = head_val;
+                    } else if (key.starts_with(CONTENTL)) {
+                        size_t content_size = atol(head_val.data());
                         m_buffer.append(buf.data(), content_size);
                         buf.remove_prefix(content_size);
-                    }
-                    else if (key.starts_with("Transfer-Encoding") && header.starts_with(CHUNKED)) {
-                        contentlenable = true;
-                        bool complate = false;
+                    } else if (key.starts_with(TRANSFER) && head_val.starts_with(CHUNKED)) {
                         while (buf.size() > 0) {
                             char* next;
                             size_t pos = buf.find(CRLF);
                             size_t chunk_size = strtol(buf.data(), &next, 16);
                             if (chunk_size == 0) {
                                 buf.remove_prefix(pos + 2 * LCRLF);
-                                complate = true;
                                 break;
                             }
                             m_buffer.append((const char*)next + LCRLF, chunk_size);
                             buf.remove_prefix(pos + chunk_size + 2 * LCRLF);
                         }
                     }
-                    else if (key.starts_with("Content-Type") && header.find("json") != string_view::npos) {
-                        jsonable = true;
-                    }
                     //压栈
                     lua_pushlstring(L, key.data(), key.size());
-                    lua_pushlstring(L, header.data(), header.size());
+                    lua_pushlstring(L, head_val.data(), head_val.size());
                     lua_settable(L, -3);
                 }
             }
-            if (!contentlenable) {
-                if (!buf.empty()) {
-                    m_buffer.append((const char*)buf.data(), buf.size());
-                    buf.remove_prefix(buf.size());
-                }
+            if (!buf.empty()) {
+                m_buffer.append((const char*)buf.data(), buf.size());
+                buf.remove_prefix(buf.size());
             }
             if (m_buffer.empty()) {
                 lua_pushnil(L);
                 return;
             }
-            if (jsonable && m_codec) {
-                try {
-                    auto mslice = luakit::slice((uint8_t*)m_buffer.c_str(), m_buffer.size());
-                    m_codec->set_slice(&mslice);
-                    m_codec->decode(L);
-                } catch (...) {
-                    lua_pushlstring(L, m_buffer.c_str(), m_buffer.size());
+            try {
+                if (auto codec = get_content_codec(contend_encoding); codec) {
+                    codec->decode(L, (uint8_t*)m_buffer.c_str(), m_buffer.size());
+                    return;
                 }
-                return;
-            }
+                if (auto codec = get_content_codec(contend_type); codec) {
+                    codec->decode(L, (uint8_t*)m_buffer.c_str(), m_buffer.size());;
+                    return;
+                }
+            } catch (...) {}
             lua_pushlstring(L, m_buffer.c_str(), m_buffer.size());
         }
 
-        void format_http_header(string_view key, string_view val) {
+        void format_http_header(string_view key, string_view val, string_view* type = nullptr) {
+            if (type && key.starts_with(CONTENTT)) *type = val;
             m_buf->write(std::format("{}: {}\r\n", key, val));
         }
 
-        void split(string_view str, string_view delim, vector<string_view>& res) {
+        vector<string_view> split(string_view str, string_view delim) {
             size_t cur = 0;
+            vector<string_view> vecs;
             size_t step = delim.size();
             size_t pos = str.find(delim);
             while (pos != string_view::npos) {
-                res.push_back(str.substr(cur, pos - cur));
+                vecs.emplace_back(str.substr(cur, pos - cur));
                 cur = pos + step;
                 pos = str.find(delim, cur);
             }
             if (str.size() > cur) {
-                res.push_back(str.substr(cur));
+                vecs.emplace_back(str.substr(cur));
             }
+            return vecs;
         }
 
         string_view read_line(string_view buf) {
@@ -207,7 +219,6 @@ namespace lcodec {
 
     protected:
         string m_buffer;
-        codec_base* m_codec = nullptr;
     };
 
     class httpdcodec : public httpcodec {
@@ -235,8 +246,7 @@ namespace lcodec {
             string_view header = buf.substr(0, pos);
             buf.remove_prefix(pos + LCRLF2);
             auto begining = read_line(header);
-            vector<string_view> parts;
-            split(begining, " ", parts);
+            vector<string_view> parts = split(begining, " ");
             if (parts.size() < 2) {
                 throw lua_exception("invalid http header");
             }
@@ -262,8 +272,7 @@ namespace lcodec {
             //params
             lua_createtable(L, 0, 4);
             if (!sparams.empty()) {
-                vector<string_view> params;
-                split(sparams, "&", params);
+                vector<string_view> params = split(sparams, "&");
                 for (string_view param : params) {
                     if (size_t pos = param.find("="); pos != string_view::npos) {
                         string_view key = param.substr(0, pos);
@@ -281,6 +290,7 @@ namespace lcodec {
     protected:
         virtual void format_http(lua_State* L, int* index)  {
             char buf[CHAR_MAX];
+            session_id = lua_tointeger(L, (*index)++);
             const char* url = lua_tostring(L, (*index)++);
             const char* method = lua_tostring(L, (*index)++);
             int len = snprintf(buf, CHAR_MAX, "%s %s HTTP/1.1\r\n", method, url);
@@ -295,13 +305,12 @@ namespace lcodec {
             string_view header = buf.substr(0, pos);
             buf.remove_prefix(pos + LCRLF2);
             auto begining = read_line(header);
-            vector<string_view> parts;
-            split(begining, " ", parts);
+            vector<string_view> parts = split(begining, " ");
             if (parts.size() < 2) {
                 throw lua_exception("invalid http header");
             }
-            //proto
-            lua_pushstring(L, "HTTP");
+            //session_id
+            lua_pushinteger(L, session_id);
             //status
             string status = string(parts[1]);
             if (lua_stringtonumber(L, status.c_str()) == 0) {
@@ -310,6 +319,8 @@ namespace lcodec {
             //header + body
             http_parse_body(L, header, buf);
         }
+    protected:
+        uint32_t session_id = 0;
     };
 }
 

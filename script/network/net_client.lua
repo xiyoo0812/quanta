@@ -9,7 +9,7 @@ local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
-local proto_pb          = luabus.eproto_type.pb
+local PROTO_PB          = luabus.eproto_type.pb
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local SECOND_5_MS       = quanta.enum("PeriodTime", "SECOND_5_MS")
@@ -40,7 +40,7 @@ function NetClient:connect(block)
     if self.socket then
         return true
     end
-    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, proto_pb)
+    local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, PROTO_PB)
     if not socket then
         log_err("[NetClient][connect] failed to connect: {}:{} err={}", self.ip, self.port, cerr)
         return false, cerr

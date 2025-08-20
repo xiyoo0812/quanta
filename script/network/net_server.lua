@@ -10,7 +10,7 @@ local qxpcall           = quanta.xpcall
 local new_trace         = quanta.new_trace
 local derive_port       = luabus.derive_port
 
-local proto_pb          = luabus.eproto_type.pb
+local PROTO_PB          = luabus.eproto_type.pb
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
@@ -67,7 +67,7 @@ function NetServer:listen(ip, port, induce)
     end
     local induce_port = induce and (port + quanta.order - 1) or port
     local real_port = derive_port(induce_port, ip)
-    local listener = socket_mgr.listen(ip, real_port, proto_pb)
+    local listener = socket_mgr.listen(ip, real_port, PROTO_PB)
     if not listener then
         log_err("[NetServer][setup] failed to listen: {}:{}", ip, real_port)
         signalquit()
@@ -75,7 +75,6 @@ function NetServer:listen(ip, port, induce)
     end
     log_info("[NetServer][listen] start listen at: {}:{}", ip, real_port)
     -- 安装回调
-    listener.set_codec(self.codec)
     listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session)
     end
@@ -91,6 +90,7 @@ function NetServer:on_socket_accept(session)
     session.fc_packet = 0
     session.fc_bytes  = 0
     session.last_fc_time = quanta.clock_ms
+    session.set_codec(self.codec)
     -- 设置超时(心跳)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 添加会话

@@ -67,6 +67,9 @@ void socket_stream::close() {
         return;
     }
     shutdown(m_socket, SD_RECEIVE);
+    if (wsa_io_cancel(m_socket, m_recv_ovl)) {
+        m_ovl_ref--;
+    }
     m_link_status = elink_status::link_closing;
 }
 
@@ -80,7 +83,7 @@ bool socket_stream::update(int64_t now) {
         }
         case elink_status::link_closing: {
 #ifdef IO_IOCP
-            if (m_ovl_ref > 1) return true;
+            if (m_ovl_ref > 0) return true;
 #endif
             if (!m_send_buffer->empty()) return true;
             m_link_status = elink_status::link_closed;

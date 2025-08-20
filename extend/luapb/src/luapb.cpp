@@ -25,6 +25,10 @@ namespace luapb {
         uint8_t     type;           // 消息类型
         uint8_t     crc8;           // crc8
     };
+    struct grpc_header {
+        uint8_t compose;            //是否压缩
+        uint32_t length;            //长度
+    };
     #pragma pack()
 
     pb_message* pbmsg_from_cmdid(size_t cmd_id) {
@@ -68,7 +72,6 @@ namespace luapb {
             uint32_t len = header->head.len;
             if (len < sizeof(pb_header)) return -1;
             if (!m_slice->peek(len)) return 0;
-            if (len > data_len) return 0;
             m_packet_len = len;
             return m_packet_len;
         }
@@ -86,18 +89,17 @@ namespace luapb {
             header.type = (uint8_t)lua_tointeger(L, index++);
             header.crc8 = (uint8_t)lua_tointeger(L, index++);
             //encode
-            auto buf = luakit::get_buff();
-            buf->clean();
-            buf->hold_place(sizeof(pb_header));
+            m_buf->clean();
+            m_buf->hold_place(sizeof(pb_header));
             try {
-                encode_message(L, index, buf, msg);
+                encode_message(L, index, m_buf, msg);
             } catch (const exception& e) {
                 luaL_error(L, e.what());
             }
-            *len = buf->size();
+            *len = m_buf->size();
             header.head.len = *len;
-            buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
-            return buf->head();
+            m_buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
+            return m_buf->head();
         }
 
         virtual size_t decode(lua_State* L) {
@@ -125,8 +127,64 @@ namespace luapb {
         }
     };
 
+    class grpccodec : public codec_base {
+    public:
+        virtual int load_packet(size_t data_len) {
+            if (!m_slice) return 0;
+            grpc_header* header = (grpc_header*)m_slice->peek(sizeof(grpc_header));
+            if (!header) return 0;
+            uint32_t len = byteswap(header->length);
+            if (!m_slice->peek(len, sizeof(grpc_header))) return 0;
+            m_packet_len = len + sizeof(grpc_header);
+            return m_packet_len;
+        }
+
+        virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
+            m_buf->clean();
+            m_buf->hold_place(sizeof(grpc_header));
+            //input_type
+            auto input_type = lua_tostring(L, index + 1);
+            pb_message* msg = find_message(input_type);
+            if (!msg) luaL_error(L, "invalid input_type: %s", input_type);
+            try {
+                encode_message(L, index, m_buf, msg);
+            } catch (const exception& e) {
+                luaL_error(L, e.what());
+            }
+            //header
+            uint32_t size = m_buf->size() - sizeof(grpc_header);
+            grpc_header header = { .compose = 0, .length = byteswap(size) };
+            m_buf->copy(0, (uint8_t*)&header, sizeof(grpc_header));
+            return m_buf->data(len);
+        }
+
+        virtual size_t decode(lua_State* L) {
+            //output_type
+            auto output_type = lua_tostring(L, -1);
+            lua_pop(L, 1);
+            //header
+            int top = lua_gettop(L);
+            grpc_header* header = (grpc_header*)m_slice->erase(sizeof(grpc_header));
+            //msg
+            pb_message* msg = find_message(output_type);
+            if (!msg) throw lua_exception("output_type : %s not define", output_type);
+            try {
+                decode_message(L, m_slice, msg);
+            } catch (...) {
+                throw lua_exception("output_type: %s decode failed: %s", output_type, lua_tostring(L, -1));
+            }
+            return lua_gettop(L) - top;
+        }
+    };
+
     inline codec_base* pb_codec() {
         pbcodec* codec = new pbcodec();
+        codec->set_buff(luakit::get_buff());
+        return codec;
+    }
+
+    inline codec_base* grpc_codec() {
+        grpccodec* codec = new grpccodec();
         codec->set_buff(luakit::get_buff());
         return codec;
     }
@@ -228,6 +286,8 @@ namespace luapb {
         luapb.set_function("option", pb_option);
         luapb.set_function("loadfile", load_file);
         luapb.set_function("messages", pb_messages);
+        luapb.set_function("services", pb_services);
+        luapb.set_function("grpccodec", grpc_codec);
         luapb.set_function("bind_cmd", [](uint32_t cmd_id, std::string name, std::string fullname) {
             if (auto message = find_message(fullname.c_str()); message) {
                 pb_cmd_names[name] = message;

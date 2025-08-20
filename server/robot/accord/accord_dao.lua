@@ -5,7 +5,7 @@ local sformat       = string.format
 
 local ACCORD_URL    = environ.get("QUANTA_ACCORD_URL")
 
-local http_client   = quanta.get("http_client")
+local http_client   = quanta.http_client()
 
 local AccordDao = singleton()
 function AccordDao:__init()

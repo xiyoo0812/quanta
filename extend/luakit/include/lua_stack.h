@@ -2,6 +2,22 @@
 #include "lua_base.h"
 
 namespace luakit {
+    template <typename T>
+    concept std_string = std::is_same_v<T, std::basic_string<typename T::value_type>> || std::is_same_v<T, std::basic_string_view<typename T::value_type>>;
+    template <typename T>
+    concept std_container = !std_string<T> && requires { typename T::value_type; typename T::iterator; typename T::size_type; };
+    template <typename T>
+    concept std_keytype = requires { typename T::key_type; };
+    template <typename T>
+    concept std_mapped = requires { typename T::mapped_type; };
+    template <typename T>
+    concept std_map = std_container<T> && std_mapped<T>;
+    template <typename T>
+    concept std_set = std_container<T> && std_keytype<T> && !std_mapped<T>;
+    template <typename T>
+    concept std_sequence = std_container<T> && !std_keytype<T> && !std_mapped<T>;
+    template <typename T>
+    concept not_container = !std_container<T>;
 
     template <typename T>
     T lua_to_object(lua_State* L, int idx);
@@ -9,7 +25,7 @@ namespace luakit {
     void lua_push_object(lua_State* L, T obj);
 
     //将lua栈顶元素转换成C++对象
-    template <typename T>
+    template <not_container T>
     T lua_to_native(lua_State* L, int i) {
         if constexpr (std::is_same_v<T, bool>) {
             return lua_toboolean(L, i) != 0;
@@ -38,7 +54,7 @@ namespace luakit {
     }
 
     //C++对象压到lua堆顶
-    template <typename T>
+    template <not_container T>
     int native_to_lua(lua_State* L, T v) {
         if constexpr (std::is_same_v<T, bool>) {
             lua_pushboolean(L, v);
@@ -69,157 +85,73 @@ namespace luakit {
         return 1;
     }
 
-    //template template parameters
-    //std::array
-    template <typename T, std::size_t N, template<typename TE, std::size_t TN> typename TTP>
-    int native_to_lua(lua_State* L, TTP<T, N> v) {
+    //std::array/std::list/std::deque/std::forward_list
+    //std::set/std::multiset/std::unordered_set/std::unordered_multiset
+    template <typename T> requires(std_sequence<T> || std_set<T>)
+    int native_to_lua(lua_State* L, const T& v) {
         uint32_t index = 1;
-        lua_createtable(L, 0, 8);
+        lua_createtable(L, 0, v.size());
         for (auto item : v) {
-            native_to_lua<T>(L, item);
+            native_to_lua(L, item);
             lua_seti(L, -2, index++);
         }
         return 1;
     }
 
     //std::vector/std::list/std::deque/std::forward_list
-    template <template<typename, typename> class TTP, typename T>
-    int native_to_lua(lua_State* L, TTP<T, std::allocator<T>> v) {
-        uint32_t index = 1;
-        lua_createtable(L, 0, 8);
-        for (auto item : v) {
-            native_to_lua<T>(L, item);
-            lua_seti(L, -2, index++);
+    template <std_sequence T>
+    T lua_to_native(lua_State* L, int i) {
+        T v;
+        if (lua_istable(L, i)) {
+            auto len = lua_rawlen(L, i);
+            for (int idx = 1; idx <= len; ++idx) {
+                lua_geti(L, i, idx);
+                v.emplace_back(lua_to_native<typename T::value_type>(L, -1));
+                lua_pop(L, 1);
+            }
         }
-        return 1;
+        return v;
     }
 
-    //std::vector/std::list/std::deque
-    template <template<typename, typename> class TTP, typename T>
-    bool lua_to_native(lua_State* L, int i, TTP<T, std::allocator<T>>& ttp) {
-        lua_guard g(L);
+    //std::set/std::multiset/std::unordered_set/std::unordered_multiset
+    template <std_set T>
+    T lua_to_native(lua_State* L, int i) {
+        T v;
         if (lua_istable(L, i)) {
             i = lua_absindex(L, i);
             lua_pushnil(L);
             while (lua_next(L, i) != 0) {
-                ttp.push_back(lua_to_native<T>(L, -1));
+                v.emplace(lua_to_native<typename T::value_type>(L, -1));
                 lua_pop(L, 1);
             }
-            return true;
         }
-        return false;
+        return v;
     }
 
-    //std::set/std::multiset
-    template <template<typename, typename, typename> class TTP, typename T>
-    int native_to_lua(lua_State* L, TTP<T, std::less<T>, std::allocator<T>> v) {
-        uint32_t index = 1;
-        lua_createtable(L, 0, 8);
-        for (auto item : v) {
-            native_to_lua<T>(L, item);
-            lua_seti(L, -2, index++);
-        }
-        return 1;
-    }
-
-    //std::set/std::multiset
-    template <template<typename, typename, typename> class TTP, typename T>
-    bool lua_to_native(lua_State* L, int i, TTP<T, std::less<T>, std::allocator<T>>& ttp) {
-        lua_guard g(L);
-        if (lua_istable(L, i)) {
-            i = lua_absindex(L, i);
-            lua_pushnil(L);
-            while (lua_next(L, i) != 0) {
-                ttp.insert(lua_to_native<T>(L, -1));
-                lua_pop(L, 1);
-            }
-            return true;
-        }
-        return false;
-    }
-
-   //std::unordered_set/std::unordered_multiset
-    template <template<typename, typename, typename, typename> class TTP, typename T>
-    int native_to_lua(lua_State* L, TTP<T, std::hash<T>, std::equal_to<T>, std::allocator<T>> v) {
-         uint32_t index = 1;
-        lua_createtable(L, 0, 8);
-         for (auto item : v) {
-             native_to_lua<T>(L, item);
-             lua_seti(L, -2, index++);
-         }
-         return 1;
-     }
-
-    //std::unordered_set/std::unordered_multiset
-    template <template<typename, typename, typename, typename> class TTP, typename T>
-    bool lua_to_native(lua_State* L, int i, TTP<T, std::hash<T>, std::equal_to<T>, std::allocator<T>>& ttp) {
-        lua_guard g(L);
-        if (lua_istable(L, i)) {
-            i = lua_absindex(L, i);
-            lua_pushnil(L);
-            while (lua_next(L, i) != 0) {
-                ttp.insert(lua_to_native<T>(L, -1));
-                lua_pop(L, 1);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    // //std::map/std::multimap
-    template <template<typename, typename, typename, typename> class TTP, typename K, typename V>
-    int native_to_lua(lua_State* L, TTP<K, V, std::less<K>, std::allocator<std::pair<const K, V>>> v) {
-        lua_createtable(L, 0, 8);
-        for (auto item : v) {
-            native_to_lua<K>(L, item.first);
-            native_to_lua<V>(L, item.second);
+    template <std_map T>
+    int native_to_lua(lua_State* L, const T& vtm) {
+        lua_createtable(L, 0, vtm.size());
+        for (auto& [k, v] : vtm) {
+            native_to_lua(L, k);
+            native_to_lua(L, v);
             lua_settable(L, -3);
         }
         return 1;
     }
 
     //std::map/std::multimap
-    template <template<typename, typename, typename, typename> class TTP, typename K, typename V>
-    bool lua_to_native(lua_State* L, int i, TTP<K, V, std::less<K>, std::allocator<std::pair<const K, V>>>& ttp) {
-        lua_guard g(L);
+    template <std_map T>
+    T lua_to_native(lua_State* L, int i) {
+        T v;
         if (lua_istable(L, i)) {
             i = lua_absindex(L, i);
             lua_pushnil(L);
             while (lua_next(L, i) != 0) {
-                ttp.insert(std::make_pair(lua_to_native<K>(L, -2), lua_to_native<V>(L, -1)));
+                v.emplace(lua_to_native<typename T::key_type>(L, -2), lua_to_native<typename T::mapped_type>(L, -1));
                 lua_pop(L, 1);
             }
-            return true;
         }
-        return false;
-    }
-
-    //std::unordered_map/std::unordered_multimap
-    template <template<typename, typename, typename, typename, typename> class TTP, typename K, typename V>
-    int native_to_lua(lua_State* L, TTP<K, V, std::hash<K>, std::equal_to<K>, std::allocator< std::pair<const K, V>>> v) {
-        lua_createtable(L, 0, 8);
-        for (auto item : v) {
-            native_to_lua<K>(L, item.first);
-            native_to_lua<V>(L, item.second);
-            lua_settable(L, -3);
-        }
-        return 1;
-    }
-
-    //std::unordered_map/std::unordered_multimap
-    template <template<typename, typename, typename, typename, typename> class TTP, typename K, typename V>
-    bool lua_to_native(lua_State* L, int i, TTP<K, V, std::hash<K>, std::equal_to<K>, std::allocator< std::pair<const K, V>>>& ttp) {
-        lua_guard g(L);
-        if (lua_istable(L, i)) {
-            i = lua_absindex(L, i);
-            lua_pushnil(L);
-            while (lua_next(L, i) != 0) {
-                ttp.insert(std::make_pair(lua_to_native<K>(L, -2), lua_to_native<V>(L, -1)));
-                lua_pop(L, 1);
-            }
-            return true;
-        }
-        return false;
+        return v;
     }
 
     template <typename T>

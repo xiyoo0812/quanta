@@ -2,15 +2,13 @@
 
 local log_err           = logger.err
 local log_info          = logger.info
-local qxpcall           = quanta.xpcall
 
-local proto_text        = luabus.eproto_type.text
+local PROTO_TEXT        = luabus.eproto_type.text
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
-local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 
 local Socket = class()
 local prop = property(Socket)
@@ -49,7 +47,7 @@ function Socket:listen(ip, port)
     if self.listener then
         return true
     end
-    self.listener = socket_mgr.listen(ip, port, proto_text)
+    self.listener = socket_mgr.listen(ip, port, PROTO_TEXT)
     if not self.listener then
         log_err("[Socket][listen] failed to listen: {}:{}", ip, port)
         return false
@@ -57,7 +55,9 @@ function Socket:listen(ip, port)
     self.ip, self.port = ip, port
     log_info("[Socket][listen] start listen at: {}:{}", ip, port)
     self.listener.on_accept = function(session)
-        qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session, ip, port)
+        thread_mgr:fork(function()
+            self:on_socket_accept(session)
+        end)
     end
     return true
 end
@@ -80,7 +80,7 @@ function Socket:connect(ip, port)
         end
         return false, "socket in connecting"
     end
-    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_text)
+    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, PROTO_TEXT)
     if not session then
         log_err("[Socket][connect] failed to connect: {}:{} err={}", ip, port, cerr)
         return false, cerr
@@ -97,22 +97,20 @@ function Socket:connect(ip, port)
         end
         thread_mgr:response(block_id, success, res)
     end
-    session.on_call_data = function(recv_len, ...)
-        self:on_socket_recv(token, ...)
-    end
-    session.on_error = function(stoken, err)
-        self:on_socket_error(stoken, err)
-    end
-    self.token = token
-    self.session = session
-    self.ip, self.port = ip, port
+    self:init_session(session, token, ip, port)
     --阻塞挂起
     local ok, res = thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
     if not ok then
         --处理超时
         self:close()
+        return ok, res
     end
-    return ok, res
+    log_info("[Socket][connect] connect success!")
+    return self:on_socket_connected()
+end
+
+function Socket:on_socket_connected()
+    return true
 end
 
 function Socket:on_socket_accept(session)
@@ -120,38 +118,41 @@ function Socket:on_socket_accept(session)
     socket:accept(session, session.ip, self.port)
 end
 
-function Socket:on_socket_recv(token, ...)
-    thread_mgr:fork(function(...)
-        self.host:on_socket_recv(self, ...)
-    end, nil, ...)
+function Socket:on_socket_recv(...)
+    self.host:on_socket_recv(self, ...)
 end
 
 function Socket:on_socket_error(token, err)
-    thread_mgr:fork(function()
-        if self.session then
-            self.codec = nil
-            self.token = nil
-            self.session = nil
-            self.alive = false
-            log_err("[Socket][on_socket_error] err: {} - {}!", err, token)
-            self.host:on_socket_error(self, token, err)
-        end
-    end)
+    if self.session then
+        self.codec = nil
+        self.token = nil
+        self.session = nil
+        self.alive = false
+        log_err("[Socket][on_socket_error] err: {} - {}!", err, token)
+        self.host:on_socket_error(self, token, err)
+    end
 end
 
-function Socket:accept(session, ip, port)
-    local token = session.token
-    session.set_timeout(NETWORK_TIMEOUT)
-    session.on_call_data = function(recv_len, ...)
-        self:on_socket_recv(token, ...)
-    end
-    session.on_error = function(stoken, err)
-        self:on_socket_error(stoken, err)
-    end
-    self.alive = true
+function Socket:init_session(session, token, ip, port)
     self.token = token
     self.session = session
     self.ip, self.port = ip, port
+    session.on_call_data = function(recv_len, ...)
+        thread_mgr:fork(function(...)
+            self:on_socket_recv(...)
+        end, nil, ...)
+    end
+    session.on_error = function(stoken, err)
+        thread_mgr:fork(function()
+            self:on_socket_error(stoken, err)
+        end)
+    end
+end
+
+function Socket:accept(session, ip, port)
+    self.alive = true
+    local token = session.token
+    self:init_session(session, token, ip, port)
     self.host:on_socket_accept(self, token)
 end
 

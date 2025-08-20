@@ -15,7 +15,8 @@ local CHAIN_INFOS   = quanta.get("CHAIN_INFOS")
 local CHAIN_PB_URL  = environ.get("QUANTA_CHAIN_PB_URL")
 local CHAIN_JS_URL  = environ.get("QUANTA_CHAIN_JSON_URL")
 
-local http_client   = quanta.get("http_client")
+local http_client   = quanta.http_client()
+
 local log_dump      = logfeature.dump("spans", true)
 
 local Chain = class()

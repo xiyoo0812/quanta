@@ -2,11 +2,6 @@
 #include <deque>
 #include <charconv>
 
-#include "lua_kit.h"
-
-using namespace std;
-using namespace luakit;
-
 namespace lcodec {
     inline size_t       CRLF_LEN    = 2;
     inline const char*  RDS_CRLF    = "\r\n";

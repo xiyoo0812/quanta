@@ -11,6 +11,7 @@
 - 热更新
 
 # 编译
+- 目前主分支升级到c++23，建议使用c++23支持的编译器
 - msvc : 打开项目目录下的sln工程文件，编译即可。
 - linux：在项目根目录，执行make all。
 - 编译lua需要readline，请提前安装。
@@ -38,13 +39,13 @@ MIMALLOC = false
 
 # 体验引擎
 - 配置
-在bin/config目录下，仿造quanta.conf生成配置实例，然后在bin目录执行configure.bat/configure.sh，会自动生成项目配置
+在bin/config目录下，仿造quanta.conf生成配置实例，然后在bin目录执行setup.bat/setup.sh，会自动生成项目配置
 ```shell
 #linux
 #需要加参数配置文件名
-configure.sh quanta
+setup.sh quanta
 #windows
-configure.bat
+setup.bat
 #然后输入配置文件名
 #>>quanta
 ```
@@ -77,16 +78,17 @@ quanta.bat
 - redis
 - lmdb
 - smdb
+- etcd
 - unqite
 
 # 支持功能
-- json协议支持
-- protobuf协议支持
 - SSL支持
-- HTTP C/S支持
+- GRPC C支持
 - TCP/UDP C/S支持
 - websocket C/S支持
-- xml/yaml/toml配置支持
+- HTTP/HTTP2 C/S支持
+- protobuf协议支持
+- json/xml/yaml/toml配置支持
 - excel(xlsx/xlsm/csv)配置导出
 - 常用压缩算法(lz4,minizip,zstd)支持
 - 常用加密算法(BASE64,MD5,RSA,SHA系列,hmac系列)支持
@@ -107,6 +109,7 @@ quanta.bat
 
 # 辅助工具
 - GMWeb工具
+- loki日志系统
 - 协议测试Web工具
-- zipkin/jager调用链系统
+- zipkin调用链系统
 - dingding/wechat/lark等webhook通知

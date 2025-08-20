@@ -5,15 +5,15 @@ setlocal enabledelayedexpansion
 
 set /p CONF=please input your conf name:
 
-rmdir /Q /S configs
-md configs
+rmdir /Q /S config
+md config
 
 cd template
 
 set SCRIPT=../../extend/lmake/ltemplate.lua
-set ENVIRON=../config/%CONF%.conf
+set ENVIRON=../environ/%CONF%.conf
 for %%i in (*.conf) do (
-    ..\lua.exe %SCRIPT% %%i ..\configs\%%i %ENVIRON%
+    ..\lua.exe %SCRIPT% %%i ..\config\%%i %ENVIRON%
 )
 
 pause

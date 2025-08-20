@@ -57,16 +57,28 @@ namespace luakit {
             return 0;
         }
 
-        template<typename T = uint8_t>
-        inline T* read() {
-            size_t tpe_len = sizeof(T);
+        template <arithmetic T = uint8_t, size_t N = sizeof(T)>
+        inline T read() {
             size_t data_len = m_tail - m_head;
-            if (tpe_len > 0 && data_len >= tpe_len) {
-                uint8_t* head = m_head;
-                m_head += tpe_len;
-                return (T*)head;
+            if (data_len >= N) {
+                T val = *(T*)m_head;
+                m_head += N;
+                return val;
             }
-            return nullptr;
+            throw std::length_error("slice read not engugh!");
+        }
+
+        template <std::integral T = uint8_t, size_t N = sizeof(T)>
+        inline T swap_read() {
+            static_assert(N <= sizeof(T) && N > 0, "Invalid byte count N");
+            size_t data_len = m_tail - m_head;
+            if (data_len >= N) {
+                T val = 0;
+                memcpy(reinterpret_cast<char*>(&val) + sizeof(T) - N, m_head, N);
+                m_head += N;
+                return std::byteswap(val);
+            }
+            throw std::length_error("slice read not engugh!");
         }
 
         inline uint8_t* data(size_t* len) {

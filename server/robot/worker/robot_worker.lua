@@ -1,6 +1,5 @@
 --robot_worker.lua
 import("robot/robot_mgr.lua")
-import("network/http_client.lua")
 
 local mceil         = math.ceil
 local qmax          = qmath.max
@@ -14,8 +13,9 @@ local lclock_ms     = timer.clock_ms
 local timer_mgr     = quanta.get("timer_mgr")
 local robot_mgr     = quanta.get("robot_mgr")
 local event_mgr     = quanta.get("event_mgr")
-local http_client   = quanta.get("http_client")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
+
+local http_client   = quanta.http_client()
 
 local ROBOT_ADDR    = environ.get("QUANTA_ROBOT_ADDR")
 

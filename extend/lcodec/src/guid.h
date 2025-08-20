@@ -97,7 +97,7 @@ namespace lcodec {
 
     static int guid_totrace(lua_State* L, uint64_t guid) {
         char bguid[16], hguid[64];
-        uint64_t biged = byteswap8(guid);
+        uint64_t biged = std::byteswap(guid);
         *(uint64_t*)bguid = biged;
         *(uint64_t*)(bguid + 8) = biged;
         snprintf(hguid, 32, "%016zx", guid);

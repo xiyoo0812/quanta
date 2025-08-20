@@ -315,7 +315,9 @@ namespace logger {
 
     log_service::~log_service() {
         thread_.request_stop();
-        thread_.join();
+        if (thread_.joinable()) {
+            thread_.join();
+        }
         agents_.clear();
         dest_lvls_.clear();
         dest_features_.clear();

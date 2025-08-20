@@ -10,13 +10,13 @@
     <ClInclude Include="src\hash.h">
       <Filter>src</Filter>
     </ClInclude>
+    <ClInclude Include="src\hpack.h">
+      <Filter>src</Filter>
+    </ClInclude>
     <ClInclude Include="src\http.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\http2.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="src\huffman.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\lcodec.h">

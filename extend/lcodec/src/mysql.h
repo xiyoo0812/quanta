@@ -2,10 +2,6 @@
 
 #include <deque>
 #include <vector>
-#include "lua_kit.h"
-
-using namespace std;
-using namespace luakit;
 
 //https://dev.mysql.com/doc/dev/mysql-server/latest/PAGE_PROTOCOL.html
 namespace lcodec {
@@ -112,7 +108,7 @@ namespace lcodec {
 
     protected:
         packet_type recv_packet() {
-            uint32_t payload = *(uint32_t*)m_slice->read<uint32_t>();
+            uint32_t payload = m_slice->read<uint32_t>();
             uint32_t length = (payload & 0xffffff);
             if (length >= 0xffffff) {
                 throw lua_exception("sharded packet not suppert!");
@@ -208,28 +204,28 @@ namespace lcodec {
             // 2 byte character_set (skip)
             // 4 byte column_length (skip)
             m_packet.erase(7);
-            uint8_t type = *(uint8_t*)m_packet.read<uint8_t>();
-            uint16_t flags = *(uint16_t*)m_packet.read<uint16_t>();
-            uint8_t decimals = *(uint8_t*)m_packet.read<uint8_t>();
+            uint8_t type = m_packet.read<uint8_t>();
+            uint16_t flags = m_packet.read<uint16_t>();
+            uint8_t decimals = m_packet.read<uint8_t>();
             columns.push_back(mysql_column { name, type, decimals });
         }
 
         void rows_bin_decode(lua_State* L, uint8_t type) {
             switch (type) {
             case MYSQL_TYPE_FLOAT:
-                lua_pushnumber(L, *(float*)m_packet.read<float>()); return;
+                lua_pushnumber(L, m_packet.read<float>()); return;
             case MYSQL_TYPE_DOUBLE:
-                lua_pushnumber(L, *(double*)m_packet.read<double>()); return;
+                lua_pushnumber(L, m_packet.read<double>()); return;
             case MYSQL_TYPE_TINY:
-                lua_pushinteger(L, *(int8_t*)m_packet.read<int8_t>()); return;
+                lua_pushinteger(L, m_packet.read<int8_t>()); return;
             case MYSQL_TYPE_YEAR:
             case MYSQL_TYPE_SHORT:
-                lua_pushinteger(L, *(int16_t*)m_packet.read<int16_t>()); return;
+                lua_pushinteger(L, m_packet.read<int16_t>()); return;
             case MYSQL_TYPE_LONG:
             case MYSQL_TYPE_INT24:
-                lua_pushinteger(L, *(int32_t*)m_packet.read<int32_t>()); return;
+                lua_pushinteger(L, m_packet.read<int32_t>()); return;
             case MYSQL_TYPE_LONGLONG:
-                lua_pushinteger(L, *(int64_t*)m_packet.read<int64_t>()); return;
+                lua_pushinteger(L, m_packet.read<int64_t>()); return;
             }
             auto value = decode_length_encoded_string();
             lua_pushlstring(L, value.data(), value.size());
@@ -371,14 +367,14 @@ namespace lcodec {
             if ((m_capability & CLIENT_DEPRECATE_EOF) == CLIENT_DEPRECATE_EOF) {
                 size_t affected_rows = decode_length_encoded_number();
                 size_t last_insert_id = decode_length_encoded_number();
-                uint16_t status_flags = *(uint16_t*)m_packet.read<uint16_t>();
-                uint16_t warnings = *(uint16_t*)m_packet.read<uint16_t>();
+                uint16_t status_flags = m_packet.read<uint16_t>();
+                uint16_t warnings = m_packet.read<uint16_t>();
                 auto info = m_packet.eof();
                 return ((status_flags & SERVER_MORE_RESULTS_EXISTS) == SERVER_MORE_RESULTS_EXISTS);
             }
             else {
-                uint16_t warnings = *(uint16_t*)m_packet.read<uint16_t>();
-                uint16_t status_flags = *(uint16_t*)m_packet.read<uint16_t>();
+                uint16_t warnings = m_packet.read<uint16_t>();
+                uint16_t status_flags = m_packet.read<uint16_t>();
                 return ((status_flags & SERVER_MORE_RESULTS_EXISTS) == SERVER_MORE_RESULTS_EXISTS);
             }
         }
@@ -387,10 +383,10 @@ namespace lcodec {
             if (auto type = recv_packet(); type == MP_ERR) {
                 return err_packet_decode(L);
             }
-            uint8_t status = *(uint8_t*)m_packet.read<uint8_t>();
-            uint32_t statement_id = *(uint32_t*)m_packet.read<uint32_t>();
-            uint16_t num_columns = *(uint16_t*)m_packet.read<uint16_t>();
-            uint16_t num_params = *(uint16_t*)m_packet.read<uint16_t>();
+            uint8_t status = m_packet.read<uint8_t>();
+            uint32_t statement_id = m_packet.read<uint32_t>();
+            uint16_t num_columns = m_packet.read<uint16_t>();
+            uint16_t num_params = m_packet.read<uint16_t>();
             for (uint16_t i = 0; i < num_params; ++i) {
                 recv_packet();
             }
@@ -404,28 +400,28 @@ namespace lcodec {
         void auth_decode(lua_State* L) {
             recv_packet();
             //1 byte protocol version
-            uint8_t proto = *(uint8_t*)m_packet.read<uint8_t>();
+            uint8_t proto = m_packet.read<uint8_t>();
             //n byte server version
             size_t data_len;
             const char* version = read_cstring(m_packet, data_len);
             //4 byte thread_id
-            uint32_t thread_id = *(uint32_t*)m_packet.read<uint32_t>();
+            uint32_t thread_id = m_packet.read<uint32_t>();
             //8 byte auth-plugin-data-part-1
             uint8_t* scramble1 = m_packet.peek(8);
             //8 byte auth-plugin-data-part-1 + 1 byte filler
             m_packet.erase(9);
             //2 byte capability_flags_1
-            uint16_t capability_flag_1 = *(uint16_t*)m_packet.read<uint16_t>();
+            uint16_t capability_flag_1 = m_packet.read<uint16_t>();
             //1 byte character_set
-            uint8_t character_set = *(uint8_t*)m_packet.read<uint8_t>();
+            uint8_t character_set = m_packet.read<uint8_t>();
             lua_pushinteger(L, character_set);
             //2 byte status_flags
-            uint16_t status_flags = *(uint16_t*)m_packet.read<uint16_t>();
+            uint16_t status_flags = m_packet.read<uint16_t>();
             //2 byte capability_flags_2
-            uint16_t capability_flag_2 = *(uint16_t*)m_packet.read<uint16_t>();
+            uint16_t capability_flag_2 = m_packet.read<uint16_t>();
             m_capability = CLIENT_FLAG & (capability_flag_2 << 16 | capability_flag_1);
             //1 byte character_set
-            uint8_t auth_plugin_data_len = *(uint8_t*)m_packet.read<uint8_t>();
+            uint8_t auth_plugin_data_len = m_packet.read<uint8_t>();
             //10 byte reserved (all 0)
             m_packet.erase(10);
             //auth-plugin-data-part-2
@@ -521,11 +517,11 @@ namespace lcodec {
         }
 
         size_t decode_length_encoded_number() {
-            uint8_t nbyte = *(uint8_t*)m_packet.read<uint8_t>();
+            uint8_t nbyte = m_packet.read<uint8_t>();
             if (nbyte < 0xfb) return nbyte;
-            if (nbyte == 0xfc) return *(uint16_t*)m_packet.read<uint16_t>();
-            if (nbyte == 0xfd) return *(uint32_t*)m_packet.read<uint32_t>();
-            if (nbyte == 0xfe) return *(uint64_t*)m_packet.read<uint64_t>();
+            if (nbyte == 0xfc) return m_packet.read<uint16_t>();
+            if (nbyte == 0xfd) return m_packet.read<uint32_t>();
+            if (nbyte == 0xfe) return m_packet.read<uint64_t>();
             return 0;
         }
 

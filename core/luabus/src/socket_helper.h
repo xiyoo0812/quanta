@@ -23,6 +23,7 @@ constexpr int _countof(T(&_array)[N]) { return N; }
 #ifdef WIN32
 using socket_t = SOCKET;
 inline int get_socket_error() { return WSAGetLastError(); }
+bool wsa_io_cancel(socket_t fd, WSAOVERLAPPED& ovl);
 bool wsa_send_empty(socket_t fd, WSAOVERLAPPED& ovl);
 bool wsa_recv_empty(socket_t fd, WSAOVERLAPPED& ovl);
 #endif

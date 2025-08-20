@@ -1,5 +1,4 @@
 --robot_agent.lua
-import("network/http_client.lua")
 
 local mceil         = math.ceil
 local log_err       = logger.err

@@ -1,130 +1,108 @@
 --http_client.lua
-local Socket        = import("driver/socket.lua")
 
 local pairs         = pairs
 local busdns        = luabus.dns
 local log_err       = logger.err
 local log_debug     = logger.debug
 local tconcat       = table.concat
-local tunpack       = table.unpack
+local tcopy         = qtable.copy
 local trandomarr    = qtable.random_array
 local qsurl         = qstring.url
 local sformat       = string.format
 local jsoncodec     = json.jsoncodec
-local httpccodec    = codec.httpccodec
 local luencode      = codec.url_encode
-local tlscodec      = ssl.tlscodec
 
-local thread_mgr    = quanta.get("thread_mgr")
+local HTTP_2        = "h2"
+local HTTP_1_1      = "http/1.1"
+local PROTO_TEXT    = luabus.eproto_type.text
+
 local update_mgr    = quanta.get("update_mgr")
-local HTTP_TIMEOUT  = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
-local proto_text    = luabus.eproto_type.text
+local Socketls      = import("driver/socketls.lua")
+local SocketH2      = import("driver/socketh2.lua")
 
-local HttpClient = singleton()
+local HttpClient = class()
 local prop = property(HttpClient)
-prop:reader("hcodec", nil)          --codec
-prop:reader("jcodec", nil)          --codec
-prop:reader("clients", {})          --clients
-prop:reader("domains", {})          --domains
+prop:reader("jcodec", nil)  --codec
+prop:reader("clients", {})  --clients
+prop:reader("domains", {})  --domains
+prop:reader("version", nil) --version
 
-function HttpClient:__init()
+function HttpClient:__init(version)
     self.jcodec = jsoncodec()
-    self.hcodec = httpccodec(self.jcodec)
-    --attach_hour
-    update_mgr:attach_hour(self)
+    self.version = version or HTTP_1_1
+    update_mgr:attach_quit(self)
 end
 
 function HttpClient:on_quit()
+    for _, socket in pairs(self.clients) do
+        socket:close()
+    end
     self.clients = {}
     self.domains = {}
 end
 
-function HttpClient:on_hour()
-    self.domains = {}
-end
-
-function HttpClient:on_socket_recv(socket, proto, ...)
-    if proto == "TLS" then
-        return self:on_handshake(socket, ...)
-    end
-    return self:on_http_recv(socket.token, ...)
-end
-
-function HttpClient:on_handshake(socket, codec, message)
-    if message then
-        socket:send_data(message)
-    end
-    if codec.isfinish() then
-        codec.set_codec(self.hcodec)
-        log_debug("[HttpClient][on_handshake] success!")
-        thread_mgr:response(socket.session_id, socket)
-    end
-end
-
-function HttpClient:on_http_recv(token, status, headers, body)
-    local client = self.clients[token]
-    if client then
-        client:close()
-        self.clients[token] = nil
-        thread_mgr:response(client.session_id, true, status, body, headers)
-    end
+function HttpClient:on_socket_recv(socket, ...)
+    log_debug("[HttpClient][on_socket_recv] client(token:{}) args({})!", socket.token, { ... })
 end
 
 function HttpClient:on_socket_error(socket, token, err)
     log_debug("[HttpClient][on_socket_error] client(token:{}) close({})!", token, err)
-    self.clients[token] = nil
-    if socket.session_id then
-        thread_mgr:response(socket.session_id, false, err)
+    if self.version == HTTP_2 then
+        self.clients[socket.name] = nil
     end
 end
 
 --构建请求
 function HttpClient:send_request(url, timeout, querys, headers, method, datas)
-    if not headers then
-        headers = {["Accept"] = "*/*" }
-    end
-    local ipinfo, port, path, proto = self:parse_url(url)
-    if not ipinfo then
+    local host, ip, port, path, scheme = self:parse_url(url)
+    if not host then
         log_err("[HttpClient][send_request] failed : {}", port)
-        return false, port
+        return false, ip
     end
-    local socket, err = self:init_http_socket(ipinfo, port, proto, headers)
+    local socket, err = self:connect(host, ip, port, scheme)
     if not socket then
+        log_err("[HttpClient][connect] failed : {}", err)
         return false, err
     end
+    local ori_headers = {
+        ["Host"] = host,
+        ["Accept"] = "*/*",
+        ["User-Agent"] = "quanta"
+    }
+    tcopy(headers, ori_headers)
     if type(datas) == "table" then
-        headers["Content-Type"] = "application/json"
+        ori_headers["Content-Type"] = "application/json"
     end
-    local session_id = thread_mgr:build_session_id()
+    local _<close> = quanta.defer(function()
+        if self.version == HTTP_1_1 then
+            socket:close()
+        end
+    end)
     local fmt_url = self:format_url(path, querys)
-    socket.session_id = session_id
-    self.clients[socket.token] = socket
-    socket:send_data(fmt_url, method, headers, datas or "")
-    return thread_mgr:yield(session_id, url, timeout or HTTP_TIMEOUT)
+    return socket:send_packet(fmt_url, method, ori_headers, datas or "")
 end
 
-function HttpClient:init_http_socket(ipinfo, port, proto, headers)
-    local socket = Socket(self)
-    local ip, host = tunpack(ipinfo)
-    local ok, cerr = socket:connect(ip, port, proto_text)
+function HttpClient:connect(host, ip, port, scheme)
+    local socket
+    if self.version == HTTP_2 then
+        socket = self.clients[host]
+        if not socket then
+            socket = SocketH2(self)
+            self.clients[host] = socket
+            socket.name = host
+        end
+    else
+        socket = Socketls(self)
+        if scheme == "http" then
+            socket:set_tls_enable(false)
+        end
+    end
+    local ok, cerr = socket:connect(ip, port, PROTO_TEXT)
     if not ok then
         return nil, cerr
     end
-    headers["Host"] = host
-    headers["User-Agent"] = "quanta"
-    if proto == "https" then
-        local codec = tlscodec(true)
-        if not codec then
-            return nil, "tls codec create failed!"
-        end
-        socket:set_codec(codec)
-        socket:send_data()
-        local session_id = thread_mgr:build_session_id()
-        socket.session_id = session_id
-        return thread_mgr:yield(session_id, host, HTTP_TIMEOUT)
-    end
-    socket:set_codec(self.hcodec)
+    socket:set_content_codec("application/json", self.jcodec)
     return socket
 end
 
@@ -166,33 +144,30 @@ function HttpClient:format_url(url, query)
 end
 
 function HttpClient:parse_url(url)
-    local proto, host, port, path = qsurl(url)
-    if not proto then
+    local scheme, host, port, path = qsurl(url)
+    if not scheme then
         return nil, "Illegal htpp url"
     end
-    local ipinfo = self.domains[host]
-    if not ipinfo then
+    local ip = self.domains[host]
+    if not ip then
         if host:sub(1, 3) ~= "www" then
             --尝试 + www
             local nhost = sformat("www.%s", host)
             local ips = busdns(nhost)
-            if ips then
-                ipinfo = { trandomarr(ips), nhost }
-                self.domains[host] = ipinfo
-                return ipinfo, port, path, proto
+            if ips and #ips > 0 then
+                ip = trandomarr(ips)
+                self.domains[host] = ip
+                return host, ip, port, path, scheme
             end
         end
         local ips = busdns(host)
         if not ips or #ips == 0 then
             return nil, "ip addr parse failed!"
         end
-        ipinfo = { trandomarr(ips), host }
-        self.domains[host] = ipinfo
-        return ipinfo, port, path, proto
+        ip = trandomarr(ips)
+        self.domains[host] = ip
     end
-    return ipinfo, port, path, proto
+    return host, ip, port, path, scheme
 end
-
-quanta.http_client = HttpClient()
 
 return HttpClient

@@ -83,11 +83,11 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
 end
 
 local LOG_LEVEL_OPTIONS = {
-    [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT },
     [LOG_LEVEL.FATAL]   = { "fatal", LOG_FLAG.FORMAT },
     [LOG_LEVEL.INFO]    = { "info",  LOG_FLAG.NULL, "print" },
     [LOG_LEVEL.WARN]    = { "warn",  LOG_FLAG.FORMAT, "warn" },
     [LOG_LEVEL.ERROR]   = { "err",   LOG_FLAG.FORMAT, "error"},
+    [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT | LOG_FLAG.PRETTY },
     [LOG_LEVEL.DUMP]    = { "dump",  LOG_FLAG.FORMAT | LOG_FLAG.PRETTY },
 }
 

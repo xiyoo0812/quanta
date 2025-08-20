@@ -23,32 +23,39 @@ namespace lcodec {
         return new bitset();
     }
 
-    static codec_base* httpd_codec(codec_base* codec) {
+    static codec_base* httpd_codec() {
         httpcodec* hcodec = new httpdcodec();
-        hcodec->set_codec(codec);
         hcodec->set_buff(luakit::get_buff());
         return hcodec;
     }
 
-    static codec_base* httpc_codec(codec_base* codec) {
+    static codec_base* httpc_codec() {
         httpcodec* hcodec = new httpccodec();
-        hcodec->set_codec(codec);
         hcodec->set_buff(luakit::get_buff());
         return hcodec;
     }
 
-    static codec_base* http2c_codec(codec_base* codec) {
-        http2ccodec* hcodec = new http2ccodec();
-        hcodec->set_codec(codec);
+    static codec_base* http2c_codec() {
+        auto hcodec = new http2codec<h2c_stream>();
         hcodec->set_buff(luakit::get_buff());
         return hcodec;
     }
 
-    static codec_base* http2d_codec(codec_base* codec) {
-        http2dcodec* hcodec = new http2dcodec();
-        hcodec->set_codec(codec);
+    static codec_base* grpcc_codec() {
+        auto hcodec = new http2codec<grpcc_stream>();
         hcodec->set_buff(luakit::get_buff());
         return hcodec;
+    }
+
+    static codec_base* http2d_codec() {
+        auto hcodec = new http2codec<h2d_stream>();
+        hcodec->set_buff(luakit::get_buff());
+        return hcodec;
+    }
+
+    static void set_content_codec(codec_base* base, string_view type, codec_base* codec) {
+        http_codec_base* hcodec = dynamic_cast<http_codec_base*>(base);
+        if (hcodec) hcodec->set_content_codec(type, codec);
     }
 
     static codec_base* mysql_codec(size_t session_id) {
@@ -61,14 +68,6 @@ namespace lcodec {
         pgsqlscodec* codec = new pgsqlscodec();
         codec->set_buff(luakit::get_buff());
         return codec;
-    }
-
-    static void init_http2_static_headers(luabuf* buf) {
-        if (!STATIC_HEADERS.empty()) return;
-        STATIC_HEADERS.resize(DYNAMIC_IDX_MIN - 1);
-        for (auto& header : STATIC_INDEXS) {
-            STATIC_HEADERS[header.insert_c - 1] = (h2_header*)&header;
-        }
     }
 
     luakit::lua_table open_lcodec(lua_State* L) {
@@ -91,6 +90,7 @@ namespace lcodec {
         llcodec.set_function("guid_time", guid_time);
         llcodec.set_function("hash_code", hash_code);
         llcodec.set_function("hashkey", lhashkey);
+        llcodec.set_function("grpcccodec", grpcc_codec);
         llcodec.set_function("httpccodec", httpc_codec);
         llcodec.set_function("httpdcodec", httpd_codec);
         llcodec.set_function("http2ccodec", http2c_codec);
@@ -101,6 +101,7 @@ namespace lcodec {
         llcodec.set_function("wsscodec", wss_codec);
         llcodec.set_function("url_encode", url_encode);
         llcodec.set_function("url_decode", url_decode);
+        llcodec.set_function("set_content_codec", set_content_codec);
         llcodec.set_function("bitset", bitset_new);
         llcodec.new_enum("pgsql_type_f",
             "BIND", BIND,
@@ -160,7 +161,7 @@ namespace lcodec {
 extern "C" {
     LUALIB_API int luaopen_lcodec(lua_State* L) {
         lcodec::init_huffman_tree();
-        lcodec::init_http2_static_headers(luakit::get_buff());
+        lcodec::init_static_headers(luakit::get_buff());
         auto llcodec = lcodec::open_lcodec(L);
         return llcodec.push_stack();
     }
