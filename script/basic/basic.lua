@@ -140,6 +140,21 @@ function quanta.make_sampling(title, period)
     return counter
 end
 
+function quanta.http_client(version)
+    local HttpClient = import("network/http_client.lua")
+    return HttpClient(version)
+end
+
+function quanta.grpc_client(addr)
+    local GrpcClient = import("network/grpc_client.lua")
+    return GrpcClient(addr)
+end
+
+function quanta.etcd(addr)
+    local Etcd = import("driver/etcd.lua")
+    return Etcd(addr)
+end
+
 --创建管道
 function quanta.make_channel(title)
     local Channel = import("feature/channel.lua")

@@ -1,4 +1,5 @@
 #pragma once
+#include <concepts>
 #include "lua_slice.h"
 
 namespace luakit {
@@ -169,27 +170,53 @@ namespace luakit {
             return push_data((const uint8_t*)src.data(), src.size());
         }
 
-        template<typename T>
-        inline size_t write(T value) {
-            T* target = (T*)peek_space(sizeof(T));
+        template <arithmetic T, size_t N = sizeof(T)>
+        inline size_t write(T val) {
+            T* target = (T*)peek_space(N);
             if (target) {
-                *target = value;
-                m_tail += sizeof(T);
-                return sizeof(T);
+                *target = val;
+                m_tail += N;
+                return N;
             }
             return 0;
         }
 
-        template<typename T = uint8_t>
-        inline T* read() {
-            size_t tpe_len = sizeof(T);
+        template <arithmetic T = uint8_t, size_t N = sizeof(T)>
+        inline T read() {
             size_t data_len = m_tail - m_head;
-            if (tpe_len > 0 && data_len >= tpe_len) {
-                uint8_t* head = m_head;
-                m_head += tpe_len;
-                return (T*)head;
+            if (data_len >= N) {
+                T val = *(T*)m_head;
+                m_head += N;
+                return val;
             }
-            return nullptr;
+            throw std::length_error("slice read not engugh!");
+        }
+
+        template <std::integral T, size_t N = sizeof(T)>
+        inline size_t swap_write(T val) {
+            static_assert(N <= sizeof(T) && N > 0, "Invalid byte count N");
+            auto target = peek_space(N);
+            if (target) {
+                val = std::byteswap(val);
+                const uint8_t* src = reinterpret_cast<uint8_t*>(&val) + sizeof(T) - N;
+                memcpy(target, src, N);
+                m_tail += N;
+                return N;
+            }
+            return 0;
+        }
+
+        template <std::integral T, size_t N = sizeof(T)>
+        inline T swap_read() {
+            static_assert(N <= sizeof(T) && N > 0, "Invalid byte count N");
+            size_t data_len = m_tail - m_head;
+            if (data_len >= N) {
+                T val = 0;
+                memcpy(reinterpret_cast<char*>(&val) + sizeof(T) - N, m_head, N);
+                m_head += N;
+                return std::byteswap(val);
+            }
+            throw std::length_error("slice read not engugh!");
         }
 
     protected:

@@ -14,9 +14,9 @@
     <ClInclude Include="src\bitset.h" />
     <ClInclude Include="src\guid.h" />
     <ClInclude Include="src\hash.h" />
+    <ClInclude Include="src\hpack.h" />
     <ClInclude Include="src\http.h" />
     <ClInclude Include="src\http2.h" />
-    <ClInclude Include="src\huffman.h" />
     <ClInclude Include="src\lcodec.h" />
     <ClInclude Include="src\mysql.h" />
     <ClInclude Include="src\pgsql.h" />
@@ -82,7 +82,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
       <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -114,7 +114,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <CompileAs>Default</CompileAs>
       <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>

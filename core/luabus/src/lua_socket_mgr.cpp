@@ -77,11 +77,7 @@ int lua_socket_mgr::broadcast(lua_State* L, codec_base* codec, uint32_t kind) {
 
 int lua_socket_mgr::broadgroup(lua_State* L, codec_base* codec) {
     size_t data_len = 0;
-    std::vector<uint32_t> groups;
-    if (!lua_to_native(L, 2, groups)) {
-        lua_pushboolean(L, false);
-        return 1;
-    }
+    auto groups = lua_to_native<std::vector<uint32_t>>(L, 2);
     char* data = (char*)codec->encode(L, 3, &data_len);
     if (data_len <= USHRT_MAX) {
         //发送数据

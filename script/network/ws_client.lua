@@ -7,7 +7,7 @@ local wsscodec          = codec.wsscodec
 local httpccodec        = codec.httpccodec
 local make_timer        = quanta.make_timer
 
-local proto_text        = luabus.eproto_type.text
+local PROTO_TEXT        = luabus.eproto_type.text
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
@@ -26,6 +26,7 @@ local WS_HEADERS        = {
 local WSClient = class()
 local prop = property(WSClient)
 prop:reader("ip", nil)
+prop:reader("port", 0)
 prop:reader("host", nil)
 prop:reader("token", nil)
 prop:reader("timer", nil)
@@ -34,13 +35,13 @@ prop:reader("wcodec", nil)           --codec
 prop:reader("hcodec", nil)           --codec
 prop:reader("alive", false)
 prop:reader("session", nil)         --连接成功对象
-prop:reader("port", 0)
+prop:reader("handshake", false)
 
 function WSClient:__init(host)
     self.host = host
     self.timer = make_timer()
     self.jcodec = jsoncodec()
-    self.hcodec = httpccodec(self.jcodec)
+    self.hcodec = httpccodec()
     self.wcodec = wsscodec(self.jcodec, true)
 end
 
@@ -64,7 +65,7 @@ function WSClient:connect(ws_addr)
         return false, "socket in connecting"
     end
     local ip, port = saddr(ws_addr)
-    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, proto_text)
+    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, PROTO_TEXT)
     if not session then
         log_err("[WSClient][connect] failed to connect: {}:{} err={}", ip, port, cerr)
         return false, cerr
@@ -73,32 +74,63 @@ function WSClient:connect(ws_addr)
     local token = session.token
     local block_id = thread_mgr:build_session_id()
     session.on_connect = function(res)
-        if res == "ok" then
-            WS_HEADERS["Host"] = ip
-            session.set_codec(self.hcodec)
-            session.call_data("/", "GET", WS_HEADERS, "")
-            return
+        local success = res == "ok"
+        if not success then
+            self.token = nil
+            self.session = nil
         end
-        self.token = nil
-        self.session = nil
-        thread_mgr:response(block_id, false, "connect failed")
+        thread_mgr:response(block_id, success, res)
     end
-    session.on_call_data = function(recv_len, method, ...)
-        if method == "WSS" then
-            self:on_socket_recv(session, token, ...)
-        else
-            local ok, res = self:on_handshake(session, token, ...)
-            thread_mgr:response(block_id, ok, res)
-        end
+    self:init_session(session, token, ip, port)
+    --阻塞挂起
+    local ok, res = thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
+    if not ok then
+        self:close()
+        return ok, res
     end
-    session.on_error = function(stoken, err)
-        self:on_socket_error(stoken, err)
+    WS_HEADERS["Host"] = ip
+    log_info("[Socket][connect] connect success!")
+    return self:on_socket_connected(session, token)
+end
+
+function WSClient:on_socket_connected(session, token)
+    local session_id = thread_mgr:build_session_id()
+    session.set_codec(self.hcodec)
+    session.call_data(session_id, "/", "GET", WS_HEADERS, "")
+    local ok, res = thread_mgr:yield(session_id, "handshake", CONNECT_TIMEOUT)
+    log_info("[WSClient][on_socket_connected] success {}:{}-{}", token, ok, res)
+    if not ok then
+        self:close()
+        return ok, res
     end
+    self.alive = true
+    self.handshake = true
+    event_mgr:fire_frame(function()
+        session.set_codec(self.wcodec)
+    end)
+    self.host:on_socket_connect(session, token)
+    log_info("[WSClient][on_socket_connected] handshake success {}:{}", token, session_id)
+    --发送心跳
+    self.timer:loop(SECOND_5_MS, function()
+        self:send_data(0x9, "PING")
+    end)
+    return ok
+end
+
+function WSClient:init_session(session, token, ip, port)
     self.token = token
     self.session = session
     self.ip, self.port = ip, port
-    --阻塞模式挂起
-    return thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
+    session.on_call_data = function(recv_len, ...)
+        thread_mgr:fork(function(...)
+            self:on_socket_recv(...)
+        end, nil, ...)
+    end
+    session.on_error = function(stoken, err)
+        thread_mgr:fork(function()
+            self:on_socket_error(stoken, err)
+        end)
+    end
 end
 
 function WSClient:on_socket_error(token, err)
@@ -109,36 +141,27 @@ function WSClient:on_socket_error(token, err)
     self.token = nil
 end
 
-function WSClient:on_socket_recv(session, token, opcode, message)
-    thread_mgr:fork(function()
-        if opcode == 0x8 then -- close
-            self:on_socket_error(token, "connection close")
-            return
-        end
-        if opcode <= 0x02 then
-            self.host:on_socket_recv(self, message)
-        end
-    end)
+function WSClient:on_socket_recv(...)
+    if self.handshake then
+        self:on_wss_recv(...)
+        return
+    end
+    self:on_handshake(...)
+end
+
+function WSClient:on_wss_recv(opcode, message)
+    if opcode == 0x8 then -- close
+        self:on_socket_error(self.token, "connection close")
+        return
+    end
+    if opcode <= 0x02 then
+        self.host:on_socket_recv(self, message)
+    end
 end
 
 --握手协议
-function WSClient:on_handshake(session, token, status, headers, body)
-    if status ~= 101 then
-        self.token = nil
-        self.session = nil
-        return false, body
-    end
-    self.alive = true
-    event_mgr:fire_frame(function()
-        session.set_codec(self.wcodec)
-    end)
-    self.host:on_socket_connect(session, token)
-    --发送心跳
-    self.timer:loop(SECOND_5_MS, function()
-        self:send_data(0x9, "PING")
-    end)
-    log_info("[WSClient][on_handshake] handshake success {}", token)
-    return true
+function WSClient:on_handshake(session_id, status, headers, body)
+    thread_mgr:response(session_id, status == 101, body, headers)
 end
 
 function WSClient:send_data(opcode, data)

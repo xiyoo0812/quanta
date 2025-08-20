@@ -1,5 +1,4 @@
 --webhook.lua
-import("network/http_client.lua")
 
 local jencode       = json.encode
 local sformat       = string.format
@@ -8,7 +7,7 @@ local dgetinfo      = debug.getinfo
 local log_dump      = logfeature.dump("webhooks", true)
 
 local thread_mgr    = quanta.get("thread_mgr")
-local http_client   = quanta.get("http_client")
+local http_client   = quanta.http_client()
 
 local HOST_IP       = environ.get("QUANTA_HOST_IP")
 local MINUTE_10_S   = quanta.enum("PeriodTime", "MINUTE_10_S")

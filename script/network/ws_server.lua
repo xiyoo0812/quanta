@@ -11,7 +11,7 @@ local qxpcall           = quanta.xpcall
 local signalquit        = signal.quit
 local derive_port       = luabus.derive_port
 
-local proto_text        = luabus.eproto_type.text
+local PROTO_TEXT        = luabus.eproto_type.text
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
@@ -33,8 +33,8 @@ prop:reader("sessions", {})         --sessions
 
 function WSServer:__init()
     self.jcodec = jsoncodec()
+    self.hcodec = httpdcodec()
     self.wcodec = wsscodec(self.jcodec)
-    self.hcodec = httpdcodec(self.jcodec)
     --注册退出
     update_mgr:attach_quit(self)
 end
@@ -58,13 +58,12 @@ function WSServer:listen(ip, port, induce)
     end
     local induce_port = induce and (port + quanta.order - 1) or port
     local real_port = derive_port(induce_port, ip)
-    local listener = socket_mgr.listen(ip, real_port, proto_text)
+    local listener = socket_mgr.listen(ip, real_port, PROTO_TEXT)
     if not listener then
         log_err("[WSServer][listen] failed to listen: {}:{}", ip, real_port)
         signalquit(1)
         return
     end
-    listener.set_codec(self.hcodec)
     listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session)
     end
@@ -76,70 +75,74 @@ end
 -- 连接回调
 function WSServer:on_socket_accept(session)
     local token = session.token
+    session.set_codec(self.hcodec)
     -- 设置超时(心跳)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 设置回调
-    session.on_call_data = function(recv_len, method, ...)
-        if method == "WSS" then
+    session.on_call_data = function(recv_len, ...)
+        thread_mgr:fork(function(...)
             self:on_socket_recv(session, token, ...)
-        else
-            self:on_handshake(session, token, ...)
-        end
+        end, nil, ...)
     end
     session.on_error = function(stoken, err)
-        self:on_socket_error(stoken, err)
+        thread_mgr:fork(function()
+            self:on_socket_error(stoken, err)
+        end)
     end
     --通知链接成功
     event_mgr:notify_listener("on_socket_accept", session)
 end
 
 function WSServer:on_socket_error(token, err)
-    thread_mgr:fork(function()
-        local session = self:remove_session(token)
-        if session then
-            event_mgr:notify_listener("on_socket_error", session, token, err)
-        end
-    end)
+    local session = self:remove_session(token)
+    if session then
+        event_mgr:notify_listener("on_socket_error", session, token, err)
+    end
+end
+
+function WSServer:on_socket_recv(socket, token, ...)
+    if socket.handshake then
+        return self:on_wss_recv(socket, token, ...)
+    end
+    self:on_handshake(socket, token, ...)
 end
 
 --回调
-function WSServer:on_socket_recv(session, token, opcode, message)
-    thread_mgr:fork(function()
-        if opcode == 0x8 then -- close
-            self:on_socket_error(token, "connection close")
-            return
-        end
-        if opcode == 0x9 then --Ping
-            session.call_data(0xA, "PONG")
-            return
-        end
-        if opcode <= 0x02 then
-            event_mgr:notify_listener("on_socket_cmd", session, message)
-        end
-    end)
+function WSServer:on_wss_recv(socket, token, opcode, message)
+    if opcode == 0x8 then -- close
+        self:on_socket_error(token, "connection close")
+        return
+    end
+    if opcode == 0x9 then --Ping
+        socket.call_data(0xA, "PONG")
+        return
+    end
+    if opcode <= 0x02 then
+        event_mgr:notify_listener("on_socket_cmd", socket, message)
+    end
 end
 
 --握手协议
-function WSServer:on_handshake(session, token, url, params, headers, body)
+function WSServer:on_handshake(socket, token, method, url, params, headers, body)
     local upgrade = headers["Upgrade"]
     if not upgrade or upgrade ~= "websocket" then
         log_err("[WSServer][on_handshake] handshake failed: can upgrade only to websocket")
-        return session.call_data(400, nil, "can upgrade only to websocket!")
+        return socket.call_data(400, nil, "can upgrade only to websocket!")
     end
     local connection = headers["Connection"]
     if not connection or connection ~= "Upgrade" then
         log_err("[WSServer][on_handshake] handshake failed: connection must be upgrade")
-        return session.call_data(400, nil, "connection must be upgrade!")
+        return socket.call_data(400, nil, "connection must be upgrade!")
     end
     local version = headers["Sec-WebSocket-Version"]
     if not version or version ~= "13" then
         log_err("[WSServer][on_handshake] handshake failed: Upgrade Required Sec-WebSocket-Version: 13")
-        return session.call_data(400, nil, "Upgrade Required Sec-WebSocket-Version: 13")
+        return socket.call_data(400, nil, "Upgrade Required Sec-WebSocket-Version: 13")
     end
     local key = headers["Sec-WebSocket-Key"]
     if not key then
         log_err("[WSServer][on_handshake] handshake failed: Sec-WebSocket-Key must not be nil")
-        return session.call_data(400, nil, "Sec-WebSocket-Key must not be nil!")
+        return socket.call_data(400, nil, "Sec-WebSocket-Key must not be nil!")
     end
     local cbheaders = {
         ["Upgrade"] = "websocket",
@@ -149,12 +152,13 @@ function WSServer:on_handshake(session, token, url, params, headers, body)
     if headers["Sec-WebSocket-Protocol"] then
         cbheaders["Sec-WebSocket-Protocol"] = "mqtt"
     end
-    session.call_data(101, cbheaders, "")
-    event_mgr:fire_frame(function()
-        session.set_codec(self.wcodec)
-    end)
+    socket.call_data(101, cbheaders, "")
     --handshake 完成
-    self:add_session(session)
+    socket.handshake = true
+    event_mgr:fire_frame(function()
+        socket.set_codec(self.wcodec)
+    end)
+    self:add_session(socket)
     log_info("[WSServer][on_handshake] handshake success {}", token)
     return true
 end

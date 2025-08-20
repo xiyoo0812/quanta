@@ -1,6 +1,4 @@
 --loki.lua
-import("network/http_client.lua")
-
 local lformat       = log.format
 local tnow_ns       = timer.now_ns
 local log_debug     = logger.debug
@@ -9,8 +7,8 @@ local sformat       = string.format
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
-local http_client   = quanta.get("http_client")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
+local http_client   = quanta.http_client()
 
 local MAX_LOKI_CNT  = 100
 local LOG_LEVEL     = log.LOG_LEVEL

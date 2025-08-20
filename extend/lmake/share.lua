@@ -4,8 +4,8 @@
 --gnu99/gnu11/gnu17
 STDC = "gnu99"
 
---c++11/c++14/c++17/c++20
-STDCPP = "c++20"
+--c++11/c++14/c++17/c++20/c++23
+STDCPP = "c++23"
 
 --是否生效
 ENABLE = true

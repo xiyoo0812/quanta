@@ -17,7 +17,6 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, stdsptr<socket_mg
     });
     m_mgr->set_accept_callback(token, [=](uint32_t steam_token) {
         auto node = new lua_socket_node(steam_token, L, m_mgr, m_router, m_type);
-        node->set_codec(m_codec);
         m_lvm->object_call(this, "on_accept", nullptr, std::tie(), node);
     });
 }
@@ -37,14 +36,17 @@ void lua_socket_node::close() {
 }
 
 int lua_socket_node::call_data(lua_State* L) {
+    const char* data = nullptr;
+    size_t data_len = 0;
     if (m_codec) {
-        size_t data_len = 0;
-        char* data = (char*)m_codec->encode(L, 1, &data_len);
-        if (data_len > 0 && data_len <= SOCKET_PACKET_MAX){
-            m_mgr->send(m_token, data, data_len);
-            lua_pushinteger(L, data_len);
-            return 1;
-        }
+        data = (const char*)m_codec->encode(L, 1, &data_len);
+    } else {
+        data = lua_tolstring(L, 1, &data_len);
+    }
+    if (data_len > 0 && data_len <= SOCKET_PACKET_MAX) {
+        m_mgr->send(m_token, data, data_len);
+        lua_pushinteger(L, data_len);
+        return 1;
     }
     lua_pushinteger(L, 0);
     return 1;

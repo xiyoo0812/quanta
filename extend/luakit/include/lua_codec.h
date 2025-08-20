@@ -55,15 +55,6 @@ namespace luakit {
         return (index < t_sshares.size()) ? t_sshares[index] : "";
     }
 
-    template<typename T>
-    T value_decode(slice* slice) {
-        T* value = slice->read<T>();
-        if (value == nullptr) {
-            throw lua_exception("decode can't unpack one value");
-        }
-        return *value;
-    }
-
     inline void string_write(luabuf* buff, const char* ptr, size_t sz) {
         if (sz <= UCHAR_MAX) {
             value_encode(buff, type_string8);
@@ -217,8 +208,8 @@ namespace luakit {
         lua_pushlstring(L, str, sz);
     }
 
-    inline void index_decode(lua_State* L, slice* buf) {
-        uint8_t index = value_decode<uint8_t>(buf);
+    inline void index_decode(lua_State* L, slice* slice) {
+        uint8_t index = slice->read();
         std::string_view str = find_string(index);
         lua_pushlstring(L, str.data(), str.size());
     }
@@ -246,19 +237,19 @@ namespace luakit {
             lua_pushboolean(L, false);
             break;
         case type_number:
-            lua_pushnumber(L, value_decode<double>(slice));
+            lua_pushnumber(L, slice->read<double>());
             break;
         case type_string8:
-            string_decode(L, value_decode<uint8_t>(slice), slice);
+            string_decode(L, slice->read(), slice);
             break;
         case type_string16:
-            string_decode(L, value_decode<uint16_t>(slice), slice);
+            string_decode(L, slice->read<uint16_t>(), slice);
             break;
         case type_string32:
-            string_decode(L, value_decode<uint32_t>(slice), slice);
+            string_decode(L, slice->read<uint32_t>(), slice);
             break;
         case type_istring:
-            string_decode(L, value_decode<uint8_t>(slice), slice, true);
+            string_decode(L, slice->read(), slice, true);
             break;
         case type_strindex:
             index_decode(L, slice);
@@ -269,13 +260,13 @@ namespace luakit {
         case type_tab_tail:
             break;
         case type_int16:
-            lua_pushinteger(L, value_decode<int16_t>(slice));
+            lua_pushinteger(L, slice->read<int16_t>());
             break;
         case type_int32:
-            lua_pushinteger(L, value_decode<int32_t>(slice));
+            lua_pushinteger(L, slice->read<int32_t>());
             break;
         case type_int64:
-            lua_pushinteger(L, value_decode<int64_t>(slice));
+            lua_pushinteger(L, slice->read<int64_t>());
             break;
         case type_undefine:
             lua_pushstring(L, "undefine");
@@ -287,7 +278,7 @@ namespace luakit {
     }
 
     inline int decode_one(lua_State* L, slice* slice) {
-        uint8_t type = value_decode<uint8_t>(slice);
+        uint8_t type = slice->read();
         decode_value(L, slice, type);
         return type;
     }
@@ -296,12 +287,10 @@ namespace luakit {
         if (!slice) return 0;
         t_sshares.clear();
         int top = lua_gettop(L);
-        uint8_t argnum = value_decode<uint8_t>(slice);
+        uint8_t argnum = slice->read();
         lua_checkstack(L, argnum);
         while (1) {
-            uint8_t* type = slice->read();
-            if (type == nullptr) break;
-            decode_value(L, slice, *type);
+            decode_value(L, slice, slice->read());
         }
         int getnum = lua_gettop(L) - top;
         if (argnum != getnum) {

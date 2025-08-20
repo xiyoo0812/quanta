@@ -40,6 +40,7 @@ quanta.startup(function()
     import("test/profile_test.lua")
     import("test/pgsql_test.lua")
     import("test/xlsx_test.lua")
+    import("test/etcd_test.lua")
     ]]
-    import("test/http2_test.lua")
+    import("test/etcd_test.lua")
 end)

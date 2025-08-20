@@ -260,15 +260,6 @@ namespace lbson {
             m_buff->write(value);
         }
 
-        template<typename T>
-        T read_val(lua_State* L, slice* slice) {
-            T* value = slice->read<T>();
-            if (value == nullptr) {
-                luaL_error(L, "decode can't unpack one value");
-            }
-            return *value;
-        }
-
         void read_objectid(lua_State* L, slice* slice) {
             char buffer[32] = { 0 };
             static char hextxt[] = "0123456789abcdef";
@@ -496,7 +487,7 @@ namespace lbson {
         }
 
         const char* read_string(lua_State* L, slice* slice, size_t& sz) {
-            sz = (size_t)read_val<uint32_t>(L, slice);
+            sz = slice->read<uint32_t>();
             if (sz <= 0) {
                 throw lua_exception("invalid bson string , length = %lu", sz);
             }
@@ -538,32 +529,32 @@ namespace lbson {
         }
 
         void unpack_dict(lua_State* L, slice* slice, bool isarray) {
-            uint32_t sz = read_val<uint32_t>(L, slice);
+            uint32_t sz = slice->read<uint32_t>();
             if (slice->size() < sz - 4) {
                 throw lua_exception("decode can't unpack one value");
             }
             lua_createtable(L, 0, 8);
             while (!slice->empty()) {
                 size_t klen = 0;
-                bson_type bt = (bson_type)read_val<uint8_t>(L, slice);
+                bson_type bt = (bson_type)slice->read();
                 if (bt == BSON_EOO) break;
                 unpack_key(L, slice, isarray);
                 switch (bt) {
                 case BSON_REAL:
-                    lua_pushnumber(L, read_val<double>(L, slice));
+                    lua_pushnumber(L, slice->read<double>());
                     break;
                 case BSON_BOOLEAN:
-                    lua_pushboolean(L, read_val<bool>(L, slice));
+                    lua_pushboolean(L, slice->read<bool>());
                     break;
                 case BSON_INT32:
-                    lua_pushinteger(L, read_val<int32_t>(L, slice));
+                    lua_pushinteger(L, slice->read<int32_t>());
                     break;
                 case BSON_DATE:
-                    lua_pushinteger(L, read_val<int64_t>(L, slice) / 1000);
+                    lua_pushinteger(L, slice->read<int64_t>());
                     break;
                 case BSON_INT64:
                 case BSON_TIMESTAMP:
-                    lua_pushinteger(L, read_val<int64_t>(L, slice));
+                    lua_pushinteger(L, slice->read<int64_t>());
                     break;
                 case BSON_OBJECTID:
                     read_objectid(L, slice);
@@ -576,10 +567,10 @@ namespace lbson {
                     break;
                 case BSON_BINARY: {
                         lua_createtable(L, 0, 4);
-                        int32_t len = read_val<int32_t>(L, slice);
+                        int32_t len = slice->read<int32_t>();
                         lua_pushinteger(L, (uint32_t)bt);
                         lua_setfield(L, -2, "__type");
-                        lua_pushinteger(L, read_val<uint8_t>(L, slice));
+                        lua_pushinteger(L, slice->read());
                         lua_setfield(L, -2, "subtype");
                         const char* s = read_bytes(L, slice, len);
                         lua_pushlstring(L, s, len);
@@ -651,16 +642,16 @@ namespace lbson {
             if (!m_slice) return 0;
             //skip length + request_id
             m_slice->erase(8);
-            uint32_t session_id = m_bson->read_val<uint32_t>(L, m_slice);
-            uint32_t opcode = m_bson->read_val<uint32_t>(L, m_slice);
+            uint32_t session_id = m_slice->read<uint32_t>();
+            uint32_t opcode = m_slice->read<uint32_t>();
             if (opcode != OP_MSG_CODE) {
                 throw lua_exception("unsupported opcode: %d", opcode);
             }
-            uint32_t flags = m_bson->read_val<uint32_t>(L, m_slice);
+            uint32_t flags = m_slice->read<uint32_t>();
             if (flags > 0 && ((flags & OP_CHECKSUM) != 0 || ((flags ^ OP_MORE_COME) != 0))) {
                 throw lua_exception("unsupported flags: %d", flags);
             }
-            uint32_t payload = m_bson->read_val<uint8_t>(L, m_slice);
+            uint32_t payload = m_slice->read<uint8_t>();
             if (payload != 0) {
                 throw lua_exception("unsupported flags: %d", payload);
             }

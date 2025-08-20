@@ -12,6 +12,7 @@ local signalquit    = signal.quit
 local saddr         = qstring.addr
 local jsoncodec     = json.jsoncodec
 local httpdcodec    = codec.httpdcodec
+local content_codec = codec.set_content_codec
 local derive_port   = luabus.derive_port
 
 local event_mgr     = quanta.get("event_mgr")
@@ -21,7 +22,6 @@ local HttpServer = class()
 local prop = property(HttpServer)
 prop:reader("ip", nil)              --http server地址
 prop:reader("port", 8080)           --http server端口
-prop:reader("hcodec", nil)          --codec
 prop:reader("jcodec", nil)          --codec
 prop:reader("listener", nil)        --网络连接对象
 prop:reader("clients", {})          --clients
@@ -29,7 +29,6 @@ prop:reader("handlers", {})         --handlers
 
 function HttpServer:__init(http_addr)
     self.jcodec = jsoncodec()
-    self.hcodec = httpdcodec(self.jcodec)
     self.handlers = { GET = {}, POST = {}, PUT = {}, DELETE = {} }
     self:setup(http_addr)
     --注册退出
@@ -52,7 +51,6 @@ function HttpServer:setup(http_addr)
         signalquit(1)
         return
     end
-    socket:set_codec(self.hcodec)
     self.ip, self.port = ip, real_port
     log_info("[HttpServer][setup] listen({}:{}) success!", self.ip, self.port)
     self.listener = socket
@@ -75,6 +73,9 @@ end
 
 function HttpServer:on_socket_accept(socket, token)
     --log_debug("[HttpServer][on_socket_accept] client(token:{}) connected!", token)
+    local hdcodec = httpdcodec()
+    content_codec(hdcodec, "application/json", self.jcodec)
+    socket:set_codec(hdcodec)
     self.clients[token] = socket
 end
 

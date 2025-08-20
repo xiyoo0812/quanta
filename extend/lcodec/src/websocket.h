@@ -1,10 +1,5 @@
 #pragma once
 
-#include "lua_kit.h"
-
-using namespace std;
-using namespace luakit;
-
 namespace lcodec {
 
     class wsscodec : public codec_base {
@@ -22,7 +17,7 @@ namespace lcodec {
             size_t ext_len = (payloadlen == 0x7f) ? 8 : 2;
             uint8_t* data = m_slice->peek(ext_len, sizeof(uint16_t));
             if (!data) return 0;
-            size_t length = (payloadlen == 0x7f) ? byteswap8(*(uint64_t*)data) : byteswap2(*(uint16_t*)data);
+            size_t length = (payloadlen == 0x7f) ? byteswap(*(uint64_t*)data) : byteswap(*(uint16_t*)data);
             m_packet_len = masklen + ext_len + length + sizeof(uint16_t);
             if (m_packet_len > m_slice->size()) return 0;
             return m_packet_len;
@@ -46,10 +41,10 @@ namespace lcodec {
                 m_buf->write<uint8_t>(maskflag | *len);
             } else if (*len <= 0xffff) {
                 m_buf->write<uint8_t>(maskflag | 0x7e);
-                m_buf->write<uint16_t>(byteswap2(*len));
+                m_buf->swap_write<uint16_t>(*len);
             } else {
                 m_buf->write<uint8_t>(maskflag | 0x7f);
-                m_buf->write<uint64_t>(byteswap8(*len));
+                m_buf->swap_write<uint64_t>(*len);
             }
             if (masklen > 0) {
                 m_buf->push_data((uint8_t*)m_mask.data(), masklen);
@@ -61,9 +56,9 @@ namespace lcodec {
         }
 
         virtual size_t decode(lua_State* L) {
-            uint8_t head = *(uint8_t*)m_slice->read<uint8_t>();
+            uint8_t head = m_slice->read<uint8_t>();
             if ((head & 0x80) != 0x80) throw lua_exception("sharded packet not suppert!");
-            uint8_t payload  = *(uint8_t*)m_slice->read<uint8_t>();
+            uint8_t payload  = m_slice->read<uint8_t>();
             uint8_t opcode = head & 0xf;
             bool mask = ((payload & 0x80) == 0x80);
             payload = payload & 0x7f;
@@ -71,7 +66,6 @@ namespace lcodec {
                 m_slice->erase((payload == 0x7f) ? 8 : 2);
             }
             int top = lua_gettop(L);
-            lua_pushstring(L, "WSS");
             lua_pushinteger(L, opcode);
             if (mask) {
                 size_t data_len;

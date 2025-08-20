@@ -21,6 +21,7 @@ local event_mgr     = quanta.get("event_mgr")
 
 local ProtobufMgr = singleton()
 local prop = property(ProtobufMgr)
+prop:reader("services", nil)
 prop:reader("pb_indexs", {})
 prop:reader("pb_callbacks", {})
 prop:reader("allow_reload", false)
@@ -50,6 +51,22 @@ function ProtobufMgr:msg_id(pb_cmd)
     return info.id, info.cmd
 end
 
+function ProtobufMgr:get_service(service, method)
+    if not self.services then
+        self.services = protobuf.services()
+    end
+    local service_info = self.services[service]
+    if not service_info then
+        log_err("[ProtobufMgr][get_service] service not found: {}", service)
+        return
+    end
+    if not service_info[method] then
+        log_err("[ProtobufMgr][get_service] method not found: {}.{}", service, method)
+        return
+    end
+    return service_info[method]
+end
+
 function ProtobufMgr:error_code(err_key)
     return self:enum("ErrorCode", err_key)
 end
@@ -70,17 +87,21 @@ function ProtobufMgr:enum(ename, ekey)
     return value
 end
 
+function ProtobufMgr:load_file(file)
+    if env_get("QUANTA_ZIP_MODE") then
+        protobuf.load(zip.read(file))
+        log_debug("[ProtobufMgr][load_file] load zip pb file: {}", file)
+    else
+        protobuf.loadfile(file)
+        log_debug("[ProtobufMgr][load_file] load pb file: {}", file)
+    end
+end
+
 --加载pb文件
 function ProtobufMgr:load_protos()
     local proto_file = env_get("QUANTA_PROTO_FILE")
     if proto_file then
-        if env_get("QUANTA_ZIP_MODE") then
-            protobuf.load(zip.read(proto_file))
-            log_debug("[ProtobufMgr][load_protos] load zip pb file: {}", proto_file)
-        else
-            protobuf.loadfile(proto_file)
-            log_debug("[ProtobufMgr][load_protos] load pb file: {}", proto_file)
-        end
+        self:load_file(proto_file)
         --注册枚举
         for _, name in pairs(protobuf.enums()) do
             self:define_enum(name)

@@ -43,25 +43,25 @@ local function tsize(t, filter)
 end
 
 local function tcopy(src, dst)
-    local ndst = dst or {}
+    if dst then dst = {} end
     for field, value in pairs(src or {}) do
-        ndst[field] = value
+        dst[field] = value
     end
-    return ndst
+    return dst
 end
 
 local function tdeep_copy(src, dst)
-    local ndst = dst or {}
+    if dst then dst = {} end
     for key, value in pairs(src or {}) do
         if is_class(value) then
-            ndst[key] = value()
+            dst[key] = value()
         elseif (type(value) == "table") then
-            ndst[key] = tdeep_copy(value)
+            dst[key] = tdeep_copy(value)
         else
-            ndst[key] = value
+            dst[key] = value
         end
     end
-    return ndst
+    return dst
 end
 
 local function terase(stab, func, all)
@@ -83,11 +83,11 @@ local function tdelete(stab, val, all)
 end
 
 local function tjoin(src, dst)
-    local ndst = dst or {}
+    if dst then dst = {} end
     for _, v in pairs(src) do
-        ndst[#ndst + 1] = v
+        dst[#dst + 1] = v
     end
-    return ndst
+    return dst
 end
 
 local function tpush(dst, ...)
@@ -142,7 +142,7 @@ local function tkvarray(src)
 end
 
 -- 展开table的kv
-local function tunfold(src, only_key)
+local function tunfold(src)
     local dst = {}
     for key, value in pairs(src or {}) do
         dst[#dst + 1] = key
@@ -154,7 +154,7 @@ end
 -- 展开table的k
 local function tkeys(src)
     local dst = {}
-    for key, value in pairs(src or {}) do
+    for key in pairs(src or {}) do
         dst[#dst + 1] = key
     end
     return tunpack(dst)

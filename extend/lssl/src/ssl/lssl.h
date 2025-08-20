@@ -175,7 +175,6 @@ namespace lssl {
             size_t sz = m_slice->size();
             if (!is_handshake) {
                 int top = lua_gettop(L);
-                lua_pushstring(L, "TLS");
                 lua_push_object(L, this);
                 lua_pushlstring(L, (const char*)m_slice->head(), sz);
                 m_packet_len = sz;

@@ -81,8 +81,8 @@ function qstring.url(url)
     if not url then
         return
     end
-    local proto, addr = sgmatch(url, "(.+)://(.+)")()
-    if not proto then
+    local scheme, addr = sgmatch(url, "(.+)://(.+)")()
+    if not scheme then
         return
     end
     local host, port, path
@@ -95,7 +95,7 @@ function qstring.url(url)
         host, port = saddr(addr:sub(1, i - 1))
     end
     if not port then
-        port = proto == "https" and 443 or 80
+        port = scheme == "https" and 443 or 80
     end
-    return proto, host, port, path
+    return scheme, host, port, path
 end

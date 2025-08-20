@@ -76,12 +76,13 @@ local function define_getter(class, name, default)
 end
 
 local function define_setter(class, sheet, name, default, is_obj)
-    class["set_" .. name] = function(self, value)
+    class["set_" .. name] = function(self, value, memory)
         if self[name] ~= value then
             if value == nil then
                 value = clone_arg(default)
             end
             self[name] = value
+            if memory then return end
             if is_obj and value then
                 local store, layers = get_storage_layers(self, sheet)
                 if store then
@@ -111,9 +112,10 @@ local function define_field_getter(class, name, suffix)
 end
 
 local function define_field_setter(class, sheet, name, suffix, is_obj)
-    class["set_" .. name .. suffix] = function(self, key, value)
+    class["set_" .. name .. suffix] = function(self, key, value, memory)
         if self[name][key] ~= value then
             self[name][key] = value
+            if memory then return end
             local store, layers = get_storage_layers(self, sheet)
             if store and is_obj and value then
                 gen_storage_layers(value, store, layers, name, key)

@@ -2,10 +2,6 @@
 
 #include <deque>
 #include <vector>
-#include "lua_kit.h"
-
-using namespace std;
-using namespace luakit;
 
 // http://postgres.cn/docs/12/protocol-message-formats.html
 namespace lcodec {
@@ -149,8 +145,8 @@ namespace lcodec {
             if (m_slice->size() < PGSQL_HEADER_LEN) {
                 throw length_error("pgsql text not full");
             }
-            cmd_type_b cmd_type = (cmd_type_b)read_uint8(m_slice);
-            size_t length = read_int32(m_slice) - sizeof(uint32_t);
+            cmd_type_b cmd_type = (cmd_type_b)m_slice->swap_read();
+            size_t length = m_slice->swap_read<int32_t>() - sizeof(uint32_t);
             if (uint8_t* data = m_slice->erase(length); data) {
                 m_packet.attach(data, length);
                 return cmd_type;
@@ -162,7 +158,7 @@ namespace lcodec {
             size_t data_len;
             uint8_t* query = (uint8_t*)lua_tolstring(L, index++, &data_len);
             m_buf->write<uchar>((uchar)cmd_type);
-            m_buf->write<uint32_t>(byteswap4(data_len + sizeof(uint32_t)));
+            m_buf->swap_write<uint32_t>(data_len + sizeof(uint32_t));
             m_buf->push_data(query, data_len);
             if (session_id > 0) sessions.push_back(session_id);
             return m_buf->data(len);
@@ -172,7 +168,7 @@ namespace lcodec {
             //4 byte header placeholder
             m_buf->write<uint32_t>(0);
             // 4 byte protocol_version
-            m_buf->write<uint32_t>(byteswap4(PROTOCOL_VERSION));
+            m_buf->swap_write(PROTOCOL_VERSION);
             // username
             m_buf->push_data(HEADER_USER, sizeof(HEADER_USER));
             uint8_t* user = (uint8_t*)lua_tolstring(L, index++, len);
@@ -185,7 +181,7 @@ namespace lcodec {
             m_buf->push_data((uint8_t*)"\0", 1);
             m_buf->push_data((uint8_t*)"\0", 1);
             // header
-            uint32_t size = byteswap4(m_buf->size());
+            uint32_t size = byteswap<uint32_t>(m_buf->size());
             m_buf->copy(0, (uint8_t*)&size, 4);
             // cmd
             sessions.push_back(session_id);
@@ -213,14 +209,14 @@ namespace lcodec {
 
         void auth_decode(lua_State* L) {
             //auth type
-            auto auth_type = (auth_type_t)read_int32(&m_packet);
+            auto auth_type = (auth_type_t)m_packet.swap_read<int32_t>();
             //auth args
             auto auth_args = m_packet.contents();
             lua_pushinteger(L, (uint8_t)auth_type);
             lua_pushlstring(L, auth_args.data(), auth_args.size());
             if (auth_type == SASL_FINAL) {
                 wait_cmd_type(AUTH);
-                auto ok_auth_type = (auth_type_t)read_int32(&m_packet);
+                auto ok_auth_type = (auth_type_t)m_packet.swap_read<int32_t>();
                 if (ok_auth_type != OK) {
                     throw lua_exception("invaild pgsql auth sasl final packet");
                 }
@@ -260,16 +256,16 @@ namespace lcodec {
 
         void backend_key_decode(lua_State* L) {
             //后端的进程号
-            lua_pushinteger(L, read_int32(&m_packet));
+            lua_pushinteger(L, m_packet.swap_read<int32_t>());
             //此后端的密钥
-            lua_pushinteger(L, read_int32(&m_packet));
+            lua_pushinteger(L, m_packet.swap_read<int32_t>());
         }
 
         void notice_error_decode(lua_State* L) {
             size_t len;
             std::unordered_map<uint8_t, const char*> values;
             while (true) {
-                uint8_t flag = read_uint8(&m_packet);
+                uint8_t flag = m_packet.swap_read();
                 if (flag == 0) break;
                 values[flag] = read_cstring(&m_packet, len);
             }
@@ -287,13 +283,13 @@ namespace lcodec {
         void row_description_decode(lua_State* L) {
             size_t len;
             pgsql_columns cols;
-            int32_t ncol = read_int16(&m_packet);
+            int32_t ncol = m_packet.swap_read<int16_t>();
             for (size_t i = 0; i < ncol; ++i) {
                 auto val = read_cstring(&m_packet, len);
                 string_view name = string_view(val, len);
                 //table id + index
                 m_packet.erase(6);
-                pg_type_t type = (pg_type_t)read_int32(&m_packet);
+                pg_type_t type = (pg_type_t)m_packet.swap_read<int32_t>();
                 //typelen + atttypmod + format
                 m_packet.erase(8);
                 cols.push_back( pgsql_column { name, type });
@@ -306,10 +302,10 @@ namespace lcodec {
             auto cmdtype = recv_packet();
             while (cmdtype == DATA_ROW) {
                 lua_createtable(L, 0, 4);
-                int32_t nfield = read_int16(&m_packet);
+                int32_t nfield = m_packet.swap_read<int16_t>();
                 for (size_t i = 0; i < nfield; ++i) {
                     auto column = cols[i];
-                    int32_t dlen = read_int32(&m_packet);
+                    int32_t dlen = m_packet.swap_read<int32_t>();
                     const char* data = (const char*)m_packet.erase(dlen);
                     lua_pushlstring(L, column.name.data(), column.name.size());
                     switch (column.type) {
@@ -345,7 +341,7 @@ namespace lcodec {
                 auto cmd =  *(cmd_type_b*)m_slice->peek(1);
                 if (cmd == READY_FOR_QUERY || cmd == BIND_COMPLETE
                     || cmd == PARAMETER_DESCRIPTION || cmd == NO_DATA) {
-                    auto len = byteswap4(*(int32_t*)m_slice->peek(sizeof(int32_t), 1));
+                    auto len = byteswap(*(int32_t*)m_slice->peek(sizeof(int32_t), 1));
                     m_slice->erase(len + 1);
                     return true;
                 }
@@ -374,18 +370,6 @@ namespace lcodec {
             }
             throw lua_exception("invalid pgsql block : cstring");
             return "";
-        }
-
-        int32_t read_int32(slice* slice) {
-            return byteswap4(*(int32_t*)slice->read<int32_t>());
-        }
-
-        int16_t read_int16(slice* slice) {
-            return byteswap2(*(int16_t*)slice->read<int16_t>());
-        }
-
-        uint8_t read_uint8(slice* slice) {
-            return *(uint8_t*)slice->read<uint8_t>();
         }
 
     protected:

@@ -1,17 +1,18 @@
 -- http_test.lua
-import("network/http_client.lua")
 
 local ltime         = timer.time
 local log_debug     = logger.debug
+
 local thread_mgr    = quanta.get("thread_mgr")
-local http_client   = quanta.get("http_client")
+
+local http_client   = quanta.http_client()
 
 local data = {aaa = 123}
 
 if quanta.index == 1 then
     thread_mgr:fork(function()
-        local ok, status, body, headers = http_client:call_get("https://www.hao123.com/")
-        log_debug("node_status4 : {}, {}, {}, {}", ok, status, headers, body)
+        local ok, status, body, headers = http_client:call_get("https://yuanbao.tencent.com/download")
+        log_debug("call_get : {}, {}, {}, {}", ok, status, headers, body)
     end)
 elseif quanta.index == 2 then
     local on_post = function(path, body, params)

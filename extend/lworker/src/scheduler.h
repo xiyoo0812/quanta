@@ -21,7 +21,7 @@ namespace lworker {
             m_lua = std::make_shared<kit_state>(L);
             lua_table quanta = m_lua->get<lua_table>(ns.data());
             m_platform = quanta.get<sstring>("platform");
-            quanta.get("environs", m_environs);
+            m_environs = quanta.get<environ_map>("environs");
             m_codec.set_buff(luakit::get_buff());
         }
 
