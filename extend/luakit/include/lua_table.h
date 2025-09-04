@@ -84,15 +84,15 @@ namespace luakit {
         }
     };
 
-    template <>
-    inline int native_to_lua(lua_State* L, lua_table tb) {
+    template <typename T> requires std::same_as<T, lua_table>
+    int native_to_lua(lua_State* L, T tb) {
         return tb.push_stack();
     }
 
-    template <>
-    inline lua_table lua_to_native(lua_State* L, int i) {
+    template <typename T> requires std::same_as<T, lua_table>
+    T lua_to_native(lua_State* L, int i) {
         lua_guard g(L);
         lua_pushvalue(L, i);
-        return lua_table(L);
+        return T(L);
     }
 }

@@ -21,9 +21,6 @@ extern "C" {
 namespace luakit {
 
     const int MAX_LUA_META_KEY = 128;
-    
-    template<typename T>
-    concept arithmetic = std::is_arithmetic_v<T>;
 
     //错误函数
     using error_fn = std::function<void(std::string_view err)>;

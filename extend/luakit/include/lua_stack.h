@@ -3,7 +3,7 @@
 
 namespace luakit {
     template <typename T>
-    concept std_string = std::is_same_v<T, std::basic_string<typename T::value_type>> || std::is_same_v<T, std::basic_string_view<typename T::value_type>>;
+    concept std_string = std::same_as<T, std::basic_string<typename T::value_type>> || std::same_as<T, std::basic_string_view<typename T::value_type>>;
     template <typename T>
     concept std_container = !std_string<T> && requires { typename T::value_type; typename T::iterator; typename T::size_type; };
     template <typename T>
@@ -17,70 +17,72 @@ namespace luakit {
     template <typename T>
     concept std_sequence = std_container<T> && !std_keytype<T> && !std_mapped<T>;
     template <typename T>
-    concept not_container = !std_container<T>;
+    concept std_pointer = std::is_pointer_v<T> || std::same_as<T, std::nullptr_t>;
+    template <typename T>
+    concept std_integer = std::integral<T> || std::is_enum_v<T>;
+
+    template <std_string T>
+    T lua_to_native(lua_State* L, int i) {
+        size_t len;
+        const char* str = lua_tolstring(L, i, &len);
+        return str == nullptr ? "" : T(str, len);
+    }
+
+    template <std_string T>
+    int native_to_lua(lua_State* L, T v) {
+        lua_pushlstring(L, v.data(), v.size());
+        return 1;
+    }
+
+    template <std::floating_point T>
+        T lua_to_native(lua_State* L, int i) {
+        return (T)lua_tonumber(L, i);
+    }
+
+    template <std::floating_point T>
+    int native_to_lua(lua_State* L, T v) {
+        lua_pushnumber(L, v);
+        return 1;
+    }
+
+    template <std_integer T>
+    T lua_to_native(lua_State* L, int i) {
+        if constexpr (std::is_same_v<T, bool>) {
+            return lua_toboolean(L, i);
+        }
+        return (T)lua_tointeger(L, i);
+    }
+
+    template <std_integer T>
+    int native_to_lua(lua_State* L, T v) {
+        if constexpr (std::is_same_v<T, bool>) {
+            lua_pushboolean(L, v);
+        } else {
+            lua_pushinteger(L, (lua_Integer)v);
+        }
+        return 1;
+    }
 
     template <typename T>
     T lua_to_object(lua_State* L, int idx);
     template <typename T>
     void lua_push_object(lua_State* L, T obj);
-
-    //将lua栈顶元素转换成C++对象
-    template <not_container T>
+    template <std_pointer T>
     T lua_to_native(lua_State* L, int i) {
-        if constexpr (std::is_same_v<T, bool>) {
-            return lua_toboolean(L, i) != 0;
-        } else if constexpr (std::is_integral_v<T>) {
-            return (T)lua_tointeger(L, i);
-        } else if constexpr (std::is_floating_point_v<T>) {
-            return (T)lua_tonumber(L, i);
-        } else if constexpr (std::is_enum<T>::value) {
-            return (T)lua_tonumber(L, i);
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            size_t len;
-            const char* str = lua_tolstring(L, i, &len);
-            return str == nullptr ? "" : std::string(str, len);
-        } else if constexpr (std::is_same_v<T, std::string_view>) {
-            size_t len;
-            const char* str = lua_tolstring(L, i, &len);
-            return str == nullptr ? "" : std::string_view(str, len);
-        } else if constexpr (std::is_pointer_v<T>) {
-            using type = std::remove_cv_t<std::remove_pointer_t<T>>;
-            if constexpr (std::is_same_v<type, char>) {
-                return (T)lua_tostring(L, i);
-            } else {
-                return lua_to_object<T>(L, i);
-            }
+        using type = std::remove_cv_t<std::remove_pointer_t<T>>;
+        if constexpr (std::is_same_v<type, char>) {
+            return (T)lua_tostring(L, i);
         }
+        return lua_to_object<T>(L, i);
     }
 
-    //C++对象压到lua堆顶
-    template <not_container T>
+    template <std_pointer T>
     int native_to_lua(lua_State* L, T v) {
-        if constexpr (std::is_same_v<T, bool>) {
-            lua_pushboolean(L, v);
-        } else if constexpr (std::is_integral_v<T>) {
-            lua_pushinteger(L, (lua_Integer)v);
-        } else if constexpr (std::is_floating_point_v<T>) {
-            lua_pushnumber(L, v);
-        } else if constexpr (std::is_enum<T>::value) {
-            lua_pushinteger(L, (lua_Integer)v);
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            lua_pushlstring(L, v.c_str(), v.size());
-        } else if constexpr (std::is_same_v<T, std::string_view>) {
-            lua_pushlstring(L, v.data(), v.size());
-        } else if constexpr (std::is_pointer_v<T>) {
-            using type = std::remove_cv_t<std::remove_pointer_t<T>>;
-            if constexpr (std::is_same_v<type, char>) {
-                if (v != nullptr) {
-                    lua_pushstring(L, v);
-                } else {
-                    lua_pushnil(L);
-                }
-            } else {
-                lua_push_object(L, v);
-            }
+        using type = std::remove_cv_t<std::remove_pointer_t<T>>;
+        if constexpr (std::is_same_v<type, char>) {
+            lua_pushstring(L, v ? v : "");
         } else {
-            lua_pushnil(L);
+            lua_push_object(L, v);
         }
         return 1;
     }

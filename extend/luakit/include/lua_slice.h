@@ -4,6 +4,9 @@
 
 namespace luakit {
 
+    template<typename T>
+    concept arithmetic = std::is_arithmetic_v<T>;
+
     class slice {
     public:
         slice() {}

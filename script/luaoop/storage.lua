@@ -28,7 +28,7 @@ local function get_storage_layers(obj, sheet)
     if sheet ~= NULL then
         return obj["__storage_" .. sheet], {}
     end
-    return obj.__storange, obj.__layers
+    return obj.__storage, obj.__layers
 end
 
 local function gen_storage_layers(obj, store, par_layers, name, field)
@@ -42,14 +42,18 @@ local function gen_storage_layers(obj, store, par_layers, name, field)
             layers[#layers + 1] = field
         end
         obj.__layers = layers
-        obj.__storange = store
+        obj.__storage = store
     end
 end
 
-local function update_store_value(obj, sheet, name, value)
+local function update_store_value(obj, sheet, name, value, is_obj)
     local store, layers = get_storage_layers(obj, sheet)
     if store then
-        store:update_value(layers, name, value)
+        if is_obj then
+            store:update_value(layers, name, value and value:serialize())
+        else
+            store:update_value(layers, name, value)
+        end
         return store, layers
     end
 end
@@ -97,7 +101,7 @@ local function define_saver(class, sheet, name, is_obj)
     class["save_" .. name] = function(self, value)
         if self[name] ~= value or type(value) == "table" then
             self[name] = value
-            local store, layers = update_store_value(self, sheet, name, value)
+            local store, layers = update_store_value(self, sheet, name, value, is_obj)
             if store and is_obj and value then
                 gen_storage_layers(value, store, layers, name)
             end
@@ -143,7 +147,7 @@ local function define_field_deleter(class, sheet, name, suffix, is_obj)
             self[name][key] = nil
             local store = update_store_field(self, sheet, name, key, nil, is_obj)
             if store and is_obj then
-                value.__storange = nil
+                value.__storage = nil
                 value.__layers = nil
             end
         end

@@ -86,6 +86,7 @@ namespace lcodec {
     class h2_stream {
     public:
         h2_stream(http_codec_base* codec, uint32_t id) :  stream_id(id), hcodec(codec){}
+        virtual ~h2_stream() {}
         virtual bool is_complete() = 0;
         virtual void push_packet(lua_State* L) = 0;
         virtual uint32_t encode_data_frame(lua_State* L, luabuf* buf, int index) { return 0; }
@@ -128,6 +129,7 @@ namespace lcodec {
                     }
                 }
                 break;
+            default: luaL_error(L, "Invalid h2 header type : %d", type); break;
             }
             h2fh->head.length = byteswap<uint32_t>((buf->size() - H2_FRAME_LEN) << 8);
             return h2fh;
@@ -150,6 +152,7 @@ namespace lcodec {
                 goaway_code = slice->swap_read<uint32_t>();
                 goaway_msg = slice->contents();
                 break;
+            default: throw lua_exception("invalid h2 header type"); break;
             }
             return true;
         }
@@ -251,6 +254,7 @@ namespace lcodec {
             case H2_RST_STREAM:
                 errorcode = slice->swap_read<uint32_t>();
                 break;
+            default: throw lua_exception("invalid h2 header type"); break;
             }
             return is_packet_complate();
         }

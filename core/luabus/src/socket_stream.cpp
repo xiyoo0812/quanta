@@ -67,9 +67,11 @@ void socket_stream::close() {
         return;
     }
     shutdown(m_socket, SD_RECEIVE);
+#ifdef IO_IOCP
     if (wsa_io_cancel(m_socket, m_recv_ovl)) {
         m_ovl_ref--;
     }
+#endif
     m_link_status = elink_status::link_closing;
 }
 
