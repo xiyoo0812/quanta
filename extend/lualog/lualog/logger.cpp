@@ -270,14 +270,14 @@ namespace logger {
         return true;
     }
 
-    void log_service::del_agent(uint32_t tid) {
+    void log_service::del_agent(log_agent* agent) {
         std::lock_guard<spin_mutex> lock(mutex_);
-        agents_.erase(tid);
+        agents_.erase(agent);
     }
 
-    void log_service::add_agent(sptr<log_agent> agent) {
+    void log_service::add_agent(log_agent* agent) {
         std::lock_guard<spin_mutex> lock(mutex_);
-        agents_.insert(std::make_pair(agent->get_id(), agent));
+        agents_.emplace(agent);
     }
 
     void log_service::del_dest(cpchar feature) {
@@ -343,7 +343,7 @@ namespace logger {
                 running_ = false;
             }
             bool empty = true;
-            for (auto [_, agent] : agents_) {
+            for (auto& agent : agents_) {
                 auto logmsgs = agent->timed_getv(running_);
                 if (logmsgs == nullptr) continue;
                 for (auto logmsg : *logmsgs) {
@@ -377,14 +377,14 @@ namespace logger {
 
     log_agent::~log_agent() {
         if (auto service = service_.lock(); service) {
-            service->del_agent(get_id());
+            service->del_agent(this);
         }
     }
 
     void log_agent::attach(wptr<log_service> service) { 
         service_ = service;
         if (auto lservice = service_.lock(); lservice) {
-            lservice->add_agent(shared_from_this());
+            lservice->add_agent(this);
         }
     }
 
@@ -394,11 +394,6 @@ namespace logger {
             logmsg_->option(level, std::move(msg), tag, feature, source, line);
             logmsgque_->put(logmsg_);
         }
-    }
-
-    uint32_t log_agent::get_id() {
-        auto tid = std::this_thread::get_id();
-        return *(uint32_t*)&tid;
     }
 
     void log_agent::filter(log_level llv, bool on) {

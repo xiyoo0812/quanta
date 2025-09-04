@@ -339,7 +339,7 @@ namespace lcodec {
             //status_flags
             m_packet.read<uint16_t>();
             //warnings
-            lua_pushinteger(L, *(uint16_t*)m_packet.read<uint16_t>());
+            lua_pushinteger(L, m_packet.read<uint16_t>());
             lua_setfield(L, -2, "warnings");
             //info
             auto info = m_packet.eof();
@@ -352,7 +352,7 @@ namespace lcodec {
             m_packet.read<uint8_t>();
             lua_pushboolean(L, false);
             //errnoo
-            uint16_t error_code = *(uint16_t*)m_packet.read<uint16_t>();
+            uint16_t error_code = m_packet.read<uint16_t>();
             //1 byte sql_state_marker (skip)
             //5 byte sql_state (skip)
             m_packet.erase(6);

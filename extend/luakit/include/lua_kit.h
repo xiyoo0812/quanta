@@ -71,13 +71,6 @@ namespace luakit {
             return lua_to_native<T>(m_L, -1);
         }
 
-        template<typename RET>
-        bool get(const char* name, RET& ret) {
-            lua_guard g(m_L);
-            lua_getglobal(m_L, name);
-            return lua_to_native(m_L, -1, ret);
-        }
-
         template <typename F>
         void set_function(const char* function, F func) {
             lua_push_function(m_L, func);

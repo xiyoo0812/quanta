@@ -50,18 +50,18 @@ namespace luapb{
         return (fieldnum << 3) | ((uint8_t)wiretype);
     }
 
-    template<typename T>
+    template<std::unsigned_integral T>
     inline int64_t decode_sint(T val) {
         int64_t mask = static_cast<int64_t>(val & 1) * -1;
         return (val >> 1) ^ mask;
     }
 
-    template<typename T>
+    template<std::integral T>
     inline size_t encode_sint(T val) {
         return (val << 1) ^ -(val < 0);
     }
 
-    template<typename T>
+    template<std::integral T>
     inline T read_varint(slice* slice) {
         size_t len = 0;
         auto head = slice->data(&len);
@@ -88,7 +88,7 @@ namespace luapb{
         throw length_error("read_varint invalid binrary");
     }
 
-    template<typename T>
+    template<std::integral T>
     inline size_t write_varint(luabuf* buf, T val) {
         uint8_t* data = buf->peek_space(VARI_OFFSET);
         if (data == nullptr) throw lua_exception("write_varint buffer overflow");
@@ -257,6 +257,11 @@ namespace luapb{
             }
             complex = is_repeated() || is_map();
         }
+        inline void check_type(lua_State* L, int i, int t) {
+            if (auto vt = lua_type(L, i); vt != t) {
+                luaL_error(L, "pb encode field: %s expected %s got %s", name.c_str(), lua_typename(L, t), lua_typename(L, vt));
+            }
+        }
         inline void check_table(lua_State* L, bool repeated) {
             lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
             lua_gettable(L, -2);
@@ -318,24 +323,23 @@ namespace luapb{
         }
         virtual void encode(lua_State* L, int idx, luabuf* buff, bool enc_tag = true, bool enc_default = false) {
             T val = read_field(L, idx, buff);
-            if (enc_default || not_default(val)) {
+            if (enc_default || is_not_default(val)) {
                 if (enc_tag) write_varint(buff, tag);
                 write_field(L, idx, buff, val);
             }
         }
+        virtual void check_field(lua_State* L, int idx) {
+            if constexpr (is_same_v<T, bool>) check_type(L, idx, LUA_TBOOLEAN);
+            else if constexpr (is_arithmetic_v<T>) check_type(L, idx, LUA_TNUMBER);
+            else if constexpr (is_same_v<T, string_view>) check_type(L, idx, LUA_TSTRING);
+        }
     private:
         inline T read_field(lua_State* L, int idx, luabuf* buff) {
-            if constexpr (is_integral_v<T>) return static_cast<T>(lua_tointeger(L, idx));
-            else if constexpr (is_floating_point_v<T>) return static_cast<T>(lua_tonumber(L, idx));
-            else if constexpr (is_same_v<T, bool>) return lua_toboolean(L, idx);
-            else if constexpr (is_pointer_v<T>) return nullptr;
-            else if constexpr (is_same_v<T, string_view>) {
-                size_t len;
-                const char* str = lua_tolstring(L, idx, &len);
-                return (str == nullptr ? "" : string_view(str, len));
-            }
+            if constexpr (is_pointer_v<T>) return nullptr;
+            check_field(L, idx);
+            return lua_to_native<T>(L, idx);
         }
-        inline bool not_default(T& val) {
+        inline bool is_not_default(T& val) {
             if constexpr (is_integral_v<T>) return val != 0;
             else if constexpr (is_floating_point_v<T>) return val != 0;
             else if constexpr (is_same_v<T, bool>) return val == true;
@@ -499,6 +503,7 @@ namespace luapb{
     }
 
     void encode_map(lua_State* L, luabuf* buff, pb_field* field, int index) {
+        field->check_type(L, index, LUA_TTABLE);
         auto message = field->message;
         index = lua_absindex(L, index);
         lua_pushnil(L);
@@ -516,6 +521,7 @@ namespace luapb{
     }
 
     void encode_repeated(lua_State* L, luabuf* buff, pb_field* field, int index) {
+        field->check_type(L, index, LUA_TTABLE);
         int rawlen = lua_rawlen(L, index);
         if (rawlen == 0 && !descriptor.encode_default) return;
         if (field->packed) {

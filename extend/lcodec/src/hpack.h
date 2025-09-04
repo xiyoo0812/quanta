@@ -571,6 +571,7 @@ namespace lcodec {
             mask = 0x00; prefix_bits = 4; break;
         case H2_NEVER:       // 0001xxxx
             mask = 0x10; prefix_bits = 4; break;
+        default: return;
         }
         encode_integer(buf, mask, prefix_bits, index);
         if (index == 0) encode_string_iteral(buf, name);

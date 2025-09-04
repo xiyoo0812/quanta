@@ -499,7 +499,9 @@ namespace luakit {
         size_t decode(lua_State* L, uint8_t* data, size_t len) {
             slice mslice(data, len);
             m_slice = &mslice;
-            return decode(L);
+            auto size = decode(L);
+            m_slice = nullptr;
+            return size;
         }
 
         virtual void error(const std::string& err) {

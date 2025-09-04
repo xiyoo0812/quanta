@@ -34,15 +34,15 @@ namespace luakit {
         int32_t     m_index = LUA_NOREF;
     };
 
-    template <>
-    inline int native_to_lua(lua_State* L, reference r) {
+    template <typename T> requires std::same_as<T, reference>
+    int native_to_lua(lua_State* L, T r) {
         return r.push_stack();
     }
 
-    template <>
-    inline reference lua_to_native(lua_State* L, int i) {
+    template <typename T> requires std::same_as<T, reference>
+    T lua_to_native(lua_State* L, int i) {
         lua_guard g(L);
         lua_pushvalue(L, i);
-        return reference(L);
+        return T(L);
     }
 }

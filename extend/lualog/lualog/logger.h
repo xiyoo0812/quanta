@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <set>
 #include <array>
 #include <vector>
 #include <chrono>
@@ -163,11 +164,10 @@ namespace logger {
     typedef log_rollingfile<rolling_daily> log_dailyrollingfile;
 
     class log_service;
-    class log_agent : public std::enable_shared_from_this<log_agent> {
+    class log_agent {
     public:
         log_agent();
         ~log_agent();
-        uint32_t get_id();
         void filter(log_level lv, bool on);
         void attach(wptr<log_service> service);
         void recycle(sptr<log_messages> logmsgs) { message_pool_->recycle(logmsgs); }
@@ -197,8 +197,8 @@ namespace logger {
         void del_dest(cpchar feature);
         void del_lvl_dest(log_level log_lvl);
 
-        void del_agent(uint32_t tid);
-        void add_agent(sptr<log_agent> agent);
+        void del_agent(log_agent* agent);
+        void add_agent(log_agent* agent);
 
         void ignore_prefix(cpchar feature, bool prefix);
         void ignore_suffix(cpchar feature, bool suffix);
@@ -220,7 +220,7 @@ namespace logger {
         time_zone*      zone_ = nullptr;
         sptr<log_dest>  std_dest_ = nullptr;
         sptr<log_dest>  main_dest_ = nullptr;
-        std::map<uint64_t, sptr<log_agent>> agents_;
+        std::set<log_agent*> agents_;
         std::map<log_level, sptr<log_dest>> dest_lvls_;
         std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
         size_t max_line_ = MAX_LINE, clean_time_ = CLEAN_TIME;

@@ -156,7 +156,7 @@ namespace lworker {
             auto tid = std::this_thread::get_id();
             quanta.set("thread", m_name);
             quanta.set("pid", ::getpid());
-            quanta.set("tid", *(uint32_t*)&tid);
+            quanta.set("tid", m_thread.native_handle());
             quanta.set("platform", m_platform);
             quanta.set_function("stop", [&]() { m_running = false; });
             quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });

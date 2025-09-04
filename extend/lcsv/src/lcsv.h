@@ -77,7 +77,7 @@ namespace lcsv {
                 book->name = fspath(filename).stem().string();
                 int irow = 1, icol = 1;
                 book->cells.resize(book->last_row, {});
-                for (int i = 0; i < book->last_row; i++) {
+                for (uint32_t i = 0; i < book->last_row; i++) {
                     book->cells[i].resize(book->last_col, nullptr);
                 }
                 for (const auto& cel : header) {
