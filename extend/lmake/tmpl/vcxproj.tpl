@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 {{% local ALIBS = {} %}}
 {{% local STDAFX = nil %}}
 {{% local AINCLUDES = {} %}}
@@ -155,6 +155,7 @@
       <LanguageStandard>stdcpp23</LanguageStandard>
       {{% end %}}
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     {{% if PROJECT_TYPE ~= "static" then %}}
     <Link>
@@ -224,6 +225,7 @@
       <LanguageStandard>stdcpp23</LanguageStandard>
       {{% end %}}
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     {{% if PROJECT_TYPE ~= "static" then %}}
     <Link>

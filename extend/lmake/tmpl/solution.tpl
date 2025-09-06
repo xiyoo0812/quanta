@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version {{%= VS_SHR_VERSION %}}
 VisualStudioVersion = {{%= VS_FUL_VERSION %}}

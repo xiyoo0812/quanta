@@ -183,8 +183,7 @@ namespace luakit {
             lua_pushlightuserdata(L, obj);
             lua_setfield(L, -2, "__pointer__");
             // stack: __objects__, table
-            auto meta_name = lua_get_meta_name<T>();
-            luaL_getmetatable(L, meta_name.c_str());
+            luaL_getmetatable(L, lua_get_meta_name<T>());
             if (lua_isnil(L, -1)) {
                 lua_pop(L, 3);
                 lua_pushlightuserdata(L, obj);
@@ -198,30 +197,6 @@ namespace luakit {
         }
         // stack: __objects__, table
         lua_remove(L, -2);
-    }
-
-    template <typename T>
-    void lua_detach_object(lua_State* L, T obj) {
-        if (obj == nullptr)
-            return;
-        lua_getfield(L, LUA_REGISTRYINDEX, "__objects__");
-        if (!lua_istable(L, -1)) {
-            lua_pop(L, 1);
-            return;
-        }
-        // stack: __objects__
-        size_t pkey = lua_get_object_key(obj);
-        if (lua_geti(L, -1, pkey) != LUA_TTABLE) {
-            lua_pop(L, 2);
-            return;
-        }
-        // stack: __objects__, table
-        lua_pushnil(L);
-        lua_setfield(L, -2, "__pointer__");
-        // stack: __objects__, table
-        lua_pushnil(L);
-        lua_seti(L, -3, pkey);
-        lua_pop(L, 2);
     }
 
     template <typename T>

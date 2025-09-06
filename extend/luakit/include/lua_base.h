@@ -20,22 +20,23 @@ extern "C" {
 
 namespace luakit {
 
-    const int MAX_LUA_META_KEY = 128;
-
     //错误函数
     using error_fn = std::function<void(std::string_view err)>;
 
-    template<typename T>
-    std::string lua_get_meta_name() {
-        using OT = std::remove_cv_t<std::remove_pointer_t<T>>;
-        auto type = std::type_index(typeid(OT));
-        static thread_local std::unordered_map<std::type_index, std::string> cache;
-        if (auto it = cache.find(type); it != cache.end()) {
-            return it->second;
+    //升级cpp23后使用标准库接口
+    template <std::integral T>
+    constexpr T byteswap(T value) noexcept {
+        auto* bytes = reinterpret_cast<unsigned char*>(&value);
+        for (std::size_t i = 0; i < sizeof(T) / 2; ++i) {
+            std::swap(bytes[i], bytes[sizeof(T) - 1 - i]);
         }
-        auto name = std::format("__lua_class_meta_{}_{}__", type.name(), type.hash_code());
-        cache.emplace(type, name);
-        return name;
+        return value;
+    }
+
+    template<typename T>
+    const char* lua_get_meta_name() {
+        using OT = std::remove_cv_t<std::remove_pointer_t<T>>;
+        return std::type_index(typeid(OT)).name();
     }
 
     inline size_t lua_get_object_key(void* obj) {

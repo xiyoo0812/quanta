@@ -197,7 +197,7 @@ namespace luakit {
             static_assert(N <= sizeof(T) && N > 0, "Invalid byte count N");
             auto target = peek_space(N);
             if (target) {
-                val = std::byteswap(val);
+                val = byteswap(val);
                 const uint8_t* src = reinterpret_cast<uint8_t*>(&val) + sizeof(T) - N;
                 memcpy(target, src, N);
                 m_tail += N;
@@ -214,7 +214,7 @@ namespace luakit {
                 T val = 0;
                 memcpy(reinterpret_cast<char*>(&val) + sizeof(T) - N, m_head, N);
                 m_head += N;
-                return std::byteswap(val);
+                return byteswap(val);
             }
             throw std::length_error("slice read not engugh!");
         }
