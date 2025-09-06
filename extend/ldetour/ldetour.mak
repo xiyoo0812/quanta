@@ -28,8 +28,8 @@ MYCFLAGS += -Wno-class-memaccess
 STDC = -std=gnu99
 
 #c++标准库版本
-#c++11/c++14/c++17/c++20
-STDCPP = -std=c++23
+#c++11/c++14/c++17/c++20/c++23
+STDCPP = -std=c++20
 
 #需要的include目录
 MYCFLAGS += -Isrc/detour

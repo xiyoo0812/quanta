@@ -72,21 +72,17 @@ namespace luakit {
     template <typename T>
     int lua_class_index(lua_State* L) {
         T* obj = lua_to_object<T*>(L, 1);
-        if (!obj) {
+        if (!obj || !lua_getmetatable(L, 1)) {
             lua_pushnil(L);
             return 1;
         }
-
         const char* key = lua_tostring(L, 2);
         if (!key) {
             lua_pushnil(L);
             return 1;
         }
-        auto meta_name = lua_get_meta_name<T>();
-        luaL_getmetatable(L, meta_name.c_str());
         lua_pushstring(L, key);
         lua_rawget(L, -2);
-
         auto member = lua_to_object<class_member*>(L, -1);
         lua_pop(L, 2);
         if (!member) {
@@ -99,20 +95,16 @@ namespace luakit {
 
     template <typename T>
     int lua_class_newindex(lua_State* L) {
+        if (!lua_getmetatable(L, 1)) return 0;
         T* obj = lua_to_object<T*>(L, 1);
         if (!obj) return 0;
-
         const char* key = lua_tostring(L, 2);
         if (!key) return 0;
 
-        auto meta_name = lua_get_meta_name<T>();
-        luaL_getmetatable(L, meta_name.c_str());
         lua_pushstring(L, key);
         lua_rawget(L, -2);
-
         auto member = lua_to_object<class_member*>(L, -1);
         lua_pop(L, 2);
-
         if (!member || member->is_function) {
             lua_rawset(L, -3);
             return 0;
@@ -129,8 +121,7 @@ namespace luakit {
         if (!obj) return 0;
         if constexpr (has_member_gc<T>::value) {
             obj->__gc();
-        }
-        else {
+        } else {
             delete obj;
         }
         return 0;
@@ -162,7 +153,7 @@ namespace luakit {
     void lua_wrap_class(lua_State* L, arg_types... args) {
         lua_guard g(L);
         auto meta_name = lua_get_meta_name<T>();
-        luaL_getmetatable(L, meta_name.c_str());
+        luaL_getmetatable(L, meta_name);
         if (lua_isnil(L, -1)) {
             //创建类元表以及基础元方法
             luaL_Reg meta[] = {
@@ -172,7 +163,7 @@ namespace luakit {
                 {NULL, NULL}
             };
             lua_pop(L, 1);
-            luaL_newmetatable(L, meta_name.c_str());
+            luaL_newmetatable(L, meta_name);
             luaL_setfuncs(L, meta, 0);
             //注册类成员
             static_assert(sizeof...(args) % 2 == 0, "You must have an even number of arguments for a key, value ... list.");

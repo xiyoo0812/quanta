@@ -79,7 +79,7 @@ namespace luakit {
                 T val = 0;
                 memcpy(reinterpret_cast<char*>(&val) + sizeof(T) - N, m_head, N);
                 m_head += N;
-                return std::byteswap(val);
+                return byteswap(val);
             }
             throw std::length_error("slice read not engugh!");
         }

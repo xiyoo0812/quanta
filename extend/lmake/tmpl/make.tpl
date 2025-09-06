@@ -44,7 +44,7 @@ STDC = -std={{%= STDC %}}
 
 {{% if STDCPP then %}}
 #c++标准库版本
-#c++11/c++14/c++17/c++20
+#c++11/c++14/c++17/c++20/c++23
 STDCPP = -std={{%= STDCPP %}}
 {{% end %}}
 
