@@ -183,7 +183,7 @@ namespace lbson {
                 memcpy(str, bson_numstrs[i], 4);
                 return bson_numstr_len[i];
             }
-            return sprintf(str, "%zd", i);
+            return std::format_to_n(str, 8, "{}", i).size;
         }
 
         void pack_date(lua_State* L) {
@@ -480,7 +480,7 @@ namespace lbson {
         const char* read_bytes(lua_State* L, slice* slice, size_t sz) {
             const char* dst = (const char*)slice->peek(sz);
             if (!dst) {
-                throw lua_exception("invalid bson string , length = %lu", sz);
+                throw lua_exception("invalid bson string , length = {}", sz);
             }
             slice->erase(sz);
             return dst;
@@ -489,7 +489,7 @@ namespace lbson {
         const char* read_string(lua_State* L, slice* slice, size_t& sz) {
             sz = slice->read<uint32_t>();
             if (sz <= 0) {
-                throw lua_exception("invalid bson string , length = %lu", sz);
+                throw lua_exception("invalid bson string , length = {}", sz);
             }
             sz = sz - 1;
             const char* dst = "";
@@ -602,7 +602,7 @@ namespace lbson {
                     }
                     break;
                 default:
-                    throw lua_exception("invalid bson type: %d", (int)bt);
+                    throw lua_exception("invalid bson type: {}", (int)bt);
                 }
                 lua_rawset(L, -3);
             }
@@ -645,15 +645,15 @@ namespace lbson {
             uint32_t session_id = m_slice->read<uint32_t>();
             uint32_t opcode = m_slice->read<uint32_t>();
             if (opcode != OP_MSG_CODE) {
-                throw lua_exception("unsupported opcode: %d", opcode);
+                throw lua_exception("unsupported opcode: {}", opcode);
             }
             uint32_t flags = m_slice->read<uint32_t>();
             if (flags > 0 && ((flags & OP_CHECKSUM) != 0 || ((flags ^ OP_MORE_COME) != 0))) {
-                throw lua_exception("unsupported flags: %d", flags);
+                throw lua_exception("unsupported flags: {}", flags);
             }
             uint32_t payload = m_slice->read<uint8_t>();
             if (payload != 0) {
-                throw lua_exception("unsupported flags: %d", payload);
+                throw lua_exception("unsupported flags: {}", payload);
             }
             int otop = lua_gettop(L);
             lua_pushinteger(L, session_id);

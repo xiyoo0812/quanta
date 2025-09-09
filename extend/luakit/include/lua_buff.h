@@ -189,12 +189,12 @@ namespace luakit {
                 m_head += N;
                 return val;
             }
-            throw std::length_error("slice read not engugh!");
+            throw std::length_error("buff read not engugh!");
         }
 
         template <std::integral T, size_t N = sizeof(T)>
         inline size_t swap_write(T val) {
-            static_assert(N <= sizeof(T) && N > 0, "Invalid byte count N");
+            static_assert(N <= sizeof(T) && N > 0, "invalid byte count N");
             auto target = peek_space(N);
             if (target) {
                 val = byteswap(val);
@@ -208,7 +208,7 @@ namespace luakit {
 
         template <std::integral T, size_t N = sizeof(T)>
         inline T swap_read() {
-            static_assert(N <= sizeof(T) && N > 0, "Invalid byte count N");
+            static_assert(N <= sizeof(T) && N > 0, "invalid byte count N");
             size_t data_len = m_tail - m_head;
             if (data_len >= N) {
                 T val = 0;
@@ -216,7 +216,7 @@ namespace luakit {
                 m_head += N;
                 return byteswap(val);
             }
-            throw std::length_error("slice read not engugh!");
+            throw std::length_error(" buff read not engugh!");
         }
 
     protected:

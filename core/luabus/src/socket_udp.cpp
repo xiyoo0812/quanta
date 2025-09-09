@@ -76,10 +76,8 @@ int socket_udp::send(lua_State* L, const char* buf, size_t len, const char* ip, 
 }
 
 int socket_udp::recv(lua_State* L) {
-    sockaddr_in addr;
+    sockaddr_in addr = {};
     socklen_t addr_len = (socklen_t)sizeof(addr);
-    memset(&addr, 0, sizeof(addr));
-    memset(m_recv_buf, 0, SOCKET_UDP_RECV_LEN);
     int recv_len = recvfrom(m_fd, m_recv_buf, SOCKET_UDP_RECV_LEN, 0, (sockaddr*)&addr, &addr_len);
     if (recv_len == SOCKET_ERROR) {
         lua_pushboolean(L, false);

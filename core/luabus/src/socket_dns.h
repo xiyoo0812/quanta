@@ -2,12 +2,12 @@
 #include "socket_helper.h"
 
 inline bool resolver_ip(sockaddr* addr, std::string domain, int port) {
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_flags = AI_CANONNAME;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = 0;  /* any protocol */
+    struct addrinfo hints = {
+        .ai_flags = AI_CANONNAME,
+        .ai_family = AF_UNSPEC,
+        .ai_socktype = SOCK_STREAM,
+        .ai_protocol = 0,  /* any protocol */
+    };
     struct addrinfo* result, * result_pointer;
     if (getaddrinfo(domain.c_str(), std::to_string(port).c_str(), &hints, &result) == 0) {
         for (result_pointer = result; result_pointer != NULL; result_pointer = result_pointer->ai_next) {
@@ -47,13 +47,13 @@ inline int gethostip(lua_State* L) {
 }
 
 inline int gethostbydomain(lua_State* L, std::string domain) {
-    struct addrinfo hints;
-    memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_flags = AI_CANONNAME;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = 0;  /* any protocol */
-    struct addrinfo* result, * result_pointer;
+    struct addrinfo hints = {
+        .ai_flags = AI_CANONNAME,
+        .ai_family = AF_UNSPEC,
+        .ai_socktype = SOCK_STREAM,
+        .ai_protocol = 0,  /* any protocol */
+    };
+    struct addrinfo *result, *result_pointer;
     if (getaddrinfo(domain.c_str(), NULL, &hints, &result) == 0) {
         std::vector<std::string> addrs;
         for (result_pointer = result; result_pointer != NULL; result_pointer = result_pointer->ai_next) {

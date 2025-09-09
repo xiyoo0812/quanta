@@ -221,8 +221,7 @@ namespace lxlsx {
         }
 
         void open(const char* filename) {
-            mz_zip_archive archive;
-            memset(&archive, 0, sizeof(archive));
+            mz_zip_archive archive = {};
             if (!mz_zip_reader_init_file(&archive, filename, 0)) {
                 throw std::runtime_error("read zip error");
             }
@@ -235,8 +234,7 @@ namespace lxlsx {
         }
 
         void save(const char* filename) {
-            mz_zip_archive archive;
-            memset(&archive, 0, sizeof(archive));
+            mz_zip_archive archive = {};
             if (!mz_zip_writer_init_file(&archive, filename, 0)) {
                 throw std::runtime_error("save zip error");
             }
@@ -267,17 +265,17 @@ namespace lxlsx {
             if (auto it = excelfiles.find(filename); it != excelfiles.end()) return it->second;
             auto index = mz_zip_reader_locate_file(archive, filename, nullptr, 0);
             if (index < 0) {
-                if (notfoundexception) throw luakit::lua_exception("open %s error: ", filename);
+                if (notfoundexception) throw luakit::lua_exception("open {} error: ", filename);
                 return nullptr;
             }
             size_t size = 0;
             auto data = (const char*)mz_zip_reader_extract_to_heap(archive, index, &size, 0);
-            if (!data) throw luakit::lua_exception("extract %s error: ", filename);
+            if (!data) throw luakit::lua_exception("extract {} error: ", filename);
             XmlDocument* doc = new XmlDocument();
             if (doc->Parse(data, size) != XML_SUCCESS) {
                 delete doc;
                 delete[] data;
-                throw luakit::lua_exception("parse %s error: ", filename);
+                throw luakit::lua_exception("parse {} error: ", filename);
             }
             excelfiles.emplace(filename, doc);
             delete[] data;

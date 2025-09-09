@@ -116,12 +116,12 @@ namespace luapb {
             //cmd_id
             pb_message* msg = pbmsg_from_cmdid(header->cmd_id);
             if (msg == nullptr) {
-                throw lua_exception("pb message not define cmd: %d", header->cmd_id);
+                throw lua_exception("pb message not define cmd: {}", header->cmd_id);
             }
             try {
                 decode_message(L, m_slice, msg);
             } catch (...) {
-                throw lua_exception("decode pb cmdid: %d failed: %s", header->cmd_id, lua_tostring(L, -1));
+                throw lua_exception("decode pb cmdid: {} failed: {}", header->cmd_id, lua_tostring(L, -1));
             }
             return lua_gettop(L) - top;
         }
@@ -167,11 +167,11 @@ namespace luapb {
             grpc_header* header = (grpc_header*)m_slice->erase(sizeof(grpc_header));
             //msg
             pb_message* msg = find_message(output_type);
-            if (!msg) throw lua_exception("output_type : %s not define", output_type);
+            if (!msg) throw lua_exception("output_type : {} not define", output_type);
             try {
                 decode_message(L, m_slice, msg);
             } catch (...) {
-                throw lua_exception("output_type: %s decode failed: %s", output_type, lua_tostring(L, -1));
+                throw lua_exception("output_type: {} decode failed: {}", output_type, lua_tostring(L, -1));
             }
             return lua_gettop(L) - top;
         }

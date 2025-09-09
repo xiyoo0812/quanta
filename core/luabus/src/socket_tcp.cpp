@@ -113,8 +113,7 @@ int socket_tcp::accept(lua_State* L, int timeout, bool noblock) {
         lua_pushstring(L, "socket invalid");
         return 2;
     }
-    sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
+    sockaddr_in addr = {};
     socklen_t addr_len = (socklen_t)sizeof(addr);
     while (true) {
         socket_t new_fd = ::accept(m_fd, (sockaddr*)&addr, &addr_len);

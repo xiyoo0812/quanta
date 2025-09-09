@@ -119,12 +119,11 @@ bool socket_stream::update(int64_t now) {
 
 #ifdef IO_IOCP
 static bool bind_any(socket_t s) {
-    struct sockaddr_in v4addr;
-    memset(&v4addr, 0, sizeof(v4addr));
-    v4addr.sin_family = AF_INET;
-    v4addr.sin_addr.s_addr = INADDR_ANY;
-    v4addr.sin_port = 0;
-
+    struct sockaddr_in v4addr = {
+        .sin_family = AF_INET, 
+        .sin_port = 0,
+        .sin_addr = {}
+    };
     int ret = ::bind(s, (sockaddr*)&v4addr, (int)sizeof(v4addr));
     return ret != SOCKET_ERROR;
 }

@@ -3,6 +3,9 @@
 
 namespace luakit {
 
+    //错误函数
+    using error_fn = std::function<void(std::string_view err)>;
+
     //辅助识别lambda函数
     template <typename F>
     struct function_traits : public function_traits<decltype(&F::operator())> {};

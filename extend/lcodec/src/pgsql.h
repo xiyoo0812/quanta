@@ -354,7 +354,7 @@ namespace lcodec {
                 src = recv_packet();
             }
             if (src != target) {
-                throw lua_exception("invaild pgsql cmd type: %d", src);
+                throw lua_exception("invaild pgsql cmd type: {}", (int)src);
             }
         }
 

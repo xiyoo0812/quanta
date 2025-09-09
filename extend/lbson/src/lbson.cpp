@@ -33,9 +33,7 @@ namespace lbson {
 
     static void init_static_bson() {
         for (uint32_t i = 0; i < max_bson_index; ++i) {
-            char tmp[8];
-            bson_numstr_len[i] = sprintf(tmp, "%d", i);
-            memcpy(bson_numstrs[i], tmp, bson_numstr_len[i]);
+            bson_numstr_len[i] = std::format_to_n(bson_numstrs[i], 4, "{}", i).size;
         }
     }
 
