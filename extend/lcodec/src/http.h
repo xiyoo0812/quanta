@@ -293,7 +293,7 @@ namespace lcodec {
             session_id = lua_tointeger(L, (*index)++);
             const char* url = lua_tostring(L, (*index)++);
             const char* method = lua_tostring(L, (*index)++);
-            int len = snprintf(buf, CHAR_MAX, "%s %s HTTP/1.1\r\n", method, url);
+            size_t len = format_to_n(buf, CHAR_MAX, "%s %s HTTP/1.1\r\n", method, url).size;
             m_buf->push_data((const uint8_t*)buf, len);
         }
 

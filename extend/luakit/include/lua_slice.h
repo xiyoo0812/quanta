@@ -73,7 +73,7 @@ namespace luakit {
 
         template <std::integral T = uint8_t, size_t N = sizeof(T)>
         inline T swap_read() {
-            static_assert(N <= sizeof(T) && N > 0, "Invalid byte count N");
+            static_assert(N <= sizeof(T) && N > 0, "invalid byte count N");
             size_t data_len = m_tail - m_head;
             if (data_len >= N) {
                 T val = 0;

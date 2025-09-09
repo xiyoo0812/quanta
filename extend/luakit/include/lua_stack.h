@@ -80,7 +80,7 @@ namespace luakit {
     int native_to_lua(lua_State* L, T v) {
         using type = std::remove_cv_t<std::remove_pointer_t<T>>;
         if constexpr (std::is_same_v<type, char>) {
-            lua_pushstring(L, v ? v : "");
+            lua_pushstring(L, v);
         } else {
             lua_push_object(L, v);
         }

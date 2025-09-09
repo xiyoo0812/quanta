@@ -217,12 +217,10 @@ namespace luakit {
     inline void table_decode(lua_State* L, slice* slice) {
         lua_createtable(L, 0, 8);
         do {
-            if (decode_one(L, slice) == type_tab_tail) {
-                break;
-            }
+            if (decode_one(L, slice) == type_tab_tail) break;
             decode_one(L, slice);
             lua_rawset(L, -3);
-        } while (1);
+        } while (true);
     }
 
     inline void decode_value(lua_State* L, slice* slice, uint8_t type) {
@@ -289,12 +287,12 @@ namespace luakit {
         int top = lua_gettop(L);
         uint8_t argnum = slice->read();
         lua_checkstack(L, argnum);
-        while (1) {
+        while (!slice->empty()) {
             decode_value(L, slice, slice->read());
         }
         int getnum = lua_gettop(L) - top;
         if (argnum != getnum) {
-            throw lua_exception("decode arg num expect %d, but get %d", argnum, getnum);
+            throw lua_exception("decode arg num expect {}, but get {}", argnum, getnum);
         }
         return getnum;
     }

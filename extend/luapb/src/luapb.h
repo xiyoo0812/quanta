@@ -369,7 +369,7 @@ namespace luapb{
                 encode_message(L, idx, buff, message);
                 write_len_prefixed(buff, buff->free_place(base, HOLD_OFFSET));
             }
-            else throw lua_exception("encode failed: %s use unsuppert field type!", name.c_str());
+            else throw lua_exception("encode failed: {} use unsuppert field type!", name.c_str());
         }
     };
 

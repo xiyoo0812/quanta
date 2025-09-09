@@ -189,7 +189,7 @@ namespace lssl {
                 if (read < 0) {
                     int err = SSL_get_error(ssl, read);
                     if (err == SSL_ERROR_WANT_READ) break;
-                    throw lua_exception("SSL_read error:%d", err);
+                    throw lua_exception("SSL_read error: {}", err);
                 }
                 sslbuf.append((char*)outbuff, read);
             } while (true);
@@ -263,7 +263,7 @@ namespace lssl {
             while (sz > 0) {
                 size_t written = BIO_write(in_bio, data, sz);
                 if (written <= 0 || written > sz) {
-                    throw lua_exception("BIO_write error:%d", written);
+                    throw lua_exception("BIO_write error: {}", written);
                 }
                 sz -= written;
                 data += written;

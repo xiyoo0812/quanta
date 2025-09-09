@@ -61,31 +61,31 @@ namespace lcodec {
     }
 
     static int guid_string(lua_State* L, uint32_t group, uint32_t index) {
-        char sguid[32];
+        char sguid[32] = { 0 };
         size_t guid = guid_new(group, index);
-        snprintf(sguid, 32, "%zu", guid);
+        std::format_to(sguid, "{}", guid);
         lua_pushstring(L, sguid);
         return 1;
     }
 
     static int guid_hex(lua_State* L, uint32_t group, uint32_t index) {
-        char sguid[32];
+        char sguid[32] = { 0 };
         size_t guid = guid_new(group, index);
-        snprintf(sguid, 32, "%016zx", guid);
+        std::format_to(sguid, "{:016x}", guid);
         lua_pushlstring(L, sguid, 16);
         return 1;
     }
 
     static int guid_tostring(lua_State* L, uint64_t guid) {
-        char sguid[32];
-        snprintf(sguid, 32, "%zu", guid);
+        char sguid[32] = { 0 };
+        std::format_to(sguid, "{}", guid);
         lua_pushstring(L, sguid);
         return 1;
     }
 
     static int guid_tohex(lua_State* L, uint64_t guid) {
-        char sguid[32];
-        snprintf(sguid, 32, "%016zx", guid);
+        char sguid[32] = { 0 };
+        std::format_to(sguid, "{:016x}", guid);
         lua_pushlstring(L, sguid, 16);
         return 1;
     }
@@ -100,8 +100,8 @@ namespace lcodec {
         uint64_t biged = byteswap(guid);
         *(uint64_t*)bguid = biged;
         *(uint64_t*)(bguid + 8) = biged;
-        snprintf(hguid, 32, "%016zx", guid);
-        snprintf(hguid + 16, 32, "%016zx", guid);
+        std::format_to(hguid, "{:016x}", guid);
+        std::format_to(hguid + 16, "{:016x}", guid);
         lua_pushlstring(L, hguid, 32);
         lua_pushlstring(L, bguid, 16);
         return 2;
@@ -116,8 +116,7 @@ namespace lcodec {
     }
 
     static int guid_encode(lua_State* L) {
-        char tmp[LETTER_LEN];
-        memset(tmp, 0, LETTER_LEN);
+        char tmp[LETTER_LEN] = { 0 };
         uint64_t val = (lua_gettop(L) > 0) ? lua_tointeger(L, 1) : guid_new(0, 0);
         for (uint32_t i = 0; i < LETTER_LEN - 1; ++i) {
             tmp[i] = LETTERS[val % LETTER_SIZE];

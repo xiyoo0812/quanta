@@ -5,7 +5,6 @@
 #include <atomic>
 #include <string>
 #include <cstdint>
-#include <typeindex>
 #include <stdexcept>
 #include <functional>
 #include <type_traits>
@@ -20,9 +19,6 @@ extern "C" {
 
 namespace luakit {
 
-    //错误函数
-    using error_fn = std::function<void(std::string_view err)>;
-
     //升级cpp23后使用标准库接口
     template <std::integral T>
     constexpr T byteswap(T value) noexcept {
@@ -36,7 +32,7 @@ namespace luakit {
     template<typename T>
     const char* lua_get_meta_name() {
         using OT = std::remove_cv_t<std::remove_pointer_t<T>>;
-        return std::type_index(typeid(OT)).name();
+        return typeid(OT).name();
     }
 
     inline size_t lua_get_object_key(void* obj) {
@@ -119,11 +115,11 @@ namespace luakit {
     protected:
         template <class... Args>
         std::string format(const char* fmt, Args&&... args) {
-            int buf_size = std::snprintf(nullptr, 0, fmt, std::forward<Args>(args)...) + 1;
-            if (buf_size < 0) return "unknown error!";
-            std::unique_ptr<char[]> buf = std::make_unique<char[]>(buf_size);
-            std::snprintf(buf.get(), buf_size, fmt, std::forward<Args>(args)...);
-            return std::string(buf.get(), buf_size - 1);
+            try {
+                return std::vformat(fmt, std::make_format_args(args...));
+            } catch (const std::format_error& e) {
+                return "Format error: " + std::string(e.what());
+            }
         }
     };
 

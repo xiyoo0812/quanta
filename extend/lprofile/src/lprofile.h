@@ -72,7 +72,7 @@ namespace lprofile {
                 while (lua_next(L, -2) != 0) {
                     if (lua_isfunction(L, -1)) {
                         char buf[CHAR_MAX] = {};
-                        snprintf(buf, CHAR_MAX, "%s.%s", key, lua_tostring(L, -2));
+                        format_to(buf, "{}.{}", key, lua_tostring(L, -2));
                         uint64_t pointer = (uint64_t)lua_topointer(L, -1);
                         m_ignore_funcs.emplace(pointer, buf);
                     }

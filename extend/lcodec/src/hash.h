@@ -32,10 +32,8 @@ namespace lcodec {
         } else {
             luaL_error(L, "hashkey only support number or string!");
         }
-        size_t mod = luaL_optinteger(L, 2, 0);
-        if (mod > 0) {
-            hcode = (hcode % mod) + 1;
-        }
+        size_t mod = luaL_optinteger(L, 2, INT_MAX);
+        if (mod > 0) hcode = (hcode % mod) + 1;
         lua_pushinteger(L, hcode);
         return 1;
     }

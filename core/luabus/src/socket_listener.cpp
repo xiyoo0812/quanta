@@ -8,7 +8,6 @@ socket_listener::socket_listener(socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPF
     m_mgr = mgr;
     m_accept_func = accept_func;
     m_addrs_func = addrs_func;
-    memset(m_nodes, 0, sizeof(m_nodes));
     for (auto& node : m_nodes) {
         node.fd = INVALID_SOCKET;
     }

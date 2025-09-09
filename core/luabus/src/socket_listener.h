@@ -31,13 +31,12 @@ private:
     std::function<void(const char*)> m_error_cb;
 
 #ifdef IO_IOCP
-    struct listen_node
-    {
-        WSAOVERLAPPED ovl;
+    struct listen_node {
         socket_t fd;
-        sockaddr_storage buffer[2];
+        WSAOVERLAPPED ovl;
+        sockaddr_storage buffer[2] = { 0 };
     };
-    listen_node m_nodes[16];
+    listen_node m_nodes[16] = { 0 };
     LPFN_ACCEPTEX m_accept_func = nullptr;
     LPFN_GETACCEPTEXSOCKADDRS m_addrs_func = nullptr;
     int m_ovl_ref = 0;

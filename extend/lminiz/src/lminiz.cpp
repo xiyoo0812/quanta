@@ -58,8 +58,7 @@ namespace lminiz {
     }
 
     int mini_gz_unpack(struct mini_gzip* gz_ptr, uint8_t* mem_out, size_t* mem_out_len) {
-        z_stream s;
-        memset(&s, 0, sizeof(z_stream));
+        z_stream s = {};
         inflateInit2(&s, -MZ_DEFAULT_WINDOW_BITS);
         int in_bytes_avail = gz_ptr->data_len;
         s.avail_out = *mem_out_len;
