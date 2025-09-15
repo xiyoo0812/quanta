@@ -8,7 +8,7 @@ using namespace csv2;
 
 using fspath = std::filesystem::path;
 
-namespace lcsv {
+namespace luacsv {
     using csv_reader = Reader<delimiter<','>, quote_character<'"'>, first_row_is_header<true>, trim_policy::trim_characters<' ', '\t', '\r', '\n'>>;
 
     class cell {

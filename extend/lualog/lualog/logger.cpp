@@ -196,11 +196,11 @@ namespace logger {
 
     // class log_service
     // --------------------------------------------------------------------------------
-    void log_service::option(cpchar log_path, cpchar service, cpchar index, cpchar zone) {
+    void log_service::option(cpchar log_path, cpchar service, cpchar index) {
         if (main_dest_) return;
         log_path_ = log_path;
+        zone_ = const_cast<time_zone*>(current_zone());
         service_ = std::format("{}-{}", service, index);
-        zone_ = const_cast<time_zone*>(locate_zone(zone));
         create_directories(log_path);
         add_dest(service);
         //启动日志线程

@@ -8,6 +8,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "all", "all", "{{{%= ALL_GUID %}}}"
 EndProject
 {{% for _, GROUP in pairs(GROUPS or {}) do %}}
+{{% if GROUP.NAME ~= IGNORE_GROUP then %}}
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "{{%= GROUP.NAME %}}", "{{%= GROUP.NAME %}}", "{{{%= GUID_NEW("@g" .. GROUP.NAME) %}}}"
 EndProject
 {{% for _, PROJECT in ipairs(GROUP.PROJECTS or {}) do %}}
@@ -22,6 +23,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "{{%= PROJECT.NAME %}}", "{{
 	EndProjectSection
 	{{% end %}}
 EndProject
+{{% end %}}
 {{% end %}}
 {{% end %}}
 Global
@@ -45,7 +47,9 @@ Global
 		{{{%= PROJ.GUID %}}} = {{{%= GUID_NEW("@g" .. PROJ.GROUP) %}}}
 	{{% end %}}
 	{{% for _, GROUP in pairs(GROUPS or {}) do %}}
+		{{% if GROUP.NAME ~= IGNORE_GROUP then %}}
 		{{{%= GUID_NEW("@g" .. GROUP.NAME) %}}} = {{{%= ALL_GUID %}}}
+		{{% end %}}
 	{{% end %}}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

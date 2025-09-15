@@ -12,17 +12,17 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\csv.hpp" />
-    <ClInclude Include="src\lcsv.h" />
+    <ClInclude Include="src\luacsv.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lcsv.cpp" />
+    <ClCompile Include="src\luacsv.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{88CFA671-DB93-F365-6149-181014FBDA1A}</ProjectGuid>
-    <RootNamespace>lcsv</RootNamespace>
+    <ProjectGuid>{63C8AA3F-26BF-8ECE-E4AD-0DD900029698}</ProjectGuid>
+    <RootNamespace>luacsv</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>lcsv</ProjectName>
+    <ProjectName>luacsv</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -51,12 +51,12 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>lcsv</TargetName>
+    <TargetName>luacsv</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>lcsv</TargetName>
+    <TargetName>luacsv</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>

@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = lminiz
+PROJECT_NAME = luazip
 
 #目标名字
-TARGET_NAME = lminiz
+TARGET_NAME = luazip
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -98,7 +98,8 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 SOURCES =
-SOURCES += src/lminiz.cpp
+SOURCES += src/luazip.cpp
+SOURCES += src/lz4.c
 SOURCES += src/miniz.c
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))

@@ -88,13 +88,8 @@ function ProtobufMgr:enum(ename, ekey)
 end
 
 function ProtobufMgr:load_file(file)
-    if env_get("QUANTA_ZIP_MODE") then
-        protobuf.load(zip.read(file))
-        log_debug("[ProtobufMgr][load_file] load zip pb file: {}", file)
-    else
-        protobuf.loadfile(file)
-        log_debug("[ProtobufMgr][load_file] load pb file: {}", file)
-    end
+    protobuf.loadfile(file)
+    log_debug("[ProtobufMgr][load_file] load pb file: {}", file)
 end
 
 --加载pb文件

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  {{% local TEMPS, GROUPS = {}, {} %}}
+  {{% local TEMPS, DIR_GROUPS = {}, {} %}}
   {{% local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
   {{% local CINCLUDES, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) %}}
   <ItemGroup>
@@ -28,10 +28,10 @@
   </ItemGroup>
   <ItemGroup>
   {{% for GROUP in pairs(TEMPS or {}) do %}}
-    {{% table.insert(GROUPS, GROUP) %}}
+    {{% table.insert(DIR_GROUPS, GROUP) %}}
   {{% end %}}
-  {{% table.sort(GROUPS, function(a, b) return a < b end) %}}
-  {{% for _, GROUP in pairs(GROUPS or {}) do %}}
+  {{% table.sort(DIR_GROUPS, function(a, b) return a < b end) %}}
+  {{% for _, GROUP in pairs(DIR_GROUPS or {}) do %}}
     <Filter Include="{{%= GROUP %}}">
       <UniqueIdentifier>{{{%= GUID_NEW(GROUP) %}}}</UniqueIdentifier>
     </Filter>

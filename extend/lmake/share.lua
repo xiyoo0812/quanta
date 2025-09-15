@@ -13,6 +13,9 @@ ENABLE = true
 --是否优化
 OPTIMIZE = false
 
+--忽略的项目group
+IGNORE_GROUP = nil
+
 --需要的FLAGS
 BASE_FLAGS = {
     "Wno-sign-compare",

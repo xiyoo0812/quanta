@@ -216,7 +216,7 @@ LDFLAGS += -L$(SOLUTION_DIR){{%= DST_LIB_DIR %}}
 
 #自动生成目标
 SOURCES =
-{{% local TEMPS, GROUPS = {}, {} %}}
+{{% local TEMPS, SRC_GROUPS = {}, {} %}}
 {{% local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
 {{% local _, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) %}}
 {{% for _, CSRC in ipairs(CSOURCES) do %}}
@@ -225,7 +225,7 @@ SOURCES += {{%= fmtsrc %}}
 {{% TEMPS[CSRC[2]] = true %}}
 {{% end %}}
 {{% for CSRC in pairs(TEMPS) do %}}
-{{% GROUPS[#GROUPS+1] = CSRC %}}
+{{% SRC_GROUPS[#SRC_GROUPS+1] = CSRC %}}
 {{% end %}}
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
@@ -274,8 +274,8 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
-{{% table.sort(GROUPS, function(a, b) return a < b end) %}}
-{{% for _, CSRC in ipairs(GROUPS) do %}}
+{{% table.sort(SRC_GROUPS, function(a, b) return a < b end) %}}
+{{% for _, CSRC in ipairs(SRC_GROUPS) do %}}
 {{% local fmtsub_dir = string.gsub(CSRC, '\\', '/') %}}
 	mkdir -p $(INT_DIR)/{{%= fmtsub_dir %}}
 {{% end %}}

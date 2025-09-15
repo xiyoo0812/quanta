@@ -18,7 +18,7 @@ local THREAD_MASTER = quanta.master
 --初始化基础库
 local function init_library()
     --加载扩展库
-    require("lssl")
+    require("luassl")
     require("luapb")
     require("ljson")
     require("lbson")

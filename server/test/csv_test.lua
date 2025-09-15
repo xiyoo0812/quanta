@@ -1,7 +1,7 @@
 --csv_test.lua
 --luacheck: ignore 631
 
-require("lcsv")
+require("luacsv")
 
 local log_dump  = logger.dump
 
@@ -12,13 +12,13 @@ a,b,c,d
 ]]
 
 local xlua = csv.decode(csvdata, 1)
-log_dump("lcsv decode csv:{}",  xlua)
+log_dump("luacsv decode csv:{}",  xlua)
 
 local yxml = csv.encode(xlua)
-log_dump("lcsv encode csv:{}", yxml)
+log_dump("luacsv encode csv:{}", yxml)
 
 local ok = csv.save("./bb.csv", xlua)
-log_dump("lcsv save csv:{}", ok)
+log_dump("luacsv save csv:{}", ok)
 
 local flua = csv.read("./bb.csv")
-log_dump("lcsv read csv:{}", flua)
+log_dump("luacsv read csv:{}", flua)

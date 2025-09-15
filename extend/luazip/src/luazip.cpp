@@ -1,11 +1,13 @@
 #define LUA_LIB
 
-#include "lminiz.h"
+#include "lz4.h"
+#include "zstd.c"
+
+#include "luazip.h"
 
 #define	MINI_GZ_MIN(a, b)	((a) < (b) ? (a) : (b))
 
-namespace lminiz {
-
+namespace luazip {
     inline uint8_t* alloc_buff(size_t sz) {
         auto buf = luakit::get_buff();
         return buf->peek_space(sz);
@@ -232,20 +234,88 @@ namespace lminiz {
         return 1;
     }
 
-    luakit::lua_table open_lminiz(lua_State* L) {
+    static int lz4_encode(lua_State* L) {
+        size_t data_len = 0;
+        char dest[USHRT_MAX];
+        const char* message = luaL_checklstring(L, 1, &data_len);
+        int out_len = LZ4_compress_default(message, dest, data_len, USHRT_MAX);
+        if (out_len > 0) {
+            lua_pushlstring(L, dest, out_len);
+            return 1;
+        }
+        luaL_error(L, "lz4 compress failed!");
+        return 0;
+    }
+
+    static int lz4_decode(lua_State* L) {
+        size_t data_len = 0;
+        char dest[USHRT_MAX];
+        const char* message = luaL_checklstring(L, 1, &data_len);
+        int out_len = LZ4_decompress_safe(message, dest, data_len, USHRT_MAX);
+        if (out_len > 0) {
+            lua_pushlstring(L, dest, out_len);
+            return 1;
+        }
+        luaL_error(L, "lz4 decompress failed!");
+        return 0;
+    }
+
+    static int zstd_encode(lua_State* L) {
+        size_t data_len = 0;
+        const char* message = luaL_checklstring(L, 1, &data_len);
+        size_t zsize = ZSTD_compressBound(data_len);
+        if (!ZSTD_isError(zsize)) {
+            auto dest = alloc_buff(zsize);
+            if (dest) {
+                size_t comp_ize = ZSTD_compress(dest, zsize, message, data_len, ZSTD_defaultCLevel());
+                if (!ZSTD_isError(comp_ize)) {
+                    lua_pushlstring(L, (const char*)dest, comp_ize);
+                    return 1;
+                }
+            }
+        }
+        lua_pushnil(L);
+        lua_pushstring(L, "zstd compress failed!");
+        return 2;
+    }
+
+    static int zstd_decode(lua_State* L) {
+        size_t data_len = 0;
+        const char* message = luaL_checklstring(L, 1, &data_len);
+        size_t size = ZSTD_getFrameContentSize(message, data_len);
+        if (!ZSTD_isError(size)) {
+            auto dest = alloc_buff(size);
+            if (dest) {
+                size_t dec_size = ZSTD_decompress(dest, size, message, data_len);
+                if (!ZSTD_isError(dec_size)) {
+                    lua_pushlstring(L, (const char*)dest, dec_size);
+                    return 1;
+                }
+            }
+        }
+        lua_pushnil(L);
+        lua_pushstring(L, "zstd decompress failed!");
+        return 2;
+    }
+    
+    luakit::lua_table open_luazip(lua_State* L) {
         luakit::kit_state kit_state(L);
-        luakit::lua_table miniz = kit_state.new_table("zip");
-        miniz.set_function("exist", zip_exist);
-        miniz.set_function("read", zip_read);
-        miniz.set_function("load", load_zip);
-        miniz.set_function("gzip_decode", gzip_decode);
-        return miniz;
+        luakit::lua_table lzip = kit_state.new_table("zip");
+        lzip.set_function("exist", zip_exist);
+        lzip.set_function("read", zip_read);
+        lzip.set_function("load", load_zip);
+        lzip.set_function("gzip_decode", gzip_decode);
+        lzip.set_function("lz4_encode", lz4_encode);
+        lzip.set_function("lz4_decode", lz4_decode);
+        lzip.set_function("zstd_encode", zstd_encode);
+        lzip.set_function("zstd_decode", zstd_decode);
+        return lzip;
     }
 }
 
 extern "C" {
-    LUALIB_API int luaopen_lminiz(lua_State* L) {
-        auto miniz = lminiz::open_lminiz(L);
-        return miniz.push_stack();
+    LUALIB_API int luaopen_luazip(lua_State* L) {
+        auto lzip = luazip::open_luazip(L);
+        return lzip.push_stack();
     }
 }

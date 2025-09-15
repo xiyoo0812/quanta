@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="src\lminiz.h">
+    <ClInclude Include="src\luazip.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\lz4.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="src\miniz.h">
@@ -9,7 +12,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lminiz.cpp">
+    <ClCompile Include="src\luazip.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lz4.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="src\miniz.c">

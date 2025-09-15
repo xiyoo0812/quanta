@@ -11,19 +11,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\lminiz.h" />
+    <ClInclude Include="src\luazip.h" />
+    <ClInclude Include="src\lz4.h" />
     <ClInclude Include="src\miniz.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lminiz.cpp" />
+    <ClCompile Include="src\luazip.cpp" />
+    <ClCompile Include="src\lz4.c" />
     <ClCompile Include="src\miniz.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{046236D4-E56A-9382-7F53-467FBDB243B5}</ProjectGuid>
-    <RootNamespace>lminiz</RootNamespace>
+    <ProjectGuid>{7BDB3534-51A4-0AE7-E92A-160CB3EF7B2C}</ProjectGuid>
+    <RootNamespace>luazip</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>lminiz</ProjectName>
+    <ProjectName>luazip</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -52,12 +54,12 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>lminiz</TargetName>
+    <TargetName>luazip</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>lminiz</TargetName>
+    <TargetName>luazip</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>

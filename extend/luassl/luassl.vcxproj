@@ -13,10 +13,8 @@
   <ItemGroup>
     <ClInclude Include="src\ssl\crc.h" />
     <ClInclude Include="src\ssl\hmac_sha.h" />
-    <ClInclude Include="src\ssl\lssl.h" />
-    <ClInclude Include="src\ssl\lz4.h" />
+    <ClInclude Include="src\ssl\luassl.h" />
     <ClInclude Include="src\ssl\xxtea.h" />
-    <ClInclude Include="src\ssl\zstd.h" />
     <ClInclude Include="src\user_settings.h" />
     <ClInclude Include="src\wolfssl\callbacks.h" />
     <ClInclude Include="src\wolfssl\certs_test.h" />
@@ -192,10 +190,8 @@
     <ClCompile Include="src\src\wolfio.c" />
     <ClCompile Include="src\ssl\crc.c" />
     <ClCompile Include="src\ssl\hmac_sha.c" />
-    <ClCompile Include="src\ssl\lssl.cpp" />
-    <ClCompile Include="src\ssl\lz4.c" />
+    <ClCompile Include="src\ssl\luassl.cpp" />
     <ClCompile Include="src\ssl\xxtea.c" />
-    <ClCompile Include="src\ssl\zstd.c" />
     <ClCompile Include="src\wolfcrypt\src\aes.c" />
     <ClCompile Include="src\wolfcrypt\src\arc4.c" />
     <ClCompile Include="src\wolfcrypt\src\asm.c" />
@@ -293,11 +289,11 @@
     <ClCompile Include="src\wolfcrypt\src\wolfmath.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{84F375C5-F73A-B81D-CB09-550FBC2BCBF9}</ProjectGuid>
-    <RootNamespace>lssl</RootNamespace>
+    <ProjectGuid>{9178120D-952C-3619-CD51-1CDA77939849}</ProjectGuid>
+    <RootNamespace>luassl</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>lssl</ProjectName>
+    <ProjectName>luassl</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -326,12 +322,12 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>lssl</TargetName>
+    <TargetName>luassl</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>lssl</TargetName>
+    <TargetName>luassl</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>

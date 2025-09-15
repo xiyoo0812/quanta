@@ -1137,6 +1137,16 @@ TOML_ENABLE_WARNINGS;
 #define TOML_DISABLE_CONDITIONAL_NOEXCEPT_LAMBDA 0
 #endif
 
+#ifndef TOML_DISABLE_NOEXCEPT_NOEXCEPT
+#define TOML_DISABLE_NOEXCEPT_NOEXCEPT 0
+	#ifdef _MSC_VER
+		#if _MSC_VER <= 1943 // Up to Visual Studio 2022 Version 17.13.6
+		#undef TOML_DISABLE_NOEXCEPT_NOEXCEPT
+		#define TOML_DISABLE_NOEXCEPT_NOEXCEPT 1
+		#endif
+	#endif
+#endif
+
 #if !defined(TOML_FLOAT_CHARCONV) && (TOML_GCC || TOML_CLANG || (TOML_ICC && !TOML_ICC_CL))
 // not supported by any version of GCC or Clang as of 26/11/2020
 // not supported by any version of ICC on Linux as of 11/01/2021
@@ -1664,6 +1674,7 @@ TOML_NAMESPACE_START // abi namespace
 		indentation = indent_sub_tables | indent_array_elements,
 		relaxed_float_precision = (1ull << 11),
 		terse_key_value_pairs = (1ull << 12),
+		force_multiline_arrays = (1ull << 13),
 	};
 	TOML_MAKE_FLAGS(format_flags);
 
@@ -5088,8 +5099,11 @@ TOML_NAMESPACE_START
 			(impl::value_variadic_ctor_allowed<value<ValueType>, impl::remove_cvref<Args>...>::value),
 			typename... Args)
 		TOML_NODISCARD_CTOR
-		explicit value(Args&&... args) noexcept(noexcept(value_type(
-			impl::native_value_maker<value_type, std::decay_t<Args>...>::make(static_cast<Args&&>(args)...))))
+		explicit value(Args&&... args)
+#if !TOML_DISABLE_NOEXCEPT_NOEXCEPT
+			noexcept(noexcept(value_type(
+				impl::native_value_maker<value_type, std::decay_t<Args>...>::make(static_cast<Args&&>(args)...))))
+#endif
 			: val_(impl::native_value_maker<value_type, std::decay_t<Args>...>::make(static_cast<Args&&>(args)...))
 		{
 #if TOML_LIFETIME_HOOKS
@@ -9877,6 +9891,12 @@ TOML_IMPL_NAMESPACE_START
 			return !!(config_.flags & format_flags::terse_key_value_pairs);
 		}
 
+		TOML_PURE_INLINE_GETTER
+		bool force_multiline_arrays() const noexcept
+		{
+			return !!(config_.flags & format_flags::force_multiline_arrays);
+		}
+
 		TOML_EXPORTED_MEMBER_FUNCTION
 		void attach(std::ostream& stream) noexcept;
 
@@ -11905,7 +11925,7 @@ TOML_NAMESPACE_START
 	TOML_EXTERNAL_LINKAGE
 	void array::insert_at_back(impl::node_ptr && elem)
 	{
-		TOML_ASSERT(elem != nullptr);
+		TOML_ASSERT(elem);
 		elems_.push_back(std::move(elem));
 	}
 
@@ -12724,7 +12744,7 @@ TOML_ANON_NAMESPACE_START
 		TOML_ATTR(nonnull)
 		size_t operator()(void* dest, size_t num) noexcept(!TOML_COMPILER_HAS_EXCEPTIONS)
 		{
-			TOML_ASSERT(!!*this);
+			TOML_ASSERT(*this);
 
 			source_->read(static_cast<char*>(dest), static_cast<std::streamsize>(num));
 			return static_cast<size_t>(source_->gcount());
@@ -12750,7 +12770,7 @@ TOML_ANON_NAMESPACE_START
 			return value;
 		}
 	};
-	static_assert(std::is_trivial_v<utf8_codepoint>);
+	static_assert(std::is_trivially_default_constructible_v<utf8_codepoint> && std::is_trivially_copyable_v<utf8_codepoint>);
 	static_assert(std::is_standard_layout_v<utf8_codepoint>);
 
 	struct TOML_ABSTRACT_INTERFACE utf8_reader_interface
@@ -12827,7 +12847,7 @@ TOML_ANON_NAMESPACE_START
 
 		bool read_next_block() noexcept(!TOML_COMPILER_HAS_EXCEPTIONS)
 		{
-			TOML_ASSERT(!!stream_);
+			TOML_ASSERT(stream_);
 
 			TOML_OVERALIGNED char raw_bytes[block_capacity];
 			size_t raw_bytes_read;
@@ -12877,7 +12897,7 @@ TOML_ANON_NAMESPACE_START
 				return false;
 			}
 
-			TOML_ASSERT_ASSUME(raw_bytes_read != 0);
+			TOML_ASSERT_ASSUME(raw_bytes_read);
 			std::memset(&codepoints_, 0, sizeof(codepoints_));
 
 			// helper for calculating decoded codepoint line+cols
@@ -12964,7 +12984,7 @@ TOML_ANON_NAMESPACE_START
 				}
 			}
 
-			TOML_ASSERT_ASSUME(codepoints_.count != 0);
+			TOML_ASSERT_ASSUME(codepoints_.count);
 			calc_positions();
 
 			// handle general I/O errors
@@ -13014,7 +13034,7 @@ TOML_ANON_NAMESPACE_START
 
 				TOML_ASSERT_ASSUME(!codepoints_.current);
 			}
-			TOML_ASSERT_ASSUME(codepoints_.count != 0);
+			TOML_ASSERT_ASSUME(codepoints_.count);
 			TOML_ASSERT_ASSUME(codepoints_.count <= block_capacity);
 			TOML_ASSERT_ASSUME(codepoints_.current < codepoints_.count);
 
@@ -13132,7 +13152,7 @@ TOML_ANON_NAMESPACE_START
 		{
 			utf8_buffered_reader_error_check({});
 
-			TOML_ASSERT_ASSUME(history_.count != 0);
+			TOML_ASSERT_ASSUME(history_.count);
 			TOML_ASSERT_ASSUME(negative_offset_ + count <= history_.count);
 
 			negative_offset_ += count;
@@ -13686,7 +13706,7 @@ TOML_IMPL_NAMESPACE_START
 		void go_back(size_t count = 1) noexcept
 		{
 			return_if_error();
-			TOML_ASSERT_ASSUME(count != 0);
+			TOML_ASSERT_ASSUME(count);
 
 			cp		 = reader.step_back(count);
 			prev_pos = cp->position;
@@ -13861,8 +13881,8 @@ TOML_IMPL_NAMESPACE_START
 		bool consume_digit_sequence(T* digits, size_t len)
 		{
 			return_if_error({});
-			TOML_ASSERT_ASSUME(digits != nullptr);
-			TOML_ASSERT_ASSUME(len != 0);
+			TOML_ASSERT_ASSUME(digits);
+			TOML_ASSERT_ASSUME(len);
 
 			for (size_t i = 0; i < len; i++)
 			{
@@ -13881,8 +13901,8 @@ TOML_IMPL_NAMESPACE_START
 		size_t consume_variable_length_digit_sequence(T* buffer, size_t max_len)
 		{
 			return_if_error({});
-			TOML_ASSERT_ASSUME(buffer != nullptr);
-			TOML_ASSERT_ASSUME(max_len != 0);
+			TOML_ASSERT_ASSUME(buffer);
+			TOML_ASSERT_ASSUME(max_len);
 
 			size_t i = {};
 			for (; i < max_len; i++)
@@ -17094,7 +17114,7 @@ TOML_ANON_NAMESPACE_START
 					weight += 1u;
 					val *= -1.0;
 				}
-				return weight + static_cast<size_t>(log10(val)) + 1u;
+				return weight + static_cast<size_t>(abs(log10(val))) + 1u;
 			}
 
 			case node_type::boolean: return 5u;
@@ -17182,10 +17202,11 @@ TOML_NAMESPACE_START
 		}
 
 		const auto original_indent = indent();
-		const auto multiline	   = TOML_ANON_NAMESPACE::toml_formatter_forces_multiline(
-			  arr,
-			  120u,
-			  indent_columns() * static_cast<size_t>(original_indent < 0 ? 0 : original_indent));
+		const auto multiline	   = force_multiline_arrays()
+							|| TOML_ANON_NAMESPACE::toml_formatter_forces_multiline(
+								   arr,
+								   120u,
+								   indent_columns() * static_cast<size_t>(original_indent < 0 ? 0 : original_indent));
 
 		print_unformatted("["sv);
 

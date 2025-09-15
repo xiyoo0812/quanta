@@ -16,7 +16,7 @@ using namespace luakit;
 #define RSA_DECODE_OUT_SIZE(s, m)   (((s) + (m) - 1) / (m)) * (RSA_ENCODE_LEN(m)) + 1
 #define RSA_ENCODE_OUT_SIZE(s, m)   (((s) + (RSA_ENCODE_LEN(m)) - 1) / (RSA_ENCODE_LEN(m))) * (m) + 1
 
-namespace lssl {
+namespace luassl {
     static SSL_CTX* S_SSL_CTX   = nullptr;
 
     class lua_rsa_key {

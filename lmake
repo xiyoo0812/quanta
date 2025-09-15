@@ -8,3 +8,6 @@ LMAKE_DIR = "extend/lmake"
 
 --开启优化
 --OPTIMIZE = true
+
+--备份工程是否编译
+IGNORE_GROUP = "backup"

@@ -1,8 +1,8 @@
 --工程名字
-PROJECT_NAME = "lminiz"
+PROJECT_NAME = "luazip"
 
 --目标名字
-TARGET_NAME = "lminiz"
+TARGET_NAME = "luazip"
 
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
@@ -11,6 +11,11 @@ PROJECT_TYPE = "dynamic"
 INCLUDES = {
     "../../extend/lua/lua",
     "../../extend/luakit/include"
+}
+
+--需要排除的源文件,目录基于$(SRC_DIR)
+EXCLUDE_FILE = {
+    "zstd.c"
 }
 
 --LINUX需要定义的选项
@@ -42,4 +47,4 @@ DEPS = {
 }
 
 --分组定义
-GROUP = "luaext"
+GROUP = "backup"
