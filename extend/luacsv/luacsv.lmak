@@ -1,8 +1,8 @@
 --工程名字
-PROJECT_NAME = "lcsv"
+PROJECT_NAME = "luacsv"
 
 --目标名字
-TARGET_NAME = "lcsv"
+TARGET_NAME = "luacsv"
 
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
@@ -30,4 +30,4 @@ DEPS = {
 }
 
 --分组定义
-GROUP = "luaext"
+GROUP = "extend"

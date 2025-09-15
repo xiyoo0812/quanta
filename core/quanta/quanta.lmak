@@ -47,7 +47,6 @@ NWINDOWS_POSTBUILDS = {
 
 --依赖项目
 DEPS = {
-    "lminiz",
     "luabus",
     "lualog"
 }

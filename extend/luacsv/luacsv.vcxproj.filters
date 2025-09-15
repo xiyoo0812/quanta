@@ -4,12 +4,12 @@
     <ClInclude Include="src\csv.hpp">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="src\lcsv.h">
+    <ClInclude Include="src\luacsv.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lcsv.cpp">
+    <ClCompile Include="src\luacsv.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

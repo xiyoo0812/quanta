@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = lssl
+PROJECT_NAME = luassl
 
 #目标名字
-TARGET_NAME = lssl
+TARGET_NAME = luassl
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -120,10 +120,8 @@ SOURCES += src/src/tls13.c
 SOURCES += src/src/wolfio.c
 SOURCES += src/ssl/crc.c
 SOURCES += src/ssl/hmac_sha.c
-SOURCES += src/ssl/lssl.cpp
-SOURCES += src/ssl/lz4.c
+SOURCES += src/ssl/luassl.cpp
 SOURCES += src/ssl/xxtea.c
-SOURCES += src/ssl/zstd.c
 SOURCES += src/wolfcrypt/src/aes.c
 SOURCES += src/wolfcrypt/src/arc4.c
 SOURCES += src/wolfcrypt/src/asm.c

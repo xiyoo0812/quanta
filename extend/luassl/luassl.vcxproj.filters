@@ -7,16 +7,10 @@
     <ClInclude Include="src\ssl\hmac_sha.h">
       <Filter>src\ssl</Filter>
     </ClInclude>
-    <ClInclude Include="src\ssl\lssl.h">
-      <Filter>src\ssl</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ssl\lz4.h">
+    <ClInclude Include="src\ssl\luassl.h">
       <Filter>src\ssl</Filter>
     </ClInclude>
     <ClInclude Include="src\ssl\xxtea.h">
-      <Filter>src\ssl</Filter>
-    </ClInclude>
-    <ClInclude Include="src\ssl\zstd.h">
       <Filter>src\ssl</Filter>
     </ClInclude>
     <ClInclude Include="src\user_settings.h">
@@ -540,16 +534,10 @@
     <ClCompile Include="src\ssl\hmac_sha.c">
       <Filter>src\ssl</Filter>
     </ClCompile>
-    <ClCompile Include="src\ssl\lssl.cpp">
-      <Filter>src\ssl</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ssl\lz4.c">
+    <ClCompile Include="src\ssl\luassl.cpp">
       <Filter>src\ssl</Filter>
     </ClCompile>
     <ClCompile Include="src\ssl\xxtea.c">
-      <Filter>src\ssl</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ssl\zstd.c">
       <Filter>src\ssl</Filter>
     </ClCompile>
     <ClCompile Include="src\wolfcrypt\src\aes.c">

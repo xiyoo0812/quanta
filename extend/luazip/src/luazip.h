@@ -3,7 +3,7 @@
 #include "miniz.h"
 #include "lua_kit.h"
 
-namespace lminiz {
+namespace luazip {
 
     struct mini_gzip {
         size_t      total_len;

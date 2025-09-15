@@ -32,7 +32,7 @@ STDCPP = -std=c++20
 
 #需要的include目录
 MYCFLAGS += -I../lua/lua
-MYCFLAGS += -I../lminiz/src
+MYCFLAGS += -I../luazip/src
 MYCFLAGS += -I../luaxml/src
 MYCFLAGS += -I../luakit/include
 
@@ -100,8 +100,8 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 SOURCES =
-SOURCES += ../lminiz/src/miniz.c
 SOURCES += ../luaxml/src/tinyxml2.cpp
+SOURCES += ../luazip/src/miniz.c
 SOURCES += src/luaxlsx.cpp
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
@@ -133,8 +133,8 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
-	mkdir -p $(INT_DIR)/../lminiz/src
 	mkdir -p $(INT_DIR)/../luaxml/src
+	mkdir -p $(INT_DIR)/../luazip/src
 	mkdir -p $(INT_DIR)/src
 
 #后编译

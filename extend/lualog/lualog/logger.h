@@ -188,7 +188,7 @@ namespace logger {
         ~log_service();
 
         void daemon(bool status) { log_std_ = !status; }
-        void option(cpchar log_path, cpchar service, cpchar index, cpchar zone);
+        void option(cpchar log_path, cpchar service, cpchar index);
 
         bool add_dest(cpchar feature);
         bool add_lvl_dest(log_level log_lvl);
@@ -231,7 +231,7 @@ namespace logger {
 }
 
 extern "C" {
-    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index, cpchar zone = "Asia/Shanghai");
+    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index);
     LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
 }
 

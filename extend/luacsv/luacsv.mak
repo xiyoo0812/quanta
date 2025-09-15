@@ -1,8 +1,8 @@
 #工程名字
-PROJECT_NAME = lcsv
+PROJECT_NAME = luacsv
 
 #目标名字
-TARGET_NAME = lcsv
+TARGET_NAME = luacsv
 
 #系统环境
 UNAME_S = $(shell uname -s)
@@ -93,7 +93,7 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 SOURCES =
-SOURCES += src/lcsv.cpp
+SOURCES += src/luacsv.cpp
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))

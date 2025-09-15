@@ -1,36 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="..\lminiz\src\lminiz.h">
-      <Filter>../lminiz/src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\lminiz\src\miniz.h">
-      <Filter>../lminiz/src</Filter>
-    </ClInclude>
     <ClInclude Include="..\luaxml\src\tinyxml2.h">
       <Filter>../luaxml/src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\luazip\src\luazip.h">
+      <Filter>../luazip/src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\luazip\src\lz4.h">
+      <Filter>../luazip/src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\luazip\src\miniz.h">
+      <Filter>../luazip/src</Filter>
     </ClInclude>
     <ClInclude Include="src\excel.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\lminiz\src\miniz.c">
-      <Filter>../lminiz/src</Filter>
-    </ClCompile>
     <ClCompile Include="..\luaxml\src\tinyxml2.cpp">
       <Filter>../luaxml/src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\luazip\src\miniz.c">
+      <Filter>../luazip/src</Filter>
     </ClCompile>
     <ClCompile Include="src\luaxlsx.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="../lminiz/src">
-      <UniqueIdentifier>{61EA48A1-7D7B-D6A6-82EE-822A0D98FD3E}</UniqueIdentifier>
-    </Filter>
     <Filter Include="../luaxml/src">
       <UniqueIdentifier>{26B37F58-52B6-3446-0ADC-EC1C9B3CF2D5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="../luazip/src">
+      <UniqueIdentifier>{D0B47ED3-DEFC-30E3-05C7-55FA23E32136}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
       <UniqueIdentifier>{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>

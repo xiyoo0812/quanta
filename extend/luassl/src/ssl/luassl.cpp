@@ -1,13 +1,11 @@
 #define LUA_LIB
 #include "ssl/crc.h"
-#include "ssl/lz4.h"
-#include "ssl/zstd.h"
 #include "ssl/xxtea.h"
 #include "ssl/hmac_sha.h"
 
-#include "lssl.h"
+#include "luassl.h"
 
-namespace lssl {
+namespace luassl {
     inline uint8_t* alloc_buff(size_t sz) {
         auto buf = luakit::get_buff();
         return buf->peek_space(sz);
@@ -126,70 +124,6 @@ namespace lssl {
         }
         lua_pushlstring(L, (const char*)output, WC_MD5_DIGEST_SIZE);
         return 1;
-    }
-
-    static int lz4_encode(lua_State* L) {
-        size_t data_len = 0;
-        char dest[USHRT_MAX];
-        const char* message = luaL_checklstring(L, 1, &data_len);
-        int out_len = LZ4_compress_default(message, dest, data_len, USHRT_MAX);
-        if (out_len > 0) {
-            lua_pushlstring(L, dest, out_len);
-            return 1;
-        }
-        luaL_error(L, "lz4 compress failed!");
-        return 0;
-    }
-
-    static int lz4_decode(lua_State* L) {
-        size_t data_len = 0;
-        char dest[USHRT_MAX];
-        const char* message = luaL_checklstring(L, 1, &data_len);
-        int out_len = LZ4_decompress_safe(message, dest, data_len, USHRT_MAX);
-        if (out_len > 0) {
-            lua_pushlstring(L, dest, out_len);
-            return 1;
-        }
-        luaL_error(L, "lz4 decompress failed!");
-        return 0;
-    }
-
-    static int zstd_encode(lua_State* L) {
-        size_t data_len = 0;
-        const char* message = luaL_checklstring(L, 1, &data_len);
-        size_t zsize = ZSTD_compressBound(data_len);
-        if (!ZSTD_isError(zsize)) {
-            auto dest = alloc_buff(zsize);
-            if (dest) {
-                size_t comp_ize = ZSTD_compress(dest, zsize, message, data_len, ZSTD_defaultCLevel());
-                if (!ZSTD_isError(comp_ize)) {
-                    lua_pushlstring(L, (const char*)dest, comp_ize);
-                    return 1;
-                }
-            }
-        }
-        lua_pushnil(L);
-        lua_pushstring(L, "zstd compress failed!");
-        return 2;
-    }
-
-    static int zstd_decode(lua_State* L) {
-        size_t data_len = 0;
-        const char* message = luaL_checklstring(L, 1, &data_len);
-        size_t size = ZSTD_getFrameContentSize(message, data_len);
-        if (!ZSTD_isError(size)) {
-            auto dest = alloc_buff(size);
-            if (dest) {
-                size_t dec_size = ZSTD_decompress(dest, size, message, data_len);
-                if (!ZSTD_isError(dec_size)) {
-                    lua_pushlstring(L, (const char*)dest, dec_size);
-                    return 1;
-                }
-            }
-        }
-        lua_pushnil(L);
-        lua_pushstring(L, "zstd decompress failed!");
-        return 2;
     }
 
     static int pbkdf2_sha1(lua_State* L) {
@@ -374,10 +308,6 @@ namespace lssl {
         luassl.set_function("hex_encode", ltohex);
         luassl.set_function("hex_decode", lfromhex);
         luassl.set_function("randomkey", lrandomkey);
-        luassl.set_function("lz4_encode", lz4_encode);
-        luassl.set_function("lz4_decode", lz4_decode);
-        luassl.set_function("zstd_encode", zstd_encode);
-        luassl.set_function("zstd_decode", zstd_decode);
         luassl.set_function("hmac_sha1", lhmac_sha1);
         luassl.set_function("hmac_sha256", lhmac_sha256);
         luassl.set_function("hmac_sha512", lhmac_sha512);
@@ -416,9 +346,9 @@ extern "C" {
             SSL_IS_INIT = true;
             SSL_library_init();
             OpenSSL_add_all_algorithms();
-            lssl::S_SSL_CTX = SSL_CTX_new(SSLv23_method());
+            luassl::S_SSL_CTX = SSL_CTX_new(SSLv23_method());
         }
-        auto luassl = lssl::open_lssl(L);
+        auto luassl = luassl::open_lssl(L);
         return luassl.push_stack();
     }
 }

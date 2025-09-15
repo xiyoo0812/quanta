@@ -3,13 +3,13 @@
 #include <sstream>
 
 #include "lua_kit.h"
-#include "lcsv.h"
+#include "luacsv.h"
 
 using namespace std;
 using namespace csv2;
 using namespace luakit;
 
-namespace lcsv {
+namespace luacsv {
 
     inline void decode_value(lua_State* L, string key) {
         if (const char* value = key.data(); lua_stringtonumber(L, value) == 0) {
@@ -193,7 +193,7 @@ namespace lcsv {
 
 extern "C" {
     LUALIB_API int luaopen_lcsv(lua_State* L) {
-        auto yaml = lcsv::open_lcsv(L);
+        auto yaml = luacsv::open_lcsv(L);
         return yaml.push_stack();
     }
 }

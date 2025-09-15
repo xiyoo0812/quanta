@@ -35,4 +35,4 @@ DEPS = {
 }
 
 --分组定义
-GROUP = "luaext"
+GROUP = "extend"
