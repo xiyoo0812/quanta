@@ -177,12 +177,13 @@ namespace lcodec {
                 return;
             }
             try {
+                size_t len = m_buffer.size();
+                uint8_t* data = (uint8_t*)m_buffer.c_str();
                 if (auto codec = get_content_codec(contend_encoding); codec) {
-                    codec->decode(L, (uint8_t*)m_buffer.c_str(), m_buffer.size());
-                    return;
+                    data = codec->decode(data, &len);
                 }
                 if (auto codec = get_content_codec(contend_type); codec) {
-                    codec->decode(L, (uint8_t*)m_buffer.c_str(), m_buffer.size());;
+                    codec->decode(L, data, len);
                     return;
                 }
             } catch (...) {}

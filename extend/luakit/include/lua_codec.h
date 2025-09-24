@@ -494,6 +494,13 @@ namespace luakit {
             slice* slice = encode_slice(L, m_buf, index, n);
             return slice->data(len);
         }
+        virtual uint8_t* encode(lua_State* L, uint8_t* data, size_t* len) {
+            luaL_error(L, "encode not implended!");
+            return nullptr;
+        }
+        virtual uint8_t* decode(uint8_t* data, size_t* len) {
+            throw lua_exception("decode not implended!");
+        }
         size_t decode(lua_State* L, uint8_t* data, size_t len) {
             slice mslice(data, len);
             m_slice = &mslice;
