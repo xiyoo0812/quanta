@@ -9,7 +9,7 @@ local trandarray    = qtable.random_array
 
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
-local NetClient     = import("network/net_client.lua")
+local TcpClient     = import("network/tcp_client.lua")
 
 local PLATPASSWORD  = protobuf_mgr:enum("platform_type", "PLATFORM_PASSWORD")
 
@@ -34,7 +34,7 @@ function SessionModule:connect(ip, port, block)
         self.client:close()
     end
     self.login_success = false
-    self.client = NetClient(self, ip, port)
+    self.client = TcpClient(self, ip, port)
     return self.client:connect(block)
 end
 

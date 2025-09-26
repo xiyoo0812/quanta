@@ -1,4 +1,4 @@
---net_client.lua
+--tcp_client.lua
 
 local log_err           = logger.err
 local qdefer            = quanta.defer
@@ -16,8 +16,8 @@ local SECOND_5_MS       = quanta.enum("PeriodTime", "SECOND_5_MS")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
-local NetClient = class()
-local prop = property(NetClient)
+local TcpClient = class()
+local prop = property(TcpClient)
 prop:reader("ip", nil)
 prop:reader("port", nil)
 prop:reader("codec", nil)
@@ -27,7 +27,7 @@ prop:reader("socket", nil)          --连接成功对象
 prop:reader("holder", nil)          --持有者
 prop:reader("wait_list", {})        --等待协议列表
 
-function NetClient:__init(holder, ip, port)
+function TcpClient:__init(holder, ip, port)
     self.ip = ip
     self.port = port
     self.holder = holder
@@ -36,13 +36,13 @@ function NetClient:__init(holder, ip, port)
 end
 
 -- 发起连接
-function NetClient:connect(block)
+function TcpClient:connect(block)
     if self.socket then
         return true
     end
     local socket, cerr = socket_mgr.connect(self.ip, self.port, CONNECT_TIMEOUT, PROTO_PB)
     if not socket then
-        log_err("[NetClient][connect] failed to connect: {}:{} err={}", self.ip, self.port, cerr)
+        log_err("[TcpClient][connect] failed to connect: {}:{} err={}", self.ip, self.port, cerr)
         return false, cerr
     end
     --设置阻塞id
@@ -82,11 +82,11 @@ function NetClient:connect(block)
     return true
 end
 
-function NetClient:get_token()
+function TcpClient:get_token()
     return self.socket and self.socket.token
 end
 
-function NetClient:on_socket_rpc(cmd_id, flag, session_id, body)
+function TcpClient:on_socket_rpc(cmd_id, flag, session_id, body)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         -- 执行消息分发
         local function dispatch_rpc_message()
@@ -107,7 +107,7 @@ function NetClient:on_socket_rpc(cmd_id, flag, session_id, body)
 end
 
 -- 主动关闭连接
-function NetClient:close()
+function TcpClient:close()
     if self.socket then
         self.socket.close()
         self.alive = false
@@ -115,7 +115,7 @@ function NetClient:close()
     end
 end
 
-function NetClient:write(cmd_id, data, type, session_id, flag)
+function TcpClient:write(cmd_id, data, type, session_id, flag)
     if not self.alive then
         return false
     end
@@ -124,7 +124,7 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
     -- call lbus
     local send_len = self.socket.call_pb(session_id, cmd_id, flag, type, 0, data)
     if send_len <= 0 then
-        log_err("[NetClient][write] call_pb failed! code:{}", send_len)
+        log_err("[TcpClient][write] call_pb failed! code:{}", send_len)
         return false
     end
     if not session_id or session_id <= 0 then
@@ -134,12 +134,12 @@ function NetClient:write(cmd_id, data, type, session_id, flag)
 end
 
 -- 发送数据
-function NetClient:send(cmd_id, data, type)
+function TcpClient:send(cmd_id, data, type)
     return self:write(cmd_id, data, type or 0, 0, FLAG_REQ)
 end
 
 -- 发起远程命令
-function NetClient:call(cmd_id, data, type)
+function TcpClient:call(cmd_id, data, type)
     if not self.alive then
         return false
     end
@@ -148,14 +148,14 @@ function NetClient:call(cmd_id, data, type)
 end
 
 -- 等待NTF命令或者非RPC命令
-function NetClient:wait(cmd_id, time)
+function TcpClient:wait(cmd_id, time)
     local session_id = thread_mgr:build_session_id()
     self.wait_list[cmd_id] = session_id
     return thread_mgr:yield(session_id, cmd_id, time)
 end
 
 -- 连接成回调
-function NetClient:on_socket_connect(socket)
+function TcpClient:on_socket_connect(socket)
     self.alive = true
     self.holder:on_socket_connect(self)
     --发送心跳
@@ -165,7 +165,7 @@ function NetClient:on_socket_connect(socket)
 end
 
 -- 连接关闭回调
-function NetClient:on_socket_error(token, err)
+function TcpClient:on_socket_error(token, err)
     if self.socket then
         self.socket = nil
         self.alive = false
@@ -175,4 +175,4 @@ function NetClient:on_socket_error(token, err)
     end
 end
 
-return NetClient
+return TcpClient
