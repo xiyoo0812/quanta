@@ -192,7 +192,7 @@ namespace luacsv {
 }
 
 extern "C" {
-    LUALIB_API int luaopen_lcsv(lua_State* L) {
+    LUALIB_API int luaopen_luacsv(lua_State* L) {
         auto yaml = luacsv::open_lcsv(L);
         return yaml.push_stack();
     }

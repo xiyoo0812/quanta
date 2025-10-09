@@ -1,16 +1,15 @@
---net_server.lua
+--kcp_server.lua
 
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
 local log_debug         = logger.debug
 local signalquit        = signal.quit
+local kcp_update        = kcp.update
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local new_trace         = quanta.new_trace
 local derive_port       = luabus.derive_port
-
-local PROTO_PB          = luabus.eproto_type.pb
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
@@ -30,61 +29,66 @@ local FC_PACKETS        = environ.number("QUANTA_FLOW_CTRL_PACKAGE")
 local FC_BYTES          = environ.number("QUANTA_FLOW_CTRL_BYTES")
 
 -- CS协议会话对象管理器
-local NetServer = class()
-local prop = property(NetServer)
+local KcpServer = class()
+local prop = property(KcpServer)
 prop:reader("ip", "")                   --监听ip
 prop:reader("port", 0)                  --监听端口
 prop:reader("sessions", {})             --会话列表
 prop:reader("session_type", "default")  --会话类型
 prop:reader("session_count", 0)         --会话数量
 prop:reader("listener", nil)            --监听器
-prop:reader("broad_token", nil)         --广播token
 prop:reader("codec", nil)               --编解码器
 
-function NetServer:__init(session_type)
+function KcpServer:__init(session_type)
     self.session_type = session_type
     self.codec = protobuf.pbcodec()
     --注册退出
     update_mgr:attach_quit(self)
+    --注册更新函数
+    update_mgr:register_frame("kcp_update", function(clock_ms)
+        kcp_update(clock_ms)
+    end)
 end
 
-function NetServer:on_quit()
+function KcpServer:on_quit()
     if self.listener then
         self.listener.close()
         self.listener = nil
         self.codec = nil
-        log_debug("[NetServer][on_quit]")
+        log_debug("[KcpServer][on_quit]")
     end
 end
 
 --induce：根据 order 推导port
-function NetServer:listen(ip, port, induce)
+function KcpServer:listen(ip, port, induce)
     -- 开启监听
     if not ip or not port then
-        log_err("[NetServer][listen] ip:{} or port:{} is nil", ip, port)
+        log_err("[KcpServer][listen] ip:{} or port:{} is nil", ip, port)
         signalquit()
         return
     end
     local induce_port = induce and (port + quanta.order - 1) or port
     local real_port = derive_port(induce_port, ip)
-    local listener = socket_mgr.listen(ip, real_port, PROTO_PB)
+    local listener = kcp.listen(ip, real_port)
     if not listener then
-        log_err("[NetServer][setup] failed to listen: {}:{}", ip, real_port)
+        log_err("[KcpServer][setup] failed to listen: {}:{}", ip, real_port)
         signalquit()
         return
     end
-    log_info("[NetServer][listen] start listen at: {}:{}", ip, real_port)
+    log_info("[KcpServer][listen] start listen at: {}:{}", ip, real_port)
     -- 安装回调
     listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session)
     end
-    self.listener = listener
+    listener.on_error = function(stoken, err)
+        log_err("[KcpServer][listen] error: {}:{}", stoken, err)
+    end
     self.ip, self.port = ip, real_port
-    self.broad_token = listener.token
+    self.listener = listener
 end
 
 -- 连接回调
-function NetServer:on_socket_accept(session)
+function KcpServer:on_socket_accept(session)
     -- 流控配置
     session.lc_cmd = {}
     session.fc_packet = 0
@@ -97,17 +101,14 @@ function NetServer:on_socket_accept(session)
     self:add_session(session)
     -- 绑定call回调
     session.call_client = function(cmd_id, flag, ctype, session_id, body)
-        local send_len = session.call_pb(session_id, cmd_id, flag, ctype or 0, 0, body)
+        local send_len = session.send_kcp(session_id, cmd_id, flag, ctype or 0, 0, body)
         if send_len <= 0 then
-            log_err("[NetServer][call_client] call_pb failed! code:{}", send_len)
+            log_err("[KcpServer][call_client] send_kcp failed! code:{}", send_len)
             return false
         end
         return true
     end
-    session.on_call_pb = function(recv_len, session_id, cmd_id, flag, type, crc8, body, err)
-        if session_id > 0 then
-            session_id = session.stoken | session_id
-        end
+    session.on_call = function(recv_len, session_id, cmd_id, flag, type, crc8, body, err)
         --消息 hook
         local hook<close> = qdefer()
         event_mgr:execute_hook("on_scmd_recv", hook, cmd_id, body)
@@ -133,9 +134,9 @@ function NetServer:on_socket_accept(session)
     event_mgr:notify_listener("on_socket_accept", session)
 end
 
-function NetServer:write(session, cmd, data, session_id, flag, type)
+function KcpServer:write(session, cmd, data, session_id, flag, type)
     if session.token == 0 then
-        log_err("[NetServer][write] session lost! cmd_id:{}-({})", cmd, data)
+        log_err("[KcpServer][write] session lost! cmd_id:{}-({})", cmd, data)
         return false
     end
     local hook<close> = qdefer()
@@ -144,27 +145,27 @@ function NetServer:write(session, cmd, data, session_id, flag, type)
 end
 
 -- 广播数据
-function NetServer:broadcast(cmd_id, data)
-    socket_mgr.broadcast(self.codec, self.broad_token, 0, cmd_id, FLAG_REQ, 0, 0, data)
+function KcpServer:broadcast(cmd_id, data)
+    socket_mgr.broadcast(self.codec, 0, 0, cmd_id, FLAG_REQ, 0, 0, data)
 end
 
 -- 广播数据
-function NetServer:broadcast_groups(tokens, cmd_id, data)
+function KcpServer:broadcast_groups(tokens, cmd_id, data)
     socket_mgr.broadgroup(self.codec, tokens, 0, cmd_id, FLAG_REQ, 0, 0, data)
 end
 
 -- 发送数据
-function NetServer:send(session, cmd_id, data)
+function KcpServer:send(session, cmd_id, data)
     return self:write(session, cmd_id, data, 0, FLAG_REQ)
 end
 
 -- 回调数据
-function NetServer:callback(session, cmd_id, data, session_id)
+function KcpServer:callback(session, cmd_id, data, session_id)
     return self:write(session, cmd_id, data, session_id or 0, FLAG_RES)
 end
 
 -- 回调数据
-function NetServer:callback_by_id(session, cmd_id, data, session_id)
+function KcpServer:callback_by_id(session, cmd_id, data, session_id)
     local callback_id = protobuf_mgr:callback_id(cmd_id)
     if not callback_id then
         return false
@@ -174,7 +175,7 @@ function NetServer:callback_by_id(session, cmd_id, data, session_id)
 end
 
 -- 回复错误码
-function NetServer:callback_errcode(session, cmd_id, code, session_id)
+function KcpServer:callback_errcode(session, cmd_id, code, session_id)
     local callback_id = protobuf_mgr:callback_id(cmd_id)
     if not callback_id then
         return false
@@ -185,16 +186,16 @@ function NetServer:callback_errcode(session, cmd_id, code, session_id)
 end
 
 -- 收到远程调用回调
-function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body, err)
+function KcpServer:on_socket_recv(session, cmd_id, flag, type, session_id, body, err)
     if session_id == 0 or (flag & FLAG_REQ == FLAG_REQ) then
         local function dispatch_rpc_message(socket, typ, cmd, cbody)
             if cbody then
                 local result = event_mgr:notify_listener("on_socket_cmd", socket, typ, cmd, cbody, session_id)
                 if not result[1] then
-                    log_err("[NetServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd)
+                    log_err("[KcpServer][on_socket_recv] on_socket_cmd failed! cmd_id:{}", cmd)
                 end
             else
-                log_warn("[NetServer][on_socket_recv] pb cmd_id({}) decode field: {}!", cmd, err and err or "pb not define")
+                log_warn("[KcpServer][on_socket_recv] pb cmd_id({}) decode field: {}!", cmd, err and err or "pb not define")
             end
         end
         thread_mgr:fork(dispatch_rpc_message, new_trace(), session, type, cmd_id, body)
@@ -205,7 +206,7 @@ function NetServer:on_socket_recv(session, cmd_id, flag, type, session_id, body,
 end
 
 --检查序列号
-function NetServer:check_flow(session)
+function KcpServer:check_flow(session)
     -- 流量控制检测
     if FLOW_CTRL then
         -- 达到检测周期
@@ -216,7 +217,7 @@ function NetServer:check_flow(session)
             local is_over_packets = session.fc_packet > (FC_PACKETS * escape // SECOND_MS)
             local is_over_bytes = session.fc_bytes > (FC_BYTES * escape // SECOND_MS)
             if is_over_packets or is_over_bytes then
-                log_warn("[NetServer][check_flow] session trigger package({}) or bytes({}) flowctrl line, will be closed.", is_over_packets, is_over_bytes)
+                log_warn("[KcpServer][check_flow] session trigger package({}) or bytes({}) flowctrl line, will be closed.", is_over_packets, is_over_bytes)
                 self:close_session(session)
             end
             session.fc_packet = 0
@@ -227,20 +228,20 @@ function NetServer:check_flow(session)
 end
 
 -- 关闭会话
-function NetServer:close_session(session)
+function KcpServer:close_session(session)
     if self:remove_session(session.token) then
         session.close()
     end
 end
 
 -- 关闭会话
-function NetServer:close_session_by_token(token)
+function KcpServer:close_session_by_token(token)
     local session = self.sessions[token]
     self:close_session(session)
 end
 
 -- 会话被关闭回调
-function NetServer:on_socket_error(token, err)
+function KcpServer:on_socket_error(token, err)
     thread_mgr:fork(function()
         local session = self:remove_session(token)
         if session then
@@ -250,7 +251,7 @@ function NetServer:on_socket_error(token, err)
 end
 
 -- 添加会话
-function NetServer:add_session(session)
+function KcpServer:add_session(session)
     local token = session.token
     if not self.sessions[token] then
         self.sessions[token] = session
@@ -260,7 +261,7 @@ function NetServer:add_session(session)
 end
 
 -- 移除会话
-function NetServer:remove_session(token)
+function KcpServer:remove_session(token)
     local session = self.sessions[token]
     if session then
         self.sessions[token] = nil
@@ -270,8 +271,8 @@ function NetServer:remove_session(token)
 end
 
 -- 查询会话
-function NetServer:get_session_by_token(token)
+function KcpServer:get_session_by_token(token)
     return self.sessions[token]
 end
 
-return NetServer
+return KcpServer

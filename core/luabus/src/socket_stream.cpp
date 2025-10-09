@@ -43,9 +43,7 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
         return false;
     m_ovl_ref++;
 #endif
-
     strncpy(m_ip, ip, INET_ADDRSTRLEN - 1);
-
     m_socket = fd;
     m_link_status = elink_status::link_connected;
     m_last_recv_time = luakit::steady_ms();

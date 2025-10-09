@@ -4,6 +4,7 @@ local pairs         = pairs
 local odate         = os.date
 local qtweak        = qtable.weak
 local log_info      = logger.info
+local sformat       = string.format
 local log_warn      = logger.warn
 local sig_get       = signal.get
 local sig_check     = signal.check
@@ -24,25 +25,10 @@ local prop = property(UpdateMgr)
 prop:reader("last_hour", 0)
 prop:reader("next_frame", 0)
 prop:reader("last_minute", 0)
-prop:reader("quit_objs", {})
-prop:reader("hour_objs", {})
-prop:reader("frame_objs", {})
-prop:reader("fast_objs", {})
-prop:reader("minute_objs", {})
-prop:reader("second_objs", {})
-prop:reader("second5_objs", {})
-prop:reader("second30_objs", {})
 
 function UpdateMgr:__init()
-    --设置弱表
-    qtweak(self.quit_objs)
-    qtweak(self.hour_objs)
-    qtweak(self.fast_objs)
-    qtweak(self.frame_objs)
-    qtweak(self.second_objs)
-    qtweak(self.minute_objs)
-    qtweak(self.second5_objs)
-    qtweak(self.second30_objs)
+        --设置弱表
+    self:weak_handlers()
     --注册订阅
     self:attach_fast(thread_mgr)
     self:attach_frame(event_mgr)
@@ -71,6 +57,9 @@ function UpdateMgr:update(now_ms, clock_ms, master)
     quanta.now_ms = now_ms
     --帧更新
     local frame = quanta.frame + 1
+    for _, func in pairs(self.frame_funcs) do
+        func(clock_ms, frame)
+    end
     for obj, address in pairs(self.frame_objs) do
         thread_mgr:entry(address, function()
             obj:on_frame(clock_ms, frame)
@@ -173,110 +162,6 @@ function UpdateMgr:check_signal()
     end
 end
 
---添加对象到小时更新循环
-function UpdateMgr:attach_hour(obj)
-    if not obj.on_hour then
-        log_warn("[UpdateMgr][attach_hour] obj({}) isn't on_hour method!", obj:source())
-        return
-    end
-    self.hour_objs[obj] = true
-end
-
-function UpdateMgr:detach_hour(obj)
-    self.hour_objs[obj] = nil
-end
-
---添加对象到分更新循环
-function UpdateMgr:attach_minute(obj)
-    if not obj.on_minute then
-        log_warn("[UpdateMgr][attach_minute] obj({}) isn't on_minute method!", obj:source())
-        return
-    end
-    self.minute_objs[obj] = true
-end
-
-function UpdateMgr:detach_minute(obj)
-    self.minute_objs[obj] = nil
-end
-
---添加对象到秒更新循环
-function UpdateMgr:attach_second(obj)
-    if not obj.on_second then
-        log_warn("[UpdateMgr][attach_second] obj({}) isn't on_second method!", obj:source())
-        return
-    end
-    self.second_objs[obj] = obj:address()
-end
-
-function UpdateMgr:detach_second(obj)
-    self.second_objs[obj] = nil
-end
-
---添加对象到5秒更新循环
-function UpdateMgr:attach_second5(obj)
-    if not obj.on_second5 then
-        log_warn("[UpdateMgr][attach_second5] obj({}) isn't on_second5 method!", obj:source())
-        return
-    end
-    self.second5_objs[obj] = true
-end
-
-function UpdateMgr:detach_second5(obj)
-    self.second5_objs[obj] = nil
-end
-
---添加对象到30秒更新循环
-function UpdateMgr:attach_second30(obj)
-    if not obj.on_second30 then
-        log_warn("[UpdateMgr][attach_second30] obj({}) isn't on_second30 method!", obj:source())
-        return
-    end
-    self.second30_objs[obj] = true
-end
-
-function UpdateMgr:detach_second30(obj)
-    self.second30_objs[obj] = nil
-end
-
---添加对象到帧更新循环
-function UpdateMgr:attach_frame(obj)
-    if not obj.on_frame then
-        log_warn("[UpdateMgr][attach_frame] obj({}) isn't on_frame method!", obj:source())
-        return
-    end
-    self.frame_objs[obj] = obj:address()
-end
-
-function UpdateMgr:detach_frame(obj)
-    self.frame_objs[obj] = nil
-end
-
---添加对象到快帧更新循环
-function UpdateMgr:attach_fast(obj)
-    if not obj.on_fast then
-        log_warn("[UpdateMgr][attach_fast] obj({}) isn't on_fast method!", obj:source())
-        return
-    end
-    self.fast_objs[obj] = obj:address()
-end
-
-function UpdateMgr:detach_fast(obj)
-    self.fast_objs[obj] = nil
-end
-
---添加对象到程序退出通知列表
-function UpdateMgr:attach_quit(obj)
-    if not obj.on_quit then
-        log_warn("[UpdateMgr][attach_quit] obj({}) isn't on_quit method!", obj)
-        return
-    end
-    self.quit_objs[obj] = true
-end
-
-function UpdateMgr:detach_quit(obj)
-    self.quit_objs[obj] = nil
-end
-
 function UpdateMgr:quit()
     log_info("[UpdateMgr][quit] service quit !")
     for obj in pairs(self.quit_objs) do
@@ -288,6 +173,50 @@ function UpdateMgr:quit()
         quanta.run = nil
     end)
 end
+
+local function define_functions()
+    local func_names = {
+        "fast", "quit", "frame",
+        "hour", "minute", "second", "second5", "second30"
+    }
+    for _, name in pairs(func_names) do
+        local attr_oname = sformat("%s_objs", name)
+        local attr_rname = sformat("%s_funcs", name)
+        local attach_fname = sformat("on_%s", name)
+        local attach_name = sformat("attach_%s", name)
+        local detach_name = sformat("detach_%s", name)
+        local register_name = sformat("register_%s", name)
+        local unregister_name = sformat("unregister_%s", name)
+        --定义属性
+        prop:reader(attr_oname, {})
+        prop:reader(attr_rname, {})
+        --定义函数
+        UpdateMgr[attach_name] = function(self, obj)
+            if not obj[attach_fname] then
+                log_warn("[UpdateMgr][{}] obj({}) isn't {} method!", attach_name, obj:source(), attach_fname)
+                return
+            end
+            self[attr_oname][obj] = obj:address()
+        end
+        UpdateMgr[detach_name] = function(self, obj)
+            self[attr_oname][obj] = nil
+        end
+        UpdateMgr[register_name] = function(self, rname, func)
+            self[attr_rname][rname] = func
+        end
+        UpdateMgr[unregister_name] = function(self, rname)
+            self[attr_rname][rname] = nil
+        end
+    end
+    UpdateMgr.weak_handlers = function(self)
+        for _, name in pairs(func_names) do
+            local attr_oname = sformat("%s_objs", name)
+            qtweak(self[attr_oname])
+        end
+    end
+end
+
+define_functions()
 
 quanta.update_mgr = UpdateMgr()
 

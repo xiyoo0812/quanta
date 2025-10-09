@@ -15,7 +15,7 @@ prop:reader("datas", {})
 function Deque:__init(index)
     if index then
         self.index = index
-        self.indexs = qtweak({})
+        self.indexs = qtweak({}, "v")
     end
 end
 

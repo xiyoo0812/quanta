@@ -10,9 +10,6 @@ public:
 
     void close();
 
-    uint32_t build_session_id() {
-        return m_stoken | m_sindex++;
-    }
     uint32_t get_route_count() {
         return m_router->get_route_count();
     }
@@ -68,8 +65,6 @@ public:
 public:
     std::string m_ip;
     uint32_t m_token = 0;
-    uint32_t m_stoken = 0;
-    uint16_t m_sindex = 1;
 
 private:
     void on_recv(slice* slice);

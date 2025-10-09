@@ -3,7 +3,6 @@
 
 lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, stdsptr<socket_mgr> mgr, stdsptr<socket_router> router, eproto_type type)
         : m_token(token), m_type(type), m_mgr(mgr), m_router(router) {
-    m_stoken = m_token << 16;
     m_lvm = std::make_shared<kit_state>(L);
     m_mgr->get_remote_ip(m_token, m_ip);
     m_mgr->set_connect_callback(token, [=](bool ok, const char* reason) {
@@ -56,7 +55,7 @@ int lua_socket_node::call_pb(lua_State* L) {
     if (m_codec) {
         size_t data_len = 0;
         char* data = (char*)m_codec->encode(L, 1, &data_len);
-        if (data_len <= USHRT_MAX) {
+        if (data_len > 0) {
             //发送数据
             m_mgr->send(m_token, data, data_len);
             lua_pushinteger(L, data_len);

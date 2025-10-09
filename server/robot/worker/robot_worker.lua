@@ -33,8 +33,8 @@ function RobotWorker:__init()
     event_mgr:add_listener(self, "startup_robot_task")
     event_mgr:add_listener(self, "on_watch_message")
     --协议hook
-    event_mgr:add_trigger(self, "on_recv_message")
-    event_mgr:add_trigger(self, "on_error_message")
+    event_mgr:add_listener(self, "on_recv_message")
+    event_mgr:add_listener(self, "on_error_message")
     event_mgr:register_hook(self, "on_ccmd_send", "on_message_hook")
     --初始化参数
     self.review.samples = {}

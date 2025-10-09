@@ -41,6 +41,7 @@ quanta.startup(function()
     import("test/pgsql_test.lua")
     import("test/xlsx_test.lua")
     import("test/etcd_test.lua")
+    import("test/kcp_test.lua")
     ]]
-    import("test/etcd_test.lua")
+    import("test/kcp_test.lua")
 end)

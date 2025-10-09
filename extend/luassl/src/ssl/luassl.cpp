@@ -341,7 +341,7 @@ namespace luassl {
 
 extern "C" {
     static bool SSL_IS_INIT = false;
-    LUALIB_API int luaopen_lssl(lua_State* L) {
+    LUALIB_API int luaopen_luassl(lua_State* L) {
         if (!SSL_IS_INIT) {
             SSL_IS_INIT = true;
             SSL_library_init();

@@ -1,6 +1,5 @@
 --group_mgr.lua
 local log_info      = logger.info
-local qtweak        = qtable.weak
 
 local client_mgr    = quanta.get("client_mgr")
 
@@ -18,7 +17,7 @@ function GroupMgr:add_member(group_id, player_id, player)
     local group = self.groups[group_id]
     local token = player:get_session_token()
     if not group then
-        self.groups[group_id] = qtweak({ [player_id] = token })
+        self.groups[group_id] = { [player_id] = token }
         return
     end
     group[player_id] = token

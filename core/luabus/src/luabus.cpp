@@ -81,7 +81,6 @@ namespace luabus {
         kit_state.new_class<lua_socket_node>(
             "ip", &lua_socket_node::m_ip,
             "token", &lua_socket_node::m_token,
-            "stoken", &lua_socket_node::m_stoken,
             "call", &lua_socket_node::call,
             "close", &lua_socket_node::close,
             "call_pb", &lua_socket_node::call_pb,
@@ -94,7 +93,6 @@ namespace luabus {
             "transfer_hash", &lua_socket_node::transfer_hash,
             "forward_target", &lua_socket_node::forward_target,
             "get_route_count", &lua_socket_node::get_route_count,
-            "build_session_id", &lua_socket_node::build_session_id,
             "forward_transfer", &lua_socket_node::forward_transfer,
             "forward_master", &lua_socket_node::forward_by_group<FORWARD_MASTER>,
             "forward_broadcast", &lua_socket_node::forward_by_group<FORWARD_BROADCAST>

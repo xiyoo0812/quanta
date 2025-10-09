@@ -29,6 +29,7 @@ backup:
 	cd extend/lsqlite; make SOLUTION_DIR=$(CUR_DIR) -f lsqlite.mak;
 	cd extend/ltoml; make SOLUTION_DIR=$(CUR_DIR) -f ltoml.mak;
 	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
+	cd extend/luakcp; make SOLUTION_DIR=$(CUR_DIR) -f luakcp.mak;
 	cd extend/luaxml; make SOLUTION_DIR=$(CUR_DIR) -f luaxml.mak;
 	cd extend/luazip; make SOLUTION_DIR=$(CUR_DIR) -f luazip.mak;
 	cd extend/lunqlite; make SOLUTION_DIR=$(CUR_DIR) -f lunqlite.mak;
