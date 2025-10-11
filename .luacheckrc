@@ -15,7 +15,7 @@ max_cyclomatic_complexity = 13
 max_code_line_length = 160
 max_comment_line_length = 160
 exclude_files = {
-    "extend/lmake/share.lua",
+    "tools/lmake/share.lua",
     "server/robot/accord/page/*"
 }
 include_files = {

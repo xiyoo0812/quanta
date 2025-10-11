@@ -7,7 +7,7 @@ local wsscodec          = codec.wsscodec
 local httpccodec        = codec.httpccodec
 local make_timer        = quanta.make_timer
 
-local PROTO_TEXT        = luabus.eproto_type.text
+local PROTO_TEXT        = luabus.eproto_type.TEXT
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")

@@ -3,7 +3,7 @@
 local log_err           = logger.err
 local log_info          = logger.info
 
-local PROTO_TEXT        = luabus.eproto_type.text
+local PROTO_TEXT        = luabus.eproto_type.TEXT
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")

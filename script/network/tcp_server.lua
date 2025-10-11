@@ -10,7 +10,7 @@ local qxpcall           = quanta.xpcall
 local new_trace         = quanta.new_trace
 local derive_port       = luabus.derive_port
 
-local PROTO_PB          = luabus.eproto_type.pb
+local PROTO_PB          = luabus.eproto_type.PB
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")

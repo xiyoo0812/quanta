@@ -45,7 +45,7 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
 #endif
     strncpy(m_ip, ip, INET_ADDRSTRLEN - 1);
     m_socket = fd;
-    m_link_status = elink_status::link_connected;
+    m_link_status = LINK_CONNECTED;
     m_last_recv_time = luakit::steady_ms();
     return true;
 }
@@ -57,11 +57,11 @@ void socket_stream::connect(const char ip[], int port, int timeout) {
 }
 
 void socket_stream::close() {
-    if (m_link_status == elink_status::link_closed) {
+    if (m_link_status == LINK_CLOSED) {
         return;
     }
     if (m_socket == INVALID_SOCKET) {
-        m_link_status = elink_status::link_closed;
+        m_link_status = LINK_CLOSED;
         return;
     }
     shutdown(m_socket, SD_RECEIVE);
@@ -70,26 +70,26 @@ void socket_stream::close() {
         m_ovl_ref--;
     }
 #endif
-    m_link_status = elink_status::link_closing;
+    m_link_status = LINK_CLOSING;
 }
 
 bool socket_stream::update(int64_t now) {
     switch (m_link_status) {
-        case elink_status::link_closed: {
+        case LINK_CLOSED: {
 #ifdef IO_IOCP
             if (m_ovl_ref > 0) return true;
 #endif
             return false;
         }
-        case elink_status::link_closing: {
+        case LINK_CLOSING: {
 #ifdef IO_IOCP
             if (m_ovl_ref > 0) return true;
 #endif
             if (!m_send_buffer->empty()) return true;
-            m_link_status = elink_status::link_closed;
+            m_link_status = LINK_CLOSED;
             return true;
         }
-        case elink_status::link_init: {
+        case LINK_INIT: {
             if (m_connecting_time == 0) {
                 on_connect(false, "resolver failed");
                 return true;
@@ -97,7 +97,7 @@ bool socket_stream::update(int64_t now) {
             try_connect();
             return true;
         }
-        case elink_status::link_connecting:{
+        case LINK_CONNECTING:{
             if (now > m_connecting_time) {
                 on_connect(false, "timeout");
                 return true;
@@ -188,21 +188,21 @@ void socket_stream::try_connect() {
     set_no_delay(m_socket, 1);
     set_close_on_exec(m_socket);
     get_ip_string(m_ip, sizeof(m_ip), &m_addr);
-    m_link_status = elink_status::link_connecting;
+    m_link_status = LINK_CONNECTING;
     if (!do_connect()){
         on_connect(false, "connect-failed");
     }
 }
 
 void socket_stream::send(const void* data, size_t data_len) {
-    if (m_link_status != elink_status::link_connected)
+    if (m_link_status != LINK_CONNECTED)
         return;
 
     stream_send((char*)data, data_len);
 }
 
 void socket_stream::sendv(const sendv_item items[], int count) {
-    if (m_link_status != elink_status::link_connected)
+    if (m_link_status != LINK_CONNECTED)
         return;
 
     for (int i = 0; i < count; i++) {
@@ -212,7 +212,7 @@ void socket_stream::sendv(const sendv_item items[], int count) {
 }
 
 void socket_stream::stream_send(const char* data, size_t data_len) {
-    if (m_link_status != elink_status::link_connected || data_len == 0)
+    if (m_link_status != LINK_CONNECTED || data_len == 0)
         return;
 
     if (m_send_buffer->empty()) {
@@ -253,7 +253,7 @@ void socket_stream::stream_send(const char* data, size_t data_len) {
 #ifdef IO_IOCP
 void socket_stream::on_complete(WSAOVERLAPPED* ovl) {
     m_ovl_ref--;
-    if (m_link_status == elink_status::link_connected){
+    if (m_link_status == LINK_CONNECTED){
         if (ovl == &m_recv_ovl) {
             do_recv(UINT_MAX, false);
         } else {
@@ -261,14 +261,14 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl) {
         }
         return;
     }
-    if (m_link_status == elink_status::link_closing) {
+    if (m_link_status == LINK_CLOSING) {
         if (ovl == &m_recv_ovl) {
             do_recv(UINT_MAX, false);
         }
         return;
     }
 
-    if (m_link_status == elink_status::link_connecting) {
+    if (m_link_status == LINK_CONNECTING) {
         int seconds = 0;
         socklen_t sock_len = (socklen_t)sizeof(seconds);
         auto ret = getsockopt(m_socket, SOL_SOCKET, SO_CONNECT_TIME, (char*)&seconds, &sock_len);
@@ -288,11 +288,11 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl) {
 
 #ifndef IO_IOCP
 void socket_stream::on_can_send(size_t max_len, bool is_eof) {
-    if (m_link_status == elink_status::link_connected || m_link_status == elink_status::link_closing) {
+    if (m_link_status == LINK_CONNECTED || m_link_status == LINK_CLOSING) {
         do_send(max_len, is_eof);
         return;
     }
-    if (m_link_status == elink_status::link_connecting) {
+    if (m_link_status == LINK_CONNECTING) {
         int err = 0;
         socklen_t sock_len = sizeof(err);
         auto ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, (char*)&err, &sock_len);
@@ -358,7 +358,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
 
 void socket_stream::do_recv(size_t max_len, bool is_eof) {
     size_t total_recv = 0;
-    while (total_recv < max_len && m_link_status == elink_status::link_connected) {
+    while (total_recv < max_len && m_link_status == LINK_CONNECTED) {
         auto* space = m_recv_buffer->peek_space(SOCKET_TCP_RECV_LEN);
         if (space == nullptr) {
             on_error("recv-buffer-full");
@@ -403,7 +403,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
 
 void socket_stream::dispatch_package() {
     int64_t now = luakit::steady_ms();
-    while (m_link_status == elink_status::link_connected) {
+    while (m_link_status == LINK_CONNECTED) {
         if (!m_codec){
             on_error("codec-is-null");
             break;
@@ -443,18 +443,18 @@ void socket_stream::dispatch_package() {
 }
 
 void socket_stream::on_error(const char err[]) {
-    if (m_link_status == elink_status::link_connected) {
+    if (m_link_status == LINK_CONNECTED) {
         // kqueue实现下,如果eof时不及时关闭或unwatch,则会触发很多次eof
-        m_link_status = elink_status::link_closed;
+        m_link_status = LINK_CLOSED;
         m_error_cb(err);
     }
 }
 
 void socket_stream::on_connect(bool ok, const char reason[]) {
     if (!ok) {
-        m_link_status = elink_status::link_closed;
+        m_link_status = LINK_CLOSED;
     } else {
-        m_link_status = elink_status::link_connected;
+        m_link_status = LINK_CONNECTED;
         m_last_recv_time = luakit::steady_ms();
     }
     m_connect_cb(ok, reason);

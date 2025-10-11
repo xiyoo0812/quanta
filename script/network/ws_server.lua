@@ -11,7 +11,7 @@ local qxpcall           = quanta.xpcall
 local signalquit        = signal.quit
 local derive_port       = luabus.derive_port
 
-local PROTO_TEXT        = luabus.eproto_type.text
+local PROTO_TEXT        = luabus.eproto_type.TEXT
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")

@@ -46,9 +46,9 @@ namespace luabus {
         lluabus.set_function("derive_port", derive_port);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
-            "pb", eproto_type::proto_pb,
-            "rpc", eproto_type::proto_rpc,
-            "text", eproto_type::proto_text
+            "PB", PROTO_PB,
+            "RPC", PROTO_RPC,
+            "TEXT", PROTO_TEXT
         );
         kit_state.new_class<socket_udp>(
             "send", &socket_udp::send,

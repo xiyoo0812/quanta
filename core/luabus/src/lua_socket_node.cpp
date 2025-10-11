@@ -243,10 +243,10 @@ int lua_socket_node::transfer_hash(lua_State* L, uint32_t session_id, uint32_t s
 }
 
 void lua_socket_node::on_recv(slice* slice) {
-    if (m_type == eproto_type::proto_pb) {
+    if (m_type == PROTO_PB) {
         return on_call_pb(slice);
     }
-    if (m_type == eproto_type::proto_text) {
+    if (m_type == PROTO_TEXT) {
         return on_call_data(slice);
     }
     size_t data_len;

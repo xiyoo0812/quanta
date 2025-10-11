@@ -20,9 +20,9 @@ int lua_socket_mgr::listen(lua_State* L, const char* ip, int port) {
         return luakit::variadic_return(L, nullptr, err);
     }
 
-    eproto_type proto_type = (eproto_type)luaL_optinteger(L, 3, (int)eproto_type::proto_rpc);
+    eproto_type proto_type = (eproto_type)luaL_optinteger(L, 3, (int)PROTO_RPC);
     auto listener = new lua_socket_node(token, m_lvm, m_mgr, m_router, proto_type);
-    if (proto_type == eproto_type::proto_rpc) {
+    if (proto_type == PROTO_RPC) {
         listener->set_codec(&m_codec);
     }
     return luakit::variadic_return(L, listener, "ok");
@@ -38,9 +38,9 @@ int lua_socket_mgr::connect(lua_State* L, const char* ip, int port, int timeout)
         return luakit::variadic_return(L, nullptr, err);
     }
 
-    eproto_type proto_type = (eproto_type)luaL_optinteger(L, 4, (int)eproto_type::proto_rpc);
+    eproto_type proto_type = (eproto_type)luaL_optinteger(L, 4, (int)PROTO_RPC);
     auto socket_node = new lua_socket_node(token, m_lvm, m_mgr, m_router, proto_type);
-    if (proto_type == eproto_type::proto_rpc) {
+    if (proto_type == PROTO_RPC) {
         socket_node->set_codec(&m_codec);
     }
     return luakit::variadic_return(L, socket_node, "ok");

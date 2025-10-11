@@ -4,7 +4,7 @@
 SOLUTION = "quanta"
 
 --lmake目录
-LMAKE_DIR = "extend/lmake"
+LMAKE_DIR = "tools/lmake"
 
 --开启优化
 --OPTIMIZE = true

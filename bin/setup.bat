@@ -10,7 +10,7 @@ md config
 
 cd template
 
-set SCRIPT=../../extend/lmake/ltemplate.lua
+set SCRIPT=../../tools/lmake/ltemplate.lua
 set ENVIRON=../environ/%CONF%.conf
 for %%i in (*.conf) do (
     ..\lua.exe %SCRIPT% %%i ..\config\%%i %ENVIRON%

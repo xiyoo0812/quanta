@@ -38,18 +38,18 @@ socket_listener::~socket_listener() {
 
 bool socket_listener::setup(socket_t fd) {
     m_socket = fd;
-    m_link_status = elink_status::link_connected;
+    m_link_status = LINK_CONNECTED;
     return true;
 }
 
 bool socket_listener::update(int64_t) {
-    if (m_link_status == elink_status::link_closed && m_socket != INVALID_SOCKET) {
+    if (m_link_status == LINK_CLOSED && m_socket != INVALID_SOCKET) {
         closesocket(m_socket);
         m_socket = INVALID_SOCKET;
     }
 
 #ifdef IO_IOCP
-    if (m_ovl_ref == 0 && m_link_status == elink_status::link_connected) {
+    if (m_ovl_ref == 0 && m_link_status == LINK_CONNECTED) {
         for (auto& node : m_nodes) {
             if (node.fd == INVALID_SOCKET) {
                 queue_accept(&node.ovl);
@@ -58,7 +58,7 @@ bool socket_listener::update(int64_t) {
     }
 #endif
 
-    if (m_link_status == elink_status::link_closed) {
+    if (m_link_status == LINK_CLOSED) {
 #ifdef IO_IOCP
         return m_ovl_ref != 0;
 #else
@@ -71,7 +71,7 @@ bool socket_listener::update(int64_t) {
 #ifdef IO_IOCP
 void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
     m_ovl_ref--;
-    if (m_link_status != elink_status::link_connected)
+    if (m_link_status != LINK_CONNECTED)
         return;
 
     listen_node* node = CONTAINING_RECORD(ovl, listen_node, ovl);
@@ -112,12 +112,12 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
     socklen_t listen_addr_len = sizeof(listen_addr);
     getsockname(m_socket, (sockaddr*)&listen_addr, &listen_addr_len);
 
-    while (m_link_status == elink_status::link_connected) {
+    while (m_link_status == LINK_CONNECTED) {
         memset(ovl, 0, sizeof(*ovl));
         // 注,AF_INET6本身是可以支持ipv4的,但是...需要win10以上版本,win7不支持, 所以这里取listen_addr
         node->fd = socket(listen_addr.ss_family, SOCK_STREAM, IPPROTO_IP);
         if (node->fd == INVALID_SOCKET) {
-            m_link_status = elink_status::link_closed;
+            m_link_status = LINK_CLOSED;
             m_error_cb("new-socket-failed");
             return;
         }
@@ -134,7 +134,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
                 get_error_string(txt, sizeof(txt), err);
                 closesocket(node->fd);
                 node->fd = INVALID_SOCKET;
-                m_link_status = elink_status::link_closed;
+                m_link_status = LINK_CLOSED;
                 m_error_cb(txt);
                 return;
             }
@@ -161,7 +161,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
 #ifndef IO_IOCP
 void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
     size_t total_accept = 0;
-    while (total_accept < max_len && m_link_status == elink_status::link_connected) {
+    while (total_accept < max_len && m_link_status == LINK_CONNECTED) {
         sockaddr_storage addr;
         socklen_t addr_len = (socklen_t)sizeof(addr);
         char ip[INET_ADDRSTRLEN];

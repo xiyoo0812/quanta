@@ -9,7 +9,7 @@ local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
-local PROTO_PB          = luabus.eproto_type.pb
+local PROTO_PB          = luabus.eproto_type.PB
 
 local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local SECOND_5_MS       = quanta.enum("PeriodTime", "SECOND_5_MS")

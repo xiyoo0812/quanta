@@ -30,6 +30,13 @@ using namespace luakit;
 #define KCP_CONV  10131025
 
 namespace luakcp {
+    enum class link_status : uint8_t {
+        LINK_INIT       = 0,
+        LINK_READY      = 1,
+        LINK_CLOSED     = 2,
+    };
+    using enum link_status;
+
     void set_no_block(int fd) {
 #ifdef _MSC_VER
         u_long  opt = 1;
@@ -67,7 +74,7 @@ namespace luakcp {
 
         void __gc() {}
         void close() {
-            m_status = 2;
+            m_status = LINK_CLOSED;
         }
 
         void set_codec(codec_base* codec) {
@@ -94,47 +101,22 @@ namespace luakcp {
         }
 
         bool listen(const char* ip, int port) {
-            SOCKADDR_IN addr = {};
-            addr.sin_family = AF_INET;
-            addr.sin_port = htons(port);
-            addr.sin_addr.s_addr = inet_addr(ip);
-            if (::bind(m_fd, (SOCKADDR*)&addr, sizeof(addr)) < 0) {
-                return false;
-            }
-            m_status = 1;
-            return true;
+            auto ok = bind(inet_addr(ip), port);
+            if (ok) m_status = LINK_READY;
+            return ok;
         }
 
         bool connect(const char* ip, int port) {
-            SOCKADDR_IN addr = {};
-            addr.sin_family = AF_INET;
-            addr.sin_port = htons(0);
-            addr.sin_addr.s_addr = INADDR_ANY;
-            if (::bind(m_fd, (SOCKADDR*)&addr, sizeof(addr)) < 0) {
-                return false;
-            }
-            m_ip = ip;
+            auto ok = bind(INADDR_ANY, port);
+            if (!ok) return false;
+            m_status = LINK_READY;
             m_port = port;
-            m_status = 1;
-            return true;
-        }
-
-        bool accept(const char* ip, int port) {
-            SOCKADDR_IN addr = {};
-            addr.sin_family = AF_INET;
-            addr.sin_port = htons(0);
-            addr.sin_addr.s_addr = INADDR_ANY;
-            if (::bind(m_fd, (SOCKADDR*)&addr, sizeof(addr)) < 0) {
-                return false;
-            }
             m_ip = ip;
-            m_port = port;
-            m_status = 1;
             return true;
         }
 
         bool update(uint64_t time) {
-            if (m_status == 2) return false;
+            if (m_status == LINK_CLOSED) return false;
             if (m_timeout > 0 && m_livetime > 0 && time - m_livetime > m_timeout) {
                 on_error("kcp timeout");
                 return true;
@@ -164,6 +146,14 @@ namespace luakcp {
         }
 
     protected:
+        bool bind(size_t ipaddr, int port) {
+            SOCKADDR_IN addr = {};
+            addr.sin_family = AF_INET;
+            addr.sin_port = htons(port);
+            addr.sin_addr.s_addr = ipaddr;
+            return ::bind(m_fd, (SOCKADDR*)&addr, sizeof(addr)) == 0;
+        }
+
         void udp_send(const char* data, size_t data_len) {
             SOCKADDR_IN addr = {};
             addr.sin_family = AF_INET;
@@ -236,7 +226,7 @@ namespace luakcp {
 
         void on_error(std::string_view err) {
             m_lvm->object_call(this, "on_error", nullptr, std::tie(), m_token, err);
-            m_status = 2;
+            m_status = LINK_CLOSED;
         }
 
     public:
@@ -246,13 +236,13 @@ namespace luakcp {
 
     protected:
         int m_fd = 0;
-        int m_status = 0;
         uint32_t m_timeout = 0;
         uint64_t m_livetime = 0;
         ikcpcb* m_kcp = nullptr;
         ikcp_mgr* m_mgr = nullptr;
         kit_state* m_lvm = nullptr;
         codec_base* m_codec = nullptr;
+        link_status m_status = LINK_INIT;
     };
 
     class kcp_mgr :public ikcp_mgr {
@@ -306,7 +296,7 @@ namespace luakcp {
         kcp_socket* on_accept(const char* ip, int port) {
             uint32_t token = new_token();
             kcp_socket* kcp = new kcp_socket();
-            if (!kcp->setup(m_lvm, token) || !kcp->accept(ip, port)) {
+            if (!kcp->setup(m_lvm, token) || !kcp->connect(ip, port)) {
                 delete kcp;
                 return nullptr;
             }

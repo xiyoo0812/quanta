@@ -14,7 +14,7 @@ local luencode      = codec.url_encode
 
 local HTTP_2        = "h2"
 local HTTP_1_1      = "http/1.1"
-local PROTO_TEXT    = luabus.eproto_type.text
+local PROTO_TEXT    = luabus.eproto_type.TEXT
 
 local update_mgr    = quanta.get("update_mgr")
 

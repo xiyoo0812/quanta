@@ -4,37 +4,36 @@
 
 using namespace luakit;
 
-enum class elink_status : int
-{
-    link_init       = 0,
-    link_connecting = 1,
-    link_connected  = 2,
-    link_closing    = 3,
-    link_closed     = 4,
+enum class elink_status : uint8_t {
+    LINK_INIT       = 0,
+    LINK_CONNECTING = 1,
+    LINK_CONNECTED  = 2,
+    LINK_CLOSING    = 3,
+    LINK_CLOSED     = 4,
 };
 
 // 协议类型
-enum class eproto_type : int
-{
-    proto_pb        = 0,    // pb协议，pb
-    proto_rpc       = 1,    // rpc协议，rpc
-    proto_text      = 2,    // text协议，mysql/mongo/http/wss/redis
-    proto_max       = 3,    // max
+enum class eproto_type : uint8_t {
+    PROTO_PB        = 0,    // pb协议，pb
+    PROTO_RPC       = 1,    // rpc协议，rpc
+    PROTO_TEXT      = 2,    // text协议，mysql/mongo/http/wss/redis
+    PROTO_MAX       = 3,    // max
 };
 
-struct sendv_item
-{
+using enum elink_status;
+using enum eproto_type;
+
+struct sendv_item {
     const void* data;
     size_t len;
 };
 
-struct socket_object
-{
+struct socket_object {
     virtual ~socket_object() {};
     virtual bool update(int64_t now) = 0;
     virtual int get_sendbuf_size() { return 0; }
     virtual int get_recvbuf_size() { return 0; }
-    virtual void close() { m_link_status = elink_status::link_closed; };
+    virtual void close() { m_link_status = LINK_CLOSED; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char ip[], int port) { }
     virtual void set_timeout(int duration) { }
@@ -61,11 +60,10 @@ protected:
     uint32_t m_kind = 0;
     uint32_t m_token = 0;
     codec_base* m_codec = nullptr;
-    elink_status m_link_status = elink_status::link_init;
+    elink_status m_link_status = LINK_INIT;
 };
 
-class socket_mgr
-{
+class socket_mgr {
 public:
     socket_mgr();
     ~socket_mgr();
