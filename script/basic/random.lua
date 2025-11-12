@@ -1,6 +1,6 @@
 --random.lua
 local mrandom       = math.random
-local tcopy         = qtable.copy
+local tcopy         = table.copy
 local tinsert       = table.insert
 local tunpack       = table.unpack
 local tremove       = table.remove

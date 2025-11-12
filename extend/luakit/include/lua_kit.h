@@ -7,6 +7,7 @@
 #include "lua_codec.h"
 #include "lua_table.h"
 #include "lua_class.h"
+#include "lua_extend.h"
 
 namespace luakit {
     inline thread_local luabuf lbuf;
@@ -264,6 +265,9 @@ namespace luakit {
         lstring.set_function("ends_with", lua_string_ends_with);
         lstring.set_function("starts_with", lua_string_starts_with);
         auto ltable = kit->get<lua_table>("table");
+        ltable.set_function("copy", lua_table_copy);
+        ltable.set_function("clean", lua_table_clean);
+        ltable.set_function("deepcopy", lua_table_deepcopy);
         ltable.set_function("is_array", [](lua_State* L) { return is_lua_array(L, 1, true); });
     }
 }

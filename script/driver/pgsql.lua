@@ -24,6 +24,7 @@ local qhash         = codec.hash_code
 local pgsqlcodec    = codec.pgsqlcodec
 
 local make_timer    = quanta.make_timer
+local make_functer  = quanta.make_functer
 local makechan      = quanta.make_channel
 
 local thread_mgr    = quanta.get("thread_mgr")
@@ -49,6 +50,7 @@ prop:reader("timer", nil)       --timer
 prop:reader("passwd", nil)      --passwd
 prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
+prop:reader("rcfunctor", nil)   --rcfunctor
 prop:reader("connections", {})  --connections
 prop:reader("stmt_querys", {})  --预处理列表
 prop:reader("alives", {})       --alives
@@ -105,7 +107,7 @@ function PgsqlDB:setup_pool(hosts)
     end
     local count = 1
     for _, host in pairs(hosts) do
-        for c = 1, POOL_COUNT do
+        for _ = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
             socket:set_id(count)
@@ -113,25 +115,24 @@ function PgsqlDB:setup_pool(hosts)
             count = count + 1
         end
     end
+    self.rcfunctor = make_functer(self.check_alive)
     self.timer:loop(SECOND_MS, function()
-        self:check_alive()
+        self.rcfunctor:call(self)
     end)
 end
 
 function PgsqlDB:check_alive()
     if next(self.connections) then
-        thread_mgr:entry(self:address(), function()
-            local channel = makechan("check pgsql")
-            for _, sock in pairs(self.connections) do
-                channel:push(function()
-                    return self:login(sock)
-                end)
-            end
-            if channel:execute(true) then
-                self.timer:change_period(SECOND_10_MS)
-            end
-            self:set_executer()
-        end)
+        local channel = makechan("check pgsql")
+        for _, sock in pairs(self.connections) do
+            channel:push(function()
+                return self:login(sock)
+            end)
+        end
+        if channel:execute(true) then
+            self.timer:change_period(SECOND_10_MS)
+        end
+        self:set_executer()
     end
 end
 

@@ -15,8 +15,7 @@ max_cyclomatic_complexity = 13
 max_code_line_length = 160
 max_comment_line_length = 160
 exclude_files = {
-    "tools/lmake/share.lua",
-    "server/robot/accord/page/*"
+    "tools/lmake/share.lua"
 }
 include_files = {
     "script/*.lua",
@@ -27,8 +26,7 @@ include_files = {
     "server/*/*/*.lua",
     "script/*/*/*/*.lua",
     "server/*/*/*/*.lua",
-    "extend/lmake/*.lua",
-    "tools/*/*.lua",
+    "tools/*/*.lua"
 }
 ignore = {"143", "212", "213", "512"}
 

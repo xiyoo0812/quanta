@@ -33,9 +33,6 @@ local SERVICE_GATE      = name2sid("gateway")
 local Gateway = singleton()
 local prop = property(Gateway)
 prop:reader("players", {})          --会话列表
-prop:reader("counter", nil)         --计数器
-prop:reader("req_counter", nil)     --计数器
-prop:reader("ntf_counter", nil)     --计数器
 prop:reader("ignore_cmds", {})      --日志过滤
 prop:reader("reenter_cmds", {})     --重入过滤
 
@@ -64,10 +61,6 @@ function Gateway:__init()
     service.modify_host(nport, domain)
     --日志过滤
     self:init_filter()
-    --计数器
-    self.counter = quanta.make_counter(sformat("gateway %s player", quanta.index))
-    self.req_counter = quanta.make_sampling(sformat("gateway %s req", quanta.index))
-    self.ntf_counter = quanta.make_sampling(sformat("gateway %s ntf", quanta.index))
     --关注lobby
     discover:watch_service(self, "lobby")
 end
@@ -132,7 +125,6 @@ end
 
 --玩家关闭
 function Gateway:remove_player(player, player_id)
-    self.counter:count_reduce()
     self.players[player_id] = nil
     local groups = player:get_groups()
     for _, group_id in pairs(groups or {}) do
@@ -151,7 +143,6 @@ function Gateway:add_player(player, player_id, lobby, token)
     player:set_token(token)
     player:set_lobby_id(lobby)
     self.players[player_id] = player
-    self.counter:count_increase()
 end
 
 --踢掉客户端
@@ -170,7 +161,6 @@ end
 
 --转发给客户端
 function Gateway:rpc_forward_client(player_id, cmd_id, data)
-    self.ntf_counter:count_increase()
     local player = self:get_player(player_id)
     if not player then
         log_warn("[Gateway][rpc_forward_client] cmd_id({}) player({}) not exist!", cmd_id, player_id)
@@ -345,7 +335,6 @@ end
 --客户端消息分发
 function Gateway:on_socket_cmd(session, service_type, cmd_id, body, session_id)
     -- 协议过滤
-    self.req_counter:count_increase()
     local result = event_mgr:notify_listener("on_proto_filter", cmd_id, service_type)
     if result[1] and result[2] then
         log_warn("[Gateway][on_socket_cmd] on_proto_filter false, cmd_id={}", cmd_id)

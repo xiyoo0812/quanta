@@ -1,5 +1,4 @@
 --table.lua
-local type          = type
 local pairs         = pairs
 local tsort         = table.sort
 local mrandom       = math.random
@@ -42,31 +41,9 @@ local function tsize(t, filter)
     return c
 end
 
-local function tcopy(src, dst)
-    if dst then dst = {} end
-    for field, value in pairs(src or {}) do
-        dst[field] = value
-    end
-    return dst
-end
-
-local function tdeep_copy(src, dst)
-    if dst then dst = {} end
-    for key, value in pairs(src or {}) do
-        if is_class(value) then
-            dst[key] = value()
-        elseif (type(value) == "table") then
-            dst[key] = tdeep_copy(value)
-        else
-            dst[key] = value
-        end
-    end
-    return dst
-end
-
 local function terase(stab, func, all)
     for i = #stab, 1, -1 do
-        if func(i, stab[i]) then
+        if func(stab[i]) then
             tremove(stab, i)
             if not all then
                 break
@@ -77,7 +54,7 @@ local function terase(stab, func, all)
 end
 
 local function tdelete(stab, val, all)
-    return terase(stab, function(i, v)
+    return terase(stab, function(v)
         return v == val
     end, all)
 end
@@ -210,8 +187,6 @@ qtable.random       = trandom
 qtable.random_array = trandom_array
 qtable.indexof      = tindexof
 qtable.size         = tsize
-qtable.copy         = tcopy
-qtable.deep_copy    = tdeep_copy
 qtable.delete       = tdelete
 qtable.erase        = terase
 qtable.join         = tjoin

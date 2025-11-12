@@ -5,6 +5,7 @@
 #endif
 
 #include "lua_buff.h"
+#include "lua_extend.h"
 
 namespace luakit {
     const uint8_t type_nil          = 0;

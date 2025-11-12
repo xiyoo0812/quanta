@@ -2,7 +2,7 @@
 local xpcall        = xpcall
 local log_warn      = logger.warn
 local log_fatal     = logger.fatal
-local tcopy         = qtable.copy
+local tcopy         = table.copy
 local qtweak        = qtable.weak
 local dtraceback    = debug.traceback
 

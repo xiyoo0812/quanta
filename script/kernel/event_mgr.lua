@@ -33,18 +33,14 @@ function EventMgr:on_frame()
     self.fevent_map = {}
     for obj, events in pairs(mhandlers) do
         for event in pairs(events) do
-            thread_mgr:fork(function()
-                obj[event](obj)
-            end)
+            thread_mgr:fork(obj[event], nil, obj)
         end
     end
     local nhandlers = self.fnotify_map
     self.fnotify_map = {}
     for obj, events in pairs(nhandlers) do
         for event, args in pairs(events) do
-            thread_mgr:fork(function()
-                obj:notify_event(event, obj, tunpack(args))
-            end)
+            thread_mgr:fork(obj.notify_event, nil, event, obj, tunpack(args))
         end
     end
 end
@@ -59,18 +55,14 @@ function EventMgr:on_second()
     self.sevent_map = {}
     for obj, events in pairs(mhandlers) do
         for event in pairs(events) do
-            thread_mgr:fork(function()
-                obj[event](obj)
-            end)
+            thread_mgr:fork(obj[event], nil, obj)
         end
     end
     local nhandlers = self.snotify_map
     self.snotify_map = {}
     for obj, events in pairs(nhandlers) do
         for event, args in pairs(events) do
-            thread_mgr:fork(function()
-                obj:notify_event(event, obj, tunpack(args))
-            end)
+            thread_mgr:fork(obj.notify_event, nil, event, obj, tunpack(args))
         end
     end
 end

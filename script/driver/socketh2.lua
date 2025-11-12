@@ -5,7 +5,7 @@ local schar         = string.char
 local log_info      = logger.info
 local log_debug     = logger.debug
 local tunpack       = table.unpack
-local tcopy         = qtable.copy
+local tcopy         = table.copy
 local http2ccodec   = codec.http2ccodec
 local grpcccodec    = codec.grpcccodec
 

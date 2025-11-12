@@ -20,6 +20,8 @@ local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
+local Functor       = import("feature/functor.lua")
+
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
 prop:reader("last_hour", 0)
@@ -43,10 +45,8 @@ function UpdateMgr:__init()
 end
 
 function UpdateMgr:update_second(clock_ms)
-    for obj, address in pairs(self.second_objs) do
-        thread_mgr:entry(address, function()
-            obj:on_second(clock_ms)
-        end)
+    for obj, functor in pairs(self.second_objs) do
+        functor:call(obj, clock_ms)
     end
 end
 
@@ -57,23 +57,19 @@ function UpdateMgr:update(now_ms, clock_ms, master)
     quanta.now_ms = now_ms
     --帧更新
     local frame = quanta.frame + 1
-    for _, func in pairs(self.frame_funcs) do
-        func(clock_ms, frame)
+    for _, functor in pairs(self.frame_funcs) do
+        functor:call(clock_ms, frame)
     end
-    for obj, address in pairs(self.frame_objs) do
-        thread_mgr:entry(address, function()
-            obj:on_frame(clock_ms, frame)
-        end)
+    for obj, functor in pairs(self.frame_objs) do
+        functor:call(obj, clock_ms, frame)
     end
     quanta.frame = frame
     --快帧100ms更新
     if clock_ms < self.next_frame then
         return
     end
-    for obj, address in pairs(self.fast_objs) do
-        thread_mgr:entry(address, function()
-            obj:on_fast(clock_ms)
-        end)
+    for obj, functor in pairs(self.fast_objs) do
+        functor:call(obj, clock_ms)
     end
     self.next_frame = clock_ms + FAST_MS
     --秒更新
@@ -103,29 +99,23 @@ function UpdateMgr:update_by_time(now, clock_ms)
     if time.sec % 5 > 0 then
         return
     end
-    for obj in pairs(self.second5_objs) do
-        thread_mgr:fork(function()
-            obj:on_second5(clock_ms)
-        end)
+    for obj, functor in pairs(self.second5_objs) do
+        functor:call(obj, clock_ms)
     end
     --30秒更新
     if time.sec % 30 > 0 then
         return
     end
-    for obj in pairs(self.second30_objs) do
-        thread_mgr:fork(function()
-            obj:on_second30(clock_ms)
-        end)
+    for obj, functor in pairs(self.second30_objs) do
+        functor:call(obj, clock_ms)
     end
     --分更新
     if time.min == self.last_minute then
         return
     end
     self.last_minute = time.min
-    for obj in pairs(self.minute_objs) do
-        thread_mgr:fork(function()
-            obj:on_minute(clock_ms)
-        end)
+    for obj, functor in pairs(self.minute_objs) do
+        functor:call(obj, clock_ms)
     end
     --时更新
     local cur_hour = time.hour
@@ -133,10 +123,8 @@ function UpdateMgr:update_by_time(now, clock_ms)
         return
     end
     self.last_hour = cur_hour
-    for obj in pairs(self.hour_objs) do
-        thread_mgr:fork(function()
-            obj:on_hour(clock_ms, cur_hour, time)
-        end)
+    for obj, functor in pairs(self.hour_objs) do
+        functor:call(obj, clock_ms)
     end
     --每日4点执行一次全量更新
     if cur_hour == 4 then
@@ -176,10 +164,10 @@ end
 
 local function define_functions()
     local func_names = {
-        "fast", "quit", "frame",
-        "hour", "minute", "second", "second5", "second30"
+        "fast", "frame",
+        "quit", "hour", "minute", "second", "second5", "second30"
     }
-    for _, name in pairs(func_names) do
+    for idx, name in ipairs(func_names) do
         local attr_oname = sformat("%s_objs", name)
         local attr_rname = sformat("%s_funcs", name)
         local attach_fname = sformat("on_%s", name)
@@ -192,17 +180,18 @@ local function define_functions()
         prop:reader(attr_rname, {})
         --定义函数
         UpdateMgr[attach_name] = function(self, obj)
-            if not obj[attach_fname] then
+            local attach_func = obj[attach_fname]
+            if not attach_func then
                 log_warn("[UpdateMgr][{}] obj({}) isn't {} method!", attach_name, obj:source(), attach_fname)
                 return
             end
-            self[attr_oname][obj] = obj:address()
+            self[attr_oname][obj] = Functor(attach_func, idx > 2)
         end
         UpdateMgr[detach_name] = function(self, obj)
             self[attr_oname][obj] = nil
         end
-        UpdateMgr[register_name] = function(self, rname, func)
-            self[attr_rname][rname] = func
+        UpdateMgr[register_name] = function(self, rname, func, reenter)
+            self[attr_rname][rname] = Functor(func, reenter or true)
         end
         UpdateMgr[unregister_name] = function(self, rname)
             self[attr_rname][rname] = nil

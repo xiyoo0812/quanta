@@ -10,10 +10,11 @@ local tinsert       = table.insert
 local mrandom       = qmath.random
 local tdelete       = qtable.delete
 local qhash         = codec.hash_code
-local make_timer    = quanta.make_timer
-local makechan      = quanta.make_channel
 local jsoncodec     = json.jsoncodec
 local rediscodec    = codec.rediscodec
+local make_timer    = quanta.make_timer
+local make_functer  = quanta.make_functer
+local makechan      = quanta.make_channel
 
 local thread_mgr    = quanta.get("thread_mgr")
 local event_mgr     = quanta.get("event_mgr")
@@ -90,12 +91,11 @@ local prop = property(RedisDB)
 prop:reader("timer", nil)           --timer
 prop:reader("passwd", nil)          --passwd
 prop:reader("jcodec", nil)          --jcodec
+prop:reader("rcfunctor", nil)       --rcfunctor
 prop:reader("connections", {})      --connections
 prop:reader("clusters", {})         --clusters
 prop:reader("alives", {})           --alives
 prop:reader("slots", {})            --slots
-prop:reader("req_counter", nil)
-prop:reader("res_counter", nil)
 prop:reader("subscrible", false)
 prop:reader("cluster", false)       --cluster
 
@@ -125,11 +125,10 @@ end
 
 function RedisDB:setup(conf)
     self:setup_pool(conf.hosts)
+    self.rcfunctor = make_functer(self.check_alive)
     self.timer:loop(SECOND_MS, function()
-        self:check_alive()
+        self.rcfunctor:call(self)
     end)
-    self.req_counter = quanta.make_sampling("redis req")
-    self.res_counter = quanta.make_sampling("redis res")
 end
 
 function RedisDB:setup_pool(hosts)
@@ -139,7 +138,7 @@ function RedisDB:setup_pool(hosts)
     end
     local count = 1
     for _, host in pairs(hosts) do
-        for c = 1, POOL_COUNT do
+        for _ = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
             socket:set_codec(rediscodec(self.jcodec))
@@ -215,18 +214,16 @@ end
 
 function RedisDB:check_alive()
     if next(self.connections) then
-        thread_mgr:entry(self:address(), function()
-            local channel = makechan("check redis")
-            for _, sock in pairs(self.connections) do
-                channel:push(function()
-                    return self:login(sock)
-                end)
-            end
-            if channel:execute(true) then
-                self.timer:change_period(SECOND_10_MS)
-                self:check_clusters()
-            end
-        end)
+        local channel = makechan("check redis")
+        for _, sock in pairs(self.connections) do
+            channel:push(function()
+                return self:login(sock)
+            end)
+        end
+        if channel:execute(true) then
+            self.timer:change_period(SECOND_10_MS)
+            self:check_clusters()
+        end
     end
 end
 
@@ -284,7 +281,6 @@ function RedisDB:on_socket_recv(sock, session_id, succ, res)
         self:do_socket_recv(res)
     end
     if session_id > 0 then
-        self.res_counter:count_increase()
         thread_mgr:response(session_id, succ, res)
     end
 end
@@ -294,7 +290,6 @@ function RedisDB:commit(socket, cmd, ...)
     if not socket:send_data(session_id, cmd, ...) then
         return false, "send request failed"
     end
-    self.req_counter:count_increase()
     local ok, res = thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
     if not ok then
         log_err("[RedisDB][commit] exec cmd {} failed: {}", cmd, res)

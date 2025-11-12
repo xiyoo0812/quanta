@@ -1,5 +1,5 @@
 --node_base.lua
-local tcopy         = qtable.copy
+local tcopy         = table.copy
 local sformat       = string.format
 local log_warn      = logger.warn
 

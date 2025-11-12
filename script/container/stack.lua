@@ -1,5 +1,5 @@
 --stack.lua
-local tcopy = qtable.copy
+local tcopy = table.copy
 
 local Stack = class()
 local prop = property(Stack)

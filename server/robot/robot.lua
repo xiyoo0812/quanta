@@ -5,13 +5,13 @@ local log_debug     = logger.debug
 local qfailed       = quanta.failed
 local sformat       = string.format
 local guid_string   = codec.guid_string
+local make_functer  = quanta.make_functer
 
 local Queue         = import("container/queue.lua")
 local SessionModule = import("robot/module/session.lua")
 local RobotCase     = import("robot/nodes/robot_case.lua")
 
 local event_mgr     = quanta.get("event_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
 
 local Robot = class(nil, SessionModule)
 local prop = property(Robot)
@@ -26,10 +26,12 @@ prop:reader("messages", nil)        --收到的消息回包
 prop:reader("player_id", nil)       --player_id
 prop:reader("device_id", nil)       --device_id
 prop:reader("variables", {})        --variables
+prop:reader("upfunctor", nil)       --upfunctor
 prop:reader("access_token", "123456")
 
 function Robot:__init()
     self.device_id = guid_string()
+    self.upfunctor = make_functer(self.on_update)
 end
 
 --检查错误码
@@ -88,13 +90,15 @@ end
 
 function Robot:update(force)
     if self.case then
-        thread_mgr:entry(self:address(), function()
-            local now_ms = quanta.now_ms
-            if force or now_ms - self.runtime > self.rate then
-                self.runtime = quanta.now_ms
-                self.case:update()
-            end
-        end)
+        self.upfunctor:call(self, force)
+    end
+end
+
+function Robot:on_update(force)
+    local now_ms = quanta.now_ms
+    if force or now_ms - self.runtime > self.rate then
+        self.runtime = quanta.now_ms
+        self.case:update()
     end
 end
 

@@ -55,9 +55,7 @@ function Socket:listen(ip, port)
     self.ip, self.port = ip, port
     log_info("[Socket][listen] start listen at: {}:{}", ip, port)
     self.listener.on_accept = function(session)
-        thread_mgr:fork(function()
-            self:on_socket_accept(session)
-        end)
+        thread_mgr:fork(self.on_socket_accept, nil, self, session)
     end
     return true
 end
@@ -138,14 +136,10 @@ function Socket:init_session(session, token, ip, port)
     self.session = session
     self.ip, self.port = ip, port
     session.on_call_data = function(recv_len, ...)
-        thread_mgr:fork(function(...)
-            self:on_socket_recv(...)
-        end, nil, ...)
+        thread_mgr:fork(self.on_socket_recv, nil, self, ...)
     end
     session.on_error = function(stoken, err)
-        thread_mgr:fork(function()
-            self:on_socket_error(stoken, err)
-        end)
+        thread_mgr:fork(self.on_socket_error, nil, self, stoken, err)
     end
 end
 

@@ -11,29 +11,13 @@ local ssub      = string.sub
 local sformat   = string.format
 local sgmatch   = string.gmatch
 local dgetinfo  = debug.getinfo
+local tab_copy  = table.copy
+local deep_copy = table.deepcopy
 local getmetatable  = getmetatable
 local setmetatable  = setmetatable
 
 --类模板
 local class_tpls = _ENV.__classes or {}
-
-local function tab_copy(src, dst)
-    for field, value in pairs(src or {}) do
-        dst[field] = value
-    end
-end
-
-local function deep_copy(src, dst)
-    local ndst = dst or {}
-    for key, value in pairs(src or {}) do
-        if (type(value) == "table") then
-            ndst[key] = deep_copy(value)
-        else
-            ndst[key] = value
-        end
-    end
-    return ndst
-end
 
 local function class_raw_call(method, class, obj, ...)
     local class_base_func = rawget(class.__vtbl, method)
@@ -100,17 +84,12 @@ local function object_defer(class, obj, ...)
     end
 end
 
-local function clone_prop(args)
-    local arg = args[1]
-    if type(arg) ~= "table" then
-        return arg
-    end
-    return deep_copy(arg)
-end
-
 local function object_props(class, obj)
     for name, args in pairs(class.__props) do
-        obj[name] = clone_prop(args)
+        local arg, typ = args[1], args[2]
+        if arg then
+            obj[name] = (typ ~= "table") and arg or deep_copy(arg)
+        end
     end
 end
 

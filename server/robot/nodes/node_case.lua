@@ -1,5 +1,5 @@
 --node_case.lua
-local tcopy     = qtable.copy
+local tcopy     = table.copy
 
 local NodeBase  = import("robot/nodes/node_base.lua")
 

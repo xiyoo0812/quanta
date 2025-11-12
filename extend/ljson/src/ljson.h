@@ -79,6 +79,7 @@ namespace ljson {
                 yyjson_mut_doc_free(doc);
                 throw lua_exception(err.msg);
             }
+            yyjson_mut_doc_free(doc);
             return m_json;
         }
 

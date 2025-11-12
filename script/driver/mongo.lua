@@ -16,6 +16,7 @@ local mtointeger    = math.tointeger
 local bint64        = bson.int64
 local qhash         = codec.hash_code
 local make_timer    = quanta.make_timer
+local make_functer  = quanta.make_functer
 local makechan      = quanta.make_channel
 
 local lmd5          = ssl.md5
@@ -44,10 +45,9 @@ prop:reader("timer", nil)       --timer
 prop:reader("passwd", nil)      --passwd
 prop:reader("salted_pass", nil) --salted_pass
 prop:reader("executer", nil)    --执行者
+prop:reader("rcfunctor", nil)   --rcfunctor
 prop:reader("connections", {})  --connections
 prop:reader("alives", {})       --alives
-prop:reader("req_counter", nil)
-prop:reader("res_counter", nil)
 
 function MongoDB:__init(conf)
     self.name = conf.db
@@ -59,9 +59,6 @@ function MongoDB:__init(conf)
     self:setup_pool(conf.hosts)
     --attach_hour
     update_mgr:attach_hour(self)
-    --counter
-    self.req_counter = quanta.make_sampling("mongo req")
-    self.res_counter = quanta.make_sampling("mongo res")
 end
 
 function MongoDB:close()
@@ -86,15 +83,16 @@ function MongoDB:setup_pool(hosts)
     end
     local count = 1
     for _, host in pairs(hosts) do
-        for c = 1, POOL_COUNT do
+        for _ = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
             socket:set_id(count)
             count = count + 1
         end
     end
+    self.rcfunctor = make_functer(self.check_alive)
     self.timer:loop(SECOND_MS, function()
-        self:check_alive()
+        self.rcfunctor:call(self)
     end)
 end
 
@@ -114,18 +112,16 @@ end
 
 function MongoDB:check_alive()
     if next(self.connections) then
-        thread_mgr:entry(self:address(), function()
-            local channel = makechan("check mongo")
-            for _, sock in pairs(self.connections) do
-                channel:push(function()
-                    return self:login(sock)
-                end)
-            end
-            if channel:execute(true) then
-                self.timer:change_period(SECOND_10_MS)
-            end
-            self:set_executer()
-        end)
+        local channel = makechan("check mongo")
+        for _, sock in pairs(self.connections) do
+            channel:push(function()
+                return self:login(sock)
+            end)
+        end
+        if channel:execute(true) then
+            self.timer:change_period(SECOND_10_MS)
+        end
+        self:set_executer()
     end
 end
 
@@ -246,7 +242,6 @@ end
 
 function MongoDB:on_socket_recv(sock, session_id, result)
     if session_id > 0 then
-        self.res_counter:count_increase()
         local succ, doc = self:decode_reply(result)
         thread_mgr:response(session_id, succ, doc)
     end
@@ -259,7 +254,6 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
     if not sock:send_data(session_id, cmd, ...) then
         return false, "send failed"
     end
-    self.req_counter:count_increase()
     return thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
 end
 

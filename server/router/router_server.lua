@@ -15,23 +15,12 @@ local UNREACHABLE   = quanta.enum("KernCode", "RPC_UNREACHABLE")
 local RouterServer = singleton()
 local prop = property(RouterServer)
 prop:reader("rpc_server", nil)
-prop:reader("counter", nil)
 
 function RouterServer:__init()
     local ip, port = environ.addr("QUANTA_ROUTER_ADDR")
     local rserver = RpcServer(self, ip, port, true)
     service.modify_host(rserver:get_port())
     self.rpc_server = rserver
-    --路由性能统计
-    self.counter = quanta.make_sampling("route msg")
-    self.counter:set_counter(function()
-        local route_count = 0
-        local clients = self.rpc_server:get_clients()
-        for _, client in pairs(clients) do
-            route_count = route_count + client:get_route_count()
-        end
-        return route_count
-    end)
 end
 
 --其他服务器节点关闭
@@ -64,10 +53,6 @@ end
 function RouterServer:on_client_register(client, node, client_id)
     local new_master = socket_mgr.map_token(client_id, client.token)
     log_info("[RouterServer][on_client_register] {} master --> {}", client.service_name, new_master)
-end
-
--- 会话信息
-function RouterServer:on_client_beat(client)
 end
 
 quanta.router_server = RouterServer()

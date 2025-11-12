@@ -6,11 +6,11 @@ local tunpack       = table.unpack
 local sformat       = string.format
 local qsurl         = qstring.url
 local make_timer    = quanta.make_timer
+local make_functer  = quanta.make_functer
 local makechan      = quanta.make_channel
 local grpccodec     = protobuf.grpccodec
 
 local update_mgr    = quanta.get("update_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local SocketH2      = import("driver/socketh2.lua")
@@ -26,6 +26,7 @@ prop:reader("ip", nil)          --ip
 prop:reader("port", nil)        --port
 prop:reader("scheme", nil)      --scheme
 prop:reader("alives", {})       --alives
+prop:reader("rcfunctor", nil)   --rcfunctor
 prop:reader("connections", {})  --connections
 
 function Etcd:__init(addr)
@@ -54,8 +55,9 @@ function Etcd:setup()
         self.connections[name] = socket
         socket.name = name
     end
+    self.rcfunctor = make_functer(self.check_alive)
     self.timer:loop(SECOND_MS, function()
-        self:check_alive()
+        self.rcfunctor:call(self)
     end)
 end
 
@@ -67,17 +69,15 @@ end
 
 function Etcd:check_alive()
     if next(self.connections) then
-        thread_mgr:entry(self:address(), function()
-            local channel = makechan("check etcd")
-            for name, socket in pairs(self.connections) do
-                channel:push(function()
-                    return self:login(socket, name)
-                end)
-            end
-            if channel:execute(true) then
-                self.timer:change_period(SECOND_10_MS)
-            end
-        end)
+        local channel = makechan("check etcd")
+        for name, socket in pairs(self.connections) do
+            channel:push(function()
+                return self:login(socket, name)
+            end)
+        end
+        if channel:execute(true) then
+            self.timer:change_period(SECOND_10_MS)
+        end
     end
 end
 

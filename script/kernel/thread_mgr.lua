@@ -21,7 +21,6 @@ local SYNC_FRAME    = environ.number("QUANTA_SYNCLOCK_FRAME", 50)
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
 prop:reader("session_id", 1)
-prop:reader("entry_map", {})
 prop:reader("syncqueue_map", {})
 prop:reader("coroutine_yields", {})
 prop:reader("coroutine_waitings", {})
@@ -40,18 +39,6 @@ function ThreadMgr:wait_size()
     local co_yield_size = tsize(self.coroutine_yields)
     local co_wait_size = tsize(self.coroutine_waitings)
     return co_yield_size + co_wait_size + 1
-end
-
-function ThreadMgr:entry(key, func, ...)
-    if self.entry_map[key] then
-        return false
-    end
-    self:fork(function(...)
-        self.entry_map[key] = quanta.clock_ms + SECOND_30_MS
-        qxpcall(func, "[ThreadMgr][entry] error: {}", ...)
-        self.entry_map[key] = nil
-    end, nil, ...)
-    return true
 end
 
 function ThreadMgr:lock(key, waiting)
@@ -139,11 +126,6 @@ function ThreadMgr:on_second30(clock_ms)
             self.syncqueue_map[key] = nil
         end
     end
-    for key, clock_to in pairs(self.entry_map) do
-        if clock_ms > clock_to then
-            self.entry_map[key] = nil
-        end
-    end
 end
 
 function ThreadMgr:on_fast(clock_ms)
@@ -199,15 +181,13 @@ function ThreadMgr:fork(f, chain, ...)
     if co == nil then
         co = co_create(function()
             while true do
-                qxpcall(function()
-                    local func, cchain = co_yield()
-                    qbindtrace(cchain, co)
-                    func(co_yield())
-                    if cchain then
-                        cchain:output()
-                    end
-                    pool:push(co)
-                end, "[ThreadMgr][fork] fork run error: {}")
+                local func, cchain = co_yield()
+                qbindtrace(cchain, co)
+                qxpcall(func, "[ThreadMgr][fork] fork run error: {}", co_yield())
+                if cchain then
+                    cchain:output()
+                end
+                pool:push(co)
             end
         end)
         co_resume(co)

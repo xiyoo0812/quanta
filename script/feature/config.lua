@@ -9,7 +9,7 @@ local log_warn      = logger.warn
 local tconcat       = table.concat
 local tinsert       = table.insert
 local tunpack       = table.unpack
-local qtcopy        = qtable.copy
+local qtcopy        = table.copy
 local sformat       = string.format
 local tointeger     = math.tointeger
 

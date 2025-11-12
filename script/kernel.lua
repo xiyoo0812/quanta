@@ -112,19 +112,21 @@ function quanta.startup(entry)
     quanta.report("startup")
 end
 
+local function run_frame()
+    local sclock_ms = lclock_ms()
+    socket_mgr.wait(sclock_ms, 10)
+    --系统更新
+    local now_ms, clock_ms = ltime()
+    update_mgr:update(now_ms, clock_ms, THREAD_MASTER)
+    --时间告警
+    local io_ms = clock_ms - sclock_ms
+    local work_ms = lclock_ms() - sclock_ms
+    if work_ms > HALF_MS or io_ms > SLOW_MS then
+        log_warn("[{}][run] last frame too long => all:{}, net:{})!", THREAD_NAME, work_ms, io_ms)
+    end
+end
+
 --底层驱动
 quanta.run = function()
-    qxpcall(function()
-        local sclock_ms = lclock_ms()
-        socket_mgr.wait(sclock_ms, 10)
-        --系统更新
-        local now_ms, clock_ms = ltime()
-        update_mgr:update(now_ms, clock_ms, THREAD_MASTER)
-        --时间告警
-        local io_ms = clock_ms - sclock_ms
-        local work_ms = lclock_ms() - sclock_ms
-        if work_ms > HALF_MS or io_ms > SLOW_MS then
-            log_warn("[{}][run] last frame too long => all:{}, net:{})!", THREAD_NAME, work_ms, io_ms)
-        end
-    end, "quanta run err: {}")
+    qxpcall(run_frame, "quanta run err: {}")
 end

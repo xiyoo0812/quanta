@@ -2,7 +2,7 @@
 local mmin          = math.min
 local log_err       = logger.err
 local qfailed       = quanta.failed
-local tclone        = qtable.deep_copy
+local tclone        = table.deepcopy
 local tunpack       = table.unpack
 local tinsert       = table.insert
 

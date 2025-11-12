@@ -21,16 +21,11 @@ local ssub          = string.sub
 local dgetinfo      = debug.getinfo
 local sformat       = string.format
 local sgmatch       = string.gmatch
+local tab_copy      = table.copy
 local setmetatable  = setmetatable
 local dtraceback    = debug.traceback
 
 local mixin_tpls    = _ENV.__mixins or {}
-
-local function tab_copy(src, dst)
-    for field, value in pairs(src or {}) do
-        dst[field] = value
-    end
-end
 
 local function mixin_call(mixin, method, ...)
     local mixin_method = mixin[method]

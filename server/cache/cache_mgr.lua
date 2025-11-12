@@ -36,7 +36,6 @@ prop:reader("groups", {})           -- groups
 prop:reader("collections", {})      -- collections
 prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
-prop:reader("counter", nil)
 
 function CacheMgr:__init()
     smdb_driver:open(quanta.name)
@@ -51,8 +50,6 @@ function CacheMgr:__init()
     event_mgr:add_listener(self, "on_cache_ready")
     -- 事件hook
     event_mgr:register_hook(self, "on_rpc_recv", "on_cache_hook")
-    --counter
-    self.counter = quanta.make_sampling("cache req")
     --定时器
     update_mgr:attach_frame(self)
     --配置和索引
@@ -223,7 +220,6 @@ function CacheMgr:rpc_router_update(primary_id, router_id, serv_name, serv_id)
 end
 
 function CacheMgr:rpc_cache_load(primary_id, coll_name)
-    self.counter:count_increase()
     local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name={}, primary={}", coll_name, primary_id)

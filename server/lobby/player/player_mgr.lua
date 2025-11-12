@@ -19,12 +19,10 @@ local PlayerMgr = singleton(EntityMgr)
 local prop = property(PlayerMgr)
 prop:reader("day_edition", 0)
 prop:reader("week_edition", 0)
-prop:reader("counter", nil)
 
 function PlayerMgr:__init()
     update_mgr:attach_hour(self)
     update_mgr:attach_second30(self)
-    self.counter = quanta.make_counter("player")
 end
 
 function PlayerMgr:on_hour(clock_ms, hour, time)
@@ -39,7 +37,6 @@ function PlayerMgr:on_hour(clock_ms, hour, time)
 end
 
 function PlayerMgr:on_second30()
-    event_mgr:notify_trigger("on_player_count", quanta.index, self.counter:get_info())
 end
 
 function PlayerMgr:kick_all()
@@ -61,7 +58,6 @@ function PlayerMgr:load_player(open_id, player_id)
         player = Player(player_id)
         --先加入
         self:add_entity(player_id, player)
-        self.counter:count_increase()
     end
     if player:is_load_success() then
         return player
@@ -78,7 +74,6 @@ end
 
 --实体被销毁
 function PlayerMgr:on_destory(player_id, player)
-    self.counter:count_reduce()
     event_mgr:notify_trigger("on_logout_success", player_id, player)
 end
 

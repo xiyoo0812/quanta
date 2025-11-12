@@ -56,10 +56,6 @@ function DiscoverMgr:on_client_accept(client)
     end
 end
 
--- 心跳
-function DiscoverMgr:on_client_beat(client)
-end
-
 function DiscoverMgr:on_client_register(client, node)
     local token = client.token
     local serv_name = node.service_name

@@ -16,9 +16,7 @@ end
 
 function RobotMgr:update()
     for _, robot in pairs(self.robot_list) do
-        thread_mgr:fork(function()
-            robot:update()
-        end)
+        thread_mgr:fork(robot.update, nil, robot)
     end
 end
 

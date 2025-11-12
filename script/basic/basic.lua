@@ -126,18 +126,10 @@ function quanta.defer(handler)
     return Defer(handler)
 end
 
---创建普通计数器
-function quanta.make_counter(title)
-    local Counter = import("feature/counter.lua")
-    return Counter(title)
-end
-
---创建采样计数器
-function quanta.make_sampling(title, period)
-    local Counter = import("feature/counter.lua")
-    local counter = Counter(title)
-    counter:sampling(period)
-    return counter
+--创建仿函数
+function quanta.make_functer(func, reenter)
+    local Functer = import("feature/functer.lua")
+    return Functer(func, reenter)
 end
 
 function quanta.http_client(version)

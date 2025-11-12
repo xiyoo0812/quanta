@@ -26,9 +26,9 @@ QuantaMode.SERVICE          = 1     --服务模式(加载全量)
 QuantaMode.ROUTER           = 2     --路由模式(加载路由)
 QuantaMode.TOOL             = 3     --工具模式(加载基础和网络)
 
---协议投flag掩码
+--协议flag掩码
 local FlagMask              = enum("FlagMask", 0)
-FlagMask.REQ                = 0x01  -- 请求
+FlagMask.REQ                = 0x01  -- 请求/回执
 FlagMask.RES                = 0x02  -- 响应
 FlagMask.ENCRYPT            = 0x04  -- 开启加密
 FlagMask.ZIP                = 0x08  -- 开启zip压缩

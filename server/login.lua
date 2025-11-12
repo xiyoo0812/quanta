@@ -5,7 +5,7 @@ local env_addr  = environ.addr
 quanta.startup(function()
     --创建客户端网络管理
     local TcpServer = import("network/tcp_server.lua")
-    local client_mgr = TcpServer("login")
+    local client_mgr = TcpServer()
     client_mgr:listen(env_addr("QUANTA_LOGIN_ADDR"))
     quanta.client_mgr = client_mgr
 

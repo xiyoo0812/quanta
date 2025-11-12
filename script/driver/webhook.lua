@@ -43,9 +43,7 @@ function Webhook:hook_log(url, body)
         return
     end
     --http输出
-    thread_mgr:entry(url, function()
-        http_client:call_post(url, body)
-    end)
+    thread_mgr:fork(http_client.call_post, nil, http_client, url, body)
 end
 
 --飞书

@@ -13,6 +13,7 @@ local lxor_byte     = ssl.xor_byte
 local qhash         = codec.hash_code
 local mysqlcodec    = codec.mysqlcodec
 local make_timer    = quanta.make_timer
+local make_functer  = quanta.make_functer
 local makechan      = quanta.make_channel
 
 local thread_mgr    = quanta.get("thread_mgr")
@@ -38,6 +39,7 @@ prop:reader("user", nil)        --user
 prop:reader("timer", nil)       --timer
 prop:reader("passwd", nil)      --passwd
 prop:reader("executer", nil)    --执行者
+prop:reader("rcfunctor", nil)   --rcfunctor
 prop:reader("connections", {})  --connections
 prop:reader("stmt_querys", {})  --预处理列表
 prop:reader("alives", {})       --alives
@@ -94,33 +96,32 @@ function MysqlDB:setup_pool(hosts)
     end
     local count = 1
     for _, host in pairs(hosts) do
-        for c = 1, POOL_COUNT do
+        for _ = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
-            socket.stmts = {}
             socket:set_id(count)
+            socket.stmts = {}
             count = count + 1
         end
     end
+    self.rcfunctor = make_functer(self.check_alive)
     self.timer:loop(SECOND_MS, function()
-        self:check_alive()
+        self.rcfunctor:call(self)
     end)
 end
 
 function MysqlDB:check_alive()
     if next(self.connections) then
-        thread_mgr:entry(self:address(), function()
-            local channel = makechan("check mysql")
-            for _, sock in pairs(self.connections) do
-                channel:push(function()
-                    return self:login(sock)
-                end)
-            end
-            if channel:execute(true) then
-                self.timer:change_period(SECOND_10_MS)
-            end
-            self:set_executer()
-        end)
+        local channel = makechan("check mysql")
+        for _, sock in pairs(self.connections) do
+            channel:push(function()
+                return self:login(sock)
+            end)
+        end
+        if channel:execute(true) then
+            self.timer:change_period(SECOND_10_MS)
+        end
+        self:set_executer()
     end
 end
 

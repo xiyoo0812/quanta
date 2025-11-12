@@ -80,14 +80,10 @@ function WSServer:on_socket_accept(session)
     session.set_timeout(NETWORK_TIMEOUT)
     -- 设置回调
     session.on_call_data = function(recv_len, ...)
-        thread_mgr:fork(function(...)
-            self:on_socket_recv(session, token, ...)
-        end, nil, ...)
+        thread_mgr:fork(self.on_socket_recv, nil, self, session, token, ...)
     end
     session.on_error = function(stoken, err)
-        thread_mgr:fork(function()
-            self:on_socket_error(stoken, err)
-        end)
+        thread_mgr:fork(self.on_socket_error, nil, self, stoken, err)
     end
     --通知链接成功
     event_mgr:notify_listener("on_socket_accept", session)

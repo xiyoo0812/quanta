@@ -3,10 +3,10 @@ local log_err       = logger.err
 local log_debug     = logger.debug
 local qsurl         = qstring.url
 local make_timer    = quanta.make_timer
+local make_functer  = quanta.make_functer
 local grpccodec     = protobuf.grpccodec
 
 local update_mgr    = quanta.get("update_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
 
 local SocketH2      = import("driver/socketh2.lua")
 
@@ -21,6 +21,7 @@ prop:reader("scheme", nil)      --scheme
 prop:reader("timer", nil)       --timer
 prop:reader("gcodec", nil)      --gcodec
 prop:reader("socket", nil)      --socket
+prop:reader("rcfunctor", nil)   --rcfunctor
 prop:reader("connector", nil)   --connector
 
 function GrpcClient:__init(addr)
@@ -32,8 +33,9 @@ function GrpcClient:__init(addr)
     --attach_hour
     update_mgr:attach_hour(self)
     --timer
+    self.rcfunctor = make_functer(self.check_alive)
     self.timer:loop(SECOND_MS, function()
-        self:check_alive()
+        self.rcfunctor:call(self)
     end)
 end
 
@@ -51,11 +53,9 @@ end
 
 function GrpcClient:check_alive()
     if self.connector then
-        thread_mgr:entry(self:address(), function()
-            if self:connect() then
-                self.timer:change_period(SECOND_10_MS)
-            end
-        end)
+        if self:connect() then
+            self.timer:change_period(SECOND_10_MS)
+        end
     end
 end
 
@@ -77,9 +77,9 @@ function GrpcClient:connect()
         log_err("[GrpcClient][connect] failed to connect: {}:{} err={}", self.ip, self.port, err)
         return false, err
     end
-    self.connector:set_content_codec("application/grpc", self.gcodec)
-    self.connector = nil
+    socket:set_content_codec("application/grpc", self.gcodec)
     self.socket = socket
+    self.connector = nil
     return true
 end
 

@@ -3,18 +3,20 @@ import("agent/online_agent.lua")
 
 local tunpack       = table.unpack
 local qmake_mq      = quanta.make_mq
+local make_functer  = quanta.make_functer
 
 local event_mgr     = quanta.get("event_mgr")
-local thread_mgr    = quanta.get("thread_mgr")
 
 local online        = quanta.get("online")
 local ONL_INLINE    = quanta.enum("OnlineStatus", "INLINE")
 
 local MsgComponent = mixin()
 local prop = property(MsgComponent)
+prop:reader("ldfunctor", nil)   --ldfunctor
 prop:reader("msg_queues", {})   --msg_queues
 
 function MsgComponent:__init()
+    self.ldfunctor = make_functer(self.on_load_reliable_events)
 end
 
 function MsgComponent:create_mq(serv_name)
@@ -55,19 +57,20 @@ end
 
 --load_reliable_events
 function MsgComponent:load_reliable_events()
-    local ok = thread_mgr:entry(self.id, function()
-        local serv_name = quanta.service_name
-        local msg_queue = self:create_mq(serv_name)
-        local events = msg_queue:list_message(self.id)
-        if events then
-            for _, event in ipairs(events) do
-                self:notify_event(event.event, tunpack(event.args))
-            end
-            msg_queue:delete_message(self.id, events)
-        end
-    end)
-    if not ok then
+    if not self.ldfunctor:call(self) then
         event_mgr:publish_frame(self, "load_reliable_events")
+    end
+end
+
+function MsgComponent:on_load_reliable_events()
+    local serv_name = quanta.service_name
+    local msg_queue = self:create_mq(serv_name)
+    local events = msg_queue:list_message(self.id)
+    if events then
+        for _, event in ipairs(events) do
+            self:notify_event(event.event, tunpack(event.args))
+        end
+        msg_queue:delete_message(self.id, events)
     end
 end
 
