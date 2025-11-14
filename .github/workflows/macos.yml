@@ -16,5 +16,10 @@ jobs:
       with:
         submodules: recursive
 
+    - name: compilers
+      run: |
+        echo "CC=gcc-15" >> $GITHUB_ENV
+        echo "CX=g++-15" >> $GITHUB_ENV
+
     - name: make
       run: make all

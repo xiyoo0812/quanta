@@ -35,7 +35,7 @@ struct socket_object {
     virtual int get_recvbuf_size() { return 0; }
     virtual void close() { m_link_status = LINK_CLOSED; };
     virtual bool get_remote_ip(std::string& ip) = 0;
-    virtual void connect(const char ip[], int port) { }
+    virtual void connect(const char ip[], int port, int timeout) { }
     virtual void set_timeout(int duration) { }
     virtual void set_nodelay(int flag) { }
     virtual void send(const void* data, size_t data_len) { }

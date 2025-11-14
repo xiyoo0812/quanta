@@ -1,7 +1,7 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version {{%= VS_SHR_VERSION %}}
-VisualStudioVersion = {{%= VS_FUL_VERSION %}}
+# Visual Studio Version {{%= MSVC_VERSION %}}
+VisualStudioVersion = {{%= MSVC_VERSION_FULL %}}
 MinimumVisualStudioVersion = 10.0.40219.1
 {{% local ALL_PROJS = {} %}}
 {{% local ALL_GUID = GUID_NEW("@g" .. "all") %}}

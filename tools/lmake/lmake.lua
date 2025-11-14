@@ -277,9 +277,15 @@ local function build_lmak(solution_dir)
         env.PLATFORM = "x64"
         ltmpl.render_file(lappend(lmake_dir, "tmpl/makefile.tpl"), lappend(solution_dir, "Makefile"), env)
     end
-    ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
-    env.IGNORE_GROUP = nil
-    ltmpl.render_file(lappend(lmake_dir, "tmpl/solution.tpl"), lappend(solution_dir, "all.sln"), env)
+    if env.MSVC_FMT_SLNX then
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/slnx.tpl"), lappend(solution_dir, lconcat(solution, ".slnx")), env)
+        env.IGNORE_GROUP = nil
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/slnx.tpl"), lappend(solution_dir, "all.slnx"), env)
+    else
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/sln.tpl"), lappend(solution_dir, lconcat(solution, ".sln")), env)
+        env.IGNORE_GROUP = nil
+        ltmpl.render_file(lappend(lmake_dir, "tmpl/sln.tpl"), lappend(solution_dir, "all.sln"), env)
+    end
     print(sformat("build solution %s success!", solution))
 end
 

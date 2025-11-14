@@ -36,6 +36,10 @@ WINDOWS_DEFINES = {
 DEFINES = {
 }
 
+FLAGS = {
+    "Wno-narrowing"
+}
+
 --需要连接的库文件
 LIBS = {
     "lua"

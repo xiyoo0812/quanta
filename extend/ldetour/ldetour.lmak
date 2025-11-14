@@ -8,7 +8,8 @@ TARGET_NAME = "ldetour"
 PROJECT_TYPE = "dynamic"
 
 FLAGS = {
-    "Wno-class-memaccess"
+    "Wno-class-memaccess",
+    "Wno-maybe-uninitialized"
 }
 
 --需要的include目录

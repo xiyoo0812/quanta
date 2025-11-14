@@ -78,12 +78,18 @@ namespace luakit {
                     std::atomic_thread_fence(std::memory_order_acquire);
                     break;
                 }
-                #if defined(_M_X64)
+                #if defined(_M_X64) || defined(_M_IX86)
                     _mm_pause();
-                #elif defined(__x86_64__)
+                #elif defined(__x86_64__) || defined(__i386__)
                     __builtin_ia32_pause();
-                #elif defined(__aarch64__)
-                    __builtin_arm_yield();
+                #elif defined(__aarch64__) || defined(__arm64__)
+                    #if defined(__APPLE__)
+                        __asm__ volatile("yield");
+                    #else
+                        __builtin_arm_yield();
+                    #endif
+                #else
+                    std::this_thread::yield();
                 #endif
             }
         }

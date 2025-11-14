@@ -22,6 +22,7 @@ MYCFLAGS += -Wno-unused-parameter
 MYCFLAGS += -Wno-unused-but-set-variable
 MYCFLAGS += -Wno-unused-but-set-parameter
 MYCFLAGS += -Wno-class-memaccess
+MYCFLAGS += -Wno-maybe-uninitialized
 
 #c标准库版本
 #gnu99/gnu11/gnu17

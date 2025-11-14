@@ -15,6 +15,8 @@
 #ifdef WIN32
 #define NOMINMAX
 #define getpid _getpid
+#else
+#include <unistd.h>
 #endif
 
 using namespace luakit;

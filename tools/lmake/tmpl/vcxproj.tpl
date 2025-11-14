@@ -89,7 +89,7 @@
     <ConfigurationType>Application</ConfigurationType>
     {{% end %}}
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v{{%= MS_VERSION %}}</PlatformToolset>
+    <PlatformToolset>v{{%= MSVC_TOOLSET %}}</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|{{%= PLATFORM %}}'" Label="Configuration">
@@ -101,7 +101,7 @@
     <ConfigurationType>Application</ConfigurationType>
     {{% end %}}
     <WholeProgramOptimization>true</WholeProgramOptimization>
-    <PlatformToolset>v{{%= MS_VERSION %}}</PlatformToolset>
+    <PlatformToolset>v{{%= MSVC_TOOLSET %}}</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
