@@ -26,10 +26,11 @@ prop:reader("candidates", {})
 function RouterMgr:__init()
     --router接口
     self:build_service()
+    --监听服务退出
+    event_mgr:add_listener(self, "rpc_service_kickout")
     --监听路由信息
-    if discover then
+    if discover and environ.status("QUANTA_ROUTER") then
         discover:watch_service(self, "router")
-        event_mgr:add_listener(self, "rpc_service_kickout")
     end
 end
 
@@ -63,7 +64,7 @@ end
 function RouterMgr:add_router(router_id, host, port)
     local router = self.routers[router_id]
     if router then
-        router:set_holder(self)
+        router:relocation(self, host, port)
         return
     end
     local RpcClient = import("network/rpc_client.lua")

@@ -47,19 +47,23 @@ function RpcClient:heartbeat()
     if not self.holder then
         return
     end
-    --处理连接
     if self.alive then
         --发送心跳
         self:send("rpc_heartbeat")
-        self.timer:change_period(RPC_TIMEOUT)
     else
+        --处理连接
         self:connect()
-        self.timer:change_period(SECOND_MS)
     end
 end
 
 function RpcClient:register()
     self:call("rpc_register", quanta.node_info)
+end
+
+function RpcClient:relocation(holder, host, port)
+    self.holder = holder
+    self.port = port
+    self.ip = host
 end
 
 --调用rpc后续处理
@@ -129,13 +133,13 @@ function RpcClient:connect()
         return self:on_call_router(rpc, token, send_len)
     end
     socket.on_error = function(stoken, err)
-        self:on_socket_error(stoken, err)
+        thread_mgr:fork(self.on_socket_error, nil, self, stoken, err)
     end
     socket.on_connect = function(res)
         if res == "ok" then
-            qxpcall(self.on_socket_connect, "on_socket_connect: {}", self, socket, res)
+            thread_mgr:fork(self.on_socket_connect, nil, self)
         else
-            self:on_socket_error(token, res)
+            thread_mgr:fork(self.on_socket_error, nil, self, token, res)
         end
     end
 end
@@ -177,26 +181,21 @@ end
 
 --错误处理
 function RpcClient:on_socket_error(token, err)
-    thread_mgr:fork(function()
-        log_err("[RpcClient][on_socket_error] socket {}:{} {}!", self.ip, self.port, err)
-        self.socket = nil
-        self.alive = false
-        if self.holder then
-            self.holder:on_socket_error(self, token, err)
-            event_mgr:fire_second(function()
-                self:heartbeat()
-            end)
-        end
-    end)
+    log_err("[RpcClient][on_socket_error] socket {}:{} {}!", self.ip, self.port, err)
+    self.timer:change_period(SECOND_MS)
+    if self.holder then
+        self.holder:on_socket_error(self, token, err)
+    end
+    self.alive = false
+    self.socket = nil
 end
 
 --连接成功
-function RpcClient:on_socket_connect(socket)
+function RpcClient:on_socket_connect()
     --log_info("[RpcClient][on_socket_connect] connect to {}:{} success!", self.ip, self.port)
-    thread_mgr:fork(function()
-        self.alive = true
-        self.holder:on_socket_connect(self)
-    end)
+    self.alive = true
+    self.holder:on_socket_connect(self)
+    self.timer:change_period(RPC_TIMEOUT)
 end
 
 --转发系列接口

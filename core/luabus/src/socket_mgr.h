@@ -43,7 +43,7 @@ struct socket_object {
     virtual void set_kind(uint32_t kind) { m_kind = kind; }
     virtual void set_token(uint32_t token) { m_token = token; }
     virtual void set_codec(codec_base* codec) { m_codec = codec; }
-    virtual void set_accept_callback(const std::function<void(int)> cb) { }
+    virtual void set_accept_callback(const std::function<void(uint32_t)> cb) { }
     virtual void set_connect_callback(const std::function<void(bool, const char*)> cb) { }
     virtual void set_error_callback(const std::function<void(const char*)> cb) { }
     virtual void set_package_callback(const std::function<void(slice*)> cb) { }
@@ -90,7 +90,7 @@ public:
     void close(uint32_t token);
     void set_codec(uint32_t token, codec_base* codec);
     bool get_remote_ip(uint32_t token, std::string& ip);
-    void set_accept_callback(uint32_t token, const std::function<void(int)> cb);
+    void set_accept_callback(uint32_t token, const std::function<void(uint32_t)> cb);
     void set_error_callback(uint32_t token, const std::function<void(const char*)> cb);
     void set_connect_callback(uint32_t token, const std::function<void(bool, const char*)> cb);
     void set_package_callback(uint32_t token, const std::function<void(slice*)> cb);
@@ -100,7 +100,7 @@ public:
     bool watch_connecting(socket_t fd, socket_object* object);
     bool watch_connected(socket_t fd, socket_object* object);
     bool watch_send(socket_t fd, socket_object* object, bool enable);
-    int accept_stream(uint32_t ltoken, socket_t fd, const char ip[]);
+    uint32_t accept_stream(uint32_t ltoken, socket_t fd, const char ip[]);
 
     void increase_count() { m_count++; }
     void decrease_count() { m_count--; }
@@ -131,7 +131,7 @@ private:
     bool poll_event_ctl(socket_t fd, short fevts);
 #endif
 
-    socket_object* get_object(int token) {
+    socket_object* get_object(uint32_t token) {
         auto it = m_objects.find(token);
         if (it != m_objects.end()) {
             return it->second;

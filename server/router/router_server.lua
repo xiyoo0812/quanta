@@ -51,8 +51,9 @@ end
 ------------------------------------------------------------------
 --注册服务器
 function RouterServer:on_client_register(client, node, client_id)
-    local new_master = socket_mgr.map_token(client_id, client.token)
-    log_info("[RouterServer][on_client_register] {} master --> {}", client.service_name, new_master)
+    local master_id = socket_mgr.map_token(client_id, client.token)
+    local master = self.rpc_server:get_client_by_id(master_id)
+    log_info("[RouterServer][on_client_register] {} register! master --> {}", client.name, master.name)
 end
 
 quanta.router_server = RouterServer()

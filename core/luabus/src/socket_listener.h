@@ -14,7 +14,7 @@ struct socket_listener : public socket_object
     bool setup(socket_t fd);
     bool get_remote_ip(std::string& ip) override { return false; }
     bool update(int64_t now) override;
-    void set_accept_callback(const std::function<void(int)> cb) override { m_accept_cb = cb; }
+    void set_accept_callback(const std::function<void(uint32_t)> cb) override { m_accept_cb = cb; }
     void set_error_callback(const std::function<void(const char*)> cb) override { m_error_cb = cb; }
 
 #ifdef IO_IOCP

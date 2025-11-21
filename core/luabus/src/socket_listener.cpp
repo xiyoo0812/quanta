@@ -96,9 +96,9 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
 
     set_no_block(node->fd);
 
-    int token = m_mgr->accept_stream(m_token, node->fd, ip);
-    m_accept_cb(token);
+    uint32_t token = m_mgr->accept_stream(m_token, node->fd, ip);
     node->fd = INVALID_SOCKET;
+    m_accept_cb(token);
     queue_accept(ovl);
 }
 
@@ -151,9 +151,9 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
         get_ip_string(ip, sizeof(ip), remote_addr);
 
-        m_mgr->accept_stream(m_token, node->fd, ip);
-        m_accept_cb(node->fd);
+        uint32_t token = m_mgr->accept_stream(m_token, node->fd, ip);
         node->fd = INVALID_SOCKET;
+        m_accept_cb(token);
     }
 }
 #endif
@@ -181,8 +181,8 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
         set_no_delay(fd, 1);
         set_close_on_exec(fd);
 
-        m_mgr->accept_stream(m_token, fd, ip);
-        m_accept_cb(fd);
+        uint32_t token = m_mgr->accept_stream(m_token, fd, ip);
+        m_accept_cb(token);
     }
 }
 #endif

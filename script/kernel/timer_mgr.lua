@@ -22,21 +22,25 @@ function TimerMgr:__init()
     self.last_ms = lclock_ms()
 end
 
-function TimerMgr:trigger(handle, clock_ms)
-    if handle.times > 0 then
-        handle.times = handle.times - 1
+function TimerMgr:trigger(timer_id, handle, clock_ms)
+    local times = handle.times
+    if times > 0 then
+        handle.times = times - 1
     end
     --防止在定时器中阻塞
-    handle.params[#handle.params] = clock_ms - handle.last
-    thread_mgr:fork(handle.cb, nil, tunpack(handle.params))
-    --更新定时器数据
-    if handle.times == 0 then
-        self.timers[handle.timer_id] = nil
-        return
+    local params = handle.params
+    params[#params] = clock_ms - handle.last
+    thread_mgr:fork(handle.cb, nil, tunpack(params))
+    if timer_id == handle.timer_id then
+        --更新定时器数据
+        if times == 0 then
+            self.timers[timer_id] = nil
+            return
+        end
+        --继续注册
+        handle.last = clock_ms
+        ltinsert(timer_id, handle.period)
     end
-    --继续注册
-    handle.last = clock_ms
-    ltinsert(handle.timer_id, handle.period)
 end
 
 function TimerMgr:on_frame(clock_ms)
@@ -45,10 +49,10 @@ function TimerMgr:on_frame(clock_ms)
     self.last_ms = clock_ms
     if escape_ms >= TIMER_ACCURYACY then
         local timers = ltupdate(escape_ms // TIMER_ACCURYACY)
-        for _, timer_id in ipairs(timers or {}) do
+        for _, timer_id in ipairs(timers) do
             local handle = self.timers[timer_id]
             if handle then
-                self:trigger(handle, clock_ms)
+                self:trigger(timer_id, handle, clock_ms)
             end
         end
     end
@@ -88,22 +92,20 @@ function TimerMgr:unregister(timer_id)
     self.timers[timer_id] = nil
 end
 
-function TimerMgr:set_period(timer_id, period)
-    local timer_info = self.timers[timer_id]
-    if timer_info then
-        timer_info.period = period // TIMER_ACCURYACY
-    end
-end
-
 function TimerMgr:change_period(timer_id, period)
-    local timer_info = self.timers[timer_id]
-    if timer_info then
+    local handle = self.timers[timer_id]
+    if handle then
+        local new_period = period // TIMER_ACCURYACY
+        if new_period >= handle.period then
+            handle.period = new_period
+            return timer_id
+        end
         self.timers[timer_id] = nil
         local new_timer_id = new_guid(period, period)
-        timer_info.timer_id = new_timer_id
-        timer_info.period = period // TIMER_ACCURYACY
-        ltinsert(new_timer_id, timer_info.period)
-        self.timers[new_timer_id] = timer_info
+        handle.timer_id = new_timer_id
+        handle.period = new_period
+        ltinsert(new_timer_id, new_period)
+        self.timers[new_timer_id] = handle
         return new_timer_id
     end
     return timer_id

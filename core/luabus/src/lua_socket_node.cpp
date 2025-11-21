@@ -16,6 +16,7 @@ lua_socket_node::lua_socket_node(uint32_t token, lua_State* L, stdsptr<socket_mg
     });
     m_mgr->set_accept_callback(token, [=](uint32_t steam_token) {
         auto node = new lua_socket_node(steam_token, L, m_mgr, m_router, m_type);
+        node->set_codec(m_codec);
         m_lvm->object_call(this, "on_accept", nullptr, std::tie(), node);
     });
 }

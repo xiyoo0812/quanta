@@ -178,13 +178,6 @@ end
 --broadcast接口
 function RpcServer:broadcast(rpc, ...)
     for _, client in pairs(self.clients) do
-        client.call_rpc(rpc, 0, FLAG_REQ, ...)
-    end
-end
-
---broadcast接口，注册后才转发
-function RpcServer:broadcast_legal(rpc, ...)
-    for _, client in pairs(self.clients) do
         if client.service then
             client.call_rpc(rpc, 0, FLAG_REQ, ...)
         end
@@ -192,18 +185,18 @@ function RpcServer:broadcast_legal(rpc, ...)
 end
 
 --servicecast接口
-function RpcServer:servicecast(service_id, rpc, ...)
+function RpcServer:servicecast(service_name, rpc, ...)
     for _, client in pairs(self.clients) do
-        if service_id == 0 or client.service == service_id then
+        if client.service and client.service_name == service_name then
             client.call_rpc(rpc, 0, FLAG_REQ, ...)
         end
     end
 end
 
 --unservicecast接口
-function RpcServer:unservicecast(service_id, rpc, ...)
+function RpcServer:unservicecast(service_name, rpc, ...)
     for _, client in pairs(self.clients) do
-        if client.service ~= service_id then
+        if client.service and client.service_name ~= service_name then
             client.call_rpc(rpc, 0, FLAG_REQ, ...)
         end
     end
@@ -247,9 +240,6 @@ end
 function RpcServer:rpc_heartbeat(client, node)
     --回复心跳
     self:send(client, "on_heartbeat", quanta.id)
-    if client.id then
-        self.holder:on_client_beat(client)
-    end
 end
 
 function RpcServer:rpc_register(client, node)

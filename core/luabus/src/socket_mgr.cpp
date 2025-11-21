@@ -239,44 +239,44 @@ int socket_mgr::connect(std::string& err, const char ip[], int port, int timeout
 }
 
 void socket_mgr::set_timeout(uint32_t token, int duration) {
-    auto node = get_object(token);
-    if (node) {
-        node->set_timeout(duration);
+    auto object = get_object(token);
+    if (object) {
+        object->set_timeout(duration);
     }
 }
 
 void socket_mgr::set_nodelay(uint32_t token, int flag) {
-    auto node = get_object(token);
-    if (node) {
-        node->set_nodelay(flag);
+    auto object = get_object(token);
+    if (object) {
+        object->set_nodelay(flag);
     }
 }
 
 void socket_mgr::set_codec(uint32_t token, codec_base* codec) {
-    auto node = get_object(token);
-    if (node) {
-        node->set_codec(codec);
+    auto object = get_object(token);
+    if (object) {
+        object->set_codec(codec);
     }
 }
 
 void socket_mgr::send(uint32_t token, const void* data, size_t data_len) {
-    auto node = get_object(token);
-    if (node) {
-        node->send(data, data_len);
+    auto object = get_object(token);
+    if (object) {
+        object->send(data, data_len);
     }
 }
 
 void socket_mgr::sendv(uint32_t token, const sendv_item items[], int count) {
-    auto node = get_object(token);
-    if (node) {
-        node->sendv(items, count);
+    auto object = get_object(token);
+    if (object) {
+        object->sendv(items, count);
     }
 }
 
 void socket_mgr::broadcast(size_t kind, const void* data, size_t data_len) {
-    for(auto node : m_objects) {
-        if (node.second->is_same_kind(kind)) {
-            node.second->send(data, data_len);
+    for(auto object : m_objects) {
+        if (object.second->is_same_kind(kind)) {
+            object.second->send(data, data_len);
         }
     }
 }
@@ -288,61 +288,61 @@ void socket_mgr::broadgroup(std::vector<uint32_t>& groups, const void* data, siz
 }
 
 void socket_mgr::close(uint32_t token) {
-    auto node = get_object(token);
-    if (node) {
-        node->close();
+    auto object = get_object(token);
+    if (object) {
+        object->close();
     }
 }
 
 bool socket_mgr::get_remote_ip(uint32_t token, std::string& ip) {
-    auto node = get_object(token);
-    if (node) {
-        return node->get_remote_ip(ip);
+    auto object = get_object(token);
+    if (object) {
+        return object->get_remote_ip(ip);
     }
     return false;
 }
 
 int socket_mgr::get_sendbuf_size(uint32_t token){
-    auto node = get_object(token);
-    if (node) {
-        return node->get_sendbuf_size();
+    auto object = get_object(token);
+    if (object) {
+        return object->get_sendbuf_size();
     }
     return 0;
 }
 
 int socket_mgr::get_recvbuf_size(uint32_t token){
-    auto node = get_object(token);
-    if (node) {
-        return node->get_recvbuf_size();
+    auto object = get_object(token);
+    if (object) {
+        return object->get_recvbuf_size();
     }
     return 0;
 }
 
-void socket_mgr::set_accept_callback(uint32_t token, const std::function<void(int)> cb) {
-    auto node = get_object(token);
-    if (node) {
-        node->set_accept_callback(cb);
+void socket_mgr::set_accept_callback(uint32_t token, const std::function<void(uint32_t)> cb) {
+    auto object = get_object(token);
+    if (object) {
+        object->set_accept_callback(cb);
     }
 }
 
 void socket_mgr::set_connect_callback(uint32_t token, const std::function<void(bool, const char*)> cb) {
-    auto node = get_object(token);
-    if (node) {
-        node->set_connect_callback(cb);
+    auto object = get_object(token);
+    if (object) {
+        object->set_connect_callback(cb);
     }
 }
 
 void socket_mgr::set_package_callback(uint32_t token, const std::function<void(slice*)> cb) {
-    auto node = get_object(token);
-    if (node) {
-        node->set_package_callback(cb);
+    auto object = get_object(token);
+    if (object) {
+        object->set_package_callback(cb);
     }
 }
 
 void socket_mgr::set_error_callback(uint32_t token, const std::function<void(const char*)> cb) {
-    auto node = get_object(token);
-    if (node) {
-        node->set_error_callback(cb);
+    auto object = get_object(token);
+    if (object) {
+        object->set_error_callback(cb);
     }
 }
 
@@ -478,7 +478,7 @@ bool socket_mgr::watch_send(socket_t fd, socket_object* object, bool enable) {
 #endif
 }
 
-int socket_mgr::accept_stream(uint32_t ltoken, socket_t fd, const char ip[]) {
+uint32_t socket_mgr::accept_stream(uint32_t ltoken, socket_t fd, const char ip[]) {
     auto* stm = new socket_stream(this, fd);
     if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip)) {
         uint32_t token = new_token();

@@ -66,7 +66,7 @@ function DiscoverMgr:on_client_register(client, node)
     end
     services[token] = node
     if serv_name == "router" then
-        self.rpc_server:unservicecast(node.service, "rpc_service_ready", serv_name, { node })
+        self.rpc_server:unservicecast(serv_name, "rpc_service_ready", serv_name, { node })
     else
         local watchers = self.watcher_list[serv_name] or {}
         self.rpc_server:groupecast(watchers, "rpc_service_ready", serv_name, { node })
@@ -87,7 +87,7 @@ function DiscoverMgr:on_client_error(client, token, err)
         watchers[token] = nil
     end
     if serv_name == "router" then
-        self.rpc_server:unservicecast(client.service, "rpc_service_close", client.id, serv_name)
+        self.rpc_server:unservicecast(serv_name, "rpc_service_close", client.id, serv_name)
     else
         local watchers = self.watcher_list[serv_name] or {}
         self.rpc_server:groupecast(watchers, "rpc_service_close", client.id, serv_name)
@@ -129,7 +129,7 @@ function DiscoverMgr:on_server_command(url, body)
         if jbody.token then
             return self:transfer(jbody.token, jbody.rpc, jbody.data)
         end
-        self.rpc_server:servicecast(jbody.service_id, jbody.rpc, jbody.data)
+        self.rpc_server:servicecast(jbody.service_name, jbody.rpc, jbody.data)
         return {code = 0, msg = "broadcast all nodes server!"}
     end
     --开始执行

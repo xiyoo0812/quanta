@@ -49,7 +49,9 @@ function DiscoverAgent:on_router_connected()
         self.register = true
         self.client:register()
         for service_name in pairs(self.watchers) do
-            self.client:call("rpc_watch_service", service_name)
+            if service_name ~= "router" then
+                self.client:call("rpc_watch_service", service_name)
+            end
         end
     end
     if not self.startup then
@@ -64,7 +66,7 @@ function DiscoverAgent:watch_service(listener, service_name)
         self.watchers[service_name] = {}
     end
     self.watchers[service_name][listener] = true
-    if self.register then
+    if self.register and service_name ~= "router" then
         self.client:call("rpc_watch_service", service_name)
     end
 end

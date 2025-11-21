@@ -128,7 +128,7 @@ end
 
 --创建仿函数
 function quanta.make_functer(func, reenter)
-    local Functer = import("feature/functer.lua")
+    local Functer = import("feature/functor.lua")
     return Functer(func, reenter)
 end
 

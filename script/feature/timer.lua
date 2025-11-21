@@ -34,12 +34,6 @@ function Timer:register(interval, period, times, cb, ...)
     self.timer_id = timer_mgr:register(interval, period, times, cb, ...)
 end
 
-function Timer:set_period(period)
-    if self.timer_id then
-        timer_mgr:set_period(self.timer_id, period)
-    end
-end
-
 function Timer:change_period(period)
     local old_timer_id = self.timer_id
     if old_timer_id then

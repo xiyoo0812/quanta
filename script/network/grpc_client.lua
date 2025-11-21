@@ -53,9 +53,7 @@ end
 
 function GrpcClient:check_alive()
     if self.connector then
-        if self:connect() then
-            self.timer:change_period(SECOND_10_MS)
-        end
+        self:connect()
     end
 end
 
@@ -78,6 +76,7 @@ function GrpcClient:connect()
         return false, err
     end
     socket:set_content_codec("application/grpc", self.gcodec)
+    self.timer:change_period(SECOND_10_MS)
     self.socket = socket
     self.connector = nil
     return true
