@@ -4,6 +4,7 @@ local log_err           = logger.err
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
 local make_timer        = quanta.make_timer
+local lnext_id          = luakit.next_id
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
@@ -46,7 +47,7 @@ function TcpClient:connect(block)
         return false, cerr
     end
     --设置阻塞id
-    local block_id = block and thread_mgr:build_session_id()
+    local block_id = block and lnext_id()
     -- 调用成功，开始安装回调函数
     socket.set_codec(self.codec)
     socket.on_connect = function(res)
@@ -137,13 +138,13 @@ end
 
 -- 发起远程命令
 function TcpClient:call(cmd_id, data, type)
-    local session_id = thread_mgr:build_session_id() & 0xffff
+    local session_id = lnext_id() & 0xffff
     return self:write(cmd_id, data, type or 0, session_id, FLAG_REQ)
 end
 
 -- 等待NTF命令或者非RPC命令
 function TcpClient:wait(cmd_id, time)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     self.wait_list[cmd_id] = session_id
     return thread_mgr:yield(session_id, cmd_id, time)
 end

@@ -3,6 +3,7 @@ local log_err           = logger.err
 local log_info          = logger.info
 local saddr             = qstring.addr
 local jsoncodec         = json.jsoncodec
+local lnext_id          = luakit.next_id
 local wsscodec          = codec.wsscodec
 local httpccodec        = codec.httpccodec
 local make_timer        = quanta.make_timer
@@ -72,7 +73,7 @@ function WSClient:connect(ws_addr)
     end
     --设置阻塞id
     local token = session.token
-    local block_id = thread_mgr:build_session_id()
+    local block_id = lnext_id()
     session.on_connect = function(res)
         local success = res == "ok"
         if not success then
@@ -94,7 +95,7 @@ function WSClient:connect(ws_addr)
 end
 
 function WSClient:on_socket_connected(session, token)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     session.set_codec(self.hcodec)
     session.call_data(session_id, "/", "GET", WS_HEADERS, "")
     local ok, res = thread_mgr:yield(session_id, "handshake", CONNECT_TIMEOUT)

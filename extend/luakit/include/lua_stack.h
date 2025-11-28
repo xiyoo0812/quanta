@@ -156,6 +156,20 @@ namespace luakit {
         return v;
     }
 
+    template <typename T> requires std::same_as<T, std::filesystem::path>
+    int native_to_lua(lua_State* L, T v) {
+        lua_pushlstring(L, reinterpret_cast<const char*>(v.u8string().c_str()), v.u8string().size());
+        return 1;
+    }
+
+    template <typename T> requires std::same_as<T, std::filesystem::path>
+    T lua_to_native(lua_State* L, int i) {
+        std::string_view fpath = lua_to_native<std::string_view>(L, i);
+        try { return T(fpath, std::locale(".UTF8")); }
+        catch (...) {}
+        return T(fpath, std::locale(""));
+    }
+
     template <typename T>
     void lua_push_object(lua_State* L, T obj) {
         if (obj == nullptr) {

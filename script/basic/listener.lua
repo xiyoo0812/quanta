@@ -5,7 +5,7 @@ local tinsert   = table.insert
 local tremove   = table.remove
 local sformat   = string.format
 local qtweak    = qtable.weak
-local qterase   = qtable.erase
+local terase    = table.erase
 local log_warn  = logger.warn
 local log_fatal = logger.fatal
 local dtraceback= debug.traceback
@@ -36,15 +36,11 @@ end
 function Listener:remove_trigger(trigger, event)
     if event then
         local triggers = self._triggers[event] or {}
-        qterase(triggers, function(t)
-            return t == trigger
-        end)
+        terase(triggers, trigger)
         return
     end
     for _, triggers in ipairs(self._triggers) do
-        qterase(triggers, function(t)
-            return t == trigger
-        end)
+        terase(triggers, trigger)
     end
 end
 

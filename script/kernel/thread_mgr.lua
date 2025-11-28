@@ -1,5 +1,6 @@
 --thread_mgr.lua
 local tsort         = table.sort
+local tsize         = table.size
 local sformat       = string.format
 local co_yield      = coroutine.yield
 local co_create     = coroutine.create
@@ -8,8 +9,6 @@ local co_running    = coroutine.running
 local qxpcall       = quanta.xpcall
 local synclock      = quanta.synclock
 local qbindtrace    = quanta.bind_trace
-local mrandom       = qmath.random
-local tsize         = qtable.size
 local log_warn      = logger.warn
 local log_err       = logger.err
 
@@ -20,14 +19,12 @@ local SYNC_FRAME    = environ.number("QUANTA_SYNCLOCK_FRAME", 50)
 
 local ThreadMgr = singleton()
 local prop = property(ThreadMgr)
-prop:reader("session_id", 1)
 prop:reader("syncqueue_map", {})
 prop:reader("coroutine_yields", {})
 prop:reader("coroutine_waitings", {})
 prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
-    self.session_id = mrandom()
     self.coroutine_pool = Queue(512)
 end
 
@@ -200,14 +197,6 @@ function ThreadMgr:sleep(ms)
     local co = co_running()
     self.coroutine_waitings[co] = quanta.clock_ms + ms
     co_yield()
-end
-
-function ThreadMgr:build_session_id()
-    self.session_id = self.session_id + 1
-    if self.session_id >= 0x7fffffff then
-        self.session_id = 1
-    end
-    return self.session_id
 end
 
 function ThreadMgr:success_call(period, success_func, interval, try_time)

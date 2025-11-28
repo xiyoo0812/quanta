@@ -55,7 +55,6 @@ namespace logger {
 
     const size_t QUEUE_SIZE = 3000;
     const size_t MAX_LINE   = 100000;
-    const size_t CLEAN_TIME = 7 * 24 * 3600;
 
     constexpr auto level_names = std::array{"UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR", "FATAL"};
     constexpr auto level_colors = std::array{"\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[33m", "\x1b[31m", "\x1b[32m"};
@@ -103,7 +102,6 @@ namespace logger {
         virtual void write(sptr<log_message> logmsg, const zone_time& logtime);
         virtual void ignore_prefix(bool prefix) { prefix_ = !prefix; }
         virtual void ignore_suffix(bool suffix) { suffix_ = !suffix; }
-        virtual void set_clean_time(size_t clean_time) {}
 
     protected:
         size_t size_ = 0;
@@ -148,10 +146,9 @@ namespace logger {
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(path& log_path, const zone_time& time, vstring feature, size_t max_line = MAX_LINE, size_t clean_time = CLEAN_TIME);
+        log_rollingfile(path& log_path, const zone_time& time, vstring feature, size_t max_line = MAX_LINE);
 
         virtual void flush(const zone_time& time);
-        virtual void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
 
     protected:
         sstring new_log_file_name(const zone_time& time);
@@ -159,7 +156,6 @@ namespace logger {
         path                    log_path_;
         sstring                 feature_;
         rolling_evaler          rolling_evaler_;
-        size_t                  clean_time_ = CLEAN_TIME;
     }; // class log_rollingfile
 
     typedef log_rollingfile<rolling_hourly> log_hourlyrollingfile;
@@ -190,7 +186,7 @@ namespace logger {
         ~log_service();
 
         void daemon(bool status) { log_std_ = !status; }
-        void option(cpchar log_path, cpchar service, cpchar index);
+        bool option(cpchar log_path, cpchar service, cpchar index);
 
         bool add_dest(cpchar feature);
         bool add_lvl_dest(log_level log_lvl);
@@ -207,8 +203,6 @@ namespace logger {
 
         void set_max_line(size_t max_line) { max_line_ = max_line; }
         void set_rolling_type(rolling_type type) { rolling_type_ = type; }
-        void set_clean_time(size_t clean_time) { clean_time_ = clean_time; }
-        void set_dest_clean_time(cpchar feature, size_t clean_time);
 
     protected:
         path build_path(cpchar feature);
@@ -225,15 +219,15 @@ namespace logger {
         std::set<log_agent*> agents_;
         std::map<log_level, sptr<log_dest>> dest_lvls_;
         std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
-        size_t max_line_ = MAX_LINE, clean_time_ = CLEAN_TIME;
         rolling_type rolling_type_ = DAYLY;
+        size_t max_line_ = MAX_LINE;
         bool log_std_ = true;
         bool running_ = true;
     }; // class log_service
 }
 
 extern "C" {
-    LUALIB_API void option_logger(cpchar log_path, cpchar service, cpchar index);
+    LUALIB_API bool option_logger(cpchar log_path, cpchar service, cpchar index);
     LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
 }
 

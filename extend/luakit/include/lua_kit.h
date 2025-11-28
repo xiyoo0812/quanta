@@ -29,24 +29,7 @@ namespace luakit {
         kit_state() {
             m_L = luaL_newstate();
             luaL_openlibs(m_L);
-            new_class<kit_state>();
-            new_class<codec_base>();
-            new_class<class_member>();
-            new_class<function_wrapper>();
-            new_class<slice>(
-                "size", &slice::size,
-                "recv", &slice::recv,
-                "peek", &slice::check,
-                "string", &slice::string
-            );
-            luakit_extendlibs(this);
-            lua_checkstack(m_L, 1024);
-            lua_table luakit = new_table("luakit");
-            luakit.set_function("luacodec", lua_codec);
-            luakit.set_function("encode", [&](lua_State* L) { return encode(L, &lbuf); });
-            luakit.set_function("decode", [&](lua_State* L) { return decode(L, &lbuf); });
-            luakit.set_function("unserialize", [&](lua_State* L) {  return unserialize(L); });
-            luakit.set_function("serialize", [&](lua_State* L) { return serialize(L, &lbuf); });
+            init_luakit(m_L);
         }
         kit_state(lua_State* L) : m_L(L) {}
 
@@ -56,6 +39,31 @@ namespace luakit {
             if (m_L) {
                 lua_close(m_L); 
                 m_L = nullptr;
+            }
+        }
+
+        void init_luakit(lua_State* L) {
+            lua_guard g(L);
+            lua_getglobal(L, "luakit");
+            if (lua_isnil(L, -1)) {
+                new_class<kit_state>();
+                new_class<codec_base>();
+                new_class<class_member>();
+                new_class<function_wrapper>();
+                new_class<slice>(
+                    "size", &slice::size,
+                    "recv", &slice::recv,
+                    "peek", &slice::check,
+                    "string", &slice::string
+                );
+                luakit_extendlibs(this);
+                lua_checkstack(L, 1024);
+                lua_table luakit = new_table("luakit");
+                luakit.set_function("luacodec", lua_codec);
+                luakit.set_function("next_id", [&]() { return ++m_serial32; });
+                luakit.set_function("next_id64", [&]() { return ++m_serial64; });
+                luakit.set_function("encode", [&](lua_State* L) { return encode(L, &lbuf); });
+                luakit.set_function("decode", [&](lua_State* L) { return decode(L, &lbuf); });
             }
         }
 
@@ -255,6 +263,8 @@ namespace luakit {
 
     protected:
         lua_State* m_L = nullptr;
+        uint32_t m_serial32 = 0;
+        uint64_t m_serial64 = 0;
     };
 
     inline void luakit_extendlibs(kit_state* kit) {
@@ -264,9 +274,21 @@ namespace luakit {
         lstring.set_function("untitle", lua_string_untitle);
         lstring.set_function("ends_with", lua_string_ends_with);
         lstring.set_function("starts_with", lua_string_starts_with);
+        lstring.set_function("serialize", [&](lua_State* L) { return serialize(L, &lbuf); });
+        lstring.set_function("unserialize", unserialize);
         auto ltable = kit->get<lua_table>("table");
         ltable.set_function("copy", lua_table_copy);
+        ltable.set_function("size", lua_table_size);
+        ltable.set_function("keys", lua_table_keys);
+        ltable.set_function("vals", lua_table_vals);
+        ltable.set_function("join", lua_table_join);
+        ltable.set_function("kvals", lua_table_kvals);
         ltable.set_function("clean", lua_table_clean);
+        ltable.set_function("merge", lua_table_merge);
+        ltable.set_function("erase", lua_table_erase);
+        ltable.set_function("slice", lua_table_slice);
+        ltable.set_function("indexof", lua_table_indexof);
+        ltable.set_function("pushback", lua_table_pushback);
         ltable.set_function("deepcopy", lua_table_deepcopy);
         ltable.set_function("is_array", [](lua_State* L) { return is_lua_array(L, 1, true); });
     }

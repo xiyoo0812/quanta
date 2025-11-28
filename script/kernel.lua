@@ -107,7 +107,7 @@ function quanta.startup(entry)
     --初始化quanta
     quanta.main()
     --启动服务器
-    pcall(entry)
+    qxpcall(entry, "quanta startup err: {}")
     --输出启动信息
     quanta.report("startup")
 end

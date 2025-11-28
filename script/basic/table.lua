@@ -1,9 +1,11 @@
 --table.lua
 local pairs         = pairs
 local tsort         = table.sort
+local tkeys         = table.keys
+local tvals         = table.vals
+local tkvals        = table.kvals
 local mrandom       = math.random
 local tunpack       = table.unpack
-local tremove       = table.remove
 local setmetatable  = setmetatable
 
 local function trandom(tab)
@@ -23,59 +25,6 @@ local function trandom_array(tab)
     end
 end
 
-local function tindexof(tab, val)
-    for i, v in pairs(tab) do
-        if v == val then
-            return i, v
-        end
-    end
-end
-
-local function tsize(t, filter)
-    local c = 0
-    for _, v in pairs(t or {}) do
-        if not filter or filter(v) then
-            c = c + 1
-        end
-    end
-    return c
-end
-
-local function terase(stab, func, all)
-    for i = #stab, 1, -1 do
-        if func(stab[i]) then
-            tremove(stab, i)
-            if not all then
-                break
-            end
-        end
-    end
-    return stab
-end
-
-local function tdelete(stab, val, all)
-    return terase(stab, function(v)
-        return v == val
-    end, all)
-end
-
-local function tjoin(src, dst)
-    if dst then dst = {} end
-    for _, v in pairs(src) do
-        dst[#dst + 1] = v
-    end
-    return dst
-end
-
-local function tpush(dst, ...)
-    local args = {...}
-    local n = select("#", ...)
-    for i = 1, n do
-        dst[#dst + 1] = args[i]
-    end
-    return dst
-end
-
 local function tdiff(src, dst)
     local add, del = {}, {}
     for k, v in pairs(src) do
@@ -91,50 +40,15 @@ local function tdiff(src, dst)
     return add, del
 end
 
--- map中的value抽出来变成array (会丢失key信息)
-local function tarray(src)
-    local dst = {}
-    for _, value in pairs(src or {}) do
-        dst[#dst + 1] = value
+-- 展开table
+local function tunfold(src, kv)
+    if not kv or kv == "kv" then
+        return tunpack(tkvals(src))
     end
-    return dst
-end
-
--- map中的KEY抽出来变成array (会丢失VALUE信息)
-local function tkarray(src)
-    local dst = {}
-    for key in pairs(src or {}) do
-        dst[#dst + 1] = key
+    if not kv or kv == "k" then
+        return tunpack(tkeys(src))
     end
-    return dst
-end
-
--- map转为{key,value}类型的array
-local function tkvarray(src)
-    local dst = {}
-    for key, value in pairs(src or {}) do
-        dst[#dst + 1] = { key, value }
-    end
-    return dst
-end
-
--- 展开table的kv
-local function tunfold(src)
-    local dst = {}
-    for key, value in pairs(src or {}) do
-        dst[#dst + 1] = key
-        dst[#dst + 1] = value
-    end
-    return tunpack(dst)
-end
-
--- 展开table的k
-local function tkeys(src)
-    local dst = {}
-    for key in pairs(src or {}) do
-        dst[#dst + 1] = key
-    end
-    return tunpack(dst)
+    return tunpack(tvals(src))
 end
 
 -- {key,value}array转为map
@@ -147,22 +61,8 @@ local function tmap(src)
 end
 
 local function tmapsort(src, func)
-    local dst = tkvarray(src)
+    local dst = tkvals(src)
     tsort(dst, func or function(a, b) return a[1] < b[1] end)
-    return dst
-end
-
---截取
-local function tslice(src, spos, epos)
-    local dst = {}
-    if not epos then
-        epos = #src
-    end
-    if spos < epos then
-        for i = spos, epos, 1 do
-            dst[#dst + 1] = src[i]
-        end
-    end
     return dst
 end
 
@@ -183,23 +83,11 @@ local function tweak(src, mode)
 end
 
 qtable              = {}
-qtable.random       = trandom
-qtable.random_array = trandom_array
-qtable.indexof      = tindexof
-qtable.size         = tsize
-qtable.delete       = tdelete
-qtable.erase        = terase
-qtable.join         = tjoin
 qtable.map          = tmap
-qtable.keys         = tkeys
-qtable.push         = tpush
 qtable.diff         = tdiff
-qtable.array        = tarray
-qtable.unfold       = tunfold
-qtable.tkarray      = tkarray
-qtable.kvarray      = tkvarray
-qtable.mapsort      = tmapsort
-qtable.slice        = tslice
-qtable.equal        = tequal
 qtable.weak         = tweak
-
+qtable.equal        = tequal
+qtable.unfold       = tunfold
+qtable.random       = trandom
+qtable.mapsort      = tmapsort
+qtable.random_array = trandom_array

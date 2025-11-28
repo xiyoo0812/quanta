@@ -7,8 +7,8 @@ local lhex_encode   = ssl.hex_encode
 local hash_code     = codec.hash_code
 local encode        = luakit.encode
 local decode        = luakit.decode
-local serialize     = luakit.serialize
-local unserialize   = luakit.unserialize
+local serialize     = string.serialize
+local unserialize   = string.unserialize
 
 quanta.profile()
 

@@ -5,6 +5,7 @@ local log_err           = logger.err
 local log_info          = logger.info
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
+local lnext_id          = luakit.next_id
 local hash_code         = codec.hash_code
 local make_timer        = quanta.make_timer
 local resume_trace      = quanta.resume_trace
@@ -244,7 +245,7 @@ end
 --直接发送接口
 function RpcClient:call(rpc, ...)
     if self.alive then
-        local session_id = thread_mgr:build_session_id()
+        local session_id = lnext_id()
         if self.socket.call_rpc(rpc, session_id, FLAG_REQ, ...) then
             return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
         end

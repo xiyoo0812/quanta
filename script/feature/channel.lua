@@ -1,6 +1,7 @@
 --channel.lua
 local tinsert       = table.insert
 local qfailed       = quanta.failed
+local lnext_id      = luakit.next_id
 
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -43,7 +44,7 @@ function Channel:execute(all_back)
         return true, all_datas
     end
     local success = true
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     for i, executer in ipairs(self.executers) do
         local efailed, code = false, 0
         thread_mgr:fork(function()

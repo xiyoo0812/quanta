@@ -3,6 +3,7 @@ local Socket        = import("driver/socket.lua")
 
 local log_info      = logger.info
 local stlscodec     = ssl.tlscodec
+local lnext_id      = luakit.next_id
 local httpccodec    = codec.httpccodec
 local content_codec = codec.set_content_codec
 
@@ -52,7 +53,7 @@ end
 function Socketls:on_socket_connected()
     if self.tls_enable then
         local tlscodec = stlscodec(true, self.alpn_protos)
-        local handshake_id = thread_mgr:build_session_id()
+        local handshake_id = lnext_id()
         tlscodec.tls_handshaked = function()
             thread_mgr:response(handshake_id, true)
         end
@@ -83,7 +84,7 @@ end
 
 function Socketls:send_packet(url, ...)
     if self.alive then
-        local session_id = thread_mgr:build_session_id()
+        local session_id = lnext_id()
         local send_len = self.session.call_data(session_id, url, ...)
         if send_len <= 0 then
             return false, "send data failed"

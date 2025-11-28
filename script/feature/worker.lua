@@ -1,6 +1,7 @@
 --worker.lua
 local log_info      = logger.info
 local tunpack       = table.unpack
+local lnext_id      = luakit.next_id
 local wcall         = quanta.call
 local wupdate       = quanta.update
 local resume_trace  = quanta.resume_trace
@@ -35,8 +36,8 @@ end
 
 --访问主线程
 quanta.call_master = function(rpc, ...)
+    local session_id = lnext_id()
     local trace_id, span_id = extract_trace()
-    local session_id = thread_mgr:build_session_id()
     if wcall("master", session_id, FLAG_REQ, trace_id, span_id, THREAD_NAME, rpc, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end
@@ -51,8 +52,8 @@ end
 
 --访问其他线程
 quanta.call_worker = function(name, rpc, ...)
+    local session_id = lnext_id()
     local trace_id, span_id = extract_trace()
-    local session_id = thread_mgr:build_session_id()
     if wcall(name, session_id, FLAG_REQ, THREAD_NAME, rpc, trace_id, span_id, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
     end

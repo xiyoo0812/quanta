@@ -33,8 +33,8 @@ namespace luakit {
     inline thread_local std::vector<std::string_view> t_sshares(max_share_string);
 
     int decode_one(lua_State* L, slice* slice);
-    void encode_one(lua_State* L, luabuf* buff, int idx, int depth, bool isindex = false);
-    void serialize_one(lua_State* L, luabuf* buff, int index, int depth, int line);
+    void encode_one(lua_State* L, luabuf* buff, int idx, size_t depth, bool isindex = false);
+    void serialize_one(lua_State* L, luabuf* buff, int index, size_t depth, size_t line);
 
     template<typename T>
     void value_encode(luabuf* buff, T data) {
@@ -135,7 +135,7 @@ namespace luakit {
         value_encode(buff, number);
     }
 
-    inline void table_encode(lua_State* L, luabuf* buff, int index, int depth) {
+    inline void table_encode(lua_State* L, luabuf* buff, int index, size_t depth) {
         index = lua_absindex(L, index);
         value_encode(buff, type_tab_head);
         lua_pushnil(L);
@@ -147,7 +147,7 @@ namespace luakit {
         value_encode(buff, type_tab_tail);
     }
 
-    inline void encode_one(lua_State* L, luabuf* buff, int idx, int depth, bool isindex) {
+    inline void encode_one(lua_State* L, luabuf* buff, int idx, size_t depth, bool isindex) {
         if (depth > max_encode_depth) {
             luaL_error(L, "encode can't pack too depth table");
         }
@@ -174,7 +174,7 @@ namespace luakit {
         }
     }
 
-    inline slice* encode_slice(lua_State* L, luabuf* buff, size_t index, int num) {
+    inline slice* encode_slice(lua_State* L, luabuf* buff, int index, int num) {
         if (num > UCHAR_MAX || num < 0) {
             luaL_error(L, "encode can't pack too many args");
         }
@@ -326,7 +326,7 @@ namespace luakit {
         serialize_quote(buff, udata.c_str(), "'", "'");
     }
 
-    inline void serialize_crcn(luabuf* buff, int count, int line) {
+    inline void serialize_crcn(luabuf* buff, int count, size_t line) {
         if (line > 0) {
             serialize_value(buff, "\n");
             for (int i = 1; i < count; ++i) {
@@ -345,13 +345,13 @@ namespace luakit {
         serialize_value(buff, "'");
     }
 
-    inline void serialize_table(lua_State* L, luabuf* buff, int index, int depth, int line) {
+    inline void serialize_table(lua_State* L, luabuf* buff, int index, int depth, size_t line) {
         int size = 0;
         index = lua_absindex(L, index);
         serialize_value(buff, "{");
         if (is_lua_array(L, index)) {
-            int rawlen = lua_rawlen(L, index);
-            for (int i = 1; i <= rawlen; ++i){
+            size_t rawlen = lua_rawlen(L, index);
+            for (size_t i = 1; i <= rawlen; ++i){
                 if (size++ > 0) {
                     serialize_value(buff, ",");
                 }
@@ -428,7 +428,7 @@ namespace luakit {
         serialize_value(buff, "}");
     }
 
-    inline void serialize_one(lua_State* L, luabuf* buff, int index, int depth, int line) {
+    inline void serialize_one(lua_State* L, luabuf* buff, int index, size_t depth, size_t line) {
         if (depth > max_encode_depth) {
             luaL_error(L, "serialize can't pack too depth table");
         }
@@ -530,7 +530,7 @@ namespace luakit {
         bool m_failed = false;
         luabuf* m_buf = nullptr;
         slice* m_slice = nullptr;
-        size_t m_packet_len = 0;
+        uint32_t m_packet_len = 0;
         std::string m_err = "";
     };
 

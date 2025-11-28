@@ -5,10 +5,10 @@ local pcall         = pcall
 local pairs         = pairs
 local tunpack       = table.unpack
 local dtraceback    = debug.traceback
+local cleanbytime   = stdfs.cleanbytime
 local qtrace_id     = quanta.trace_id
 local lprint        = log.print
 local lfilter       = log.filter
-
 local LOG_FLAG      = log.LOG_FLAG
 local LOG_LEVEL     = log.LOG_LEVEL
 local THREAD_NAME   = quanta.thread
@@ -23,7 +23,6 @@ function logger.init()
     logger.filter(environ.number("QUANTA_LOG_LVL"))
     --配置日志信息
     log.set_max_line(environ.number("QUANTA_LOG_LINE", 100000))
-    log.set_clean_time(environ.number("QUANTA_LOG_TIME", 648000))
     log.set_rolling_type(environ.number("QUANTA_LOG_ROLL", 0))
     --添加输出目标
     log.add_lvl_dest(LOG_LEVEL.ERROR)
@@ -31,6 +30,12 @@ function logger.init()
     log.daemon(environ.status("QUANTA_DAEMON"))
     --附加日志代理
     log.display()
+end
+
+function logger.clean()
+    local lgg_path = environ.number("QUANTA_LOG_PATH")
+    local clean_time = environ.number("QUANTA_LOG_TIME", 648000)
+    cleanbytime(lgg_path, ".log", clean_time)
 end
 
 function logger.daemon(daemon)
@@ -104,12 +109,9 @@ end
 
 for lvl, conf in pairs(LOG_LEVEL_OPTIONS) do
     local lvl_name, flag = tunpack(conf)
-    logfeature[lvl_name] = function(feature, ign_prefix, clean_time)
+    logfeature[lvl_name] = function(feature, ign_prefix)
         log.add_dest(feature)
         log.ignore_prefix(feature, ign_prefix)
-        if clean_time then
-            log.set_dest_clean_time(feature, clean_time)
-        end
         return function(fmt, ...)
             logger_output(flag, feature, lvl, lvl_name, fmt, ...)
         end

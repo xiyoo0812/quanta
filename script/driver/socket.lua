@@ -2,6 +2,7 @@
 
 local log_err           = logger.err
 local log_info          = logger.info
+local lnext_id          = luakit.next_id
 
 local PROTO_TEXT        = luabus.eproto_type.TEXT
 
@@ -85,7 +86,7 @@ function Socket:connect(ip, port)
     end
     --设置阻塞id
     local token = session.token
-    local block_id = thread_mgr:build_session_id()
+    local block_id = lnext_id()
     session.on_connect = function(res)
         local success = res == "ok"
         self.alive = success

@@ -1,6 +1,6 @@
 --account.lua
 
-local tsize         = qtable.size
+local tsize         = table.size
 local tinsert       = table.insert
 local guid_new      = codec.guid_new
 

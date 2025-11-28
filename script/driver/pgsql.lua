@@ -8,8 +8,9 @@ local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch
 local tinsert       = table.insert
+local terase        = table.erase
 local mrandom       = qmath.random
-local tdelete       = qtable.delete
+local lnext_id      = luakit.next_id
 
 local lmd5          = ssl.md5
 local lsha256       = ssl.sha256
@@ -231,7 +232,7 @@ end
 
 function PgsqlDB:delive(sock)
     sock.stmts = {}
-    tdelete(self.alives, sock)
+    terase(self.alives, sock)
     self.connections[sock.id] = sock
 end
 
@@ -253,7 +254,7 @@ function PgsqlDB:on_socket_recv(socket, session_id, ...)
 end
 
 function PgsqlDB:auth_request(socket, cmd, quote, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     if socket:send_data(cmd, session_id, ...) then
         return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
     end
@@ -262,7 +263,7 @@ end
 
 function PgsqlDB:request(cmd, quote, ...)
     if self.executer then
-        local session_id = thread_mgr:build_session_id()
+        local session_id = lnext_id()
         if self.executer:send_data(cmd, session_id, ...) then
             return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
         end

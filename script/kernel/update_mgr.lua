@@ -4,6 +4,7 @@ local pairs         = pairs
 local odate         = os.date
 local qtweak        = qtable.weak
 local log_info      = logger.info
+local log_clean     = logger.clean
 local sformat       = string.format
 local log_warn      = logger.warn
 local sig_get       = signal.get
@@ -126,6 +127,8 @@ function UpdateMgr:update_by_time(now, clock_ms)
     for obj, functor in pairs(self.hour_objs) do
         functor:call(obj, clock_ms)
     end
+    --清理日志
+    log_clean();
     --每日4点执行一次全量更新
     if cur_hour == 4 then
         collectgarbage("collect")

@@ -3,6 +3,7 @@
 local pcall         = pcall
 local log_err       = logger.err
 local tunpack       = table.unpack
+local lnext_id      = luakit.next_id
 local resume_trace  = quanta.resume_trace
 local extract_trace = quanta.extract_trace
 
@@ -70,8 +71,8 @@ end
 
 --访问其他线程任务
 function Scheduler:call(name, rpc, ...)
+    local session_id = lnext_id()
     local trace_id, span_id = extract_trace()
-    local session_id = thread_mgr:build_session_id()
     if not wcall(name, session_id, FLAG_REQ, trace_id, span_id, "master", rpc, ... ) then
         return false, "call failed!"
     end

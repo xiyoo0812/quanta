@@ -8,6 +8,7 @@ local log_warn          = logger.warn
 local log_info          = logger.info
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
+local lnext_id          = luakit.next_id
 local hash_code         = codec.hash_code
 local derive_port       = luabus.derive_port
 local resume_trace      = quanta.resume_trace
@@ -158,7 +159,7 @@ end
 
 --call接口
 function RpcServer:call(client, rpc, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     if client.call_rpc(rpc, session_id, FLAG_REQ, ...) then
         return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
     end

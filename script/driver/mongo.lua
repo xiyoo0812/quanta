@@ -4,10 +4,10 @@ local Socket        = import("driver/socket.lua")
 
 local log_err       = logger.err
 local log_info      = logger.info
+local tjoin         = table.join
 local tinsert       = table.insert
 local tunpack       = table.unpack
-local qjoin         = qtable.join
-local tdelete       = qtable.delete
+local terase        = table.erase
 local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch
@@ -27,6 +27,7 @@ local lb64encode    = ssl.b64_encode
 local lb64decode    = ssl.b64_decode
 local lhmac_sha1    = ssl.hmac_sha1
 local pbkdf2_sha1   = ssl.pbkdf2_sha1
+local lnext_id      = luakit.next_id
 
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
@@ -212,7 +213,7 @@ function MongoDB:auth(sock, username, password)
 end
 
 function MongoDB:delive(sock)
-    tdelete(self.alives, sock)
+    terase(self.alives, sock)
     self.connections[sock.id] = sock
 end
 
@@ -258,12 +259,12 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
 end
 
 function MongoDB:adminCommand(sock, cmd, cmd_v, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:op_msg(sock, session_id, cmd, cmd_v, "$db", "admin", ...)
 end
 
 function MongoDB:runCommand(cmd, cmd_v, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:op_msg(self.executer, session_id, cmd, cmd_v or 1, "$db", self.name, ...)
 end
 
@@ -353,7 +354,7 @@ function MongoDB:find(co_name, query, projection, sortor, limit, skip)
     local cursor = reply.cursor
     while cursor do
         local documents = cursor.firstBatch or cursor.nextBatch
-        qjoin(documents, results)
+        tjoin(documents, results)
         if not cursor.id or cursor.id == 0 then
             break
         end

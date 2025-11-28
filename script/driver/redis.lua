@@ -7,8 +7,9 @@ local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug
 local tinsert       = table.insert
+local terase        = table.erase
 local mrandom       = qmath.random
-local tdelete       = qtable.delete
+local lnext_id      = luakit.next_id
 local qhash         = codec.hash_code
 local jsoncodec     = json.jsoncodec
 local rediscodec    = codec.rediscodec
@@ -263,10 +264,10 @@ function RedisDB:delive(sock)
         local index = self.slots[sock.port] or 0
         local cluster = self.clusters[index]
         if cluster then
-            tdelete(cluster.alives, sock)
+            terase(cluster.alives, sock)
         end
     end
-    tdelete(self.alives, sock)
+    terase(self.alives, sock)
     self.connections[sock.id] = sock
 end
 
@@ -286,7 +287,7 @@ function RedisDB:on_socket_recv(sock, session_id, succ, res)
 end
 
 function RedisDB:commit(socket, cmd, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     if not socket:send_data(session_id, cmd, ...) then
         return false, "send request failed"
     end

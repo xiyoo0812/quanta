@@ -3,11 +3,11 @@
 local log_info          = logger.info
 local log_warn          = logger.warn
 local qfailed           = quanta.failed
+local lnext_id          = luakit.next_id
 local name2sid          = service.name2sid
 local sid2name          = service.sid2name
 
 local event_mgr         = quanta.get("event_mgr")
-local thread_mgr        = quanta.get("thread_mgr")
 local router_server     = quanta.get("router_server")
 
 local NODE_ID           = quanta.id
@@ -149,7 +149,7 @@ function TransferMgr:find_routers(player_id)
 end
 
 function TransferMgr:query_routers(player_id, router_id, serv_name, serv_id)
-    local sess_id = thread_mgr:build_session_id()
+    local sess_id = lnext_id()
     local ok, code, routers = self.rpc_server:transfer_hash(sess_id, SERVICE_CACHE, player_id, "rpc_router_update", player_id, router_id, serv_name, serv_id)
     if qfailed(code, ok) then
         return

@@ -7,6 +7,7 @@ local log_debug         = logger.debug
 local tsort             = table.sort
 local tunpack           = table.unpack
 local sformat           = string.format
+local lnext_id          = luakit.next_id
 local qsuccess          = quanta.success
 local hash_code         = codec.hash_code
 local signal_quit       = signal.quit
@@ -119,7 +120,7 @@ end
 function RouterMgr:forward_call(target_id, service_id, ...)
     local router = self:hash_router(target_id)
     if router then
-        local session_id = thread_mgr:build_session_id()
+        local session_id = lnext_id()
         return router:forward_transfer(target_id, session_id, service_id, ...)
     end
     return false, "router not connected"
@@ -145,7 +146,7 @@ end
 --通过router发送广播，并收集所有的结果
 function RouterMgr:collect(service_id, rpc, ...)
     local collect_res = {}
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     local router = self:hash_router(session_id)
     local ok, code, target_cnt = self:forward_target(router, "call_broadcast", rpc, session_id, service_id, ...)
     if qsuccess(code, ok) then
@@ -172,7 +173,7 @@ function RouterMgr:call_target(target, rpc, ...)
         local res = event_mgr:notify_listener(rpc, ...)
         return tunpack(res)
     end
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:forward_target(self:hash_router(target), "call_target", rpc, session_id, target, ...)
 end
 
@@ -182,7 +183,7 @@ function RouterMgr:call_target_hash(target, hash_key, rpc, ...)
         local res = event_mgr:notify_listener(rpc, ...)
         return tunpack(res)
     end
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:forward_target(self:hash_router(hash_key), "call_target", rpc, session_id, target, ...)
 end
 
@@ -206,7 +207,7 @@ end
 
 --发送给路由
 function RouterMgr:call_router_id(router_id, rpc, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:forward_target(self:get_router(router_id), "call_rpc", rpc, session_id, FLAG_REQ, ...)
 end
 
@@ -217,7 +218,7 @@ end
 
 --发送给路由
 function RouterMgr:call_router(hash_key, rpc, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:forward_target(self:hash_router(hash_key), "call_rpc", rpc, session_id, FLAG_REQ, ...)
 end
 
@@ -228,7 +229,7 @@ end
 
 --发送给指定service的hash
 function RouterMgr:call_hash(service_id, hash_key, rpc, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:forward_target(self:hash_router(hash_key), "call_hash", rpc, session_id, service_id, hash_key, ...)
 end
 
@@ -239,7 +240,7 @@ end
 
 --发送给指定service的master
 function RouterMgr:call_master(service_id, rpc, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:forward_target(self:hash_router(service_id), "call_master", rpc, session_id, service_id, ...)
 end
 

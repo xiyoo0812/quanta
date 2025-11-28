@@ -7,9 +7,10 @@ local log_err       = logger.err
 local log_info      = logger.info
 local sformat       = string.format
 local tinsert       = table.insert
-local tdelete       = qtable.delete
+local terase        = table.erase
 local mrandom       = qmath.random
 local lxor_byte     = ssl.xor_byte
+local lnext_id      = luakit.next_id
 local qhash         = codec.hash_code
 local mysqlcodec    = codec.mysqlcodec
 local make_timer    = quanta.make_timer
@@ -145,7 +146,7 @@ function MysqlDB:login(socket)
 end
 
 function MysqlDB:auth(socket)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     socket:set_codec(mysqlcodec(session_id))
     local charset, scramble1, scramble2 = thread_mgr:yield(session_id, "mysql server auth", DB_TIMEOUT)
     local scramble = scramble1 .. scramble2
@@ -160,7 +161,7 @@ end
 
 function MysqlDB:delive(sock)
     sock.stmts = {}
-    tdelete(self.alives, sock)
+    terase(self.alives, sock)
     self.connections[sock.id] = sock
 end
 
@@ -183,7 +184,7 @@ end
 
 function MysqlDB:request(cmd, quote, ...)
     if self.executer then
-        local session_id = thread_mgr:build_session_id()
+        local session_id = lnext_id()
         if self.executer:send_data(cmd, session_id, ...) then
             return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
         end
