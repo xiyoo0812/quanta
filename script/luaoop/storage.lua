@@ -10,6 +10,7 @@
 --]]
 
 local type      = type
+local tcopy     = table.copy
 
 local NULL      = "null"
 
@@ -17,11 +18,7 @@ local function clone_arg(arg)
     if type(arg) ~= "table" then
         return arg
     end
-    local dst = {}
-    for field, value in pairs(arg or {}) do
-        dst[field] = value
-    end
-    return dst
+    return tcopy(arg)
 end
 
 local function get_storage_layers(obj, sheet)

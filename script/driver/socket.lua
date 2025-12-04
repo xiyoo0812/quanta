@@ -72,14 +72,14 @@ function Socket:set_codec(codec)
     end
 end
 
-function Socket:connect(ip, port)
+function Socket:connect(ip, port, timeout, proto)
     if self.session then
         if self.alive then
             return true
         end
         return false, "socket in connecting"
     end
-    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, PROTO_TEXT)
+    local session, cerr = socket_mgr.connect(ip, port, timeout or CONNECT_TIMEOUT, proto or PROTO_TEXT)
     if not session then
         log_err("[Socket][connect] failed to connect: {}:{} err={}", ip, port, cerr)
         return false, cerr

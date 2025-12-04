@@ -1,39 +1,33 @@
 --sandbox.lua
 require("lualog")
 require("lstdfs")
-require("ltimer")
 
 local pairs         = pairs
 local loadfile      = loadfile
 local mabs          = math.abs
-local lprint        = log.print
 local sgsub         = string.gsub
 local ssplit        = string.split
-local sformat       = string.format
-local qgetenv       = quanta.getenv
+local qgenv         = quanta.getenv
 local traceback     = debug.traceback
 local file_time     = stdfs.last_write_time
 local fexists       = stdfs.exists
+local lprint        = log.print
 
+local THREAD_NAME   = quanta.thread
 local LOG_LEVEL     = log.LOG_LEVEL
 
-local FEATURE       = "devops"
-local THREAD_NAME   = quanta.thread
-
-local load_status = "success"
-local log_error = function(content)
-    load_status = "failed"
-    lprint(LOG_LEVEL.ERROR, 0, THREAD_NAME, nil, FEATURE, content)
+local function log_info(fmt, ...)
+    lprint(LOG_LEVEL.DEBUG, 0, THREAD_NAME, nil, "", fmt, ...)
 end
 
-local log_output = function(content)
-    lprint(LOG_LEVEL.INFO, 0, THREAD_NAME, nil, FEATURE, content)
+local function log_err(fmt, ...)
+    lprint(LOG_LEVEL.ERROR, 0, THREAD_NAME, nil, "", fmt, ...)
 end
 
---加载部署日志
-if qgetenv("QUANTA_LOG_PATH") then
-    log.add_file_dest(FEATURE, "devops.log")
-end
+--设置日志路径和服务
+log.option(qgenv("QUANTA_LOG_PATH"), qgenv("QUANTA_SERVICE"), qgenv("QUANTA_INDEX"))
+--附加日志代理
+log.display()
 
 --加载lua文件搜索路径
 local load_files    = {}
@@ -65,18 +59,18 @@ end
 local function try_load(node)
     local trunk_func, err = search_load(node)
     if not trunk_func then
-        log_error(sformat("[sandbox][try_load] load file: %s ... [failed]\nerror : %s", node.filename, err))
+        log_err("[sandbox][try_load] load file: {} ... [failed]\nerror : {}", node.filename, err)
         return
     end
     local ok, res = xpcall(trunk_func, traceback)
     if not ok then
-        log_error(sformat("[sandbox][try_load] exec file: %s ... [failed]\nerror : %s", node.filename, res))
+        log_err("[sandbox][try_load] exec file: {} ... [failed]\nerror : {}", node.filename, res)
         return
     end
     if res then
         node.res = res
     end
-    log_output(sformat("[sandbox][try_load] load file: %s ... [ok]", node.filename))
+    log_info("[sandbox][try_load] load file: {} ... [ok]", node.filename)
     return res
 end
 
@@ -93,10 +87,6 @@ function import(filename)
     return node.res
 end
 
-function quanta.load_failed(content)
-    log_error(content)
-end
-
 function quanta.load(name)
     return quanta[name]
 end
@@ -108,22 +98,12 @@ function quanta.init(name, val)
     return quanta[name]
 end
 
-function quanta.report(type)
-    local divider = "----------------------------------------------------------------------------------------"
-    local fmt = '{"type":"%s","pid":"%s","state":"%s","time":%s,"service":"%s"}'
-    local str = sformat(fmt, type, quanta.pid, load_status, os.time(),  quanta.name)
-    log_output(divider)
-    log_output(str)
-    log_output(divider)
-end
-
 function quanta.reload()
-    load_status = "success"
     for _, node in ipairs(load_files) do
         if node.time then
             local filetime, err = file_time(node.fullpath)
             if filetime == 0 then
-                log_error(sformat("[quanta][reload] %s get_time failed(%s)", node.fullpath, err))
+                log_err("[quanta][reload] {} get_time failed({})", node.fullpath, err)
                 return
             end
             if mabs(node.time - filetime) > 1 then

@@ -12,10 +12,9 @@
 
 # 编译
 - 目前主分支升级到c++20，建议使用c++20支持的编译器
-- msvc : 打开项目目录下的sln工程文件，编译即可。
+- msvc: 打开项目目录下的sln工程文件，编译即可。
 - linux：在项目根目录，执行make all。
-- 编译lua需要readline，请提前安装。
-- http模块依赖curl，请提前安装。
+- macos: 在项目根目录，执行make all。
 
 # 工程
 - 本项目使用[lmake](https://github.com/xiyoo0812/lmake.git)管理

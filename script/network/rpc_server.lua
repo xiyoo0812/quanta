@@ -15,6 +15,7 @@ local resume_trace      = quanta.resume_trace
 local extract_trace     = quanta.extract_trace
 
 local event_mgr         = quanta.get("event_mgr")
+local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 
@@ -59,6 +60,17 @@ function RpcServer:__init(holder, ip, port, induce)
     log_info("[RpcServer][setup] now listen {}:{} success!", ip, real_port)
     event_mgr:add_listener(self, "rpc_heartbeat")
     event_mgr:add_listener(self, "rpc_register")
+    --注册退出
+    update_mgr:attach_quit(self)
+end
+
+function RpcServer:on_quit()
+    if self.listener then
+        self.listener.close()
+        self.listener = nil
+        self.codec = nil
+        log_info("[RpcServer][on_quit]")
+    end
 end
 
 --rpc事件

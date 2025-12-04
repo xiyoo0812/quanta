@@ -7,6 +7,7 @@
 #include "lua_codec.h"
 #include "lua_table.h"
 #include "lua_class.h"
+#include "lua_logger.h"
 #include "lua_extend.h"
 
 namespace luakit {
@@ -30,8 +31,12 @@ namespace luakit {
             m_L = luaL_newstate();
             luaL_openlibs(m_L);
             init_luakit(m_L);
+            get_logger()->init(m_L);
         }
-        kit_state(lua_State* L) : m_L(L) {}
+
+        kit_state(lua_State* L, bool initlog = false) : m_L(L) {
+            if (initlog) get_logger()->init(L);
+        }
 
         void __gc() {}
 
@@ -87,8 +92,7 @@ namespace luakit {
         }
 
         bool get_function(const char* function) {
-            get_global_function(m_L, function);
-            return lua_isfunction(m_L, -1);
+            return get_global_function(m_L, function);
         }
 
         const char* get_path(const char* field) {

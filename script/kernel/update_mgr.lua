@@ -144,8 +144,6 @@ function UpdateMgr:check_signal()
         quanta.reload()
         --事件通知
         event_mgr:notify_trigger("on_reload")
-        --输出状态
-        quanta.report("reload")
     end
     if sig_check(signal) then
         log_info("[UpdateMgr][check_signal]service quit for signal !")

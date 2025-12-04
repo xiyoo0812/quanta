@@ -29,7 +29,7 @@ WINDOWS_DEFINES = {
 
 --依赖项目
 DEPS = {
-    "lualog"
+    "lualib"
 }
 
 --分组定义

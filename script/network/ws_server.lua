@@ -1,7 +1,6 @@
 --ws_server.lua
 local log_err           = logger.err
 local log_info          = logger.info
-local log_debug         = logger.debug
 local lsha1             = ssl.sha1
 local lb64encode        = ssl.b64_encode
 local jsoncodec         = json.jsoncodec
@@ -46,7 +45,7 @@ function WSServer:on_quit()
         self.wcodec = nil
         self.hcodec = nil
         self.jcodec = nil
-        log_debug("[WSServer][on_quit]")
+        log_info("[WSServer][on_quit]")
     end
 end
 

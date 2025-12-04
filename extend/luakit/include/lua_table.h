@@ -49,11 +49,13 @@ namespace luakit {
 
         template <typename... ret_types, typename... arg_types>
         bool call(const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+            lua_guard g(m_L);
             if (!get_function(function)) return false;
             return lua_call_function(m_L, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
         bool call(const char* function, error_fn efn = nullptr) {
+            lua_guard g(m_L);
             if (!get_function(function)) return false;
             return lua_call_function(m_L, efn, std::tie());
         }

@@ -27,6 +27,7 @@ using cpchar    = const char*;
 using sstring   = std::string;
 using vstring   = std::string_view;
 using cstring   = const std::string;
+using fspath    = std::filesystem::path;
 
 template <class T>
 using wptr      = std::weak_ptr<T>;
@@ -125,7 +126,7 @@ namespace logger {
 
         virtual void flush(const zone_time& time);
         virtual void raw_write(vstring logtxt, size_t size);
-        void create(path file_path, sstring file_name);
+        void create(fspath file_path, sstring file_name);
 
     protected:
         size_t                      max_line_;
@@ -146,14 +147,14 @@ namespace logger {
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(path& log_path, const zone_time& time, vstring feature, size_t max_line = MAX_LINE);
+        log_rollingfile(fspath& log_path, const zone_time& time, vstring feature, size_t max_line = MAX_LINE);
 
         virtual void flush(const zone_time& time);
 
     protected:
         sstring new_log_file_name(const zone_time& time);
 
-        path                    log_path_;
+        fspath                  log_path_;
         sstring                 feature_;
         rolling_evaler          rolling_evaler_;
     }; // class log_rollingfile
@@ -186,7 +187,7 @@ namespace logger {
         ~log_service();
 
         void daemon(bool status) { log_std_ = !status; }
-        bool option(cpchar log_path, cpchar service, cpchar index);
+        bool option(fspath log_path, cpchar service, cpchar index);
 
         bool add_dest(cpchar feature);
         bool add_lvl_dest(log_level log_lvl);
@@ -205,11 +206,11 @@ namespace logger {
         void set_rolling_type(rolling_type type) { rolling_type_ = type; }
 
     protected:
-        path build_path(cpchar feature);
+        fspath build_path(cpchar feature);
         void run(std::stop_token stoken);
         void flush();
 
-        path            log_path_;
+        fspath          log_path_;
         spin_mutex      mutex_;
         std::jthread    thread_;
         sstring         service_;
@@ -225,27 +226,3 @@ namespace logger {
         bool running_ = true;
     }; // class log_service
 }
-
-extern "C" {
-    LUALIB_API bool option_logger(cpchar log_path, cpchar service, cpchar index);
-    LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line);
-}
-
-#define LOG_WARN(msg) output_logger(logger::LOG_LEVEL_WARN, msg, "", "", __FILE__, __LINE__)
-#define LOG_INFO(msg) output_logger(logger::LOG_LEVEL_INFO, msg, "", "", __FILE__, __LINE__)
-#define LOG_DUMP(msg) output_logger(logger::LOG_LEVEL_DUMP, msg, "", "", __FILE__, __LINE__)
-#define LOG_DEBUG(msg) output_logger(logger::LOG_LEVEL_DEBUG, msg, "", "", __FILE__, __LINE__)
-#define LOG_ERROR(msg) output_logger(logger::LOG_LEVEL_ERROR, msg, "", "", __FILE__, __LINE__)
-#define LOG_FATAL(msg) output_logger(logger::LOG_LEVEL_FATAL, msg, "", "", __FILE__, __LINE__)
-#define LOGF_WARN(msg, feature) output_logger(logger::LOG_LEVEL_WARN, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_INFO(msg, feature) output_logger(logger::LOG_LEVEL_INFO, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_DUMP(msg, feature) output_logger(logger::LOG_LEVEL_DUMP, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_DEBUG(msg, feature) output_logger(logger::LOG_LEVEL_DEBUG, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_ERROR(msg, feature) output_logger(logger::LOG_LEVEL_ERROR, msg, "", feature, __FILE__, __LINE__)
-#define LOGF_FATAL(msg, feature) output_logger(logger::LOG_LEVEL_FATAL, msg, "", feature, __FILE__, __LINE__)
-#define LOGTF_WARN(msg, tag, feature) output_logger(logger::LOG_LEVEL_WARN, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_INFO(msg, tag, feature) output_logger(logger::LOG_LEVEL_INFO, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_DUMP(msg, tag, feature) output_logger(logger::LOG_LEVEL_DUMP, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_DEBUG(msg, tag, feature) output_logger(logger::LOG_LEVEL_DEBUG, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_ERROR(msg, tag, feature) output_logger(logger::LOG_LEVEL_ERROR, msg, tag, feature, __FILE__, __LINE__)
-#define LOGTF_FATAL(msg, tag, feature) output_logger(logger::LOG_LEVEL_FATAL, msg, tag, feature, __FILE__, __LINE__)

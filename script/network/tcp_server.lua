@@ -3,7 +3,6 @@
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
-local log_debug         = logger.debug
 local signalquit        = signal.quit
 local qdefer            = quanta.defer
 local qxpcall           = quanta.xpcall
@@ -53,7 +52,7 @@ function TcpServer:on_quit()
         self.listener.close()
         self.listener = nil
         self.codec = nil
-        log_debug("[TcpServer][on_quit]")
+        log_info("[TcpServer][on_quit]")
     end
 end
 

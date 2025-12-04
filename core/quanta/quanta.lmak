@@ -14,15 +14,12 @@ DEFINES = {
 --需要的include目录
 INCLUDES = {
     "../../extend/lua/lua",
-    "../../extend/luakit/include",
-    "../../extend/lualog/lualog",
-    "../../extend/luaxlsx/src"
+    "../../extend/luakit/include"
 }
 
 --需要连接的库文件
 LIBS = {
-    "lua",
-    "lualog"
+    "lua"
 }
 
 --LINUX需要连接的库文件
@@ -45,10 +42,13 @@ NWINDOWS_POSTBUILDS = {
     "rm -fr $(TARGET_DIR)/liblualog.so"
 }
 
+EXCLUDE_FILE = {
+    "dynmic.cpp"
+}
+
 --依赖项目
 DEPS = {
-    "luabus",
-    "lualog"
+    "luabus"
 }
 
 --分组定义

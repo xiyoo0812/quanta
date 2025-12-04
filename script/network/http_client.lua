@@ -14,7 +14,6 @@ local luencode      = codec.url_encode
 
 local HTTP_2        = "h2"
 local HTTP_1_1      = "http/1.1"
-local PROTO_TEXT    = luabus.eproto_type.TEXT
 
 local update_mgr    = quanta.get("update_mgr")
 
@@ -60,7 +59,7 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
         log_err("[HttpClient][send_request] failed : {}", port)
         return false, ip
     end
-    local socket, err = self:connect(host, ip, port, scheme)
+    local socket, err = self:connect(host, ip, port, scheme, timeout)
     if not socket then
         log_err("[HttpClient][connect] failed : {}", err)
         return false, err
@@ -83,7 +82,7 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     return socket:send_packet(fmt_url, method, ori_headers, datas or "")
 end
 
-function HttpClient:connect(host, ip, port, scheme)
+function HttpClient:connect(host, ip, port, scheme, timeout)
     local socket
     if self.version == HTTP_2 then
         socket = self.clients[host]
@@ -98,7 +97,7 @@ function HttpClient:connect(host, ip, port, scheme)
             socket:set_tls_enable(false)
         end
     end
-    local ok, cerr = socket:connect(ip, port, PROTO_TEXT)
+    local ok, cerr = socket:connect(ip, port, timeout)
     if not ok then
         return nil, cerr
     end

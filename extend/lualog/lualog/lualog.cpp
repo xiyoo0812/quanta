@@ -176,7 +176,7 @@ namespace logger {
         lualog.set_function("ignore_suffix", [](cpchar feature, bool suffix) { s_logger->ignore_suffix(feature, suffix); });
         lualog.set_function("add_dest", [](cpchar feature) { return s_logger->add_dest(feature); });
         lualog.set_function("add_file_dest", [](cpchar feature, cpchar fname) { return s_logger->add_file_dest(feature, fname); });
-        lualog.set_function("option", [](cpchar log_path, cpchar service, cpchar index) { return s_logger->option(log_path, service, index); });
+        lualog.set_function("option", [](fspath log_path, cpchar service, cpchar index) { return s_logger->option(log_path, service, index); });
         return lualog;
     }
 }
@@ -185,13 +185,5 @@ extern "C" {
     LUALIB_API int luaopen_lualog(lua_State* L) {
         auto llog = logger::open_lualog(L);
         return llog.push_stack();
-    }
-
-    LUALIB_API bool option_logger(cpchar log_path, cpchar service, cpchar index) {
-        return logger::s_logger->option(log_path, service, index);
-    }
-    
-    LUALIB_API void output_logger(logger::log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line){
-        logger::s_agent->output(level, std::move(msg), tag, feature, source, line);
     }
 }

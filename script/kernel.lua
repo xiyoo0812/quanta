@@ -1,4 +1,11 @@
 --kernel.lua
+require("lbson")
+require("ljson")
+require("luapb")
+require("lcodec")
+require("luassl")
+require("ltimer")
+
 import("basic/basic.lua")
 
 local log_warn      = logger.warn
@@ -17,12 +24,6 @@ local THREAD_MASTER = quanta.master
 
 --初始化基础库
 local function init_library()
-    --加载扩展库
-    require("luassl")
-    require("luapb")
-    require("ljson")
-    require("lbson")
-    require("lcodec")
     --加载基础库
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
@@ -108,8 +109,6 @@ function quanta.startup(entry)
     quanta.main()
     --启动服务器
     qxpcall(entry, "quanta startup err: {}")
-    --输出启动信息
-    quanta.report("startup")
 end
 
 local function run_frame()

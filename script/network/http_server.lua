@@ -38,7 +38,7 @@ end
 function HttpServer:on_quit()
     if self.listener then
         self.listener:close()
-        log_debug("[HttpServer][on_quit]")
+        log_info("[HttpServer][on_quit]")
     end
 end
 

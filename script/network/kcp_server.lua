@@ -3,7 +3,6 @@
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
-local log_debug         = logger.debug
 local signalquit        = signal.quit
 local kcp_update        = kcp.update
 local qdefer            = quanta.defer
@@ -55,7 +54,7 @@ function KcpServer:on_quit()
         self.listener.close()
         self.listener = nil
         self.codec = nil
-        log_debug("[KcpServer][on_quit]")
+        log_info("[KcpServer][on_quit]")
     end
 end
 
