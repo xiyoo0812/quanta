@@ -263,7 +263,7 @@ namespace lcodec {
 
         void notice_error_decode(lua_State* L) {
             size_t len;
-            std::unordered_map<uint8_t, const char*> values;
+            std::unordered_map<uint8_t, cpchar> values;
             while (true) {
                 uint8_t flag = m_packet.swap_read();
                 if (flag == 0) break;
@@ -306,7 +306,7 @@ namespace lcodec {
                 for (size_t i = 0; i < nfield; ++i) {
                     auto column = cols[i];
                     int32_t dlen = m_packet.swap_read<int32_t>();
-                    const char* data = (const char*)m_packet.erase(dlen);
+                    cpchar data = (cpchar)m_packet.erase(dlen);
                     lua_pushlstring(L, column.name.data(), column.name.size());
                     switch (column.type) {
                     case PTBOOLEAN:
@@ -358,9 +358,9 @@ namespace lcodec {
             }
         }
 
-        const char* read_cstring(slice* slice, size_t& l) {
+        cpchar read_cstring(slice* slice, size_t& l) {
             size_t sz;
-            const char* dst = (const char*)slice->data(&sz);
+            cpchar dst = (cpchar)slice->data(&sz);
             for (l = 0; l < sz; ++l) {
                 if (dst[l] == '\0') {
                     slice->erase(l + 1);

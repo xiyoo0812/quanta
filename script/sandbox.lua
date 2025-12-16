@@ -4,7 +4,6 @@ require("lstdfs")
 
 local pairs         = pairs
 local loadfile      = loadfile
-local mabs          = math.abs
 local sgsub         = string.gsub
 local ssplit        = string.split
 local qgenv         = quanta.getenv
@@ -106,7 +105,7 @@ function quanta.reload()
                 log_err("[quanta][reload] {} get_time failed({})", node.fullpath, err)
                 return
             end
-            if mabs(node.time - filetime) > 1 then
+            if node.time ~= filetime then
                 try_load(node)
             end
         end

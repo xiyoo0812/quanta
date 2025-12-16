@@ -403,7 +403,7 @@ namespace lcodec {
             uint8_t proto = m_packet.read<uint8_t>();
             //n byte server version
             size_t data_len;
-            const char* version = read_cstring(m_packet, data_len);
+            cpchar version = read_cstring(m_packet, data_len);
             //4 byte thread_id
             uint32_t thread_id = m_packet.read<uint32_t>();
             //8 byte auth-plugin-data-part-1
@@ -431,9 +431,8 @@ namespace lcodec {
             lua_pushlstring(L, (char*)scramble1, 8);
             lua_pushlstring(L, scramble2, 12);
             //auth_plugin_name
-            const char* auth_plugin_name = nullptr;
             if ((m_capability & CLIENT_PLUGIN_AUTH) == CLIENT_PLUGIN_AUTH) {
-                auth_plugin_name = read_cstring(m_packet, data_len);
+                cpchar auth_plugin_name = read_cstring(m_packet, data_len);
                 lua_pushlstring(L, auth_plugin_name, data_len);
             }
         }
@@ -533,9 +532,9 @@ namespace lcodec {
             return "";
         }
 
-        const char* read_cstring(slice& slice, size_t& l) {
+        cpchar read_cstring(slice& slice, size_t& l) {
             size_t sz;
-            const char* dst = (const char*)slice.data(&sz);
+            cpchar dst = (cpchar)slice.data(&sz);
             for (l = 0; l < sz; ++l) {
                 if (dst[l] == '\0') {
                     slice.erase(l + 1);

@@ -1,10 +1,11 @@
 ﻿#pragma once
+
 #include "lua_stack.h"
 
 namespace luakit {
 
     //错误函数
-    using error_fn = std::function<void(std::string_view err)>;
+    using error_fn = std::function<void(vstring err)>;
 
     //辅助识别lambda函数
     template <typename F>
@@ -222,12 +223,12 @@ namespace luakit {
 
     //get function
     //-------------------------------------------------------------------------------
-    inline bool get_global_function(lua_State* L, const char* function) {
+    inline bool get_global_function(lua_State* L, cpchar function) {
         lua_getglobal(L, function);
         return lua_isfunction(L, -1);
     }
 
-    inline bool get_table_function(lua_State* L, const char* table, const char* function) {
+    inline bool get_table_function(lua_State* L, cpchar table, cpchar function) {
         lua_getglobal(L, table);
         if (!lua_istable(L, -1)) {
             lua_pop(L, 1);
@@ -239,7 +240,7 @@ namespace luakit {
     }
 
     template <typename T>
-    bool get_object_function(lua_State* L, T* object, const char* function) {
+    bool get_object_function(lua_State* L, T* object, cpchar function) {
         lua_push_object(L, object);
         if (!lua_istable(L, -1)) {
             lua_pop(L, 1);
@@ -303,35 +304,35 @@ namespace luakit {
     }
 
     template <typename... ret_types, typename... arg_types>
-    bool call_global_function (lua_State* L, const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+    bool call_global_function (lua_State* L, cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
         lua_guard g(L);
         if (!get_global_function(L, function)) return false;
         return lua_call_function(L, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
     }
 
     template <typename... ret_types, typename... arg_types>
-    bool call_table_function(lua_State* L, const char* table, const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+    bool call_table_function(lua_State* L, cpchar table, cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
         lua_guard g(L);
         if (!get_table_function(L, table, function)) return false;
         return lua_call_function(L, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
     }
 
     template <typename... ret_types, typename... arg_types>
-    bool call_table_function(lua_State* L, const char* table, const char* function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
+    bool call_table_function(lua_State* L, cpchar table, cpchar function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
         lua_guard g(L);
         if (!get_table_function(L, table, function)) return false;
         return lua_call_function(L, efn, codec, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
     }
 
     template <typename T, typename... ret_types, typename... arg_types>
-    bool call_object_function(lua_State* L, T* o, const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+    bool call_object_function(lua_State* L, T* o, cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
         lua_guard g(L);
         if (!get_object_function(L, o, function)) return false;
         return lua_call_function(L, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
     }
 
     template <typename T, typename... ret_types, typename... arg_types>
-    bool call_object_function(lua_State* L, T* o, const char* function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
+    bool call_object_function(lua_State* L, T* o, cpchar function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
         lua_guard g(L);
         if (!get_object_function(L, o, function)) return false;
         return lua_call_function(L, efn, codec, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);

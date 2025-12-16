@@ -1,4 +1,5 @@
 #pragma once
+
 #include "lua_base.h"
 
 namespace luakit {
@@ -24,7 +25,7 @@ namespace luakit {
     template <std_string T>
     T lua_to_native(lua_State* L, int i) {
         size_t len;
-        const char* str = lua_tolstring(L, i, &len);
+        cpchar str = lua_tolstring(L, i, &len);
         return str == nullptr ? "" : T(str, len);
     }
 
@@ -67,6 +68,7 @@ namespace luakit {
     T lua_to_object(lua_State* L, int idx);
     template <typename T>
     void lua_push_object(lua_State* L, T obj);
+    
     template <std_pointer T>
     T lua_to_native(lua_State* L, int i) {
         using type = std::remove_cv_t<std::remove_pointer_t<T>>;
@@ -158,7 +160,7 @@ namespace luakit {
 
     template <typename T> requires std::same_as<T, std::filesystem::path>
     int native_to_lua(lua_State* L, T v) {
-        lua_pushlstring(L, reinterpret_cast<const char*>(v.u8string().c_str()), v.u8string().size());
+        lua_pushlstring(L, reinterpret_cast<cpchar>(v.u8string().c_str()), v.u8string().size());
         return 1;
     }
 

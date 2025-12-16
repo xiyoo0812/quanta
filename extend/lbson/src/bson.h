@@ -59,7 +59,7 @@ namespace lbson {
         int encode(lua_State* L) {
             size_t data_len = 0;
             slice* slice = encode_slice(L);
-            const char* data = (const char*)slice->data(&data_len);
+            cpchar data = (cpchar)slice->data(&data_len);
             lua_pushlstring(L, data, data_len);
             return 1;
         }
@@ -67,7 +67,7 @@ namespace lbson {
         int decode(lua_State* L) {
             m_buff->clean();
             size_t data_len = 0;
-            const char* buf = lua_tolstring(L, 1, &data_len);
+            cpchar buf = lua_tolstring(L, 1, &data_len);
             if (data_len > 0) m_buff->push_data((uint8_t*)buf, data_len);
             return decode_slice(L, m_buff->get_slice());
         }
@@ -93,7 +93,7 @@ namespace lbson {
             for (int i = 0; i < n; i += 2) {
                 int vt = lua_type(L, i + 2);
                 if (vt != LUA_TNIL && vt != LUA_TNONE) {
-                    const char* key = lua_tolstring(L, i + 1, &sz);
+                    cpchar key = lua_tolstring(L, i + 1, &sz);
                     if (key == nullptr) {
                         luaL_error(L, "Argument %d need a string", i + 1);
                     }
@@ -123,7 +123,7 @@ namespace lbson {
 
         int objectid(lua_State* L) {
             size_t data_len = 0;
-            const char* value = lua_tolstring(L, 1, &data_len);
+            cpchar value = lua_tolstring(L, 1, &data_len);
             if (data_len != 24) return luaL_error(L, "Invalid object id");
             char buffer[16] = { 0 };
             write_objectid(L, buffer, value);
@@ -136,7 +136,7 @@ namespace lbson {
             m_buff->write<uint8_t>(0);
             m_buff->write<uint8_t>((uint8_t)BSON_DOCUMENT);
             uint8_t* data = encode_pairs(L, &data_len);
-            lua_pushlstring(L, (const char*)data, data_len);
+            lua_pushlstring(L, (cpchar)data, data_len);
             return 1;
         }
 
@@ -149,7 +149,7 @@ namespace lbson {
             m_buff->write<uint8_t>(0); //subtype
             m_buff->write<int32_t>(data_len);
             if (data_len > 0) m_buff->push_data(value, data_len);
-            lua_pushlstring(L, (const char*)m_buff->head(), m_buff->size());
+            lua_pushlstring(L, (cpchar)m_buff->head(), m_buff->size());
             return 1;
         }
 
@@ -164,7 +164,7 @@ namespace lbson {
             uint8_t* val2 = (uint8_t*)lua_tolstring(L, 2, &data_len);
             m_buff->push_data(val2, data_len);
             m_buff->write<uint8_t>(0);
-            lua_pushlstring(L, (const char*)m_buff->head(), m_buff->size());
+            lua_pushlstring(L, (cpchar)m_buff->head(), m_buff->size());
             return 1;
         }
 
@@ -174,7 +174,7 @@ namespace lbson {
             m_buff->write<uint8_t>(0);
             m_buff->write<uint8_t>((uint8_t)type);
             m_buff->push_data(value, len);
-            lua_pushlstring(L, (const char*)m_buff->head(), m_buff->size());
+            lua_pushlstring(L, (cpchar)m_buff->head(), m_buff->size());
             return 1;
         }
 
@@ -201,7 +201,7 @@ namespace lbson {
         void pack_string(lua_State* L) {
             size_t data_len;
             lua_getfield(L, -1, "value");
-            const char* data = lua_tolstring(L, -1, &data_len);
+            cpchar data = lua_tolstring(L, -1, &data_len);
             m_buff->push_data((uint8_t*)data, data_len);
             lua_pop(L, 1);
         }
@@ -209,7 +209,7 @@ namespace lbson {
         void pack_objectid(lua_State* L) {
             size_t data_len;
             lua_getfield(L, -1, "objid");
-            const char* data = lua_tolstring(L, -1, &data_len);
+            cpchar data = lua_tolstring(L, -1, &data_len);
             if (data_len != 24) luaL_error(L, "Invalid object id");
             char buffer[16] = { 0 };
             write_objectid(L, buffer, data);
@@ -221,7 +221,7 @@ namespace lbson {
             lua_guard g(L);
             size_t bin_len;
             lua_getfield(L, -1, "binary");
-            const char* bin = lua_tolstring(L, -1, &bin_len);
+            cpchar bin = lua_tolstring(L, -1, &bin_len);
             lua_getfield(L, -2, "subtype");
             m_buff->write<uint32_t>(bin_len);
             m_buff->write<uint8_t>(lua_tointeger(L, -1));
@@ -232,30 +232,30 @@ namespace lbson {
             lua_guard g(L);
             size_t regex_len;
             lua_getfield(L, -1, "pattern");
-            const char* pattern = lua_tolstring(L, -1, &regex_len);
+            cpchar pattern = lua_tolstring(L, -1, &regex_len);
             write_cstring(pattern, regex_len);
             lua_getfield(L, -2, "option");
-            const char* option = lua_tolstring(L, -1, &regex_len);
+            cpchar option = lua_tolstring(L, -1, &regex_len);
             write_cstring(option, regex_len);
         }
         
-        void write_cstring(const char* buf, size_t len) {
+        void write_cstring(cpchar buf, size_t len) {
             if (len > 0) m_buff->push_data((uint8_t*)buf, len);
             m_buff->write<char>('\0');
         }
 
-        void write_string(const char* buf, size_t len) {
+        void write_string(cpchar buf, size_t len) {
             m_buff->write<uint32_t>(len + 1);
             write_cstring(buf, len);
         }
 
-        void write_key(bson_type type, const char* key, size_t klen) {
+        void write_key(bson_type type, cpchar key, size_t klen) {
             m_buff->write<uint8_t>((uint8_t)type);
             write_cstring(key, klen);
         }
 
         template<typename T>
-        void write_pair(bson_type type, const char* key, size_t klen, T value) {
+        void write_pair(bson_type type, cpchar key, size_t klen, T value) {
             write_key(type, key, klen);
             m_buff->write(value);
         }
@@ -263,7 +263,7 @@ namespace lbson {
         void read_objectid(lua_State* L, slice* slice) {
             char buffer[32] = { 0 };
             static char hextxt[] = "0123456789abcdef";
-            const char* text = read_bytes(L, slice, 12);
+            cpchar text = read_bytes(L, slice, 12);
             for (size_t i = 0; i < 12; i++) {
                 buffer[i * 2] = hextxt[(text[i] >> 4) & 0xf];
                 buffer[i * 2 + 1] = hextxt[text[i] & 0xf];
@@ -271,7 +271,7 @@ namespace lbson {
             lua_pushlstring(L, buffer, 24);
         }
 
-        void write_objectid(lua_State* L, char* buffer, const char* hexoid) {
+        void write_objectid(lua_State* L, char* buffer, cpchar hexoid) {
             for (int i = 0; i < 24; i += 2) {
                 char hi, low;
                 PHEX(hi, hexoid[i]);
@@ -283,7 +283,7 @@ namespace lbson {
             }
         }
 
-        void write_number(lua_State *L, const char* key, size_t klen) {
+        void write_number(lua_State *L, cpchar key, size_t klen) {
             if (lua_isinteger(L, -1)) {
                 int64_t v = lua_tointeger(L, -1);
                 if (v >= INT32_MIN && v <= INT32_MAX) {
@@ -321,7 +321,7 @@ namespace lbson {
                 if (!lua_isstring(L, -1)) {
                     luaL_error(L, "Argument %d need a string", i);
                 }
-                const char* key = lua_tolstring(L, -1, &sz);
+                cpchar key = lua_tolstring(L, -1, &sz);
                 lua_rawgeti(L, -2, i + 1);
                 pack_one(L, key, sz, depth);
                 lua_pop(L, 2);
@@ -350,7 +350,7 @@ namespace lbson {
             return cur_len == raw_len ? BSON_ARRAY : BSON_DOCUMENT;
         }
 
-        void pack_table(lua_State *L, const char* key, size_t len, int depth) {
+        void pack_table(lua_State *L, cpchar key, size_t len, int depth) {
             if (depth > max_bson_depth) {
                 luaL_error(L, "Too depth while encoding bson");
             }
@@ -405,7 +405,7 @@ namespace lbson {
             }
         }
 
-        void pack_one(lua_State *L, const char* key, size_t klen, int depth) {
+        void pack_one(lua_State *L, cpchar key, size_t klen, int depth) {
             int vt = lua_type(L, -1);
             switch(vt) {
             case LUA_TNUMBER:
@@ -429,7 +429,7 @@ namespace lbson {
                 break;
             case LUA_TSTRING: {
                     size_t sz;
-                    const char* buf = lua_tolstring(L, -1, &sz);
+                    cpchar buf = lua_tolstring(L, -1, &sz);
                     if (sz > 2 && buf[0] == 0 && buf[1] != 0) {
                         write_key((bson_type)buf[1], key, klen);
                         m_buff->push_data((uint8_t*)(buf + 2), sz - 2);
@@ -450,7 +450,7 @@ namespace lbson {
         void pack_dict_data(lua_State *L, int depth, int kt) {
             if (kt == LUA_TSTRING) {
                 size_t sz;
-                const char* buf = lua_tolstring(L, -2, &sz);
+                cpchar buf = lua_tolstring(L, -2, &sz);
                 pack_one(L, buf, sz, depth);
                 return;
             }
@@ -477,8 +477,8 @@ namespace lbson {
             m_buff->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
-        const char* read_bytes(lua_State* L, slice* slice, size_t sz) {
-            const char* dst = (const char*)slice->peek(sz);
+        cpchar read_bytes(lua_State* L, slice* slice, size_t sz) {
+            cpchar dst = (cpchar)slice->peek(sz);
             if (!dst) {
                 throw lua_exception("invalid bson string , length = {}", sz);
             }
@@ -486,13 +486,13 @@ namespace lbson {
             return dst;
         }
 
-        const char* read_string(lua_State* L, slice* slice, size_t& sz) {
+        cpchar read_string(lua_State* L, slice* slice, size_t& sz) {
             sz = slice->read<uint32_t>();
             if (sz <= 0) {
                 throw lua_exception("invalid bson string , length = {}", sz);
             }
             sz = sz - 1;
-            const char* dst = "";
+            cpchar dst = "";
             if (sz > 0) {
                 dst = read_bytes(L, slice, sz);
             }
@@ -500,9 +500,9 @@ namespace lbson {
             return dst;
         }
 
-        const char* read_cstring(slice* slice, size_t& l) {
+        cpchar read_cstring(slice* slice, size_t& l) {
             size_t sz;
-            const char* dst = (const char*)slice->data(&sz);
+            cpchar dst = (cpchar)slice->data(&sz);
             for (l = 0; l < sz; ++l) {
                 if (dst[l] == '\0') {
                     slice->erase(l + 1);
@@ -518,7 +518,7 @@ namespace lbson {
 
         void unpack_key(lua_State* L, slice* slice, bool isarray) {
             size_t klen = 0;
-            const char* key = read_cstring(slice, klen);
+            cpchar key = read_cstring(slice, klen);
             if (isarray) {
                 lua_pushinteger(L, std::stoll(key, nullptr, 10) + 1);
                 return;
@@ -561,7 +561,7 @@ namespace lbson {
                     break;
                 case BSON_JSCODE:
                 case BSON_STRING:{
-                        const char* s = read_string(L, slice, klen);
+                        cpchar s = read_string(L, slice, klen);
                         lua_pushlstring(L, s, klen);
                     }
                     break;
@@ -572,7 +572,7 @@ namespace lbson {
                         lua_setfield(L, -2, "__type");
                         lua_pushinteger(L, slice->read());
                         lua_setfield(L, -2, "subtype");
-                        const char* s = read_bytes(L, slice, len);
+                        cpchar s = read_bytes(L, slice, len);
                         lua_pushlstring(L, s, len);
                         lua_setfield(L, -2, "binary");
                     }

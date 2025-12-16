@@ -1,4 +1,5 @@
 #pragma once
+
 #include "lua_function.h"
 
 namespace luakit {

@@ -3,8 +3,8 @@
 #include <charconv>
 
 namespace lcodec {
-    inline size_t       CRLF_LEN    = 2;
-    inline const char*  RDS_CRLF    = "\r\n";
+    inline size_t   CRLF_LEN    = 2;
+    inline cpchar   RDS_CRLF    = "\r\n";
 
     class rdscodec : public codec_base {
     public:
@@ -154,7 +154,7 @@ namespace lcodec {
 
         void string_encode(lua_State* L, int idx) {
             size_t len;
-            const char* data = lua_tolstring(L, idx, &len);
+            cpchar data = lua_tolstring(L, idx, &len);
             m_buf->write(std::format("${}\r\n{}\r\n", len, string_view(data, len)));
         }
 

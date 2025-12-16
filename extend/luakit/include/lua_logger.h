@@ -1,22 +1,22 @@
 #pragma once
-#include <array>
 
 #include "lua_function.h"
 
 namespace luakit {
     class lua_logger {
     public:
-        void init(lua_State* L) { 
-            m_L = L;
+        void init(lua_State* L) {
+            if (!m_L) m_L = L;
         }
 
         template <typename... Args>
-        void output(const char* method, std::string_view fmt, Args&&... args) {
-            lua_guard g(m_L);
+        void output(cpchar method, vstring fmt, Args&&... args) {
             auto msg = std::vformat(fmt, std::make_format_args(args...));
-            if (!call_global_function(m_L, method, nullptr, std::tie(), msg)) {
-                printf(msg.c_str());
+            if (m_L) {
+                lua_guard g(m_L);
+                if (call_global_function(m_L, method, nullptr, std::tie(), msg)) return;
             }
+            printf(msg.c_str());
         }
 
     private:
@@ -28,9 +28,9 @@ namespace luakit {
     inline lua_logger* get_logger() {
         return &glogger;
     }
-
 }
 
+#define LOG_INIT(L)         luakit::get_logger()->init(L)
 #define LOG_WARN(fmt, ...)  luakit::get_logger()->output("warn", fmt, ##__VA_ARGS__)
 #define LOG_DUMP(fmt, ...)  luakit::get_logger()->output("dump", fmt, ##__VA_ARGS__)
 #define LOG_INFO(fmt, ...)  luakit::get_logger()->output("print", fmt, ##__VA_ARGS__)

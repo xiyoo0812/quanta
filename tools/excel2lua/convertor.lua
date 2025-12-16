@@ -44,19 +44,6 @@ local recursion     = false
 --是否导出所有workbook
 local allbook      = false
 
---设置utf8
-if quanta.platform == "linux" then
-    local locale = os.setlocale("C.UTF-8")
-    if not locale then
-        print("switch utf8 mode failed!")
-    end
-else
-    local locale = os.setlocale(".UTF8")
-    if not locale then
-        print("switch utf8 mode failed!")
-    end
-end
-
 local function conv_integer(v)
     return mtointeger(v) or v
 end

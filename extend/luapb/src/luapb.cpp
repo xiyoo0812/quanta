@@ -7,9 +7,9 @@ using namespace luakit;
 
 namespace luapb {
 
-    thread_local std::unordered_map<uint32_t, pb_message*>    pb_cmd_ids;
-    thread_local std::unordered_map<std::string, pb_message*> pb_cmd_names;
-    thread_local std::unordered_map<std::string, uint32_t>    pb_cmd_indexs;
+    thread_local unordered_map<uint32_t, pb_message*>   pb_cmd_ids;
+    thread_local unordered_map<string, pb_message*>     pb_cmd_names;
+    thread_local unordered_map<string, uint32_t>        pb_cmd_indexs;
 
     #pragma pack(1)
     struct pb_header {

@@ -30,7 +30,7 @@ namespace luakit {
     const uint8_t max_uint8         = UCHAR_MAX - type_max;
     const uint32_t max_string_size  = 0xffffff;
 
-    inline thread_local std::vector<std::string_view> t_sshares(max_share_string);
+    inline thread_local std::vector<vstring> t_sshares(max_share_string);
 
     int decode_one(lua_State* L, slice* slice);
     void encode_one(lua_State* L, luabuf* buff, int idx, size_t depth, bool isindex = false);
@@ -38,25 +38,25 @@ namespace luakit {
 
     template<typename T>
     void value_encode(luabuf* buff, T data) {
-        buff->push_data((const uint8_t*)&data, sizeof(T));
+        buff->push_data((cpbyte)&data, sizeof(T));
     }
 
-    inline void value_encode(luabuf* buff, const char* data, size_t len) {
-        buff->push_data((const uint8_t*)data, len);
+    inline void value_encode(luabuf* buff, cpchar data, size_t len) {
+        buff->push_data((cpbyte)data, len);
     }
 
-    inline int8_t find_index(std::string_view& str) {
+    inline int8_t find_index(vstring& str) {
         for (int i = 0; i < t_sshares.size(); ++i) {
             if (t_sshares[i] == str) return i;
         }
         return -1;
     }
 
-    inline std::string_view find_string(size_t index) {
+    inline vstring find_string(size_t index) {
         return (index < t_sshares.size()) ? t_sshares[index] : "";
     }
 
-    inline void string_write(luabuf* buff, const char* ptr, size_t sz) {
+    inline void string_write(luabuf* buff, cpchar ptr, size_t sz) {
         if (sz <= UCHAR_MAX) {
             value_encode(buff, type_string8);
             value_encode<uint8_t>(buff, sz);
@@ -74,7 +74,7 @@ namespace luakit {
 
     inline void string_encode(lua_State* L, luabuf* buff, int index) {
         size_t sz = 0;
-        const char* ptr = lua_tolstring(L, index, &sz);
+        cpchar ptr = lua_tolstring(L, index, &sz);
         if (sz >= max_string_size) {
             luaL_error(L, "encode string can't pack too long (%d) string", sz);
             return;
@@ -84,7 +84,7 @@ namespace luakit {
 
     inline void index_encode(lua_State* L, luabuf* buff, int index) {
         size_t sz = 0;
-        const char* ptr = lua_tolstring(L, index, &sz);
+        cpchar ptr = lua_tolstring(L, index, &sz);
         if (sz > USHRT_MAX) {
             luaL_error(L, "encode index can't pack too long (%d) string", sz);
             return;
@@ -93,7 +93,7 @@ namespace luakit {
             string_write(buff, ptr, sz);
             return;
         }
-        std::string_view value(ptr, sz);
+        vstring value(ptr, sz);
         int8_t sindex = find_index(value);
         if (sindex < 0){
             if (t_sshares.size() < max_share_string) {
@@ -190,7 +190,7 @@ namespace luakit {
     inline int encode(lua_State* L, luabuf* buff) {
         size_t data_len = 0;
         slice* slice = encode_slice(L, buff, 1, 1);
-        const char* data = (const char*)slice->data(&data_len);
+        cpchar data = (cpchar)slice->data(&data_len);
         lua_pushlstring(L, data, data_len);
         return 1;
     }
@@ -200,18 +200,18 @@ namespace luakit {
             lua_pushstring(L, "");
             return;
         }
-        auto str = (const char*)slice->peek(sz);
+        auto str = (cpchar)slice->peek(sz);
         if (str == nullptr || sz > max_string_size) {
             throw lua_exception("decode string is out of range");
         }
         slice->erase(sz);
-        if (isindex) t_sshares.push_back(std::string_view(str, sz));
+        if (isindex) t_sshares.push_back(vstring(str, sz));
         lua_pushlstring(L, str, sz);
     }
 
     inline void index_decode(lua_State* L, slice* slice) {
         uint8_t index = slice->read();
-        std::string_view str = find_string(index);
+        vstring str = find_string(index);
         lua_pushlstring(L, str.data(), str.size());
     }
 
@@ -302,7 +302,7 @@ namespace luakit {
         try {
             buff->clean();
             size_t data_len = 0;
-            const char* buf = lua_tolstring(L, 1, &data_len);
+            cpchar buf = lua_tolstring(L, 1, &data_len);
             buff->push_data((uint8_t*)buf, data_len);
             return decode_slice(L, buff->get_slice());
         } catch (const std::exception& e){
@@ -311,11 +311,11 @@ namespace luakit {
         return 0;
     }
 
-    inline void serialize_value(luabuf* buff, const char* str) {
-        buff->push_data((const uint8_t*)str, strlen(str));
+    inline void serialize_value(luabuf* buff, cpchar str) {
+        buff->push_data((cpbyte)str, strlen(str));
     }
 
-    inline void serialize_quote(luabuf* buff, const char* str, const char* l, const char* r) {
+    inline void serialize_quote(luabuf* buff, cpchar str, cpchar l, cpchar r) {
         serialize_value(buff, l);
         serialize_value(buff, str);
         serialize_value(buff, r);
@@ -338,9 +338,9 @@ namespace luakit {
     inline void serialize_string(lua_State* L, luabuf* buff, int index) {
         size_t sz;
         serialize_value(buff, "'");
-        const char* str = luaL_checklstring(L, index, &sz);
+        cpchar str = luaL_checklstring(L, index, &sz);
         if (sz > 0) {
-            buff->push_data((const uint8_t*)str, sz);
+            buff->push_data((cpbyte)str, sz);
         }
         serialize_value(buff, "'");
     }
@@ -463,7 +463,7 @@ namespace luakit {
         buff->clean();
         size_t data_len = 0;
         serialize_one(L, buff, 1, 1, luaL_optinteger(L, 2, 0));
-        const char* data = (const char*)buff->data(&data_len);
+        cpchar data = (cpchar)buff->data(&data_len);
         lua_pushlstring(L, data, data_len);
         return 1;
     }
@@ -522,7 +522,7 @@ namespace luakit {
         }
         virtual bool failed() { return m_failed; }
         virtual luabuf* get_buff() { return m_buf; }
-        virtual const char* err() { return m_err.c_str(); }
+        virtual cpchar err() { return m_err.c_str(); }
         virtual size_t get_packet_len() { return m_packet_len; }
         virtual void set_buff(luabuf* buf) { m_buf = buf; }
 

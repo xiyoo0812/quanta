@@ -4,7 +4,7 @@
 
 namespace lxlsx {
 
-    static excel_file* open_excel(lua_State* L, const char* filename) {
+    static excel_file* open_excel(lua_State* L, cpchar filename) {
         auto excel = new excel_file();
         try {
             excel->open(filename);

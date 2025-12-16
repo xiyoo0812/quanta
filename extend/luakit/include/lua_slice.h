@@ -1,5 +1,5 @@
 #pragma once
-#include <cstring>
+
 #include "lua_base.h"
 
 namespace luakit {
@@ -93,23 +93,23 @@ namespace luakit {
             return m_head;
         }
 
-        inline std::string_view contents() {
+        inline vstring contents() {
             size_t len = (size_t)(m_tail - m_head);
-            return std::string_view((const char*)m_head, len);
+            return vstring((cpchar)m_head, len);
         }
 
-        inline std::string_view eof() {
+        inline vstring eof() {
             uint8_t* head = m_head;
             m_head = m_tail;
             size_t len = (size_t)(m_tail - head);
-            return std::string_view((const char*)head, len);
+            return vstring((cpchar)head, len);
         }
 
         inline int check(lua_State* L) {
             size_t peek_len = lua_tointeger(L, 1);
             size_t data_len = m_tail - m_head;
             if (peek_len > 0 && data_len >= peek_len) {
-                lua_pushlstring(L, (const char*)m_head, peek_len);
+                lua_pushlstring(L, (cpchar)m_head, peek_len);
                 return 1;
             }
             return 0;
@@ -119,7 +119,7 @@ namespace luakit {
             size_t data_len = m_tail - m_head;
             size_t read_len = lua_tointeger(L, 1);
             if (read_len > 0 && data_len >= read_len) {
-                lua_pushlstring(L, (const char*)m_head, read_len);
+                lua_pushlstring(L, (cpchar)m_head, read_len);
                 m_head += read_len;
                 return 1;
             }
@@ -128,7 +128,7 @@ namespace luakit {
 
         inline int string(lua_State* L) {
             size_t len = (size_t)(m_tail - m_head);
-            lua_pushlstring(L, (const char*)m_head, len);
+            lua_pushlstring(L, (cpchar)m_head, len);
             return 1;
         }
         

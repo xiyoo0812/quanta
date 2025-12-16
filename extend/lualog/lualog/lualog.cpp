@@ -3,50 +3,49 @@
 #include "logger.h"
 
 using namespace std;
-using namespace luakit;
 
-using lua_variant = variant<lua_Integer, lua_Number, string_view, string>;
+using lua_variant = variant<lua_Integer, lua_Number, vstring, sstring>;
 
 template <>
 struct std::formatter<lua_variant> {
-    std::string fmt_spec;
+    sstring fmt_spec;
     constexpr auto parse(format_parse_context& ctx) {
         auto it = ctx.begin(), end = ctx.end();
         if (it != end && *it != '}') {
             auto start = it;
             while (it != end && *it != '}') ++it;
-            fmt_spec = "{:" + std::string(start, it) + "}";
+            fmt_spec = "{:" + sstring(start, it) + "}";
         }
         return it;
     }
     auto format(const lua_variant& var, format_context& ctx) const {
-        return std::visit([&](auto&& arg) {
-            if (fmt_spec.empty()) return std::format_to(ctx.out(), "{}", arg);
-            return std::vformat_to(ctx.out(), fmt_spec, std::make_format_args(arg));
+        return visit([&](auto&& arg) {
+            if (fmt_spec.empty()) return format_to(ctx.out(), "{}", arg);
+            return vformat_to(ctx.out(), fmt_spec, make_format_args(arg));
         }, var);
     }
 };
 
 namespace logger {
 
-    thread_local std::shared_ptr<log_agent> s_agent = make_shared<log_agent>();
-    static std::shared_ptr<log_service> s_logger = make_shared<log_service>();
+    thread_local shared_ptr<log_agent> s_agent = make_shared<log_agent>();
+    static shared_ptr<log_service> s_logger = make_shared<log_service>();
 
     const int LOG_FLAG_FORMAT = 1;
     const int LOG_FLAG_PRETTY = 2;
     const int LOG_FLAG_MONITOR = 4;
     lua_variant read_args(lua_State* L, int flag, int index) {
         switch (lua_type(L, index)) {
-        case LUA_TNIL: return string_view("nil");
-        case LUA_TTHREAD: return string_view("thread");
-        case LUA_TFUNCTION: return string_view("function");
-        case LUA_TUSERDATA:  return string_view("userdata");
-        case LUA_TLIGHTUSERDATA: return string_view("userdata");
-        case LUA_TBOOLEAN: return string_view(lua_toboolean(L, index) ? "true" : "false");
+        case LUA_TNIL: return vstring("nil");
+        case LUA_TTHREAD: return vstring("thread");
+        case LUA_TFUNCTION: return vstring("function");
+        case LUA_TUSERDATA:  return vstring("userdata");
+        case LUA_TLIGHTUSERDATA: return vstring("userdata");
+        case LUA_TBOOLEAN: return vstring(lua_toboolean(L, index) ? "true" : "false");
         case LUA_TSTRING: {
             size_t len;
             const char* buf = lua_tolstring(L, index, &len);
-            return string_view(buf, len);
+            return vstring(buf, len);
         }
         case LUA_TTABLE:
             if ((flag & LOG_FLAG_FORMAT) == LOG_FLAG_FORMAT) {
@@ -55,14 +54,14 @@ namespace logger {
                 serialize_one(L, buf, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
                 return string((char*)buf->head(), buf->size());
             }
-            return string_view(luaL_tolstring(L, index, nullptr));
+            return vstring(luaL_tolstring(L, index, nullptr));
         case LUA_TNUMBER:
             if (lua_isinteger(L, index)) {
                 return lua_tointeger(L, index);
             }
             return lua_tonumber(L, index);
         }
-        return string_view("unsuppert data type");
+        return vstring("unsuppert data type");
     }
 
     int zformat(lua_State* L, log_level lvl, cpchar tag, cpchar trace_id, cpchar feature, size_t flag, sstring&& msg) {
@@ -79,8 +78,8 @@ namespace logger {
     template<size_t... integers>
     int tformat(lua_State* L, log_level lvl, cpchar tag, cpchar trace_id, cpchar feature, size_t flag, cpchar vfmt, std::index_sequence<integers...>&&) {
         try {
-            std::tuple args = std::make_tuple(read_args(L, flag, integers + 7)...);
-            auto msg = std::vformat(vfmt, std::make_format_args(std::get<integers>(args)...));
+            tuple args = make_tuple(read_args(L, flag, integers + 7)...);
+            auto msg = vformat(vfmt, make_format_args(std::get<integers>(args)...));
             return zformat(L, lvl, tag, trace_id, feature, flag, std::move(msg));
         } catch (const exception& e) {
             luaL_error(L, "log format failed: %s!", e.what());
@@ -89,10 +88,10 @@ namespace logger {
     }
 
     template<size_t... integers>
-    int fformat(lua_State* L, size_t flag, cpchar vfmt, std::index_sequence<integers...>&&) {
+    int fformat(lua_State* L, size_t flag, cpchar vfmt, index_sequence<integers...>&&) {
         try {
-            std::tuple args = std::make_tuple(read_args(L, flag, integers + 2)...);
-            auto msg = std::vformat(vfmt, std::make_format_args(std::get<integers>(args)...));
+            tuple args = make_tuple(read_args(L, flag, integers + 2)...);
+            auto msg = vformat(vfmt, make_format_args(std::get<integers>(args)...));
             lua_pushlstring(L, msg.c_str(), msg.size());
             return 1;
         } catch (const exception& e) {
@@ -105,12 +104,12 @@ namespace logger {
         luakit::kit_state kit_state(L);
         auto lualog = kit_state.new_table("log");
         lualog.new_enum("LOG_LEVEL",
-            "INFO", LOG_LEVEL_INFO,
-            "WARN", LOG_LEVEL_WARN,
-            "DUMP", LOG_LEVEL_DUMP,
-            "DEBUG", LOG_LEVEL_DEBUG,
-            "ERROR", LOG_LEVEL_ERROR,
-            "FATAL", LOG_LEVEL_FATAL
+            "INFO", LOG_INFO,
+            "WARN", LOG_WARN,
+            "DUMP", LOG_DUMP,
+            "DEBUG", LOG_DEBUG,
+            "ERROR", LOG_ERROR,
+            "FATAL", LOG_FATAL
         );
         lualog.new_enum("LOG_FLAG",
             "NULL", 0,
@@ -185,5 +184,9 @@ extern "C" {
     LUALIB_API int luaopen_lualog(lua_State* L) {
         auto llog = logger::open_lualog(L);
         return llog.push_stack();
+    }
+
+    LUALIB_API void lualog_set_logger(custom_output fn) {
+        logger::s_logger->set_custom_output(fn);
     }
 }

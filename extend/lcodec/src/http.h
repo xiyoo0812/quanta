@@ -3,18 +3,18 @@
 
 namespace lcodec {
 
-    inline size_t       LCRLF       = 2;
-    inline size_t       LCRLF2      = 4;
-    inline size_t       LCHUNKEND   = 5;
-    inline size_t       LCONTENTL   = 15;
-    inline const char*  CRLF        = "\r\n";
-    inline const char*  CRLF2       = "\r\n\r\n";
-    inline const char*  CHUNKEND    = "0\r\n\r\n";
-    inline const char*  CHUNKED     = "chunked";
-    inline const char*  CONTENTT    = "Content-Type";
-    inline const char*  CONTENTL    = "Content-Length";
-    inline const char*  CONTENTE    = "Content-Encoding";
-    inline const char*  TRANSFER    = "Transfer-Encoding";
+    inline size_t   LCRLF       = 2;
+    inline size_t   LCRLF2      = 4;
+    inline size_t   LCHUNKEND   = 5;
+    inline size_t   LCONTENTL   = 15;
+    inline cpchar   CRLF        = "\r\n";
+    inline cpchar   CRLF2       = "\r\n\r\n";
+    inline cpchar   CHUNKEND    = "0\r\n\r\n";
+    inline cpchar   CHUNKED     = "chunked";
+    inline cpchar   CONTENTT    = "Content-Type";
+    inline cpchar   CONTENTL    = "Content-Length";
+    inline cpchar   CONTENTE    = "Content-Encoding";
+    inline cpchar   TRANSFER    = "Transfer-Encoding";
 
     #define SC_UNKNOWN          0
     #define SC_PROTOCOL         101
@@ -29,19 +29,19 @@ namespace lcodec {
     #define SC_SERVERERROR      500
     #define SC_SERVERBUSY       503
 
-    bool is_packet_complete(const char* buffer, size_t buffer_size) {
-        const char* header_end = strstr(buffer, CRLF2);
+    bool is_packet_complete(cpchar buffer, size_t buffer_size) {
+        cpchar header_end = strstr(buffer, CRLF2);
         if (!header_end) {
             return false;
         }
-        const char* body_start = header_end + LCRLF2;
+        cpchar body_start = header_end + LCRLF2;
         size_t body_size = buffer_size - (body_start - buffer);
         bool is_chunked = strstr(buffer, CHUNKED) != nullptr;
         if (is_chunked) {
             if (body_size < LCHUNKEND || memcmp(body_start + body_size - LCRLF2, CRLF2, LCRLF2) != 0) {
                 return false;
             }
-            const char* chunk_end = body_start + body_size - LCHUNKEND;
+            cpchar chunk_end = body_start + body_size - LCHUNKEND;
             while (chunk_end >= body_start) {
                 if (memcmp(chunk_end, CHUNKEND, LCHUNKEND) == 0) {
                     return true;
@@ -51,9 +51,9 @@ namespace lcodec {
             return false;
         }
         size_t content_length = -1;
-        const char* content_length_pos = strstr(buffer, CONTENTL);
+        cpchar content_length_pos = strstr(buffer, CONTENTL);
         if (content_length_pos) {
-            const char* value_start = content_length_pos + LCONTENTL;
+            cpchar value_start = content_length_pos + LCONTENTL;
             content_length = std::atoi(value_start);
             return body_size >= content_length;
         }
@@ -158,7 +158,7 @@ namespace lcodec {
                                 buf.remove_prefix(pos + 2 * LCRLF);
                                 break;
                             }
-                            m_buffer.append((const char*)next + LCRLF, chunk_size);
+                            m_buffer.append((cpchar)next + LCRLF, chunk_size);
                             buf.remove_prefix(pos + chunk_size + 2 * LCRLF);
                         }
                     }
@@ -169,7 +169,7 @@ namespace lcodec {
                 }
             }
             if (!buf.empty()) {
-                m_buffer.append((const char*)buf.data(), buf.size());
+                m_buffer.append((cpchar)buf.data(), buf.size());
                 buf.remove_prefix(buf.size());
             }
             if (m_buffer.empty()) {
@@ -292,8 +292,8 @@ namespace lcodec {
         virtual void format_http(lua_State* L, int* index)  {
             char buf[CHAR_MAX];
             session_id = lua_tointeger(L, (*index)++);
-            const char* url = lua_tostring(L, (*index)++);
-            const char* method = lua_tostring(L, (*index)++);
+            cpchar url = lua_tostring(L, (*index)++);
+            cpchar method = lua_tostring(L, (*index)++);
             size_t len = format_to_n(buf, CHAR_MAX, "%s %s HTTP/1.1\r\n", method, url).size;
             m_buf->push_data((const uint8_t*)buf, len);
         }

@@ -88,7 +88,8 @@ namespace logger {
         auto logtxt = msg->format(prefix_, suffix_, color());
         size_t msize = logtxt.size();
         if (size_ + msize >= USHRT_MAX) flush(logtime);
-        raw_write(logtxt, msize);
+        if (output_) output_(logtxt.c_str(), logtxt.size(), (int)msg->level());
+        else raw_write(logtxt, msize);
     }
 
     // class stdio_dest
@@ -128,6 +129,7 @@ namespace logger {
     void log_file_base::flush(const zone_time& time) {
         if (size_ == 0) return;
         file_->write(log_buf_, size_);
+        file_->flush();
         size_ = 0;
     }
 
@@ -192,7 +194,7 @@ namespace logger {
         log_path_ = log_path;
         zone_ = const_cast<time_zone*>(current_zone());
         service_ = std::format("{}-{}", service, index);
-        try { 
+        try {
             create_directories(log_path_);
             add_dest(service);
             //启动日志线程
@@ -325,7 +327,7 @@ namespace logger {
         for (auto dest : dest_lvls_)
             dest.second->flush(time);
     }
-   
+
     void log_service::run(std::stop_token stoken) {
         std::this_thread::sleep_for(milliseconds(100));
         while (true) {
@@ -371,7 +373,7 @@ namespace logger {
         }
     }
 
-    void log_agent::attach(wptr<log_service> service) { 
+    void log_agent::attach(wptr<log_service> service) {
         service_ = service;
         if (auto lservice = service_.lock(); lservice) {
             lservice->add_agent(this);

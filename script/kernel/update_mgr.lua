@@ -19,7 +19,6 @@ local thread_mgr    = quanta.get("thread_mgr")
 local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
 
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
-local HALF_MS       = quanta.enum("PeriodTime", "HALF_MS")
 
 local Functor       = import("feature/functor.lua")
 
@@ -157,7 +156,7 @@ function UpdateMgr:quit()
         obj:on_quit()
     end
     --退出
-    timer_mgr:once(HALF_MS, function()
+    timer_mgr:once(FAST_MS, function()
         log_info("[UpdateMgr][quit] service real quit !")
         quanta.run = nil
     end)

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "lua_reference.h"
 
 namespace luakit {
@@ -32,7 +33,7 @@ namespace luakit {
         }
 
         template<typename T>
-        void set_function(const char* function, T func) {
+        void set_function(cpchar function, T func) {
             lua_guard g(m_L);
             lua_rawgeti(m_L, LUA_REGISTRYINDEX, m_index);
             lua_pushstring(m_L, function);
@@ -40,7 +41,7 @@ namespace luakit {
             lua_settable(m_L, -3);
         }
 
-        bool get_function(const char* function) {
+        bool get_function(cpchar function) {
             lua_rawgeti(m_L, LUA_REGISTRYINDEX, m_index);
             lua_getfield(m_L, -1, function);
             lua_remove(m_L, -2);
@@ -48,13 +49,13 @@ namespace luakit {
         }
 
         template <typename... ret_types, typename... arg_types>
-        bool call(const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool call(cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             lua_guard g(m_L);
             if (!get_function(function)) return false;
             return lua_call_function(m_L, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
-        bool call(const char* function, error_fn efn = nullptr) {
+        bool call(cpchar function, error_fn efn = nullptr) {
             lua_guard g(m_L);
             if (!get_function(function)) return false;
             return lua_call_function(m_L, efn, std::tie());
@@ -73,7 +74,7 @@ namespace luakit {
         }
 
         template <typename... enum_value>
-        lua_table new_enum(const char* name, enum_value... args) {
+        lua_table new_enum(cpchar name, enum_value... args) {
             lua_guard g(m_L);
             lua_rawgeti(m_L, LUA_REGISTRYINDEX, m_index);
             lua_createtable(m_L, 0, 8);

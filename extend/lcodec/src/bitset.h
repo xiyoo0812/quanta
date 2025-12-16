@@ -21,7 +21,7 @@ namespace lcodec {
             else return x;
         }
 
-        bool load(std::string_view val) {
+        bool load(vstring val) {
             size_t vsz = val.size();
             if (vsz == 0) return false;
             if (vsz > MAX_BITSET_SIZE) return false;
@@ -32,7 +32,7 @@ namespace lcodec {
             return true;
         }
 
-        bool loadhex(std::string_view val) {
+        bool loadhex(vstring val) {
             size_t vsz = val.size();
             if (vsz == 0 || vsz % 2 != 0) return false;
             if (vsz * 4 > MAX_BITSET_SIZE) return false;
@@ -49,7 +49,7 @@ namespace lcodec {
             return true;
         }
 
-        bool loadbin(std::string_view val) {
+        bool loadbin(vstring val) {
             size_t vsz = val.size();
             if (vsz == 0) return false;
             if (vsz * 8 > MAX_BITSET_SIZE) return false;
@@ -64,7 +64,7 @@ namespace lcodec {
             return true;
         }
 
-        std::string_view binary() {
+        vstring binary() {
             size_t vsz = m_bits.size();
             size_t casz = (vsz + 7) / 8;
             for (size_t i = 0; i < casz; ++i) {
@@ -76,10 +76,10 @@ namespace lcodec {
                 }
                 bitset_buf[i] = byte;
             }
-            return std::string_view(bitset_buf, casz);
+            return vstring(bitset_buf, casz);
         }
 
-        std::string_view hex() {
+        vstring hex() {
             size_t vsz = m_bits.size();
             size_t casz = (vsz + 7) / 8;
             for (size_t i = 0; i < casz; ++i) {
@@ -92,17 +92,17 @@ namespace lcodec {
                 bitset_buf[i * 2] = BITHEX[byte >> 4];
                 bitset_buf[i * 2 + 1] = BITHEX[byte & 0xf];
             }
-            return std::string_view(bitset_buf, casz * 2);
+            return vstring(bitset_buf, casz * 2);
         }
         
-        std::string_view tostring(bool prefix) {
+        vstring tostring(bool prefix) {
             int pos = 0;
             auto ite = m_bits.rend();
             for (auto it = m_bits.rbegin(); it != ite; ++it) {
                 if (*it) prefix = true;
                 if (prefix) bitset_buf[pos++] = *it ? '1' : '0';
             }
-            return std::string_view(bitset_buf, pos);
+            return vstring(bitset_buf, pos);
         }
 
         bool get(size_t pos) {

@@ -48,7 +48,7 @@ namespace luassl {
         if (luaL_optinteger(L, 2, 0)) {
             return tohex(L, (const unsigned char*)tmp, size);
         }
-        lua_pushlstring(L, (const char*)tmp, size);
+        lua_pushlstring(L, (cpchar)tmp, size);
         return 1;
     }
 
@@ -68,15 +68,15 @@ namespace luassl {
             }
             buffer[i / 2] = hi << 4 | low;
         }
-        lua_pushlstring(L, (const char*)buffer, len);
+        lua_pushlstring(L, (cpchar)buffer, len);
         return 1;
     }
 
     static int lxxtea_encode(lua_State* L) {
         size_t data_len = 0;
         size_t encode_len = 0;
-        const char* key = luaL_checkstring(L, 1);
-        const char* message = luaL_checklstring(L, 2, &data_len);
+        cpchar key = luaL_checkstring(L, 1);
+        cpchar message = luaL_checklstring(L, 2, &data_len);
         char* encode_out = (char*)xxtea_encrypt(message, data_len, key, &encode_len);
         lua_pushlstring(L, encode_out, encode_len);
         free(encode_out);
@@ -86,8 +86,8 @@ namespace luassl {
     static int lxxtea_decode(lua_State* L) {
         size_t data_len = 0;
         size_t decode_len = 0;
-        const char* key = luaL_checkstring(L, 1);
-        const char* message = luaL_checklstring(L, 2, &data_len);
+        cpchar key = luaL_checkstring(L, 1);
+        cpchar message = luaL_checklstring(L, 2, &data_len);
         char* decode_out = (char*)xxtea_decrypt(message, data_len, key, &decode_len);
         lua_pushlstring(L, decode_out, decode_len);
         free(decode_out);
@@ -96,21 +96,21 @@ namespace luassl {
 
     static int lbase64_encode(lua_State* L) {
         size_t data_len = 0;
-        const char* input = luaL_checklstring(L, 1, &data_len);
+        cpchar input = luaL_checklstring(L, 1, &data_len);
         uint32_t out_len = BASE64_ENCODE_OUT_SIZE(data_len);
         unsigned char* output = alloc_buff(out_len);
         Base64_Encode_NoNl((unsigned char*)input, data_len, output, &out_len);
-        lua_pushlstring(L, (const char*)output, out_len);
+        lua_pushlstring(L, (cpchar)output, out_len);
         return 1;
     }
 
     static int lbase64_decode(lua_State* L) {
         size_t data_len = 0;
-        const char* input = luaL_checklstring(L, 1, &data_len);
+        cpchar input = luaL_checklstring(L, 1, &data_len);
         uint32_t out_len = BASE64_DECODE_OUT_SIZE(data_len);
         unsigned char* output = alloc_buff(out_len);
         Base64_Decode((const unsigned char*)input, data_len, output, &out_len);
-        lua_pushlstring(L, (const char*)output, out_len);
+        lua_pushlstring(L, (cpchar)output, out_len);
         return 1;
     }
 
@@ -122,29 +122,29 @@ namespace luassl {
         if (luaL_optinteger(L, 2, 0)) {
             return tohex(L, output, WC_MD5_DIGEST_SIZE);
         }
-        lua_pushlstring(L, (const char*)output, WC_MD5_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)output, WC_MD5_DIGEST_SIZE);
         return 1;
     }
 
     static int pbkdf2_sha1(lua_State* L) {
         size_t psz = 0, ssz = 0;
         uint8_t digest[WC_SHA_DIGEST_SIZE];
-        const char* passwd = luaL_checklstring(L, 1, &psz);
+        cpchar passwd = luaL_checklstring(L, 1, &psz);
         const unsigned char* salt = (const unsigned char*)luaL_checklstring(L, 2, &ssz);
         int iter = lua_tointeger(L, 3);
         PKCS5_PBKDF2_HMAC_SHA1(passwd, psz, salt, ssz, iter, WC_SHA_DIGEST_SIZE, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA_DIGEST_SIZE);
         return 1;
     }
 
     static int pbkdf2_sha256(lua_State* L) {
         size_t psz = 0, ssz = 0;
         uint8_t digest[WC_SHA256_DIGEST_SIZE];
-        const char* passwd = luaL_checklstring(L, 1, &psz);
+        cpchar passwd = luaL_checklstring(L, 1, &psz);
         const unsigned char* salt = (const unsigned char*)luaL_checklstring(L, 2, &ssz);
         int iter = lua_tointeger(L, 3);
         PKCS5_PBKDF2_HMAC(passwd, psz, salt, ssz, iter, EVP_sha256(), WC_SHA256_DIGEST_SIZE, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA256_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA256_DIGEST_SIZE);
         return 1;
     }
 
@@ -153,7 +153,7 @@ namespace luassl {
         uint8_t digest[WC_SHA_DIGEST_SIZE];
         const uint8_t* buffer = (const uint8_t*)luaL_checklstring(L, 1, &sz);
         SHA1(buffer, sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA_DIGEST_SIZE);
         return 1;
     }
 
@@ -162,7 +162,7 @@ namespace luassl {
         uint8_t digest[WC_SHA256_DIGEST_SIZE];
         const uint8_t* buffer = (const uint8_t*)luaL_checklstring(L, 1, &sz);
         SHA256(buffer, sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA256_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA256_DIGEST_SIZE);
         return 1;
     }
 
@@ -171,7 +171,7 @@ namespace luassl {
         uint8_t digest[WC_SHA512_DIGEST_SIZE];
         const uint8_t* buffer = (const uint8_t*)luaL_checklstring(L, 1, &sz);
         SHA512(buffer, sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA512_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA512_DIGEST_SIZE);
         return 1;
     }
 
@@ -181,7 +181,7 @@ namespace luassl {
         const uint8_t* key = (const uint8_t*)luaL_checklstring(L, 1, &key_sz);
         const uint8_t* text = (const uint8_t*)luaL_checklstring(L, 2, &text_sz);
         hmac_sha1(key, key_sz, text, text_sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA_DIGEST_SIZE);
         return 1;
     }
 
@@ -191,7 +191,7 @@ namespace luassl {
         const uint8_t* key = (const uint8_t*)luaL_checklstring(L, 1, &key_sz);
         const uint8_t* text = (const uint8_t*)luaL_checklstring(L, 2, &text_sz);
         hmac_sha256(key, key_sz, text, text_sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA256_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA256_DIGEST_SIZE);
         return 1;
     }
 
@@ -201,14 +201,14 @@ namespace luassl {
         const uint8_t* key = (const uint8_t*)luaL_checklstring(L, 1, &key_sz);
         const uint8_t* text = (const uint8_t*)luaL_checklstring(L, 2, &text_sz);
         hmac_sha512(key, key_sz, text, text_sz, digest);
-        lua_pushlstring(L, (const char*)digest, WC_SHA512_DIGEST_SIZE);
+        lua_pushlstring(L, (cpchar)digest, WC_SHA512_DIGEST_SIZE);
         return 1;
     }
 
     static int lxor_byte(lua_State* L) {
         size_t len1, len2;
-        const char* s1 = luaL_checklstring(L, 1, &len1);
-        const char* s2 = luaL_checklstring(L, 2, &len2);
+        cpchar s1 = luaL_checklstring(L, 1, &len1);
+        cpchar s2 = luaL_checklstring(L, 2, &len2);
         if (len2 < len1) {
             return luaL_error(L, "Can't xor short src string");
         }
@@ -216,7 +216,7 @@ namespace luassl {
         for (size_t i = 0; i < len1; i++) {
             buffer[i] = s1[i] ^ s2[i];
         }
-        lua_pushlstring(L, (const char*)buffer, len1);
+        lua_pushlstring(L, (cpchar)buffer, len1);
         return 1;
     }
 
@@ -226,35 +226,35 @@ namespace luassl {
 
     static int lcrc8(lua_State* L) {
         size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
+        cpchar key = lua_tolstring(L, 1, &len);
         lua_pushinteger(L, crc8_lsb(key, len));
         return 1;
     }
 
     static int lcrc8_msb(lua_State* L) {
         size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
+        cpchar key = lua_tolstring(L, 1, &len);
         lua_pushinteger(L, crc8_msb(key, len));
         return 1;
     }
 
     static int lcrc16(lua_State* L) {
         size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
+        cpchar key = lua_tolstring(L, 1, &len);
         lua_pushinteger(L, crc16(key, len));
         return 1;
     }
 
     static int lcrc32(lua_State* L) {
         size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
+        cpchar key = lua_tolstring(L, 1, &len);
         lua_pushinteger(L, crc32(key, len));
         return 1;
     }
 
     static int lcrc64(lua_State* L) {
         size_t len;
-        const char* key = lua_tolstring(L, 1, &len);
+        cpchar key = lua_tolstring(L, 1, &len);
         lua_pushinteger(L, (int64_t)crc64(key, len));
         return 1;
     }

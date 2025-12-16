@@ -35,7 +35,7 @@ namespace luabus {
     }
 
     luakit::lua_table open_luabus(lua_State* L) {
-        luakit::kit_state kit_state(L);
+        luakit::kit_state kit_state(L, true);
         auto lluabus = kit_state.new_table("luabus");
         lluabus.set_function("udp", create_udp);
         lluabus.set_function("tcp", create_tcp);

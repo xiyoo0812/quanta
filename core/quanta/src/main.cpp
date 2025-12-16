@@ -1,7 +1,7 @@
 ﻿#include <locale>
 #include "quanta.h"
 
-int main(int argc, const char* argv[])
+int main(int argc, cpchar argv[])
 {
 #ifdef WIN32
     setlocale(LC_ALL, ".UTF8");

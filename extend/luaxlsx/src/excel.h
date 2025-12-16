@@ -220,7 +220,7 @@ namespace lxlsx {
             for (auto& [_, doc] : excelfiles) { delete doc; }
         }
 
-        void open(const char* filename) {
+        void open(cpchar filename) {
             mz_zip_archive archive = {};
             if (!mz_zip_reader_init_file(&archive, filename, 0)) {
                 throw std::runtime_error("read zip error");
@@ -233,7 +233,7 @@ namespace lxlsx {
             mz_zip_reader_end(&archive);
         }
 
-        void save(const char* filename) {
+        void save(cpchar filename) {
             mz_zip_archive archive = {};
             if (!mz_zip_writer_init_file(&archive, filename, 0)) {
                 throw std::runtime_error("save zip error");
@@ -251,7 +251,7 @@ namespace lxlsx {
             mz_zip_writer_end(&archive);
         }
 
-        workbook* open_workbook(const char* name){
+        workbook* open_workbook(cpchar name){
             auto it = find_if(workbooks.begin(), workbooks.end(), [name](workbook* p) { return p->name == name; });
             return (it != workbooks.end()) ? *it : nullptr;
         }
@@ -261,7 +261,7 @@ namespace lxlsx {
         }
 
     private:
-        XmlDocument* open_xml(mz_zip_archive* archive, const char* filename, bool notfoundexception = true) {
+        XmlDocument* open_xml(mz_zip_archive* archive, cpchar filename, bool notfoundexception = true) {
             if (auto it = excelfiles.find(filename); it != excelfiles.end()) return it->second;
             auto index = mz_zip_reader_locate_file(archive, filename, nullptr, 0);
             if (index < 0) {
@@ -269,7 +269,7 @@ namespace lxlsx {
                 return nullptr;
             }
             size_t size = 0;
-            auto data = (const char*)mz_zip_reader_extract_to_heap(archive, index, &size, 0);
+            auto data = (cpchar)mz_zip_reader_extract_to_heap(archive, index, &size, 0);
             if (!data) throw luakit::lua_exception("extract {} error: ", filename);
             XmlDocument* doc = new XmlDocument();
             if (doc->Parse(data, size) != XML_SUCCESS) {
@@ -312,7 +312,7 @@ namespace lxlsx {
             shdata->DeleteChildren();
         }
 
-        void read_styles(mz_zip_archive* archive, const char* filename) {
+        void read_styles(mz_zip_archive* archive, cpchar filename) {
             XmlDocument* doc = open_xml(archive, filename);
             XMLElement* styleSheet = doc->FirstChildElement("styleSheet");
             if (styleSheet == nullptr) return;
@@ -343,7 +343,7 @@ namespace lxlsx {
             }
         }
 
-        void read_workbook(mz_zip_archive* archive, const char* filename) {
+        void read_workbook(mz_zip_archive* archive, cpchar filename) {
             XmlDocument* doc = open_xml(archive, filename);
             XMLElement* e = doc->FirstChildElement("workbook");
             e = e->FirstChildElement("sheets")->FirstChildElement("sheet");
@@ -360,7 +360,7 @@ namespace lxlsx {
             }
         }
 
-        void read_sstrings(mz_zip_archive* archive, const char* filename) {
+        void read_sstrings(mz_zip_archive* archive, cpchar filename) {
             XmlDocument* doc = open_xml(archive, filename, false);
             if (doc == nullptr) return;
             XMLElement* e = doc->FirstChildElement("sst");
@@ -368,7 +368,7 @@ namespace lxlsx {
             while (e) {
                 XMLElement* t = e->FirstChildElement("t");
                 if (t) {
-                    const char* text = t->GetText();
+                    cpchar text = t->GetText();
                     shared_string.push_back(text ? text : "");
                     e = e->NextSiblingElement("si");
                     continue;
@@ -385,7 +385,7 @@ namespace lxlsx {
             }
         }
 
-        map<string, XmlDocument*> read_rels(mz_zip_archive* archive, const char* filename, string path = "") {
+        map<string, XmlDocument*> read_rels(mz_zip_archive* archive, cpchar filename, string path = "") {
             map<string, XmlDocument*> xml_docs;
             XmlDocument* doc = open_xml(archive, filename);
             XMLElement* e = doc->FirstChildElement("Relationships")->FirstChildElement("Relationship");
@@ -399,7 +399,7 @@ namespace lxlsx {
             return xml_docs;
         }
 
-        void parse_cell_fmt(cell* c, const char* s, const char* t, XMLElement* v){
+        void parse_cell_fmt(cell* c, cpchar s, cpchar t, XMLElement* v){
             if (!v || !v->GetText()) return;
             if (s && (!t || !strcmp(t, "n"))) {
                 uint32_t idx = atoi(s);

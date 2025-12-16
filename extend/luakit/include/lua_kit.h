@@ -73,36 +73,36 @@ namespace luakit {
         }
 
         template<typename T>
-        void set(const char* name, T obj) {
+        void set(cpchar name, T obj) {
             native_to_lua(m_L, obj);
             lua_setglobal(m_L, name);
         }
 
         template<typename T>
-        T get(const char* name) {
+        T get(cpchar name) {
             lua_guard g(m_L);
             lua_getglobal(m_L, name);
             return lua_to_native<T>(m_L, -1);
         }
 
         template <typename F>
-        void set_function(const char* function, F func) {
+        void set_function(cpchar function, F func) {
             lua_push_function(m_L, func);
             lua_setglobal(m_L, function);
         }
 
-        bool get_function(const char* function) {
+        bool get_function(cpchar function) {
             return get_global_function(m_L, function);
         }
 
-        const char* get_path(const char* field) {
+        cpchar get_path(cpchar field) {
             lua_guard g(m_L);
             lua_getglobal(m_L, LUA_LOADLIBNAME);
             lua_getfield(m_L, -1, field);
             return lua_tostring(m_L, -1);
         }
 
-        void set_path(const char* field, const char* path) {
+        void set_path(cpchar field, cpchar path) {
             if (strcmp(field, "LUA_PATH") == 0) {
                 set_lua_path("path", path, LUA_PATH_DEFAULT);
             } else {
@@ -119,11 +119,11 @@ namespace luakit {
         }
 
         template <typename... ret_types, typename... arg_types>
-        bool call(const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool call(cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_global_function(m_L, function, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
-        bool call(const char* function, error_fn efn = nullptr) {
+        bool call(cpchar function, error_fn efn = nullptr) {
             return call_global_function(m_L, function, efn, std::tie());
         }
 
@@ -132,31 +132,31 @@ namespace luakit {
         }
 
         template <typename... ret_types, typename... arg_types>
-        bool table_call(const char* table, const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool table_call(cpchar table, cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_table_function(m_L, table, function, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
         template <typename... ret_types, typename... arg_types>
-        bool table_call(const char* table, const char* function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool table_call(cpchar table, cpchar function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_table_function(m_L, table, function, efn, codec, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
-        bool table_call(const char* table, const char* function, error_fn efn = nullptr) {
+        bool table_call(cpchar table, cpchar function, error_fn efn = nullptr) {
             return call_table_function(m_L, table, function, efn, std::tie());
         }
 
         template <typename T, typename... ret_types, typename... arg_types>
-        bool object_call(T* obj, const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool object_call(T* obj, cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_object_function<T>(m_L, obj, function, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
         template <typename T, typename... ret_types, typename... arg_types>
-        bool object_call(T* obj, const char* function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool object_call(T* obj, cpchar function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_object_function<T>(m_L, obj, function, efn, codec, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
         template <typename T>
-        bool object_call(T* obj, const char* function, error_fn efn = nullptr) {
+        bool object_call(T* obj, cpchar function, error_fn efn = nullptr) {
             return call_object_function<T>(function, obj, efn, std::tie());
         }
 
@@ -164,7 +164,7 @@ namespace luakit {
             return run_file(filename.c_str(), efn);
         }
 
-        bool run_file(const char* filename, error_fn efn = nullptr) {
+        bool run_file(cpchar filename, error_fn efn = nullptr) {
             lua_guard g(m_L);
             if (luaL_loadfile(m_L, filename)) {
                 if (efn) {
@@ -179,7 +179,7 @@ namespace luakit {
             return run_script(script.c_str(), efn);
         }
 
-        bool run_script(const char* script, error_fn efn= nullptr) {
+        bool run_script(cpchar script, error_fn efn= nullptr) {
             lua_guard g(m_L);
             if (luaL_loadstring(m_L, script)) {
                 if (efn) {
@@ -190,7 +190,7 @@ namespace luakit {
             return lua_call_function(m_L, efn, 0, 0);
         }
 
-        lua_table new_table(const char* name = nullptr) {
+        lua_table new_table(cpchar name = nullptr) {
             lua_guard g(m_L);
             lua_createtable(m_L, 0, 8);
             if (name) {
@@ -201,14 +201,14 @@ namespace luakit {
         }
 
         template <typename... arg_types>
-        lua_table new_table(const char* name, arg_types... args) {
+        lua_table new_table(cpchar name, arg_types... args) {
             lua_table table = new_table(name);
             table.create_with(std::forward<arg_types>(args)...);
             return table;
         }
 
         template <typename... enum_value>
-        lua_table new_enum(const char* name, enum_value... args) {
+        lua_table new_enum(cpchar name, enum_value... args) {
             lua_table table = new_table(name);
             table.create_with(std::forward<enum_value>(args)...);
             return table;
@@ -236,10 +236,10 @@ namespace luakit {
         }
 
     protected:
-        void set_lua_path(const char* fieldname, const char* path, const char* dft){
+        void set_lua_path(cpchar fieldname, cpchar path, cpchar dft){
             std::string buffer;
             lua_table package = get<lua_table>(LUA_LOADLIBNAME);
-            const char* dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
+            cpchar dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
             if (dftmark != nullptr) {
                 if (path < dftmark) {
                     buffer.append(path, dftmark - path);

@@ -2,7 +2,7 @@
 
 namespace lcodec {
     
-    inline void hash(const char* str, int sz, char key[8]) {
+    inline void hash(cpchar str, int sz, char key[8]) {
         long djb_hash = 5381L;
         long js_hash = 1315423911L;
         for (int i = 0; i < sz; i++) {
@@ -28,7 +28,7 @@ namespace lcodec {
         if (type == LUA_TNUMBER) {
             hcode = std::hash<int64_t>{}(lua_tointeger(L, 1));
         } else if (type == LUA_TSTRING) {
-            hcode = std::hash<std::string>{}(lua_tostring(L, 1));
+            hcode = std::hash<sstring>{}(lua_tostring(L, 1));
         } else {
             luaL_error(L, "hashkey only support number or string!");
         }
@@ -40,10 +40,10 @@ namespace lcodec {
 
     static int lhashkey(lua_State* L) {
         size_t sz = 0;
-        const char* key = luaL_checklstring(L, 1, &sz);
+        cpchar key = luaL_checklstring(L, 1, &sz);
         char realkey[8];
         hash(key, (int)sz, realkey);
-        lua_pushlstring(L, (const char*)realkey, 8);
+        lua_pushlstring(L, (cpchar)realkey, 8);
         return 1;
     }
 

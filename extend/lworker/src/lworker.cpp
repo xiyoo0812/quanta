@@ -2,13 +2,11 @@
 
 #include "scheduler.h"
 
-using vstring   = std::string_view;
-
 namespace lworker {
 
     static scheduler schedulor;
     luakit::lua_table open_lworker(lua_State* L) {
-        luakit::kit_state kit_state(L);
+        luakit::kit_state kit_state(L, true);
         auto llworker = kit_state.new_table("worker");
         llworker.set_function("shutdown", []() { schedulor.shutdown(); });
         llworker.set_function("update", [&](uint64_t clock_ms) { schedulor.update(clock_ms); });

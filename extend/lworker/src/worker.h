@@ -12,8 +12,6 @@
 
 using namespace luakit;
 
-using sstring = std::string;
-using vstring = std::string_view;
 using environ_map = std::unordered_map<sstring, sstring>;
 
 namespace lworker {
@@ -63,18 +61,18 @@ namespace lworker {
             m_lua.close();
         }
 
-        const char* get_env(const char* key) {
+        cpchar get_env(cpchar key) {
             if (auto it = m_environs.find(key); it != m_environs.end()) return it->second.c_str();
             return nullptr;
         }
 
-        void set_env(const char* key, const char* value, int over = 0) {
+        void set_env(cpchar key, cpchar value, int over = 0) {
             if (over == 1 || !m_environs.contains(key)) {
                 m_environs[key] = value;
             }
         }
 
-        void add_path(const char* field, const char* path) {
+        void add_path(cpchar field, cpchar path) {
             auto handle = m_environs.extract(field);
             if (handle.empty()) {
                 m_environs[field] = path;
@@ -107,7 +105,7 @@ namespace lworker {
                 m_read_buf.swap(m_write_buf);
             }
             size_t plen = 0;
-            const char* ns = m_namespace.c_str();
+            cpchar ns = m_namespace.c_str();
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
                 m_codec.set_slice(slice);
@@ -130,9 +128,9 @@ namespace lworker {
                     set_env(ekey.c_str(), value.c_str(), 1);
                 }
                 m_lua.set("platform", m_platform);
-                m_lua.set_function("set_env", [&](const char* key, const char* value) { set_env(key, value, 1); });
-                m_lua.set_function("add_path", [&](const char* field, const char* path) { add_path(field, path); });
-                m_lua.set_function("set_path", [&](const char* field, const char* path) { m_lua.set_path(field, path); });
+                m_lua.set_function("set_env", [&](cpchar key, cpchar value) { set_env(key, value, 1); });
+                m_lua.set_function("add_path", [&](cpchar field, cpchar path) { add_path(field, path); });
+                m_lua.set_function("set_path", [&](cpchar field, cpchar path) { m_lua.set_path(field, path); });
                 m_lua.run_script(std::format("dofile('{}')", conf), [&](std::string_view err) {
                     printf("worker load conf %s failed, because: %s", conf.data(), err.data());
                 });
@@ -151,6 +149,7 @@ namespace lworker {
         }
 
         void run(std::stop_token stoken){
+            LOG_INIT(m_lua.L());
             m_codec.set_buff(luakit::get_buff());
             auto quanta = m_lua.new_table(m_namespace.c_str());
             auto tid = std::this_thread::get_id();
@@ -160,8 +159,8 @@ namespace lworker {
             quanta.set("platform", m_platform);
             quanta.set_function("stop", [&]() { m_running = false; });
             quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
-            quanta.set_function("getenv", [&](const char* key) { return get_env(key); });
-            quanta.set_function("setenv", [&](const char* key, const char* value) { return set_env(key, value, 1); });
+            quanta.set_function("getenv", [&](cpchar key) { return get_env(key); });
+            quanta.set_function("setenv", [&](cpchar key, cpchar value) { return set_env(key, value, 1); });
             quanta.set_function("call", [&](lua_State* L, vstring name) {
                 size_t data_len;
                 uint8_t* data = m_codec.encode(L, 2, &data_len);
@@ -181,7 +180,7 @@ namespace lworker {
             auto entry = get_env("QUANTA_ENTRY");
             if (!m_lua.run_script(std::format("require '{}'", entry), ehandler)) return;
 
-            const char* ns = m_namespace.c_str();
+            cpchar ns = m_namespace.c_str();
             while (m_running) {
                 if (stoken.stop_requested()) {
                     m_lua.table_call(ns, "stop");
