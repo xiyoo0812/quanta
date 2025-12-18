@@ -2,6 +2,7 @@
 
 local log_err       = logger.err
 local log_info      = logger.info
+local spolicy       = service.policy
 local id2name       = service.id2name
 
 local socket_mgr    = quanta.get("socket_mgr")
@@ -26,7 +27,8 @@ end
 --其他服务器节点关闭
 function RouterServer:on_client_error(client, client_token, err)
     log_info("[RouterServer][on_client_error] {} lost: {}", client.name, err)
-    local new_master = socket_mgr.map_token(client.id)
+    local policy = spolicy(client.service_name)
+    local new_master = socket_mgr.map_token(client.id, policy)
     log_info("[RouterServer][on_socket_error] {} master --> {}", client.service_name, new_master)
 end
 

@@ -18,8 +18,6 @@ const int MAX_SERVICE_GROUP = UCHAR_MAX + 1;
 struct service_node {
     uint32_t id = 0;
     uint32_t token = 0;
-    uint16_t group = 0;
-    uint16_t region = 0;
 };
 
 #pragma pack(1)
@@ -67,7 +65,7 @@ public:
     uint32_t get_route_count();
     void erase(uint32_t node_id);
     uint32_t choose_master(uint32_t service_id);
-    uint32_t map_token(uint32_t node_id, uint32_t token);
+    uint32_t map_token(uint32_t node_id, int32_t token);
     bool do_forward_hash(router_header* header, char* data, size_t data_len);
     bool do_forward_target(router_header* header, char* data, size_t data_len);
     bool do_forward_master(router_header* header, char* data, size_t data_len);

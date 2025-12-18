@@ -56,14 +56,14 @@ function service.init()
         if conf.enable then
             SERVICE_NAMES[conf.id] = conf.name
         end
-        SERVICES[conf.name] = conf.id
+        SERVICES[conf.name] = conf
     end
     --初始化服务信息
     local index = environ.number("QUANTA_INDEX", 1)
     local cluster = environ.number("QUANTA_CLUSTER", 1)
     local region = environ.number("QUANTA_REGION", 1)
     local service_name = environ.get("QUANTA_SERVICE")
-    local service_id = SERVICES[service_name]
+    local service_id = SERVICES[service_name].id
     quanta.index = index
     quanta.region = region
     quanta.cluster = cluster
@@ -108,5 +108,10 @@ end
 
 --服务名转服务id
 function service.name2sid(name)
-    return SERVICES[name]
+    return SERVICES[name].id
+end
+
+--服务关闭路由策略
+function service.policy(name)
+    return SERVICES[name].policy
 end

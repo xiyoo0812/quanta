@@ -58,7 +58,7 @@ void lua_socket_mgr::set_codec(uint32_t token, codec_base* codec) {
     return m_mgr->set_codec(token, codec);
 }
 
-int lua_socket_mgr::map_token(uint32_t node_id, uint32_t token) {
+int lua_socket_mgr::map_token(uint32_t node_id, int32_t token) {
     return m_router->map_token(node_id, token);
 }
 

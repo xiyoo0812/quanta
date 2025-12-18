@@ -11,91 +11,104 @@ service:upsert({
     enable=true,
     enum_key='LOBBY',
     id=1,
-    name='lobby'
+    name='lobby',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='LOGIN',
     id=11,
-    name='login'
+    name='login',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='GATEWAY',
     id=12,
-    name='gateway'
+    name='gateway',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='ROUTER',
     id=13,
-    name='router'
+    name='router',
+    policy=0
 })
 
 service:upsert({
     enable=true,
     enum_key='ONLINE',
     id=14,
-    name='online'
+    name='online',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='CENTER',
     id=15,
-    name='center'
+    name='center',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='DISCOVER',
     id=16,
-    name='discover'
+    name='discover',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='CACHE',
     id=17,
-    name='cache'
+    name='cache',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='MONGO',
     id=28,
-    name='mongo'
+    name='mongo',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='REDIS',
     id=29,
-    name='redis'
+    name='redis',
+    policy=-1
 })
 
 service:upsert({
     enable=false,
     enum_key='MYSQL',
     id=30,
-    name='mysql'
+    name='mysql',
+    policy=-1
 })
 
 service:upsert({
     enable=true,
     enum_key='TEST',
     id=31,
-    name='test'
+    name='test',
+    policy=-1
 })
 
 service:upsert({
     enable=false,
     enum_key='TOOL',
     id=32,
-    name='tool'
+    name='tool',
+    policy=-1
 })
 
 service:update()
