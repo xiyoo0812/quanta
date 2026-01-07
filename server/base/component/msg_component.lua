@@ -1,14 +1,11 @@
 --msg_component.lua
-import("agent/online_agent.lua")
 
 local tunpack       = table.unpack
 local qmake_mq      = quanta.make_mq
 local make_functer  = quanta.make_functer
 
 local event_mgr     = quanta.get("event_mgr")
-
-local online        = quanta.get("online")
-local ONL_INLINE    = quanta.enum("OnlineStatus", "INLINE")
+local router_mgr    = quanta.get("router_mgr")
 
 local MsgComponent = mixin()
 local prop = property(MsgComponent)
@@ -76,44 +73,34 @@ end
 
 --通过gateway转发消息给client
 function MsgComponent:send(cmd_id, data)
-    if self.status == ONL_INLINE then
-        online:send_client(self.id, self.id, cmd_id, data)
-    end
+    -- if self.status == ONL_INLINE then
+    --     online:send_client(self.id, self.id, cmd_id, data)
+    -- end
 end
 
 --转发消息给role
-function MsgComponent:send_service2role(serv_name, role_id, rpc, ...)
-    return online:call_service(role_id, rpc, serv_name, role_id, ...)
+function MsgComponent:send_service2role(service_id, role_id, rpc, ...)
+    return router_mgr:relay_send(role_id, service_id, rpc, role_id, ...)
 end
 
 --转发消息给target
-function MsgComponent:call_service(serv_name, rpc, ...)
-    return online:call_service(self.id, rpc, serv_name, self.id, ...)
+function MsgComponent:call_service(service_id, rpc, ...)
+    return router_mgr:relay_call(self.id, service_id, rpc, self.id, ...)
 end
 
 --转发消息给target
-function MsgComponent:send_service(serv_name, rpc, ...)
-    online:send_service(self.id, rpc, serv_name, self.id, ...)
-end
-
---转发消息给lobby
-function MsgComponent:call_lobby(rpc, ...)
-    return online:call_lobby(self.id, rpc, self.id, ...)
-end
-
---转发消息给lobby
-function MsgComponent:send_lobby(rpc, ...)
-    online:send_lobby(self.id, rpc, self.id, ...)
+function MsgComponent:send_service(service_id, rpc, ...)
+    return router_mgr:relay_send(self.id, service_id, rpc, self.id, ...)
 end
 
 --转发消息给gatwway
 function MsgComponent:send_gateway(rpc, ...)
-    online:send_gateway(self.id, rpc, self.id, ...)
+    -- online:send_gateway(self.id, rpc, self.id, ...)
 end
 
 --更新分组信息
 function MsgComponent:update_gate_group(group, group_id)
-    online:send_gateway(self.id, "rpc_update_group", self.id, group, group_id)
+    -- online:send_gateway(self.id, "rpc_update_group", self.id, group, group_id)
 end
 
 return MsgComponent

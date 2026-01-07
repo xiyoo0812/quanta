@@ -1,5 +1,4 @@
 --lobby_servlet.lua
-import("agent/online_agent.lua")
 
 local log_err           = logger.err
 local log_info          = logger.info

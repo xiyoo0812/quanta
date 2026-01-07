@@ -483,6 +483,20 @@ namespace luakit {
         return 2;
     }
 
+    template<typename T>
+    void typeval_encode(luabuf* buff, T data);
+    inline void typeval_encode(luabuf* buff, cpchar data) {
+        string_write(buff, data, strlen(data));
+    }
+    template<std::integral T>
+    inline void typeval_encode(luabuf* buff, T data) {
+        integer_encode(buff, data);
+    }
+    template<std::floating_point T>
+    inline void typeval_encode(luabuf* buff, T data) {
+        number_encode(buff, data);
+    }
+
     class codec_base {
     public:
         virtual ~codec_base() {};
@@ -495,10 +509,6 @@ namespace luakit {
             slice* slice = encode_slice(L, m_buf, index, n);
             return slice->data(len);
         }
-        virtual uint8_t* encode(lua_State* L, uint8_t* data, size_t* len) {
-            luaL_error(L, "encode not implended!");
-            return nullptr;
-        }
         virtual uint8_t* decode(uint8_t* data, size_t* len) {
             throw lua_exception("decode not implended!");
         }
@@ -509,7 +519,13 @@ namespace luakit {
             m_slice = nullptr;
             return size;
         }
-
+        template<typename... Args>
+        uint8_t* encode(size_t* len, uint8_t num, Args&&... args) {
+            m_buf->clean();
+            value_encode(m_buf, num);
+            (typeval_encode(m_buf, std::forward<Args>(args)), ...);
+            return m_buf->data(len);
+        }
         virtual void error(const std::string& err) {
             m_err = err;
             m_failed = true;

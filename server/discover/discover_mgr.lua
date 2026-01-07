@@ -50,10 +50,6 @@ function DiscoverMgr:load_discover()
 end
 
 function DiscoverMgr:on_client_accept(client)
-    local routers = self.service_list["router"]
-    if next(routers) then
-        self.rpc_server:send(client, "rpc_service_ready", "router", routers)
-    end
 end
 
 function DiscoverMgr:on_client_register(client, node)
@@ -68,6 +64,10 @@ function DiscoverMgr:on_client_register(client, node)
     if serv_name == "router" then
         self.rpc_server:unservicecast(serv_name, "rpc_service_ready", serv_name, { node })
     else
+        local routers = self.service_list["router"]
+        if next(routers) then
+            self.rpc_server:send(client, "rpc_service_ready", "router", routers)
+        end
         local watchers = self.watcher_list[serv_name] or {}
         self.rpc_server:groupecast(watchers, "rpc_service_ready", serv_name, { node })
     end

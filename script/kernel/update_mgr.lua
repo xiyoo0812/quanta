@@ -10,7 +10,9 @@ local log_warn      = logger.warn
 local sig_get       = signal.get
 local sig_check     = signal.check
 local sig_reload    = signal.reload
-local collectgarbage= collectgarbage
+local obj_functer   = quanta.obj_functer
+local make_functer  = quanta.make_functer
+local collgarbage   = collectgarbage
 
 local event_mgr     = quanta.get("event_mgr")
 local timer_mgr     = quanta.get("timer_mgr")
@@ -19,8 +21,6 @@ local thread_mgr    = quanta.get("thread_mgr")
 local HOTFIXABLE    = environ.status("QUANTA_HOTFIX")
 
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
-
-local Functor       = import("feature/functor.lua")
 
 local UpdateMgr = singleton()
 local prop = property(UpdateMgr)
@@ -83,7 +83,7 @@ function UpdateMgr:update(now_ms, clock_ms, master)
         quanta.reload()
     end
     --执行gc
-    collectgarbage("step", 10)
+    collgarbage("step", 10)
     --信号检查
     if master then
         self:check_signal()
@@ -130,9 +130,9 @@ function UpdateMgr:update_by_time(now, clock_ms)
     log_clean();
     --每日4点执行一次全量更新
     if cur_hour == 4 then
-        collectgarbage("collect")
+        collgarbage("collect")
     end
-    log_info("[UpdateMgr][update]now lua mem: {}!", collectgarbage("count"))
+    log_info("[UpdateMgr][update]now lua mem: {}!", collgarbage("count"))
 end
 
 function UpdateMgr:check_signal()
@@ -152,8 +152,8 @@ end
 
 function UpdateMgr:quit()
     log_info("[UpdateMgr][quit] service quit !")
-    for obj in pairs(self.quit_objs) do
-        obj:on_quit()
+    for obj, functor in pairs(self.quit_objs) do
+        functor:run(obj)
     end
     --退出
     timer_mgr:once(FAST_MS, function()
@@ -164,10 +164,10 @@ end
 
 local function define_functions()
     local func_names = {
-        "fast", "frame",
-        "quit", "hour", "minute", "second", "second5", "second30"
+        fast = 2000, frame = 2000,
+        quit = 0, hour = 0, minute = 0, second = 0, second5 = 0, second30 = 0
     }
-    for idx, name in ipairs(func_names) do
+    for name, lock_ms in pairs(func_names) do
         local attr_oname = sformat("%s_objs", name)
         local attr_rname = sformat("%s_funcs", name)
         local attach_fname = sformat("on_%s", name)
@@ -185,20 +185,20 @@ local function define_functions()
                 log_warn("[UpdateMgr][{}] obj({}) isn't {} method!", attach_name, obj:source(), attach_fname)
                 return
             end
-            self[attr_oname][obj] = Functor(attach_func, idx > 2)
+            self[attr_oname][obj] = obj_functer(obj, attach_func, lock_ms, attach_fname)
         end
         UpdateMgr[detach_name] = function(self, obj)
             self[attr_oname][obj] = nil
         end
-        UpdateMgr[register_name] = function(self, rname, func, reenter)
-            self[attr_rname][rname] = Functor(func, reenter or true)
+        UpdateMgr[register_name] = function(self, rname, func)
+            self[attr_rname][rname] = make_functer(func, lock_ms)
         end
         UpdateMgr[unregister_name] = function(self, rname)
             self[attr_rname][rname] = nil
         end
     end
     UpdateMgr.weak_handlers = function(self)
-        for _, name in pairs(func_names) do
+        for name in pairs(func_names) do
             local attr_oname = sformat("%s_objs", name)
             qtweak(self[attr_oname])
         end

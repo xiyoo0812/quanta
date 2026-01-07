@@ -45,15 +45,6 @@ function DiscoverAgent:__init()
 end
 
 function DiscoverAgent:on_router_connected()
-    if not self.register then
-        self.register = true
-        self.client:register()
-        for service_name in pairs(self.watchers) do
-            if service_name ~= "router" then
-                self.client:call("rpc_watch_service", service_name)
-            end
-        end
-    end
     if not self.startup then
         self.startup = true
         event_mgr:fire_frame("on_service_startup")
@@ -80,9 +71,12 @@ end
 -- 连接成回调
 function DiscoverAgent:on_socket_connect(client)
     log_info("[DiscoverAgent][on_socket_connect]: connect discover success!")
-    if quanta.service_name == "router" then
-        self.register = true
-        client:register()
+    client:register()
+    self.register = true
+    for service_name in pairs(self.watchers) do
+        if service_name ~= "router" then
+            self.client:call("rpc_watch_service", service_name)
+        end
     end
 end
 

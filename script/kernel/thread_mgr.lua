@@ -25,7 +25,7 @@ prop:reader("coroutine_waitings", {})
 prop:reader("coroutine_pool", nil)
 
 function ThreadMgr:__init()
-    self.coroutine_pool = Queue(512)
+    self.coroutine_pool = Queue(1024)
 end
 
 function ThreadMgr:idle_size()

@@ -24,12 +24,14 @@ local xpcall        = xpcall
 local otime         = os.time
 local log_err       = logger.err
 local log_fatal     = logger.fatal
+local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
 
 local FAILED        = enum("KernCode").FAILED
 local SUCCESS       = enum("KernCode").SUCCESS
+local SECOND_5_MS   = enum("PeriodTime").SECOND_5_MS
 
 local MQ_DRIVER     = environ.get("QUANTA_MQ_DRIVER", "redis")
 
@@ -126,10 +128,17 @@ function quanta.defer(handler)
     return Defer(handler)
 end
 
---创建仿函数
-function quanta.make_functer(func, reenter)
+function quanta.make_functer(func, lock_ms, name)
     local Functer = import("feature/functor.lua")
-    return Functer(func, reenter)
+    return Functer(func, lock_ms or SECOND_5_MS, name)
+end
+
+function quanta.obj_functer(obj, func, lock_ms, name)
+    local fname = sformat("__%s__", name)
+    local Functer = import("feature/functor.lua")
+    local functor = Functer(func, lock_ms or SECOND_5_MS, name)
+    obj[fname] = functor
+    return functor
 end
 
 function quanta.http_client(version)

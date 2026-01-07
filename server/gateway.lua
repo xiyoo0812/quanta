@@ -16,5 +16,5 @@ quanta.startup(function()
     import("gateway/group_mgr.lua")
     import("gateway/gateway.lua")
     -- 协议过滤器
-    import("business/admin/shield.lua")
+    import("base/admin/shield.lua")
 end)

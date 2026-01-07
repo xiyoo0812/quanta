@@ -142,12 +142,13 @@ namespace logger {
         size_ += size;
     }
 
-    void log_file_base::create(fspath file_path, sstring file_name) {
+    void log_file_base::create(fspath file_path, sstring file_name, const zone_time& time) {
         if (file_) {
             file_->flush();
             file_->close();
         }
         file_path.append(file_name);
+        file_time_ = time.get_local_time();
         file_ = std::make_unique<std::ofstream>(file_path, std::ios::binary | std::ios::out | std::ios::app);
     }
 
@@ -175,7 +176,7 @@ namespace logger {
         if (file_ == nullptr || rolling_evaler_.eval(file_time_, time) || line_ > max_line_) {
             try {
                 create_directories(log_path_);
-                create(log_path_, new_log_file_name(time));
+                create(log_path_, new_log_file_name(time), time);
             } catch (...) {}
             assert(file_);
         }
@@ -261,7 +262,7 @@ namespace logger {
                 create_directories(logger_path);
                 auto ztime = zoned_time(zone_, time_point_cast<milliseconds>(system_clock::now()));
                 auto logfile = std::make_shared<log_file_base>(max_line_, ztime);
-                logfile->create(logger_path, fname);
+                logfile->create(logger_path, fname, ztime);
                 logfile->ignore_prefix(true);
                 dest_features_.insert(std::make_pair(feature, logfile));
             } catch (...) {}
@@ -354,10 +355,11 @@ namespace logger {
                 agent->recycle(logmsgs);
                 logmsgs->clear();
             }
-            flush();
             if (empty) {
                 if (!running_) break;
                 std::this_thread::sleep_for(milliseconds(50));
+            } else {
+                flush();
             }
         }
     }

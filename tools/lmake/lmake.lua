@@ -58,11 +58,14 @@ local function path_fmt(paths)
     return paths
 end
 
+local function escape_pattern(s)
+    return sgsub(s, "([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1")
+end
+
 --路径剪裁
 local function path_cut(fullname, basename)
-    local cutname = sgsub(fullname, basename, "")
-    local relapath = lrelativedir(cutname)
-    return relapath
+    local cutname = sgsub(fullname, escape_pattern(basename), "")
+    return lrelativedir(cutname)
 end
 
 --整理依赖

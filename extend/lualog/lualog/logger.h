@@ -126,7 +126,7 @@ namespace logger {
 
         virtual void flush(const zone_time& time);
         virtual void raw_write(vstring logtxt, size_t size);
-        void create(fspath file_path, sstring file_name);
+        void create(fspath file_path, sstring file_name, const zone_time& time);
 
     protected:
         size_t                      max_line_;
@@ -148,7 +148,6 @@ namespace logger {
     class log_rollingfile : public log_file_base {
     public:
         log_rollingfile(fspath& log_path, const zone_time& time, vstring feature, size_t max_line = MAX_LINE);
-
         virtual void flush(const zone_time& time);
 
     protected:

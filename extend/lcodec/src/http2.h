@@ -3,7 +3,7 @@
 #include "hpack.h"
 
 namespace lcodec {
-    enum class h2_frame_type {
+    enum class h2_frame_type : uint32_t {
         H2_DATA = 0,
         H2_HEADES,
         H2_PRIORITY,

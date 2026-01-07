@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <cmath>
 #include <chrono>
 #include "socket_helper.h"
 
@@ -37,7 +38,8 @@ inline int socket_ping(lua_State* L, const char* ip, uint32_t times) {
     socket_t fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     if (fd <= 0) {
         lua_pushnumber(L, -1);
-        return 1;
+        lua_pushstring(L, "socket err");
+        return 2;
     }
     socklen_t addr_len = 0;
     sockaddr_storage addr;
@@ -60,19 +62,21 @@ inline int socket_ping(lua_State* L, const char* ip, uint32_t times) {
     for (uint32_t i = 0; i < times; ++i) {
         int send_len = sendto(fd, (const char*)&icmp_header, sizeof(icmp_header), 0, (sockaddr*)&addr, addr_len);
         if (send_len == SOCKET_ERROR) {
-            lua_pushnumber(L, 0);
+            lua_pushnumber(L, -1);
+            lua_pushstring(L, "sendto err");
             closesocket(fd);
-            return 1;
+            return 2;
         }
         int recv_len = recvfrom(fd, buff, UCHAR_MAX, 0, (sockaddr*)&addr, &addr_len);
         if (recv_len == SOCKET_ERROR) {
-            lua_pushnumber(L, 0);
+            lua_pushnumber(L, -1);
+            lua_pushstring(L, "recvfrom err");
             closesocket(fd);
-            return 1;
+            return 2;
         }
     }
     auto end_time = high_resolution_clock::now();
     auto elapsed = duration_cast<microseconds>(end_time - start_time).count();
-    lua_pushnumber(L, elapsed / times / 1000);
+    lua_pushnumber(L, std::ceil(elapsed / times /1000.0f));
     return 1;
 }

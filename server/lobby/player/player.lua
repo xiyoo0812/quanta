@@ -19,10 +19,10 @@ local ONL_CLOSE     = quanta.enum("OnlineStatus", "CLOSE")
 
 local DAY_FLUSH_S   = quanta.enum("FlushType", "DAY") * 3600
 
-local Entity        = import("business/entity/entity.lua")
-local AttrComponent = import("business/component/attr_component.lua")
-local MsgComponent  = import("business/component/msg_component.lua")
-local SubComponent  = import("business/component/sub_component.lua")
+local Entity        = import("base/entity/entity.lua")
+local AttrComponent = import("base/component/attr_component.lua")
+local MsgComponent  = import("base/component/msg_component.lua")
+local SubComponent  = import("base/component/sub_component.lua")
 
 local Player = class(Entity, AttrComponent, MsgComponent, SubComponent)
 

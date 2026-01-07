@@ -60,7 +60,7 @@ struct service_list {
 class socket_router
 {
 public:
-    socket_router(std::shared_ptr<socket_mgr>& mgr) : m_mgr(mgr){ }
+    socket_router(stdsptr<socket_mgr>& mgr) : m_mgr(mgr) { }
 
     uint32_t get_route_count();
     void erase(uint32_t node_id);

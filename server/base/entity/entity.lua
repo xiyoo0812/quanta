@@ -1,7 +1,7 @@
 --entity.lua
 local log_warn      = logger.warn
 
-local EvtComponent  = import("business/component/event_component.lua")
+local EvtComponent  = import("base/component/event_component.lua")
 
 local Entity = class(nil, EvtComponent)
 

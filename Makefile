@@ -25,7 +25,6 @@ backup:
 	cd extend/laoi; make SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
 	cd extend/ldetour; make SOLUTION_DIR=$(CUR_DIR) -f ldetour.mak;
 	cd extend/lmdb; make SOLUTION_DIR=$(CUR_DIR) -f lmdb.mak;
-	cd extend/lsmdb; make SOLUTION_DIR=$(CUR_DIR) -f lsmdb.mak;
 	cd extend/lsqlite; make SOLUTION_DIR=$(CUR_DIR) -f lsqlite.mak;
 	cd extend/ltoml; make SOLUTION_DIR=$(CUR_DIR) -f ltoml.mak;
 	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
@@ -40,6 +39,7 @@ extend:
 	cd extend/lcodec; make SOLUTION_DIR=$(CUR_DIR) -f lcodec.mak;
 	cd extend/ljson; make SOLUTION_DIR=$(CUR_DIR) -f ljson.mak;
 	cd extend/lprofile; make SOLUTION_DIR=$(CUR_DIR) -f lprofile.mak;
+	cd extend/lsmdb; make SOLUTION_DIR=$(CUR_DIR) -f lsmdb.mak;
 	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
 	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
 	cd extend/luacsv; make SOLUTION_DIR=$(CUR_DIR) -f luacsv.mak;

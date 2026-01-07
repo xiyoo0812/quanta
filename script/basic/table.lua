@@ -79,7 +79,7 @@ end
 
 --设置弱表
 local function tweak(src, mode)
-    return setmetatable(src, { __mode = mode or "k" })
+    return setmetatable(src, { __mode = mode or "v" })
 end
 
 qtable              = {}
