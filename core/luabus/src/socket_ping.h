@@ -35,12 +35,6 @@ uint16_t checksum(const uint16_t* data, size_t size) {
 }
 
 inline int socket_ping(lua_State* L, const char* ip, uint32_t times) {
-    socket_t fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    if (fd <= 0) {
-        lua_pushnumber(L, -1);
-        lua_pushstring(L, "socket err");
-        return 2;
-    }
     socklen_t addr_len = 0;
     sockaddr_storage addr;
     make_ip_addr(&addr, &addr_len, ip, 0);
@@ -54,29 +48,23 @@ inline int socket_ping(lua_State* L, const char* ip, uint32_t times) {
     icmp_header.cksum = checksum((uint16_t*)&icmp_header, sizeof(icmp_header));
 
     int timeout = 1000;
+    socket_t fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
 
     char buff[UCHAR_MAX];
     if (times == 0) times = 1;
+    uint32_t success_time = 0;
     auto start_time = high_resolution_clock::now();
     for (uint32_t i = 0; i < times; ++i) {
         int send_len = sendto(fd, (const char*)&icmp_header, sizeof(icmp_header), 0, (sockaddr*)&addr, addr_len);
-        if (send_len == SOCKET_ERROR) {
-            lua_pushnumber(L, -1);
-            lua_pushstring(L, "sendto err");
-            closesocket(fd);
-            return 2;
-        }
+        if (send_len == SOCKET_ERROR) continue;
         int recv_len = recvfrom(fd, buff, UCHAR_MAX, 0, (sockaddr*)&addr, &addr_len);
-        if (recv_len == SOCKET_ERROR) {
-            lua_pushnumber(L, -1);
-            lua_pushstring(L, "recvfrom err");
-            closesocket(fd);
-            return 2;
-        }
+        if (recv_len == SOCKET_ERROR) continue;
+        success_time++;
     }
     auto end_time = high_resolution_clock::now();
     auto elapsed = duration_cast<microseconds>(end_time - start_time).count();
     lua_pushnumber(L, std::ceil(elapsed / times /1000.0f));
-    return 1;
+    lua_pushnumber(L, success_time);
+    return 2;
 }

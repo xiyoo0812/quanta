@@ -3,6 +3,7 @@
 #include "socket_udp.h"
 #include "socket_tcp.h"
 #include "socket_ping.h"
+#include "socket_region.h"
 #include "lua_socket_mgr.h"
 #include "lua_socket_node.h"
 
@@ -34,6 +35,15 @@ namespace luabus {
         return tcp;
     }
 
+    static socket_region* create_region(cpchar dbpath) {
+        socket_region* region = new socket_region();
+        if (!region->load(dbpath)) {
+            delete region;
+            return nullptr;
+        }
+        return region;
+    }
+
     luakit::lua_table open_luabus(lua_State* L) {
         luakit::kit_state kit_state(L, true);
         auto lluabus = kit_state.new_table("luabus");
@@ -43,6 +53,7 @@ namespace luabus {
         lluabus.set_function("ping", socket_ping);
         lluabus.set_function("dns", gethostbydomain);
         lluabus.set_function("ipconfig", get_ipconfig);
+        lluabus.set_function("ip2region", create_region);
         lluabus.set_function("derive_port", derive_port);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
         lluabus.new_enum("eproto_type",
@@ -57,6 +68,9 @@ namespace luabus {
             "close", &socket_udp::close,
             "add_group", &socket_udp::add_group,
             "set_buff_size", &socket_udp::set_buff_size
+        );
+        kit_state.new_class<socket_region>(
+            "search", &socket_region::search
         );
         kit_state.new_class<socket_tcp>(
             "send", &socket_tcp::send,
