@@ -11,15 +11,10 @@
 
 local type      = type
 local tcopy     = table.copy
+local tjoin     = table.join
+local pushback  = table.pushback
 
 local NULL      = "null"
-
-local function clone_arg(arg)
-    if type(arg) ~= "table" then
-        return arg
-    end
-    return tcopy(arg)
-end
 
 local function get_storage_layers(obj, sheet)
     if sheet ~= NULL then
@@ -28,18 +23,47 @@ local function get_storage_layers(obj, sheet)
     return obj.__storage, obj.__layers
 end
 
-local function gen_storage_layers(obj, store, par_layers, name, field)
-    if store then
-        local layers = {}
-        for i, value in ipairs(par_layers or {}) do
-            layers[i] = value
+local function clean_storage_layers(obj)
+    if obj.__storage then
+        obj.__layers = nil
+        obj.__storage = nil
+        local class = obj.__class
+        local sheet_key = "__sheet_null"
+        for key, info in pairs(class[sheet_key] or {}) do
+            if info[2] == "O" then
+                clean_storage_layers(obj[key])
+            elseif info[2] == "H" then
+                for _, sobj in pairs(obj[key]) do
+                    clean_storage_layers(sobj)
+                end
+            end
         end
-        layers[#layers + 1] = name
-        if field then
-            layers[#layers + 1] = field
+    end
+end
+
+local function gen_storage_layers(obj, old_obj, store, par_layers, name, field)
+    if old_obj then
+        clean_storage_layers(old_obj)
+    end
+    if not obj or obj.__storage then
+        return
+    end
+    local layers = {}
+    tjoin(par_layers, layers)
+    pushback(layers, name, field)
+    obj.__layers = layers
+    obj.__storage = store
+    --遍历子对象
+    local class = obj.__class
+    local sheet_key = "__sheet_null"
+    for key, info in pairs(class[sheet_key] or {}) do
+        if info[2] == "O" then
+            gen_storage_layers(obj[key], nil, store, layers, key)
+        elseif info[2] == "H" then
+            for sfield, sobj in pairs(obj[key]) do
+                gen_storage_layers(sobj, nil, store, layers, key, sfield)
+            end
         end
-        obj.__layers = layers
-        obj.__storage = store
     end
 end
 
@@ -78,16 +102,17 @@ end
 
 local function define_setter(class, sheet, name, default, is_obj)
     class["set_" .. name] = function(self, value, memory)
-        if self[name] ~= value then
+        local old_val = self[name]
+        if old_val ~= value then
             if value == nil then
-                value = clone_arg(default)
+                value = tcopy(default)
             end
             self[name] = value
             if memory then return end
-            if is_obj and value then
+            if is_obj then
                 local store, layers = get_storage_layers(self, sheet)
                 if store then
-                    gen_storage_layers(value, store, layers, name)
+                    gen_storage_layers(value, old_val, store, layers, name)
                 end
             end
         end
@@ -96,11 +121,12 @@ end
 
 local function define_saver(class, sheet, name, is_obj)
     class["save_" .. name] = function(self, value)
-        if self[name] ~= value or type(value) == "table" then
+        local old_val = self[name]
+        if old_val ~= value then
             self[name] = value
             local store, layers = update_store_value(self, sheet, name, value, is_obj)
-            if store and is_obj and value then
-                gen_storage_layers(value, store, layers, name)
+            if store and is_obj then
+                gen_storage_layers(value, old_val, store, layers, name)
             end
         end
     end
@@ -114,12 +140,15 @@ end
 
 local function define_field_setter(class, sheet, name, suffix, is_obj)
     class["set_" .. name .. suffix] = function(self, key, value, memory)
+        local old_val = self[name][key]
         if self[name][key] ~= value then
             self[name][key] = value
             if memory then return end
-            local store, layers = get_storage_layers(self, sheet)
-            if store and is_obj and value then
-                gen_storage_layers(value, store, layers, name, key)
+            if is_obj then
+                local store, layers = get_storage_layers(self, sheet)
+                if store then
+                    gen_storage_layers(value, old_val, store, layers, name, key)
+                end
             end
         end
     end
@@ -127,11 +156,12 @@ end
 
 local function define_field_saver(class, sheet, name, suffix, is_obj)
     class["save_" .. name .. suffix] = function(self, key, value)
-        if self[name][key] ~= value or type(value) == "table" then
+        local old_val = self[name][key]
+        if old_val ~= value then
             self[name][key] = value
             local store, layers = update_store_field(self, sheet, name, key, value, is_obj)
-            if store and is_obj and value then
-                gen_storage_layers(value, store, layers, name, key)
+            if is_obj and store then
+                gen_storage_layers(value, old_val, store, layers, name, key)
             end
         end
     end
@@ -142,10 +172,9 @@ local function define_field_deleter(class, sheet, name, suffix, is_obj)
         local value = self[name][key]
         if value then
             self[name][key] = nil
-            local store = update_store_field(self, sheet, name, key, nil, is_obj)
-            if store and is_obj then
-                value.__storage = nil
-                value.__layers = nil
+            update_store_field(self,  sheet, name, key, nil, is_obj)
+            if is_obj then
+                clean_storage_layers(value, sheet)
             end
         end
     end
