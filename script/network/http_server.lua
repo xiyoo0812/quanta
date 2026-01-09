@@ -1,6 +1,4 @@
 --http_server.lua
-local Socket        = import("driver/socket.lua")
-
 local type          = type
 local pcall         = pcall
 local log_err       = logger.err
@@ -9,7 +7,6 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local tunpack       = table.unpack
 local signalquit    = signal.quit
-local saddr         = qstring.addr
 local jsoncodec     = json.jsoncodec
 local httpdcodec    = codec.httpdcodec
 local content_codec = codec.set_content_codec
@@ -17,6 +14,11 @@ local derive_port   = luabus.derive_port
 
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
+
+local INCR          = quanta.enum("NetPortMode", "INCR")
+local INDUCE        = quanta.enum("NetPortMode", "INDUCE")
+
+local Socket        = import("driver/socket.lua")
 
 local HttpServer = class()
 local prop = property(HttpServer)
@@ -27,10 +29,9 @@ prop:reader("listener", nil)        --网络连接对象
 prop:reader("clients", {})          --clients
 prop:reader("handlers", {})         --handlers
 
-function HttpServer:__init(http_addr)
+function HttpServer:__init()
     self.jcodec = jsoncodec()
     self.handlers = { GET = {}, POST = {}, PUT = {}, DELETE = {} }
-    self:setup(http_addr)
     --注册退出
     update_mgr:attach_quit(self)
 end
@@ -42,16 +43,19 @@ function HttpServer:on_quit()
     end
 end
 
-function HttpServer:setup(http_addr)
+function HttpServer:listen(ip, port, induce)
+    if induce == INDUCE then
+        port = port + quanta.order - 1
+    elseif induce == INCR then
+        port = derive_port(port + quanta.order - 1, ip)
+    end
     local socket = Socket(self)
-    local ip, port = saddr(http_addr)
-    local real_port = derive_port(port, ip)
-    if not socket:listen(ip, real_port) then
-        log_err("[HttpServer][setup] now listen {}:{} failed", ip, real_port)
+    if not socket:listen(ip, port) then
+        log_err("[HttpServer][setup] now listen {}:{} failed", ip, port)
         signalquit(1)
         return
     end
-    self.ip, self.port = ip, real_port
+    self.ip, self.port = ip, port
     log_info("[HttpServer][setup] listen({}:{}) success!", self.ip, self.port)
     self.listener = socket
 end

@@ -17,6 +17,8 @@ local update_mgr        = quanta.get("update_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
+local INCR              = quanta.enum("NetPortMode", "INCR")
+local INDUCE            = quanta.enum("NetPortMode", "INDUCE")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 
 local WSServer = class()
@@ -55,18 +57,21 @@ function WSServer:listen(ip, port, induce)
         signalquit()
         return
     end
-    local induce_port = induce and (port + quanta.order - 1) or port
-    local real_port = derive_port(induce_port, ip)
-    local listener = socket_mgr.listen(ip, real_port, PROTO_TEXT)
+    if induce == INDUCE then
+        port = port + quanta.order - 1
+    elseif induce == INCR then
+        port = derive_port(port + quanta.order - 1, ip)
+    end
+    local listener = socket_mgr.listen(ip, port, PROTO_TEXT)
     if not listener then
-        log_err("[WSServer][listen] failed to listen: {}:{}", ip, real_port)
+        log_err("[WSServer][listen] failed to listen: {}:{}", ip, port)
         signalquit(1)
         return
     end
     listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session)
     end
-    log_info("[WSServer][listen] start listen at: {}:{}", ip, real_port)
+    log_info("[WSServer][listen] start listen at: {}:{}", ip, port)
     self.ip, self.port = ip, port
     self.listener = listener
 end

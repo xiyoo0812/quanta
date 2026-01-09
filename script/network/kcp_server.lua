@@ -22,6 +22,8 @@ local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local SLOW_MS           = quanta.enum("PeriodTime", "SLOW_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local TOO_FAST          = quanta.enum("KernCode", "TOO_FAST")
+local INDUCE            = quanta.enum("NetPortMode", "INDUCE")
+local INCR              = quanta.enum("NetPortMode", "INCR")
 
 local FLOW_CTRL         = environ.status("QUANTA_FLOW_CTRL")
 local FC_PACKETS        = environ.number("QUANTA_FLOW_CTRL_PACKAGE")
@@ -58,7 +60,6 @@ function KcpServer:on_quit()
     end
 end
 
---induce：根据 order 推导port
 function KcpServer:listen(ip, port, induce)
     -- 开启监听
     if not ip or not port then
@@ -66,15 +67,18 @@ function KcpServer:listen(ip, port, induce)
         signalquit()
         return
     end
-    local induce_port = induce and (port + quanta.order - 1) or port
-    local real_port = derive_port(induce_port, ip)
-    local listener = kcp.listen(ip, real_port)
+    if induce == INDUCE then
+        port = port + quanta.order - 1
+    elseif induce == INCR then
+        port = derive_port(port + quanta.order - 1, ip)
+    end
+    local listener = kcp.listen(ip, port)
     if not listener then
-        log_err("[KcpServer][setup] failed to listen: {}:{}", ip, real_port)
+        log_err("[KcpServer][setup] failed to listen: {}:{}", ip, port)
         signalquit()
         return
     end
-    log_info("[KcpServer][listen] start listen at: {}:{}", ip, real_port)
+    log_info("[KcpServer][listen] start listen at: {}:{}", ip, port)
     -- 安装回调
     listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session)
@@ -82,7 +86,7 @@ function KcpServer:listen(ip, port, induce)
     listener.on_error = function(stoken, err)
         log_err("[KcpServer][listen] error: {}:{}", stoken, err)
     end
-    self.ip, self.port = ip, real_port
+    self.ip, self.port = ip, port
     self.listener = listener
 end
 

@@ -36,7 +36,8 @@ prop:reader("srvlist_api", sformat("%s/server_mgr/query", ACCORD_URL)) -- 服务
 
 function AccordMgr:__init()
     -- 创建HTTP服务器
-    local server = HttpServer(environ.get("QUANTA_ACCORD_HTTP"))
+    local server = HttpServer()
+    server:listen(environ.addr("QUANTA_ACCORD_HTTP"))
     server:register_get("/", "on_accord_page", self)
     server:register_get("/message", "on_message", self)
     server:register_post("/create", "on_create", self)

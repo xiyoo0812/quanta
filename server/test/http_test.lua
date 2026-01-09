@@ -32,7 +32,8 @@ elseif quanta.index == 2 then
         return params
     end
     local HttpServer = import("network/http_server.lua")
-    local server = HttpServer("0.0.0.0:8888")
+    local server = HttpServer()
+    server:listen("0.0.0.0", 8888)
     server:register_get("*", on_get)
     server:register_post("*", on_post)
     server:register_put("*", on_put)

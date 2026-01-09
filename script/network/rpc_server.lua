@@ -24,6 +24,8 @@ local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+local INDUCE            = quanta.enum("NetPortMode", "INDUCE")
+local INCR              = quanta.enum("NetPortMode", "INCR")
 
 local SERVICE_MAX       = 255
 
@@ -36,18 +38,20 @@ prop:reader("clients", {})
 prop:reader("listener", nil)
 prop:reader("holder", nil)      --持有者
 
---induce：根据 order 推导port
 function RpcServer:__init(holder, ip, port, induce)
     if not ip or not port then
         log_err("[RpcServer][setup] ip:{} or port:{} is nil", ip, port)
         signalquit()
         return
     end
-    local induce_port = induce and (port + quanta.order - 1) or port
-    local real_port = derive_port(induce_port, ip)
-    local listener = socket_mgr.listen(ip, real_port)
+    if induce == INDUCE then
+        port = port + quanta.order - 1
+    elseif induce == INCR then
+        port = derive_port(port + quanta.order - 1, ip)
+    end
+    local listener = socket_mgr.listen(ip, port)
     if not listener then
-        log_err("[RpcServer][setup] now listen {}:{} failed", ip, real_port)
+        log_err("[RpcServer][setup] now listen {}:{} failed", ip, port)
         signalquit()
         return
     end
@@ -56,8 +60,8 @@ function RpcServer:__init(holder, ip, port, induce)
     end
     self.holder = holder
     self.listener = listener
-    self.ip, self.port = ip, real_port
-    log_info("[RpcServer][setup] now listen {}:{} success!", ip, real_port)
+    self.ip, self.port = ip, port
+    log_info("[RpcServer][setup] now listen {}:{} success!", ip, port)
     event_mgr:add_listener(self, "rpc_heartbeat")
     event_mgr:add_listener(self, "rpc_register")
     --注册退出

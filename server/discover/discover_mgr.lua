@@ -2,8 +2,6 @@
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
 
-local env_get       = environ.get
-local env_addr      = environ.addr
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
@@ -25,10 +23,11 @@ prop:reader("watcher_list", {})
 
 function DiscoverMgr:__init()
     --创建rpc服务器
-    local ip, port = env_addr("QUANTA_DISCOVER_HOST")
+    local ip, port = environ.addr("QUANTA_DISCOVER_HOST")
     self.rpc_server = RpcServer(self, ip, port)
     --创建HTTP服务器
-    local server = HttpServer(env_get("QUANTA_DISCOVER_HTTP"))
+    local server = HttpServer()
+    server:listen(environ.addr("QUANTA_DISCOVER_HTTP"))
     server:register_post("/command", "on_server_command", self)
     server:register_post("/shutdown", "on_server_shutdown", self)
     --初始化变量

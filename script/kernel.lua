@@ -5,6 +5,7 @@ require("luapb")
 require("lcodec")
 require("luassl")
 require("ltimer")
+require("luabus")
 
 import("basic/basic.lua")
 
@@ -33,7 +34,6 @@ end
 
 --初始化网络
 local function init_network()
-    require("luabus")
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
     socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr

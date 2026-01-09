@@ -10,6 +10,7 @@ local thread_mgr    = quanta.get("thread_mgr")
 
 local RpcServer     = import("network/rpc_server.lua")
 
+local INDUCE        = quanta.enum("PortMode", "INDUCE")
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local UNREACHABLE   = quanta.enum("KernCode", "RPC_UNREACHABLE")
 
@@ -19,7 +20,7 @@ prop:reader("rpc_server", nil)
 
 function RouterServer:__init()
     local ip, port = environ.addr("QUANTA_ROUTER_ADDR")
-    local rserver = RpcServer(self, ip, port, true)
+    local rserver = RpcServer(self, ip, port, INDUCE)
     service.modify_host(rserver:get_port())
     self.rpc_server = rserver
 end

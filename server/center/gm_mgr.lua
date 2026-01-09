@@ -29,7 +29,8 @@ function GM_Mgr:__init()
     event_mgr:add_listener(self, "rpc_execute_message")
 
     --创建HTTP服务器
-    local httpsvr = HttpServer(environ.get("QUANTA_GM_HTTP"))
+    local httpsvr = HttpServer()
+    httpsvr:listen(environ.addr("QUANTA_GM_HTTP"))
     self.gm_addr = sformat("http://%s:%s", httpsvr:get_ip(),httpsvr:get_port())
     self.http_server = httpsvr
     --注册GM Handler
