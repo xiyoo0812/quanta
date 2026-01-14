@@ -26,7 +26,7 @@ local FRAME_UPHOLD      = protobuf_mgr:error_code("FRAME_UPHOLD")
 local FRAME_TOOFAST     = protobuf_mgr:error_code("FRAME_TOOFAST")
 local SERVER_UPHOLD     = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 local DEVICE_REPLACE    = protobuf_mgr:error_code("KICK_DEVICE_REPLACE")
-local ROLE_IS_INLINE    = protobuf_mgr:error_code("LOGIN_ROLE_IS_INLINE")
+local PLAYER_IS_INLINE  = protobuf_mgr:error_code("LOGIN_PLAYER_IS_INLINE")
 
 local SERVICE_GATE      = name2sid("gateway")
 
@@ -238,7 +238,7 @@ function Gateway:on_role_login_req(session, cmd_id, body, session_id)
         if osession == session then
             --重复发送
             log_err("[Gateway][on_role_login_req] player ({}) call repeated login req",  player_id)
-            return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
+            return client_mgr:callback_errcode(session, cmd_id, PLAYER_IS_INLINE, session_id)
         end
         --踢掉老连接，设置新连接
         self:kickout_client(player, player_id, DEVICE_REPLACE)
@@ -287,7 +287,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
         if osession == session then
             --重复发送
             log_err("[Gateway][on_role_reload_req] player ({}) call repeated reload req",  player_id)
-            return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
+            return client_mgr:callback_errcode(session, cmd_id, PLAYER_IS_INLINE, session_id)
         end
         --踢掉老连接，设置新连接
         self:kickout_client(player, player_id, DEVICE_REPLACE)
@@ -296,7 +296,7 @@ function Gateway:on_role_reload_req(session, cmd_id, body, session_id)
         player = GatePlayer(session, open_id, player_id)
     end
     if session.player_id then
-        return client_mgr:callback_errcode(session, cmd_id, ROLE_IS_INLINE, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, PLAYER_IS_INLINE, session_id)
     end
     router_mgr:login_service(player_id, "gateway", quanta.id)
     local code, new_token = self:call_lobby(lobby, "rpc_player_reload", player_id, token)

@@ -77,12 +77,12 @@ end
 function StoreMgr:get_autoinc_id()
     local driver = self.db_drivers[QUANTA_STORE]
     if driver then
-        local ok, code, role_id = driver:autoinc_id()
+        local ok, code, player_id = driver:autoinc_id()
         if qfailed(code, ok) then
-            log_err("[StoreMgr][get_autoinc_id] failed: res: {}", role_id)
+            log_err("[StoreMgr][get_autoinc_id] failed: res: {}", player_id)
             return false
         end
-        return true, role_id
+        return true, player_id
     end
     return false
 end

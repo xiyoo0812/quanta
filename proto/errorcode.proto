@@ -19,12 +19,12 @@ enum ErrorCode
     LOGIN_ACCOUTN_BANS      = 1004;     //账号被封
     LOGIN_ACCOUTN_INLINE    = 1005;     //账号已经登陆
     LOGIN_ACCOUTN_OFFLINE   = 1006;     //账号未登陆
-    LOGIN_ROLE_NOT_EXIST    = 1007;     //角色不存在
-    LOGIN_ROLE_NUM_LIMIT    = 1008;     //角色数量超过上限
-    LOGIN_ROLE_NAME_EXIST   = 1009;     //角色名字重复
-    LOGIN_ROLE_IS_INLINE    = 1020;     //角色已经登陆
-    LOGIN_ROLE_IS_OFFLINE   = 1021;     //角色未登陆
-    LOGIN_ROLE_TOKEN_ERR    = 1022;     //TOKEN验证失败
+    LOGIN_PLAYER_NOT_EXIST  = 1007;     //角色不存在
+    LOGIN_PLAYER_NUM_LIMIT  = 1008;     //角色数量超过上限
+    LOGIN_PLAYER_NAME_EXIST = 1009;     //角色名字重复
+    LOGIN_PLAYER_IS_INLINE  = 1020;     //角色已经登陆
+    LOGIN_PLAYER_IS_OFFLINE = 1021;     //角色未登陆
+    LOGIN_PLAYER_TOKEN_ERR  = 1022;     //TOKEN验证失败
     
     //踢出错误码
     KICK_DEVICE_REPLACE     = 1051;     //其他设备登陆

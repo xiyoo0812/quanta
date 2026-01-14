@@ -288,7 +288,6 @@ namespace luakit {
         ltable.set_function("join", lua_table_join);
         ltable.set_function("kvals", lua_table_kvals);
         ltable.set_function("clean", lua_table_clean);
-        ltable.set_function("merge", lua_table_merge);
         ltable.set_function("erase", lua_table_erase);
         ltable.set_function("slice", lua_table_slice);
         ltable.set_function("indexof", lua_table_indexof);

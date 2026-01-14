@@ -24,7 +24,6 @@ local xpcall        = xpcall
 local otime         = os.time
 local log_err       = logger.err
 local log_fatal     = logger.fatal
-local sformat       = string.format
 local dgetinfo      = debug.getinfo
 local dsethook      = debug.sethook
 local dtraceback    = debug.traceback
@@ -128,17 +127,9 @@ function quanta.defer(handler)
     return Defer(handler)
 end
 
-function quanta.make_functer(func, lock_ms, name)
+function quanta.make_functer(func_name, lock_ms)
     local Functer = import("feature/functor.lua")
-    return Functer(func, lock_ms or SECOND_5_MS, name)
-end
-
-function quanta.obj_functer(obj, func, lock_ms, name)
-    local fname = sformat("__%s__", name)
-    local Functer = import("feature/functor.lua")
-    local functor = Functer(func, lock_ms or SECOND_5_MS, name)
-    obj[fname] = functor
-    return functor
+    return Functer(func_name, lock_ms or SECOND_5_MS)
 end
 
 function quanta.http_client(version)

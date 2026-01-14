@@ -33,7 +33,7 @@ function GrpcClient:__init(addr)
     --attach_hour
     update_mgr:attach_hour(self)
     --timer
-    self.rcfunctor = make_functer(self.check_alive)
+    self.rcfunctor = make_functer("check_alive")
     self.timer:loop(SECOND_MS, function()
         self.rcfunctor:call(self)
     end)

@@ -60,10 +60,6 @@ log_dump("luakit indexof: {}, {}", index1, index2)
 local num = table.pushback(nvv, 5, 6, 7)
 log_dump("luakit pushback: {}, {}", num, nvv)
 
-local mmv = { g = 1, h = 2, i = 3 }
-local mmv2 = table.merge(mmv, { j = 4, k = 5, l = 6 })
-log_dump("luakit merge: {}, {}", mmv2, mmv)
-
 local nnv2 = { 7, 8, 9 }
 local nnv3 = table.join(nvv, nnv2)
 log_dump("luakit join: {}, {}", nnv3, nvv)

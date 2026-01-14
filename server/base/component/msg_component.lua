@@ -13,7 +13,7 @@ prop:reader("ldfunctor", nil)   --ldfunctor
 prop:reader("msg_queues", {})   --msg_queues
 
 function MsgComponent:__init()
-    self.ldfunctor = make_functer(self.on_load_reliable_events)
+    self.ldfunctor = make_functer("on_load_reliable_events")
 end
 
 function MsgComponent:create_mq(serv_name)

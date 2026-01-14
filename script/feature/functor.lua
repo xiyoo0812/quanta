@@ -10,27 +10,30 @@ prop:reader("time", 0)
 prop:reader("name", nil)
 prop:reader("functor", nil)
 
-function Functor:__init(func, lock_ms, name)
-    self.name = name
-    if lock_ms == 0 then
-        self.functor = func
-        return
-    end
-    self.functor = function(...)
+function Functor:__init(func_name, lock_ms)
+    self.name = func_name
+    if lock_ms > 0 then
+        self.functor = function(obj, ...)
+            self.time = quanta.clock_ms + lock_ms
+            obj[self.name](obj, ...)
+            self.time = 0
+        end
         self.time = quanta.clock_ms + lock_ms
-        func(...)
-        self.time = 0
     end
 end
 
-function Functor:call(...)
-    if self.time == 0 or self.time <= quanta.clock_ms then
-        thread_mgr:fork(self.functor, nil, ...)
+function Functor:call(obj, ...)
+    if self.functor then
+        if self.time == 0 or self.time <= quanta.clock_ms then
+            thread_mgr:fork(self.functor, nil, obj, ...)
+        end
+    else
+        thread_mgr:fork(obj[self.name], nil, obj, ...)
     end
 end
 
-function Functor:run(...)
-    return xpcall(self.functor, dtraceback, ...)
+function Functor:run(obj, ...)
+    return xpcall(obj[self.name], dtraceback, obj, ...)
 end
 
 return Functor

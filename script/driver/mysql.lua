@@ -105,7 +105,7 @@ function MysqlDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.rcfunctor = make_functer(self.check_alive)
+    self.rcfunctor = make_functer("check_alive")
     self.timer:loop(SECOND_MS, function()
         self.rcfunctor:call(self)
     end)

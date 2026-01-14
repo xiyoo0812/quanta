@@ -3,5 +3,5 @@ Server,int,string,bool,bool
 Client,,,,
 VariableName,id,name,log,proto
 Start,1,NID_HEARTBEAT_REQ,1,
-,2,NID_LOGIN_ROLE_LOGIN_REQ,,1
+,2,NID_LOGIN_PLAYER_LOGIN_REQ,,1
 ,,,,

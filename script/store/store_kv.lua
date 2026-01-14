@@ -44,9 +44,9 @@ function StoreKV:sync_whole()
     if not self.wholes[self.primary_key] then
         self.wholes[self.primary_key] = self.primary_id
     end
-    log_dump("[StoreKV][sync_whole] {}.{}={}", self.primary_id, self.sheet, self.wholes)
+    log_dump("[StoreKV][sync_whole] {}.{}={}", self.sheet, self.primary_id, self.wholes)
     if not self.driver:put(self.primary_id, self.wholes, self.sheet) then
-        log_err("[StoreKV][sync_whole] sync {}.{} failed!", self.primary_id, self.sheet)
+        log_err("[StoreKV][sync_whole] sync {}.{} failed!", self.sheet, self.primary_id)
     end
 end
 

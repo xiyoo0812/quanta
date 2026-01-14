@@ -3,7 +3,7 @@ local log_warn      = logger.warn
 local log_fatal     = logger.fatal
 local tcopy         = table.copy
 local qtweak        = qtable.weak
-local obj_functer   = quanta.obj_functer
+local make_functer  = quanta.make_functer
 
 local EventComponent = mixin()
 local prop = property(EventComponent)
@@ -21,12 +21,12 @@ function EventComponent:watch_event(watcher, event, handler)
         return
     end
     local watcher_map = self.events[event]
-    local functor = obj_functer(watcher, callback_func, 0, func_name)
+    local functor = make_functer(func_name, 0)
     if not watcher_map then
-        self.events[event] = qtweak({ [watcher] = functor })
+        self.events[event] = qtweak({ [functor] = watcher })
         return
     end
-    watcher_map[watcher] = functor
+    watcher_map[functor] = watcher
 end
 
 --添加移除触发器
@@ -40,7 +40,7 @@ end
 --发布事件
 function EventComponent:notify_event(event, ...)
     local watcher_map = tcopy(self.events[event] or {})
-    for watcher, functor in pairs(watcher_map) do
+    for functor, watcher in pairs(watcher_map) do
         local ok, ret = functor:run(watcher, ...)
         if not ok then
             log_fatal("[EventComponent][notify_event] xpcall [{}:{}] failed: {}!", watcher:source(), functor.name, ret)

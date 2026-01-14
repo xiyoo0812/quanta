@@ -55,7 +55,7 @@ function Etcd:setup()
         self.connections[name] = socket
         socket.name = name
     end
-    self.rcfunctor = make_functer(self.check_alive)
+    self.rcfunctor = make_functer("check_alive")
     self.timer:loop(SECOND_MS, function()
         self.rcfunctor:call(self)
     end)

@@ -202,7 +202,6 @@ namespace lsmdb {
         }
 
         smdb_code map_file() {
-            ftruncate(m_fd, m_alloc);
 #ifdef WIN32
             HANDLE hf = (HANDLE)_get_osfhandle(m_fd);
             if (!hf) return SMDB_FILE_HANDLE_FAIL;
@@ -215,7 +214,6 @@ namespace lsmdb {
             m_buffer = (char*)mmap(NULL, m_alloc, PROT_WRITE, MAP_SHARED, m_fd, 0);
 #endif // WIN32
             if (!m_buffer) return SMDB_FILE_MMAP_FAIL;
-            memset(m_buffer, 0, m_alloc - m_offset);
             return SMDB_SUCCESS;
         }
 
@@ -249,7 +247,12 @@ namespace lsmdb {
         smdb_code truncate_space(size_t size) {
             unmap_file();
             m_alloc = size;
-            return map_file();
+            ftruncate(m_fd, m_alloc);
+            auto code = map_file();
+            if (map_file() == SMDB_SUCCESS) {
+                memset(m_buffer, 0, m_alloc - m_offset);
+            }
+            return code;
         }
 
         smdb_code shrink(size_t offset) {

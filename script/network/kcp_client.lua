@@ -28,9 +28,11 @@ function KcpClient:__init(holder, ip, port)
     self.holder = holder
     self.codec = protobuf.pbcodec()
     --注册更新函数
-    update_mgr:register_frame("kcp_update", function(clock_ms)
-        kcp_update(clock_ms)
-    end)
+    update_mgr:attach_frame(self)
+end
+
+function KcpClient:on_frame(clock_ms)
+    kcp_update(clock_ms)
 end
 
 -- 发起连接

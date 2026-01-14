@@ -24,8 +24,8 @@ local FRAME_SUCCESS         = protobuf_mgr:error_code("FRAME_SUCCESS")
 local SERVER_UPHOLD         = protobuf_mgr:error_code("LOGIN_SERVER_UPHOLD")
 local ACCOUTN_INLINE        = protobuf_mgr:error_code("LOGIN_ACCOUTN_INLINE")
 local VERIFY_FAILED         = protobuf_mgr:error_code("LOGIN_VERIFY_FAILED")
-local ROLE_NOT_EXIST        = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
-local ROLE_NUM_LIMIT        = protobuf_mgr:error_code("LOGIN_ROLE_NUM_LIMIT")
+local PLAYER_NOT_EXIST      = protobuf_mgr:error_code("LOGIN_PLAYER_NOT_EXIST")
+local PLAYER_NUM_LIMIT      = protobuf_mgr:error_code("LOGIN_PLAYER_NUM_LIMIT")
 local ACCOUTN_OFFLINE       = protobuf_mgr:error_code("LOGIN_ACCOUTN_OFFLINE")
 
 local PLATFORM_PASSWORD     = protobuf_mgr:enum("platform_type", "PLATFORM_PASSWORD")
@@ -131,7 +131,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     end
     if account:get_role_count() > 1 then
         log_err("[LoginServlet][on_role_create_req] user_id({}) role num limit!", user_id)
-        return client_mgr:callback_errcode(session, cmd_id, ROLE_NUM_LIMIT, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, PLAYER_NUM_LIMIT, session_id)
     end
     --检查名称合法性
     local ok, codatas = login_dao:check_player(user_id, name)
@@ -167,7 +167,7 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
     local role = account:get_role(role_id)
     if not role then
         log_err("[LoginServlet][on_role_choose_req] user_id({}) role_id({}) role nit exist!", user_id, role_id)
-        return client_mgr:callback_errcode(session, cmd_id, ROLE_NOT_EXIST, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, PLAYER_NOT_EXIST, session_id)
     end
     local fok, gateway = self:find_gateway(account, role_id)
     log_debug("[LoginServlet][on_role_choose_req] choose gateway({})!", gateway)
@@ -199,7 +199,7 @@ function LoginServlet:on_role_delete_req(session, cmd_id, body, session_id)
     end
     if not account:del_role(role_id) then
         log_err("[LoginServlet][on_role_delete_req] user_id({}) role_id({}) role nit exist!", user_id, role_id)
-        return client_mgr:callback_errcode(session, cmd_id, ROLE_NOT_EXIST, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, PLAYER_NOT_EXIST, session_id)
     end
     if not client_mgr:callback_errcode(session, cmd_id, FRAME_SUCCESS, session_id) then
         log_info("[LoginServlet][on_role_delete_req] user_id({}) role_id({}) callback failed!", user_id, role_id)

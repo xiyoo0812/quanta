@@ -8,6 +8,8 @@ enum NCmdId
     NID_QUANTA_ZERO                     = 0;
     NID_HEARTBEAT_REQ                   = 1001;
     NID_HEARTBEAT_RES                   = 1002;
+    NID_GM_COMMAND_REQ                  = 1003;    //GM命令
+    NID_GM_COMMAND_RES                  = 1004;
     
     //登陆系统10001-10100
     NID_LOGIN_ACCOUNT_LOGIN_REQ         = 10001;    //登陆账号请求
@@ -33,8 +35,4 @@ enum NCmdId
     //实体系统&12101-12150
     NID_ENTITY_ENTER_SCENE_NTF          = 12101;    //实体进入场景通知
     NID_ENTITY_LEAVE_SCENE_NTF          = 12102;    //实体离开场景通知
-    
-    //杂项&11001-11050
-    NID_UTILITY_GM_COMMAND_REQ          = 11001;    //GM命令
-    NID_UTILITY_GM_COMMAND_RES          = 11002;
 }

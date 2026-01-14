@@ -1,12 +1,13 @@
 --listener.lua
 local tpack         = table.pack
+local terase        = table.erase
 local tinsert       = table.insert
-local sformat       = string.format
+local tremove       = table.remove
 local qtweak        = qtable.weak
 local log_warn      = logger.warn
 local log_fatal     = logger.fatal
-local dtraceback    = debug.traceback
-local obj_functer   = quanta.obj_functer
+local sformat       = string.format
+local make_functer  = quanta.make_functer
 
 local Listener = class()
 function Listener:__init()
@@ -24,22 +25,22 @@ function Listener:add_trigger(trigger, event, handler)
         return
     end
     local triggers = self._triggers[event]
-    local functor = obj_functer(trigger, callback_func, 0, func_name)
+    local functor = make_functer(func_name, 0)
     if not triggers then
-        self._triggers[event] = { qtweak({ [trigger] = functor })}
+        self._triggers[event] = { qtweak({ [functor] = trigger })}
         return
     end
-    tinsert(triggers, qtweak({ [trigger] = functor }))
+    tinsert(triggers, qtweak({ [functor] = trigger }))
 end
 
 function Listener:remove_trigger(trigger, event)
     if event then
         local triggers = self._triggers[event] or {}
-        triggers[trigger] = nil
+        terase(triggers, trigger)
         return
     end
     for _, triggers in ipairs(self._triggers) do
-        triggers[trigger] = nil
+        terase(triggers, trigger)
     end
 end
 
@@ -53,8 +54,8 @@ function Listener:add_listener(listener, event, handler)
         log_warn("[Listener][add_listener] event({}) callback not define!", event)
         return
     end
-    local functor = obj_functer(listener, callback_func, 0, func_name)
-    self._listeners[event] = qtweak({ [listener] = functor })
+    local functor = make_functer(func_name, 0)
+    self._listeners[event] = qtweak({ [functor] = listener })
 end
 
 function Listener:remove_listener(event)
@@ -72,8 +73,8 @@ function Listener:add_cmd_listener(listener, cmd, handler)
         log_warn("[Listener][add_cmd_listener] cmd({}) handler not define!", cmd)
         return
     end
-    local functor = obj_functer(listener, callback_func, 0, func_name)
-    self._commands[cmd] = qtweak({ [listener] = functor })
+    local functor = make_functer(func_name, 0)
+    self._commands[cmd] = qtweak({ [functor] = listener })
 end
 
 function Listener:remove_cmd_listener(cmd)
@@ -81,19 +82,29 @@ function Listener:remove_cmd_listener(cmd)
 end
 
 function Listener:notify_trigger(event, ...)
+    local removes = {}
     local triggers = self._triggers[event] or {}
-    for _, info in ipairs(triggers) do
-        local trigger, functor = next(info)
-        local ok, ret = functor:run(trigger, ...)
-        if not ok then
-            log_fatal("[Listener][notify_trigger] xpcall [{}:{}] failed: {}!", trigger:source(), functor.name, ret)
+    for i, info in ipairs(triggers) do
+        local functor, trigger = next(info)
+        if functor then
+            local ok, ret = functor:run(trigger, ...)
+            if not ok then
+                log_fatal("[Listener][notify_trigger] xpcall [{}:{}] failed: {}!", trigger:source(), functor.name, ret)
+            end
+        else
+            tinsert(removes, i)
+        end
+    end
+    if #removes > 0 then
+        for i = #triggers, 1, -1 do
+            tremove(triggers, i)
         end
     end
 end
 
 function Listener:notify_listener(event, ...)
     local listener_map = self._listeners[event] or self._listeners["*"] or {}
-    for listener, functor in pairs(listener_map) do
+    for functor, listener in pairs(listener_map) do
         local result = tpack(functor:run(listener, ...))
         if not result[1] then
             log_fatal("[Listener][notify_listener] xpcall [{}:{}] failed: {}", listener:source(), functor.name, result[2])
@@ -103,7 +114,7 @@ function Listener:notify_listener(event, ...)
     end
     if not self._ignores[event] then
         self._ignores[event] = true
-        log_warn("[Listener][notify_listener] event ({}) handler is nil! {}", event, dtraceback())
+        log_warn("[Listener][notify_listener] event ({}) handler is nil!", event)
     end
     return tpack(false, "event handler is nil")
 end
@@ -111,7 +122,7 @@ end
 function Listener:notify_command(cmd, ...)
     --执行事件
     local listener_map = self._commands[cmd] or self._commands["*"] or {}
-    for listener, functor in pairs(listener_map) do
+    for functor, listener in pairs(listener_map) do
         local result = tpack(functor:run(listener, ...))
         if not result[1] then
             log_fatal("[Listener][notify_command] xpcall [{}:{}] failed: {}!", listener:source(), functor.name, result[2])

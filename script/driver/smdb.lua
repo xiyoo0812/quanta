@@ -54,7 +54,7 @@ function SMDB:open(name)
 end
 
 function SMDB:put(key, value, sheet)
-    --log_dump("[SMDB][put] {}.{}={}", sheet, key, value)
+    log_dump("[SMDB][put] {}.{}={}", sheet, key, value)
     key = sheet and sformat("%s:%s", sheet, key) or key
     local code = self.driver.put(key, value)
     if code ~= SMDB_SUCCESS then

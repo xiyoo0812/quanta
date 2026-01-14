@@ -126,7 +126,7 @@ end
 
 function RedisDB:setup(conf)
     self:setup_pool(conf.hosts)
-    self.rcfunctor = make_functer(self.check_alive)
+    self.rcfunctor = make_functer("check_alive")
     self.timer:loop(SECOND_MS, function()
         self.rcfunctor:call(self)
     end)

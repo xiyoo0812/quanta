@@ -13,8 +13,8 @@ local protobuf_mgr      = quanta.get("protobuf_mgr")
 
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_SUCCESS     = protobuf_mgr:error_code("FRAME_SUCCESS")
-local ROLE_NOT_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
-local ROLE_TOKEN_ERR    = protobuf_mgr:error_code("LOGIN_ROLE_TOKEN_ERR")
+local PLAYER_NOT_EXIST  = protobuf_mgr:error_code("LOGIN_PLAYER_NOT_EXIST")
+local PLAYER_TOKEN_ERR  = protobuf_mgr:error_code("LOGIN_PLAYER_TOKEN_ERR")
 
 local MINUTE_5_S        = quanta.enum("PeriodTime", "MINUTE_5_S")
 
@@ -97,7 +97,7 @@ function LobbyServlet:rpc_player_command(player_id, cmd_id, message)
     local player = player_mgr:get_entity(player_id)
     if not player then
         log_err("[LobbyServlet][rpc_player_command] need login cmd_id={}, player_id={}", cmd_id, player_id)
-        return ROLE_NOT_EXIST
+        return PLAYER_NOT_EXIST
     end
     local result = event_mgr:notify_command(cmd_id, player, player_id, message)
     if not result[1] then
@@ -112,7 +112,7 @@ function LobbyServlet:rpc_player_login(player_id, open_id, token)
     local ok, login_token = self:check_login_token(open_id, token)
     if not ok then
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, login_token)
-        return ROLE_TOKEN_ERR
+        return PLAYER_TOKEN_ERR
     end
     local player = player_mgr:load_player(open_id, player_id)
     if not player then
@@ -121,7 +121,7 @@ function LobbyServlet:rpc_player_login(player_id, open_id, token)
     end
     local account = player:get_account()
     if not account then
-        return ROLE_TOKEN_ERR
+        return PLAYER_TOKEN_ERR
     end
     --通知登陆成功
     local new_token = mrandom()
@@ -141,7 +141,7 @@ function LobbyServlet:rpc_player_logout(player_id)
     log_debug("[LobbyServlet][rpc_player_logout] player({}) logout req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
-        return ROLE_NOT_EXIST
+        return PLAYER_NOT_EXIST
     end
     player_mgr:remove_entity(player, player_id)
     log_info("[LobbyServlet][rpc_player_logout] player({}) logout success!", player_id)
@@ -152,17 +152,17 @@ function LobbyServlet:rpc_player_reload(player_id, token)
     log_debug("[LobbyServlet][rpc_player_reload] player({}) reload req!", player_id)
     local player = player_mgr:get_entity(player_id)
     if not player then
-        return ROLE_NOT_EXIST
+        return PLAYER_NOT_EXIST
     end
     local account = player:get_account()
     if not account then
-        return ROLE_TOKEN_ERR
+        return PLAYER_TOKEN_ERR
     end
     --验证token
     local old_token = account:get_reload_token()
     if token ~= old_token then
         log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, old_token)
-        return ROLE_TOKEN_ERR
+        return PLAYER_TOKEN_ERR
     end
     local new_token = mrandom()
     account:set_reload_token(new_token)

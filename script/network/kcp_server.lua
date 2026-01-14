@@ -46,9 +46,11 @@ function KcpServer:__init(session_type)
     --注册退出
     update_mgr:attach_quit(self)
     --注册更新函数
-    update_mgr:register_frame("kcp_update", function(clock_ms)
-        kcp_update(clock_ms)
-    end)
+    update_mgr:attach_frame(self)
+end
+
+function KcpServer:on_frame(clock_ms)
+    kcp_update(clock_ms)
 end
 
 function KcpServer:on_quit()

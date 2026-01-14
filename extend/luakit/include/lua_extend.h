@@ -66,8 +66,13 @@ namespace luakit {
         lua_pushnil(L);
         while (lua_next(L, src_idx) != 0) {
             if (lua_istable(L, -1)) {
-                lua_pushvalue(L, -2);
-                lua_createtable(L, 0, 8);
+                lua_pushvalue(L, -2);   //key
+                lua_pushvalue(L, -1);
+                lua_rawget(L, dst_idx);
+                if (!lua_istable(L, -1)) {
+                    lua_pop(L, 1);
+                    lua_createtable(L, 0, 8);
+                }
                 copy_table(L, -3, -1);
                 lua_rawset(L, dst_idx);
             }
@@ -199,19 +204,6 @@ namespace luakit {
             for (size_t i = 0; i < src_len; i++) {
                 lua_rawgeti(L, 1, i + 1);
                 lua_rawseti(L, 2, ++dst_len);
-            }
-        }
-        return 1;
-    }
-
-    static int lua_table_merge(lua_State* L) {
-        if (lua_istable(L, 1) && lua_istable(L, 2)) {
-            lua_pushnil(L);
-            while (lua_next(L, 1) != 0) {
-                lua_pushvalue(L, -2);
-                lua_pushvalue(L, -2);
-                lua_rawset(L, 2);
-                lua_pop(L, 1);
             }
         }
         return 1;

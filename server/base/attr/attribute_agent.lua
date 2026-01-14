@@ -8,7 +8,7 @@ local player_mgr        = quanta.get("player_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
 local FRAME_SUCCESS     = protobuf_mgr:error_code("FRAME_SUCCESS")
-local ROLE_NOT_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NOT_EXIST")
+local PLAYER_NOT_EXIST  = protobuf_mgr:error_code("LOGIN_PLAYER_NOT_EXIST")
 
 local AttributeAgent = singleton()
 
@@ -44,7 +44,7 @@ function AttributeAgent:rpc_attr_relay(player_id, attrs, service_id)
     local player  = player_mgr:get_entity(player_id)
     if not player then
         log_err("[AttributeAgent][rpc_attr_relay] player not exist attrs={}, player_id={}", attrs, player_id)
-        return ROLE_NOT_EXIST
+        return PLAYER_NOT_EXIST
     end
     for attr_id, value in pairs(attrs) do
         player:set_attr(attr_id, value, service_id)

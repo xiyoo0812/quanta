@@ -2,6 +2,7 @@
 
 local pairs         = pairs
 local odate         = os.date
+local terase        = table.erase
 local qtweak        = qtable.weak
 local log_info      = logger.info
 local log_clean     = logger.clean
@@ -10,7 +11,6 @@ local log_warn      = logger.warn
 local sig_get       = signal.get
 local sig_check     = signal.check
 local sig_reload    = signal.reload
-local obj_functer   = quanta.obj_functer
 local make_functer  = quanta.make_functer
 local collgarbage   = collectgarbage
 
@@ -45,7 +45,7 @@ function UpdateMgr:__init()
 end
 
 function UpdateMgr:update_second(clock_ms)
-    for obj, functor in pairs(self.second_objs) do
+    for functor, obj in pairs(self.second_objs) do
         functor:call(obj, clock_ms)
     end
 end
@@ -57,10 +57,7 @@ function UpdateMgr:update(now_ms, clock_ms, master)
     quanta.now_ms = now_ms
     --帧更新
     local frame = quanta.frame + 1
-    for _, functor in pairs(self.frame_funcs) do
-        functor:call(clock_ms, frame)
-    end
-    for obj, functor in pairs(self.frame_objs) do
+    for functor, obj in pairs(self.frame_objs) do
         functor:call(obj, clock_ms, frame)
     end
     quanta.frame = frame
@@ -68,7 +65,7 @@ function UpdateMgr:update(now_ms, clock_ms, master)
     if clock_ms < self.next_frame then
         return
     end
-    for obj, functor in pairs(self.fast_objs) do
+    for functor, obj in pairs(self.fast_objs) do
         functor:call(obj, clock_ms)
     end
     self.next_frame = clock_ms + FAST_MS
@@ -99,14 +96,14 @@ function UpdateMgr:update_by_time(now, clock_ms)
     if time.sec % 5 > 0 then
         return
     end
-    for obj, functor in pairs(self.second5_objs) do
+    for functor, obj in pairs(self.second5_objs) do
         functor:call(obj, clock_ms)
     end
     --30秒更新
     if time.sec % 30 > 0 then
         return
     end
-    for obj, functor in pairs(self.second30_objs) do
+    for functor, obj in pairs(self.second30_objs) do
         functor:call(obj, clock_ms)
     end
     --分更新
@@ -114,7 +111,7 @@ function UpdateMgr:update_by_time(now, clock_ms)
         return
     end
     self.last_minute = time.min
-    for obj, functor in pairs(self.minute_objs) do
+    for functor, obj in pairs(self.minute_objs) do
         functor:call(obj, clock_ms)
     end
     --时更新
@@ -123,7 +120,7 @@ function UpdateMgr:update_by_time(now, clock_ms)
         return
     end
     self.last_hour = cur_hour
-    for obj, functor in pairs(self.hour_objs) do
+    for functor, obj in pairs(self.hour_objs) do
         functor:call(obj, clock_ms)
     end
     --清理日志
@@ -152,7 +149,7 @@ end
 
 function UpdateMgr:quit()
     log_info("[UpdateMgr][quit] service quit !")
-    for obj, functor in pairs(self.quit_objs) do
+    for functor, obj in pairs(self.quit_objs) do
         functor:run(obj)
     end
     --退出
@@ -169,15 +166,11 @@ local function define_functions()
     }
     for name, lock_ms in pairs(func_names) do
         local attr_oname = sformat("%s_objs", name)
-        local attr_rname = sformat("%s_funcs", name)
         local attach_fname = sformat("on_%s", name)
         local attach_name = sformat("attach_%s", name)
         local detach_name = sformat("detach_%s", name)
-        local register_name = sformat("register_%s", name)
-        local unregister_name = sformat("unregister_%s", name)
         --定义属性
         prop:reader(attr_oname, {})
-        prop:reader(attr_rname, {})
         --定义函数
         UpdateMgr[attach_name] = function(self, obj)
             local attach_func = obj[attach_fname]
@@ -185,16 +178,11 @@ local function define_functions()
                 log_warn("[UpdateMgr][{}] obj({}) isn't {} method!", attach_name, obj:source(), attach_fname)
                 return
             end
-            self[attr_oname][obj] = obj_functer(obj, attach_func, lock_ms, attach_fname)
+            local functor = make_functer(attach_fname, lock_ms)
+            self[attr_oname][functor] = obj
         end
         UpdateMgr[detach_name] = function(self, obj)
-            self[attr_oname][obj] = nil
-        end
-        UpdateMgr[register_name] = function(self, rname, func)
-            self[attr_rname][rname] = make_functer(func, lock_ms)
-        end
-        UpdateMgr[unregister_name] = function(self, rname)
-            self[attr_rname][rname] = nil
+            terase(self[attr_oname], obj)
         end
     end
     UpdateMgr.weak_handlers = function(self)

@@ -55,7 +55,7 @@ function StoreMgo:sync_whole()
     end
     local ok, code, adata = mongo_agent:update({ self.sheet, self.wholes, {[primary_key] = primary_id }, true}, primary_id)
     if qfailed(code, ok) then
-        log_err("[StoreMgo][sync_whole] flush {}.{} failed! code: {}, res: {}", primary_id, self.sheet, code, adata)
+        log_err("[StoreMgo][sync_whole] flush {}.{} failed! code: {}, res: {}", self.sheet, primary_id, code, adata)
     end
 end
 
