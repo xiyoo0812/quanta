@@ -16,9 +16,9 @@ enum ErrorCode
     LOGIN_PLATFORM_ERROR    = 1001;     //平台错误
     LOGIN_VERIFY_FAILED     = 1002;     //验证失败
     LOGIN_SERVER_UPHOLD     = 1003;     //服务器维护
-    LOGIN_ACCOUTN_BANS      = 1004;     //账号被封
-    LOGIN_ACCOUTN_INLINE    = 1005;     //账号已经登陆
-    LOGIN_ACCOUTN_OFFLINE   = 1006;     //账号未登陆
+    LOGIN_ACCOUNT_BANS      = 1004;     //账号被封
+    LOGIN_ACCOUNT_INLINE    = 1005;     //账号已经登陆
+    LOGIN_ACCOUNT_OFFLINE   = 1006;     //账号未登陆
     LOGIN_PLAYER_NOT_EXIST  = 1007;     //角色不存在
     LOGIN_PLAYER_NUM_LIMIT  = 1008;     //角色数量超过上限
     LOGIN_PLAYER_NAME_EXIST = 1009;     //角色名字重复
@@ -29,5 +29,5 @@ enum ErrorCode
     //踢出错误码
     KICK_DEVICE_REPLACE     = 1051;     //其他设备登陆
     KICK_SERVER_UPHOLD      = 1052;     //服务器维护
-    KICK_ACCOUTN_BANS       = 1053;     //账号被封
+    KICK_ACCOUNT_BANS       = 1053;     //账号被封
 }

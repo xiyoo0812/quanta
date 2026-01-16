@@ -100,7 +100,7 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 
 #自动生成目标
 SOURCES =
-SOURCES += ../luaxml/src/tinyxml2.cpp
+SOURCES += ../luaxml/src/pugixml.cpp
 SOURCES += ../luazip/src/miniz.c
 SOURCES += src/luaxlsx.cpp
 

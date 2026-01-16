@@ -41,7 +41,7 @@ SRC_DIRS = {
 OBJS = {
     "miniz.c",
     "luaxlsx.cpp",
-    "tinyxml2.cpp",
+    "pugixml.cpp",
 }
 
 --需要连接的库文件

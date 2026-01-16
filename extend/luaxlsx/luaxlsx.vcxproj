@@ -11,14 +11,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\luaxml\src\tinyxml2.h" />
+    <ClInclude Include="..\luaxml\src\pugiconfig.hpp" />
+    <ClInclude Include="..\luaxml\src\pugixml.hpp" />
     <ClInclude Include="..\luazip\src\luazip.h" />
     <ClInclude Include="..\luazip\src\lz4.h" />
     <ClInclude Include="..\luazip\src\miniz.h" />
     <ClInclude Include="src\excel.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\luaxml\src\tinyxml2.cpp" />
+    <ClCompile Include="..\luaxml\src\pugixml.cpp" />
     <ClCompile Include="..\luazip\src\miniz.c" />
     <ClCompile Include="src\luaxlsx.cpp" />
   </ItemGroup>

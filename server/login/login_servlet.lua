@@ -22,11 +22,11 @@ local protobuf_mgr          = quanta.get("protobuf_mgr")
 local FRAME_FAILED          = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_SUCCESS         = protobuf_mgr:error_code("FRAME_SUCCESS")
 local SERVER_UPHOLD         = protobuf_mgr:error_code("LOGIN_SERVER_UPHOLD")
-local ACCOUTN_INLINE        = protobuf_mgr:error_code("LOGIN_ACCOUTN_INLINE")
+local ACCOUNT_INLINE        = protobuf_mgr:error_code("LOGIN_ACCOUNT_INLINE")
 local VERIFY_FAILED         = protobuf_mgr:error_code("LOGIN_VERIFY_FAILED")
 local PLAYER_NOT_EXIST      = protobuf_mgr:error_code("LOGIN_PLAYER_NOT_EXIST")
 local PLAYER_NUM_LIMIT      = protobuf_mgr:error_code("LOGIN_PLAYER_NUM_LIMIT")
-local ACCOUTN_OFFLINE       = protobuf_mgr:error_code("LOGIN_ACCOUTN_OFFLINE")
+local ACCOUNT_OFFLINE       = protobuf_mgr:error_code("LOGIN_ACCOUNT_OFFLINE")
 
 local PLATFORM_PASSWORD     = protobuf_mgr:enum("platform_type", "PLATFORM_PASSWORD")
 
@@ -63,7 +63,7 @@ function LoginServlet:on_account_login_req(session, cmd_id, body, session_id)
     local open_id, access_token, platform, channel = body.openid, body.session, body.platform, body.package_channel
     log_debug("[LoginServlet][on_account_login_req] open_id({}) token({}) body:{} login req!", open_id, access_token, body)
     if session.account then
-        return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, ACCOUNT_INLINE, session_id)
     end
     local account_params = {}
     local device_id = body.device_id
@@ -127,7 +127,7 @@ function LoginServlet:on_role_create_req(session, cmd_id, body, session_id)
     local account = session.account
     if not account or account.user_id ~= user_id then
         log_err("[LoginServlet][on_role_create_req] user_id({}) need login!", user_id)
-        return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, ACCOUNT_OFFLINE, session_id)
     end
     if account:get_role_count() > 1 then
         log_err("[LoginServlet][on_role_create_req] user_id({}) role num limit!", user_id)
@@ -162,7 +162,7 @@ function LoginServlet:on_role_choose_req(session, cmd_id, body, session_id)
     local account = session.account
     if not account then
         log_err("[LoginServlet][on_role_choose_req] user_id({}) need login!", user_id)
-        return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, ACCOUNT_OFFLINE, session_id)
     end
     local role = account:get_role(role_id)
     if not role then
@@ -195,7 +195,7 @@ function LoginServlet:on_role_delete_req(session, cmd_id, body, session_id)
     local account = session.account
     if not account or account:get_user_id() ~= user_id then
         log_err("[LoginServlet][on_role_delete_req] user_id({}) need login!", user_id)
-        return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_OFFLINE, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, ACCOUNT_OFFLINE, session_id)
     end
     if not account:del_role(role_id) then
         log_err("[LoginServlet][on_role_delete_req] user_id({}) role_id({}) role nit exist!", user_id, role_id)
@@ -213,7 +213,7 @@ function LoginServlet:on_account_reload_req(session, cmd_id, body, session_id)
     local open_id, token, device_id = body.openid, body.session, body.device_id
     log_debug("[LoginServlet][on_account_reload_req] openid({}) token({}) device_id({}) reload req!", open_id, token, device_id)
     if session.account then
-        return client_mgr:callback_errcode(session, cmd_id, ACCOUTN_INLINE, session_id)
+        return client_mgr:callback_errcode(session, cmd_id, ACCOUNT_INLINE, session_id)
     end
     --验证token
     local account = login_dao:load_account(open_id)

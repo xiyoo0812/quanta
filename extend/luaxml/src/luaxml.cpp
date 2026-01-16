@@ -1,18 +1,18 @@
 #define LUA_LIB
 
 #include "lua_kit.h"
-#include "tinyxml2.h"
+#include "pugixml.hpp"
 
 using namespace luakit;
-using namespace tinyxml2;
+using namespace pugi;
 
 namespace luaxml {
 
-    static void push_elem2lua(lua_State* L, const XMLElement* elem) {
-        uint32_t count = elem->ChildElementCount();
-        const XMLAttribute* attr = elem->FirstAttribute();
-        const char* value = elem->GetText();
-        if (count == 0 && attr == nullptr) {
+    static void push_elem2lua(lua_State* L, const xml_node& elem) {
+        auto childs = elem.children();
+        auto attrs = elem.attributes();
+        cpchar value = elem.text().as_string(nullptr);
+        if (childs.empty() && attrs.empty()) {
             value = value ? value : "";
             if (lua_stringtonumber(L, value) == 0) {
                 lua_pushstring(L, value);
@@ -26,27 +26,25 @@ namespace luaxml {
             }
             lua_setfield(L, -2, "__text");
         }
-        if (attr) {
+        if (!attrs.empty()) {
             lua_createtable(L, 0, 4);
-            while (attr) {
-                if (lua_stringtonumber(L, attr->Value()) == 0) {
-                    lua_pushstring(L, attr->Value());
+            for (auto it = attrs.begin(); it != attrs.end(); ++it) {
+                if (lua_stringtonumber(L, it->value()) == 0) {
+                    lua_pushstring(L, it->value());
                 }
-                lua_setfield(L, -2, attr->Name());
-                attr = attr->Next();
+                lua_setfield(L, -2, it->name());
             }
             lua_setfield(L, -2, "__attr");
         }
-        if (count > 0) {
-            const XMLElement* child = elem->FirstChildElement();
-            std::unordered_map<std::string, std::vector<const XMLElement*>> elems;
-            while (child) {
-                if (auto it = elems.find(child->Name()); it != elems.end()) {
-                    it->second.push_back(child);
+        if (!childs.empty()) {
+            std::unordered_map<std::string, std::vector<xml_node>> elems;
+            for (auto child = childs.begin(); child != childs.end(); ++child) {
+                if (child->type() != node_element) continue;
+                if (auto it = elems.find(child->name()); it != elems.end()) {
+                    it->second.push_back(*child);
                 } else {
-                    elems.insert(std::make_pair(child->Name(), std::vector{ child }));
+                    elems.insert(std::make_pair(child->name(), std::vector{ *child }));
                 }
-                child = child->NextSiblingElement();
             }
             for (auto& [key, velem] : elems) {
                 if (size_t child_size = velem.size(); child_size == 1) {
@@ -62,17 +60,17 @@ namespace luaxml {
             }
         }
     }
-    static void load_elem4lua(lua_State* L, XMLPrinter* printer);
-    static void load_table4lua(lua_State* L, XMLPrinter* printer) {
+    static void load_elem4lua(lua_State* L, xml_node& root);
+    static void load_table4lua(lua_State* L, xml_node& root) {
         lua_guard g(L);
         if (lua_getfield(L, -1, "__attr") == LUA_TTABLE) {
             lua_pushnil(L);
             while (lua_next(L, -2) != 0) {
-                const char* key = lua_tostring(L, -2);
+                auto attr = root.append_attribute(lua_tostring(L, -2));
                 switch (lua_type(L, -1)) {
-                case LUA_TSTRING: printer->PushAttribute(key, lua_tostring(L, -1)); break;
-                case LUA_TBOOLEAN: printer->PushAttribute(key, lua_toboolean(L, -1)); break;
-                case LUA_TNUMBER: lua_isinteger(L, -1) ? printer->PushAttribute(key, int64_t(lua_tointeger(L, -1))) : printer->PushAttribute(key, lua_tonumber(L, -1)); break;
+                case LUA_TSTRING: attr.set_value(lua_tostring(L, -1)); break;
+                case LUA_TBOOLEAN: attr.set_value(lua_toboolean(L, -1)); break;
+                case LUA_TNUMBER: lua_isinteger(L, -1) ? attr.set_value(lua_tointeger(L, -1)) : attr.set_value(lua_tonumber(L, -1)); break;
                 }
                 lua_pop(L, 1);
             }
@@ -80,118 +78,101 @@ namespace luaxml {
         lua_pushnil(L);
         lua_setfield(L, -3, "__attr");
         switch (lua_getfield(L, -2, "__text")) {
-        case LUA_TSTRING: printer->PushText(lua_tostring(L, -1)); break;
-        case LUA_TBOOLEAN: printer->PushText(lua_toboolean(L, -1)); break;
-        case LUA_TNUMBER: lua_isinteger(L, -1) ? printer->PushText(int64_t(lua_tointeger(L, -1))) : printer->PushText(lua_tonumber(L, -1)); break;
+        case LUA_TSTRING: root.text().set(lua_tostring(L, -1)); break;
+        case LUA_TBOOLEAN: root.text().set(lua_toboolean(L, -1)); break;
+        case LUA_TNUMBER: lua_isinteger(L, -1) ? root.text().set(lua_tointeger(L, -1)) : root.text().set(lua_tonumber(L, -1)); break;
         }
         lua_pushnil(L);
         lua_setfield(L, -4, "__text");
         lua_pushnil(L);
         while (lua_next(L, -4) != 0) {
-            load_elem4lua(L, printer);
+            load_elem4lua(L, root);
             lua_pop(L, 1);
         }
     }
 
-    static void load_elem4lua(lua_State* L, XMLPrinter* printer) {
-        const char* key = lua_tostring(L, -2);
+    static void load_elem4lua(lua_State* L, xml_node& root) {
+        cpchar key = lua_tostring(L, -2);
         if (!is_lua_array(L, -1)) {
-            printer->OpenElement(key);
+            auto node = root.append_child(key);
             switch (lua_type(L, -1)) {
-            case LUA_TTABLE: load_table4lua(L, printer); break;
-            case LUA_TSTRING: printer->PushText(lua_tostring(L, -1)); break;
-            case LUA_TBOOLEAN: printer->PushText(lua_toboolean(L, -1)); break;
-            case LUA_TNUMBER: lua_isinteger(L, -1) ? printer->PushText(int64_t(lua_tointeger(L, -1))) : printer->PushText(lua_tonumber(L, -1)); break;
+            case LUA_TTABLE: load_table4lua(L, node); break;
+            case LUA_TSTRING: node.text().set(lua_tostring(L, -1)); break;
+            case LUA_TBOOLEAN: node.text().set(lua_toboolean(L, -1)); break;
+            case LUA_TNUMBER: lua_isinteger(L, -1) ? node.text().set(lua_tointeger(L, -1)) : node.text().set(lua_tonumber(L, -1)); break;
             }
-            printer->CloseElement();
             return;
         }
         lua_pushstring(L, key);
         int raw_len = lua_rawlen(L, -2);
         for (int i = 1; i <= raw_len; ++i) {
             lua_rawgeti(L, -2, i);
-            load_elem4lua(L, printer);
+            load_elem4lua(L, root);
             lua_pop(L, 1);
         }
         lua_pop(L, 1);
     }
 
-    static int decode_xml(lua_State* L, const char* xml) {
-        tinyxml2::XMLDocument doc;
-        if (doc.Parse(xml) != XML_SUCCESS) {
-            lua_pushnil(L);
-            lua_pushstring(L, "parse xml doc failed!");
-            return 2;
+    static int decode_xml(lua_State* L, cpchar xml) {
+        xml_document doc;
+        if (auto result = doc.load_string(xml); result) {
+            lua_createtable(L, 0, 4);
+            auto child = doc.first_child();
+            push_elem2lua(L, child);
+            lua_setfield(L, -2, child.name());
+            return 1;
         }
-        lua_createtable(L, 0, 4);
-        const XMLElement* root = doc.RootElement();
-        push_elem2lua(L, root);
-        lua_setfield(L, -2, root->Name());
-        return 1;
+        lua_pushnil(L);
+        lua_pushstring(L, "parse xml doc failed!");
+        return 2;
     }
 
     static int encode_xml(lua_State* L) {
-        XMLPrinter printer;
-        const char* header = luaL_optstring(L, 2, nullptr);
-        if (header) {
-            printer.PushDeclaration(header);
-        } else {
-            printer.PushHeader(false, true);
-        }
+        xml_document doc;
+        std::ostringstream oss;
+        //declaration
+        xml_node decl = doc.prepend_child(node_declaration);
+        decl.append_attribute("version").set_value(luaL_optstring(L, 2, "1.0"));
+        decl.append_attribute("encoding").set_value(luaL_optstring(L, 3, "UTF-8"));
+        //sava
         lua_pushnil(L);
         while (lua_next(L, 1) != 0) {
-            load_elem4lua(L, &printer);
+            load_elem4lua(L, doc);
             lua_pop(L, 1);
         }
-        lua_pushlstring(L, printer.CStr(), printer.CStrSize());
+        doc.save(oss);
+        std::string xml_str = oss.str();
+        lua_pushlstring(L, xml_str.c_str(), xml_str.size());
         return 1;
     }
 
-    static int open_xml(lua_State* L, const char* xmlfile) {
-        tinyxml2::XMLDocument doc;
-        if (doc.LoadFile(xmlfile) != XML_SUCCESS) {
-            lua_pushnil(L);
-            lua_pushstring(L, "parse xml doc failed!");
-            return 2;
-        }
-        lua_createtable(L, 0, 4);
-        const XMLElement* root = doc.RootElement();
-        push_elem2lua(L, root);
-        lua_setfield(L, -2, root->Name());
-        return 1;
-    }
-
-    static FILE* fopenxml(const char* filepath, const char* mode) {
-#if defined(WIN32)
-        FILE* fp = 0;
-        const errno_t err = fopen_s(&fp, filepath, mode);
-        if (err) return 0;
-#else
-        FILE* fp = fopen(filepath, mode);
-#endif
-        return fp;
-    }
-
-    static int save_xml(lua_State* L, const char* xmlfile) {
-        FILE* fp = fopenxml(xmlfile, "w");
-        if (fp == nullptr) {
-            lua_pushboolean(L, false);
-            lua_pushstring(L, "file dont open, save xml failed!");
-            return 2;
-        }
-        XMLPrinter printer(fp);
-        const char* header = luaL_optstring(L, 3, nullptr);
-        if (header) {
-            printer.PushDeclaration(header);
-        } else {
-            printer.PushHeader(false, true);
+    static int open_xml(lua_State* L, cpchar xmlfile) {
+        xml_document doc;
+        if (auto result = doc.load_file(xmlfile); result) {
+            lua_createtable(L, 0, 4);
+            auto child = doc.first_child();
+            push_elem2lua(L, child);
+            lua_setfield(L, -2, child.name());
+            return 1;
         }
         lua_pushnil(L);
+        lua_pushstring(L, "parse xml doc failed!");
+        return 2;
+    }
+
+    static int save_xml(lua_State* L, cpchar xmlfile) {
+        xml_document doc;
+        //declaration
+        xml_node decl = doc.prepend_child(node_declaration);
+        decl.append_attribute("version").set_value(luaL_optstring(L, 3, "1.0"));
+        decl.append_attribute("encoding").set_value(luaL_optstring(L, 4, "UTF-8"));
+        //sava
+        lua_pushnil(L);
         while (lua_next(L, 2) != 0) {
-            load_elem4lua(L, &printer);
+            load_elem4lua(L, doc);
             lua_pop(L, 1);
         }
-        fclose(fp);
+        doc.save_file(xmlfile, "  ", format_default | format_indent | format_write_bom);
         lua_pushboolean(L, true);
         return 1;
     }

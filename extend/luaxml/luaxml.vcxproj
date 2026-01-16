@@ -11,11 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\tinyxml2.h" />
+    <ClInclude Include="src\pugiconfig.hpp" />
+    <ClInclude Include="src\pugixml.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\luaxml.cpp" />
-    <ClCompile Include="src\tinyxml2.cpp" />
+    <ClCompile Include="src\pugixml.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{EC638E2A-A355-0936-373E-A893B2B596DC}</ProjectGuid>

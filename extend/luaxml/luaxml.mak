@@ -93,7 +93,7 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 #自动生成目标
 SOURCES =
 SOURCES += src/luaxml.cpp
-SOURCES += src/tinyxml2.cpp
+SOURCES += src/pugixml.cpp
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))

@@ -80,6 +80,10 @@ function quanta.failed(code, ok, def_code)
     return not ok or code ~= SUCCESS, code or (def_code or FAILED)
 end
 
+function quanta.unset(name)
+    quanta[name] = nil
+end
+
 function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then

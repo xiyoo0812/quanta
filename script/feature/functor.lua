@@ -18,7 +18,6 @@ function Functor:__init(func_name, lock_ms)
             obj[self.name](obj, ...)
             self.time = 0
         end
-        self.time = quanta.clock_ms + lock_ms
     end
 end
 

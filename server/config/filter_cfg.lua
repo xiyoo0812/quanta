@@ -15,7 +15,7 @@ filter:upsert({
 
 filter:upsert({
     id=2,
-    name='NID_LOGIN_ROLE_LOGIN_REQ',
+    name='NID_LOGIN_PLAYER_LOGIN_REQ',
     proto=true
 })
 

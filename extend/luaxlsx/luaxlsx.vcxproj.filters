@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="..\luaxml\src\tinyxml2.h">
+    <ClInclude Include="..\luaxml\src\pugiconfig.hpp">
+      <Filter>../luaxml/src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\luaxml\src\pugixml.hpp">
       <Filter>../luaxml/src</Filter>
     </ClInclude>
     <ClInclude Include="..\luazip\src\luazip.h">
@@ -18,7 +21,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\luaxml\src\tinyxml2.cpp">
+    <ClCompile Include="..\luaxml\src\pugixml.cpp">
       <Filter>../luaxml/src</Filter>
     </ClCompile>
     <ClCompile Include="..\luazip\src\miniz.c">
