@@ -15,8 +15,8 @@ local derive_port   = luabus.derive_port
 local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
-local INCR          = quanta.enum("NetPortMode", "INCR")
-local INDUCE        = quanta.enum("NetPortMode", "INDUCE")
+local INCR          = quanta.enum("PortMode", "INCR")
+local INDUCE        = quanta.enum("PortMode", "INDUCE")
 
 local Socket        = import("driver/socket.lua")
 

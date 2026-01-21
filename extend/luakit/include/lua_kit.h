@@ -272,6 +272,8 @@ namespace luakit {
     };
 
     inline void luakit_extendlibs(kit_state* kit) {
+        auto los = kit->get<lua_table>("os");
+        los.set_function("setenv", lua_os_setenv);
         auto lstring = kit->get<lua_table>("string");
         lstring.set_function("split", lua_string_split);
         lstring.set_function("title", lua_string_title);

@@ -144,7 +144,7 @@ function RouterMgr:forward_target(router, method, rpc, ...)
 end
 
 --通过router发送广播，并收集所有的结果
-function RouterMgr:collect(service_id, rpc, ...)
+function RouterMgr:collect_bc(service_id, rpc, ...)
     local collect_res = {}
     local session_id = lnext_id()
     local router = self:hash_router(session_id)
@@ -268,7 +268,7 @@ function RouterMgr:build_service_method(service, service_id)
             return obj:broadcast(service_id, rpc, ...)
         end,
         ["collect_%s"] = function(obj, rpc, ...)
-            return obj:collect(service_id, rpc, ...)
+            return obj:collect_bc(service_id, rpc, ...)
         end,
     }
     for fmt_key, handler in pairs(method_list) do

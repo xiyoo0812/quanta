@@ -15,6 +15,7 @@ local tab_copy      = table.copy
 local deep_copy     = table.deepcopy
 local getmetatable  = getmetatable
 local setmetatable  = setmetatable
+local ogetenv       = os.getenv
 
 --类模板
 local class_tpls = _ENV.__classes or {}
@@ -32,18 +33,6 @@ local function class_mixin_call(method, class, obj, ...)
         if mixin_base_func then
             mixin_base_func(obj, ...)
         end
-    end
-end
-
-local function class_public_func(valfunc, class)
-    return function(...)
-        return valfunc(...)
-    end
-end
-
-local function class_private_func(valfunc, class, method)
-    return function(...)
-        return valfunc(...)
     end
 end
 
@@ -141,20 +130,19 @@ local function mt_class_new(class, ...)
     end
 end
 
-local function mt_class_index(class, method)
-    return class.__vtbl[method]
+local function mt_class_index(class, field)
+    return class.__vtbl[field]
 end
 
-local function mt_class_newindex(class, method, valfunc)
-    if type(valfunc) ~= "function" then
-        class.__vtbl[method] = valfunc
-        return
+local function mt_class_newindex(class, field, value)
+    if rawget(class.__vtbl, field) then
+        if ssub(field, 1, 2) ~= "__" and not ogetenv("HOTFIX") then
+            warn(sformat("the class %s: %s has repeat defined.", class.__name, field))
+        end
+    elseif field == "__init_static" then
+        value()
     end
-    if ssub(method, 1, 1) ~= "_" or ssub(method, 1, 2) == "__" then
-        class.__vtbl[method] = class_public_func(valfunc, class)
-        return
-    end
-    class.__vtbl[method] = class_private_func(valfunc, class, method)
+    class.__vtbl[field] = value
 end
 
 local function mt_object_release(obj)
@@ -246,58 +234,3 @@ function class_review()
 end
 
 _ENV.__classes = class_tpls
-
---调试模式下，加入部分OOP规则检查
----------------------------------------------------------------------------------------------------
-if os.getenv("DEBUG") then
-    --栈对象
-    local stack_nil = { __name = "null" }
-    setmetatable(stack_nil, { __close = function() _G.__stack_cls = stack_nil end})
-    _ENV.__stack_cls = stack_nil
-
-    local function class_stack(cls)
-        local old = _G.__stack_cls
-        _G.__stack_cls = cls
-        return old
-    end
-
-    classMT.__close = function(class)
-        _G.__stack_cls = class
-    end
-
-    class_raw_call = function(method, class, obj, ...)
-        local class_base_func = rawget(class.__vtbl, method)
-        if class_base_func then
-            local _<close> = class_stack(class)
-            class_base_func(obj, ...)
-        end
-    end
-
-    class_mixin_call = function(method, class, obj, ...)
-        for _, mixin in ipairs(class.__mixins) do
-            local mixin_base_func = rawget(mixin.__methods, method)
-            if mixin_base_func then
-                local _<close> = class_stack(mixin)
-                mixin_base_func(obj, ...)
-            end
-        end
-    end
-
-    class_public_func = function(valfunc, class)
-        return function(...)
-            local _<close> = class_stack(class)
-            return valfunc(...)
-        end
-    end
-
-    class_private_func = function(valfunc, class, method)
-        return function(...)
-            local stack<close> = class_stack(class)
-            if stack ~= class then
-                warn(sformat("%s's method %s is private method.", class.__name, method))
-                return
-            end
-            return valfunc(...)
-        end
-    end
-end

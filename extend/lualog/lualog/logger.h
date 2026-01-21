@@ -56,7 +56,7 @@ namespace logger {
     const size_t MAX_LINE   = 100000;
 
     constexpr auto level_names = std::array{"UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR", "FATAL"};
-    constexpr auto level_colors = std::array{"\x1b[32m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[33m", "\x1b[31m", "\x1b[32m"};
+    constexpr auto level_colors = std::array{"\x1b[90m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[36m", "\x1b[31m", "\x1b[97;41m"};
 
     class log_message {
     public:

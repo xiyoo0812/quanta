@@ -24,8 +24,8 @@ local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
-local INDUCE            = quanta.enum("NetPortMode", "INDUCE")
-local INCR              = quanta.enum("NetPortMode", "INCR")
+local INDUCE            = quanta.enum("PortMode", "INDUCE")
+local INCR              = quanta.enum("PortMode", "INCR")
 
 local SERVICE_MAX       = 255
 

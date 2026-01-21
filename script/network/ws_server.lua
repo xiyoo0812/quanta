@@ -17,8 +17,8 @@ local update_mgr        = quanta.get("update_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
-local INCR              = quanta.enum("NetPortMode", "INCR")
-local INDUCE            = quanta.enum("NetPortMode", "INDUCE")
+local INCR              = quanta.enum("PortMode", "INCR")
+local INDUCE            = quanta.enum("PortMode", "INDUCE")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 
 local WSServer = class()

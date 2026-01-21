@@ -42,6 +42,14 @@ namespace luakit {
         return (pack) ? 1 : (int)len;
     }
 
+    static void lua_os_setenv(vstring key, vstring value) {
+        #ifdef WIN32
+            _putenv_s(key.data(), value.data());
+        #else
+            value.empty() ? unsetenv(key.data()) : setenv(key.data(),value.data(), 1);
+        #endif
+    }
+
     static bool is_lua_array(lua_State* L, int index, bool emy_as_arr = false) {
         if (lua_type(L, index) != LUA_TTABLE) return false;
         size_t raw_len = lua_rawlen(L, index);
