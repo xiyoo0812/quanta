@@ -25,7 +25,6 @@ local tab_copy      = table.copy
 local tinsert       = table.insert
 local setmetatable  = setmetatable
 local dtraceback    = debug.traceback
-local ogetenv       = os.getenv
 
 local mixin_tpls    = _ENV.__mixins or {}
 
@@ -174,7 +173,7 @@ end
 
 local function mt_newindex(mixin, field, value)
     if rawget(mixin.__methods, field) then
-        if ssub(field, 1, 2) ~= "__" and not ogetenv("HOTFIX") then
+        if ssub(field, 1, 2) ~= "__" and not _G.HOTFIXING then
             warn(sformat("mixin %s: %s has repeat defined.", mixin.__name, field))
         end
     end
