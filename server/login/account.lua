@@ -2,6 +2,7 @@
 
 local tsize         = table.size
 local tinsert       = table.insert
+local log_debug     = logger.debug
 local guid_new      = codec.guid_new
 
 local store_mgr     = quanta.get("store_mgr")
@@ -18,7 +19,7 @@ store:store_value("device_id", 0)   --device_id
 store:store_value("create_time", 0) --create_time
 store:store_value("channel","")     --channel
 store:store_values("params", {})    --params
-store:store_values("roles", {})     --roles
+store:store_values("players", {})   --players
 
 function Account:__init(open_id)
     self.open_id = open_id
@@ -45,12 +46,12 @@ function Account:update_params(params)
     end
 end
 
-function Account:get_role(role_id)
-    return self.roles[role_id]
+function Account:get_player(player_id)
+    return self.players[player_id]
 end
 
-function Account:get_role_count()
-    return tsize(self.roles)
+function Account:get_player_count()
+    return tsize(self.players)
 end
 
 function Account:load()
@@ -58,6 +59,7 @@ function Account:load()
 end
 
 function Account:on_db_account_load(data)
+    log_debug("[Account][on_db_account_load] data:{}", data)
     if data.open_id then
         self:set_token(data.token)
         self:set_lobby(data.lobby)
@@ -66,28 +68,31 @@ function Account:on_db_account_load(data)
         self:set_device_id(data.device_id)
         self:set_create_time(data.create_time)
         self:set_channel(data.channel or "default")
-        self:set_roles(data.roles or {})
+        self:set_players(data.players)
     end
 end
 
-function Account:del_role(role_id)
-    local role = self.roles[role_id]
-    if role then
-        return self:del_roles_field(role_id)
+function Account:add_player(player_id, player_data)
+    self:save_players_field(player_id, player_data)
+    self:flush_account_db(true)
+end
+
+function Account:del_player(player_id)
+    local player_data = self.players[player_id]
+    if player_data then
+        self:del_players_field(player_id)
+        self:flush_account_db(true)
+        return true
     end
     return false
 end
 
-function Account:pack2client()
-    local roles = {}
-    for role_id, role in pairs(self.roles or {}) do
-        tinsert(roles, { role_id = role_id, gender = role.gender, name = role.name })
+function Account:pack2client(response)
+    response.players = {}
+    for _, player in pairs(self.players or {}) do
+        tinsert(response.players, player)
     end
-    return {
-        roles = roles,
-        error_code = 0,
-        user_id = self.user_id,
-    }
+    response.user_id = self.user_id
 end
 
 return Account

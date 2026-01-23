@@ -99,6 +99,7 @@ SOURCES += src/luabus.cpp
 SOURCES += src/socket_helper.cpp
 SOURCES += src/socket_listener.cpp
 SOURCES += src/socket_mgr.cpp
+SOURCES += src/socket_relay.cpp
 SOURCES += src/socket_router.cpp
 SOURCES += src/socket_stream.cpp
 SOURCES += src/socket_tcp.cpp

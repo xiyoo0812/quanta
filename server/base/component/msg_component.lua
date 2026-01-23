@@ -34,11 +34,11 @@ function MsgComponent:fire_reliable(serv_name, event, ...)
     self:send_service(serv_name, "rpc_reliable_event")
 end
 
---fire_role_reliable
-function MsgComponent:fire_role_reliable(serv_name, target_id, event, ...)
+--fire_player_reliable
+function MsgComponent:fire_player_reliable(serv_name, target_id, event, ...)
     local msg_queue = self:create_mq(serv_name)
     msg_queue:send_message(target_id, event, { ... })
-    self:send_service2role(serv_name, target_id, "rpc_reliable_event")
+    self:send_service2player(serv_name, target_id, "rpc_reliable_event")
 end
 
 --fire_lobby_reliable
@@ -71,16 +71,9 @@ function MsgComponent:on_load_reliable_events()
     end
 end
 
---通过gateway转发消息给client
-function MsgComponent:send(cmd_id, data)
-    -- if self.status == ONL_INLINE then
-    --     online:send_client(self.id, self.id, cmd_id, data)
-    -- end
-end
-
---转发消息给role
-function MsgComponent:send_service2role(service_id, role_id, rpc, ...)
-    return router_mgr:relay_send(role_id, service_id, rpc, role_id, ...)
+--转发消息给player
+function MsgComponent:send_service2player(service_id, player_id, rpc, ...)
+    return router_mgr:relay_send(player_id, service_id, rpc, player_id, ...)
 end
 
 --转发消息给target

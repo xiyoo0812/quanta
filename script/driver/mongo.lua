@@ -1,6 +1,6 @@
 
 --mongo.lua
-local Socket        = import("driver/socket.lua")
+require("lbson")
 
 local log_err       = logger.err
 local log_info      = logger.info
@@ -37,6 +37,8 @@ local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
 local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
+
+local Socket        = import("driver/socket.lua")
 
 local MongoDB = class()
 local prop = property(MongoDB)

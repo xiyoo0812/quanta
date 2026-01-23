@@ -80,16 +80,17 @@ function DiscoverMgr:on_client_error(client, token, err)
     if not services or not services[token] then
         return
     end
-    services[token] = nil
     --清理观察的服务
     for _, watchers in pairs(self.watcher_list) do
         watchers[token] = nil
     end
+    local node = services[token]
+    services[token] = nil
     if serv_name == "router" then
-        self.rpc_server:unservicecast(serv_name, "rpc_service_close", client.id, serv_name)
+        self.rpc_server:unservicecast(serv_name, "rpc_service_close", node)
     else
         local watchers = self.watcher_list[serv_name] or {}
-        self.rpc_server:groupecast(watchers, "rpc_service_close", client.id, serv_name)
+        self.rpc_server:groupecast(watchers, "rpc_service_close", node)
     end
 end
 

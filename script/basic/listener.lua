@@ -123,18 +123,18 @@ function Listener:notify_command(cmd, ...)
     --执行事件
     local listener_map = self._commands[cmd] or self._commands["*"] or {}
     for functor, listener in pairs(listener_map) do
-        local result = tpack(functor:run(listener, ...))
-        if not result[1] then
-            log_fatal("[Listener][notify_command] xpcall [{}:{}] failed: {}!", listener:source(), functor.name, result[2])
-            result[2] = sformat("cmd %s execute failed!", cmd)
+        local ok, err = functor:run(listener, ...)
+        if not ok then
+            log_fatal("[Listener][notify_command] xpcall [{}:{}] failed: {}!", listener:source(), functor.name, err)
+            return false
         end
-        return result
+        return ok
     end
     if not self._ignores[cmd] then
         log_warn("[Listener][notify_command] command {} handler is nil!", cmd)
         self._ignores[cmd] = true
     end
-    return tpack(false, "command handler is nil")
+    return false
 end
 
 return Listener

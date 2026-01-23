@@ -1,10 +1,8 @@
 --store_mgo.lua
-import("agent/mongo_agent.lua")
 
 local log_err       = logger.err
 local qfailed       = quanta.failed
 
-local store_mgr     = quanta.get("store_mgr")
 local mongo_agent   = quanta.get("mongo_agent")
 
 local Store         = import("store/store.lua")
@@ -13,7 +11,7 @@ local StoreMgo = class(Store)
 local prop = property(StoreMgo)
 prop:reader("primary_key", "")  -- primary_key
 
-function StoreMgo:__init(sheet, primary_id)
+function StoreMgo:__init(mgr, sheet, primary_id)
 end
 
 function StoreMgo:load(key)
@@ -39,12 +37,12 @@ end
 
 function StoreMgo:update_value(layers, key, value)
     Store.update_value(self, layers, key, value)
-    store_mgr:save_wholes(self)
+    self.store_mgr:save_wholes(self)
 end
 
 function StoreMgo:update_field(layers, field, key, value)
     Store.update_field(self, layers, field, key, value)
-    store_mgr:save_wholes(self)
+    self.store_mgr:save_wholes(self)
 end
 
 function StoreMgo:sync_whole()
@@ -58,9 +56,5 @@ function StoreMgo:sync_whole()
         log_err("[StoreMgo][sync_whole] flush {}.{} failed! code: {}, res: {}", self.sheet, primary_id, code, adata)
     end
 end
-
---注册驱动
-store_mgr:bind_store("mongo", StoreMgo)
-store_mgr:bind_driver("mongo", mongo_agent)
 
 return StoreMgo

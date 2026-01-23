@@ -4,7 +4,7 @@ local log_err           = logger.err
 local log_info          = logger.info
 local lnext_id          = luakit.next_id
 
-local PROTO_TEXT        = luabus.eproto_type.TEXT
+local PROTO_TEXT        = luabus.proto_type.TEXT
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -89,10 +89,8 @@ function Socket:connect(ip, port, timeout, proto)
     local block_id = lnext_id()
     session.on_connect = function(res)
         local success = res == "ok"
-        self.alive = success
         if not success then
-            self.token = nil
-            self.session = nil
+            self:close()
         end
         thread_mgr:response(block_id, success, res)
     end
@@ -100,7 +98,6 @@ function Socket:connect(ip, port, timeout, proto)
     --阻塞挂起
     local ok, res = thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
     if not ok then
-        --处理超时
         self:close()
         return ok, res
     end
@@ -109,6 +106,7 @@ function Socket:connect(ip, port, timeout, proto)
 end
 
 function Socket:on_socket_connected()
+    self.alive = true
     return true
 end
 
@@ -136,7 +134,7 @@ function Socket:init_session(session, token, ip, port)
     self.token = token
     self.session = session
     self.ip, self.port = ip, port
-    session.on_call_data = function(recv_len, ...)
+    session.on_call_text = function(recv_len, ...)
         thread_mgr:fork(self.on_socket_recv, nil, self, ...)
     end
     session.on_error = function(stoken, err)
@@ -153,7 +151,7 @@ end
 
 function Socket:send_data(...)
     if self.alive then
-        local send_len = self.session.call_data(...)
+        local send_len = self.session.call_text(...)
         return send_len > 0
     end
     return false, "socket not alive"

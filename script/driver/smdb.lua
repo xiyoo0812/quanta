@@ -103,6 +103,6 @@ function SMDB:iter()
     return iter
 end
 
-quanta.smdb_driver = SMDB()
+quanta.smdb = SMDB()
 
 return SMDB

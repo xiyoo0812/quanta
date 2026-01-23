@@ -16,18 +16,25 @@ namespace luapb {
         union {
             uint32_t length;
             struct {
-                uint8_t flag :8;    //标志位8bit
-                uint32_t len :24;   //长度24bit(16M)
-            } head;
+                uint32_t type : 4;  //消息类型4bit
+                uint32_t code : 4;  //错误码4bit
+                uint32_t flag : 4;  //标志位4bit
+                uint32_t len : 20;  //长度20bit(1M)
+            };
         };
-        uint16_t    cmd_id;         // 协议ID
-        uint16_t    session_id;     // sessionId
-        uint8_t     type;           // 消息类型
-        uint8_t     crc8;           // crc8
+        uint32_t    target_id;  // target_id
+        uint16_t    cmd_id;     // 协议ID
+        uint16_t    session_id; // sessionId
+        uint8_t     crc8;       // crc8
     };
     struct grpc_header {
-        uint8_t compose;            //是否压缩
-        uint32_t length;            //长度
+        union {
+            uint32_t head;
+            struct {
+                uint32_t compose : 8;  //是否压缩
+                uint32_t length : 24;  //长度24bit(1M)
+            };
+        };
     };
     #pragma pack()
 
@@ -69,7 +76,7 @@ namespace luapb {
             if (!m_slice) return 0;
             pb_header* header =(pb_header*)m_slice->peek(sizeof(pb_header));
             if (!header) return 0;
-            uint32_t len = header->head.len;
+            uint32_t len = header->len;
             if (len < sizeof(pb_header)) return -1;
             if (!m_slice->peek(len)) return 0;
             m_packet_len = len;
@@ -85,9 +92,9 @@ namespace luapb {
             pb_message* msg = pbmsg_from_stack(L, index++, &header.cmd_id);
             if (msg == nullptr) luaL_error(L, "invalid pb cmd type");
             //other
-            header.head.flag = (uint8_t)lua_tointeger(L, index++);
+            header.flag = (uint8_t)lua_tointeger(L, index++);
             header.type = (uint8_t)lua_tointeger(L, index++);
-            header.crc8 = (uint8_t)lua_tointeger(L, index++);
+            header.target_id = lua_tointeger(L, index++);
             //encode
             m_buf->clean();
             m_buf->hold_place(sizeof(pb_header));
@@ -97,22 +104,21 @@ namespace luapb {
                 luaL_error(L, e.what());
             }
             *len = m_buf->size();
-            header.head.len = *len;
+            header.len = *len;
             m_buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
             return m_buf->head();
         }
 
         virtual size_t decode(lua_State* L) {
-            //header
-            pb_header* header = (pb_header*)m_slice->erase(sizeof(pb_header));
-            //return
             int top = lua_gettop(L);
             lua_pushinteger(L, m_slice->size());
+            //header
+            pb_header* header = (pb_header*)m_slice->erase(sizeof(pb_header));
             lua_pushinteger(L, header->session_id);
+            lua_pushinteger(L, header->target_id);
             lua_pushinteger(L, header->cmd_id);
-            lua_pushinteger(L, header->head.flag);
-            lua_pushinteger(L, header->type);
-            lua_pushinteger(L, header->crc8);
+            lua_pushinteger(L, header->flag);
+            lua_pushinteger(L, header->code);
             //cmd_id
             pb_message* msg = pbmsg_from_cmdid(header->cmd_id);
             if (msg == nullptr) {
@@ -152,8 +158,10 @@ namespace luapb {
                 luaL_error(L, e.what());
             }
             //header
+            grpc_header header;
             uint32_t size = m_buf->size() - sizeof(grpc_header);
-            grpc_header header = { .compose = 0, .length = byteswap(size) };
+            header.length = byteswap(size);
+            header.compose = 0;
             m_buf->copy(0, (uint8_t*)&header, sizeof(grpc_header));
             return m_buf->data(len);
         }

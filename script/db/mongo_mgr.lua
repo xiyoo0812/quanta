@@ -9,6 +9,8 @@ local MONGO_FAILED  = quanta.enum("KernCode", "MONGO_FAILED")
 local AUTOINCCC     = environ.get("QUANTA_DB_AUTOINCTB")
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 
+local MongoDB = import("driver/mongo.lua")
+
 local MongoMgr = singleton()
 local prop = property(MongoMgr)
 prop:reader("mongo_db", nil)    --mongo_db
@@ -33,7 +35,6 @@ end
 
 --初始化
 function MongoMgr:setup()
-    local MongoDB = import("driver/mongo.lua")
     local driver = environ.driver("QUANTA_MONGO_URL")
 
     self.mongo_db = MongoDB(driver)

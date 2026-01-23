@@ -1,15 +1,11 @@
 -- document.lua
-local mmin          = math.min
 local log_err       = logger.err
 local qfailed       = quanta.failed
-local tclone        = table.deepcopy
-local tunpack       = table.unpack
-local tinsert       = table.insert
+local deepcopy      = table.deepcopy
 
+local kvdriver      = quanta.get("smdb")
 local mongo_mgr     = quanta.get("mongo_mgr")
-local event_mgr     = quanta.get("event_mgr")
 local cache_mgr     = quanta.get("cache_mgr")
-local smdb_driver   = quanta.get("smdb_driver")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
@@ -19,9 +15,7 @@ prop:reader("coll_name", nil)       -- table name
 prop:reader("primary_key", nil)     -- primary key
 prop:reader("primary_id", nil)      -- primary id
 prop:reader("prototype", nil)       -- prototype
-prop:reader("flushing", false)      -- flushing
 prop:reader("increases", {})        -- increases
-prop:reader("commits", {})          -- commits
 prop:reader("wholes", {})           -- wholes
 prop:reader("count", 0)             -- count
 prop:reader("time", 0)              -- time
@@ -67,15 +61,26 @@ function Document:load()
     return self:merge()
 end
 
+function Document:merge_document(src, dst)
+    if not dst or type(dst) ~= "table" then dst = {} end
+    for key, value in pairs(src or {}) do
+        if value == "nil" then
+            dst[key] = nil
+        elseif (type(value) == "table") then
+            dst[key] = self:merge_document(value, dst[key])
+        else
+            dst[key] = value
+        end
+    end
+    return dst
+end
+
 --合并
 function Document:merge()
-    local commits = smdb_driver:get(self.primary_id, self.coll_name)
-    if next(commits) then
-        --倒序合并，存储侧使用了倒序提交
-        for  i = #commits, 1, -1 do
-            self:merge_commit(commits[i])
-            self.count = self.count - 10
-        end
+    local increases = kvdriver:get(self.primary_id, self.coll_name)
+    if next(increases) then
+        self:merge_document(increases, self.wholes)
+        self.increases = increases
     end
     self:check_flush()
     return SUCCESS
@@ -89,13 +94,13 @@ function Document:destory()
         log_err("[Document][destory] del failed: {}=> table: {}", res, self.coll_name)
         return false, code
     end
-    smdb_driver:del(self.primary_id, self.coll_name)
+    kvdriver:del(self.primary_id, self.coll_name)
     return true, SUCCESS
 end
 
 --复制数据
 function Document:copy(datas)
-    local copy_data = tclone(datas)
+    local copy_data = deepcopy(datas)
     copy_data[self.primary_key] = self.primary_id
     self.wholes = copy_data
     self:update()
@@ -104,23 +109,20 @@ end
 --保存数据库
 function Document:update()
     --存储DB
-    local commits = self.increases
-    self.flushing, self.increases = true, {}
+    local increases = self.increases
     local primary_id = self:check_primary()
     local selector = { [self.primary_key] = primary_id }
+    self.increases = {}
     local code, res = mongo_mgr:update(primary_id, self.coll_name, self.wholes, selector, true)
     if qfailed(code) then
         log_err("[Document][update] update failed: {}=> table: {}", res, self.coll_name)
-        self.flushing = false
-        self:rollback(commits)
+        self:rollback(increases)
         return false, code
     end
-    --删除缓存
-    smdb_driver:del(self.primary_id, self.coll_name)
     --检查新缓存
-    self.flushing = false
-    if next(self.increases) then
-        event_mgr:publish_frame(self, "commit_storage")
+    if not next(self.increases) then
+        --删除缓存
+        kvdriver:del(self.primary_id, self.coll_name)
     end
     return true, SUCCESS
 end
@@ -132,101 +134,21 @@ function Document:update_wholes(wholes)
 end
 
 --回滚提交
-function Document:rollback(commits)
+function Document:rollback(increases)
     if next(self.increases) then
-        for _, commit in ipairs(self.increases) do
-            tinsert(commits, commit)
-        end
-        event_mgr:publish_frame(self, "commit_storage")
+        deepcopy(self.increases, increases)
+        kvdriver:put(self.primary_id, increases, self.coll_name)
     end
-    self.increases = commits
+    self.increases = increases
+    -- 5 秒后重试
+    self.time = quanta.now + 5
 end
 
 --增量更新
-function Document:update_commits(commits)
-    --倒序合并，发送测使用倒序提交
-    for  i = #commits, 1, -1 do
-        self:merge_commit(commits[i])
-    end
-    if not self.flushing then
-        --存储请求
-        event_mgr:publish_frame(self, "commit_storage")
-    end
-end
-
-function Document:update_commit(commit)
-    self:merge_commit(commit)
-    if not self.flushing then
-        --存储请求
-        event_mgr:publish_frame(self, "commit_storage")
-    end
-end
-
---合并提交
-function Document:merge_commit(commit)
-    local pkeys, key, val, field = tunpack(commit)
-    if key and field then
-        pkeys[#pkeys + 1] = field
-    end
-    if not key then
-        key = field
-    end
-    local cur_data = self.wholes
-    for _, cfield in ipairs(pkeys) do
-        if not cur_data[cfield] then
-            cur_data[cfield] = {}
-        end
-        cur_data = cur_data[cfield]
-    end
-    cur_data[key] = (val ~= "nil") and val or nil
-    --记录增量提交
-    tinsert(self.increases, commit)
-end
-
---内部方法
---------------------------------------------------------------
---判断commit是否increase的父节点或者本节点
-local function is_parent_or_self(commit, inc_layers, inc_field)
-    local clayers, cfield = commit[1], commit[4]
-    local len1, len2 = #clayers, #inc_layers
-    if len1 > len2 then
-        return false
-    end
-    -- 比较前 n 个元素
-    local mix = mmin(len1, len2)
-    for i = 1, mix do
-        -- 如果元素类型不同或值不同，返回 false
-        if clayers[i] ~= inc_layers[i] then
-            return false
-        end
-    end
-    if len1 == len2 then
-        return cfield == inc_field
-    end
-    return true
-end
-
---提交本地存储
---倒序合并，cache也需要倒序读取
-function Document:commit_storage()
-    local commits = {}
-    --倒序遍历所有提交
-    for i = #self.increases, 1, -1 do
-        local increase = self.increases[i]
-        --遍历已经合并的提交
-        for _, commit in ipairs(commits) do
-            --如果commit是increase的父节点或者本节点，则表示increase已经失效，需要丢弃
-            if is_parent_or_self(commit, increase[1], increase[4]) then
-                goto continue
-            end
-        end
-        --开始提交
-        tinsert(commits, increase)
-        :: continue ::
-    end
-    --存储
-    smdb_driver:put(self.primary_id, commits, self.coll_name)
-    self.commits = commits
+function Document:update_increases(increases)
+    deepcopy(increases, self.increases)
+    self:merge_document(increases, self.wholes)
+    kvdriver:put(self.primary_id, self.increases, self.coll_name)
     self:check_flush()
 end
 

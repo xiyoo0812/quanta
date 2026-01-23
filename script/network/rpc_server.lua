@@ -14,20 +14,19 @@ local derive_port       = luabus.derive_port
 local resume_trace      = quanta.resume_trace
 local extract_trace     = quanta.extract_trace
 
+local FLAG_REQ          = luabus.proto_flag.REQ
+local FLAG_RES          = luabus.proto_flag.RES
+
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 
-local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
-local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local INDUCE            = quanta.enum("PortMode", "INDUCE")
 local INCR              = quanta.enum("PortMode", "INCR")
-
-local SERVICE_MAX       = 255
 
 local RpcServer = singleton()
 
@@ -83,7 +82,7 @@ function RpcServer:on_socket_rpc(client, session_id, rpc_flag, trace_id, span_id
         if session_id == 0 or rpc_flag == FLAG_REQ then
             local function dispatch_rpc_message(...)
                 local hook<close> = qdefer()
-                event_mgr:execute_hook("on_rpc_recv", hook, rpc, ...)
+                event_mgr:execute_hook("on_rpc_recv", hook, rpc, nil, ...)
                 local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
                 if session_id > 0 then
                     client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))
@@ -116,25 +115,15 @@ function RpcServer:on_socket_accept(client)
     self.clients[token] = client
     -- 绑定call/回调
     client.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = client.call(session_id, rpc_flag, 0, 0, 0, rpc, ...)
+        local send_len = client.forward_self(session_id, 0, 0, rpc_flag, 0, 0, 0, rpc, ...)
         if send_len < 0 then
             log_err("[RpcServer][call_rpc] call failed! code:{}", send_len)
             return false
         end
         return true, SUCCESS
     end
-    client.on_call = function(recv_len, session_id, rpc_flag, ...)
+    client.on_call_rpc = function(recv_len, session_id, rpc_flag, ...)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, client, session_id, rpc_flag, ...)
-    end
-    client.on_transfer = function(recv_len, session_id, service_id, target_id, trace_id, span_id, slice)
-        local function dispatch_rpc_message()
-            if service_id < SERVICE_MAX then
-                event_mgr:notify_listener("on_transfer_rpc", client, session_id, service_id, slice)
-                return
-            end
-            event_mgr:notify_listener("on_broadcast_rpc", client, target_id, slice)
-        end
-        thread_mgr:fork(dispatch_rpc_message, resume_trace(trace_id, span_id))
     end
     client.on_error = function(ctoken, err)
         thread_mgr:fork(function()
@@ -185,11 +174,6 @@ end
 --send接口
 function RpcServer:send(client, rpc, ...)
     return client.call_rpc(rpc, 0, FLAG_REQ, ...)
-end
-
---回调
-function RpcServer:callback(client, session_id, ...)
-    client.call_rpc("callback", session_id, FLAG_RES, ...)
 end
 
 --broadcast接口

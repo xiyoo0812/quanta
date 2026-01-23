@@ -85,7 +85,7 @@ end
 function Socketls:send_packet(url, ...)
     if self.alive then
         local session_id = lnext_id()
-        local send_len = self.session.call_data(session_id, url, ...)
+        local send_len = self.session.call_text(session_id, url, ...)
         if send_len <= 0 then
             return false, "send data failed"
         end

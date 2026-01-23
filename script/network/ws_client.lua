@@ -8,7 +8,7 @@ local wsscodec          = codec.wsscodec
 local httpccodec        = codec.httpccodec
 local make_timer        = quanta.make_timer
 
-local PROTO_TEXT        = luabus.eproto_type.TEXT
+local PROTO_TEXT        = luabus.proto_type.TEXT
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
@@ -97,7 +97,7 @@ end
 function WSClient:on_socket_connected(session, token)
     local session_id = lnext_id()
     session.set_codec(self.hcodec)
-    session.call_data(session_id, "/", "GET", WS_HEADERS, "")
+    session.call_text(session_id, "/", "GET", WS_HEADERS, "")
     local ok, res = thread_mgr:yield(session_id, "handshake", CONNECT_TIMEOUT)
     log_info("[WSClient][on_socket_connected] success {}:{}-{}", token, ok, res)
     if not ok then
@@ -122,7 +122,7 @@ function WSClient:init_session(session, token, ip, port)
     self.token = token
     self.session = session
     self.ip, self.port = ip, port
-    session.on_call_data = function(recv_len, ...)
+    session.on_call_text = function(recv_len, ...)
         thread_mgr:fork(self.on_socket_recv, nil, self, ...)
     end
     session.on_error = function(stoken, err)
@@ -163,7 +163,7 @@ end
 
 function WSClient:send_data(opcode, data)
     if self.alive then
-        local send_len = self.session.call_data(opcode, data)
+        local send_len = self.session.call_text(opcode, data)
         return send_len > 0
     end
     return false, "socket not alive"

@@ -16,8 +16,6 @@ local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
-local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
-local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local SLOW_MS           = quanta.enum("PeriodTime", "SLOW_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
@@ -28,6 +26,9 @@ local INCR              = quanta.enum("PortMode", "INCR")
 local FLOW_CTRL         = environ.status("QUANTA_FLOW_CTRL")
 local FC_PACKETS        = environ.number("QUANTA_FLOW_CTRL_PACKAGE")
 local FC_BYTES          = environ.number("QUANTA_FLOW_CTRL_BYTES")
+
+local FLAG_REQ          = luabus.proto_flag.REQ
+local FLAG_RES          = luabus.proto_flag.RES
 
 -- CS协议会话对象管理器
 local KcpServer = class()
@@ -276,7 +277,7 @@ function KcpServer:remove_session(token)
 end
 
 -- 查询会话
-function KcpServer:get_session_by_token(token)
+function KcpServer:get_session(token)
     return self.sessions[token]
 end
 

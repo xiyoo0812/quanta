@@ -33,7 +33,7 @@ local store = storage(AttrComponent, "player_attr")
 store:store_values("attrs", {})  --属性集合
 
 --加载db数据
-function AttrComponent:on_db_player_attr_load(data)
+function AttrComponent:on_db_attr_load(data)
     if data.player_id then
         self:load_attrs(data.attrs or {})
         event_mgr:notify_trigger("on_player_attr_init", self)

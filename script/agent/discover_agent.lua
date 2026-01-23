@@ -93,12 +93,12 @@ function DiscoverAgent:rpc_service_ready(service_name, readys)
     end
 end
 
-function DiscoverAgent:rpc_service_close(id, service_name)
-    log_info("[DiscoverAgent][rpc_service_close]: {}'s node id {}!", service_name, id)
-    local watchers = self.watchers[service_name]
+function DiscoverAgent:rpc_service_close(node)
+    log_info("[DiscoverAgent][rpc_service_close]: node: {}!", node)
+    local watchers = self.watchers[node.service_name]
     for listener in pairs(watchers or {}) do
         if listener.on_service_close then
-            listener:on_service_close(id, service_name)
+            listener:on_service_close(node.id, node.service_name, node)
         end
     end
 end

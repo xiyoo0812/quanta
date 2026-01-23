@@ -11,9 +11,10 @@ local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
-local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
-local FLAG_RES      = quanta.enum("FlagMask", "RES")
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+
+local FLAG_REQ      = luabus.proto_flag.REQ
+local FLAG_RES      = luabus.proto_flag.RES
 
 local THREAD_NAME   = quanta.thread
 

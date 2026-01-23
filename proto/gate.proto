@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package ncmd_cs;
+
+// 踢人原因
+enum kick_reason
+{
+    KICK_CRASH                  = 0;    //服务器崩溃
+    KICK_RELOGIN                = 1;    //重新登录
+    KICK_GMBAN                  = 2;    //GM封禁
+}
+
+// NID_GATE_BIND_CLIENT_REQ
+message gate_bind_client_req
+{
+    uint32 client_id            = 1;
+    uint32 verify_code          = 2;
+    uint32 server_id            = 3;
+}
+
+// NID_GATE_BIND_CLIENT_RES
+message gate_bind_client_res
+{
+    uint32 error_code           = 1;    // 错误码
+}
+
+//NID_GATE_BIND_SERVER_REQ
+message gate_bind_server_req
+{
+    uint32 server_id            = 1;
+}
+
+//NID_GATE_BIND_SERVER_RES
+message gate_bind_server_res
+{
+    uint32 error_code           = 1;    // 错误码
+}
+
+//NID_GATE_BIND_SERVICE_REQ
+message gate_bind_service_req
+{
+    uint32 client_id            = 1;
+    uint32 server_id            = 2;
+    uint32 token                = 3;
+}
+
+
+//NID_GATE_BIND_SERVICE_RES
+message gate_bind_service_res
+{
+    uint32 error_code           = 1;    // 错误码
+}
+
+//NID_GATE_KICK_CLIENT_NTF
+message gate_kick_client_ntf
+{
+    kick_reason reason          = 1;    // 原因
+}
+
+//NID_GATE_VERIFY_CODE_NTF
+message gate_verify_code_ntf
+{
+    uint32 verify_code          = 1;    // 验证码
+}
+
+//NID_GATE_LOST_CLIENT_NTF
+message gate_lost_client_ntf
+{
+    uint32 player_id            = 1;    // 玩家id
+}

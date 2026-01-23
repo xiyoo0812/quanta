@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package ncmd_cs;
+
+//实体类型定义
+enum entity_type
+{
+    ENTITY_NULL                 = 0;        //null
+    ENTITY_PLAYER               = 1;        //player
+    ENTITY_NPC                  = 2;        //npc
+    ENTITY_MONSTER              = 3;        //monster
+    ENTITY_RESOURCE             = 4;        //场景资源
+    ENTITY_ITEM                 = 5;        //掉落
+    ENTITY_EFFECT               = 6;        //场景效果
+}
+
+//属性定义
+message role_attr
+{
+    uint32 attr_id              = 1;        // 属性id
+    oneof value {
+        string attr_s           = 2;        // 字符串属性
+        int64 attr_i            = 3;        // 整数属性
+        bytes attr_b            = 4;        // 二进制属性
+        float attr_f            = 5;        // 浮点属性
+    }
+}
+
+//NID_ENTITY_ENTER_SCENE_NTF
+message entity_enter_scene_ntf
+{
+    uint64 id                   = 1;        // 实体id
+    uint64 scene_id             = 2;        // 场景实例id
+    entity_type type            = 3;        // 实体类型
+    uint32 map_id               = 4;        // 场景id
+    int32 pos_x                 = 5;        // pos_x
+    int32 pos_y                 = 6;        // pos_y
+    int32 pos_z                 = 7;        // pos_z
+    int32 dir_y                 = 8;        // dir_y
+    repeated role_attr attrs    = 10;       // 实体属性列表
+}
+
+//NID_ENTITY_LEAVE_SCENE_NTF
+message entity_leave_scene_ntf
+{
+    uint64 id                   = 1;        // 实体id
+    uint64 scene_id             = 2;        // 场景实例id
+}
+
+//NID_ENTITY_ATTR_UPDATE_NTF
+message entity_attr_update_ntf
+{
+    uint64 id                   = 1;        // 实体id
+    repeated role_attr attrs    = 2;        // 实体属性列表
+}

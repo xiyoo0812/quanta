@@ -157,7 +157,7 @@ end
 function SocketH2:send_packet(url, ...)
     if self.alive then
         local stream_id = self.stream_id
-        local send_len = self.session.call_data(stream_id, url, ...)
+        local send_len = self.session.call_text(stream_id, url, ...)
         if send_len <= 0 then
             return false, "send data failed"
         end

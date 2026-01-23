@@ -20,4 +20,8 @@ quanta.startup(function()
     import("login/login_servlet.lua")
     -- 协议过滤器
     import("base/admin/shield.lua")
+    -- watch services
+    local login_mgr = quanta.get("login_mgr")
+    login_mgr:watch_service("gateway")
+    login_mgr:watch_service("lobby")
 end)

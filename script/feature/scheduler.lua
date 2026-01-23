@@ -11,8 +11,9 @@ local wbroadcast    = worker.broadcast
 local wupdate       = worker.update
 local wcall         = worker.call
 
-local FLAG_REQ      = quanta.enum("FlagMask", "REQ")
-local FLAG_RES      = quanta.enum("FlagMask", "RES")
+local FLAG_REQ      = luabus.proto_flag.REQ
+local FLAG_RES      = luabus.proto_flag.RES
+
 local RPC_TIMEOUT   = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local event_mgr     = quanta.get("event_mgr")

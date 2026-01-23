@@ -8,17 +8,22 @@ local qxpcall           = quanta.xpcall
 local lnext_id          = luakit.next_id
 local hash_code         = codec.hash_code
 local make_timer        = quanta.make_timer
+local make_functer      = quanta.make_functer
 local resume_trace      = quanta.resume_trace
 local extract_trace     = quanta.extract_trace
+
+local FLAG_REQ          = luabus.proto_flag.REQ
+local FLAG_RES          = luabus.proto_flag.RES
+local FLAG_ERR          = luabus.proto_flag.ERR
 
 local event_mgr         = quanta.get("event_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
-local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
-local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
+local UNREACHABLE       = quanta.enum("KernCode", "UNREACHABLE")
 
+local FAST_MS           = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local RPC_TIMEOUT       = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
@@ -31,6 +36,7 @@ prop:reader("port", nil)
 prop:reader("timer", nil)
 prop:reader("alive", false)
 prop:reader("socket", nil)
+prop:reader("functor", nil)
 prop:accessor("holder", nil)    --持有者
 
 function RpcClient:__init(holder, ip, port, id)
@@ -39,15 +45,13 @@ function RpcClient:__init(holder, ip, port, id)
     self.id = id or 0
     self.holder = holder
     self.timer = make_timer()
-    self.timer:loop(SECOND_MS, function()
-        self:heartbeat()
+    self.functor = make_functer("check_alive")
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.functor:call(self)
     end)
 end
 
-function RpcClient:heartbeat()
-    if not self.holder then
-        return
-    end
+function RpcClient:check_alive()
     if self.alive then
         --发送心跳
         self:send("rpc_heartbeat")
@@ -61,10 +65,12 @@ function RpcClient:register()
     self:call("rpc_register", quanta.node_info)
 end
 
-function RpcClient:relocation(holder, host, port)
-    self.holder = holder
-    self.port = port
+function RpcClient:relocation(host, port)
     self.ip = host
+    self.port = port
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.functor:call(self)
+    end)
 end
 
 --调用rpc后续处理
@@ -74,6 +80,10 @@ function RpcClient:on_call_router(rpc, token, send_len)
     end
     log_err("[RpcClient][on_call_router] rpc {} call failed! code:{}", rpc, send_len)
     return false
+end
+
+local function relay_rpc_message(router_id, session_id, target_id, service_id, source, rpc, ...)
+    event_mgr:notify_listener("on_relay_message", router_id, session_id, target_id, service_id, source, rpc, ...)
 end
 
 --连接服务器
@@ -90,47 +100,45 @@ function RpcClient:connect()
     end
     self.socket = socket
     local token = socket.token
-    socket.on_call = function(recv_len, session_id, ...)
+    socket.on_call_rpc = function(recv_len, session_id, ...)
         qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, socket, session_id, ...)
+    end
+    socket.on_relay_rpc = function(recv_len, session_id, target_id, service_id, trace_id, span_id, source, rpc, ...)
+        thread_mgr:fork(relay_rpc_message, resume_trace(trace_id, span_id), self.id, session_id, target_id, service_id, source, rpc, ...)
     end
     socket.call_rpc = function(rpc, session_id, rpc_flag, ...)
         local trace_id, span_id = extract_trace()
-        local send_len = socket.call(session_id, rpc_flag, trace_id, span_id, quanta.id, rpc, ...)
+        local send_len = socket.forward_self(session_id, 0, 0, rpc_flag, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
-    socket.transfer = function(rpc, session_id, target_id, service_id, ...)
+    socket.relay = function(rpc, session_id, target_id, service_id, source, ...)
         local trace_id, span_id = extract_trace()
-        local send_len = socket.forward_transfer(session_id, FLAG_REQ, target_id, service_id, trace_id, span_id, quanta.id, rpc, ...)
+        local send_len = socket.forward_relay(session_id, target_id, service_id, FLAG_REQ, trace_id, span_id, source, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_target = function(rpc, session_id, target, ...)
         local trace_id, span_id = extract_trace()
-        local send_len = socket.forward_target(session_id, FLAG_REQ, target, trace_id, span_id, quanta.id, rpc, ...)
+        local send_len = socket.forward_target(session_id, target, 0, FLAG_REQ, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.callback_target = function(rpc, session_id, target, ...)
-        if target == 0 then
-            local send_len = socket.call(session_id, FLAG_RES, 0, 0, quanta.id, rpc, ...)
-            return self:on_call_router(rpc, token, send_len)
-        else
-            local send_len = socket.forward_target(session_id, FLAG_RES, target, 0, 0, quanta.id, rpc, ...)
-            return self:on_call_router(rpc, token, send_len)
-        end
+        local send_len = socket.forward_target(session_id, target, 0, FLAG_RES, 0, 0, quanta.id, rpc, ...)
+        return self:on_call_router(rpc, token, send_len)
     end
     socket.call_hash = function(rpc, session_id, service_id, hash_key, ...)
         local trace_id, span_id = extract_trace()
-        local hash_value = hash_code(hash_key, 0xffff)
-        local send_len = socket.forward_hash(session_id, FLAG_REQ, service_id, hash_value, trace_id, span_id, quanta.id, rpc, ...)
+        local hash_val = hash_code(hash_key, 0xffff)
+        local send_len = socket.forward_hash(session_id, hash_val, service_id, FLAG_REQ, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_master = function(rpc, session_id, service_id, ...)
         local trace_id, span_id = extract_trace()
-        local send_len = socket.forward_master(session_id, FLAG_REQ, service_id, trace_id, span_id, quanta.id, rpc, ...)
+        local send_len = socket.forward_master(session_id, 0, service_id, FLAG_REQ, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.call_broadcast = function(rpc, session_id, service_id, ...)
         local trace_id, span_id = extract_trace()
-        local send_len = socket.forward_broadcast(session_id, FLAG_REQ, service_id, trace_id, span_id, quanta.id, rpc, ...)
+        local send_len = socket.forward_broadcast(session_id, 0, service_id, FLAG_REQ, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, token, send_len)
     end
     socket.on_error = function(stoken, err)
@@ -165,10 +173,15 @@ function RpcClient:on_socket_rpc(socket, session_id, rpc_flag, trace_id, span_id
         log_err("[RpcClient][on_socket_rpc] rpc is nil, args :{}!", { ... })
         return
     end
+    if rpc_flag == FLAG_ERR then
+        log_err("[RpcClient][on_socket_rpc] rpc {} is unreachable in router!", rpc)
+        thread_mgr:response(session_id, false, UNREACHABLE, "target is unreachable!")
+        return
+    end
     if session_id == 0 or rpc_flag == FLAG_REQ then
         local function dispatch_rpc_message(...)
             local hook<close> = qdefer()
-            event_mgr:execute_hook("on_rpc_recv", hook, rpc, ...)
+            event_mgr:execute_hook("on_rpc_recv", hook, rpc, self.id, ...)
             local rpc_datas = event_mgr:notify_listener(rpc, ...)
             if session_id > 0 then
                 socket.callback_target(rpc, session_id, source, tunpack(rpc_datas))
@@ -183,12 +196,10 @@ end
 --错误处理
 function RpcClient:on_socket_error(token, err)
     log_err("[RpcClient][on_socket_error] socket {}:{} {}!", self.ip, self.port, err)
-    self.timer:change_period(SECOND_MS)
-    if self.holder then
-        self.holder:on_socket_error(self, token, err)
-    end
     self.alive = false
     self.socket = nil
+    self.timer:change_period(SECOND_MS)
+    self.holder:on_socket_error(self, token, err)
 end
 
 --连接成功
@@ -214,9 +225,9 @@ function RpcClient:forward_socket(method, rpc, session_id, ...)
 end
 
 --转发消息
-function RpcClient:forward_transfer(target_id, session_id, service_id, rpc, ...)
+function RpcClient:relay(target_id, session_id, service_id, source, rpc, ...)
     if self.alive then
-        if self.socket.transfer(rpc, session_id, target_id, service_id, ...) then
+        if self.socket.relay(rpc, session_id, target_id, service_id, source, ...) then
             if session_id > 0 then
                 return thread_mgr:yield(session_id, rpc, RPC_TIMEOUT)
             end
@@ -224,13 +235,6 @@ function RpcClient:forward_transfer(target_id, session_id, service_id, rpc, ...)
         return true
     end
     return false, "socket not connected"
-end
-
---回调
-function RpcClient:callback(session_id, ...)
-    if self.alive then
-        self.socket.call_rpc("callback", session_id, FLAG_RES, ...)
-    end
 end
 
 --直接发送接口
