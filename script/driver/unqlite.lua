@@ -133,6 +133,6 @@ function Unqlite:riter(key)
     return iter
 end
 
-quanta.unq_driver = Unqlite()
+quanta.unqlite = Unqlite()
 
 return Unqlite

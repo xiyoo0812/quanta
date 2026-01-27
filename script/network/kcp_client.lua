@@ -6,11 +6,12 @@ local qxpcall           = quanta.xpcall
 local lnext_id          = luakit.next_id
 local kcp_update        = kcp.update
 
+local FLAG_REQ          = luabus.proto_flag.REQ
+
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
-local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local KcpClient = class()

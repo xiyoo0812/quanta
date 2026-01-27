@@ -3,17 +3,15 @@
 #include "socket_mgr.h"
 #include "socket_helper.h"
 
-enum class rpc_type {
-    REMOTE_CALL,
-    TRANSFER_CALL,
+enum class rpc_type : uint32_t {
+    FORWARD_SELF,
+    FORWARD_RELAY,
     FORWARD_TARGET,
     FORWARD_MASTER,
     FORWARD_BROADCAST,
     FORWARD_HASH,
 };
 using enum rpc_type;
-
-const int MAX_SERVICE_GROUP = UCHAR_MAX + 1;
 
 struct service_node {
     uint32_t id = 0;
@@ -25,29 +23,13 @@ struct router_header {
     union {
         uint32_t length;
         struct {
-            rpc_type type : 4;  //rpc_type4bit
-            uint32_t flag : 4;  //标志位4bit
+            rpc_type type : 4;  //rpc_type 4bit
+            uint32_t flag : 4;  //flag 4bit
             uint32_t len : 24;  //24bit(16M)
-        } head;
+        };
     };
-    uint32_t session_id = 0;
     uint32_t target_id = 0;
-    uint64_t trace_id = 0;
-    uint32_t span_id = 0;
-};
-struct transfer_header {
-    union {
-        uint32_t length;
-        struct {
-            rpc_type type : 4;  //rpc_type4bit
-            uint32_t flag : 4;  //标志位4bit
-            uint32_t len : 24;  //24bit(16M)
-        } head;
-    };
     uint32_t session_id = 0;
-    uint32_t target_id = 0;
-    uint64_t trace_id = 0;
-    uint32_t span_id = 0;
     uint8_t  service_id = 0;
 };
 #pragma pack()
@@ -60,20 +42,25 @@ struct service_list {
 class socket_router
 {
 public:
-    socket_router(stdsptr<socket_mgr>& mgr) : m_mgr(mgr) { }
+    socket_router(stdsptr<socket_mgr>& mgr, codec_base* codec) : m_codec(codec), m_mgr(mgr) { }
 
     uint32_t get_route_count();
-    void erase(uint32_t node_id);
     uint32_t choose_master(uint32_t service_id);
-    uint32_t map_token(uint32_t node_id, int32_t token);
-    bool do_forward_hash(router_header* header, char* data, size_t data_len);
-    bool do_forward_target(router_header* header, char* data, size_t data_len);
-    bool do_forward_master(router_header* header, char* data, size_t data_len);
-    bool do_forward_broadcast(router_header* header, int source, char* data, size_t data_len, size_t& broadcast_num);
+    uint32_t map_router(uint32_t node_id, int32_t token);
+    void do_forward_hash(uint32_t token, router_header* header, pbyte data, size_t data_len);
+    void do_forward_target(uint32_t token, router_header* header, pbyte data, size_t data_len);
+    void do_forward_master(uint32_t token, router_header* header, pbyte data, size_t data_len);
+    void do_forward_broadcast(uint32_t token, router_header* header, pbyte data, size_t data_len);
+    void do_forward_relay(uint8_t service_id, uint32_t token, router_header* header, pbyte data, size_t data_len);
+
+private:
+    void on_forward_broadcast(uint32_t token, router_header* header, size_t target_size);
+    void on_forward_error(uint32_t token, router_header* header, pbyte data, size_t data_len);
 
 private:
     size_t m_route_count = 0;
-    std::shared_ptr<socket_mgr> m_mgr;
-    std::array<service_list, MAX_SERVICE_GROUP> m_services;
+    codec_base* m_codec = nullptr;
+    stdsptr<socket_mgr> m_mgr = nullptr;
+    std::array<service_list, UCHAR_MAX> m_services;
 };
 

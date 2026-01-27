@@ -56,10 +56,24 @@ namespace luabus {
         lluabus.set_function("ip2region", create_region);
         lluabus.set_function("derive_port", derive_port);
         lluabus.set_function("create_socket_mgr", create_socket_mgr);
-        lluabus.new_enum("eproto_type",
+        lluabus.new_enum("proto_type",
             "PB", PROTO_PB,
             "RPC", PROTO_RPC,
             "TEXT", PROTO_TEXT
+        );
+        lluabus.new_enum("proto_flag",
+            "REQ", FLAG_REQ,
+            "RES", FLAG_RES,
+            "ERR", FLAG_ERR,
+            "CRYPT", FLAG_CRYPT,
+            "ZIP", FLAG_ZIP
+        );
+        lluabus.new_enum("relay_type",
+            "SELF", RELAY_SELF,
+            "GROUP", RELAY_GROUP,
+            "CLIENT", RELAY_CLIENT,
+            "SERVICE", RELAY_SERVICE,
+            "BROADCAST", RELAY_BROADCAST
         );
         kit_state.new_class<socket_udp>(
             "send", &socket_udp::send,
@@ -86,30 +100,35 @@ namespace luabus {
             "wait", &lua_socket_mgr::wait,
             "listen", &lua_socket_mgr::listen,
             "connect", &lua_socket_mgr::connect,
-            "map_token", &lua_socket_mgr::map_token,
             "broadcast", &lua_socket_mgr::broadcast,
+            "map_group", &lua_socket_mgr::map_group,
             "broadgroup", &lua_socket_mgr::broadgroup,
+            "map_router", &lua_socket_mgr::map_router,
+            "map_client", &lua_socket_mgr::map_client,
+            "map_server", &lua_socket_mgr::map_server,
+            "query_servers", &lua_socket_mgr::query_servers,
+            "check_service", &lua_socket_mgr::check_service,
             "get_sendbuf_size", &lua_socket_mgr::get_sendbuf_size,
-            "get_recvbuf_size", &lua_socket_mgr::get_recvbuf_size
+            "get_recvbuf_size", &lua_socket_mgr::get_recvbuf_size,
+            "set_relay_service", &lua_socket_mgr::set_relay_service
         );
         kit_state.new_class<lua_socket_node>(
             "ip", &lua_socket_node::m_ip,
             "token", &lua_socket_node::m_token,
-            "call", &lua_socket_node::call,
+            "node_id", &lua_socket_node::m_node_id,
             "close", &lua_socket_node::close,
             "call_pb", &lua_socket_node::call_pb,
-            "call_data", &lua_socket_node::call_data,
+            "call_text", &lua_socket_node::call_text,
             "set_codec", &lua_socket_node::set_codec,
             "set_nodelay", &lua_socket_node::set_nodelay,
             "set_timeout", &lua_socket_node::set_timeout,
-            "forward_hash", &lua_socket_node::forward_hash,
-            "transfer_call", &lua_socket_node::transfer_call,
-            "transfer_hash", &lua_socket_node::transfer_hash,
-            "forward_target", &lua_socket_node::forward_target,
             "get_route_count", &lua_socket_node::get_route_count,
-            "forward_transfer", &lua_socket_node::forward_transfer,
-            "forward_master", &lua_socket_node::forward_by_group<FORWARD_MASTER>,
-            "forward_broadcast", &lua_socket_node::forward_by_group<FORWARD_BROADCAST>
+            "forward_self", &lua_socket_node::forward_by_method<FORWARD_SELF>,
+            "forward_hash", &lua_socket_node::forward_by_method<FORWARD_HASH>,
+            "forward_relay", &lua_socket_node::forward_by_method<FORWARD_RELAY>,
+            "forward_target", &lua_socket_node::forward_by_method<FORWARD_TARGET>,
+            "forward_master", &lua_socket_node::forward_by_method<FORWARD_MASTER>,
+            "forward_broadcast", &lua_socket_node::forward_by_method<FORWARD_BROADCAST>
         );
         return lluabus;
     }

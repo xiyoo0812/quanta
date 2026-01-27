@@ -111,21 +111,21 @@ end
 
 --登陆接口
 -------------------------------------------------
-function SessionModule:create_role_req(name)
-    local custom = { model = 101, color = 0, head = 0 }
+function SessionModule:create_player_req(name)
+    local model = { model = 101, color = 0, head = 0 }
     local req_data = {
         name = name,
         user_id = self.user_id,
         gender = mrandom(1, 2),
-        custom = protobuf_mgr:encode_byname("ncmd_cs.rolemodel", custom)
+        model = protobuf_mgr:encode_byname("ncmd_cs.playermodel", model)
     }
-    local ok, res = self:call("NID_LOGIN_ROLE_CREATE_REQ", req_data)
+    local ok, res = self:call("NID_LOGIN_PLAYER_CREATE_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[LoginModule][create_role_req] robot:{}, ok={}, res={}", self.open_id, ok, res)
+        log_warn("[LoginModule][create_player_req] robot:{}, ok={}, res={}", self.open_id, ok, res)
         return false
     end
-    tinsert(self.roles, res.role)
-    log_debug("[LoginModule][create_role_req] robot:{} success", self.open_id)
+    tinsert(self.players, res.player)
+    log_debug("[LoginModule][create_player_req] robot:{} success", self.open_id)
     return true
 end
 
@@ -141,51 +141,51 @@ function SessionModule:account_login_req()
         log_warn("[LoginModule][account_login_req] robot:{}, ok={}, res={}", self.open_id, ok, res)
         return false
     end
-    self.roles = res.roles
+    self.players = res.players
     self.user_id = res.user_id
     log_debug("[LoginModule][account_login_req] robot:{} success", self.open_id)
     return true
 end
 
-function SessionModule:choose_role_req()
-    local role = trandarray(self.roles)
-    if not role then
-        log_warn("[SessionModule][choose_role_req] robot:{} roles is empty", self.open_id)
+function SessionModule:choose_player_req()
+    local player = trandarray(self.players)
+    if not player then
+        log_warn("[SessionModule][choose_player_req] robot:{} players is empty", self.open_id)
         return false
     end
     local req_data = {
-        role_id = role.role_id,
+        player_id = player.player_id,
         user_id = self.user_id,
     }
-    local ok, res = self:call("NID_LOGIN_ROLE_CHOOSE_REQ", req_data)
+    local ok, res = self:call("NID_LOGIN_PLAYER_CHOOSE_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[SessionModule][choose_role_req] robot:{}, ok={}, res={} req_data={}", self.open_id, ok, res, req_data)
+        log_warn("[SessionModule][choose_player_req] robot:{}, ok={}, res={} req_data={}", self.open_id, ok, res, req_data)
         return false
     end
     self.lobby = res.lobby
     self.gate_ip = res.addrs[1]
     self.gate_port = res.port
     self.lobby_token = res.token
-    self.player_id = role.role_id
-    log_debug("[SessionModule][choose_role_req] robot:{} success", self.open_id)
+    self.player_id = player.player_id
+    log_debug("[SessionModule][choose_player_req] robot:{} success", self.open_id)
     return true
 end
 
-function SessionModule:role_login_req()
+function SessionModule:player_login_req()
     local req_data = {
         lobby = self.lobby,
         user_id = self.user_id,
-        role_id = self.player_id,
+        player_id = self.player_id,
         token = self.lobby_token,
         open_id = self.open_id
     }
-    local ok, res = self:call("NID_LOGIN_ROLE_LOGIN_REQ", req_data)
+    local ok, res = self:call("NID_LOGIN_PLAYER_LOGIN_REQ", req_data)
     if self:check_callback(ok, res) then
-        log_warn("[SessionModule][role_login_req] robot:{}, ok={}, res={}", self.open_id, ok, res)
+        log_warn("[SessionModule][player_login_req] robot:{}, ok={}, res={}", self.open_id, ok, res)
         return false
     end
     self.lobby_token = res.token
-    log_debug("[SessionModule][role_login_req] robot:{} success", self.open_id)
+    log_debug("[SessionModule][player_login_req] robot:{} success", self.open_id)
     return true
 end
 
@@ -203,19 +203,19 @@ function SessionModule:login_server()
     if not self:account_login_req() then
         return false, "account login failed!"
     end
-    if #self.roles == 0 then
-        if not self:create_role_req(guid_encode()) then
-            return false, "create role failed!"
+    if #self.players == 0 then
+        if not self:create_player_req(guid_encode()) then
+            return false, "create player failed!"
         end
     end
-    if not self:choose_role_req() then
-        return false, "choose role failed!"
+    if not self:choose_player_req() then
+        return false, "choose player failed!"
     end
     if not self:connect(self.gate_ip, self.gate_port, true) then
         return "gateway connect failed!"
     end
-    if not self:role_login_req() then
-        return false, "role login failed!"
+    if not self:player_login_req() then
+        return false, "player login failed!"
     end
     log_debug("[SessionModule][login_server] robot:{} login success", self.open_id)
     return true, "login success"

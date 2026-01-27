@@ -11,20 +11,13 @@ KernCode.RPC_FAILED         = 5     --RPC调用失败
 KernCode.OPERATOR_SELF      = 6     --不能对自己操作
 KernCode.PLAYER_NOT_EXIST   = 7     --玩家不存在
 KernCode.TOKEN_ERROR        = 8     --登录token错误
-KernCode.RPC_UNREACHABLE    = 9     --RPC目标不可达
+KernCode.UNREACHABLE        = 9     --RPC目标不可达
 KernCode.DB_NOTINIT         = 100   --数据库没有初始化
 KernCode.LOGIC_FAILED       = 101   --业务执行失败
 KernCode.MYSQL_FAILED       = 102   --MYSQL执行失败
 KernCode.MONGO_FAILED       = 103   --MONGO执行失败
 KernCode.REDIS_FAILED       = 104   --REDIS执行失败
 KernCode.PGSQL_FAILED       = 105   --PGSQL执行失败
-
---协议flag掩码
-local FlagMask              = enum("FlagMask", 0)
-FlagMask.REQ                = 0x01  -- 请求/回执
-FlagMask.RES                = 0x02  -- 响应
-FlagMask.ENCRYPT            = 0x04  -- 开启加密
-FlagMask.ZIP                = 0x08  -- 开启zip压缩
 
 --网络时间常量定义
 local NetwkTime             = enum("NetwkTime", 0)

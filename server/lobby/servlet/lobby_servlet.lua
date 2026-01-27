@@ -4,8 +4,6 @@ local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
 local log_debug         = logger.debug
-local tunpack           = table.unpack
-local mrandom           = qmath.random
 
 local event_mgr         = quanta.get("event_mgr")
 local player_mgr        = quanta.get("player_mgr")
@@ -13,28 +11,18 @@ local protobuf_mgr      = quanta.get("protobuf_mgr")
 
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_SUCCESS     = protobuf_mgr:error_code("FRAME_SUCCESS")
+local ACCOUNT_OFFLINE   = protobuf_mgr:error_code("LOGIN_ACCOUNT_OFFLINE")
 local PLAYER_NOT_EXIST  = protobuf_mgr:error_code("LOGIN_PLAYER_NOT_EXIST")
-local PLAYER_TOKEN_ERR  = protobuf_mgr:error_code("LOGIN_PLAYER_TOKEN_ERR")
-
-local MINUTE_5_S        = quanta.enum("PeriodTime", "MINUTE_5_S")
 
 local LobbyServlet = singleton()
-local prop = property(LobbyServlet)
-prop:reader("login_tokens", {})
 
 function LobbyServlet:__init()
     event_mgr:add_trigger(self, "on_attr_synchronous")
-    -- 事件监听
-    event_mgr:add_listener(self, "rpc_player_sync")
-    event_mgr:add_listener(self, "rpc_player_command")
-    event_mgr:add_listener(self, "rpc_player_heartbeat")
-    event_mgr:add_listener(self, "rpc_player_disconnect")
-
-    event_mgr:add_listener(self, "rpc_player_login")
-    event_mgr:add_listener(self, "rpc_player_logout")
-    event_mgr:add_listener(self, "rpc_player_reload")
-
-    event_mgr:add_listener(self, "rpc_update_login_token")
+    -- cs协议监听
+    protobuf_mgr:register(self, "NID_GATE_LOST_CLIENT_NTF", "on_player_offline_ntf")
+    protobuf_mgr:register(self, "NID_LOGIN_PLAYER_LOGIN_REQ", "on_player_login_req")
+    protobuf_mgr:register(self, "NID_LOGIN_PLAYER_LOGOUT_REQ", "on_player_logout_req")
+    protobuf_mgr:register(self, "NID_LOGIN_PLAYER_RELOAD_REQ", "on_player_reload_req")
 end
 
 function LobbyServlet:on_attr_synchronous(entity, entity_id, attrs, battrs)
@@ -48,130 +36,61 @@ function LobbyServlet:on_attr_synchronous(entity, entity_id, attrs, battrs)
     end
 end
 
-function LobbyServlet:check_login_token(open_id, token)
-    local tokens = self.login_tokens[open_id]
-    if tokens then
-        self.login_tokens[open_id] = nil
-        local otoken, tick = tunpack(tokens)
-        if tick > quanta.now and otoken == token then
-            return true, otoken
-        end
-        return false, otoken
-    end
-    return false
-end
-
-function LobbyServlet:rpc_update_login_token(open_id, token)
-    log_debug("[LobbyServlet][rpc_update_login_token] open_id({}) token({})!", open_id, token)
-    self.login_tokens[open_id] = { token, quanta.now + MINUTE_5_S }
-    return FRAME_SUCCESS
-end
-
--- 会话需要同步
-function LobbyServlet:rpc_player_sync(player_id)
-    local player = player_mgr:get_entity(player_id)
-    if player then
-        player:sync_data()
-    end
-end
-
 -- 会话需要关闭
-function LobbyServlet:rpc_player_disconnect(player_id)
+function LobbyServlet:on_player_offline_ntf(session, message, body, response)
+    log_warn("[LobbyServlet][on_player_offline_ntf] player({}) offline", body)
+    local player_id = body.player_id
     local player = player_mgr:get_entity(player_id)
     if player then
-        log_warn("[LobbyServlet][rpc_player_disconnect] player({}) offline", player_id)
+        log_warn("[LobbyServlet][on_player_offline_ntf] player({}) offline", player_id)
         player:offline()
     end
 end
 
---心跳
-function LobbyServlet:rpc_player_heartbeat(player_id)
-    local player = player_mgr:get_entity(player_id)
-    if player then
-        player:heartbeat()
-    end
-end
-
--- 会话消息
-function LobbyServlet:rpc_player_command(player_id, cmd_id, message)
-    local player = player_mgr:get_entity(player_id)
-    if not player then
-        log_err("[LobbyServlet][rpc_player_command] need login cmd_id={}, player_id={}", cmd_id, player_id)
-        return PLAYER_NOT_EXIST
-    end
-    local result = event_mgr:notify_command(cmd_id, player, player_id, message)
-    if not result[1] then
-        return FRAME_FAILED, result[2]
-    end
-    return tunpack(result, 2)
-end
-
-function LobbyServlet:rpc_player_login(player_id, open_id, token)
-    log_debug("[LobbyServlet][rpc_player_login] open_id({}) player({}) token({})  login req!", open_id, player_id, token)
-    --验证token
-    local ok, login_token = self:check_login_token(open_id, token)
-    if not ok then
-        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, login_token)
-        return PLAYER_TOKEN_ERR
-    end
+function LobbyServlet:on_player_login_req(session, message, body, response)
+    log_debug("[LobbyServlet][on_player_login_req] login req body({}) !", body)
+    local open_id, player_id = body.open_id, body.player_id
     local player = player_mgr:load_player(open_id, player_id)
     if not player then
-        log_err("[LobbyServlet][rpc_player_login] load_player failed! player:{}", player_id)
-        return FRAME_FAILED
+        log_err("[LobbyServlet][on_player_login_req] load player failed! player:{}", player_id)
+        return message:callback_code(FRAME_FAILED)
     end
     local account = player:get_account()
     if not account then
-        return PLAYER_TOKEN_ERR
+        log_err("[LobbyServlet][on_player_login_req] local account failed! player:{}", player_id)
+        return message:callback_code(ACCOUNT_OFFLINE)
     end
-    --通知登陆成功
-    local new_token = mrandom()
+    --玩家上线
+    player:online(session)
     account:save_lobby(quanta.id)
-    account:set_reload_token(new_token)
-    event_mgr:fire_frame(function()
-        --玩家上线
-        player:online()
-        --通知登陆成功
-        event_mgr:notify_trigger("on_login_success", player_id, player)
-    end)
-    log_info("[LobbyServlet][rpc_player_login] player({}) login success!", player_id)
-    return FRAME_SUCCESS, new_token
+    session.player_id = player_id
+    --通知登陆成功
+    event_mgr:notify_trigger("on_login_success", player_id, player)
+    log_info("[LobbyServlet][on_player_login_req] player({}) login success!", player_id)
 end
 
-function LobbyServlet:rpc_player_logout(player_id)
+function LobbyServlet:on_player_logout_req(player, message, body, response, player_id)
     log_debug("[LobbyServlet][rpc_player_logout] player({}) logout req!", player_id)
-    local player = player_mgr:get_entity(player_id)
     if not player then
-        return PLAYER_NOT_EXIST
+        return message:callback_code(PLAYER_NOT_EXIST)
     end
     player_mgr:remove_entity(player, player_id)
     log_info("[LobbyServlet][rpc_player_logout] player({}) logout success!", player_id)
     return FRAME_SUCCESS
 end
 
-function LobbyServlet:rpc_player_reload(player_id, token)
-    log_debug("[LobbyServlet][rpc_player_reload] player({}) reload req!", player_id)
-    local player = player_mgr:get_entity(player_id)
+function LobbyServlet:on_player_reload_req(player, message, body, response, player_id)
+    log_debug("[LobbyServlet][on_player_reload_req] player({}) reload req!", player_id)
     if not player then
-        return PLAYER_NOT_EXIST
+        return message:callback_code(PLAYER_NOT_EXIST)
     end
     local account = player:get_account()
     if not account then
-        return PLAYER_TOKEN_ERR
+        return message:callback_code(ACCOUNT_OFFLINE)
     end
-    --验证token
-    local old_token = account:get_reload_token()
-    if token ~= old_token then
-        log_err("[LobbyServlet][rpc_player_login] token verify failed! player:{}, token: {}-{}", player_id, token, old_token)
-        return PLAYER_TOKEN_ERR
-    end
-    local new_token = mrandom()
-    account:set_reload_token(new_token)
-    event_mgr:fire_frame(function()
-        player:relive()
-        event_mgr:notify_trigger("on_reload_success", player_id, player)
-    end)
+    player:relive()
+    event_mgr:notify_trigger("on_reload_success", player_id, player)
     log_debug("[LobbyServlet][rpc_player_reload] player({}) reload success!", player_id)
-    return FRAME_SUCCESS, new_token
 end
 
 quanta.lobby_servlet = LobbyServlet()

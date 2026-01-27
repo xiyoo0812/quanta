@@ -15,7 +15,6 @@ local tab_copy      = table.copy
 local deep_copy     = table.deepcopy
 local getmetatable  = getmetatable
 local setmetatable  = setmetatable
-local ogetenv       = os.getenv
 
 --类模板
 local class_tpls = _ENV.__classes or {}
@@ -136,7 +135,7 @@ end
 
 local function mt_class_newindex(class, field, value)
     if rawget(class.__vtbl, field) then
-        if ssub(field, 1, 2) ~= "__" and not ogetenv("HOTFIX") then
+        if ssub(field, 1, 2) ~= "__" and not _G.HOTFIXING then
             warn(sformat("the class %s: %s has repeat defined.", class.__name, field))
         end
     elseif field == "__init_static" then

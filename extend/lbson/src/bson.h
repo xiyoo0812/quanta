@@ -183,7 +183,7 @@ namespace lbson {
                 memcpy(str, bson_numstrs[i], 4);
                 return bson_numstr_len[i];
             }
-            return std::format_to_n(str, 8, "{}", i).size;
+            return std::format_to_n(str, 32, "{}", i).size;
         }
 
         void pack_date(lua_State* L) {

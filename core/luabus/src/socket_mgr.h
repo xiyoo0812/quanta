@@ -4,7 +4,7 @@
 
 using namespace luakit;
 
-enum class elink_status : uint8_t {
+enum class link_status : uint8_t {
     LINK_INIT       = 0,
     LINK_CONNECTING = 1,
     LINK_CONNECTED  = 2,
@@ -13,15 +13,25 @@ enum class elink_status : uint8_t {
 };
 
 // 协议类型
-enum class eproto_type : uint8_t {
+enum class proto_type : uint8_t {
     PROTO_PB        = 0,    // pb协议，pb
     PROTO_RPC       = 1,    // rpc协议，rpc
     PROTO_TEXT      = 2,    // text协议，mysql/mongo/http/wss/redis
-    PROTO_MAX       = 3,    // max
+    PROTO_MAX       = 4,    // max
 };
 
-using enum elink_status;
-using enum eproto_type;
+// 协议掩码
+enum class proto_flag : uint32_t {
+    FLAG_REQ        = 1,    // 协议请求标记
+    FLAG_RES        = 2,    // 协议回执/通知标记
+    FLAG_ERR        = 3,    // 协议转发错误标记
+    FLAG_CRYPT      = 4,    // 协议加密标记
+    FLAG_ZIP        = 8,    // 协议压缩标记
+};
+
+using enum link_status;
+using enum proto_type;
+using enum proto_flag;
 
 struct sendv_item {
     const void* data;
@@ -38,8 +48,8 @@ struct socket_object {
     virtual void connect(const char ip[], int port, int timeout) { }
     virtual void set_timeout(int duration) { }
     virtual void set_nodelay(int flag) { }
-    virtual void send(const void* data, size_t data_len) { }
-    virtual void sendv(const sendv_item items[], int count) { };
+    virtual bool send(const void* data, size_t data_len) { return false; }
+    virtual bool sendv(const sendv_item items[], int count) { return false; };
     virtual void set_kind(uint32_t kind) { m_kind = kind; }
     virtual void set_token(uint32_t token) { m_token = token; }
     virtual void set_codec(codec_base* codec) { m_codec = codec; }
@@ -60,7 +70,7 @@ protected:
     uint32_t m_kind = 0;
     uint32_t m_token = 0;
     codec_base* m_codec = nullptr;
-    elink_status m_link_status = LINK_INIT;
+    link_status m_link_status = LINK_INIT;
 };
 
 class socket_mgr {
@@ -83,8 +93,8 @@ public:
     int get_recvbuf_size(uint32_t token);
     void set_timeout(uint32_t token, int duration);
     void set_nodelay(uint32_t token, int flag);
-    void send(uint32_t token, const void* data, size_t data_len);
-    void sendv(uint32_t token, const sendv_item items[], int count);
+    bool send(uint32_t token, const void* data, size_t data_len);
+    bool sendv(uint32_t token, const sendv_item items[], int count);
     void broadcast(size_t kind, const void* data, size_t data_len);
     void broadgroup(std::vector<uint32_t>& groups, const void* data, size_t data_len);
     void close(uint32_t token);

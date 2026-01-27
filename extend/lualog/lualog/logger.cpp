@@ -24,7 +24,7 @@ namespace logger {
     }
 
     sstring log_message::format(bool prefix, bool suffix, bool clr) {
-        return std::format("{}{}{}{}\x1b[0m\n", clr ? level_colors[(int)level_] : "", prefix ? prefix_ : "", msg_, suffix ? suffix_ : "");
+        return std::format("{}{}{}{}{}\n", clr ? level_colors[(int)level_] : "", prefix ? prefix_ : "", msg_, suffix ? suffix_ : "", clr ? "\x1b[0m" : "");
     }
 
     // class log_message_pool

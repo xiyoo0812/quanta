@@ -1,5 +1,6 @@
 --login.lua
 import("agent/mongo_agent.lua")
+
 local log_err       = logger.err
 local tunpack       = table.unpack
 local qfailed       = quanta.failed
@@ -9,10 +10,8 @@ local event_mgr     = quanta.get("event_mgr")
 local store_mgr     = quanta.get("store_mgr")
 local mongo_agent   = quanta.get("mongo_agent")
 
---[[
 local protobuf_mgr  = quanta.get("protobuf_mgr")
-local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_ROLE_NAME_EXIST")
-]]
+local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_PLAYER_NAME_EXIST")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 
@@ -24,12 +23,12 @@ function LoginDao:__init()
 end
 
 function LoginDao:get_autoinc_id(user_id)
-    local aok, role_id = store_mgr:autoinc_id()
-    if aok then
-        log_err("[LoginDao][get_autoinc_id] user_id: {} get_autoinc_id failed! res: {}", user_id, role_id)
+    local ok, player_id = store_mgr:get_autoinc_id()
+    if not ok then
+        log_err("[LoginDao][get_autoinc_id] user_id: {} get_autoinc_id failed! res: {}", user_id, player_id)
         return false
     end
-    return true, SUCCESS, role_id
+    return true, SUCCESS, player_id
 end
 
 function LoginDao:check_name_exist(name)
@@ -46,7 +45,7 @@ function LoginDao:create_player(open_id, player_id, data)
         nick = data.name,
         open_id = open_id,
         gender = data.gender,
-        facade = data.custom,
+        facade = data.facade,
         player_id = player_id,
         user_id = data.user_id,
         create_time = quanta.now
@@ -70,19 +69,20 @@ function LoginDao:check_player(user_id, name)
         end
         return check_ok, code
     end)
-    --临时屏蔽同名
-    --[[
     channel:push(function()
         if self:check_name_exist(name) then
             return false, NAME_EXIST
         end
         return true, SUCCESS
     end)
-    ]]
     channel:push(function()
         return self:get_autoinc_id(user_id)
     end)
-    return channel:execute()
+    local ok, res = channel:execute()
+    if ok then
+        return ok, res[3]
+    end
+    return ok, res
 end
 
 function LoginDao:load_account(open_id)

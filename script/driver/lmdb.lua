@@ -140,6 +140,6 @@ function Lmdb:iter(sheet, key)
     return iter
 end
 
-quanta.mdb_driver = Lmdb()
+quanta.lmdb = Lmdb()
 
 return Lmdb

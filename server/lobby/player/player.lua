@@ -27,19 +27,17 @@ local SubComponent  = import("base/component/sub_component.lua")
 local Player = class(Entity, AttrComponent, MsgComponent, SubComponent)
 
 local prop = property(Player)
-prop:reader("status", 0)            --status
-prop:reader("create_time", 0)       --create_time
-prop:reader("routers", {})          --routers
-prop:accessor("user_id", nil)       --user_id
-prop:accessor("open_id", nil)       --open_id
-prop:accessor("account", nil)       --account
+prop:reader("status", 0)                --status
+prop:accessor("session", nil)           --session
+prop:accessor("user_id", nil)           --user_id
+prop:accessor("open_id", nil)           --open_id
+prop:accessor("account", nil)           --account
 prop:accessor("offtime", OFFTIMEOUT)    --offtime
+prop:accessor("create_time", 0)         --create_time
 
 local store = storage(Player, "player")
-store:store_value("nick", "")       --nick
-store:store_value("facade", "")     --facade
-store:store_value("upgrade_time", 0)--upgrade_time
-store:store_value("energy_tick", 0)--下次能量恢复时间
+store:store_value("nick", "")           --nick
+store:store_value("facade", {})         --facade
 
 function Player:__init(id)
 end
@@ -53,11 +51,7 @@ function Player:on_db_player_load(data)
         self:set_nick(data.nick)
         self:set_facade(data.facade)
         self:set_create_time(data.create_time)
-        self:set_upgrade_time(data.upgrade_time or 0)
-        self:set_energy_tick(data.energy_tick or quanta.now)
-        self:set_routers(data.routers or {})
         self:set_gender(data.gender)
-        self:set_custom(data.facade)
         self:set_name(data.nick)
         return true
     end
@@ -66,15 +60,6 @@ end
 
 function Player:is_player()
     return true
-end
-
--- 更新路由
-function Player:update_router(name, id)
-    self.routers[name] = id
-end
-
-function Player:find_router(name)
-    return self.routers[name] or 0
 end
 
 --load
@@ -105,9 +90,9 @@ function Player:update_name(name)
 end
 
 --修改玩家外观
-function Player:update_custom(custom)
-    self:save_facade(custom)
-    self.account:update_custom(self.id, custom)
+function Player:update_facade(facade)
+    self:save_facade(facade)
+    self.account:update_facade(self.id, facade)
 end
 
 --是否新玩家
@@ -158,8 +143,9 @@ function Player:sync_data()
 end
 
 --online
-function Player:online()
+function Player:online(session)
     self.release = false
+    self.session = session
     self.status = ONL_INLINE
     self.active_time = quanta.now_ms
     --invoke
@@ -199,11 +185,11 @@ function Player:unload()
     return true
 end
 
---heartbeat
-function Player:heartbeat()
-    self.active_time = quanta.now_ms
-    --invoke
-    self:invoke("_heartbeat", quanta.now)
+--send
+function Player:send(cmd_id, data)
+    if self.session then
+        self.session:send_client(self.id, cmd_id, data)
+    end
 end
 
 return Player

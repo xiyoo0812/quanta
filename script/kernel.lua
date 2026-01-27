@@ -1,5 +1,4 @@
 --kernel.lua
-require("lbson")
 require("ljson")
 require("luapb")
 require("lcodec")
@@ -64,19 +63,6 @@ local function init_mainloop()
     end
 end
 
---初始化store
-local function init_store()
-    import("store/store_mgr.lua")
-    local smode = environ.get("QUANTA_STORE")
-    if smode == "cache" then
-        import("store/store_cache.lua")
-    elseif smode == "mongo" then
-        import("store/store_mgo.lua")
-    else
-        import("store/store_kv.lua")
-    end
-end
-
 --初始化路由和服务发现
 local function init_discover()
     if environ.status("QUANTA_DISCOVER") then
@@ -94,8 +80,6 @@ function quanta.main()
     init_network()
     --加载服务发现
     init_discover()
-    --初始化store
-    init_store()
 end
 
 --启动

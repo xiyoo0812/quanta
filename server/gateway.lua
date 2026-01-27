@@ -10,11 +10,6 @@ quanta.startup(function()
     local client_mgr = TcpServer()
     client_mgr:listen(ip, port)
     quanta.client_mgr = client_mgr
-
     --初始化gateway
-    import("agent/online_agent.lua")
-    import("gateway/group_mgr.lua")
-    import("gateway/gateway.lua")
-    -- 协议过滤器
-    import("base/admin/shield.lua")
+    import("gateway/gate_server.lua")
 end)

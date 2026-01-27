@@ -4,7 +4,6 @@ require("lstdfs")
 
 local pairs         = pairs
 local loadfile      = loadfile
-local osetenv       = os.setenv
 local sgsub         = string.gsub
 local ssplit        = string.split
 local qgenv         = quanta.getenv
@@ -99,7 +98,7 @@ function quanta.init(name, val)
 end
 
 function quanta.reload()
-    osetenv("HOTFIX", "true")
+    _G.HOTFIXING = true
     for _, node in ipairs(load_files) do
         if node.time then
             local filetime, err = file_time(node.fullpath)
@@ -112,5 +111,5 @@ function quanta.reload()
             end
         end
     end
-    osetenv("HOTFIX")
+    _G.HOTFIXING = nil
 end

@@ -26,8 +26,8 @@ struct socket_stream : public socket_object
     int get_sendbuf_size() { return m_send_buffer->size(); }
     int get_recvbuf_size() { return m_recv_buffer->size(); }
 
-    void send(const void* data, size_t data_len) override;
-    void sendv(const sendv_item items[], int count) override;
+    bool send(const void* data, size_t data_len) override;
+    bool sendv(const sendv_item items[], int count) override;
     void stream_send(const char* data, size_t data_len);
 
 #ifdef IO_IOCP

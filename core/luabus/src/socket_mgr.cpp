@@ -259,18 +259,20 @@ void socket_mgr::set_codec(uint32_t token, codec_base* codec) {
     }
 }
 
-void socket_mgr::send(uint32_t token, const void* data, size_t data_len) {
+bool socket_mgr::send(uint32_t token, const void* data, size_t data_len) {
     auto object = get_object(token);
     if (object) {
-        object->send(data, data_len);
+        return object->send(data, data_len);
     }
+    return false;
 }
 
-void socket_mgr::sendv(uint32_t token, const sendv_item items[], int count) {
+bool socket_mgr::sendv(uint32_t token, const sendv_item items[], int count) {
     auto object = get_object(token);
     if (object) {
-        object->sendv(items, count);
+        return object->sendv(items, count);
     }
+    return false;
 }
 
 void socket_mgr::broadcast(size_t kind, const void* data, size_t data_len) {

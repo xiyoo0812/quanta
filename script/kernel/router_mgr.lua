@@ -12,11 +12,12 @@ local qsuccess          = quanta.success
 local hash_code         = codec.hash_code
 local signal_quit       = signal.quit
 
+local FLAG_REQ          = luabus.proto_flag.REQ
+
 local event_mgr         = quanta.get("event_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 local discover          = quanta.load("discover")
 
-local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 
 local RouterMgr = singleton()
@@ -40,7 +41,7 @@ function RouterMgr:on_service_close(id, name)
     log_debug("[RouterMgr][on_service_close] node: {}-{}", name, id)
     local router = self.routers[id]
     if router then
-        router:set_holder(nil)
+        router:close()
     end
 end
 
@@ -65,7 +66,7 @@ end
 function RouterMgr:add_router(router_id, host, port)
     local router = self.routers[router_id]
     if router then
-        router:relocation(self, host, port)
+        router:relocation(host, port)
         return
     end
     local RpcClient = import("network/rpc_client.lua")
@@ -117,20 +118,20 @@ function RouterMgr:hash_router(hash_key)
 end
 
 --发送router消息
-function RouterMgr:forward_call(target_id, service_id, ...)
+function RouterMgr:relay_call(target_id, service_id, ...)
     local router = self:hash_router(target_id)
     if router then
         local session_id = lnext_id()
-        return router:forward_transfer(target_id, session_id, service_id, ...)
+        return router:relay(target_id, session_id, service_id, quanta.id, ...)
     end
     return false, "router not connected"
 end
 
 --发送router消息
-function RouterMgr:forward_send(target_id, service_id, ...)
+function RouterMgr:relay_send(target_id, service_id, ...)
     local router = self:hash_router(target_id)
     if router then
-        return router:forward_transfer(target_id, 0, service_id, ...)
+        return router:relay(target_id, 0, service_id, quanta.id, ...)
     end
     return false, "router not connected"
 end
