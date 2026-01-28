@@ -17,10 +17,18 @@ local prop = property(RedisMgr)
 prop:reader("redis_db", nil)    --redis_db
 
 function RedisMgr:__init()
+    local funcs = {"execute", "autoinc_id"}
+    for _, func in ipairs(funcs) do
+        --定义函数
+        local func_name = "rpc_redis_" .. func
+        RedisMgr[func_name] = function(message, ...)
+            return self[func](self, ...)
+        end
+        -- 注册事件
+        event_mgr:add_listener(self, func_name)
+    end
+    --启动DB引擎
     self:setup()
-    -- 注册事件
-    event_mgr:add_listener(self, "rpc_redis_execute", "execute")
-    event_mgr:add_listener(self, "rpc_redis_autoinc_id", "autoinc_id")
 end
 
 --初始化
@@ -43,7 +51,7 @@ function RedisMgr:execute(cmd, ...)
     return REDIS_FAILED, "redis db not exist"
 end
 
-function RedisMgr:autoinc_id()
+function RedisMgr:autoinc_id(message)
     local aok, origin_id = self.redis_db:execute("INCR", AUTOINCKEY)
     if not aok then
         return REDIS_FAILED, origin_id

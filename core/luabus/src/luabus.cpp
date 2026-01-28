@@ -62,11 +62,12 @@ namespace luabus {
             "TEXT", PROTO_TEXT
         );
         lluabus.new_enum("proto_flag",
-            "REQ", FLAG_REQ,
             "RES", FLAG_RES,
-            "ERR", FLAG_ERR,
+            "REQ", FLAG_REQ,
+            "ZIP", FLAG_ZIP,
             "CRYPT", FLAG_CRYPT,
-            "ZIP", FLAG_ZIP
+            "UNREACH", FLAG_UNREACH,
+            "BAD", FLAG_BAD
         );
         lluabus.new_enum("relay_type",
             "SELF", RELAY_SELF,

@@ -40,8 +40,8 @@ public:
         if (length <= USHRT_MAX) {
             router_header header;
             header.type = RT;
-            header.flag = flag;
             header.len = length;
+            header.flag = (proto_flag)flag;
             header.target_id = target_id;
             header.session_id = session_id;
             header.service_id = service_id;

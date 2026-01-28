@@ -29,11 +29,11 @@ function Message:on_defer()
 end
 
 function Message:__defer()
-    for key in ipairs(self.lockeys) do
+    self:on_defer()
+    for key in pairs(self.lockeys) do
         thread_mgr:unlock(key)
     end
     tclean(self.lockeys)
-    self:on_defer()
     self.session = nil
     self.reply = false
 end

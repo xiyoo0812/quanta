@@ -11,9 +11,17 @@ local prop = property(ClickHouseMgr)
 prop:reader("clickhouse_db", nil)   --clickhouse_db
 
 function ClickHouseMgr:__init()
+    local funcs = { "query" }
+    for _, func in ipairs(funcs) do
+        --定义函数
+        local func_name = "rpc_clickhouse_" .. func
+        ClickHouseMgr[func_name] = function(message, ...)
+            return self[func](self, ...)
+        end
+        -- 注册事件
+        event_mgr:add_listener(self, func_name)
+    end
     self:setup()
-    -- 注册事件
-    event_mgr:add_listener(self, "rpc_clickhouse_query", "query")
 end
 
 --初始化

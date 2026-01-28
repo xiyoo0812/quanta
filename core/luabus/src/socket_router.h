@@ -23,9 +23,9 @@ struct router_header {
     union {
         uint32_t length;
         struct {
-            rpc_type type : 4;  //rpc_type 4bit
-            uint32_t flag : 4;  //flag 4bit
-            uint32_t len : 24;  //24bit(16M)
+            rpc_type type : 4;      //rpc_type 4bit
+            proto_flag flag : 5;    //flag 5bit(proto_flag)
+            uint32_t len : 23;      //23bit(8M)
         };
     };
     uint32_t target_id = 0;

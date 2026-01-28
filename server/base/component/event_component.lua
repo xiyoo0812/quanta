@@ -41,7 +41,7 @@ end
 function EventComponent:notify_event(event, ...)
     local watcher_map = tcopy(self.events[event] or {})
     for functor, watcher in pairs(watcher_map) do
-        local ok, ret = functor:run(watcher, ...)
+        local ok, ret = functor:pcall(watcher, ...)
         if not ok then
             log_fatal("[EventComponent][notify_event] xpcall [{}:{}] failed: {}!", watcher:source(), functor.name, ret)
         end

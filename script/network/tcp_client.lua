@@ -13,6 +13,9 @@ local thread_mgr        = quanta.get("thread_mgr")
 
 local PROTO_PB          = luabus.proto_type.PB
 local FLAG_REQ          = luabus.proto_flag.REQ
+local FLAG_BAD          = luabus.proto_flag.BAD
+local FLAG_UNREACH      = luabus.proto_flag.UNREACH
+
 local RELAY_SELF        = luabus.relay_type.SELF
 
 local FAST_MS           = quanta.enum("PeriodTime", "FAST_MS")
@@ -20,6 +23,8 @@ local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_5_MS       = quanta.enum("PeriodTime", "SECOND_5_MS")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+local UNREACHABLE       = quanta.enum("KernCode", "UNREACHABLE")
+local PARAM_ERROR       = quanta.enum("KernCode", "PARAM_ERROR")
 
 local Message           = import("feature/message_pb.lua")
 
@@ -78,17 +83,31 @@ function TcpClient:dispatch_wait(cmd_id, body)
     end
 end
 
-function TcpClient:dispatch_message(socket, message, ecode)
-    -- 事件统计
-    event_mgr:notify_trigger("on_recv_message", message)
-    if message.session_id == 0 then
+function TcpClient:dispatch_command(socket, message, cmd_id, session_id)
+    if session_id == 0 then
         -- 事件分发
-        event_mgr:notify_command(message.cmd_id, socket, message, message.request)
+        event_mgr:notify_command(cmd_id, socket, message, message.request)
     else
         --异步回调
-        thread_mgr:response(message.session_id, true, (ecode == 0) and message.request or { error_code = ecode })
+        thread_mgr:response(session_id, true, message.request)
     end
-    self:dispatch_wait(message.cmd_id, message.request)
+end
+
+function TcpClient:dispatch_message(socket, message, cmd_id, session_id, flag)
+    -- 事件统计
+    event_mgr:notify_trigger("on_recv_message", message)
+    -- 错误处理
+    if flag == FLAG_UNREACH or flag == FLAG_BAD then
+        log_err("[TcpClient][dispatch_message] cmd_id {} is unreachable in router!", cmd_id)
+        if session_id > 0 then
+            local code = flag == FLAG_UNREACH and UNREACHABLE or PARAM_ERROR
+            thread_mgr:response(session_id, false, code, "target is unreachable!")
+        end
+        return
+    end
+    -- 事件分发
+    self:dispatch_command(socket, message, cmd_id, session_id)
+    self:dispatch_wait(cmd_id, message.request)
 end
 
 -- 发起连接
@@ -126,10 +145,10 @@ function TcpClient:connect()
         event_mgr:notify_trigger("on_send_message", cmd_id, body, send_len)
         return true
     end
-    socket.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, ecode, body, err)
+    socket.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, body, err)
         if body then
             local message = Message(socket, session_id, recv_len, body, cmd_id, flag, target_id)
-            thread_mgr:fork(self.dispatch_message, nil, self, socket, message, ecode)
+            thread_mgr:fork(self.dispatch_message, nil, self, socket, message, cmd_id, session_id, flag)
             return
         end
         log_warn("[TcpClient][on_call_pb] pb cmd_id({}) decode field: {}!", cmd_id, err and err or "pb not define")

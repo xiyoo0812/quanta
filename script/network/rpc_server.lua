@@ -1,21 +1,17 @@
 --rpc_server.lua
 
 local pairs             = pairs
-local tunpack           = table.unpack
 local signalquit        = signal.quit
 local log_err           = logger.err
 local log_warn          = logger.warn
 local log_info          = logger.info
-local qdefer            = quanta.defer
+local log_fatal         = logger.fatal
 local qxpcall           = quanta.xpcall
 local lnext_id          = luakit.next_id
-local hash_code         = codec.hash_code
 local derive_port       = luabus.derive_port
 local resume_trace      = quanta.resume_trace
-local extract_trace     = quanta.extract_trace
 
 local FLAG_REQ          = luabus.proto_flag.REQ
-local FLAG_RES          = luabus.proto_flag.RES
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
@@ -27,6 +23,8 @@ local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local INDUCE            = quanta.enum("PortMode", "INDUCE")
 local INCR              = quanta.enum("PortMode", "INCR")
+
+local Message           = import("feature/message_rpc.lua")
 
 local RpcServer = singleton()
 
@@ -77,22 +75,55 @@ function RpcServer:on_quit()
 end
 
 --rpc事件
-function RpcServer:on_socket_rpc(client, session_id, rpc_flag, trace_id, span_id, source, rpc, ...)
+function RpcServer:dispatch_rpc_message(client, recv_len, session_id, flag, source, rpc, ...)
+    -- 事件统计
+    event_mgr:notify_trigger("on_recv_rpc", rpc, recv_len)
+    -- 事件分发
     if client.id or rpc == "rpc_register" then
-        if session_id == 0 or rpc_flag == FLAG_REQ then
-            local function dispatch_rpc_message(...)
-                local hook<close> = qdefer()
-                event_mgr:execute_hook("on_rpc_recv", hook, rpc, nil, ...)
-                local rpc_datas = event_mgr:notify_listener(rpc, client, ...)
-                if session_id > 0 then
-                    client.call_rpc(rpc, session_id, FLAG_RES, tunpack(rpc_datas))
-                end
+        if flag & FLAG_REQ == FLAG_REQ then
+            local message<close> = Message(client, session_id, recv_len, source, rpc)
+            local ok, err = pcall(event_mgr.notify_message, event_mgr, rpc, message, ...)
+            if not ok then
+                log_fatal("[RpcServer][dispatch_rpc_message] rpc {} call failed: {}", rpc, err)
+                message:callback(false, "dispatch rpc message field!")
             end
-            thread_mgr:fork(dispatch_rpc_message, resume_trace(trace_id, span_id), ...)
-            return
         end
-        thread_mgr:response(session_id, ...)
     end
+end
+
+--调用rpc后续处理
+function RpcServer:on_call_router(rpc, send_len)
+    if send_len > 0 then
+        return true, SUCCESS
+    end
+    log_err("[RpcServer][on_call_router] rpc {} call failed! code:{}", rpc, send_len)
+    return false
+end
+
+--accept事件
+function RpcServer:on_socket_accept(client)
+    -- 设置超时(心跳)
+    client.set_timeout(RPCLINK_TIMEOUT)
+    -- 添加会话
+    local token = client.token
+    self.clients[token] = client
+    -- 绑定call/回调
+    client.call_rpc = function(rpc, session_id, flag, ...)
+        local send_len = client.forward_self(session_id, 0, 0, flag, 0, 0, 0, rpc, ...)
+        return self:on_call_router(rpc, send_len)
+    end
+    client.callback_target = function(rpc, session_id, target, flag, ...)
+        local send_len = client.forward_self(session_id, target, 0, flag, 0, 0, quanta.id, rpc, ...)
+        return self:on_call_router(rpc, send_len)
+    end
+    client.on_call_rpc = function(recv_len, session_id, flag, trace_id, span_id, ...)
+        thread_mgr:fork(self.dispatch_rpc_message, resume_trace(trace_id, span_id), self, client, recv_len, session_id, flag, ...)
+    end
+    client.on_error = function(ctoken, err)
+        thread_mgr:fork(self.on_socket_error, nil, self, ctoken, err)
+    end
+    --通知收到新client
+    self.holder:on_client_accept(client)
 end
 
 --连接关闭
@@ -104,62 +135,6 @@ function RpcServer:on_socket_error(token, err)
             self.holder:on_client_error(client, token, err)
         end
     end
-end
-
---accept事件
-function RpcServer:on_socket_accept(client)
-    -- 设置超时(心跳)
-    client.set_timeout(RPCLINK_TIMEOUT)
-    -- 添加会话
-    local token = client.token
-    self.clients[token] = client
-    -- 绑定call/回调
-    client.call_rpc = function(rpc, session_id, rpc_flag, ...)
-        local send_len = client.forward_self(session_id, 0, 0, rpc_flag, 0, 0, 0, rpc, ...)
-        if send_len < 0 then
-            log_err("[RpcServer][call_rpc] call failed! code:{}", send_len)
-            return false
-        end
-        return true, SUCCESS
-    end
-    client.on_call_rpc = function(recv_len, session_id, rpc_flag, ...)
-        qxpcall(self.on_socket_rpc, "on_socket_rpc: {}", self, client, session_id, rpc_flag, ...)
-    end
-    client.on_error = function(ctoken, err)
-        thread_mgr:fork(function()
-            self:on_socket_error(ctoken, err)
-        end)
-    end
-    --通知收到新client
-    self.holder:on_client_accept(client)
-end
-
---直接调用路由hash
-function RpcServer:transfer_call(session_id, target_id, slice)
-    local trace_id, span_id = extract_trace()
-    return self.listener.transfer_call(session_id, target_id, trace_id, span_id, slice)
-end
-
---直接调用路由hash
-function RpcServer:transfer_hash(session_id, service_id, hash_key, rpc, ...)
-    local trace_id, span_id = extract_trace()
-    local hash_value = hash_code(hash_key, 0xffff)
-    local send_len = self.listener.transfer_hash(session_id, service_id, hash_value, trace_id, span_id, 0, rpc, ...)
-    if send_len > 0 then
-        if session_id > 0 then
-            return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
-        end
-        return true
-    end
-    return false, "rpc server send failed"
-end
-
---call接口
-function RpcServer:wait_call(client, session_id, rpc, ...)
-    if client.call_rpc(rpc, 0, FLAG_REQ, ...) then
-        return thread_mgr:yield(session_id, rpc, RPC_CALL_TIMEOUT)
-    end
-    return false, "rpc server send failed"
 end
 
 --call接口
@@ -238,12 +213,11 @@ end
 --rpc回执
 -----------------------------------------------------------------------------
 --服务器心跳协议
-function RpcServer:rpc_heartbeat(client, node)
-    --回复心跳
-    self:send(client, "on_heartbeat", quanta.id)
+function RpcServer:rpc_heartbeat(message, node)
 end
 
-function RpcServer:rpc_register(client, node)
+function RpcServer:rpc_register(message, node)
+    local client = message.session
     if not client.id then
         -- 检查错误注册
         if node.cluster ~= quanta.cluster then

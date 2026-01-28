@@ -49,9 +49,6 @@ MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mim
 endif
 #自定义库
 LIBS += -llua
-ifeq ($(UNAME_S), Linux)
-LIBS += -lstdc++fs
-endif
 #系统库
 LIBS += -lm -ldl -lstdc++ -lpthread
 
@@ -117,8 +114,6 @@ pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
 	mkdir -p $(INT_DIR)/src
-	ln -s $(TARGET_DIR)/lualog.so $(TARGET_DIR)/liblualog.so
 
 #后编译
 post_build:
-	rm -fr $(TARGET_DIR)/liblualog.so

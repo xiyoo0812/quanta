@@ -250,8 +250,8 @@ namespace luapb{
         virtual void encode(lua_State* L, int idx, luabuf* buff, bool enc_tag = true, bool enc_default = false) = 0;
         inline bool is_repeated() { return label == 3; }
         inline bool is_map() { return message && message->is_map; }
-        inline void location(lua_State* L) {
-            name_ref = find_ref(L, name);
+        inline void location(lua_State* L, pb_message* msg) {
+            name_ref = find_ref(L, (oneof_index >= 0) ? msg->oneof_decl[oneof_index] : name);
             if (type == TYPE_MESSAGE && !type_name.empty()) {
                 message = find_message(type_name.c_str());
             }
@@ -461,6 +461,7 @@ namespace luapb{
     }
 
     void decode_message(lua_State* L, slice* slice, pb_message* msg) {
+        bool oneofs[16] = { false };
         unordered_set<uint32_t> tags;
         lua_createtable(L, 0, msg->fields.size());
         while (slice && !slice->empty()) {
@@ -479,24 +480,23 @@ namespace luapb{
                 decode_repeated(L, slice, field);
                 continue;
             }
+            if (field->oneof_index >= 0) {
+                oneofs[field->oneof_index] = true;
+            }
             field->push_field(L);
             field->decode(L, slice);
-            //oneof名字引用
-            if (field->oneof_index < 0) {
-                lua_settable(L, -3);
-            } else {
-                lua_settable(L, -3);
-                field->push_field(L);
-                lua_setfield(L, -2, msg->oneof_decl[field->oneof_index].c_str());
-            }
+            lua_settable(L, -3);
         }
         if (descriptor.use_mteatable) {
             lua_rawgeti(L, LUA_REGISTRYINDEX, msg->meta_ref);
             lua_setmetatable(L, -2);
             return;
         }
-        for (auto& [tag, field] : msg->tfields | std::views::filter([&tags](const auto& item) {
-            return !tags.contains(item.first) && !item.second->complex;
+        for (auto& [tag, field] : msg->tfields | std::views::filter([&](const auto& pair) {
+            if (pair.second->complex) return false;
+            if (tags.contains(pair.first)) return false;
+            if (auto index = pair.second->oneof_index; index >= 0 && oneofs[index]) return false;
+            return true;
         })) {
             field->push_default(L, -3);
         }
@@ -546,7 +546,7 @@ namespace luapb{
     void encode_message(lua_State* L, int index, luabuf* buff, pb_message* msg) {
         int idx = lua_absindex(L, index);
         lua_pushnil(L);
-        bool oneofencode = false;
+        bool oneofs[16] = { false };
         while (lua_next(L, idx) != 0) {
             if (lua_isstring(L, -2)) {
                 pb_field* field = find_field(msg, lua_tostring(L, -2));
@@ -558,11 +558,11 @@ namespace luapb{
                     } else {
                         //oneof处理, 编码一个
                         if (field->oneof_index >= 0) {
-                            if (oneofencode) {
+                            if (oneofs[field->oneof_index]) {
                                 lua_pop(L, 1);
                                 continue;
                             }
-                            oneofencode = true;
+                            oneofs[field->oneof_index] = true;
                         }
                         field->encode(L, -1, buff, true, descriptor.encode_default);
                     }
@@ -627,7 +627,7 @@ namespace luapb{
         auto oslice = read_len_prefixed(slice);
         while (!oslice.empty()) {
             switch (auto tag = read_varint<uint32_t>(&oslice); tag) {
-                case pb_tag(1, LEN):msg->oneof_decl.emplace_back(read_string(&oslice)); break;
+                case pb_tag(1, LEN): msg->oneof_decl.emplace_back(read_string(&oslice)); break;
                 default: skip_field(&oslice, tag); break;
             }
         }
@@ -752,7 +752,7 @@ namespace luapb{
         }
         for (auto& [_, message] : descriptor.messages) {
             for (auto& [_, field] : message->fields) {
-                field->location(L);
+                field->location(L, message);
             }
         }
         if (descriptor.use_mteatable) {

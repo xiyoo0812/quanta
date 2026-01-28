@@ -11,6 +11,7 @@ local protobuf_mgr  = quanta.get("protobuf_mgr")
 local GROUP         = luabus.relay_type.GROUP
 local CLIENT        = luabus.relay_type.CLIENT
 local BROADCAST     = luabus.relay_type.BROADCAST
+
 local FLAG_REQ      = luabus.proto_flag.REQ
 
 local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
@@ -39,24 +40,20 @@ function GateSession:relocation(ip, port)
     end)
 end
 
-function GateSession:dispatch_message(session, cmd_message, ecode)
-    local message<close> = cmd_message
-    -- 事件统计
-    event_mgr:notify_trigger("on_recv_message", message)
-    -- 参数检测
+function GateSession:dispatch_command(socket, message, cmd_id, session_id)
     if message.flag & FLAG_REQ == FLAG_REQ then
         -- 事件分发
-        local cmd_id = message.cmd_id
+        local pbmessage<close> = message
         local player_id = message.target_id
         local player = player_mgr:get_entity(player_id)
-        local nok, err = event_mgr:notify_command(cmd_id, player or self, message, message.request, message.response, player_id)
+        local nok, err = event_mgr:notify_command(cmd_id, player or self, pbmessage, message.request, message.response, player_id)
         if not nok then
             log_err("[GateSession][dispatch_message] notify_command failed! cmd_id:{}, err:{}", cmd_id, err)
             message:callback_code(FRAME_FAILED)
         end
     else
         --异步回调
-        thread_mgr:response(message.session_id, true, (ecode == 0) and message.request or { error_code = ecode })
+        thread_mgr:response(session_id, true, message.request)
     end
 end
 

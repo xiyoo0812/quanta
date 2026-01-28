@@ -4,12 +4,6 @@
 #include "socket_helper.h"
 #include "socket_router.h"
 
-enum class relay_code : uint32_t {
-    CODE_UNREACH,       //目标不可达
-    CODE_CRC8ERR        //CRC检查失败
-};
-using enum relay_code;
-
 enum class relay_type : uint32_t {
     RELAY_SELF,
     RELAY_GROUP,
@@ -25,9 +19,8 @@ struct relay_header {
         uint32_t length;
         struct {
             relay_type type : 4;    //消息类型4bit
-            relay_code code : 4;    //错误码4bit
-            uint32_t flag : 4;      //标志位4bit
-            uint32_t len : 20;      //长度20bit(1M)
+            proto_flag flag : 5;    //flag 5bit(proto_flag)
+            uint32_t len : 23;      //23bit(8M)
         };
     };
     uint32_t    target_id;  // target_id

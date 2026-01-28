@@ -87,7 +87,7 @@ function Listener:notify_trigger(event, ...)
     for i, info in ipairs(triggers) do
         local functor, trigger = next(info)
         if functor then
-            local ok, ret = functor:run(trigger, ...)
+            local ok, ret = functor:pcall(trigger, ...)
             if not ok then
                 log_fatal("[Listener][notify_trigger] xpcall [{}:{}] failed: {}!", trigger:source(), functor.name, ret)
             end
@@ -103,9 +103,9 @@ function Listener:notify_trigger(event, ...)
 end
 
 function Listener:notify_listener(event, ...)
-    local listener_map = self._listeners[event] or self._listeners["*"] or {}
+    local listener_map = self._listeners[event] or {}
     for functor, listener in pairs(listener_map) do
-        local result = tpack(functor:run(listener, ...))
+        local result = tpack(functor:pcall(listener, ...))
         if not result[1] then
             log_fatal("[Listener][notify_listener] xpcall [{}:{}] failed: {}", listener:source(), functor.name, result[2])
             result[2] = sformat("event %s execute failed!", event)
@@ -119,11 +119,24 @@ function Listener:notify_listener(event, ...)
     return tpack(false, "event handler is nil")
 end
 
+function Listener:notify_message(event, message,...)
+    local listener_map = self._listeners[event] or {}
+    for functor, listener in pairs(listener_map) do
+        message:callback(true, functor:call(listener, message, ...))
+        return
+    end
+    if not self._ignores[event] then
+        self._ignores[event] = true
+        log_warn("[Listener][notify_message] event ({}) handler is nil!", event)
+    end
+    message:callback(false, "event handler is nil")
+end
+
 function Listener:notify_command(cmd, ...)
     --执行事件
-    local listener_map = self._commands[cmd] or self._commands["*"] or {}
+    local listener_map = self._commands[cmd] or {}
     for functor, listener in pairs(listener_map) do
-        local ok, err = functor:run(listener, ...)
+        local ok, err = functor:pcall(listener, ...)
         if not ok then
             log_fatal("[Listener][notify_command] xpcall [{}:{}] failed: {}!", listener:source(), functor.name, err)
             return false

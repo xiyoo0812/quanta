@@ -49,9 +49,6 @@ MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mim
 endif
 #自定义库
 LIBS += -llua
-ifeq ($(UNAME_S), Linux)
-LIBS += -lstdc++fs
-endif
 #系统库
 LIBS += -lm -ldl -lstdc++ -lpthread
 

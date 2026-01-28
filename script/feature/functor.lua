@@ -21,7 +21,7 @@ function Functor:__init(func_name, lock_ms)
     end
 end
 
-function Functor:call(obj, ...)
+function Functor:run(obj, ...)
     if self.functor then
         if self.time == 0 or self.time <= quanta.clock_ms then
             thread_mgr:fork(self.functor, nil, obj, ...)
@@ -31,8 +31,12 @@ function Functor:call(obj, ...)
     end
 end
 
-function Functor:run(obj, ...)
+function Functor:pcall(obj, ...)
     return xpcall(obj[self.name], dtraceback, obj, ...)
+end
+
+function Functor:call(obj, ...)
+    return obj[self.name](obj, ...)
 end
 
 return Functor

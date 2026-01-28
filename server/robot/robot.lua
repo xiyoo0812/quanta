@@ -90,7 +90,7 @@ end
 
 function Robot:update(force)
     if self.case then
-        self.upfunctor:call(self, force)
+        self.upfunctor:run(self, force)
     end
 end
 
