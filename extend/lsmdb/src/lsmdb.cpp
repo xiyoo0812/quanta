@@ -3,14 +3,14 @@
 #include "lsmdb.h"
 
 namespace lsmdb {
-    smdb_driver* create_criver(lua_State* L) {
+    smdb_driver* create_driver(lua_State* L) {
         return new smdb_driver();
     }
 
     luakit::lua_table open_lsmdb(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto smdb = kit_state.new_table("smdb");
-        smdb.set_function("create", create_criver);
+        smdb.set_function("create", create_driver);
         smdb.new_enum("smdb_code",
             "SMDB_SUCCESS", SMDB_SUCCESS,
             "SMDB_DB_NOT_INIT", SMDB_DB_NOT_INIT,

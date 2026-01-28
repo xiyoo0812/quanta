@@ -12,5 +12,7 @@ quanta.startup(function()
         import("db/mysql_mgr.lua")
     elseif service == "redis" then
         import("db/redis_mgr.lua")
+    elseif service == "pgsql" then
+        import("db/pgsql_mgr.lua")
     end
 end)

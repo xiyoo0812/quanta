@@ -84,12 +84,12 @@ end
 -- 分派协议数据
 function TcpServer:dispatch_message(session, cmd_message)
     local message<close> = cmd_message
+    -- 前置处理: 协议过滤/统计
+    event_mgr:notify_trigger("on_recv_message", message)
     -- 参数检测
     if message.flag & FLAG_REQ ~= FLAG_REQ then
         return message:callback_code(FRAME_PARAMS)
     end
-    -- 前置处理: 协议过滤/统计
-    event_mgr:notify_trigger("on_recv_message", message)
     -- 事件分发
     local cmd_id = message.cmd_id
     local nok = event_mgr:notify_command(cmd_id, session, message, message.request, message.response)
@@ -124,7 +124,7 @@ function TcpServer:on_socket_accept(session)
         event_mgr:notify_trigger("on_send_message", cmd_id, body, send_len)
         return true
     end
-    session.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, ecode, body, err)
+    session.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, body, err)
         if body then
             local message = Message(session, session_id, recv_len, body, cmd_id, flag, target_id)
             thread_mgr:fork(self.dispatch_message, new_trace(), self, session, message)

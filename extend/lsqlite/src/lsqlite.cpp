@@ -6,14 +6,14 @@ using namespace std;
 using namespace luakit;
 
 namespace lsqlite {
-    sqlite_driver* create_criver(lua_State* L) {
+    sqlite_driver* create_driver() {
         return new sqlite_driver();
     }
 
     luakit::lua_table open_lsqlite(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto sqlite = kit_state.new_table("sqlite");
-        sqlite.set_function("create", create_criver);
+        sqlite.set_function("create", create_driver);
         kit_state.new_class<sqlite_stmt>(
             "sql", &sqlite_stmt::sql,
             "run", &sqlite_stmt::run,

@@ -76,13 +76,13 @@ void socket_router::do_forward_broadcast(uint32_t token, router_header* header, 
         return target.token > 0 && target.token != token;
         }) | std::views::transform([](const auto& target) {
             return target.token;
-            });
+        });
         size_t broadcast_num = 0;
         std::ranges::for_each(actions, [&](uint32_t btoken) {
             m_mgr->sendv(btoken, items, _countof(items));
             m_route_count++;
             broadcast_num++;
-            });
+        });
         on_forward_broadcast(token, header, broadcast_num);
 }
 
@@ -130,7 +130,7 @@ uint32_t socket_router::get_route_count() {
 void socket_router::on_forward_error(uint32_t token, router_header* header, pbyte data, size_t data_len) {
     if (header->session_id > 0) {
         header->type = FORWARD_SELF;
-        header->flag = (uint8_t)FLAG_ERR;
+        header->flag = FLAG_UNREACH;
         sendv_item items[] = { { header, sizeof(router_header)}, { data, data_len } };
         m_mgr->sendv(token, items, _countof(items));
     }
@@ -140,7 +140,7 @@ void socket_router::on_forward_broadcast(uint32_t token, router_header* header, 
     if (header->session_id > 0) {
         size_t data_len = 0;
         auto data = m_codec->encode(&data_len, 5, 0, "on_forward_broadcast", true, 0, broadcast_num);
-        header->flag = (uint8_t)FLAG_RES;
+        header->flag = FLAG_RES;
         header->len = data_len + sizeof(router_header);
         sendv_item items[] = { { header, sizeof(router_header)}, { data, data_len } };
         m_mgr->sendv(token, items, _countof(items));

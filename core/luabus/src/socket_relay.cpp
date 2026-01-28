@@ -92,12 +92,11 @@ void socket_relay::do_forward_service(relay_header* header, uint32_t client_id, 
                     }
                 }
             }
-            header->code = CODE_UNREACH;
+            header->flag = FLAG_UNREACH;
         } else {
-            header->code = CODE_CRC8ERR;
+            header->flag = FLAG_BAD;
         }
         header->type = RELAY_SELF;
-        header->flag = (uint8_t)FLAG_RES;
         header->len = sizeof(relay_header);
         m_mgr->send(unit.token, &header, sizeof(relay_header));
     }

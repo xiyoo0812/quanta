@@ -339,18 +339,17 @@ function AttrComponent:merge_share_attrs(attrs)
 end
 
 --编码属性
-function AttrComponent:encode_attr(attr_id, attr)
+function AttrComponent:encode_attr(attr_id, attr, bsync)
     local value = self.attrs[attr_id]
-    if attr.type == "uint" or attr.type == "int" then
+    if (attr.type == "uint" or attr.type == "int") and (bsync or value ~= 0) then
         return { attr_id = attr_id, attr_i = value // 1 }
     end
-    if attr.type == "string" then
+    if (attr.type == "string" or attr.type == "bytes") and (bsync or value ~= "") then
         return { attr_id = attr_id, attr_s = value }
     end
-    if attr.type == "float" then
+    if attr.type == "float" and (bsync or value ~= 0) then
         return { attr_id = attr_id, attr_f = value }
     end
-    return { attr_id = attr_id, attr_b = value }
 end
 
 --打包需要同步的属性
@@ -358,7 +357,10 @@ function AttrComponent:package_attrs(range)
     local attrs = {}
     for attr_id, attr in pairs(self.attr_set) do
         if attr.range >= range then
-            tinsert(attrs, self:encode_attr(attr_id, attr))
+            local eattr = self:encode_attr(attr_id, attr)
+            if eattr then
+                tinsert(attrs, eattr)
+            end
         end
     end
     return attrs
@@ -368,7 +370,7 @@ end
 function AttrComponent:on_attr_update()
     local attrs, battrs = {}, {}
     for attr_id, attr in pairs(self.sync_attrs) do
-        local eattr = self:encode_attr(attr_id, attr)
+        local eattr = self:encode_attr(attr_id, attr, true)
         tinsert(attrs, eattr)
         if attr.range > 1 then
             tinsert(battrs, eattr)

@@ -11,6 +11,7 @@ local tunpack           = table.unpack
 local cmdline           = quanta.get("cmdline")
 local event_mgr         = quanta.get("event_mgr")
 
+local INCR              = quanta.enum("PortMode", "INCR")
 local LOCAL             = quanta.enum("GMType", "LOCAL")
 local SUCCESS           = quanta.enum("KernCode", "SUCCESS")
 
@@ -27,10 +28,11 @@ function GM_Mgr:__init()
     event_mgr:add_listener(self, "rpc_register_command")
     event_mgr:add_listener(self, "rpc_execute_command")
     event_mgr:add_listener(self, "rpc_execute_message")
-
+    --端口解析
+    local ip, port = environ.addr("QUANTA_GM_HTTP")
     --创建HTTP服务器
     local httpsvr = HttpServer()
-    httpsvr:listen(environ.addr("QUANTA_GM_HTTP"))
+    httpsvr:listen(ip, port, INCR )
     self.gm_addr = sformat("http://%s:%s", httpsvr:get_ip(),httpsvr:get_port())
     self.http_server = httpsvr
     --注册GM Handler

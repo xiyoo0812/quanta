@@ -11,11 +11,18 @@ local prop = property(PgsqlMgr)
 prop:reader("pgsql_db", nil)    --pgsql_db
 
 function PgsqlMgr:__init()
+    local funcs = {"query", "prepare", "execute"}
+    for _, func in ipairs(funcs) do
+        --定义函数
+        local func_name = "rpc_pgsql_" .. func
+        PgsqlMgr[func_name] = function(message, ...)
+            return self[func](self, ...)
+        end
+        -- 注册事件
+        event_mgr:add_listener(self, func_name)
+    end
+    --启动DB引擎
     self:setup()
-    -- 注册事件
-    event_mgr:add_listener(self, "rpc_pgsql_query", "query")
-    event_mgr:add_listener(self, "rpc_pgsql_prepare", "prepare")
-    event_mgr:add_listener(self, "rpc_pgsql_execute", "execute")
 end
 
 --初始化

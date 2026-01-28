@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <map>
 #include <set>
@@ -30,8 +30,7 @@ using wptr      = std::weak_ptr<T>;
 template <class T>
 using sptr      = std::shared_ptr<T>;
 
-using log_time  = time_point<system_clock, milliseconds>;
-using zone_time = zoned_time<milliseconds, time_zone*>;
+using log_time  = system_clock::time_point;
 
 typedef void (*custom_output)(const char* msg, size_t len, int level);
 
@@ -48,7 +47,7 @@ namespace logger {
 
     enum class rolling_type : uint8_t {
         HOURLY = 0,
-        DAYLY = 1,
+        DAILY = 1,
     }; //rolling_type
     using enum rolling_type;
 
@@ -61,15 +60,15 @@ namespace logger {
     class log_message {
     public:
         log_level level() const { return level_; }
-        vstring feature() const { return feature_; }
+        const vstring feature() const { return feature_; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
         sstring format(bool prefix, bool suffix, bool clr = false);
-        zone_time prepare(time_zone* zone);
+        void prepare(pchar secbuf, seconds& last);
 
     private:
-        log_time            time_;
-        log_level           level_ = LOG_DEBUG;
-        sstring             msg_, feature_, tag_, prefix_, suffix_;
+        log_time    time_;
+        log_level   level_ = LOG_DEBUG;
+        sstring     msg_, feature_, tag_, prefix_, suffix_;
     }; // class log_message
     typedef std::vector<sptr<log_message>> log_messages;
 
@@ -95,10 +94,10 @@ namespace logger {
 
     class log_dest {
     public:
+        virtual void flush() = 0;
         virtual bool color() { return false; }
-        virtual void flush(const zone_time& time) = 0;
+        virtual void write(sptr<log_message> logmsg);
         virtual void raw_write(vstring logtxt, size_t size) = 0;
-        virtual void write(sptr<log_message> logmsg, const zone_time& logtime);
         virtual void ignore_prefix(bool prefix) { prefix_ = !prefix; }
         virtual void ignore_suffix(bool suffix) { suffix_ = !suffix; }
         virtual void set_custom_output(custom_output fn) { output_ = fn; }
@@ -115,43 +114,45 @@ namespace logger {
     class stdio_dest : public log_dest {
     public:
         virtual bool color();
-        virtual void flush(const zone_time& time);
+        virtual void flush();
         virtual void raw_write(vstring logtxt, size_t size);
     }; // class stdio_dest
 
     class log_file_base : public log_dest {
     public:
-        log_file_base(size_t max_line, const zone_time& time) : max_line_(max_line), file_time_(time.get_local_time()){}
+        log_file_base(size_t max_line) : max_line_(max_line) {
+            file_time_ = system_clock::now();
+        }
         virtual ~log_file_base();
 
-        virtual void flush(const zone_time& time);
+        virtual void flush();
         virtual void raw_write(vstring logtxt, size_t size);
-        void create(fspath file_path, sstring file_name, const zone_time& time);
+        void create(fspath file_path, sstring file_name);
 
     protected:
         size_t                      max_line_;
-        local_time<microseconds>    file_time_;
+        log_time                    file_time_;
         std::unique_ptr<std::ofstream> file_ = nullptr;
     }; // class log_file
 
     class rolling_hourly {
     public:
-        bool eval(const local_time<microseconds>& filetime, const zone_time& logtime) const;
+        bool eval(const log_time& filetime, const log_time& logtime) const;
     }; // class rolling_hourly
 
     class rolling_daily {
     public:
-        bool eval(const local_time <microseconds>& filetime, const zone_time& logtime) const;
+        bool eval(const log_time& filetime, const log_time& logtime) const;
     }; // class rolling_daily
 
     template<class rolling_evaler>
     class log_rollingfile : public log_file_base {
     public:
-        log_rollingfile(fspath& log_path, const zone_time& time, vstring feature, size_t max_line = MAX_LINE);
-        virtual void flush(const zone_time& time);
+        log_rollingfile(fspath& log_path, vstring feature, size_t max_line = MAX_LINE);
+        virtual void flush();
 
     protected:
-        sstring new_log_file_name(const zone_time& time);
+        sstring new_log_file_name(const log_time& time);
 
         fspath                  log_path_;
         sstring                 feature_;
@@ -214,14 +215,15 @@ namespace logger {
         spin_mutex      mutex_;
         std::jthread    thread_;
         sstring         service_;
-        time_zone*      zone_ = nullptr;
         sptr<log_dest>  std_dest_ = nullptr;
         sptr<log_dest>  main_dest_ = nullptr;
         std::set<log_agent*> agents_;
         std::map<log_level, sptr<log_dest>> dest_lvls_;
         std::map<sstring, sptr<log_dest>, std::less<>> dest_features_;
-        rolling_type rolling_type_ = DAYLY;
+        rolling_type rolling_type_ = DAILY;
         size_t max_line_ = MAX_LINE;
+        seconds last_time_ = seconds(0);
+        char time_buf_[32] = {0};
         bool log_std_ = true;
         bool running_ = true;
     }; // class log_service

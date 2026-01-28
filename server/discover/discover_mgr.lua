@@ -94,7 +94,8 @@ function DiscoverMgr:on_client_error(client, token, err)
     end
 end
 
-function DiscoverMgr:rpc_watch_service(client, serv_name)
+function DiscoverMgr:rpc_watch_service(message, serv_name)
+    local client = message.session
     log_info("[DiscoverMgr][rpc_watch_service] node:{}, watch:{}", client.name, serv_name)
     local watchers = self.watcher_list[serv_name]
     if not watchers then

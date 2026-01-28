@@ -17,9 +17,8 @@ namespace luapb {
             uint32_t length;
             struct {
                 uint32_t type : 4;  //消息类型4bit
-                uint32_t code : 4;  //错误码4bit
-                uint32_t flag : 4;  //标志位4bit
-                uint32_t len : 20;  //长度20bit(1M)
+                uint32_t flag : 5;  //flag 5bit
+                uint32_t len : 23;  //23bit(8M)
             };
         };
         uint32_t    target_id;  // target_id
@@ -118,7 +117,6 @@ namespace luapb {
             lua_pushinteger(L, header->target_id);
             lua_pushinteger(L, header->cmd_id);
             lua_pushinteger(L, header->flag);
-            lua_pushinteger(L, header->code);
             //cmd_id
             pb_message* msg = pbmsg_from_cmdid(header->cmd_id);
             if (msg == nullptr) {

@@ -11,11 +11,18 @@ local prop = property(MysqlMgr)
 prop:reader("mysql_db", nil)    --mysql_db
 
 function MysqlMgr:__init()
+    local funcs = {"query", "prepare", "execute"}
+    for _, func in ipairs(funcs) do
+        --定义函数
+        local func_name = "rpc_mysql_" .. func
+        MysqlMgr[func_name] = function(message, ...)
+            return self[func](self, ...)
+        end
+        -- 注册事件
+        event_mgr:add_listener(self, func_name)
+    end
+    --启动DB引擎
     self:setup()
-    -- 注册事件
-    event_mgr:add_listener(self, "rpc_mysql_query", "query")
-    event_mgr:add_listener(self, "rpc_mysql_prepare", "prepare")
-    event_mgr:add_listener(self, "rpc_mysql_execute", "execute")
 end
 
 --初始化

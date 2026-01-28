@@ -81,7 +81,7 @@ function DiscoverAgent:on_socket_connect(client)
 end
 
 --服务改变
-function DiscoverAgent:rpc_service_ready(service_name, readys)
+function DiscoverAgent:rpc_service_ready(message, service_name, readys)
     log_info("[DiscoverAgent][rpc_service_ready]: {}'s node readys {}!", service_name, readys)
     local watchers = self.watchers[service_name]
     for listener in pairs(watchers or {}) do
@@ -93,7 +93,7 @@ function DiscoverAgent:rpc_service_ready(service_name, readys)
     end
 end
 
-function DiscoverAgent:rpc_service_close(node)
+function DiscoverAgent:rpc_service_close(message, node)
     log_info("[DiscoverAgent][rpc_service_close]: node: {}!", node)
     local watchers = self.watchers[node.service_name]
     for listener in pairs(watchers or {}) do
@@ -104,7 +104,7 @@ function DiscoverAgent:rpc_service_close(node)
 end
 
 -- 停服
-function DiscoverAgent:rpc_server_shutdown(reason)
+function DiscoverAgent:rpc_server_shutdown(message, reason)
     -- 关闭会话连接
     event_mgr:fire_frame(function()
         log_warn("[DiscoverAgent][rpc_server_shutdown]->service:{}", quanta.name)
@@ -115,7 +115,7 @@ function DiscoverAgent:rpc_server_shutdown(reason)
 end
 
 --执行远程rpc消息
-function DiscoverAgent:rpc_remote_message(rpc, data)
+function DiscoverAgent:rpc_remote_message(message, rpc, data)
     if not rpc then
         return {code = RPC_FAILED, msg = "rpc is nil !"}
     end
@@ -128,17 +128,17 @@ function DiscoverAgent:rpc_remote_message(rpc, data)
 end
 
 --热更新
-function DiscoverAgent:rpc_service_hotfix()
+function DiscoverAgent:rpc_service_hotfix(message)
     log_debug("[DiscoverAgent][rpc_service_hotfix]")
     shotfix()
 end
 
-function DiscoverAgent:rpc_set_logger_level(level)
+function DiscoverAgent:rpc_set_logger_level(message, level)
     log_debug("[DiscoverAgent][rpc_set_logger_level] level: {}", level)
     log_filter(level)
 end
 
-function DiscoverAgent:rpc_show_snapshot()
+function DiscoverAgent:rpc_show_snapshot(message)
     local snapshots = {}
     snapshots.object = class_review()
     snapshots.memory = collectgarbage("count")

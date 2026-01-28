@@ -15,4 +15,3 @@ import("lobby/servlet/player_servlet.lua")
 
 import("base/attr/attribute_relay.lua")
 
-	

@@ -132,7 +132,7 @@ function GateServer:on_bind_service_req(session, message, body, response)
     log_err("[GateServer][on_bind_service_req] not client player({})", client_id)
 end
 
-function GateServer:rpc_update_verify_code(user_id, verify_code)
+function GateServer:rpc_update_verify_code(message, user_id, verify_code)
     log_debug("[GateServer][rpc_update_verify_code] open_id({}) verify_code({})!", user_id, verify_code)
     self.verify_codes[user_id] = { code = verify_code, time = quanta.now + MINUTE_5_S }
     return SUCCESS

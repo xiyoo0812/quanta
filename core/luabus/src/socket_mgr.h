@@ -22,11 +22,12 @@ enum class proto_type : uint8_t {
 
 // 协议掩码
 enum class proto_flag : uint32_t {
+    FLAG_RES        = 0,    // 协议回执/通知标记
     FLAG_REQ        = 1,    // 协议请求标记
-    FLAG_RES        = 2,    // 协议回执/通知标记
-    FLAG_ERR        = 3,    // 协议转发错误标记
+    FLAG_ZIP        = 2,    // 协议压缩标记
     FLAG_CRYPT      = 4,    // 协议加密标记
-    FLAG_ZIP        = 8,    // 协议压缩标记
+    FLAG_UNREACH    = 8,    // 协议不可达
+    FLAG_BAD        = 16,   // 协议 内容错误
 };
 
 using enum link_status;

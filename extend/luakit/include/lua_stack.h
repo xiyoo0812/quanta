@@ -36,7 +36,7 @@ namespace luakit {
     }
 
     template <std::floating_point T>
-        T lua_to_native(lua_State* L, int i) {
+    T lua_to_native(lua_State* L, int i) {
         return (T)lua_tonumber(L, i);
     }
 
@@ -167,9 +167,13 @@ namespace luakit {
     template <typename T> requires std::same_as<T, std::filesystem::path>
     T lua_to_native(lua_State* L, int i) {
         std::string_view fpath = lua_to_native<std::string_view>(L, i);
-        try { return T(fpath, std::locale(".UTF8")); }
-        catch (...) {}
-        return T(fpath, std::locale(""));
+        #if defined(WIN32)
+            try { return T(fpath, std::locale(".UTF8")); }
+            catch (...) {}
+            return T(fpath, std::locale(""));
+        #else
+            return T(fpath);
+        #endif
     }
 
     template <typename T>

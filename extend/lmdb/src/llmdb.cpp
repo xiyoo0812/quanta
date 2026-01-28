@@ -3,7 +3,7 @@
 #include "llmdb.h"
 
 namespace llmdb {
-    mdb_driver* create_criver(lua_State* L) {
+    mdb_driver* create_driver(lua_State* L) {
         MDB_env* handle = nullptr;
         int rc = mdb_env_create(&handle);
         if (rc != MDB_SUCCESS) {
@@ -15,7 +15,7 @@ namespace llmdb {
     luakit::lua_table open_lmdb(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto lmdb = kit_state.new_table("lmdb");
-        lmdb.set_function("create", create_criver);
+        lmdb.set_function("create", create_driver);
         kit_state.new_class<mdb_driver>(
             "get", &mdb_driver::get,
             "put", &mdb_driver::put,

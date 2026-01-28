@@ -11,6 +11,7 @@ enum ErrorCode
     FRAME_TOOFAST           = 2;        //请求太频繁
     FRAME_PARAMS            = 3;        //参数错误，请重试
     FRAME_UPHOLD            = 4;        //服务维护
+    FRAME_UNREACH           = 9;        //目标不可达
     
     //登陆错误码
     LOGIN_PLATFORM_ERROR    = 1001;     //平台错误

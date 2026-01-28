@@ -54,7 +54,7 @@ end
 
 --load_reliable_events
 function MsgComponent:load_reliable_events()
-    if not self.ldfunctor:call(self) then
+    if not self.ldfunctor:run(self) then
         event_mgr:publish_frame(self, "load_reliable_events")
     end
 end

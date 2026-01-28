@@ -46,7 +46,7 @@ end
 
 function UpdateMgr:update_second(clock_ms)
     for functor, obj in pairs(self.second_objs) do
-        functor:call(obj, clock_ms)
+        functor:run(obj, clock_ms)
     end
 end
 
@@ -58,7 +58,7 @@ function UpdateMgr:update(now_ms, clock_ms, master)
     --帧更新
     local frame = quanta.frame + 1
     for functor, obj in pairs(self.frame_objs) do
-        functor:call(obj, clock_ms, frame)
+        functor:run(obj, clock_ms, frame)
     end
     quanta.frame = frame
     --快帧100ms更新
@@ -66,7 +66,7 @@ function UpdateMgr:update(now_ms, clock_ms, master)
         return
     end
     for functor, obj in pairs(self.fast_objs) do
-        functor:call(obj, clock_ms)
+        functor:run(obj, clock_ms)
     end
     self.next_frame = clock_ms + FAST_MS
     --秒更新
@@ -97,14 +97,14 @@ function UpdateMgr:update_by_time(now, clock_ms)
         return
     end
     for functor, obj in pairs(self.second5_objs) do
-        functor:call(obj, clock_ms)
+        functor:run(obj, clock_ms)
     end
     --30秒更新
     if time.sec % 30 > 0 then
         return
     end
     for functor, obj in pairs(self.second30_objs) do
-        functor:call(obj, clock_ms)
+        functor:run(obj, clock_ms)
     end
     --分更新
     if time.min == self.last_minute then
@@ -112,7 +112,7 @@ function UpdateMgr:update_by_time(now, clock_ms)
     end
     self.last_minute = time.min
     for functor, obj in pairs(self.minute_objs) do
-        functor:call(obj, clock_ms)
+        functor:run(obj, clock_ms)
     end
     --时更新
     local cur_hour = time.hour
@@ -121,7 +121,7 @@ function UpdateMgr:update_by_time(now, clock_ms)
     end
     self.last_hour = cur_hour
     for functor, obj in pairs(self.hour_objs) do
-        functor:call(obj, clock_ms)
+        functor:run(obj, clock_ms)
     end
     --清理日志
     log_clean();

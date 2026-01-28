@@ -60,7 +60,7 @@ function StoreCache:sync_increase()
             log_err("[StoreCache][sync_increase] update {}.{} failed! code: {}", self.sheet, self.primary_id, code)
             deepcopy(self.increases, increases)
             self.increases = increases
-            self.store_mgr:sync_increase(self)
+            self.store_mgr:save_increases(self)
             return
         end
     end

@@ -19,10 +19,12 @@ end
 --rpc
 ------------------------------------------------
 --可靠事件分发
-function PlayerServlet:rpc_reliable_event(player_id)
-    local player = player_mgr:get_entity(player_id)
-    if player then
-        event_mgr:publish_frame(player, "load_reliable_events")
+function PlayerServlet:rpc_reliable_event(message, player_id)
+    if message:lock(player_id) then
+        local player = player_mgr:get_entity(player_id)
+        if player then
+            event_mgr:publish_frame(player, "load_reliable_events")
+        end
     end
 end
 
