@@ -28,11 +28,6 @@
 {{% local C_INC = string.gsub(INC, '/', '\\') %}}
 {{% table.insert(AINCLUDES, C_INC) %}}
 {{% end %}}
-{{% if MIMALLOC and MIMALLOC_DIR then %}}
-{{% table.insert(ALIBS, "mimalloc.lib") %}}
-{{% local FMIMALLOC_DIR = string.gsub(MIMALLOC_DIR, '/', '\\') %}}
-{{% table.insert(AINCLUDES, "$(SolutionDir)" .. FMIMALLOC_DIR) %}}
-{{% end %}}
 {{% for _, LIB_DIR in pairs(LIBRARY_DIR or {}) do %}}
 {{% local C_LIB_DIR = string.gsub(LIB_DIR, '/', '\\') %}}
 {{% table.insert(ALIBDIRS, C_LIB_DIR) %}}
@@ -155,9 +150,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CompileAs>Default</CompileAs>
-      {{% if MIMALLOC and MIMALLOC_DIR then %}}
-      <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
-      {{% end %}}
       {{% if STDCPP == "c++17" then %}}
       <LanguageStandard>stdcpp17</LanguageStandard>
       {{% end %}}
@@ -223,9 +215,6 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <CompileAs>Default</CompileAs>
-      {{% if MIMALLOC and MIMALLOC_DIR then %}}
-      <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
-      {{% end %}}
       {{% if STDCPP == "c++17" then %}}
       <LanguageStandard>stdcpp17</LanguageStandard>
       {{% end %}}

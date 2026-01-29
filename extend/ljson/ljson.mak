@@ -42,8 +42,6 @@ LDFLAGS =
 
 #需要连接的库文件
 LIBS =
-ifneq ($(UNAME_S), Darwin)
-endif
 #自定义库
 LIBS += -llua
 #系统库

@@ -12,21 +12,20 @@
 
 # 编译
 - 目前主分支升级到c++20，建议使用c++20支持的编译器
-- msvc: 打开项目目录下的sln工程文件，编译即可。
-- linux：在项目根目录，执行make all。
-- macos: 在项目根目录，执行make all。
+- msvc: 安装msvc2022以上，打开项目目录下的sln工程文件，编译即可。
+- linux：安装mgcc13以上，在项目根目录，执行make all。
+- macos: 安装clang15以上，在项目根目录，执行make all。
+- android: 安装termux和clang，在项目根目录，执行make all。
 
 # 工程
 - 本项目使用[lmake](https://github.com/xiyoo0812/lmake.git)管理
-- 根目录配置lmake
+- 配置lmake (项目已经自动生成，如不加新扩展，不需要修改)
 ```lua
 --lmake
 --工程名
 SOLUTION = "quanta"
 --lmake目录
 LMAKE_DIR = "extend/lmake"
---mimalloc
-MIMALLOC = false
 ```
 - 子项目配置*.lmake
 - 执行以下指令自动生成项目文件(makefile/vcxproj)
@@ -34,6 +33,11 @@ MIMALLOC = false
 # lmake_dir: lmake项目路径
 # solution_dir: 工程根目录
 ./lua lmake_dir/lmake.lua solution_dir
+# 示例如下:
+# linux
+./bin/lua ./tools/lmake/lmake.lua .
+# windows
+./bin/lua.exe ./tools/lmake/lmake.lua .
 ```
 
 # 体验引擎
