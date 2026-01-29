@@ -48,7 +48,6 @@ OBJS = {
 
 --依赖项目
 DEPS = {
-    "mimalloc"
 }
 
 --分组定义

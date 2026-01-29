@@ -6,13 +6,13 @@ empty:
 
 CUR_DIR = $(shell pwd)/
 
-.PHONY: clean all project share lua extend core 
+.PHONY: clean all project lua extend core 
 
 all: clean project backup
 
 quanta: clean project 
 
-project: share lua extend core 
+project: lua extend core 
 
 clean:
 	rm -rf temp;
@@ -52,7 +52,4 @@ extend:
 lua:
 	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
 	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
-
-share:
-	cd extend/mimalloc; make SOLUTION_DIR=$(CUR_DIR) -f mimalloc.mak;
 

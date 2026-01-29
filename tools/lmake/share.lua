@@ -116,9 +116,6 @@ RECURSION = true
 EXCLUDE_FILE = {
 }
 
---是否启用mimalloc库
-MIMALLOC_DIR = "extend/mimalloc/mimalloc/include"
-
 --需要连接的库文件
 LIBS = {
 }
@@ -176,9 +173,6 @@ NWINDOWS_POSTBUILDS = {
 --目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
 OBJS = {
 }
-
---是否启用mimalloc库
-MIMALLOC = true
 
 --依赖项目
 DEPS = {
