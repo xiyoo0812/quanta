@@ -11,13 +11,6 @@ namespace luassl {
         return buf->peek_space(sz);
     }
 
-    inline char fromhex(unsigned char x) {
-        if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
-        else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
-        else if (x >= '0' && x <= '9') return x - '0';
-        else return x;
-    }
-
     inline int tohex(lua_State* L, const unsigned char* text, size_t sz)     {
         static char hex[] = "0123456789abcdef";
         char tmp[UCHAR_MAX];
@@ -30,45 +23,6 @@ namespace luassl {
             buffer[i * 2 + 1] = hex[text[i] & 0xf];
         }
         lua_pushlstring(L, buffer, sz * 2);
-        return 1;
-    }
-
-    static int ltohex(lua_State* L) {
-        size_t sz = 0;
-        const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
-        return tohex(L, text, sz);
-    }
-
-    static int lrandomkey(lua_State* L) {
-        int size = luaL_optinteger(L, 1, 12);
-        auto tmp = alloc_buff(size);
-        for (int i = 0; i < size; i++) {
-            tmp[i] = rand() & 0xff;
-        }
-        if (luaL_optinteger(L, 2, 0)) {
-            return tohex(L, (const unsigned char*)tmp, size);
-        }
-        lua_pushlstring(L, (cpchar)tmp, size);
-        return 1;
-    }
-
-    static int lfromhex(lua_State* L) {
-        size_t sz = 0;
-        const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
-        if (sz & 2) {
-            return luaL_error(L, "Invalid hex text size %lu", (int)sz);
-        }
-        size_t len = sz / 2;
-        auto buffer = alloc_buff(len);
-        for (size_t i = 0; i < sz; i += 2) {
-            char hi = fromhex(text[i]);
-            char low = fromhex(text[i + 1]);
-            if (hi > 16 || low > 16) {
-                return luaL_error(L, "Invalid hex text: %s", text);
-            }
-            buffer[i / 2] = hi << 4 | low;
-        }
-        lua_pushlstring(L, (cpchar)buffer, len);
         return 1;
     }
 
@@ -119,7 +73,7 @@ namespace luassl {
         const unsigned char* message = (const unsigned char*)luaL_checklstring(L, 1, &data_len);
         unsigned char output[WC_MD5_DIGEST_SIZE];
         MD5(message, data_len, output);
-        if (luaL_optinteger(L, 2, 0)) {
+        if (lua_toboolean(L, 2)) {
             return tohex(L, output, WC_MD5_DIGEST_SIZE);
         }
         lua_pushlstring(L, (cpchar)output, WC_MD5_DIGEST_SIZE);
@@ -205,21 +159,6 @@ namespace luassl {
         return 1;
     }
 
-    static int lxor_byte(lua_State* L) {
-        size_t len1, len2;
-        cpchar s1 = luaL_checklstring(L, 1, &len1);
-        cpchar s2 = luaL_checklstring(L, 2, &len2);
-        if (len2 < len1) {
-            return luaL_error(L, "Can't xor short src string");
-        }
-        auto buffer = alloc_buff(len1);
-        for (size_t i = 0; i < len1; i++) {
-            buffer[i] = s1[i] ^ s2[i];
-        }
-        lua_pushlstring(L, (cpchar)buffer, len1);
-        return 1;
-    }
-
     static lua_rsa_key* lrsa_key(std::string_view pem_key) {
         return new lua_rsa_key();
     }
@@ -259,23 +198,16 @@ namespace luassl {
         return 1;
     }
 
-    static tlscodec* tls_codec(lua_State* L, bool client, char* protos) {
+    static tlscodec* tls_codec(lua_State* L, cpchar hostname, char* protos) {
         tlscodec* tcodec = new tlscodec();
         tcodec->set_buff(luakit::get_buff());
-        tcodec->init_tls(L, client, protos);
+        tcodec->init_tls(L, hostname, protos);
         return tcodec;
     }
 
     static int lclean(lua_State* L) {
         if (S_SSL_CTX) SSL_CTX_free(S_SSL_CTX);
         OPENSSL_cleanup();
-        return 0;
-    }
-
-    static int init_ciphers(lua_State* L, std::string_view cipher) {
-        if (int ret = SSL_CTX_set_tlsext_use_srtp(S_SSL_CTX, cipher.data()) != 0) {
-            luaL_error(L, "SSL_CTX_set_tlsext_use_srtp error: %d", ret);
-        }
         return 0;
     }
 
@@ -304,10 +236,6 @@ namespace luassl {
         luassl.set_function("sha1", lsha1);
         luassl.set_function("sha256", lsha256);
         luassl.set_function("sha512", lsha512);
-        luassl.set_function("xor_byte", lxor_byte);
-        luassl.set_function("hex_encode", ltohex);
-        luassl.set_function("hex_decode", lfromhex);
-        luassl.set_function("randomkey", lrandomkey);
         luassl.set_function("hmac_sha1", lhmac_sha1);
         luassl.set_function("hmac_sha256", lhmac_sha256);
         luassl.set_function("hmac_sha512", lhmac_sha512);
@@ -317,7 +245,6 @@ namespace luassl {
         luassl.set_function("b64_decode", lbase64_decode);
         luassl.set_function("xxtea_encode", lxxtea_encode);
         luassl.set_function("xxtea_decode", lxxtea_decode);
-        luassl.set_function("init_ciphers", init_ciphers);
         luassl.set_function("init_cert", init_cert);
         luassl.set_function("tlscodec", tls_codec);
         luassl.set_function("rsa_key", lrsa_key);

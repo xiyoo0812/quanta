@@ -1,8 +1,11 @@
 --ws_server.lua
+local json              = require("ljson")
+local tls               = require("luatls")
+
 local log_err           = logger.err
 local log_info          = logger.info
-local lsha1             = ssl.sha1
-local lb64encode        = ssl.b64_encode
+local lsha1             = tls.sha1
+local lb64encode        = tls.b64_encode
 local jsoncodec         = json.jsoncodec
 local wsscodec          = codec.wsscodec
 local httpdcodec        = codec.httpdcodec

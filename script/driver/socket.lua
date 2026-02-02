@@ -101,7 +101,7 @@ function Socket:connect(ip, port, timeout, proto)
         self:close()
         return ok, res
     end
-    log_info("[Socket][connect] connect success!")
+    log_info("[Socket][connect] connect {}:{} success!", ip, port)
     return self:on_socket_connected()
 end
 

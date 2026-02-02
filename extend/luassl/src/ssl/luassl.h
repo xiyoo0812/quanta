@@ -143,12 +143,9 @@ namespace luassl {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf->clean();
             if (!is_handshake) {
-                uint8_t* data = (uint8_t*)lua_tolstring(L, index, len);
-                if (*len > 0) bio_write(L, data, *len);
                 tls_handshake(L);
-                return m_buf->data(len);
+                return m_buf->drain(len);
             }
             size_t slen;
             uint8_t* body = nullptr;
@@ -168,20 +165,17 @@ namespace luassl {
                 slen -= written;
             }
             bio_read(L);
-            return m_buf->data(len);
+            return m_buf->drain(len);
         }
 
         virtual size_t decode(lua_State* L) {
-            size_t sz = m_slice->size();
+            m_packet_len = m_slice->size();
+            bio_write(L, m_slice->head(), m_packet_len);
             if (!is_handshake) {
-                int top = lua_gettop(L);
+                tls_handshake(L);
                 lua_push_object(L, this);
-                lua_pushlstring(L, (const char*)m_slice->head(), sz);
-                m_packet_len = sz;
-                return lua_gettop(L) - top;
+                return 1;
             }
-            m_packet_len = sz;
-            bio_write(L, m_slice->head(), sz);
             do {
                 uint8_t* outbuff = m_buf->peek_space(SSL_TLS_READ_SIZE);
                 int read = SSL_read(ssl, outbuff, SSL_TLS_READ_SIZE);
@@ -222,7 +216,7 @@ namespace luassl {
             m_hcodec = codec;
         }
 
-        void init_tls(lua_State* L, bool client, const char* protos) {
+        void init_tls(lua_State* L, cpchar hostname, cpchar protos) {
             if (!S_SSL_CTX) {
                 char buf[256];
                 ERR_error_string_n(ERR_get_error(), buf, sizeof(buf));
@@ -240,7 +234,7 @@ namespace luassl {
             if (protos) {
                 SSL_set_alpn_protos(ssl, (const unsigned char*)protos, strlen(protos));
             }
-            if (client) {
+            if (hostname) {
                 SSL_set_connect_state(ssl);
             } else {
                 SSL_set_accept_state(ssl);

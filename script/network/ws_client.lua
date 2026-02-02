@@ -1,4 +1,6 @@
 --ws_client.lua
+local json              = require("ljson")
+
 local log_err           = logger.err
 local log_info          = logger.info
 local saddr             = qstring.addr

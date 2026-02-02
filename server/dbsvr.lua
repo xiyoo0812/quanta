@@ -4,6 +4,7 @@ import("kernel.lua")
 local env_get       = environ.get
 
 quanta.startup(function()
+    require("luatls")
     --初始化dbsvr
     local service = env_get("QUANTA_SERVICE")
     if service == "mongo" then

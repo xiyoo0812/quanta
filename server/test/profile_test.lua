@@ -1,7 +1,7 @@
 --profile_test.lua
 
 local log_debug     = logger.debug
-local lhex_encode   = ssl.hex_encode
+local lhex_encode   = codec.hex_encode
 
 local guid_new      = codec.guid_new
 local guid_tostring = codec.guid_tostring

@@ -1,24 +1,25 @@
---ssl_test.lua
+--tls_test.lua
+local tls           = require("luatls")
 
 local log_info      = logger.info
 local sformat       = string.format
 
-local lmd5          = ssl.md5
-local lrandomkey    = ssl.randomkey
-local lb64encode    = ssl.b64_encode
-local lb64decode    = ssl.b64_decode
-local lhex_encode   = ssl.hex_encode
+local lmd5          = tls.md5
+local lb64encode    = tls.b64_encode
+local lb64decode    = tls.b64_decode
+local lrandomkey    = codec.randomkey
+local lhex_encode   = codec.hex_encode
 
-local lsha1         = ssl.sha1
-local lsha256       = ssl.sha256
-local lsha512       = ssl.sha512
+local lsha1         = tls.sha1
+local lsha256       = tls.sha256
+local lsha512       = tls.sha512
 
-local lhmac_sha1    = ssl.hmac_sha1
-local lhmac_sha256  = ssl.hmac_sha256
-local lhmac_sha512  = ssl.hmac_sha512
+local lhmac_sha1    = tls.hmac_sha1
+local lhmac_sha256  = tls.hmac_sha256
+local lhmac_sha512  = tls.hmac_sha512
 
-local pbkdf2_sha1   = ssl.pbkdf2_sha1
-local pbkdf2_sha256 = ssl.pbkdf2_sha256
+local pbkdf2_sha1   = tls.pbkdf2_sha1
+local pbkdf2_sha256 = tls.pbkdf2_sha256
 
 --base64
 local ran = lrandomkey(12, true)
@@ -62,10 +63,10 @@ log_info("pbkdf2_sha1: {}", salt_sha1)
 local salt_sha256 = lhex_encode(pbkdf2_sha256(passwd, salt, 10000))
 log_info("pbkdf2_sha256: {}", salt_sha256)
 
-log_info("crc8: {}", ssl.crc8("123214345345345"))
-log_info("crc8: {}", ssl.crc16("dfsdfsdfsdfgsdg"))
-log_info("crc8: {}", ssl.crc32("2213weerwbdfgd"))
-log_info("crc8: {}", ssl.crc64("++dsfsdf++gbdfgdfg"))
+log_info("crc8: {}", tls.crc8("123214345345345"))
+log_info("crc8: {}", tls.crc16("dfsdfsdfsdfgsdg"))
+log_info("crc8: {}", tls.crc32("2213weerwbdfgd"))
+log_info("crc8: {}", tls.crc64("++dsfsdf++gbdfgdfg"))
 
 --rsa
 
@@ -96,8 +97,8 @@ J9rSdD3+UFNRBHrhyAv8xE0q2Diun8J6boOVhbhVknk=
 -----END RSA PRIVATE KEY-----
 ]]
 
-local prikey = ssl.rsa_key()
-prikey.set_prikey(pem_pri)
+local prikey = tls.rsa_key()
+prikey.set_prikey(pem_pri .. '\0')
 
 local rsav1 = prikey.encrypt(pem_pub)
 log_info("rsa_encrypt: {}, {}",  #rsav1, lhex_encode(rsav1))
@@ -107,43 +108,3 @@ local rsav3 = prikey.sign(pem_pub)
 log_info("rsa_sign: {}, {}",  #rsav3, lhex_encode(rsav3))
 local rsav4 = prikey.verify(pem_pub, rsav3)
 log_info("rsa_verify: {}",  rsav4)
-
-local data = {}
-for i = 1, 200 do
-    data[i] = {
-        index = i,
-        name = "name"..i,
-        age = i,
-        sex = i % 2 == 0 and "male" or "female"
-    }
-end
-
-local j1 = timer.now_cs()
-local jdata = json.encode(data)
-log_info("data: {}=>{}",  #jdata, timer.now_cs() - j1)
-
-local t1 = timer.now_ms()
-local zstdc = ssl.zstd_encode(jdata)
-for i = 1, 20000 do
-    ssl.zstd_encode(jdata)
-end
-log_info("zstd_encode: {}=>{}",  #zstdc, timer.now_ms() - t1)
-local t2 = timer.now_ms()
-local zstdd = ssl.zstd_decode(zstdc)
-for i = 1, 20000 do
-    ssl.zstd_decode(zstdc)
-end
-log_info("zstd_decode: {}=>{}",  #zstdd, timer.now_ms() - t2)
-
-local s1 = timer.now_ms()
-local lz4c = ssl.lz4_encode(jdata)
-for i = 1, 20000 do
-    ssl.lz4_encode(jdata)
-end
-log_info("lz4_encode: {}=>{}",  #lz4c, timer.now_ms() - s1)
-local s2 = timer.now_ms()
-local lz4d = ssl.lz4_decode(lz4c)
-for i = 1, 20000 do
-    ssl.lz4_decode(lz4c)
-end
-log_info("lz4_decode: {}=>{}",  #lz4d, timer.now_ms() - s2)

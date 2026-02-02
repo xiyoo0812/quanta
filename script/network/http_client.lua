@@ -1,4 +1,5 @@
 --http_client.lua
+local json          = require("ljson")
 
 local pairs         = pairs
 local busdns        = luabus.dns
@@ -48,7 +49,7 @@ end
 function HttpClient:on_socket_error(socket, token, err)
     log_debug("[HttpClient][on_socket_error] client(token:{}) close({})!", token, err)
     if self.version == HTTP_2 then
-        self.clients[socket.name] = nil
+        self.clients[socket.host_name] = nil
     end
 end
 
@@ -89,13 +90,14 @@ function HttpClient:connect(host, ip, port, scheme, timeout)
         if not socket then
             socket = SocketH2(self)
             self.clients[host] = socket
-            socket.name = host
+            socket.host_name = host
         end
     else
         socket = Socketls(self)
         if scheme == "http" then
             socket:set_tls_enable(false)
         end
+        socket.host_name = host
     end
     local ok, cerr = socket:connect(ip, port, timeout)
     if not ok then

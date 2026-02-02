@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\extend\crc.h" />
+    <ClInclude Include="src\extend\xxtea.h" />
+    <ClInclude Include="src\include\mbedtls\aes.h" />
+    <ClInclude Include="src\include\mbedtls\aria.h" />
+    <ClInclude Include="src\include\mbedtls\asn1.h" />
+    <ClInclude Include="src\include\mbedtls\asn1write.h" />
+    <ClInclude Include="src\include\mbedtls\base64.h" />
+    <ClInclude Include="src\include\mbedtls\bignum.h" />
+    <ClInclude Include="src\include\mbedtls\block_cipher.h" />
+    <ClInclude Include="src\include\mbedtls\build_info.h" />
+    <ClInclude Include="src\include\mbedtls\camellia.h" />
+    <ClInclude Include="src\include\mbedtls\ccm.h" />
+    <ClInclude Include="src\include\mbedtls\chacha20.h" />
+    <ClInclude Include="src\include\mbedtls\chachapoly.h" />
+    <ClInclude Include="src\include\mbedtls\check_config.h" />
+    <ClInclude Include="src\include\mbedtls\cipher.h" />
+    <ClInclude Include="src\include\mbedtls\cmac.h" />
+    <ClInclude Include="src\include\mbedtls\compat-2.x.h" />
+    <ClInclude Include="src\include\mbedtls\config_adjust_legacy_crypto.h" />
+    <ClInclude Include="src\include\mbedtls\config_adjust_legacy_from_psa.h" />
+    <ClInclude Include="src\include\mbedtls\config_adjust_psa_from_legacy.h" />
+    <ClInclude Include="src\include\mbedtls\config_adjust_psa_superset_legacy.h" />
+    <ClInclude Include="src\include\mbedtls\config_adjust_ssl.h" />
+    <ClInclude Include="src\include\mbedtls\config_adjust_x509.h" />
+    <ClInclude Include="src\include\mbedtls\config_psa.h" />
+    <ClInclude Include="src\include\mbedtls\constant_time.h" />
+    <ClInclude Include="src\include\mbedtls\ctr_drbg.h" />
+    <ClInclude Include="src\include\mbedtls\debug.h" />
+    <ClInclude Include="src\include\mbedtls\des.h" />
+    <ClInclude Include="src\include\mbedtls\dhm.h" />
+    <ClInclude Include="src\include\mbedtls\ecdh.h" />
+    <ClInclude Include="src\include\mbedtls\ecdsa.h" />
+    <ClInclude Include="src\include\mbedtls\ecjpake.h" />
+    <ClInclude Include="src\include\mbedtls\ecp.h" />
+    <ClInclude Include="src\include\mbedtls\entropy.h" />
+    <ClInclude Include="src\include\mbedtls\error.h" />
+    <ClInclude Include="src\include\mbedtls\gcm.h" />
+    <ClInclude Include="src\include\mbedtls\hkdf.h" />
+    <ClInclude Include="src\include\mbedtls\hmac_drbg.h" />
+    <ClInclude Include="src\include\mbedtls\lms.h" />
+    <ClInclude Include="src\include\mbedtls\mbedtls_config.h" />
+    <ClInclude Include="src\include\mbedtls\md.h" />
+    <ClInclude Include="src\include\mbedtls\md5.h" />
+    <ClInclude Include="src\include\mbedtls\memory_buffer_alloc.h" />
+    <ClInclude Include="src\include\mbedtls\net_sockets.h" />
+    <ClInclude Include="src\include\mbedtls\nist_kw.h" />
+    <ClInclude Include="src\include\mbedtls\oid.h" />
+    <ClInclude Include="src\include\mbedtls\pem.h" />
+    <ClInclude Include="src\include\mbedtls\pk.h" />
+    <ClInclude Include="src\include\mbedtls\pkcs12.h" />
+    <ClInclude Include="src\include\mbedtls\pkcs5.h" />
+    <ClInclude Include="src\include\mbedtls\pkcs7.h" />
+    <ClInclude Include="src\include\mbedtls\platform.h" />
+    <ClInclude Include="src\include\mbedtls\platform_time.h" />
+    <ClInclude Include="src\include\mbedtls\platform_util.h" />
+    <ClInclude Include="src\include\mbedtls\poly1305.h" />
+    <ClInclude Include="src\include\mbedtls\private_access.h" />
+    <ClInclude Include="src\include\mbedtls\psa_util.h" />
+    <ClInclude Include="src\include\mbedtls\ripemd160.h" />
+    <ClInclude Include="src\include\mbedtls\rsa.h" />
+    <ClInclude Include="src\include\mbedtls\sha1.h" />
+    <ClInclude Include="src\include\mbedtls\sha256.h" />
+    <ClInclude Include="src\include\mbedtls\sha3.h" />
+    <ClInclude Include="src\include\mbedtls\sha512.h" />
+    <ClInclude Include="src\include\mbedtls\ssl.h" />
+    <ClInclude Include="src\include\mbedtls\ssl_cache.h" />
+    <ClInclude Include="src\include\mbedtls\ssl_ciphersuites.h" />
+    <ClInclude Include="src\include\mbedtls\ssl_cookie.h" />
+    <ClInclude Include="src\include\mbedtls\ssl_ticket.h" />
+    <ClInclude Include="src\include\mbedtls\threading.h" />
+    <ClInclude Include="src\include\mbedtls\timing.h" />
+    <ClInclude Include="src\include\mbedtls\version.h" />
+    <ClInclude Include="src\include\mbedtls\x509.h" />
+    <ClInclude Include="src\include\mbedtls\x509_crl.h" />
+    <ClInclude Include="src\include\mbedtls\x509_crt.h" />
+    <ClInclude Include="src\include\mbedtls\x509_csr.h" />
+    <ClInclude Include="src\include\psa\build_info.h" />
+    <ClInclude Include="src\include\psa\crypto.h" />
+    <ClInclude Include="src\include\psa\crypto_adjust_auto_enabled.h" />
+    <ClInclude Include="src\include\psa\crypto_adjust_config_dependencies.h" />
+    <ClInclude Include="src\include\psa\crypto_adjust_config_key_pair_types.h" />
+    <ClInclude Include="src\include\psa\crypto_adjust_config_synonyms.h" />
+    <ClInclude Include="src\include\psa\crypto_builtin_composites.h" />
+    <ClInclude Include="src\include\psa\crypto_builtin_key_derivation.h" />
+    <ClInclude Include="src\include\psa\crypto_builtin_primitives.h" />
+    <ClInclude Include="src\include\psa\crypto_compat.h" />
+    <ClInclude Include="src\include\psa\crypto_config.h" />
+    <ClInclude Include="src\include\psa\crypto_driver_common.h" />
+    <ClInclude Include="src\include\psa\crypto_driver_contexts_composites.h" />
+    <ClInclude Include="src\include\psa\crypto_driver_contexts_key_derivation.h" />
+    <ClInclude Include="src\include\psa\crypto_driver_contexts_primitives.h" />
+    <ClInclude Include="src\include\psa\crypto_extra.h" />
+    <ClInclude Include="src\include\psa\crypto_legacy.h" />
+    <ClInclude Include="src\include\psa\crypto_platform.h" />
+    <ClInclude Include="src\include\psa\crypto_se_driver.h" />
+    <ClInclude Include="src\include\psa\crypto_sizes.h" />
+    <ClInclude Include="src\include\psa\crypto_struct.h" />
+    <ClInclude Include="src\include\psa\crypto_types.h" />
+    <ClInclude Include="src\include\psa\crypto_values.h" />
+    <ClInclude Include="src\library\aesce.h" />
+    <ClInclude Include="src\library\aesni.h" />
+    <ClInclude Include="src\library\alignment.h" />
+    <ClInclude Include="src\library\base64_internal.h" />
+    <ClInclude Include="src\library\bignum_core.h" />
+    <ClInclude Include="src\library\bignum_core_invasive.h" />
+    <ClInclude Include="src\library\bignum_internal.h" />
+    <ClInclude Include="src\library\bignum_mod.h" />
+    <ClInclude Include="src\library\bignum_mod_raw.h" />
+    <ClInclude Include="src\library\bignum_mod_raw_invasive.h" />
+    <ClInclude Include="src\library\block_cipher_internal.h" />
+    <ClInclude Include="src\library\bn_mul.h" />
+    <ClInclude Include="src\library\check_crypto_config.h" />
+    <ClInclude Include="src\library\cipher_invasive.h" />
+    <ClInclude Include="src\library\cipher_wrap.h" />
+    <ClInclude Include="src\library\common.h" />
+    <ClInclude Include="src\library\constant_time_impl.h" />
+    <ClInclude Include="src\library\constant_time_internal.h" />
+    <ClInclude Include="src\library\ctr.h" />
+    <ClInclude Include="src\library\debug_internal.h" />
+    <ClInclude Include="src\library\ecp_internal_alt.h" />
+    <ClInclude Include="src\library\ecp_invasive.h" />
+    <ClInclude Include="src\library\entropy_poll.h" />
+    <ClInclude Include="src\library\lmots.h" />
+    <ClInclude Include="src\library\md_psa.h" />
+    <ClInclude Include="src\library\md_wrap.h" />
+    <ClInclude Include="src\library\mps_common.h" />
+    <ClInclude Include="src\library\mps_error.h" />
+    <ClInclude Include="src\library\mps_reader.h" />
+    <ClInclude Include="src\library\mps_trace.h" />
+    <ClInclude Include="src\library\padlock.h" />
+    <ClInclude Include="src\library\pk_internal.h" />
+    <ClInclude Include="src\library\pk_wrap.h" />
+    <ClInclude Include="src\library\pkwrite.h" />
+    <ClInclude Include="src\library\psa_crypto_aead.h" />
+    <ClInclude Include="src\library\psa_crypto_cipher.h" />
+    <ClInclude Include="src\library\psa_crypto_core.h" />
+    <ClInclude Include="src\library\psa_crypto_core_common.h" />
+    <ClInclude Include="src\library\psa_crypto_driver_wrappers.h" />
+    <ClInclude Include="src\library\psa_crypto_driver_wrappers_no_static.h" />
+    <ClInclude Include="src\library\psa_crypto_ecp.h" />
+    <ClInclude Include="src\library\psa_crypto_ffdh.h" />
+    <ClInclude Include="src\library\psa_crypto_hash.h" />
+    <ClInclude Include="src\library\psa_crypto_invasive.h" />
+    <ClInclude Include="src\library\psa_crypto_its.h" />
+    <ClInclude Include="src\library\psa_crypto_mac.h" />
+    <ClInclude Include="src\library\psa_crypto_pake.h" />
+    <ClInclude Include="src\library\psa_crypto_random_impl.h" />
+    <ClInclude Include="src\library\psa_crypto_rsa.h" />
+    <ClInclude Include="src\library\psa_crypto_se.h" />
+    <ClInclude Include="src\library\psa_crypto_slot_management.h" />
+    <ClInclude Include="src\library\psa_crypto_storage.h" />
+    <ClInclude Include="src\library\psa_util_internal.h" />
+    <ClInclude Include="src\library\rsa_alt_helpers.h" />
+    <ClInclude Include="src\library\rsa_internal.h" />
+    <ClInclude Include="src\library\ssl_ciphersuites_internal.h" />
+    <ClInclude Include="src\library\ssl_client.h" />
+    <ClInclude Include="src\library\ssl_debug_helpers.h" />
+    <ClInclude Include="src\library\ssl_misc.h" />
+    <ClInclude Include="src\library\ssl_tls13_invasive.h" />
+    <ClInclude Include="src\library\ssl_tls13_keys.h" />
+    <ClInclude Include="src\library\threading_internal.h" />
+    <ClInclude Include="src\library\x509_internal.h" />
+    <ClInclude Include="src\luatls.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\extend\crc.c" />
+    <ClCompile Include="src\extend\xxtea.c" />
+    <ClCompile Include="src\library\aes.c" />
+    <ClCompile Include="src\library\aesce.c" />
+    <ClCompile Include="src\library\aesni.c" />
+    <ClCompile Include="src\library\aria.c" />
+    <ClCompile Include="src\library\asn1parse.c" />
+    <ClCompile Include="src\library\asn1write.c" />
+    <ClCompile Include="src\library\base64.c" />
+    <ClCompile Include="src\library\bignum.c" />
+    <ClCompile Include="src\library\bignum_core.c" />
+    <ClCompile Include="src\library\bignum_mod.c" />
+    <ClCompile Include="src\library\bignum_mod_raw.c" />
+    <ClCompile Include="src\library\block_cipher.c" />
+    <ClCompile Include="src\library\camellia.c" />
+    <ClCompile Include="src\library\ccm.c" />
+    <ClCompile Include="src\library\chacha20.c" />
+    <ClCompile Include="src\library\chachapoly.c" />
+    <ClCompile Include="src\library\cipher.c" />
+    <ClCompile Include="src\library\cipher_wrap.c" />
+    <ClCompile Include="src\library\cmac.c" />
+    <ClCompile Include="src\library\constant_time.c" />
+    <ClCompile Include="src\library\ctr_drbg.c" />
+    <ClCompile Include="src\library\debug.c" />
+    <ClCompile Include="src\library\des.c" />
+    <ClCompile Include="src\library\dhm.c" />
+    <ClCompile Include="src\library\ecdh.c" />
+    <ClCompile Include="src\library\ecdsa.c" />
+    <ClCompile Include="src\library\ecjpake.c" />
+    <ClCompile Include="src\library\ecp.c" />
+    <ClCompile Include="src\library\ecp_curves.c" />
+    <ClCompile Include="src\library\ecp_curves_new.c" />
+    <ClCompile Include="src\library\entropy.c" />
+    <ClCompile Include="src\library\entropy_poll.c" />
+    <ClCompile Include="src\library\error.c" />
+    <ClCompile Include="src\library\gcm.c" />
+    <ClCompile Include="src\library\hkdf.c" />
+    <ClCompile Include="src\library\hmac_drbg.c" />
+    <ClCompile Include="src\library\lmots.c" />
+    <ClCompile Include="src\library\lms.c" />
+    <ClCompile Include="src\library\md.c" />
+    <ClCompile Include="src\library\md5.c" />
+    <ClCompile Include="src\library\memory_buffer_alloc.c" />
+    <ClCompile Include="src\library\mps_reader.c" />
+    <ClCompile Include="src\library\mps_trace.c" />
+    <ClCompile Include="src\library\net_sockets.c" />
+    <ClCompile Include="src\library\nist_kw.c" />
+    <ClCompile Include="src\library\oid.c" />
+    <ClCompile Include="src\library\padlock.c" />
+    <ClCompile Include="src\library\pem.c" />
+    <ClCompile Include="src\library\pk.c" />
+    <ClCompile Include="src\library\pk_ecc.c" />
+    <ClCompile Include="src\library\pk_wrap.c" />
+    <ClCompile Include="src\library\pkcs12.c" />
+    <ClCompile Include="src\library\pkcs5.c" />
+    <ClCompile Include="src\library\pkcs7.c" />
+    <ClCompile Include="src\library\pkparse.c" />
+    <ClCompile Include="src\library\pkwrite.c" />
+    <ClCompile Include="src\library\platform.c" />
+    <ClCompile Include="src\library\platform_util.c" />
+    <ClCompile Include="src\library\poly1305.c" />
+    <ClCompile Include="src\library\psa_crypto.c" />
+    <ClCompile Include="src\library\psa_crypto_aead.c" />
+    <ClCompile Include="src\library\psa_crypto_cipher.c" />
+    <ClCompile Include="src\library\psa_crypto_client.c" />
+    <ClCompile Include="src\library\psa_crypto_driver_wrappers_no_static.c" />
+    <ClCompile Include="src\library\psa_crypto_ecp.c" />
+    <ClCompile Include="src\library\psa_crypto_ffdh.c" />
+    <ClCompile Include="src\library\psa_crypto_hash.c" />
+    <ClCompile Include="src\library\psa_crypto_mac.c" />
+    <ClCompile Include="src\library\psa_crypto_pake.c" />
+    <ClCompile Include="src\library\psa_crypto_rsa.c" />
+    <ClCompile Include="src\library\psa_crypto_se.c" />
+    <ClCompile Include="src\library\psa_crypto_slot_management.c" />
+    <ClCompile Include="src\library\psa_crypto_storage.c" />
+    <ClCompile Include="src\library\psa_its_file.c" />
+    <ClCompile Include="src\library\psa_util.c" />
+    <ClCompile Include="src\library\ripemd160.c" />
+    <ClCompile Include="src\library\rsa.c" />
+    <ClCompile Include="src\library\rsa_alt_helpers.c" />
+    <ClCompile Include="src\library\sha1.c" />
+    <ClCompile Include="src\library\sha256.c" />
+    <ClCompile Include="src\library\sha3.c" />
+    <ClCompile Include="src\library\sha512.c" />
+    <ClCompile Include="src\library\ssl_cache.c" />
+    <ClCompile Include="src\library\ssl_ciphersuites.c" />
+    <ClCompile Include="src\library\ssl_client.c" />
+    <ClCompile Include="src\library\ssl_cookie.c" />
+    <ClCompile Include="src\library\ssl_debug_helpers_generated.c" />
+    <ClCompile Include="src\library\ssl_msg.c" />
+    <ClCompile Include="src\library\ssl_ticket.c" />
+    <ClCompile Include="src\library\ssl_tls.c" />
+    <ClCompile Include="src\library\ssl_tls12_client.c" />
+    <ClCompile Include="src\library\ssl_tls12_server.c" />
+    <ClCompile Include="src\library\ssl_tls13_client.c" />
+    <ClCompile Include="src\library\ssl_tls13_generic.c" />
+    <ClCompile Include="src\library\ssl_tls13_keys.c" />
+    <ClCompile Include="src\library\ssl_tls13_server.c" />
+    <ClCompile Include="src\library\threading.c" />
+    <ClCompile Include="src\library\timing.c" />
+    <ClCompile Include="src\library\version.c" />
+    <ClCompile Include="src\library\version_features.c" />
+    <ClCompile Include="src\library\x509.c" />
+    <ClCompile Include="src\library\x509_create.c" />
+    <ClCompile Include="src\library\x509_crl.c" />
+    <ClCompile Include="src\library\x509_crt.c" />
+    <ClCompile Include="src\library\x509_csr.c" />
+    <ClCompile Include="src\library\x509write.c" />
+    <ClCompile Include="src\library\x509write_crt.c" />
+    <ClCompile Include="src\library\x509write_csr.c" />
+    <ClCompile Include="src\luatls.cpp" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DF647FC5-2BCA-9C7F-4A18-82DA54865F34}</ProjectGuid>
+    <RootNamespace>luatls</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>luatls</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <TargetName>luatls</TargetName>
+    <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <TargetName>luatls</TargetName>
+    <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
+    <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\src\include;..\lua\lua;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader></PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)library\$(Platform);;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>$(SolutionDir)library\$(Platform)\$(TargetName).lib</ImportLibrary>
+      <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
+      <AdditionalDependencies>lua.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ForceFileOutput>
+      </ForceFileOutput>
+    </Link>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>copy /y $(TargetPath) $(SolutionDir)bin</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\src\include;..\lua\lua;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader></PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)library\$(Platform);;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <ImportLibrary>$(SolutionDir)library\$(Platform)\$(TargetName).lib</ImportLibrary>
+      <ProgramDatabaseFile>$(SolutionDir)temp\$(ProjectName)\$(Platform)\$(TargetName).pdb</ProgramDatabaseFile>
+      <AdditionalDependencies>lua.lib;bcrypt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ForceFileOutput>
+      </ForceFileOutput>
+    </Link>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>copy /y $(TargetPath) $(SolutionDir)bin</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

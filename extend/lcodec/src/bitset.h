@@ -14,13 +14,6 @@ namespace lcodec {
             m_bits.resize(16, false);
         }
 
-        char fromhex(unsigned char x) {
-            if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
-            else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
-            else if (x >= '0' && x <= '9') return x - '0';
-            else return x;
-        }
-
         bool load(vstring val) {
             size_t vsz = val.size();
             if (vsz == 0) return false;

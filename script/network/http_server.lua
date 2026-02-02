@@ -1,4 +1,6 @@
 --http_server.lua
+local json          = require("ljson")
+
 local type          = type
 local pcall         = pcall
 local log_err       = logger.err

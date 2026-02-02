@@ -46,6 +46,7 @@ extend:
 	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
 	cd extend/luapb; make SOLUTION_DIR=$(CUR_DIR) -f luapb.mak;
 	cd extend/luassl; make SOLUTION_DIR=$(CUR_DIR) -f luassl.mak;
+	cd extend/luatls; make SOLUTION_DIR=$(CUR_DIR) -f luatls.mak;
 	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
 	cd extend/lworker; make SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
 

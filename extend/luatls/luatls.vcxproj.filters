@@ -1,0 +1,849 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="src\extend\crc.h">
+      <Filter>src\extend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\extend\xxtea.h">
+      <Filter>src\extend</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\aes.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\aria.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\asn1.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\asn1write.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\base64.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\bignum.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\block_cipher.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\build_info.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\camellia.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ccm.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\chacha20.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\chachapoly.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\check_config.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\cipher.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\cmac.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\compat-2.x.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\config_adjust_legacy_crypto.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\config_adjust_legacy_from_psa.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\config_adjust_psa_from_legacy.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\config_adjust_psa_superset_legacy.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\config_adjust_ssl.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\config_adjust_x509.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\config_psa.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\constant_time.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ctr_drbg.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\debug.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\des.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\dhm.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ecdh.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ecdsa.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ecjpake.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ecp.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\entropy.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\error.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\gcm.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\hkdf.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\hmac_drbg.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\lms.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\mbedtls_config.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\md.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\md5.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\memory_buffer_alloc.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\net_sockets.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\nist_kw.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\oid.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\pem.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\pk.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\pkcs12.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\pkcs5.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\pkcs7.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\platform.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\platform_time.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\platform_util.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\poly1305.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\private_access.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\psa_util.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ripemd160.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\rsa.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\sha1.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\sha256.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\sha3.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\sha512.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ssl.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ssl_cache.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ssl_ciphersuites.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ssl_cookie.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\ssl_ticket.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\threading.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\timing.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\version.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\x509.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\x509_crl.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\x509_crt.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\mbedtls\x509_csr.h">
+      <Filter>src\include\mbedtls</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\build_info.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_adjust_auto_enabled.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_adjust_config_dependencies.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_adjust_config_key_pair_types.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_adjust_config_synonyms.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_builtin_composites.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_builtin_key_derivation.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_builtin_primitives.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_compat.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_config.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_driver_common.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_driver_contexts_composites.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_driver_contexts_key_derivation.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_driver_contexts_primitives.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_extra.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_legacy.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_platform.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_se_driver.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_sizes.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_struct.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_types.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\psa\crypto_values.h">
+      <Filter>src\include\psa</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\aesce.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\aesni.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\alignment.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\base64_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\bignum_core.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\bignum_core_invasive.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\bignum_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\bignum_mod.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\bignum_mod_raw.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\bignum_mod_raw_invasive.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\block_cipher_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\bn_mul.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\check_crypto_config.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\cipher_invasive.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\cipher_wrap.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\common.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\constant_time_impl.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\constant_time_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ctr.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\debug_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ecp_internal_alt.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ecp_invasive.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\entropy_poll.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\lmots.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\md_psa.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\md_wrap.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\mps_common.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\mps_error.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\mps_reader.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\mps_trace.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\padlock.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\pk_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\pk_wrap.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\pkwrite.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_aead.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_cipher.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_core.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_core_common.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_driver_wrappers.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_driver_wrappers_no_static.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_ecp.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_ffdh.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_hash.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_invasive.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_its.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_mac.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_pake.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_random_impl.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_rsa.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_se.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_slot_management.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_crypto_storage.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\psa_util_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\rsa_alt_helpers.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\rsa_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ssl_ciphersuites_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ssl_client.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ssl_debug_helpers.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ssl_misc.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ssl_tls13_invasive.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\ssl_tls13_keys.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\threading_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\library\x509_internal.h">
+      <Filter>src\library</Filter>
+    </ClInclude>
+    <ClInclude Include="src\luatls.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\extend\crc.c">
+      <Filter>src\extend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\extend\xxtea.c">
+      <Filter>src\extend</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\aes.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\aesce.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\aesni.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\aria.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\asn1parse.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\asn1write.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\base64.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\bignum.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\bignum_core.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\bignum_mod.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\bignum_mod_raw.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\block_cipher.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\camellia.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ccm.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\chacha20.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\chachapoly.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\cipher.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\cipher_wrap.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\cmac.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\constant_time.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ctr_drbg.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\debug.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\des.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\dhm.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ecdh.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ecdsa.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ecjpake.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ecp.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ecp_curves.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ecp_curves_new.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\entropy.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\entropy_poll.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\error.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\gcm.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\hkdf.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\hmac_drbg.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\lmots.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\lms.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\md.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\md5.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\memory_buffer_alloc.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\mps_reader.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\mps_trace.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\net_sockets.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\nist_kw.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\oid.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\padlock.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pem.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pk.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pk_ecc.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pk_wrap.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pkcs12.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pkcs5.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pkcs7.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pkparse.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\pkwrite.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\platform.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\platform_util.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\poly1305.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_aead.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_cipher.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_client.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_driver_wrappers_no_static.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_ecp.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_ffdh.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_hash.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_mac.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_pake.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_rsa.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_se.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_slot_management.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_crypto_storage.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_its_file.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\psa_util.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ripemd160.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\rsa.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\rsa_alt_helpers.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\sha1.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\sha256.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\sha3.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\sha512.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_cache.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_ciphersuites.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_client.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_cookie.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_debug_helpers_generated.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_msg.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_ticket.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_tls.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_tls12_client.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_tls12_server.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_tls13_client.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_tls13_generic.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_tls13_keys.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\ssl_tls13_server.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\threading.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\timing.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\version.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\version_features.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509_create.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509_crl.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509_crt.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509_csr.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509write.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509write_crt.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\library\x509write_csr.c">
+      <Filter>src\library</Filter>
+    </ClCompile>
+    <ClCompile Include="src\luatls.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\extend">
+      <UniqueIdentifier>{E008D5B8-6D52-F326-EDAB-4739EF2C9CA1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\include">
+      <UniqueIdentifier>{CF8E8F6F-86F5-721C-FCD0-213B09E62B2D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\include\mbedtls">
+      <UniqueIdentifier>{05AE4FB2-CEBD-2170-4DBD-2DB293F8FAE8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\include\psa">
+      <UniqueIdentifier>{4D8C418C-124C-5589-8C96-3826100ADB38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\library">
+      <UniqueIdentifier>{7AACF23D-FF7A-18F6-2F16-EE82019316CD}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

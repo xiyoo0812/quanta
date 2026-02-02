@@ -6,13 +6,6 @@ namespace lcodec {
         return  x > 9 ? x + 55 : x + 48; 
     }
     
-    inline unsigned char fromhex(unsigned char x) { 
-        if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
-        else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
-        else if (x >= '0' && x <= '9') return x - '0';
-        else return x;
-    }
-    
     static sstring url_encode(sstring str) {
         sstring temp = "";
         size_t length = str.length();
