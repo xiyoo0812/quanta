@@ -7,7 +7,7 @@ extern "C" {
     int luaopen_ljson(lua_State* L);
     int luaopen_luapb(lua_State* L);
     int luaopen_lsmdb(lua_State* L);
-    int luaopen_luassl(lua_State* L);
+    int luaopen_luatls(lua_State* L);
     int luaopen_lualog(lua_State* L);
     int luaopen_luabus(lua_State* L);
     int luaopen_lcodec(lua_State* L);
@@ -20,7 +20,7 @@ extern "C" {
         luaL_requiref(L, "ljson", luaopen_ljson, 1);
         luaL_requiref(L, "luapb", luaopen_luapb, 1);
         luaL_requiref(L, "lsmdb", luaopen_lsmdb, 1);
-        luaL_requiref(L, "luassl", luaopen_luassl, 1);
+        luaL_requiref(L, "luatls", luaopen_luatls, 1);
         luaL_requiref(L, "lualog", luaopen_lualog, 1);
         luaL_requiref(L, "luabus", luaopen_luabus, 1);
         luaL_requiref(L, "lcodec", luaopen_lcodec, 1);
