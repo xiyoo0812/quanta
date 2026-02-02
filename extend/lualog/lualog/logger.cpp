@@ -2,7 +2,7 @@
 #include "logger.h"
 
 namespace logger {
-    inline void format_time(pchar secbuf, const log_time& time) {
+    inline void format_time(pchar secbuf, cpchar fmt, const log_time& time) {
         std::tm loc_tm;
         auto time_t = system_clock::to_time_t(time);
 #ifdef _WIN32
@@ -10,7 +10,7 @@ namespace logger {
 #else
         localtime_r(&time_t, &loc_tm);
 #endif
-        std::strftime(secbuf, 32, "%Y-%m-%d %H:%M:%S", &loc_tm);
+        std::strftime(secbuf, 32, fmt, &loc_tm);
     }
 
     // class log_message
@@ -28,14 +28,14 @@ namespace logger {
         auto point = time_.time_since_epoch();
         if (auto now = duration_cast<seconds>(point); now != last) {
             last = now;
-            format_time(secbuf, time_);
+            format_time(secbuf, "%Y-%m-%d %H:%M:%S", time_);
         }
         auto ms = duration_cast<milliseconds>(point) % 1000;
         prefix_ = std::format("[{}.{:03}][{}][{}] ", secbuf, ms.count(), tag_, level_names[(int)level_]);
     }
 
-    sstring log_message::format(bool prefix, bool suffix, bool clr) {
-        return std::format("{}{}{}{}{}\n", clr ? level_colors[(int)level_] : "", prefix ? prefix_ : "", msg_, suffix ? suffix_ : "", clr ? "\x1b[0m" : "");
+    sstring log_message::format(bool prefix, bool suffix, bool crcn) {
+        return std::format("{}{}{}{}", prefix ? prefix_ : "", msg_, suffix ? suffix_ : "", crcn ? "\n" : "");
     }
 
     // class log_message_pool
@@ -96,35 +96,19 @@ namespace logger {
     // --------------------------------------------------------------------------------
     void log_dest::write(sptr<log_message> msg) {
         line_++;
-        auto logtxt = msg->format(prefix_, suffix_, color());
-        size_t msize = logtxt.size();
-        if (size_ + msize >= USHRT_MAX) flush();
+        auto logtxt = msg->format(prefix_, suffix_, crcn());
         if (output_) output_(logtxt.c_str(), logtxt.size(), (int)msg->level());
-        else raw_write(logtxt, msize);
+        else raw_write(logtxt, msg->level());
     }
 
     // class stdio_dest
     // --------------------------------------------------------------------------------
-    bool stdio_dest::color() {
+    void stdio_dest::raw_write(vstring logtxt, log_level lvl) {
 #ifdef WIN32
-        return true;
-#endif // WIN32
-        return false;
-    }
-
-    void stdio_dest::flush() {
-        if (size_ == 0) return;
-        std::cout.write(log_buf_, size_);
-        size_ = 0;
-    }
-
-    void stdio_dest::raw_write(vstring logtxt, size_t size) {
-        if (size >= USHRT_MAX) {
-            std::cout.write(logtxt.data(), size);
-            return;
-        }
-        memcpy(log_buf_ + size_, logtxt.data(), size);
-        size_ += size;
+        std::cout << level_colors[(int)lvl] << logtxt << "\x1b[0m" << std::endl;
+#else
+        std::cout << logtxt << std::endl;
+#endif
     }
 
     // class log_file_base
@@ -144,7 +128,9 @@ namespace logger {
         size_ = 0;
     }
 
-    void log_file_base::raw_write(vstring logtxt, size_t size) {
+    void log_file_base::raw_write(vstring logtxt, log_level lvl) {
+        size_t size = logtxt.size();
+        if (size_ + size >= USHRT_MAX) flush();
         if (size >= USHRT_MAX) {
             file_->write(log_buf_, size);
             return;
@@ -198,7 +184,7 @@ namespace logger {
     template<class rolling_evaler>
     sstring log_rollingfile<rolling_evaler>::new_log_file_name(const log_time& time) {
         char buffer[32];
-        format_time(buffer, time);
+        format_time(buffer,"%Y%m%d-%H%M%S", time);
         auto ms = duration_cast<milliseconds>(time.time_since_epoch()) % 1000;
         return std::format("{}-{}.{:03}.p{}.log", feature_, buffer, ms.count(), ::getpid());
     }

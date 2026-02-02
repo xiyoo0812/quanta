@@ -19,14 +19,14 @@ local make_timer    = quanta.make_timer
 local make_functer  = quanta.make_functer
 local makechan      = quanta.make_channel
 
-local lmd5          = ssl.md5
-local lsha1         = ssl.sha1
-local lxor_byte     = ssl.xor_byte
-local lrandomkey    = ssl.randomkey
-local lb64encode    = ssl.b64_encode
-local lb64decode    = ssl.b64_decode
-local lhmac_sha1    = ssl.hmac_sha1
-local pbkdf2_sha1   = ssl.pbkdf2_sha1
+local lmd5          = tls.md5
+local lsha1         = tls.sha1
+local lb64encode    = tls.b64_encode
+local lb64decode    = tls.b64_decode
+local lhmac_sha1    = tls.hmac_sha1
+local pbkdf2_sha1   = tls.pbkdf2_sha1
+local lxor_byte     = codec.xor_byte
+local lrandomkey    = codec.randomkey
 local lnext_id      = luakit.next_id
 
 local thread_mgr    = quanta.get("thread_mgr")

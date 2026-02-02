@@ -1,5 +1,6 @@
 --chain.lua
---调用链
+local json          = require("ljson")
+
 local log_err       = logger.err
 local jencode       = json.encode
 local tinsert       = table.insert

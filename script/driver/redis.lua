@@ -1,8 +1,9 @@
 --redis.lua
+local json          = require("ljson")
 local Socket        = import("driver/socket.lua")
 
 local tonumber      = tonumber
-local crc16         = ssl.crc16
+local crc16         = tls.crc16
 local log_err       = logger.err
 local log_info      = logger.info
 local log_debug     = logger.debug

@@ -294,7 +294,7 @@ namespace lcodec {
             session_id = lua_tointeger(L, (*index)++);
             cpchar url = lua_tostring(L, (*index)++);
             cpchar method = lua_tostring(L, (*index)++);
-            size_t len = format_to_n(buf, CHAR_MAX, "%s %s HTTP/1.1\r\n", method, url).size;
+            size_t len = format_to_n(buf, CHAR_MAX, "{} {} HTTP/1.1\r\n", method, url).size;
             m_buf->push_data((const uint8_t*)buf, len);
         }
 

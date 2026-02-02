@@ -12,15 +12,15 @@ local terase        = table.erase
 local mrandom       = qmath.random
 local lnext_id      = luakit.next_id
 
-local lmd5          = ssl.md5
-local lsha256       = ssl.sha256
-local lxor_byte     = ssl.xor_byte
-local lrandomkey    = ssl.randomkey
-local lb64encode    = ssl.b64_encode
-local lb64decode    = ssl.b64_decode
-local lhmac_sha256  = ssl.hmac_sha256
-local pbkdf2_sha256 = ssl.pbkdf2_sha256
+local lmd5          = tls.md5
+local lsha256       = tls.sha256
+local lb64encode    = tls.b64_encode
+local lb64decode    = tls.b64_decode
+local lhmac_sha256  = tls.hmac_sha256
+local pbkdf2_sha256 = tls.pbkdf2_sha256
 
+local lxor_byte     = codec.xor_byte
+local lrandomkey    = codec.randomkey
 local qhash         = codec.hash_code
 local pgsqlcodec    = codec.pgsqlcodec
 

@@ -62,7 +62,7 @@ namespace logger {
         log_level level() const { return level_; }
         const vstring feature() const { return feature_; }
         void option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line);
-        sstring format(bool prefix, bool suffix, bool clr = false);
+        sstring format(bool prefix, bool suffix, bool crcn);
         void prepare(pchar secbuf, seconds& last);
 
     private:
@@ -94,28 +94,25 @@ namespace logger {
 
     class log_dest {
     public:
-        virtual void flush() = 0;
-        virtual bool color() { return false; }
+        virtual void flush(){};
+        virtual bool crcn() { return true; }
         virtual void write(sptr<log_message> logmsg);
-        virtual void raw_write(vstring logtxt, size_t size) = 0;
+        virtual void raw_write(vstring logtxt, log_level lvl) = 0;
         virtual void ignore_prefix(bool prefix) { prefix_ = !prefix; }
         virtual void ignore_suffix(bool suffix) { suffix_ = !suffix; }
         virtual void set_custom_output(custom_output fn) { output_ = fn; }
 
     protected:
-        size_t size_ = 0;
         size_t line_ = 0;
         bool prefix_ = true;
         bool suffix_ = false;
         custom_output output_ = nullptr;
-        char log_buf_[USHRT_MAX] = {0};
     }; // class log_dest
 
     class stdio_dest : public log_dest {
     public:
-        virtual bool color();
-        virtual void flush();
-        virtual void raw_write(vstring logtxt, size_t size);
+        virtual bool crcn() { return false; }
+        virtual void raw_write(vstring logtxt, log_level lvl);
     }; // class stdio_dest
 
     class log_file_base : public log_dest {
@@ -126,12 +123,14 @@ namespace logger {
         virtual ~log_file_base();
 
         virtual void flush();
-        virtual void raw_write(vstring logtxt, size_t size);
+        virtual void raw_write(vstring logtxt, log_level lvl);
         void create(fspath file_path, sstring file_name);
 
     protected:
-        size_t                      max_line_;
-        log_time                    file_time_;
+        log_time    file_time_;
+        size_t      size_ = 0;
+        size_t      max_line_ = MAX_LINE;
+        char        log_buf_[USHRT_MAX] = { 0 };
         std::unique_ptr<std::ofstream> file_ = nullptr;
     }; // class log_file
 

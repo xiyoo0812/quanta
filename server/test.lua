@@ -2,6 +2,7 @@
 import("kernel.lua")
 
 quanta.startup(function()
+    require("ljson")
     --初始化test
     --[[
     import("test/codec_test.lua")
@@ -31,7 +32,8 @@ quanta.startup(function()
     import("test/lmdb_test.lua")
     import("test/unqlite_test.lua")
     import("test/sqlite_test.lua")
-    import("test/ssl_test.lua")
+    import("test/tls_test.lua")
+    import("test/zip_test.lua")
     import("test/xml_test.lua")
     import("test/yaml_test.lua")
     import("test/toml_test.lua")
@@ -44,5 +46,5 @@ quanta.startup(function()
     import("test/kcp_test.lua")
     import("test/luakit_test.lua")
     ]]
-    import("test/luakit_test.lua")
+    import("test/http_test.lua")
 end)

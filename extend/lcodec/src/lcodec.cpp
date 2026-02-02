@@ -4,6 +4,11 @@
 
 namespace lcodec {
 
+    static uint8_t* alloc_buff(size_t sz) {
+        auto buf = luakit::get_buff();
+        return buf->peek_space(sz);
+    }
+
     static codec_base* rds_codec(codec_base* codec) {
         rdscodec* rcodec = new rdscodec();
         rcodec->set_codec(codec);
@@ -70,6 +75,75 @@ namespace lcodec {
         return codec;
     }
 
+    static int tohex(lua_State* L, const unsigned char* text, size_t sz) {
+        static char hex[] = "0123456789abcdef";
+        char tmp[UCHAR_MAX];
+        char* buffer = tmp;
+        if (sz > UCHAR_MAX / 2) {
+            buffer = (char*)lua_newuserdata(L, sz * 2);
+        }
+        for (size_t i = 0; i < sz; i++) {
+            buffer[i * 2] = hex[text[i] >> 4];
+            buffer[i * 2 + 1] = hex[text[i] & 0xf];
+        }
+        lua_pushlstring(L, buffer, sz * 2);
+        return 1;
+    }
+
+    static int ltohex(lua_State* L) {
+        size_t sz = 0;
+        const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
+        return tohex(L, text, sz);
+    }
+
+    static int lrandomkey(lua_State* L) {
+        int size = luaL_optinteger(L, 1, 12);
+        auto tmp = alloc_buff(size);
+        for (int i = 0; i < size; i++) {
+            tmp[i] = rand() & 0xff;
+        }
+        if (lua_toboolean(L, 2)) {
+            return tohex(L, (const unsigned char*)tmp, size);
+        }
+        lua_pushlstring(L, (cpchar)tmp, size);
+        return 1;
+    }
+
+    static int lfromhex(lua_State* L) {
+        size_t sz = 0;
+        const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
+        if (sz & 2) {
+            return luaL_error(L, "Invalid hex text size %lu", (int)sz);
+        }
+        size_t len = sz / 2;
+        auto buffer = alloc_buff(len);
+        for (size_t i = 0; i < sz; i += 2) {
+            char hi = fromhex(text[i]);
+            char low = fromhex(text[i + 1]);
+            if (hi > 16 || low > 16) {
+                return luaL_error(L, "Invalid hex text: %s", text);
+            }
+            buffer[i / 2] = hi << 4 | low;
+        }
+        lua_pushlstring(L, (cpchar)buffer, len);
+        return 1;
+    }
+
+    static int lxor_byte(lua_State* L) {
+        size_t len1, len2;
+        cpchar s1 = luaL_checklstring(L, 1, &len1);
+        cpchar s2 = luaL_checklstring(L, 2, &len2);
+        if (len2 < len1) {
+            return luaL_error(L, "Can't xor short src string");
+        }
+        auto buffer = alloc_buff(len1);
+        for (size_t i = 0; i < len1; i++) {
+            buffer[i] = s1[i] ^ s2[i];
+        }
+        lua_pushlstring(L, (cpchar)buffer, len1);
+        return 1;
+    }
+
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llcodec = kit_state.new_table("codec");
@@ -102,6 +176,10 @@ namespace lcodec {
         llcodec.set_function("url_encode", url_encode);
         llcodec.set_function("url_decode", url_decode);
         llcodec.set_function("set_content_codec", set_content_codec);
+        llcodec.set_function("xor_byte", lxor_byte);
+        llcodec.set_function("hex_encode", ltohex);
+        llcodec.set_function("hex_decode", lfromhex);
+        llcodec.set_function("randomkey", lrandomkey);
         llcodec.set_function("bitset", bitset_new);
         llcodec.new_enum("pgsql_type_f",
             "BIND", BIND,

@@ -6,8 +6,15 @@
   <ItemGroup>
   {{% for _, CINC in pairs(CINCLUDES or {}) do %}}
     <ClInclude Include="{{%= CINC[1] %}}">
-      {{% TEMPS[CINC[2]] = true %}}
-      <Filter>{{%= CINC[2] %}}</Filter>
+      {{% local FGROUP = CINC[2] %}}
+      {{% TEMPS[FGROUP] = true %}}
+      {{% local i, j = FGROUP:find("\\") %}}
+      {{% while i do %}}
+        {{% local TITLE = FGROUP:sub(1, i - 1) %}}
+        {{% TEMPS[TITLE] = true %}}
+        {{% i, j = FGROUP:find("\\", j + 1) %}}
+      {{% end %}}
+      <Filter>{{%= FGROUP %}}</Filter>
     </ClInclude>
   {{% end %}}
   </ItemGroup>
@@ -22,7 +29,7 @@
         {{% TEMPS[TITLE] = true %}}
         {{% i, j = FGROUP:find("\\", j + 1) %}}
       {{% end %}}
-      <Filter>{{%= CSRC[2] %}}</Filter>
+      <Filter>{{%= FGROUP %}}</Filter>
     </ClCompile>
   {{% end %}}
   </ItemGroup>

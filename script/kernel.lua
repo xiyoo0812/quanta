@@ -1,8 +1,6 @@
 --kernel.lua
-require("ljson")
 require("luapb")
 require("lcodec")
-require("luassl")
 require("ltimer")
 require("luabus")
 

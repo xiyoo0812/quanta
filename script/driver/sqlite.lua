@@ -1,4 +1,5 @@
 -- sqlite.lua
+local json          = require("ljson")
 local sqlite        = require("lsqlite")
 
 local log_err       = logger.err

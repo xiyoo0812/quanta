@@ -1,4 +1,6 @@
 -- robot.lua
+local json          = require("ljson")
+
 local jpretty       = json.pretty
 local log_err       = logger.err
 local log_debug     = logger.debug

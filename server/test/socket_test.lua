@@ -2,7 +2,7 @@
 local log_debug    = logger.debug
 
 local ping      = luabus.ping
-local ip2region = luabus.ip2region("./region/ip2region_v4.xdb")
+local ip2region = luabus.ip2region("./data/ip2region_v4.xdb")
 
 local ips = {
     "124.237.177.164",
