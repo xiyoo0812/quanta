@@ -70,10 +70,10 @@ local enumMT = {
     __tostring = enum_tostring,
 }
 
-local function enum_init(emobj, base, ...)
+local function enum_init(emobj, base, ...args)
     emobj.__vlist = {}
     emobj.__vmax = base
-    for _, field in ipairs({ ... }) do
+    for _, field in ipairs(args) do
         emobj.__vlist[field] = emobj.__vmax
         emobj.__vmax = emobj.__vmax + 1
     end

@@ -306,17 +306,16 @@ function PgsqlDB:prepare_check(name)
 end
 
 --执行预处理语句
-function PgsqlDB:execute(name, ...)
+function PgsqlDB:execute(name, ...args)
     if not self:prepare_check(name) then
         return false, "prepare statement not found"
     end
     local argfmt = ""
-    local bind_args = {...}
-    for _, val in pairs(bind_args) do
-        local args = tostring(val)
-        argfmt = argfmt .. spack(">i", #args) .. args
+    for _, val in pairs(args) do
+        local arg = tostring(val)
+        argfmt = argfmt .. spack(">i", #arg) .. arg
     end
-    local bquery = sformat("%s\0%s\0%s%s%s%s", name, name, ZERO_BIT2, spack(">h", #bind_args), argfmt, ZERO_BIT2)
+    local bquery = sformat("%s\0%s\0%s%s%s%s", name, name, ZERO_BIT2, spack(">h", #args), argfmt, ZERO_BIT2)
     self:send(REQUEST_CMD.BIND, bquery)
     self:send(REQUEST_CMD.DISCRIBE, 'S' .. name .. '\0')
     self:send(REQUEST_CMD.EXECUTE, sformat("%s\0%s", name, ZERO_BIT4))

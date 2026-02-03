@@ -44,9 +44,9 @@ local s_table = {
     6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
 }
 
-local to_uint32 = function(...)
+local to_uint32 = function(...args)
     local ret = {}
-    for k, v in ipairs({...}) do
+    for k, v in ipairs(args) do
         ret[k] = v & ((1 << 32) - 1)
     end
     return tunpack(ret)

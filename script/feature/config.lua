@@ -31,10 +31,10 @@ prop:accessor("name", nil)
 function ConfigTable:__init()
 end
 
-function ConfigTable:setup(name, ...)
+function ConfigTable:setup(name, ...indexs)
     local size = select("#", ...)
     if size > 0 and size <= TABLE_MAX_INDEX then
-        self.indexs = {...}
+        self.indexs = indexs
         import(sformat("config/%s_cfg.lua", name))
     else
         log_err("[ConfigTable][setup] keys len illegal. name={}, size={}", name, size)
@@ -68,13 +68,13 @@ function ConfigTable:upsert(row)
 end
 
 --生成index
-function ConfigTable:build_index(...)
+function ConfigTable:build_index(...indexs)
     local n = select("#", ...)
     if n == 1 then
         return ...
     end
     if n > 0 then
-        return tconcat({...}, "@@")
+        return tconcat(indexs, "@@")
     end
 end
 

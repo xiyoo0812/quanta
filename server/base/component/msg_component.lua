@@ -28,16 +28,16 @@ function MsgComponent:create_mq(serv_name)
 end
 
 --fire_reliable
-function MsgComponent:fire_reliable(serv_name, event, ...)
+function MsgComponent:fire_reliable(serv_name, event, ...args)
     local msg_queue = self:create_mq(serv_name)
-    msg_queue:send_message(self.id, event, { ... })
+    msg_queue:send_message(self.id, event, args)
     self:send_service(serv_name, "rpc_reliable_event")
 end
 
 --fire_player_reliable
-function MsgComponent:fire_player_reliable(serv_name, target_id, event, ...)
+function MsgComponent:fire_player_reliable(serv_name, target_id, event, ...args)
     local msg_queue = self:create_mq(serv_name)
-    msg_queue:send_message(target_id, event, { ... })
+    msg_queue:send_message(target_id, event, args)
     self:send_service2player(serv_name, target_id, "rpc_reliable_event")
 end
 

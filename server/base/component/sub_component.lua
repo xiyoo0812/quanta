@@ -38,11 +38,11 @@ function SubComponent:unsubscriber(serv_name, event, guid)
 end
 
 --处理添加跨服订阅
-function SubComponent:on_subscriber(event, guid, ...)
+function SubComponent:on_subscriber(event, guid, ...args)
     if not self.subscribers[event] then
         self.subscribers[event] = {}
     end
-    self.subscribers[event][guid] = { ... }
+    self.subscribers[event][guid] = args
     self:notify_event(sformat("on_sub_%s", event), self, ...)
 end
 

@@ -42,8 +42,8 @@ function HttpClient:on_quit()
     self.domains = {}
 end
 
-function HttpClient:on_socket_recv(socket, ...)
-    log_debug("[HttpClient][on_socket_recv] client(token:{}) args({})!", socket.token, { ... })
+function HttpClient:on_socket_recv(socket, ...args)
+    log_debug("[HttpClient][on_socket_recv] client(token:{}) args({})!", socket.token, args)
 end
 
 function HttpClient:on_socket_error(socket, token, err)

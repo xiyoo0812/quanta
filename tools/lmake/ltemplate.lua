@@ -56,8 +56,8 @@ local function parse_error(code, err)
     end
 end
 
-local function push_token(buffers, ...)
-    for _, str in ipairs({...}) do
+local function push_token(buffers, ...args)
+    for _, str in ipairs(args) do
         buffers[#buffers + 1] = str
     end
 end
