@@ -23,9 +23,12 @@ local event_mgr     = quanta.get("event_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
-local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local DBCALL_TO     = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local CONNECT_TO    = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
 local REDIS_SLOT    = 16384
 
@@ -127,9 +130,9 @@ end
 
 function RedisDB:setup(conf)
     self:setup_pool(conf.hosts)
-    self.rcfunctor = make_functer("check_alive")
-    self.timer:loop(SECOND_MS, function()
-        self.rcfunctor:call(self)
+    self.rcfunctor = make_functer("check_alive", CONNECT_TO)
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.rcfunctor:run(self)
     end)
 end
 
@@ -231,13 +234,14 @@ end
 
 function RedisDB:login(socket)
     local id, ip, port = socket.id, socket.ip, socket.port
-    if not socket:connect(ip, port) then
-        log_err("[RedisDB][login] connect db({}:{}:{}) failed!", ip, port, id)
+    local ok, err = socket:connect(ip, port)
+    if not ok then
+        log_err("[RedisDB][login] connect db({}:{}:{}:{}) failed: {}!", ip, port, self.name, id, err)
         return false
     end
     if self.passwd and #self.passwd > 0 then
-        local ok, res = self:auth(socket)
-        if not ok or res ~= "OK" then
+        local aok, res = self:auth(socket)
+        if not aok or res ~= "OK" then
             log_err("[RedisDB][login] auth db({}:{}:{}) auth failed! because: {}", ip, port, id, res)
             self:delive(socket)
             socket:close()
@@ -292,7 +296,7 @@ function RedisDB:commit(socket, cmd, ...)
     if not socket:send_data(session_id, cmd, ...) then
         return false, "send request failed"
     end
-    local ok, res = thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
+    local ok, res = thread_mgr:yield(session_id, cmd, DBCALL_TO)
     if not ok then
         log_err("[RedisDB][commit] exec cmd {} failed: {}", cmd, res)
         return ok, res

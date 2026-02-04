@@ -423,11 +423,12 @@ void socket_stream::dispatch_package() {
         if (package_size == 0) break;
         // 数据回调
         slice->attach(data, package_size);
-        m_package_cb(slice);
-        if (!m_codec) break;
-        // 数据包解析失败
-        if (m_codec->failed()) {
-            on_error(m_codec->err());
+        try {
+            m_package_cb(slice);
+        } catch(const std::length_error&) {
+            break;
+        } catch(const std::exception& e) {
+            on_error(e.what());
             break;
         }
         size_t read_size = m_codec->get_packet_len();

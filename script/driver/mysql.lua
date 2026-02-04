@@ -21,9 +21,12 @@ local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
-local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local DBCALL_TO     = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local CONNECT_TO    = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
 
 -- constants
@@ -105,9 +108,9 @@ function MysqlDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.rcfunctor = make_functer("check_alive")
-    self.timer:loop(SECOND_MS, function()
-        self.rcfunctor:call(self)
+    self.rcfunctor = make_functer("check_alive", CONNECT_TO)
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.rcfunctor:run(self)
     end)
 end
 
@@ -148,7 +151,7 @@ end
 function MysqlDB:auth(socket)
     local session_id = lnext_id()
     socket:set_codec(mysqlcodec(session_id))
-    local charset, scramble1, scramble2 = thread_mgr:yield(session_id, "mysql server auth", DB_TIMEOUT)
+    local charset, scramble1, scramble2 = thread_mgr:yield(session_id, "mysql server auth", DBCALL_TO)
     local scramble = scramble1 .. scramble2
     local stage1 = lsha1(self.passwd)
     local stage2 = lsha1(scramble .. lsha1(stage1))
@@ -156,7 +159,7 @@ function MysqlDB:auth(socket)
     if not socket:send_data(COM_CONNECT, session_id, charset, self.user, auth_passwd, self.name) then
         return false, "send failed"
     end
-    return thread_mgr:yield(session_id, "mysql client auth", DB_TIMEOUT)
+    return thread_mgr:yield(session_id, "mysql client auth", DBCALL_TO)
 end
 
 function MysqlDB:delive(sock)
@@ -186,7 +189,7 @@ function MysqlDB:request(cmd, quote, ...)
     if self.executer then
         local session_id = lnext_id()
         if self.executer:send_data(cmd, session_id, ...) then
-            return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+            return thread_mgr:yield(session_id, quote, DBCALL_TO)
         end
     end
     return false, "send request failed"

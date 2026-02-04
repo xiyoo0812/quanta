@@ -35,7 +35,7 @@ end
 
 --执行一条command
 --主要用于服务器内部执行GM指令
---command：字符串格式
+--command: 字符串格式
 function GMAgent:execute_command(command)
     local ok, codeoe, res = router_mgr:call_center_master("rpc_execute_command", command)
     if qsuccess(codeoe, ok) then
@@ -46,9 +46,9 @@ end
 
 --执行一条command
 --主要用于服务器内部执行GM指令
---message：lua table格式
-function GMAgent:execute_message(message)
-    local ok, codeoe, res = router_mgr:call_center_master("rpc_execute_message", message)
+--packet: lua table格式
+function GMAgent:execute_package(packet)
+    local ok, codeoe, res = router_mgr:call_center_master("rpc_execute_packet", packet)
     if qsuccess(codeoe, ok) then
         return ok, res
     end
