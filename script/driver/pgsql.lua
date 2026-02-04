@@ -32,9 +32,12 @@ local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
-local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local DBCALL_TO     = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local CONNECT_TO    = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 1)
 
 local AUTH_TYPE     = codec.auth_type_t
@@ -116,9 +119,9 @@ function PgsqlDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.rcfunctor = make_functer("check_alive")
-    self.timer:loop(SECOND_MS, function()
-        self.rcfunctor:call(self)
+    self.rcfunctor = make_functer("check_alive", CONNECT_TO)
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.rcfunctor:run(self)
     end)
 end
 
@@ -256,7 +259,7 @@ end
 function PgsqlDB:auth_request(socket, cmd, quote, ...)
     local session_id = lnext_id()
     if socket:send_data(cmd, session_id, ...) then
-        return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+        return thread_mgr:yield(session_id, quote, DBCALL_TO)
     end
     return false, "send request failed"
 end
@@ -265,7 +268,7 @@ function PgsqlDB:request(cmd, quote, ...)
     if self.executer then
         local session_id = lnext_id()
         if self.executer:send_data(cmd, session_id, ...) then
-            return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+            return thread_mgr:yield(session_id, quote, DBCALL_TO)
         end
     end
     return false, "send request failed"

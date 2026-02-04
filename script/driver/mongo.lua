@@ -33,9 +33,12 @@ local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
-local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local DBCALL_TO     = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local CONNECT_TO    = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
 
 local Socket        = import("driver/socket.lua")
@@ -93,9 +96,9 @@ function MongoDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.rcfunctor = make_functer("check_alive")
-    self.timer:loop(SECOND_MS, function()
-        self.rcfunctor:call(self)
+    self.rcfunctor = make_functer("check_alive", CONNECT_TO)
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.rcfunctor:run(self)
     end)
 end
 
@@ -257,7 +260,7 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
     if not sock:send_data(session_id, cmd, ...) then
         return false, "send failed"
     end
-    return thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
+    return thread_mgr:yield(session_id, cmd, DBCALL_TO)
 end
 
 function MongoDB:adminCommand(sock, cmd, cmd_v, ...)

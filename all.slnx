@@ -1,0 +1,95 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64"/>
+  </Configurations>
+  <Folder Name="/all/core/">
+     <Project Path="core\luabus\luabus.vcxproj" Id="EC8C4743-6D5F-E10D-3D10-98330150B2C9">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="core\quanta\quanta.vcxproj" Id="2CE1C7DB-EA72-ED68-C587-CA3383754760">
+        <BuildDependency Project="core\luabus\luabus.vcxproj"/>
+     </Project>
+  </Folder>
+  <Folder Name="/all/backup/">
+     <Project Path="extend\laoi\laoi.vcxproj" Id="DC8FEA7C-8450-92D3-4C20-3A6D15D99A08">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\ldetour\ldetour.vcxproj" Id="086B9D7D-2973-47BD-8CF0-82BB5A9BFA55">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lmdb\lmdb.vcxproj" Id="23753351-8C67-4966-7E36-7F900FE18D1B">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lsqlite\lsqlite.vcxproj" Id="1026823D-89D3-3E2E-15C2-661CDB0001EB">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\ltoml\ltoml.vcxproj" Id="C9426090-2E9F-6C47-44E4-DFDD2D4689F4">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lua\luac.vcxproj" Id="1BD1853E-C5E4-992D-7266-AA4AA72600AB">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\luakcp\luakcp.vcxproj" Id="60665078-C199-8E8F-2930-3B7584D1F1CD">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\luaxml\luaxml.vcxproj" Id="EC638E2A-A355-0936-373E-A893B2B596DC">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\luazip\luazip.vcxproj" Id="7BDB3534-51A4-0AE7-E92A-160CB3EF7B2C">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lunqlite\lunqlite.vcxproj" Id="A950ABA2-0770-696C-6244-512CDCB2378A">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lyaml\lyaml.vcxproj" Id="E106F499-F29A-DCCA-08A2-AFC056FA9905">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+  </Folder>
+  <Folder Name="/all/extend/">
+     <Project Path="extend\lbson\lbson.vcxproj" Id="15BEA432-628B-E5CF-E5DE-A95D2DB86C4F">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lcodec\lcodec.vcxproj" Id="E24CB1AD-193A-E647-45BE-564E7264711B">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\ljson\ljson.vcxproj" Id="D2FD53CE-5F95-C3EC-13A1-11D91B9A412C">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lprofile\lprofile.vcxproj" Id="8E8841F6-C7F8-DE1A-13D6-267C73A59A6B">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lsmdb\lsmdb.vcxproj" Id="799C6974-0FF3-C066-4E2D-272573765A1B">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lstdfs\lstdfs.vcxproj" Id="8667E717-B97C-935C-4FDF-2878AF7DAB1A">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\ltimer\ltimer.vcxproj" Id="2DE9C09F-02F5-DF2B-524C-FFBEBC8DE5EE">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\luacsv\luacsv.vcxproj" Id="63C8AA3F-26BF-8ECE-E4AD-0DD900029698">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lualog\lualog.vcxproj" Id="E44F97F7-1DE3-A547-6B58-30AEE63F22F5">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\luapb\luapb.vcxproj" Id="2967F038-B90B-EBF5-B268-BE3BAF66D417">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\luatls\luatls.vcxproj" Id="DF647FC5-2BCA-9C7F-4A18-82DA54865F34">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\luaxlsx\luaxlsx.vcxproj" Id="B2999D78-279A-1A53-CC82-74D494144722">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+     <Project Path="extend\lworker\lworker.vcxproj" Id="7186BCD3-4393-85B5-963F-880AC8A6F795">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+  </Folder>
+  <Folder Name="/all/lua/">
+     <Project Path="extend\lua\lualib.vcxproj" Id="B0AEF51E-FBD8-3472-DB40-2C819DE2E5DF"/>
+     <Project Path="extend\lua\lua.vcxproj" Id="F8DBBBDB-3B80-B4F1-70A8-272978F579EB">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
+  </Folder>
+</Solution>

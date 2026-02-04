@@ -288,14 +288,7 @@ namespace luakit {
     bool lua_call_function(lua_State* L, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
         int arg_num = sizeof...(arg_types);
         native_to_lua_mutil(L, std::forward<arg_types>(args)...);
-        try {
-            arg_num += codec->decode(L);
-        } catch(const std::length_error&) {
-            return false;
-        } catch(const std::exception& e) {
-            codec->error(e.what());
-            return false;
-        }
+        arg_num += codec->decode(L);
         if (!lua_call_function(L, efn, arg_num, sizeof...(ret_types)))
             return false;
         lua_to_native_mutil(L, rets, std::make_index_sequence<sizeof...(ret_types)>());

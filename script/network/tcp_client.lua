@@ -23,6 +23,7 @@ local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_5_MS       = quanta.enum("PeriodTime", "SECOND_5_MS")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
+
 local UNREACHABLE       = quanta.enum("KernCode", "UNREACHABLE")
 local PARAM_ERROR       = quanta.enum("KernCode", "PARAM_ERROR")
 
@@ -46,13 +47,13 @@ function TcpClient:__init(ip, port)
     self.port = port
     self.timer = make_timer()
     self.codec = protobuf.pbcodec()
-    self.functor = make_functer("check_alive")
+    self.functor = make_functer("check_alive", CONNECT_TIMEOUT)
 end
 
 function TcpClient:start()
     update_mgr:attach_quit(self)
     self.timer:register(FAST_MS, SECOND_MS, -1, function()
-        self.functor:call(self)
+        self.functor:run(self)
     end)
 end
 

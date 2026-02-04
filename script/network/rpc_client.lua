@@ -24,6 +24,7 @@ local FAST_MS           = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local RPC_TIMEOUT       = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
 
 local Message           = import("feature/message_rpc.lua")
 
@@ -204,7 +205,7 @@ function RpcClient:on_socket_connect()
     --log_info("[RpcClient][on_socket_connect] connect to {}:{} success!", self.ip, self.port)
     self.alive = true
     self.holder:on_socket_connect(self)
-    self.timer:change_period(RPC_TIMEOUT)
+    self.timer:change_period(HEARTBEAT_TIME)
 end
 
 --转发系列接口

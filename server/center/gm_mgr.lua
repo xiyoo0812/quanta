@@ -27,7 +27,7 @@ function GM_Mgr:__init()
     --监听事件
     event_mgr:add_listener(self, "rpc_register_command")
     event_mgr:add_listener(self, "rpc_execute_command")
-    event_mgr:add_listener(self, "rpc_execute_message")
+    event_mgr:add_listener(self, "rpc_execute_packet")
     --端口解析
     local ip, port = environ.addr("QUANTA_GM_HTTP")
     --创建HTTP服务器
@@ -62,8 +62,8 @@ end
 function GM_Mgr:enable_webgm()
     self:register_get("/", "on_gm_page", self)
     self:register_get("/gmlist", "on_gmlist", self)
+    self:register_post("/packet", "on_packet", self)
     self:register_post("/command", "on_command", self)
-    self:register_post("/message", "on_message", self)
 end
 
 function GM_Mgr:disable_webgm()
@@ -87,7 +87,7 @@ end
 --rpc请求
 ---------------------------------------------------------------------
 --注册GM
-function GM_Mgr:rpc_register_command(command_list, service_id)
+function GM_Mgr:rpc_register_command(message, command_list, service_id)
     --同服务只执行一次
     if service_id and self.services[service_id] then
         return
@@ -102,16 +102,16 @@ function GM_Mgr:rpc_register_command(command_list, service_id)
 end
 
 --执行gm, command：string
-function GM_Mgr:rpc_execute_command(command)
+function GM_Mgr:rpc_execute_command(message, command)
     log_debug("[GM_Mgr][rpc_execute_command] command: {}", command)
     local res = self:exec_command(command)
     return SUCCESS, res
 end
 
---执行gm, message: table
-function GM_Mgr:rpc_execute_message(message)
-    log_debug("[GM_Mgr][rpc_execute_message] message: {}", message)
-    local res = self:exec_message(message)
+--执行gm, packet: table
+function GM_Mgr:rpc_execute_packet(message, packet)
+    log_debug("[GM_Mgr][rpc_execute_packet] packet: {}", packet)
+    local res = self:exec_packet(packet)
     return SUCCESS, res
 end
 
@@ -135,9 +135,9 @@ function GM_Mgr:on_command(url, body)
 end
 
 --后台GM调用，table格式
-function GM_Mgr:on_message(url, body)
-    log_debug("[GM_Mgr][on_message] body: {}", body)
-    return self:exec_message(body.data)
+function GM_Mgr:on_packet(url, body)
+    log_debug("[GM_Mgr][on_packet] body: {}", body)
+    return self:exec_packet(body.data)
 end
 
 -------------------------------------------------------------------------
@@ -151,9 +151,9 @@ function GM_Mgr:exec_command(command)
 end
 
 --后台GM执行，table格式
---message必须有name字段，作为cmd_name
-function GM_Mgr:exec_message(message)
-    local fmtargs, err = cmdline:parser_data(message)
+--packet必须有name字段，作为cmd_name
+function GM_Mgr:exec_packet(packet)
+    local fmtargs, err = cmdline:parser_data(packet)
     if not fmtargs then
         return { code = 1, msg = err }
     end

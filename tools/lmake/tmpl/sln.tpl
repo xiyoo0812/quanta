@@ -17,7 +17,7 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "{{%= PROJECT.NAME %}}", "{{%= PROJECT_DIR %}}\{{%= PROJECT.FILE %}}.vcxproj", "{{{%= PROJECT.GUID %}}}"
 	{{% if #PROJECT.DEPS > 0 then %}}
 	ProjectSection(ProjectDependencies) = postProject
-	{{% for _, DEP in ipairs(PROJECT.DEPS or {}) do %}}
+	{{% for _, DEP in ipairs(PROJECT.DEPS) do %}}
 		{{{%= GUID_NEW(DEP) %}}} = {{{%= GUID_NEW(DEP) %}}}
 	{{% end %}}
 	EndProjectSection

@@ -109,8 +109,11 @@ namespace lworker {
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
                 m_codec.set_slice(slice);
-                m_lua.table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
-                if (m_codec.failed()) {
+                try {
+                    m_lua.table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
+                } catch (const std::length_error&) {
+                    break;
+                } catch (...) {
                     m_read_buf->clean();
                     break;
                 }

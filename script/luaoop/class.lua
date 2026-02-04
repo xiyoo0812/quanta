@@ -75,8 +75,10 @@ end
 local function object_props(class, obj)
     for name, args in pairs(class.__props) do
         local arg, typ = args[1], args[2]
-        if arg then
-            obj[name] = (typ ~= "table") and arg or deep_copy(arg)
+        if typ == "table" then
+            obj[name] = deep_copy(arg)
+        else
+            obj[name] = arg
         end
     end
 end

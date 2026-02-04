@@ -526,28 +526,18 @@ namespace luakit {
             (typeval_encode(m_buf, std::forward<Args>(args)), ...);
             return m_buf->data(len);
         }
-        virtual void error(const std::string& err) {
-            m_err = err;
-            m_failed = true;
-        }
         virtual void set_slice(slice* slice) {
-            m_err = "";
             m_slice = slice;
             m_packet_len = 0;
-            m_failed = false;
         }
-        virtual bool failed() { return m_failed; }
         virtual luabuf* get_buff() { return m_buf; }
-        virtual cpchar err() { return m_err.c_str(); }
         virtual size_t get_packet_len() { return m_packet_len; }
         virtual void set_buff(luabuf* buf) { m_buf = buf; }
 
     protected:
-        bool m_failed = false;
         luabuf* m_buf = nullptr;
         slice* m_slice = nullptr;
         uint32_t m_packet_len = 0;
-        std::string m_err = "";
     };
 
     class luacodec : public codec_base {
