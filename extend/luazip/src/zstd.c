@@ -773,16 +773,11 @@ int g_debuglevel = DEBUGLEVEL;
 #  if defined(__ARM_FEATURE_SVE2)
 #    define ZSTD_ARCH_ARM_SVE2
 #  endif
-#if defined(__riscv) && defined(__riscv_vector)
-    #if defined(__GNUC__)
-        #if (__GNUC__ > 14 || (__GNUC__ == 14 && __GNUC_MINOR__ >= 1))
-            #define ZSTD_ARCH_RISCV_RVV
-        #endif
-    #elif defined(__clang__)
-        #if __clang_major__ > 18 || (__clang_major__ == 18 && __clang_minor__ >= 1)
-            #define ZSTD_ARCH_RISCV_RVV
-        #endif
-    #endif
+#  if defined(__riscv) && defined(__riscv_vector)
+#    if ((defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 14) || \
+        (defined(__clang__) && __clang_major__ >= 19))
+        #define ZSTD_ARCH_RISCV_RVV
+#  endif
 #endif
 #
 #  if defined(ZSTD_ARCH_X86_AVX2)
@@ -4267,7 +4262,14 @@ int ZSTD_pthread_mutex_init(ZSTD_pthread_mutex_t* mutex, pthread_mutexattr_t con
     *mutex = (pthread_mutex_t*)ZSTD_malloc(sizeof(pthread_mutex_t));
     if (!*mutex)
         return 1;
-    return pthread_mutex_init(*mutex, attr);
+    {
+        int const ret = pthread_mutex_init(*mutex, attr);
+        if (ret != 0) {
+            ZSTD_free(*mutex);
+            *mutex = NULL;
+        }
+        return ret;
+    }
 }
 
 int ZSTD_pthread_mutex_destroy(ZSTD_pthread_mutex_t* mutex)
@@ -4288,7 +4290,14 @@ int ZSTD_pthread_cond_init(ZSTD_pthread_cond_t* cond, pthread_condattr_t const* 
     *cond = (pthread_cond_t*)ZSTD_malloc(sizeof(pthread_cond_t));
     if (!*cond)
         return 1;
-    return pthread_cond_init(*cond, attr);
+    {
+        int const ret = pthread_cond_init(*cond, attr);
+        if (ret != 0) {
+            ZSTD_free(*cond);
+            *cond = NULL;
+        }
+        return ret;
+    }
 }
 
 int ZSTD_pthread_cond_destroy(ZSTD_pthread_cond_t* cond)
@@ -4450,8 +4459,8 @@ extern "C" {
 
 /*------   Version   ------*/
 #define ZSTD_VERSION_MAJOR    1
-#define ZSTD_VERSION_MINOR    5
-#define ZSTD_VERSION_RELEASE  8
+#define ZSTD_VERSION_MINOR    6
+#define ZSTD_VERSION_RELEASE  0
 #define ZSTD_VERSION_NUMBER  (ZSTD_VERSION_MAJOR *100*100 + ZSTD_VERSION_MINOR *100 + ZSTD_VERSION_RELEASE)
 
 /*! ZSTD_versionNumber() :
@@ -4516,30 +4525,30 @@ ZSTDLIB_API size_t ZSTD_decompress( void* dst, size_t dstCapacity,
 
 /*======  Decompression helper functions  ======*/
 
-/*! ZSTD_getFrameContentSize() : requires v1.3.0+
- * `src` should point to the start of a ZSTD encoded frame.
- * `srcSize` must be at least as large as the frame header.
- *           hint : any size >= `ZSTD_frameHeaderSize_max` is large enough.
- * @return : - decompressed size of `src` frame content, if known
- *           - ZSTD_CONTENTSIZE_UNKNOWN if the size cannot be determined
- *           - ZSTD_CONTENTSIZE_ERROR if an error occurred (e.g. invalid magic number, srcSize too small)
- *  note 1 : a 0 return value means the frame is valid but "empty".
- *           When invoking this method on a skippable frame, it will return 0.
- *  note 2 : decompressed size is an optional field, it may not be present (typically in streaming mode).
- *           When `return==ZSTD_CONTENTSIZE_UNKNOWN`, data to decompress could be any size.
- *           In which case, it's necessary to use streaming mode to decompress data.
- *           Optionally, application can rely on some implicit limit,
- *           as ZSTD_decompress() only needs an upper bound of decompressed size.
- *           (For example, data could be necessarily cut into blocks <= 16 KB).
- *  note 3 : decompressed size is always present when compression is completed using single-pass functions,
- *           such as ZSTD_compress(), ZSTD_compressCCtx() ZSTD_compress_usingDict() or ZSTD_compress_usingCDict().
- *  note 4 : decompressed size can be very large (64-bits value),
- *           potentially larger than what local system can handle as a single memory segment.
- *           In which case, it's necessary to use streaming mode to decompress data.
- *  note 5 : If source is untrusted, decompressed size could be wrong or intentionally modified.
- *           Always ensure return value fits within application's authorized limits.
- *           Each application can set its own limits.
- *  note 6 : This function replaces ZSTD_getDecompressedSize() */
+/*! @brief Returns the decompressed content size stored in a ZSTD frame header.
+ *
+ *  @since v1.3.0
+ *
+ *  @param src Pointer to the beginning of a ZSTD encoded frame.
+ *  @param srcSize Size of the buffer pointed to by @p src. It must be at least as large as the frame header.
+ *                 Any value greater than or equal to `ZSTD_frameHeaderSize_max` is sufficient.
+ *  @return The decompressed size in bytes when the value is available in the frame header.
+ *  @retval ZSTD_CONTENTSIZE_UNKNOWN The frame does not encode a decompressed size (typical for streaming).
+ *  @retval ZSTD_CONTENTSIZE_ERROR An error occurred (e.g. invalid magic number, @p srcSize too small).
+ *
+ *  @note The return value is not compatible with `ZSTD_isError()`.
+ *  @note A return value of 0 denotes a valid but empty frame. Skippable frames also report 0.
+ *  @note The decompressed size field is optional. When it is absent (the function returns @c ZSTD_CONTENTSIZE_UNKNOWN),
+ *        the caller must rely on streaming decompression or an application-specific upper bound. `ZSTD_decompress()`
+ *        only requires an upper bound, so applications may enforce their own block limits (for example 16 KB).
+ *  @note The decompressed size is guaranteed to be present when compression was performed with single-pass APIs such as
+ *        `ZSTD_compress()`, `ZSTD_compressCCtx()`, `ZSTD_compress_usingDict()`, or `ZSTD_compress_usingCDict()`.
+ *  @note The decompressed size is a 64-bit value and may exceed the addressable space of the system. Use streaming
+ *        decompression when the value is too large to materialize in contiguous memory.
+ *  @warning When processing untrusted input, validate the returned size against the application's limits; attackers may
+ *           forge an arbitrarily large value.
+ *  @note This function replaces `ZSTD_getDecompressedSize()`.
+ */
 #define ZSTD_CONTENTSIZE_UNKNOWN (0ULL - 1)
 #define ZSTD_CONTENTSIZE_ERROR   (0ULL - 2)
 ZSTDLIB_API unsigned long long ZSTD_getFrameContentSize(const void *src, size_t srcSize);
@@ -15734,6 +15743,8 @@ static void ZSTD_copy16(void* dst, const void* src) {
     vst1q_u8((uint8_t*)dst, vld1q_u8((const uint8_t*)src));
 #elif defined(ZSTD_ARCH_X86_SSE2)
     _mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((const __m128i*)src));
+#elif defined(ZSTD_ARCH_RISCV_RVV)
+    __riscv_vse8_v_u8m1((uint8_t*)dst, __riscv_vle8_v_u8m1((const uint8_t*)src, 16), 16);
 #elif defined(__clang__)
     ZSTD_memmove(dst, src, 16);
 #else
@@ -30568,7 +30579,7 @@ size_t convertSequences_noRepcodes(
     return longLen;
 }
 
-#elif defined ZSTD_ARCH_RISCV_RVV
+#elif defined (ZSTD_ARCH_RISCV_RVV)
 #include <riscv_vector.h>
 /*
  * Convert `vl` sequences per iteration, using RVV intrinsics:
@@ -31100,7 +31111,7 @@ BlockSummary ZSTD_get1BlockSummary(const ZSTD_Sequence* seqs, size_t nbSeqs)
     }
 }
 
-#elif defined ZSTD_ARCH_RISCV_RVV
+#elif defined (ZSTD_ARCH_RISCV_RVV)
 
 BlockSummary ZSTD_get1BlockSummary(const ZSTD_Sequence* seqs, size_t nbSeqs)
 {
@@ -34592,6 +34603,44 @@ ZSTD_row_getNEONMask(const U32 rowEntries, const BYTE* const src, const BYTE tag
     }
 }
 #endif
+#if defined(ZSTD_ARCH_RISCV_RVV) && (__riscv_xlen == 64)
+FORCE_INLINE_TEMPLATE ZSTD_VecMask
+ZSTD_row_getRVVMask(int rowEntries, const BYTE* const src, const BYTE tag, const U32 head)
+{
+    ZSTD_VecMask matches;
+    size_t vl;
+
+    if (rowEntries == 16) {
+        vl = __riscv_vsetvl_e8m1(16);
+        {
+            vuint8m1_t chunk = __riscv_vle8_v_u8m1(src, vl);
+            vbool8_t mask = __riscv_vmseq_vx_u8m1_b8(chunk, tag, vl);
+            vuint16m1_t mask_u16 = __riscv_vreinterpret_v_b8_u16m1(mask);
+            matches = __riscv_vmv_x_s_u16m1_u16(mask_u16);
+            return ZSTD_rotateRight_U16((U16)matches, head);
+        }
+
+    } else if (rowEntries == 32) {
+        vl = __riscv_vsetvl_e8m2(32);
+        {
+            vuint8m2_t chunk = __riscv_vle8_v_u8m2(src, vl);
+            vbool4_t mask = __riscv_vmseq_vx_u8m2_b4(chunk, tag, vl);
+            vuint32m1_t mask_u32 = __riscv_vreinterpret_v_b4_u32m1(mask);
+            matches = __riscv_vmv_x_s_u32m1_u32(mask_u32);
+            return ZSTD_rotateRight_U32((U32)matches, head);
+        }
+    } else { // rowEntries = 64
+        vl = __riscv_vsetvl_e8m4(64);
+        {
+            vuint8m4_t chunk = __riscv_vle8_v_u8m4(src, vl);
+            vbool2_t mask = __riscv_vmseq_vx_u8m4_b2(chunk, tag, vl);
+            vuint64m1_t mask_u64 = __riscv_vreinterpret_v_b2_u64m1(mask);
+            matches = __riscv_vmv_x_s_u64m1_u64(mask_u64);
+            return ZSTD_rotateRight_U64(matches, head);
+        }
+    }
+}
+#endif
 
 /* Returns a ZSTD_VecMask (U64) that has the nth group (determined by
  * ZSTD_row_matchMaskGroupWidth) of bits set to 1 if the newly-computed "tag"
@@ -34611,14 +34660,20 @@ ZSTD_row_getMatchMask(const BYTE* const tagRow, const BYTE tag, const U32 headGr
 
     return ZSTD_row_getSSEMask(rowEntries / 16, src, tag, headGrouped);
 
-#else /* SW or NEON-LE */
+#elif defined(ZSTD_ARCH_RISCV_RVV) && (__riscv_xlen == 64)
 
-# if defined(ZSTD_ARCH_ARM_NEON)
+    return ZSTD_row_getRVVMask(rowEntries, src, tag, headGrouped);
+
+#else
+
+#if defined(ZSTD_ARCH_ARM_NEON)
   /* This NEON path only works for little endian - otherwise use SWAR below */
     if (MEM_isLittleEndian()) {
         return ZSTD_row_getNEONMask(rowEntries, src, tag, headGrouped);
     }
-# endif /* ZSTD_ARCH_ARM_NEON */
+
+
+#endif
     /* SWAR */
     {   const int chunkSize = sizeof(size_t);
         const size_t shiftAmount = ((chunkSize * 8) - chunkSize);
@@ -46334,6 +46389,7 @@ ZSTD_decodeSequence(seqState_t* seqState, const ZSTD_longOffset_e longOffsets, c
     const ZSTD_seqSymbol* const mlDInfo = seqState->stateML.table + seqState->stateML.state;
     const ZSTD_seqSymbol* const ofDInfo = seqState->stateOffb.table + seqState->stateOffb.state;
 #  endif
+    (void)longOffsets;
     seq.matchLength = mlDInfo->baseValue;
     seq.litLength = llDInfo->baseValue;
     {   U32 const ofBase = ofDInfo->baseValue;
@@ -46363,18 +46419,7 @@ ZSTD_decodeSequence(seqState_t* seqState, const ZSTD_longOffset_e longOffsets, c
                 ZSTD_STATIC_ASSERT(LONG_OFFSETS_MAX_EXTRA_BITS_32 == 5);
                 ZSTD_STATIC_ASSERT(STREAM_ACCUMULATOR_MIN_32 > LONG_OFFSETS_MAX_EXTRA_BITS_32);
                 ZSTD_STATIC_ASSERT(STREAM_ACCUMULATOR_MIN_32 - LONG_OFFSETS_MAX_EXTRA_BITS_32 >= MaxMLBits);
-                if (MEM_32bits() && longOffsets && (ofBits >= STREAM_ACCUMULATOR_MIN_32)) {
-                    /* Always read extra bits, this keeps the logic simple,
-                     * avoids branches, and avoids accidentally reading 0 bits.
-                     */
-                    U32 const extraBits = LONG_OFFSETS_MAX_EXTRA_BITS_32;
-                    offset = ofBase + (BIT_readBitsFast(&seqState->DStream, ofBits - extraBits) << extraBits);
-                    BIT_reloadDStream(&seqState->DStream);
-                    offset += BIT_readBitsFast(&seqState->DStream, extraBits);
-                } else {
-                    offset = ofBase + BIT_readBitsFast(&seqState->DStream, ofBits/*>0*/);   /* <=  (ZSTD_WINDOWLOG_MAX-1) bits */
-                    if (MEM_32bits()) BIT_reloadDStream(&seqState->DStream);
-                }
+                offset = ofBase + BIT_readBitsFast(&seqState->DStream, ofBits/*>0*/);   /* <=  (ZSTD_WINDOWLOG_MAX-1) bits */
                 prevOffset2 = prevOffset1;
                 prevOffset1 = prevOffset0;
                 prevOffset0 = offset;
@@ -46405,23 +46450,17 @@ ZSTD_decodeSequence(seqState_t* seqState, const ZSTD_longOffset_e longOffsets, c
             seq.offset = offset;
         }
 
-        if (mlBits > 0) {
+        if (mlBits > 0)
             seq.matchLength += BIT_readBitsFast(&seqState->DStream, mlBits/*>0*/);
 
-            if (MEM_32bits() && (mlBits+llBits >= STREAM_ACCUMULATOR_MIN_32-LONG_OFFSETS_MAX_EXTRA_BITS_32))
-                BIT_reloadDStream(&seqState->DStream);
-            if (MEM_64bits() && (totalBits >= STREAM_ACCUMULATOR_MIN_64-(LLFSELog+MLFSELog+OffFSELog)))
-                BIT_reloadDStream(&seqState->DStream);
-        }
+        if (UNLIKELY(totalBits >= STREAM_ACCUMULATOR_MIN_64-(LLFSELog+MLFSELog+OffFSELog)))
+            BIT_reloadDStream(&seqState->DStream);
 
         /* Ensure there are enough bits to read the rest of data in 64-bit mode. */
         ZSTD_STATIC_ASSERT(16+LLFSELog+MLFSELog+OffFSELog < STREAM_ACCUMULATOR_MIN_64);
 
         if (llBits > 0)
             seq.litLength += BIT_readBitsFast(&seqState->DStream, llBits/*>0*/);
-
-        if (MEM_32bits())
-            BIT_reloadDStream(&seqState->DStream);
 
         DEBUGLOG(6, "seq: litL=%u, matchL=%u, offset=%u",
                     (U32)seq.litLength, (U32)seq.matchLength, (U32)seq.offset);
@@ -46430,7 +46469,6 @@ ZSTD_decodeSequence(seqState_t* seqState, const ZSTD_longOffset_e longOffsets, c
             /* Don't update FSE state for last sequence. */
             ZSTD_updateFseStateWithDInfo(&seqState->stateLL, &seqState->DStream, llNext, llnbBits);    /* <=  9 bits */
             ZSTD_updateFseStateWithDInfo(&seqState->stateML, &seqState->DStream, mlNext, mlnbBits);    /* <=  9 bits */
-            if (MEM_32bits()) BIT_reloadDStream(&seqState->DStream);    /* <= 18 bits */
             ZSTD_updateFseStateWithDInfo(&seqState->stateOffb, &seqState->DStream, ofNext, ofnbBits);  /* <=  8 bits */
             BIT_reloadDStream(&seqState->DStream);
         }

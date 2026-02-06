@@ -82,7 +82,7 @@ local function find_methods(mixin)
 end
 
 local function delegate_func(class, mixin, method)
-    if ssub(method, 1, 2) == "__" then
+    if ssub(method, 1, 1) == "_" then
         return
     end
     if class[method] then
@@ -157,9 +157,7 @@ end
 local function propagate_new_method(mixin, method)
     for _, class in ipairs(mixin.__owners) do
         if not class[method] then
-            class[method] = function(...)
-                return mixin[method](...)
-            end
+            delegate_func(class, mixin, method)
         end
     end
     for _, submixin in pairs(mixin.__submixins) do

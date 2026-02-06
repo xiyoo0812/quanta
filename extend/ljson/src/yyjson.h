@@ -142,6 +142,9 @@
 #ifndef YYJSON_HAS_STDBOOL_H
 #endif
 
+/* Define to an integer to set a depth limit for containers (arrays, objects). */
+#ifndef YYJSON_READER_DEPTH_LIMIT
+#endif
 
 
 /*==============================================================================
@@ -874,6 +877,9 @@ static const yyjson_read_code YYJSON_READ_ERROR_FILE_READ               = 13;
 
 /** Incomplete input during incremental parsing; parsing state is preserved. */
 static const yyjson_read_code YYJSON_READ_ERROR_MORE                    = 14;
+
+/** Read depth limit exceeded. */
+static const yyjson_read_code YYJSON_READ_ERROR_DEPTH                   = 15;
 
 /** Error information for JSON reader. */
 typedef struct yyjson_read_err {
@@ -1991,7 +1997,7 @@ yyjson_api_inline bool yyjson_set_sint(yyjson_val *val, int64_t num);
 /** Set the value to int.
     Returns false if input is NULL or `val` is object or array.
     @warning This will modify the `immutable` value, use with caution. */
-yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int num);
+yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int64_t num);
 
 /** Set the value to float.
     Returns false if input is NULL or `val` is object or array.
@@ -2594,7 +2600,7 @@ yyjson_api_inline bool yyjson_mut_set_sint(yyjson_mut_val *val, int64_t num);
 /** Set the value to int.
     Returns false if input is NULL.
     @warning This function should not be used on an existing object or array. */
-yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int num);
+yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int64_t num);
 
 /** Set the value to float.
     Returns false if input is NULL.
@@ -5420,9 +5426,9 @@ yyjson_api_inline bool yyjson_set_sint(yyjson_val *val, int64_t num) {
     return true;
 }
 
-yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int num) {
+yyjson_api_inline bool yyjson_set_int(yyjson_val *val, int64_t num) {
     if (yyjson_unlikely(!val || unsafe_yyjson_is_ctn(val))) return false;
-    unsafe_yyjson_set_sint(val, (int64_t)num);
+    unsafe_yyjson_set_sint(val, num);
     return true;
 }
 
@@ -5973,9 +5979,9 @@ yyjson_api_inline bool yyjson_mut_set_sint(yyjson_mut_val *val, int64_t num) {
     return true;
 }
 
-yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int num) {
+yyjson_api_inline bool yyjson_mut_set_int(yyjson_mut_val *val, int64_t num) {
     if (yyjson_unlikely(!val)) return false;
-    unsafe_yyjson_set_sint(val, (int64_t)num);
+    unsafe_yyjson_set_sint(val, num);
     return true;
 }
 

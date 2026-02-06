@@ -85,7 +85,8 @@ namespace ljson {
 
         int decode_core(lua_State* L, char* buf, size_t len, bool numkeyable) {
             yyjson_read_err err;
-            yyjson_doc* doc = yyjson_read_opts(buf, len, YYJSON_READ_ALLOW_INVALID_UNICODE | YYJSON_READ_ALLOW_INF_AND_NAN, m_alc, &err);
+            auto flag = YYJSON_READ_ALLOW_BOM | YYJSON_READ_ALLOW_INVALID_UNICODE | YYJSON_READ_ALLOW_INF_AND_NAN;
+            yyjson_doc* doc = yyjson_read_opts(buf, len, flag, m_alc, &err);
             if (!doc) throw lua_exception(err.msg);
             decode_one(L, yyjson_doc_get_root(doc), numkeyable);
             yyjson_doc_free(doc);
