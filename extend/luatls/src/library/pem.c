@@ -5,34 +5,31 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PEM_PARSE_C) || defined(MBEDTLS_PEM_WRITE_C)
 
 #include "mbedtls/pem.h"
 #include "mbedtls/base64.h"
-#include "mbedtls/des.h"
-#include "mbedtls/aes.h"
+#include "mbedtls/private/aes.h"
 #include "mbedtls/md.h"
-#include "mbedtls/cipher.h"
+#include "mbedtls/private/cipher.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
 #include "mbedtls/platform.h"
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO)
 #include "psa/crypto.h"
-#endif
 
-#if defined(MBEDTLS_MD_CAN_MD5) &&  \
+#if defined(PSA_WANT_ALG_MD5) &&  \
     defined(MBEDTLS_CIPHER_MODE_CBC) &&                             \
-    (defined(MBEDTLS_DES_C) || defined(MBEDTLS_AES_C))
+    defined(MBEDTLS_AES_C)
 #define PEM_RFC1421
-#endif /* MBEDTLS_MD_CAN_MD5 &&
+#endif /* PSA_WANT_ALG_MD5 &&
           MBEDTLS_CIPHER_MODE_CBC &&
-          ( MBEDTLS_AES_C || MBEDTLS_DES_C ) */
+          MBEDTLS_AES_C */
 
 #if defined(MBEDTLS_PEM_PARSE_C)
 void mbedtls_pem_init(mbedtls_pem_context *ctx)
@@ -146,68 +143,6 @@ exit:
     return ret;
 }
 
-#if defined(MBEDTLS_DES_C)
-/*
- * Decrypt with DES-CBC, using PBKDF1 for key derivation
- */
-static int pem_des_decrypt(unsigned char des_iv[8],
-                           unsigned char *buf, size_t buflen,
-                           const unsigned char *pwd, size_t pwdlen)
-{
-    mbedtls_des_context des_ctx;
-    unsigned char des_key[8];
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-
-    mbedtls_des_init(&des_ctx);
-
-    if ((ret = pem_pbkdf1(des_key, 8, des_iv, pwd, pwdlen)) != 0) {
-        goto exit;
-    }
-
-    if ((ret = mbedtls_des_setkey_dec(&des_ctx, des_key)) != 0) {
-        goto exit;
-    }
-    ret = mbedtls_des_crypt_cbc(&des_ctx, MBEDTLS_DES_DECRYPT, buflen,
-                                des_iv, buf, buf);
-
-exit:
-    mbedtls_des_free(&des_ctx);
-    mbedtls_platform_zeroize(des_key, 8);
-
-    return ret;
-}
-
-/*
- * Decrypt with 3DES-CBC, using PBKDF1 for key derivation
- */
-static int pem_des3_decrypt(unsigned char des3_iv[8],
-                            unsigned char *buf, size_t buflen,
-                            const unsigned char *pwd, size_t pwdlen)
-{
-    mbedtls_des3_context des3_ctx;
-    unsigned char des3_key[24];
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-
-    mbedtls_des3_init(&des3_ctx);
-
-    if ((ret = pem_pbkdf1(des3_key, 24, des3_iv, pwd, pwdlen)) != 0) {
-        goto exit;
-    }
-
-    if ((ret = mbedtls_des3_set3key_dec(&des3_ctx, des3_key)) != 0) {
-        goto exit;
-    }
-    ret = mbedtls_des3_crypt_cbc(&des3_ctx, MBEDTLS_DES_DECRYPT, buflen,
-                                 des3_iv, buf, buf);
-
-exit:
-    mbedtls_des3_free(&des3_ctx);
-    mbedtls_platform_zeroize(des3_key, 24);
-
-    return ret;
-}
-#endif /* MBEDTLS_DES_C */
-
 #if defined(MBEDTLS_AES_C)
 /*
  * Decrypt with AES-XXX-CBC, using PBKDF1 for key derivation
@@ -240,7 +175,7 @@ exit:
 }
 #endif /* MBEDTLS_AES_C */
 
-#if defined(MBEDTLS_DES_C) || defined(MBEDTLS_AES_C)
+#if defined(MBEDTLS_AES_C)
 static int pem_check_pkcs_padding(unsigned char *input, size_t input_len, size_t *data_len)
 {
     /* input_len > 0 is not guaranteed by mbedtls_pem_read_buffer(). */
@@ -264,7 +199,7 @@ static int pem_check_pkcs_padding(unsigned char *input, size_t input_len, size_t
 
     return 0;
 }
-#endif /* MBEDTLS_DES_C || MBEDTLS_AES_C */
+#endif /* MBEDTLS_AES_C */
 
 #endif /* PEM_RFC1421 */
 
@@ -342,29 +277,6 @@ int mbedtls_pem_read_buffer(mbedtls_pem_context *ctx, const char *header, const 
             return MBEDTLS_ERR_PEM_INVALID_DATA;
         }
 
-
-#if defined(MBEDTLS_DES_C)
-        if (s2 - s1 >= 23 && memcmp(s1, "DEK-Info: DES-EDE3-CBC,", 23) == 0) {
-            enc_alg = MBEDTLS_CIPHER_DES_EDE3_CBC;
-
-            s1 += 23;
-            if (s2 - s1 < 16 || pem_get_iv(s1, pem_iv, 8) != 0) {
-                return MBEDTLS_ERR_PEM_INVALID_ENC_IV;
-            }
-
-            s1 += 16;
-        } else if (s2 - s1 >= 18 && memcmp(s1, "DEK-Info: DES-CBC,", 18) == 0) {
-            enc_alg = MBEDTLS_CIPHER_DES_CBC;
-
-            s1 += 18;
-            if (s2 - s1 < 16 || pem_get_iv(s1, pem_iv, 8) != 0) {
-                return MBEDTLS_ERR_PEM_INVALID_ENC_IV;
-            }
-
-            s1 += 16;
-        }
-#endif /* MBEDTLS_DES_C */
-
 #if defined(MBEDTLS_AES_C)
         if (s2 - s1 >= 14 && memcmp(s1, "DEK-Info: AES-", 14) == 0) {
             if (s2 - s1 < 22) {
@@ -436,14 +348,6 @@ int mbedtls_pem_read_buffer(mbedtls_pem_context *ctx, const char *header, const 
         }
 
         ret = 0;
-
-#if defined(MBEDTLS_DES_C)
-        if (enc_alg == MBEDTLS_CIPHER_DES_EDE3_CBC) {
-            ret = pem_des3_decrypt(pem_iv, buf, len, pwd, pwdlen);
-        } else if (enc_alg == MBEDTLS_CIPHER_DES_CBC) {
-            ret = pem_des_decrypt(pem_iv, buf, len, pwd, pwdlen);
-        }
-#endif /* MBEDTLS_DES_C */
 
 #if defined(MBEDTLS_AES_C)
         if (enc_alg == MBEDTLS_CIPHER_AES_128_CBC) {

@@ -1,17 +1,10 @@
 #pragma once
-#include "mbedtls/pk.h"
 #include "mbedtls/md.h"
 #include "mbedtls/ssl.h"
-#include "mbedtls/rsa.h"
-#include "mbedtls/sha1.h"
 #include "mbedtls/error.h"
-#include "mbedtls/pkcs5.h"
-#include "mbedtls/sha256.h"
-#include "mbedtls/sha512.h"
 #include "mbedtls/base64.h"
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
 #include "mbedtls/x509_crt.h"
+#include "psa/crypto.h"
 
 #include "lua_kit.h"
 
@@ -37,21 +30,15 @@ namespace luatls {
     thread_local mbedtls_ssl_config TL_SSL_CLI_CONF;
     thread_local mbedtls_ssl_config TL_SSL_SER_CONF;
     thread_local mbedtls_x509_crt TL_SSL_TRUSTED_CAS;
-    thread_local mbedtls_entropy_context TL_SSL_ENTROPY;
-    thread_local mbedtls_ctr_drbg_context TL_SSL_CTR_DRBG;
 
     inline void init_mbedtls_globals() {
         cpchar pers = "LUATLS";
+        psa_crypto_init();
         mbedtls_pk_init(&TL_SSL_PKEY);
-        mbedtls_entropy_init(&TL_SSL_ENTROPY);
         mbedtls_x509_crt_init(&TL_SSL_SRVCERT);
-        mbedtls_ctr_drbg_init(&TL_SSL_CTR_DRBG);
         mbedtls_x509_crt_init(&TL_SSL_TRUSTED_CAS);
         mbedtls_ssl_config_defaults(&TL_SSL_CLI_CONF, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
         mbedtls_ssl_config_defaults(&TL_SSL_SER_CONF, MBEDTLS_SSL_IS_SERVER, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
-        mbedtls_ctr_drbg_seed(&TL_SSL_CTR_DRBG, mbedtls_entropy_func, &TL_SSL_ENTROPY, (upchar)pers, strlen(pers));
-        mbedtls_ssl_conf_rng(&TL_SSL_CLI_CONF, mbedtls_ctr_drbg_random, &TL_SSL_CTR_DRBG);
-        mbedtls_ssl_conf_rng(&TL_SSL_SER_CONF, mbedtls_ctr_drbg_random, &TL_SSL_CTR_DRBG);
         mbedtls_ssl_conf_authmode(&TL_SSL_CLI_CONF, MBEDTLS_SSL_VERIFY_OPTIONAL);
     }
 
@@ -59,107 +46,128 @@ namespace luatls {
         mbedtls_x509_crt_free(&TL_SSL_TRUSTED_CAS);
         mbedtls_ssl_config_free(&TL_SSL_CLI_CONF);
         mbedtls_ssl_config_free(&TL_SSL_SER_CONF);
-        mbedtls_ctr_drbg_free(&TL_SSL_CTR_DRBG);
         mbedtls_x509_crt_free(&TL_SSL_SRVCERT);
-        mbedtls_entropy_free(&TL_SSL_ENTROPY);
         mbedtls_pk_free(&TL_SSL_PKEY);
+    }
+
+    inline psa_status_t load_psa_key(upchar key, size_t klen, psa_key_type_t tpe, psa_algorithm_t alg, psa_key_usage_t usage, psa_key_id_t& key_id) {
+        psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
+        psa_set_key_type(&attr, tpe);
+        psa_set_key_algorithm(&attr, alg);
+        psa_set_key_usage_flags(&attr, usage);
+        return psa_import_key(&attr, key, klen, &key_id);
     }
 
     class lua_rsa_key {
     public:
-        lua_rsa_key() {
-            mbedtls_pk_init(&pk_pub);
-            mbedtls_pk_init(&pk_pri);
-        }
-
         ~lua_rsa_key() {
-            mbedtls_pk_free(&pk_pub);
-            mbedtls_pk_free(&pk_pri);
-            rsa_sz = 0;
+            if (enc_key) psa_destroy_key(enc_key);
+            if (dec_key) psa_destroy_key(dec_key);
+            if (sign_key) psa_destroy_key(sign_key);
+            if (verify_key) psa_destroy_key(verify_key);
         }
 
-        bool set_pubkey(std::string_view pkey) {
-            int ret = mbedtls_pk_parse_public_key(&pk_pub, (upchar)pkey.data(), pkey.size());
-            if (ret == 0 && mbedtls_pk_get_type(&pk_pub) == MBEDTLS_PK_RSA) {
-                mbedtls_rsa_context* rsa = mbedtls_pk_rsa(pk_pub);
-                rsa_sz = mbedtls_rsa_get_len(rsa);
-                return true;
-            }
-            return false;
-
+        bool set_pubkey(std::string_view pem) {
+            size_t der_len = 0;
+            uint8_t der_data[1024];
+            int ret = mbedtls_base64_decode(der_data, sizeof(der_data), &der_len, (upchar)pem.data(), pem.size());
+            if (ret != 0) return false;
+            return set_pubkey_der(der_data, der_len);
         }
 
-        bool set_prikey(std::string_view pkey) {
-            int ret = mbedtls_pk_parse_key(&pk_pri, (upchar)pkey.data(), pkey.size(), nullptr, 0, nullptr, nullptr);
-            if (ret == 0 && mbedtls_pk_get_type(&pk_pri) == MBEDTLS_PK_RSA) {
-                mbedtls_rsa_context* rsa = mbedtls_pk_rsa(pk_pri);
-                rsa_sz = mbedtls_rsa_get_len(rsa);
-                ret = mbedtls_pk_setup(&pk_pub, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA));
-                if (ret == 0) {
-                    mbedtls_rsa_context* rsa_pub = mbedtls_pk_rsa(pk_pub);
-                    mbedtls_rsa_copy(rsa_pub, rsa);
-                }
-                return true;
-            }
-            char buf[128];
-            mbedtls_strerror(ret, buf, sizeof(buf));
-            return false;
+        bool set_pubkey_der(upchar der_data, size_t der_len) {
+            auto alg = PSA_ALG_RSA_PKCS1V15_CRYPT;
+            auto usage = PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_VERIFY_HASH;
+            if (load_psa_key(der_data, der_len, PSA_KEY_TYPE_RSA_PUBLIC_KEY, alg, usage, enc_key) != 0)
+                return false;
+            alg = PSA_ALG_RSA_PKCS1V15_SIGN(PSA_ALG_SHA_256);
+            if (load_psa_key(der_data, der_len, PSA_KEY_TYPE_RSA_PUBLIC_KEY, alg, usage, verify_key) != 0)
+                return false;
+            psa_key_attributes_t attr = PSA_KEY_ATTRIBUTES_INIT;
+            psa_get_key_attributes(enc_key, &attr);
+            rsa_sz = (psa_get_key_bits(&attr) + 7) / 8;
+            return true;
+        }
+
+        bool set_prikey_der(upchar der_data, size_t der_len) {
+            auto alg = PSA_ALG_RSA_PKCS1V15_CRYPT;
+            auto usage = PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_SIGN_HASH;
+            if (load_psa_key(der_data, der_len, PSA_KEY_TYPE_RSA_KEY_PAIR, alg, usage, dec_key) != 0)
+                return false;
+            alg = PSA_ALG_RSA_PKCS1V15_SIGN(PSA_ALG_SHA_256);
+            if (load_psa_key(der_data, der_len, PSA_KEY_TYPE_RSA_KEY_PAIR, alg, usage, sign_key) != 0)
+                return false;
+            return true;
+        }
+
+        bool set_prikey(std::string_view pem) {
+            size_t der_len = 0;
+            uint8_t der_data[2048];
+            int ret = mbedtls_base64_decode(der_data, sizeof(der_data), &der_len, (upchar)pem.data(), pem.size());
+            if (ret != 0) return false;
+            if (!set_prikey_der(der_data, der_len)) return false;
+            if (psa_export_public_key(dec_key, der_data, sizeof(der_data), &der_len) != 0) return false;
+            return set_pubkey_der(der_data, der_len);
         }
 
         int encrypt(lua_State* L, std::string_view value) {
-            if (mbedtls_pk_get_type(&pk_pub) != MBEDTLS_PK_RSA) {
+            if (enc_key == 0) {
                 luaL_error(L, "rsa pubkey not initialized!");
             }
             luaL_Buffer b;
-            uint8_t buf[RSA_BUF_SIZE];
             size_t value_sz = value.size();
-            upchar value_p = (upchar)value.data();
             size_t out_size = RSA_ENCODE_OUT_SIZE(value_sz, rsa_sz);
-            mbedtls_rsa_context* rsa = mbedtls_pk_rsa(pk_pub);
+            const uint8_t* value_p = reinterpret_cast<const uint8_t*>(value.data());
             luaL_buffinitsize(L, &b, out_size);
             while (value_sz > 0) {
-                int in_sz = value_sz > RSA_ENCODE_LEN(rsa_sz) ? RSA_ENCODE_LEN(rsa_sz) : value_sz;
-                int ret = mbedtls_rsa_pkcs1_encrypt(rsa, mbedtls_ctr_drbg_random, &TL_SSL_CTR_DRBG, in_sz, value_p, buf);
-                if (ret != 0) {
-                    luaL_error(L, "RSA encryption failed: %d", ret);
+                size_t in_len = (value_sz > RSA_ENCODE_LEN(rsa_sz)) ? RSA_ENCODE_LEN(rsa_sz) : value_sz;
+                uint8_t out_buf[RSA_BUF_SIZE];
+                size_t out_len = 0;
+                auto status = psa_asymmetric_encrypt(enc_key, PSA_ALG_RSA_PKCS1V15_CRYPT, value_p, in_len,
+                    nullptr, 0, out_buf, sizeof(out_buf), &out_len);
+                if (status != 0) {
+                    luaL_error(L, "RSA encryption failed: %d", (int)status);
                 }
-                value_p += in_sz;
-                value_sz -= in_sz;
-                luaL_addlstring(&b, (cpchar)buf, rsa_sz);
+                luaL_addlstring(&b, reinterpret_cast<const char*>(out_buf), out_len);
+                value_p += in_len;
+                value_sz -= in_len;
             }
             luaL_pushresult(&b);
             return 1;
         }
 
         int verify(lua_State* L, std::string_view value, std::string_view sig) {
-            if (mbedtls_pk_get_type(&pk_pub) != MBEDTLS_PK_RSA) {
+            if (verify_key == 0) {
                 luaL_error(L, "rsa pubkey not initialized!");
             }
+            size_t hash_len = 0;
             uint8_t hash[SHA256_DIGEST_SIZE];
-            mbedtls_sha256((upchar)value.data(), value.size(), hash, 0);
-            int ret = mbedtls_pk_verify(&pk_pub, MBEDTLS_MD_SHA256, hash, SHA256_DIGEST_SIZE, (upchar)sig.data(), sig.size());
-            lua_pushboolean(L, ret == 0);
+            auto alg = PSA_ALG_RSA_PKCS1V15_SIGN(PSA_ALG_SHA_256);
+            psa_hash_compute(PSA_ALG_SHA_256, (upchar)value.data(), value.size(), hash, sizeof(hash), &hash_len);
+            auto status = psa_verify_hash(verify_key, alg, hash, hash_len, (upchar)sig.data(), sig.size());
+            lua_pushboolean(L, status == 0);
             return 1;
         }
 
         int sign(lua_State* L, std::string_view value) {
-            if (mbedtls_pk_get_type(&pk_pri) != MBEDTLS_PK_RSA) {
+            if (sign_key == 0) {
                 luaL_error(L, "rsa prikey not initialized!");
             }
             size_t sig_len = 0;
-            uint8_t buf[RSA_BUF_SIZE];
+            uint8_t sig_buf[RSA_BUF_SIZE];
             uint8_t hash[SHA256_DIGEST_SIZE];
-            mbedtls_sha256((upchar)value.data(), value.size(), hash, 0);
-            int ret = mbedtls_pk_sign(&pk_pri, MBEDTLS_MD_SHA256, hash, SHA256_DIGEST_SIZE, buf, RSA_BUF_SIZE, &sig_len, mbedtls_ctr_drbg_random, &TL_SSL_CTR_DRBG);
-            if (ret != 0) {
-                luaL_error(L, "RSA signing failed: %d", ret);
+            auto alg = PSA_ALG_RSA_PKCS1V15_SIGN(PSA_ALG_SHA_256);
+            psa_hash_compute(PSA_ALG_SHA_256, (upchar)value.data(), value.size(), hash, sizeof(hash), &sig_len);
+            auto status = psa_sign_hash(sign_key, alg, hash, sizeof(hash), sig_buf, sizeof(sig_buf), &sig_len);
+            if (status != 0) {
+                luaL_error(L, "RSA signing failed: %d", (int)status);
             }
-            lua_pushlstring(L, (cpchar)buf, sig_len);
+            lua_pushlstring(L, (cpchar)sig_buf, sig_len);
             return 1;
         }
 
         int decrypt(lua_State* L, std::string_view value) {
-            if (mbedtls_pk_get_type(&pk_pri) != MBEDTLS_PK_RSA) {
+            if (dec_key == 0) {
                 luaL_error(L, "rsa prikey not initialized!");
             }
             luaL_Buffer b;
@@ -169,12 +177,12 @@ namespace luatls {
             size_t out_size = RSA_DECODE_OUT_SIZE(value_sz, rsa_sz);
             upchar value_p = (upchar)value.data();
             luaL_buffinitsize(L, &b, out_size);
-            mbedtls_rsa_context* rsa = mbedtls_pk_rsa(pk_pri);
             while (value_sz > 0) {
-                size_t in_sz = value_sz > rsa_sz ? rsa_sz : value_sz;
-                int ret = mbedtls_rsa_pkcs1_decrypt(rsa, mbedtls_ctr_drbg_random, &TL_SSL_CTR_DRBG, &out_len, value_p, buf, in_sz);
-                if (ret != 0) {
-                    luaL_error(L, "RSA decrypt failed: %d", ret);
+                auto alg = PSA_ALG_RSA_PKCS1V15_CRYPT;
+                size_t in_sz = (value_sz > rsa_sz) ? rsa_sz : value_sz;
+                auto status = psa_asymmetric_decrypt(dec_key, alg, value_p, in_sz, nullptr, 0, buf, sizeof(buf), &out_len);
+                if (status != 0) {
+                    luaL_error(L, "RSA decrypt failed: %d", (int)status);
                 }
                 value_p += in_sz;
                 value_sz -= in_sz;
@@ -183,16 +191,20 @@ namespace luatls {
             luaL_pushresult(&b);
             return 1;
         }
+
     private:
         size_t rsa_sz = 0;
-        mbedtls_pk_context pk_pub;
-        mbedtls_pk_context pk_pri;
+        psa_key_id_t enc_key = 0;
+        psa_key_id_t dec_key = 0;
+        psa_key_id_t sign_key = 0;
+        psa_key_id_t verify_key = 0;
     };
 
     class tlscodec : public codec_base {
     public:
         ~tlscodec() {
             mbedtls_ssl_free(&ssl);
+            m_outbuf.clean();
             m_inbuf.clean();
         }
 
@@ -204,7 +216,7 @@ namespace luatls {
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) override {
             if (!is_handshake) {
                 tls_handshake(L);
-                return m_buf->drain(len);
+                return m_outbuf.drain(len);
             }
             size_t slen = 0;
             uint8_t* body = nullptr;
@@ -220,7 +232,7 @@ namespace luatls {
                 body += written;
                 slen -= written;
             }
-            return m_buf->drain(len);
+            return m_outbuf.drain(len);
         }
 
         virtual size_t decode(lua_State* L) override {
@@ -237,6 +249,7 @@ namespace luatls {
                 if (read == 0) break;
                 if (read < 0) {
                     if (read == MBEDTLS_ERR_SSL_WANT_READ) break;
+                    if (read == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) continue;
                     tls_error(L, "mbedtls_ssl_read", read, true);
                 }
                 m_inbuf.pop_space(read);
@@ -299,16 +312,16 @@ namespace luatls {
             char buf[128];
             mbedtls_strerror(err, buf, sizeof(buf));
             if (exception) {
-                throw lua_exception("{} error: {}", func, buf);
+                throw lua_exception("{} error: {}({})", func, buf, err);
             } else {
-                luaL_error(L, "%s error:%d, msg:%s, ret:%d", func, err, buf, err);
+                luaL_error(L, "%s error:%d, msg:%s", func, err, buf, err);
             }
         }
 
     private:
         static int ssl_send_cb(void* ctx, const unsigned char* buf, size_t len) {
             tlscodec* codec = reinterpret_cast<tlscodec*>(ctx);
-            codec->m_buf->push_data(buf, len);
+            codec->m_outbuf.push_data(buf, len);
             return len;
         }
 
@@ -319,7 +332,7 @@ namespace luatls {
         }
         
     protected:
-        luabuf m_inbuf;
+        luabuf m_inbuf, m_outbuf;
         mbedtls_ssl_context ssl;
         codec_base* m_hcodec = nullptr;
         bool is_handshake = false;

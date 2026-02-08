@@ -1,10 +1,11 @@
-{{% local LABEL_GROUPS, SORT_GROUPS = "", {} %}}
-{{% for _, GROUP in pairs(GROUPS or {}) do %}}
-{{% table.insert(SORT_GROUPS, GROUP) %}}
-{{% if GROUP.NAME ~= IGNORE_GROUP then %}}
-{{% LABEL_GROUPS = GROUP.NAME .. " " .. LABEL_GROUPS %}}
-{{% end %}}
-{{% end %}}
+{{%
+local LABEL_GROUPS = ""
+for _, GROUP in pairs(GROUPS or {}) do
+	if GROUP.NAME ~= IGNORE_GROUP then
+		LABEL_GROUPS = GROUP.NAME .. " " .. LABEL_GROUPS
+	end
+end
+%}}
 
 empty:
 	@echo "====No target! Please specify a target to make!"
@@ -13,22 +14,39 @@ empty:
 
 CUR_DIR = $(shell pwd)/
 
-.PHONY: clean all project {{%= LABEL_GROUPS %}}
+.PHONY: clean all {{%= LABEL_GROUPS %}}
 
-all: clean project {{%= IGNORE_GROUP %}}
+all:
+	@start=$$(date +%s); \
+	$(MAKE) clean; \
+	$(MAKE) $(MAKEFLAGS) {{%= LABEL_GROUPS %}}{{%= IGNORE_GROUP %}}; \
+	end=$$(date +%s); \
+	duration=$$((end - start)); \
+	echo "make all cost time: $$duration second"
 
-{{%= SOLUTION %}}: clean project 
-
-project: {{%= LABEL_GROUPS %}}
+proj:
+	@start=$$(date +%s); \
+	$(MAKE) clean; \
+	$(MAKE) $(MAKEFLAGS) {{%= LABEL_GROUPS %}}; \
+	end=$$(date +%s%3N); \
+	duration=$$((end - start)); \
+	echo "make proj cost time: $$duration second"
 
 clean:
 	rm -rf temp;
 
-{{% for _, GROUP in pairs(SORT_GROUPS or {}) do %}}
-{{%= GROUP.NAME %}}:
-{{% for _, PROJECT in ipairs(GROUP.PROJECTS or {}) do %}}
-	{{% local fmtname = string.gsub(PROJECT.DIR, '\\', '/') %}}
-	cd {{%= fmtname %}}; make SOLUTION_DIR=$(CUR_DIR) -f {{%= PROJECT.FILE %}}.mak;
-{{% end %}}
+{{%
+for _, GROUP in pairs (GROUPS or {}) do
+	local GROUPNAMES = {}
+	for _, PROJECT in ipairs(GROUP.PROJECTS or {}) do
+		local PDIR = string.gsub(PROJECT.DIR, '\\', '/')
+		table.insert(GROUPNAMES, PROJECT.NAME)
+%}}
+{{%= PROJECT.FILE %}}: {{%= table.concat(PROJECT.DEPS, " ") %}}
+	$(MAKE) -C {{%= PDIR %}} -f {{%= PROJECT.FILE %}}.mak SOLUTION_DIR=$(CUR_DIR)
+	{{% end %}}
+
+{{%= GROUP.NAME %}}: {{%= table.concat(GROUPNAMES, " ") %}}
+.PHONY: {{%= table.concat(GROUPNAMES, " ") %}}
 
 {{% end %}}

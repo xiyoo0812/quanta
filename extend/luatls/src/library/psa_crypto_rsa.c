@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -18,12 +18,13 @@
 #include "psa_crypto_hash.h"
 #include "mbedtls/psa_util.h"
 
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include "mbedtls/platform.h"
 
-#include <mbedtls/rsa.h>
-#include <mbedtls/error.h>
+#include <mbedtls/private/rsa.h>
+#include <mbedtls/private/error_common.h>
 #include "rsa_internal.h"
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_RSA_PKCS1V15_CRYPT) || \
@@ -204,7 +205,6 @@ psa_status_t mbedtls_psa_rsa_export_public_key(
                                             data_size,
                                             data_length);
     }
-
     mbedtls_rsa_free(rsa);
     mbedtls_free(rsa);
 

@@ -10,15 +10,16 @@
  *  https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-90r.pdf
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_CTR_DRBG_C)
 
 #include "ctr.h"
-#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/private/ctr_drbg.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
+#include <limits.h>
 #include <string.h>
 
 #if defined(MBEDTLS_FS_IO)
@@ -83,7 +84,7 @@ void mbedtls_ctr_drbg_init(mbedtls_ctr_drbg_context *ctx)
      * See mbedtls_ctr_drbg_set_nonce_len(). */
     ctx->reseed_counter = -1;
 
-    ctx->reseed_interval = MBEDTLS_CTR_DRBG_RESEED_INTERVAL;
+    ctx->reseed_interval = MBEDTLS_PSA_RNG_RESEED_INTERVAL;
 }
 
 /*
@@ -108,7 +109,7 @@ void mbedtls_ctr_drbg_free(mbedtls_ctr_drbg_context *ctx)
     mbedtls_aes_free(&ctx->aes_ctx);
 #endif
     mbedtls_platform_zeroize(ctx, sizeof(mbedtls_ctr_drbg_context));
-    ctx->reseed_interval = MBEDTLS_CTR_DRBG_RESEED_INTERVAL;
+    ctx->reseed_interval = MBEDTLS_PSA_RNG_RESEED_INTERVAL;
     ctx->reseed_counter = -1;
 }
 

@@ -209,17 +209,21 @@ LDFLAGS += -L$(SOLUTION_DIR){{%= DST_LIB_DIR %}}
 
 #自动生成目标
 SOURCES =
-{{% local TEMPS, SRC_GROUPS = {}, {} %}}
-{{% local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
-{{% local _, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) %}}
-{{% for _, CSRC in ipairs(CSOURCES) do %}}
-{{% local fmtsrc = string.gsub(CSRC[1], '\\', '/') %}}
+{{%
+local TEMPS, SRC_GROUPS = {}, {}
+local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE }
+local _, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS)
+for _, CSRC in ipairs(CSOURCES) do
+	local fmtsrc = string.gsub(CSRC[1], '\\', '/')
+%}}
 SOURCES += {{%= fmtsrc %}}
-{{% TEMPS[CSRC[2]] = true %}}
-{{% end %}}
-{{% for CSRC in pairs(TEMPS) do %}}
-{{% SRC_GROUPS[#SRC_GROUPS+1] = CSRC %}}
-{{% end %}}
+{{% 
+	TEMPS[CSRC[2]] = true
+	end
+for CSRC in pairs(TEMPS) do
+	SRC_GROUPS[#SRC_GROUPS+1] = CSRC
+end
+%}}
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))
@@ -267,9 +271,11 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
-{{% table.sort(SRC_GROUPS, function(a, b) return a < b end) %}}
-{{% for _, CSRC in ipairs(SRC_GROUPS) do %}}
-{{% local fmtsub_dir = string.gsub(CSRC, '\\', '/') %}}
+{{%
+table.sort(SRC_GROUPS, function(a, b) return a < b end)
+for _, CSRC in ipairs(SRC_GROUPS) do
+	local fmtsub_dir = string.gsub(CSRC, '\\', '/')
+%}}
 	mkdir -p $(INT_DIR)/{{%= fmtsub_dir %}}
 {{% end %}}
 {{% for _, pre_cmd in ipairs(NWINDOWS_PREBUILDS) do %}}

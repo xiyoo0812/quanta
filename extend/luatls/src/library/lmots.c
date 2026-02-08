@@ -18,7 +18,7 @@
  *      https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-208.pdf
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_LMS_C)
 
@@ -28,7 +28,7 @@
 
 #include "mbedtls/lms.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 #include "psa_util_internal.h"
 
 #include "psa/crypto.h"
@@ -695,8 +695,7 @@ exit:
 }
 
 int mbedtls_lmots_sign(mbedtls_lmots_private_t *ctx,
-                       int (*f_rng)(void *, unsigned char *, size_t),
-                       void *p_rng, const unsigned char *msg, size_t msg_size,
+                       const unsigned char *msg, size_t msg_size,
                        unsigned char *sig, size_t sig_size, size_t *sig_len)
 {
     unsigned char tmp_digit_array[MBEDTLS_LMOTS_P_SIG_DIGIT_COUNT_MAX];
@@ -724,8 +723,8 @@ int mbedtls_lmots_sign(mbedtls_lmots_private_t *ctx,
         return MBEDTLS_ERR_LMS_BAD_INPUT_DATA;
     }
 
-    ret = f_rng(p_rng, tmp_c_random,
-                MBEDTLS_LMOTS_N_HASH_LEN(ctx->params.type));
+    ret = psa_generate_random(tmp_c_random,
+                              MBEDTLS_LMOTS_N_HASH_LEN(ctx->params.type));
     if (ret) {
         return ret;
     }

@@ -5,19 +5,19 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
-#if defined(MBEDTLS_ASN1_PARSE_C) || defined(MBEDTLS_X509_CREATE_C) || \
-    defined(MBEDTLS_PSA_UTIL_HAVE_ECDSA)
+#if defined(MBEDTLS_ASN1_PARSE_C) || defined(MBEDTLS_ASN1_WRITE_C) || \
+    defined(PSA_HAVE_ALG_SOME_ECDSA)
 
 #include "mbedtls/asn1.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
 #if defined(MBEDTLS_BIGNUM_C)
-#include "mbedtls/bignum.h"
+#include "mbedtls/private/bignum.h"
 #endif
 
 #include "mbedtls/platform.h"
@@ -74,7 +74,7 @@ int mbedtls_asn1_get_tag(unsigned char **p,
 
     return mbedtls_asn1_get_len(p, end, len);
 }
-#endif /* MBEDTLS_ASN1_PARSE_C || MBEDTLS_X509_CREATE_C || MBEDTLS_PSA_UTIL_HAVE_ECDSA */
+#endif /* MBEDTLS_ASN1_PARSE_C || MBEDTLS_ASN1_WRITE_C || PSA_HAVE_ALG_SOME_ECDSA */
 
 #if defined(MBEDTLS_ASN1_PARSE_C)
 int mbedtls_asn1_get_bool(unsigned char **p,
@@ -178,6 +178,55 @@ int mbedtls_asn1_get_mpi(unsigned char **p,
     return ret;
 }
 #endif /* MBEDTLS_BIGNUM_C */
+
+int mbedtls_asn1_get_integer(unsigned char **p, const unsigned char *end,
+                             unsigned char **head, size_t *length)
+{
+    int ret;
+    size_t integer_length;
+    unsigned char *start = *p;
+
+    *length = 0;
+    *head = NULL;
+
+    if ((ret = mbedtls_asn1_get_tag(p, end, &integer_length, MBEDTLS_ASN1_INTEGER)) != 0) {
+        *p = start;
+        return ret;
+    }
+
+    if (integer_length == 0) {
+        *p = start;
+        return MBEDTLS_ERR_ASN1_INVALID_DATA;
+    }
+
+    const int negative = ((**p & 0x80) != 0);
+
+    if (negative) {
+        *p = start;
+        return MBEDTLS_ERR_ASN1_INVALID_DATA;
+    }
+
+    /* Check that the integer is not overlong-encoded. We know that it is not
+     * negative so it is only overlong-encoded if the first byte is zero and
+     * the top bit of the second byte is also zero. */
+    if ((integer_length >= 2) &&
+        ((*p)[0] == 0) &&
+        (((*p)[1] & 0x80) == 0)) {
+        *p = start;
+        return MBEDTLS_ERR_ASN1_INVALID_DATA;
+    }
+
+    *head = *p;
+    *p += integer_length;
+    *length = integer_length;
+
+    if ((*head)[0] == 0) {
+        (*head)++;
+        (*length)--;
+    }
+
+    return 0;
+}
 
 int mbedtls_asn1_get_bitstring(unsigned char **p, const unsigned char *end,
                                mbedtls_asn1_bitstring *bs)
@@ -415,20 +464,6 @@ int mbedtls_asn1_get_alg_null(unsigned char **p,
 
     return 0;
 }
-
-#if !defined(MBEDTLS_DEPRECATED_REMOVED)
-void mbedtls_asn1_free_named_data(mbedtls_asn1_named_data *cur)
-{
-    if (cur == NULL) {
-        return;
-    }
-
-    mbedtls_free(cur->oid.p);
-    mbedtls_free(cur->val.p);
-
-    mbedtls_platform_zeroize(cur, sizeof(mbedtls_asn1_named_data));
-}
-#endif /* MBEDTLS_DEPRECATED_REMOVED */
 
 void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data **head)
 {

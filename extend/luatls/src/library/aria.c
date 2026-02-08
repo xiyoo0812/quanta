@@ -11,17 +11,15 @@
  * [2] https://tools.ietf.org/html/rfc5794
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_ARIA_C)
 
-#include "mbedtls/aria.h"
+#include "mbedtls/private/aria.h"
 
 #include <string.h>
 
 #include "mbedtls/platform.h"
-
-#if !defined(MBEDTLS_ARIA_ALT)
 
 #include "mbedtls/platform_util.h"
 
@@ -657,7 +655,6 @@ int mbedtls_aria_crypt_ctr(mbedtls_aria_context *ctx,
     return 0;
 }
 #endif /* MBEDTLS_CIPHER_MODE_CTR */
-#endif /* !MBEDTLS_ARIA_ALT */
 
 #if defined(MBEDTLS_SELF_TEST)
 

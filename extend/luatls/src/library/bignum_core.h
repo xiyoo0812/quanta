@@ -68,9 +68,9 @@
 #ifndef MBEDTLS_BIGNUM_CORE_H
 #define MBEDTLS_BIGNUM_CORE_H
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
-#include "mbedtls/bignum.h"
+#include "mbedtls/private/bignum.h"
 
 #include "constant_time_internal.h"
 
@@ -402,6 +402,9 @@ mbedtls_mpi_uint mbedtls_mpi_core_add_if(mbedtls_mpi_uint *X,
  * \p X may be aliased to \p A or \p B, or even both, but may not overlap
  * either otherwise.
  *
+ * This function operates in constant time with respect to the values
+ * of \p A and \p B.
+ *
  * \param[out] X    The result of the subtraction.
  * \param[in] A     Little-endian presentation of left operand.
  * \param[in] B     Little-endian presentation of right operand.
@@ -422,6 +425,9 @@ mbedtls_mpi_uint mbedtls_mpi_core_sub(mbedtls_mpi_uint *X,
  * otherwise overlap.
  *
  * This function operates modulo `2^(biL*X_limbs)`.
+ *
+ * This function operates in constant time with respect to the values
+ * of \p X and \p A and \p b.
  *
  * \param[in,out] X  The pointer to the (little-endian) array
  *                   representing the bignum to accumulate onto.
@@ -481,6 +487,10 @@ mbedtls_mpi_uint mbedtls_mpi_core_montmul_init(const mbedtls_mpi_uint *N);
  *
  * \p A and \p B may alias each other, if \p AN_limbs == \p B_limbs. They may
  * not alias \p N (since they must be in canonical form, they cannot == \p N).
+ *
+ * This function operates in constant time with respect
+ * to the values of \p A, \p B and \p N.
+ *
  *
  * \param[out]    X         The destination MPI, as a little-endian array of
  *                          length \p AN_limbs.
@@ -672,6 +682,9 @@ void mbedtls_mpi_core_exp_mod_unsafe(mbedtls_mpi_uint *X,
  *
  * \p X may be aliased to \p A, but not to \p RR or \p E, even if \p E_limbs ==
  * \p AN_limbs.
+ *
+ * This function operates in constant time with respect
+ * to the values of \p A, \p N and \p E.
  *
  * \param[out] X     The destination MPI, as a little endian array of length
  *                   \p AN_limbs.

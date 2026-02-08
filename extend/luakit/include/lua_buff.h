@@ -92,7 +92,7 @@ namespace luakit {
         }
 
         inline size_t pop_size(size_t erase_len) {
-            if (m_head + erase_len <= m_tail) {
+            if (erase_len > 0 && m_head + erase_len <= m_tail) {
                 m_head += erase_len;
                 size_t data_len = (size_t)(m_tail - m_head);
                 if (m_size > m_max && data_len < BUFFER_DEF) {

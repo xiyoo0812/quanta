@@ -5,13 +5,13 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_BIGNUM_C)
 
 #include <string.h>
 
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 #include "mbedtls/platform_util.h"
 #include "constant_time_internal.h"
 
@@ -450,9 +450,10 @@ mbedtls_mpi_uint mbedtls_mpi_core_sub(mbedtls_mpi_uint *X,
     mbedtls_mpi_uint c = 0;
 
     for (size_t i = 0; i < limbs; i++) {
-        mbedtls_mpi_uint z = (A[i] < c);
+        mbedtls_mpi_uint z = mbedtls_ct_mpi_uint_if(mbedtls_ct_uint_lt(A[i], c),
+                                                    1, 0);
         mbedtls_mpi_uint t = A[i] - c;
-        c = (t < B[i]) + z;
+        c = mbedtls_ct_mpi_uint_if(mbedtls_ct_uint_lt(t, B[i]), 1, 0) + z;
         X[i] = t - B[i];
     }
 
@@ -490,7 +491,7 @@ mbedtls_mpi_uint mbedtls_mpi_core_mla(mbedtls_mpi_uint *d, size_t d_len,
 
     while (excess_len--) {
         *d += c;
-        c = (*d < c);
+        c = mbedtls_ct_mpi_uint_if(mbedtls_ct_uint_lt(*d, c), 1, 0);
         d++;
     }
 
@@ -654,9 +655,8 @@ int mbedtls_mpi_core_random(mbedtls_mpi_uint *X,
      *
      * When N is just below a power of 2, as is the case when generating
      * a random scalar on most elliptic curves, 1 try is enough with
-     * overwhelming probability. When N is just above a power of 2,
-     * as when generating a random scalar on secp224k1, each try has
-     * a probability of failing that is almost 1/2.
+     * overwhelming probability. When N is just above a power of 2
+     * each try has a probability of failing that is almost 1/2.
      *
      * The probabilities are almost the same if min is nonzero but negligible
      * compared to N. This is always the case when N is crypto-sized, but

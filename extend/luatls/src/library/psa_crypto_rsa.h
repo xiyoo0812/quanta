@@ -10,7 +10,7 @@
 #define PSA_CRYPTO_RSA_H
 
 #include <psa/crypto.h>
-#include <mbedtls/rsa.h>
+#include <mbedtls/private/rsa.h>
 
 /** Load the contents of a key buffer into an internal RSA representation
  *

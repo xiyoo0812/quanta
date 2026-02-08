@@ -24,8 +24,7 @@
 
 #if defined(PSA_WANT_ALG_CMAC) && \
     !(defined(PSA_WANT_KEY_TYPE_AES) || \
-    defined(PSA_WANT_KEY_TYPE_CAMELLIA) || \
-    defined(PSA_WANT_KEY_TYPE_DES))
+    defined(PSA_WANT_KEY_TYPE_CAMELLIA))
 #error "PSA_WANT_ALG_CMAC defined, but not all prerequisites"
 #endif
 
@@ -96,41 +95,12 @@
 #error "PSA_WANT_KEY_TYPE_DH_KEY_PAIR_xxx defined, but not all prerequisites"
 #endif
 
-#if defined(PSA_WANT_KEY_TYPE_ECC_KEY_PAIR)
-#if defined(MBEDTLS_DEPRECATED_REMOVED)
-#error "PSA_WANT_KEY_TYPE_ECC_KEY_PAIR is deprecated and will be removed in a \
-    future version of Mbed TLS. Please switch to new PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_xxx \
-    symbols, where xxx can be: USE, IMPORT, EXPORT, GENERATE, DERIVE"
-#elif defined(MBEDTLS_DEPRECATED_WARNING)
-#warning "PSA_WANT_KEY_TYPE_ECC_KEY_PAIR is deprecated and will be removed in a \
-    future version of Mbed TLS. Please switch to new PSA_WANT_KEY_TYPE_ECC_KEY_PAIR_xxx \
-    symbols, where xxx can be: USE, IMPORT, EXPORT, GENERATE, DERIVE"
-#endif /* MBEDTLS_DEPRECATED_WARNING */
-#endif /* PSA_WANT_KEY_TYPE_ECC_KEY_PAIR */
-
-#if defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR)
-#if defined(MBEDTLS_DEPRECATED_REMOVED)
-#error "PSA_WANT_KEY_TYPE_RSA_KEY_PAIR is deprecated and will be removed in a \
-    future version of Mbed TLS. Please switch to new PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_xxx \
-    symbols, where xxx can be: USE, IMPORT, EXPORT, GENERATE, DERIVE"
-#elif defined(MBEDTLS_DEPRECATED_WARNING)
-#warning "PSA_WANT_KEY_TYPE_RSA_KEY_PAIR is deprecated and will be removed in a \
-    future version of Mbed TLS. Please switch to new PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_xxx \
-    symbols, where xxx can be: USE, IMPORT, EXPORT, GENERATE, DERIVE"
-#endif /* MBEDTLS_DEPRECATED_WARNING */
-#endif /* PSA_WANT_KEY_TYPE_RSA_KEY_PAIR */
-
 #if defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_DERIVE)
 #error "PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_DERIVE defined, but feature is not supported"
 #endif
 
 #if defined(PSA_WANT_KEY_TYPE_DH_KEY_PAIR_DERIVE)
 #error "PSA_WANT_KEY_TYPE_DH_KEY_PAIR_DERIVE defined, but feature is not supported"
-#endif
-
-#if defined(MBEDTLS_SSL_PROTO_TLS1_2) && defined(MBEDTLS_USE_PSA_CRYPTO) && \
-    !(defined(PSA_WANT_ALG_SHA_1) || defined(PSA_WANT_ALG_SHA_256) || defined(PSA_WANT_ALG_SHA_512))
-#error "MBEDTLS_SSL_PROTO_TLS1_2 defined, but not all prerequisites"
 #endif
 
 #if defined(PSA_WANT_ALG_TLS12_ECJPAKE_TO_PMS) && \

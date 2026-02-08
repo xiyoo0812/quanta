@@ -71,16 +71,13 @@ log_info("crc8: {}", tls.crc64("++dsfsdf++gbdfgdfg"))
 --rsa
 
 local pem_pub = [[
------BEGIN RSA PUBLIC KEY-----
 MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC8iJ4Qgsxxn17YuV+MJYhjovE9
 uaU/fpOx5MUZUamsdSDy/cHO/v4zPV6/PPxqJPIurK5J/RCke7t+pHkYu/hMjFr6
 Q2DQ3dhS+7r0WXX3pbf0tu9glwTxCYmwX4GPlF8fDp8qRLGMJbnA9PeNyTsPciOI
 5riO65kqCVthrB5RVwIDAQAB
------END RSA PUBLIC KEY-----
 ]]
 
 local pem_pri = [[
------BEGIN RSA PRIVATE KEY-----
 MIICXAIBAAKBgQC8iJ4Qgsxxn17YuV+MJYhjovE9uaU/fpOx5MUZUamsdSDy/cHO
 /v4zPV6/PPxqJPIurK5J/RCke7t+pHkYu/hMjFr6Q2DQ3dhS+7r0WXX3pbf0tu9g
 lwTxCYmwX4GPlF8fDp8qRLGMJbnA9PeNyTsPciOI5riO65kqCVthrB5RVwIDAQAB
@@ -94,11 +91,10 @@ MJu3+YQTvRAquxPZOT7S/Q5EBrmo0lHkZO1upJmdJhz24+nP7HR1Y0nh8QJBAKPE
 cpM6kx40p9/Ef1wW1/JW8VEsbwv63ahZsPMY0U76+Bs6JMymFZhp5JzG3OXPjT98
 4k1gEqR/zCHpzJhaldECQFQXmxVMQqcjaedNrBkPwn7Qs4dDxGMqLYk2sk7f//E1
 J9rSdD3+UFNRBHrhyAv8xE0q2Diun8J6boOVhbhVknk=
------END RSA PRIVATE KEY-----
 ]]
 
 local prikey = tls.rsa_key()
-prikey.set_prikey(pem_pri .. '\0')
+prikey.set_prikey(pem_pri)
 
 local rsav1 = prikey.encrypt(pem_pub)
 log_info("rsa_encrypt: {}, {}",  #rsav1, lhex_encode(rsav1))

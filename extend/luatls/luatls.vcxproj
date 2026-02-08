@@ -13,68 +13,64 @@
   <ItemGroup>
     <ClInclude Include="src\extend\crc.h" />
     <ClInclude Include="src\extend\xxtea.h" />
-    <ClInclude Include="src\include\mbedtls\aes.h" />
-    <ClInclude Include="src\include\mbedtls\aria.h" />
     <ClInclude Include="src\include\mbedtls\asn1.h" />
     <ClInclude Include="src\include\mbedtls\asn1write.h" />
     <ClInclude Include="src\include\mbedtls\base64.h" />
-    <ClInclude Include="src\include\mbedtls\bignum.h" />
-    <ClInclude Include="src\include\mbedtls\block_cipher.h" />
     <ClInclude Include="src\include\mbedtls\build_info.h" />
-    <ClInclude Include="src\include\mbedtls\camellia.h" />
-    <ClInclude Include="src\include\mbedtls\ccm.h" />
-    <ClInclude Include="src\include\mbedtls\chacha20.h" />
-    <ClInclude Include="src\include\mbedtls\chachapoly.h" />
-    <ClInclude Include="src\include\mbedtls\check_config.h" />
-    <ClInclude Include="src\include\mbedtls\cipher.h" />
-    <ClInclude Include="src\include\mbedtls\cmac.h" />
-    <ClInclude Include="src\include\mbedtls\compat-2.x.h" />
+    <ClInclude Include="src\include\mbedtls\compat-3-crypto.h" />
     <ClInclude Include="src\include\mbedtls\config_adjust_legacy_crypto.h" />
-    <ClInclude Include="src\include\mbedtls\config_adjust_legacy_from_psa.h" />
-    <ClInclude Include="src\include\mbedtls\config_adjust_psa_from_legacy.h" />
-    <ClInclude Include="src\include\mbedtls\config_adjust_psa_superset_legacy.h" />
-    <ClInclude Include="src\include\mbedtls\config_adjust_ssl.h" />
-    <ClInclude Include="src\include\mbedtls\config_adjust_x509.h" />
-    <ClInclude Include="src\include\mbedtls\config_psa.h" />
     <ClInclude Include="src\include\mbedtls\constant_time.h" />
-    <ClInclude Include="src\include\mbedtls\ctr_drbg.h" />
     <ClInclude Include="src\include\mbedtls\debug.h" />
-    <ClInclude Include="src\include\mbedtls\des.h" />
-    <ClInclude Include="src\include\mbedtls\dhm.h" />
-    <ClInclude Include="src\include\mbedtls\ecdh.h" />
-    <ClInclude Include="src\include\mbedtls\ecdsa.h" />
-    <ClInclude Include="src\include\mbedtls\ecjpake.h" />
-    <ClInclude Include="src\include\mbedtls\ecp.h" />
-    <ClInclude Include="src\include\mbedtls\entropy.h" />
     <ClInclude Include="src\include\mbedtls\error.h" />
-    <ClInclude Include="src\include\mbedtls\gcm.h" />
-    <ClInclude Include="src\include\mbedtls\hkdf.h" />
-    <ClInclude Include="src\include\mbedtls\hmac_drbg.h" />
     <ClInclude Include="src\include\mbedtls\lms.h" />
     <ClInclude Include="src\include\mbedtls\mbedtls_config.h" />
     <ClInclude Include="src\include\mbedtls\md.h" />
-    <ClInclude Include="src\include\mbedtls\md5.h" />
     <ClInclude Include="src\include\mbedtls\memory_buffer_alloc.h" />
     <ClInclude Include="src\include\mbedtls\net_sockets.h" />
     <ClInclude Include="src\include\mbedtls\nist_kw.h" />
     <ClInclude Include="src\include\mbedtls\oid.h" />
     <ClInclude Include="src\include\mbedtls\pem.h" />
     <ClInclude Include="src\include\mbedtls\pk.h" />
-    <ClInclude Include="src\include\mbedtls\pkcs12.h" />
-    <ClInclude Include="src\include\mbedtls\pkcs5.h" />
     <ClInclude Include="src\include\mbedtls\pkcs7.h" />
     <ClInclude Include="src\include\mbedtls\platform.h" />
     <ClInclude Include="src\include\mbedtls\platform_time.h" />
     <ClInclude Include="src\include\mbedtls\platform_util.h" />
-    <ClInclude Include="src\include\mbedtls\poly1305.h" />
+    <ClInclude Include="src\include\mbedtls\private\aes.h" />
+    <ClInclude Include="src\include\mbedtls\private\aria.h" />
+    <ClInclude Include="src\include\mbedtls\private\bignum.h" />
+    <ClInclude Include="src\include\mbedtls\private\block_cipher.h" />
+    <ClInclude Include="src\include\mbedtls\private\camellia.h" />
+    <ClInclude Include="src\include\mbedtls\private\ccm.h" />
+    <ClInclude Include="src\include\mbedtls\private\chacha20.h" />
+    <ClInclude Include="src\include\mbedtls\private\chachapoly.h" />
+    <ClInclude Include="src\include\mbedtls\private\cipher.h" />
+    <ClInclude Include="src\include\mbedtls\private\cmac.h" />
+    <ClInclude Include="src\include\mbedtls\private\config_adjust_legacy_from_psa.h" />
+    <ClInclude Include="src\include\mbedtls\private\config_adjust_ssl.h" />
+    <ClInclude Include="src\include\mbedtls\private\config_adjust_test_accelerators.h" />
+    <ClInclude Include="src\include\mbedtls\private\config_adjust_x509.h" />
+    <ClInclude Include="src\include\mbedtls\private\config_psa.h" />
+    <ClInclude Include="src\include\mbedtls\private\ctr_drbg.h" />
+    <ClInclude Include="src\include\mbedtls\private\ecdh.h" />
+    <ClInclude Include="src\include\mbedtls\private\ecdsa.h" />
+    <ClInclude Include="src\include\mbedtls\private\ecjpake.h" />
+    <ClInclude Include="src\include\mbedtls\private\ecp.h" />
+    <ClInclude Include="src\include\mbedtls\private\entropy.h" />
+    <ClInclude Include="src\include\mbedtls\private\error_common.h" />
+    <ClInclude Include="src\include\mbedtls\private\gcm.h" />
+    <ClInclude Include="src\include\mbedtls\private\hmac_drbg.h" />
+    <ClInclude Include="src\include\mbedtls\private\md5.h" />
+    <ClInclude Include="src\include\mbedtls\private\pk_private.h" />
+    <ClInclude Include="src\include\mbedtls\private\pkcs5.h" />
+    <ClInclude Include="src\include\mbedtls\private\poly1305.h" />
+    <ClInclude Include="src\include\mbedtls\private\ripemd160.h" />
+    <ClInclude Include="src\include\mbedtls\private\rsa.h" />
+    <ClInclude Include="src\include\mbedtls\private\sha1.h" />
+    <ClInclude Include="src\include\mbedtls\private\sha256.h" />
+    <ClInclude Include="src\include\mbedtls\private\sha3.h" />
+    <ClInclude Include="src\include\mbedtls\private\sha512.h" />
     <ClInclude Include="src\include\mbedtls\private_access.h" />
     <ClInclude Include="src\include\mbedtls\psa_util.h" />
-    <ClInclude Include="src\include\mbedtls\ripemd160.h" />
-    <ClInclude Include="src\include\mbedtls\rsa.h" />
-    <ClInclude Include="src\include\mbedtls\sha1.h" />
-    <ClInclude Include="src\include\mbedtls\sha256.h" />
-    <ClInclude Include="src\include\mbedtls\sha3.h" />
-    <ClInclude Include="src\include\mbedtls\sha512.h" />
     <ClInclude Include="src\include\mbedtls\ssl.h" />
     <ClInclude Include="src\include\mbedtls\ssl_cache.h" />
     <ClInclude Include="src\include\mbedtls\ssl_ciphersuites.h" />
@@ -87,10 +83,10 @@
     <ClInclude Include="src\include\mbedtls\x509_crl.h" />
     <ClInclude Include="src\include\mbedtls\x509_crt.h" />
     <ClInclude Include="src\include\mbedtls\x509_csr.h" />
-    <ClInclude Include="src\include\psa\build_info.h" />
     <ClInclude Include="src\include\psa\crypto.h" />
     <ClInclude Include="src\include\psa\crypto_adjust_auto_enabled.h" />
     <ClInclude Include="src\include\psa\crypto_adjust_config_dependencies.h" />
+    <ClInclude Include="src\include\psa\crypto_adjust_config_derived.h" />
     <ClInclude Include="src\include\psa\crypto_adjust_config_key_pair_types.h" />
     <ClInclude Include="src\include\psa\crypto_adjust_config_synonyms.h" />
     <ClInclude Include="src\include\psa\crypto_builtin_composites.h" />
@@ -102,14 +98,15 @@
     <ClInclude Include="src\include\psa\crypto_driver_contexts_composites.h" />
     <ClInclude Include="src\include\psa\crypto_driver_contexts_key_derivation.h" />
     <ClInclude Include="src\include\psa\crypto_driver_contexts_primitives.h" />
+    <ClInclude Include="src\include\psa\crypto_driver_random.h" />
     <ClInclude Include="src\include\psa\crypto_extra.h" />
-    <ClInclude Include="src\include\psa\crypto_legacy.h" />
     <ClInclude Include="src\include\psa\crypto_platform.h" />
-    <ClInclude Include="src\include\psa\crypto_se_driver.h" />
     <ClInclude Include="src\include\psa\crypto_sizes.h" />
     <ClInclude Include="src\include\psa\crypto_struct.h" />
     <ClInclude Include="src\include\psa\crypto_types.h" />
     <ClInclude Include="src\include\psa\crypto_values.h" />
+    <ClInclude Include="src\include\tf-psa-crypto\build_info.h" />
+    <ClInclude Include="src\include\tf-psa-crypto\version.h" />
     <ClInclude Include="src\library\aesce.h" />
     <ClInclude Include="src\library\aesni.h" />
     <ClInclude Include="src\library\alignment.h" />
@@ -125,22 +122,24 @@
     <ClInclude Include="src\library\check_crypto_config.h" />
     <ClInclude Include="src\library\cipher_invasive.h" />
     <ClInclude Include="src\library\cipher_wrap.h" />
-    <ClInclude Include="src\library\common.h" />
     <ClInclude Include="src\library\constant_time_impl.h" />
     <ClInclude Include="src\library\constant_time_internal.h" />
+    <ClInclude Include="src\library\crypto_oid.h" />
     <ClInclude Include="src\library\ctr.h" />
     <ClInclude Include="src\library\debug_internal.h" />
-    <ClInclude Include="src\library\ecp_internal_alt.h" />
     <ClInclude Include="src\library\ecp_invasive.h" />
     <ClInclude Include="src\library\entropy_poll.h" />
     <ClInclude Include="src\library\lmots.h" />
+    <ClInclude Include="src\library\mbedtls_check_config.h" />
+    <ClInclude Include="src\library\mbedtls_config_check_before.h" />
+    <ClInclude Include="src\library\mbedtls_config_check_final.h" />
+    <ClInclude Include="src\library\mbedtls_config_check_user.h" />
     <ClInclude Include="src\library\md_psa.h" />
     <ClInclude Include="src\library\md_wrap.h" />
     <ClInclude Include="src\library\mps_common.h" />
     <ClInclude Include="src\library\mps_error.h" />
     <ClInclude Include="src\library\mps_reader.h" />
     <ClInclude Include="src\library\mps_trace.h" />
-    <ClInclude Include="src\library\padlock.h" />
     <ClInclude Include="src\library\pk_internal.h" />
     <ClInclude Include="src\library\pk_wrap.h" />
     <ClInclude Include="src\library\pkwrite.h" />
@@ -159,7 +158,6 @@
     <ClInclude Include="src\library\psa_crypto_pake.h" />
     <ClInclude Include="src\library\psa_crypto_random_impl.h" />
     <ClInclude Include="src\library\psa_crypto_rsa.h" />
-    <ClInclude Include="src\library\psa_crypto_se.h" />
     <ClInclude Include="src\library\psa_crypto_slot_management.h" />
     <ClInclude Include="src\library\psa_crypto_storage.h" />
     <ClInclude Include="src\library\psa_util_internal.h" />
@@ -171,8 +169,14 @@
     <ClInclude Include="src\library\ssl_misc.h" />
     <ClInclude Include="src\library\ssl_tls13_invasive.h" />
     <ClInclude Include="src\library\ssl_tls13_keys.h" />
+    <ClInclude Include="src\library\tf_psa_crypto_check_config.h" />
+    <ClInclude Include="src\library\tf_psa_crypto_common.h" />
+    <ClInclude Include="src\library\tf_psa_crypto_config_check_before.h" />
+    <ClInclude Include="src\library\tf_psa_crypto_config_check_final.h" />
+    <ClInclude Include="src\library\tf_psa_crypto_config_check_user.h" />
     <ClInclude Include="src\library\threading_internal.h" />
     <ClInclude Include="src\library\x509_internal.h" />
+    <ClInclude Include="src\library\x509_oid.h" />
     <ClInclude Include="src\luatls.h" />
   </ItemGroup>
   <ItemGroup>
@@ -200,8 +204,6 @@
     <ClCompile Include="src\library\constant_time.c" />
     <ClCompile Include="src\library\ctr_drbg.c" />
     <ClCompile Include="src\library\debug.c" />
-    <ClCompile Include="src\library\des.c" />
-    <ClCompile Include="src\library\dhm.c" />
     <ClCompile Include="src\library\ecdh.c" />
     <ClCompile Include="src\library\ecdsa.c" />
     <ClCompile Include="src\library\ecjpake.c" />
@@ -212,10 +214,10 @@
     <ClCompile Include="src\library\entropy_poll.c" />
     <ClCompile Include="src\library\error.c" />
     <ClCompile Include="src\library\gcm.c" />
-    <ClCompile Include="src\library\hkdf.c" />
     <ClCompile Include="src\library\hmac_drbg.c" />
     <ClCompile Include="src\library\lmots.c" />
     <ClCompile Include="src\library\lms.c" />
+    <ClCompile Include="src\library\mbedtls_config.c" />
     <ClCompile Include="src\library\md.c" />
     <ClCompile Include="src\library\md5.c" />
     <ClCompile Include="src\library\memory_buffer_alloc.c" />
@@ -224,12 +226,11 @@
     <ClCompile Include="src\library\net_sockets.c" />
     <ClCompile Include="src\library\nist_kw.c" />
     <ClCompile Include="src\library\oid.c" />
-    <ClCompile Include="src\library\padlock.c" />
     <ClCompile Include="src\library\pem.c" />
     <ClCompile Include="src\library\pk.c" />
     <ClCompile Include="src\library\pk_ecc.c" />
+    <ClCompile Include="src\library\pk_rsa.c" />
     <ClCompile Include="src\library\pk_wrap.c" />
-    <ClCompile Include="src\library\pkcs12.c" />
     <ClCompile Include="src\library\pkcs5.c" />
     <ClCompile Include="src\library\pkcs7.c" />
     <ClCompile Include="src\library\pkparse.c" />
@@ -248,7 +249,6 @@
     <ClCompile Include="src\library\psa_crypto_mac.c" />
     <ClCompile Include="src\library\psa_crypto_pake.c" />
     <ClCompile Include="src\library\psa_crypto_rsa.c" />
-    <ClCompile Include="src\library\psa_crypto_se.c" />
     <ClCompile Include="src\library\psa_crypto_slot_management.c" />
     <ClCompile Include="src\library\psa_crypto_storage.c" />
     <ClCompile Include="src\library\psa_its_file.c" />
@@ -274,6 +274,8 @@
     <ClCompile Include="src\library\ssl_tls13_generic.c" />
     <ClCompile Include="src\library\ssl_tls13_keys.c" />
     <ClCompile Include="src\library\ssl_tls13_server.c" />
+    <ClCompile Include="src\library\tf_psa_crypto_config.c" />
+    <ClCompile Include="src\library\tf_psa_crypto_version.c" />
     <ClCompile Include="src\library\threading.c" />
     <ClCompile Include="src\library\timing.c" />
     <ClCompile Include="src\library\version.c" />
@@ -283,6 +285,7 @@
     <ClCompile Include="src\library\x509_crl.c" />
     <ClCompile Include="src\library\x509_crt.c" />
     <ClCompile Include="src\library\x509_csr.c" />
+    <ClCompile Include="src\library\x509_oid.c" />
     <ClCompile Include="src\library\x509write.c" />
     <ClCompile Include="src\library\x509write_crt.c" />
     <ClCompile Include="src\library\x509write_csr.c" />
@@ -334,7 +337,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\src\include;..\lua\lua;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\src\include;.\src\library;..\lua\lua;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -366,7 +369,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\src\include;..\lua\lua;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.\src\include;.\src\library;..\lua\lua;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

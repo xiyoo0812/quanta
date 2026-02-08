@@ -112,6 +112,7 @@ namespace lworker {
                 try {
                     m_lua.table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
                 } catch (const std::length_error&) {
+                    m_read_buf->pop_size(m_codec.get_packet_len());
                     break;
                 } catch (...) {
                     m_read_buf->clean();

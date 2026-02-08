@@ -10,7 +10,7 @@
 #ifndef MBEDTLS_CTR_H
 #define MBEDTLS_CTR_H
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 /**
  * \brief               Increment a big-endian 16-byte value.

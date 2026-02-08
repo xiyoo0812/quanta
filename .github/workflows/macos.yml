@@ -23,4 +23,4 @@ jobs:
         echo "CX=g++-15" >> $GITHUB_ENV
 
     - name: make
-      run: make all
+      run: make -j4 all

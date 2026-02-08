@@ -1,8 +1,10 @@
-/*
- *  Context structure declaration of the Mbed TLS software-based PSA drivers
- *  called through the PSA Crypto driver dispatch layer.
- *  This file contains the context structures of those algorithms which need to
- *  rely on other algorithms, i.e. are 'composite' algorithms.
+/**
+ * \file crypto_builtin_composites.h
+ *
+ * \brief Context structure declaration of the Mbed TLS software-based PSA
+ * drivers called through the PSA Crypto driver dispatch layer. This file
+ * contains the context structures of those algorithms which need to rely on
+ * other algorithms, i.e. are 'composite' algorithms.
  *
  * \note This file may not be included directly. Applications must
  * include psa/crypto.h.
@@ -24,14 +26,18 @@
 
 #include <psa/crypto_driver_common.h>
 
-#include "mbedtls/cmac.h"
+#include "mbedtls/private/cmac.h"
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_GCM)
-#include "mbedtls/gcm.h"
+#include "mbedtls/private/gcm.h"
 #endif
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_CCM)
-#include "mbedtls/ccm.h"
+#include "mbedtls/private/ccm.h"
 #endif
-#include "mbedtls/chachapoly.h"
+#include "mbedtls/private/chachapoly.h"
+
+#if defined(MBEDTLS_PSA_BUILTIN_ALG_ECDH)
+#include "mbedtls/private/ecdh.h"
+#endif
 
 /*
  * MAC multi-part operation definitions.
@@ -102,7 +108,7 @@ typedef struct {
 
 #define MBEDTLS_PSA_AEAD_OPERATION_INIT { 0, 0, 0, 0, { 0 } }
 
-#include "mbedtls/ecdsa.h"
+#include "mbedtls/private/ecdsa.h"
 
 /* Context structure for the Mbed TLS interruptible sign hash implementation. */
 typedef struct {
@@ -177,7 +183,7 @@ typedef struct {
 
 /* EC-JPAKE operation definitions */
 
-#include "mbedtls/ecjpake.h"
+#include "mbedtls/private/ecjpake.h"
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_JPAKE)
 #define MBEDTLS_PSA_BUILTIN_PAKE  1
@@ -210,5 +216,56 @@ typedef struct {
 } mbedtls_psa_pake_operation_t;
 
 #define MBEDTLS_PSA_PAKE_OPERATION_INIT { { 0 } }
+
+typedef struct {
+#if defined(MBEDTLS_ECP_C)
+    mbedtls_ecp_keypair MBEDTLS_PRIVATE(ecp);
+    uint32_t num_ops;
+#else
+    /* Make the struct non-empty if algs not supported. */
+    unsigned MBEDTLS_PRIVATE(dummy);
+#endif
+} mbedtls_psa_generate_key_iop_t;
+
+#if defined(MBEDTLS_ECP_C)
+#define MBEDTLS_PSA_GENERATE_KEY_IOP_INIT { MBEDTLS_ECP_KEYPAIR_INIT, 0 }
+#else
+#define MBEDTLS_PSA_GENERATE_KEY_IOP_INIT { 0 }
+#endif
+
+/* Context structure for the Mbed TLS interruptible key agreement implementation. */
+typedef struct {
+#if defined(MBEDTLS_PSA_BUILTIN_ALG_ECDH) && defined(MBEDTLS_ECP_RESTARTABLE)
+    mbedtls_ecdh_context MBEDTLS_PRIVATE(ctx);
+    uint32_t MBEDTLS_PRIVATE(num_ops);
+#else
+    /* Make the struct non-empty if algs not supported. */
+    unsigned MBEDTLS_PRIVATE(dummy);
+#endif
+} mbedtls_psa_key_agreement_interruptible_operation_t;
+
+#if defined(MBEDTLS_PSA_BUILTIN_ALG_ECDH) && defined(MBEDTLS_ECP_RESTARTABLE)
+#define MBEDTLS_PSA_KEY_AGREEMENT_IOP_INIT { MBEDTLS_ECDH_CONTEXT_INIT, 0 }
+#else
+#define MBEDTLS_PSA_KEY_AGREEMENT_IOP_INIT { 0 }
+#endif
+
+/* Context structure for the Mbed TLS interruptible export public-key implementation. */
+typedef struct {
+#if defined(MBEDTLS_ECP_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    mbedtls_ecp_keypair *MBEDTLS_PRIVATE(key);
+    mbedtls_ecp_restart_ctx MBEDTLS_PRIVATE(restart_ctx);
+    uint32_t MBEDTLS_PRIVATE(num_ops);
+#else
+    /* Make the struct non-empty if algs not supported. */
+    unsigned MBEDTLS_PRIVATE(dummy);
+#endif
+} mbedtls_psa_export_public_key_iop_t;
+
+#if defined(MBEDTLS_ECP_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+#define MBEDTLS_PSA_EXPORT_PUBLIC_KEY_IOP_INIT { NULL, MBEDTLS_ECP_RESTART_INIT, 0 }
+#else
+#define MBEDTLS_PSA_EXPORT_PUBLIC_KEY_IOP_INIT { 0 }
+#endif
 
 #endif /* PSA_CRYPTO_BUILTIN_COMPOSITES_H */

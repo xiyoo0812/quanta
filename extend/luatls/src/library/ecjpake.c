@@ -10,17 +10,15 @@
  * available to members of the Thread Group http://threadgroup.org/
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_ECJPAKE_C)
 
-#include "mbedtls/ecjpake.h"
+#include "mbedtls/private/ecjpake.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
-
-#if !defined(MBEDTLS_ECJPAKE_ALT)
 
 /*
  * Convert a mbedtls_ecjpake_role to identifier string
@@ -820,14 +818,12 @@ cleanup:
 #undef ID_MINE
 #undef ID_PEER
 
-#endif /* ! MBEDTLS_ECJPAKE_ALT */
-
 #if defined(MBEDTLS_SELF_TEST)
 
 #include "mbedtls/platform.h"
 
 #if !defined(MBEDTLS_ECP_DP_SECP256R1_ENABLED) || \
-    !defined(MBEDTLS_MD_CAN_SHA256)
+    !defined(PSA_WANT_ALG_SHA_256)
 int mbedtls_ecjpake_self_test(int verbose)
 {
     (void) verbose;
@@ -839,8 +835,6 @@ static const unsigned char ecjpake_test_password[] = {
     0x74, 0x68, 0x72, 0x65, 0x61, 0x64, 0x6a, 0x70, 0x61, 0x6b, 0x65, 0x74,
     0x65, 0x73, 0x74
 };
-
-#if !defined(MBEDTLS_ECJPAKE_ALT)
 
 static const unsigned char ecjpake_test_x1[] = {
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
@@ -1016,8 +1010,6 @@ cleanup:
     return ret;
 }
 
-#endif /* ! MBEDTLS_ECJPAKE_ALT */
-
 /* For tests we don't need a secure RNG;
  * use the LGC from Numerical Recipes for simplicity */
 static int ecjpake_lgc(void *p, unsigned char *out, size_t len)
@@ -1116,7 +1108,6 @@ int mbedtls_ecjpake_self_test(int verbose)
         mbedtls_printf("passed\n");
     }
 
-#if !defined(MBEDTLS_ECJPAKE_ALT)
     /* 'reference handshake' tests can only be run against implementations
      * for which we have 100% control over how the random ephemeral keys
      * are generated. This is only the case for the internal Mbed TLS
@@ -1186,7 +1177,6 @@ int mbedtls_ecjpake_self_test(int verbose)
     if (verbose != 0) {
         mbedtls_printf("passed\n");
     }
-#endif /* ! MBEDTLS_ECJPAKE_ALT */
 
 cleanup:
     mbedtls_ecjpake_free(&cli);
@@ -1209,7 +1199,7 @@ cleanup:
 
 #undef TEST_ASSERT
 
-#endif /* MBEDTLS_ECP_DP_SECP256R1_ENABLED && MBEDTLS_MD_CAN_SHA256 */
+#endif /* MBEDTLS_ECP_DP_SECP256R1_ENABLED && PSA_WANT_ALG_SHA_256 */
 
 #endif /* MBEDTLS_SELF_TEST */
 

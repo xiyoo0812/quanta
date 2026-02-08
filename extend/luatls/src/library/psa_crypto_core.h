@@ -9,17 +9,9 @@
 #ifndef PSA_CRYPTO_CORE_H
 #define PSA_CRYPTO_CORE_H
 
-/*
- * Include the build-time configuration information header. Here, we do not
- * include `"mbedtls/build_info.h"` directly but `"psa/build_info.h"`, which
- * is basically just an alias to it. This is to ease the maintenance of the
- * TF-PSA-Crypto repository which has a different build system and
- * configuration.
- */
-#include "psa/build_info.h"
+#include "tf-psa-crypto/build_info.h"
 
 #include "psa/crypto.h"
-#include "psa/crypto_se_driver.h"
 #if defined(MBEDTLS_THREADING_C)
 #include "mbedtls/threading.h"
 #endif
@@ -196,20 +188,6 @@ static inline int psa_key_slot_has_readers(const psa_key_slot_t *slot)
     return slot->var.occupied.registered_readers > 0;
 }
 
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-/** Get the SE slot number of a key from the key slot storing its description.
- *
- * \param[in]  slot  The key slot to query. This must be a key slot storing
- *                   the description of a key of a dynamically registered
- *                   secure element, otherwise the behaviour is undefined.
- */
-static inline psa_key_slot_number_t psa_key_slot_get_slot_number(
-    const psa_key_slot_t *slot)
-{
-    return *((psa_key_slot_number_t *) (slot->key.data));
-}
-#endif
-
 /** Completely wipe a slot in memory, including its policy.
  *
  * Persistent storage is not affected.
@@ -279,6 +257,17 @@ psa_status_t psa_copy_key_material_into_slot(psa_key_slot_t *slot,
  * \return              The corresponding PSA error code
  */
 psa_status_t mbedtls_to_psa_error(int ret);
+
+/** Whether PSA is ready for a cipher operation.
+ *
+ * This is a legacy concept inherited from "driver-only" work in Mbed TLS 3.x.
+ * The block_cipher module uses this to determine whether to call a legacy
+ * module directly. This is necessary in some builds involving drivers, where
+ * the PSA RNG is powered by CTR_DRBG, but AES is not accelerated. This is
+ * an implementation kludge that should be fixed.
+ * https://github.com/Mbed-TLS/TF-PSA-Crypto/issues/469
+ */
+int psa_is_ready_for_cipher(void);
 
 /** Import a key in binary format.
  *
@@ -641,6 +630,110 @@ psa_status_t psa_key_agreement_raw_builtin(
     uint8_t *shared_secret,
     size_t shared_secret_size,
     size_t *shared_secret_length);
+
+/**
+ * \brief Get the total number of ops that a key agreement operation has taken
+ *        since its start.
+ *
+ * \note The signature of this function is that of a PSA driver
+ *       key_agreement_get_num_ops entry point. This function behaves as an
+ *       key_agreement_get_num_ops entry point as defined in the PSA driver
+ *       interface specification for transparent drivers.
+ *
+ * \param[in]   operation           The \c mbedtls_psa_key_agreement_interruptible_operation_t to use.
+ *                                  This must be initialized first.
+ *
+ * \return                      Total number of operations.
+ */
+uint32_t mbedtls_psa_key_agreement_iop_get_num_ops(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation);
+
+/**
+ * \brief  Set up a new interruptible key agreement operation.
+ *
+ * \note The signature of this function is that of a PSA driver
+ *       key_agreement_setup entry point. This function behaves as a
+ *       key_agreement_setup entry point as defined in the PSA driver interface
+ *       specification for transparent drivers.
+ *
+ *  \param[in] operation                 The \c psa_key_agreement_iop_t to use.
+ *                                       This must be initialized first.
+ *  \param[in] private_key_attributes    The attributes of the private key to use for the
+ *                                       operation.
+ *  \param[in] private_key_buffer        The buffer containing the private key
+ *                                       context.
+ *  \param[in] private_key_buffer_len    Size of the \p private_key_buffer buffer in
+ *                                       bytes.
+ *  \param[in] peer_key                  The buffer containing the key context
+ *                                       of the peer's public key.
+ *  \param[in]  peer_key_length          Size of the \p peer_key buffer in
+ *                                       bytes.
+ *  \retval #PSA_SUCCESS
+ *         The operation started successfully - call \c psa_key_agreement_complete()
+ *         with the same context to complete the operation
+ * \retval #PSA_ERROR_INVALID_ARGUMENT
+ *         An unsupported, incorrectly formatted or incorrect type of key was
+ *         used.
+ * \retval #PSA_ERROR_NOT_SUPPORTED Either no internal interruptible operations
+ *         are currently supported, or the key type is currently unsupported.
+ * \retval #PSA_ERROR_INSUFFICIENT_MEMORY
+ *         There was insufficient memory to load the key representation.
+ */
+psa_status_t mbedtls_psa_key_agreement_iop_setup(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation,
+    const psa_key_attributes_t *private_key_attributes,
+    const uint8_t *private_key_buffer,
+    size_t private_key_buffer_len,
+    const uint8_t *peer_key,
+    size_t peer_key_length);
+
+/**
+ * \brief Continue and eventually complete a key agreement operation.
+ *
+ * \note The signature of this function is that of a PSA driver
+ *       key_agreement_complete entry point. This function behaves as a
+ *       key_agreement_complete entry point as defined in the PSA driver
+ *       interface specification for transparent drivers.
+ *
+ * \param[in] operation                  The \c mbedtls_psa_key_agreement_interruptible_operation_t to use.
+ *                                       This must be initialized first.
+ * \param[out] shared_secret             The buffer to which the shared secret
+ *                                       is to be written.
+ * \param[in]  shared_secret_size        Size of the \p shared_secret buffer in
+ *                                       bytes.
+ * \param[out] shared_secret_length      On success, the number of bytes that make
+ *                                       up the returned shared secret.
+ * \retval #PSA_SUCCESS
+ *         The shared secret was calculated successfully.
+ * \retval #PSA_ERROR_INVALID_ARGUMENT \emptydescription
+ * \retval #PSA_ERROR_CORRUPTION_DETECTED
+ *         Internal interruptible operations are currently not supported.
+ * \retval #PSA_ERROR_BUFFER_TOO_SMALL
+ *         \p shared_secret_size is too small
+ */
+psa_status_t mbedtls_psa_key_agreement_iop_complete(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation,
+    uint8_t *shared_secret,
+    size_t shared_secret_size,
+    size_t *shared_secret_length);
+
+/**
+ * \brief Abort a key agreement operation.
+ *
+ * \note The signature of this function is that of a PSA driver
+ *       key_agreement_abort entry point. This function behaves as a
+ *       key_agreement_abort entry point as defined in the PSA driver
+ *       interface specification for transparent drivers.
+ *
+ * \param[in] operation                  The \c mbedtls_psa_key_agreement_interruptible_operation_t to abort.
+ *                                       This must be initialized first.
+ *
+ * \retval #PSA_SUCCESS
+ *         The operation was aborted successfully.
+ */
+psa_status_t mbedtls_psa_key_agreement_iop_abort(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation);
+
 
 /**
  * \brief Set the maximum number of ops allowed to be executed by an

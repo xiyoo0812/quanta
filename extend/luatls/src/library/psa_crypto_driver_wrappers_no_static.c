@@ -9,7 +9,7 @@
 
 
 /* BEGIN-common headers */
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 #include "psa_crypto_aead.h"
 #include "psa_crypto_cipher.h"
 #include "psa_crypto_core.h"
@@ -37,7 +37,7 @@
 #endif
 /* Headers for p256 transparent driver */
 #if defined(MBEDTLS_PSA_P256M_DRIVER_ENABLED)
-#include "../3rdparty/p256-m/p256-m_driver_entrypoints.h"
+#include "../drivers/p256-m/p256-m_driver_entrypoints.h"
 
 #endif
 
@@ -57,16 +57,6 @@
 /* BEGIN-Common Macro definitions */
 
 /* END-Common Macro definitions */
-
-/* Support the 'old' SE interface when asked to */
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-/* PSA_CRYPTO_DRIVER_PRESENT is defined when either a new-style or old-style
- * SE driver is present, to avoid unused argument errors at compile time. */
-#ifndef PSA_CRYPTO_DRIVER_PRESENT
-#define PSA_CRYPTO_DRIVER_PRESENT
-#endif
-#include "psa_crypto_se.h"
-#endif
 
 /** Get the key buffer size required to store the key material of a key
  *  associated with an opaque driver.
@@ -129,26 +119,6 @@ psa_status_t psa_driver_wrapper_export_public_key(
     psa_status_t status = PSA_ERROR_INVALID_ARGUMENT;
     psa_key_location_t location = PSA_KEY_LIFETIME_GET_LOCATION(
                                       psa_get_key_lifetime( attributes ) );
-
-    /* Try dynamically-registered SE interface first */
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-    const psa_drv_se_t *drv;
-    psa_drv_se_context_t *drv_context;
-
-    if( psa_get_se_driver( psa_get_key_lifetime(attributes), &drv, &drv_context ) )
-    {
-        if( ( drv->key_management == NULL ) ||
-            ( drv->key_management->p_export_public == NULL ) )
-        {
-            return( PSA_ERROR_NOT_SUPPORTED );
-        }
-
-        return( drv->key_management->p_export_public(
-                    drv_context,
-                    *( (psa_key_slot_number_t *)key_buffer ),
-                    data, data_size, data_length ) );
-    }
-#endif /* MBEDTLS_PSA_CRYPTO_SE_C */
 
     switch( location )
     {

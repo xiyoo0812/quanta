@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_STORAGE_C)
 
@@ -390,87 +390,6 @@ exit:
     mbedtls_zeroize_and_free(loaded_data, storage_data_length);
     return status;
 }
-
-
-
-/****************************************************************/
-/* Transactions */
-/****************************************************************/
-
-#if defined(PSA_CRYPTO_STORAGE_HAS_TRANSACTIONS)
-
-psa_crypto_transaction_t psa_crypto_transaction;
-
-psa_status_t psa_crypto_save_transaction(void)
-{
-    struct psa_storage_info_t p_info;
-    psa_status_t status;
-    status = psa_its_get_info(PSA_CRYPTO_ITS_TRANSACTION_UID, &p_info);
-    if (status == PSA_SUCCESS) {
-        /* This shouldn't happen: we're trying to start a transaction while
-         * there is still a transaction that hasn't been replayed. */
-        return PSA_ERROR_CORRUPTION_DETECTED;
-    } else if (status != PSA_ERROR_DOES_NOT_EXIST) {
-        return status;
-    }
-    return psa_its_set(PSA_CRYPTO_ITS_TRANSACTION_UID,
-                       sizeof(psa_crypto_transaction),
-                       &psa_crypto_transaction,
-                       0);
-}
-
-psa_status_t psa_crypto_load_transaction(void)
-{
-    psa_status_t status;
-    size_t length;
-    status = psa_its_get(PSA_CRYPTO_ITS_TRANSACTION_UID, 0,
-                         sizeof(psa_crypto_transaction),
-                         &psa_crypto_transaction, &length);
-    if (status != PSA_SUCCESS) {
-        return status;
-    }
-    if (length != sizeof(psa_crypto_transaction)) {
-        return PSA_ERROR_DATA_INVALID;
-    }
-    return PSA_SUCCESS;
-}
-
-psa_status_t psa_crypto_stop_transaction(void)
-{
-    psa_status_t status = psa_its_remove(PSA_CRYPTO_ITS_TRANSACTION_UID);
-    /* Whether or not updating the storage succeeded, the transaction is
-     * finished now. It's too late to go back, so zero out the in-memory
-     * data. */
-    memset(&psa_crypto_transaction, 0, sizeof(psa_crypto_transaction));
-    return status;
-}
-
-#endif /* PSA_CRYPTO_STORAGE_HAS_TRANSACTIONS */
-
-
-
-/****************************************************************/
-/* Random generator state */
-/****************************************************************/
-
-#if defined(MBEDTLS_PSA_INJECT_ENTROPY)
-psa_status_t mbedtls_psa_storage_inject_entropy(const unsigned char *seed,
-                                                size_t seed_size)
-{
-    psa_status_t status;
-    struct psa_storage_info_t p_info;
-
-    status = psa_its_get_info(PSA_CRYPTO_ITS_RANDOM_SEED_UID, &p_info);
-
-    if (PSA_ERROR_DOES_NOT_EXIST == status) { /* No seed exists */
-        status = psa_its_set(PSA_CRYPTO_ITS_RANDOM_SEED_UID, seed_size, seed, 0);
-    } else if (PSA_SUCCESS == status) {
-        /* You should not be here. Seed needs to be injected only once */
-        status = PSA_ERROR_NOT_PERMITTED;
-    }
-    return status;
-}
-#endif /* MBEDTLS_PSA_INJECT_ENTROPY */
 
 
 

@@ -5,14 +5,14 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_ENTROPY_C)
 
-#include "mbedtls/entropy.h"
+#include "mbedtls/private/entropy.h"
 #include "entropy_poll.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
@@ -36,18 +36,16 @@ void mbedtls_entropy_init(mbedtls_entropy_context *ctx)
     ctx->accumulator_started = 0;
     mbedtls_md_init(&ctx->accumulator);
 
-    /* Reminder: Update ENTROPY_HAVE_STRONG in the test files
-     *           when adding more strong entropy sources here. */
+    /* Note: the list of sources here must remain consistent with the
+     * definitions of MBEDTLS_ENTROPY_TRUE_SOURCES in
+     * "psa/crypto_adjust_config_derived.h". */
 
-#if !defined(MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES)
-#if !defined(MBEDTLS_NO_PLATFORM_ENTROPY)
-    mbedtls_entropy_add_source(ctx, mbedtls_platform_entropy_poll, NULL,
-                               MBEDTLS_ENTROPY_MIN_PLATFORM,
-                               MBEDTLS_ENTROPY_SOURCE_STRONG);
-#endif
-#if defined(MBEDTLS_ENTROPY_HARDWARE_ALT)
-    mbedtls_entropy_add_source(ctx, mbedtls_hardware_poll, NULL,
-                               MBEDTLS_ENTROPY_MIN_HARDWARE,
+    /* In principle, we could support both a built-in source and a custom
+     * source. However, it isn't a common need. So for now the two
+     * callback functions have the same name and there can only be one. */
+#if defined(MBEDTLS_PSA_BUILTIN_GET_ENTROPY) || defined(MBEDTLS_PSA_DRIVER_GET_ENTROPY)
+    mbedtls_entropy_add_source(ctx, mbedtls_entropy_poll_platform, NULL,
+                               MBEDTLS_ENTROPY_POLL_PLATFORM_MIN,
                                MBEDTLS_ENTROPY_SOURCE_STRONG);
 #endif
 #if defined(MBEDTLS_ENTROPY_NV_SEED)
@@ -56,7 +54,6 @@ void mbedtls_entropy_init(mbedtls_entropy_context *ctx)
                                MBEDTLS_ENTROPY_SOURCE_STRONG);
     ctx->initial_entropy_run = 0;
 #endif
-#endif /* MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES */
 }
 
 void mbedtls_entropy_free(mbedtls_entropy_context *ctx)
@@ -494,7 +491,7 @@ static int entropy_dummy_source(void *data, unsigned char *output,
     return 0;
 }
 
-#if defined(MBEDTLS_ENTROPY_HARDWARE_ALT)
+#if defined(MBEDTLS_PSA_DRIVER_GET_ENTROPY)
 
 static int mbedtls_entropy_source_self_test_gather(unsigned char *buf, size_t buf_len)
 {
@@ -504,8 +501,8 @@ static int mbedtls_entropy_source_self_test_gather(unsigned char *buf, size_t bu
     size_t attempts = buf_len;
 
     while (attempts > 0 && entropy_len < buf_len) {
-        if ((ret = mbedtls_hardware_poll(NULL, buf + entropy_len,
-                                         buf_len - entropy_len, &olen)) != 0) {
+        if ((ret = mbedtls_entropy_poll_platform(NULL, buf + entropy_len,
+                                                 buf_len - entropy_len, &olen)) != 0) {
             return ret;
         }
 
@@ -593,7 +590,7 @@ cleanup:
     return ret != 0;
 }
 
-#endif /* MBEDTLS_ENTROPY_HARDWARE_ALT */
+#endif /* MBEDTLS_PSA_DRIVER_GET_ENTROPY */
 
 /*
  * The actual entropy quality is hard to test, but we can at least
@@ -654,7 +651,7 @@ int mbedtls_entropy_self_test(int verbose)
         }
     }
 
-#if defined(MBEDTLS_ENTROPY_HARDWARE_ALT)
+#if defined(MBEDTLS_PSA_DRIVER_GET_ENTROPY)
     if ((ret = mbedtls_entropy_source_self_test(0)) != 0) {
         goto cleanup;
     }

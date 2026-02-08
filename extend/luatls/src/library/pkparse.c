@@ -5,44 +5,36 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PK_PARSE_C)
 
 #include "mbedtls/pk.h"
+#if defined(MBEDTLS_PK_HAVE_PRIVATE_HEADER)
+#include <mbedtls/private/pk_private.h>
+#endif /* MBEDTLS_PK_HAVE_PRIVATE_HEADER */
 #include "mbedtls/asn1.h"
-#include "mbedtls/oid.h"
+#include "crypto_oid.h"
 #include "mbedtls/platform_util.h"
 #include "mbedtls/platform.h"
-#include "mbedtls/error.h"
-#include "mbedtls/ecp.h"
+#include "mbedtls/private/error_common.h"
+#include "mbedtls/private/ecp.h"
 #include "pk_internal.h"
 
 #include <string.h>
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO)
 #include "mbedtls/psa_util.h"
 #include "psa/crypto.h"
-#endif
-
-/* Key types */
-#if defined(MBEDTLS_RSA_C)
-#include "mbedtls/rsa.h"
-#include "rsa_internal.h"
-#endif
 
 /* Extended formats */
 #if defined(MBEDTLS_PEM_PARSE_C)
 #include "mbedtls/pem.h"
 #endif
 #if defined(MBEDTLS_PKCS5_C)
-#include "mbedtls/pkcs5.h"
-#endif
-#if defined(MBEDTLS_PKCS12_C)
-#include "mbedtls/pkcs12.h"
+#include "mbedtls/private/pkcs5.h"
 #endif
 
-#if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
 
 /***********************************************************************
  *
@@ -427,8 +419,7 @@ static int pk_use_ecparams_rfc8410(const mbedtls_asn1_buf *params,
  * CurvePrivateKey ::= OCTET STRING
  */
 static int pk_parse_key_rfc8410_der(mbedtls_pk_context *pk,
-                                    unsigned char *key, size_t keylen, const unsigned char *end,
-                                    int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+                                    unsigned char *key, size_t keylen, const unsigned char *end)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
@@ -449,10 +440,10 @@ static int pk_parse_key_rfc8410_der(mbedtls_pk_context *pk,
         return ret;
     }
 
-    /* pk_parse_key_pkcs8_unencrypted_der() only supports version 1 PKCS8 keys,
-     * which never contain a public key. As such, derive the public key
-     * unconditionally. */
-    if ((ret = mbedtls_pk_ecc_set_pubkey_from_prv(pk, key, len, f_rng, p_rng)) != 0) {
+    /* mbedtls_pk_parse_key_pkcs8_unencrypted_der() only supports version 1
+     * PKCS8 keys, which never contain a public key. As such, derive the public
+     * key unconditionally. */
+    if ((ret = mbedtls_pk_ecc_set_pubkey_from_prv(pk, key, len)) != 0) {
         return ret;
     }
 
@@ -460,7 +451,7 @@ static int pk_parse_key_rfc8410_der(mbedtls_pk_context *pk,
 }
 #endif /* MBEDTLS_PK_HAVE_RFC8410_CURVES */
 
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 
 /* Get a PK algorithm identifier
  *
@@ -483,7 +474,7 @@ static int pk_get_pk_alg(unsigned char **p,
     }
 
     ret = mbedtls_oid_get_pk_alg(&alg_oid, pk_alg);
-#if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
     if (ret == MBEDTLS_ERR_OID_NOT_FOUND) {
         ret = mbedtls_oid_get_ec_grp_algid(&alg_oid, ec_grp_id);
         if (ret == 0) {
@@ -552,9 +543,9 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
         return ret;
     }
 
-#if defined(MBEDTLS_RSA_C)
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
     if (pk_alg == MBEDTLS_PK_RSA) {
-        ret = mbedtls_rsa_parse_pubkey(mbedtls_pk_rsa(*pk), *p, (size_t) (end - *p));
+        ret = mbedtls_pk_rsa_set_pubkey(pk, *p, (size_t) (end - *p));
         if (ret == 0) {
             /* On success all the input has been consumed by the parsing function. */
             *p += end - *p;
@@ -566,8 +557,8 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
             ret = MBEDTLS_ERR_PK_INVALID_PUBKEY;
         }
     } else
-#endif /* MBEDTLS_RSA_C */
-#if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
+#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
     if (pk_alg == MBEDTLS_PK_ECKEY_DH || pk_alg == MBEDTLS_PK_ECKEY) {
 #if defined(MBEDTLS_PK_HAVE_RFC8410_CURVES)
         if (MBEDTLS_PK_IS_RFC8410_GROUP_ID(ec_grp_id)) {
@@ -582,7 +573,7 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
             *p += end - *p;
         }
     } else
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
     ret = MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
 
     if (ret == 0 && *p != end) {
@@ -597,13 +588,12 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
     return ret;
 }
 
-#if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
 /*
  * Parse a SEC1 encoded private EC key
  */
 static int pk_parse_key_sec1_der(mbedtls_pk_context *pk,
-                                 const unsigned char *key, size_t keylen,
-                                 int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+                                 const unsigned char *key, size_t keylen)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     int version, pubkey_done;
@@ -711,14 +701,14 @@ static int pk_parse_key_sec1_der(mbedtls_pk_context *pk,
     }
 
     if (!pubkey_done) {
-        if ((ret = mbedtls_pk_ecc_set_pubkey_from_prv(pk, d, d_len, f_rng, p_rng)) != 0) {
+        if ((ret = mbedtls_pk_ecc_set_pubkey_from_prv(pk, d, d_len)) != 0) {
             return ret;
         }
     }
 
     return 0;
 }
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 
 /***********************************************************************
  *
@@ -739,10 +729,9 @@ static int pk_parse_key_sec1_der(mbedtls_pk_context *pk,
  *   PK context on failure.
  *
  */
-static int pk_parse_key_pkcs8_unencrypted_der(
+MBEDTLS_STATIC_TESTABLE int mbedtls_pk_parse_key_pkcs8_unencrypted_der(
     mbedtls_pk_context *pk,
-    const unsigned char *key, size_t keylen,
-    int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+    const unsigned char *key, size_t keylen)
 {
     int ret, version;
     size_t len;
@@ -752,11 +741,6 @@ static int pk_parse_key_pkcs8_unencrypted_der(
     mbedtls_pk_type_t pk_alg = MBEDTLS_PK_NONE;
     mbedtls_ecp_group_id ec_grp_id = MBEDTLS_ECP_DP_NONE;
     const mbedtls_pk_info_t *pk_info;
-
-#if !defined(MBEDTLS_PK_HAVE_ECC_KEYS)
-    (void) f_rng;
-    (void) p_rng;
-#endif
 
     /*
      * This function parses the PrivateKeyInfo object (PKCS#8 v1.2 = RFC 5208)
@@ -810,23 +794,22 @@ static int pk_parse_key_pkcs8_unencrypted_der(
         return ret;
     }
 
-#if defined(MBEDTLS_RSA_C)
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
     if (pk_alg == MBEDTLS_PK_RSA) {
-        if ((ret = mbedtls_rsa_parse_key(mbedtls_pk_rsa(*pk), p, len)) != 0) {
+        if ((ret = mbedtls_pk_rsa_set_key(pk, p, len)) != 0) {
             mbedtls_pk_free(pk);
             return ret;
         }
     } else
-#endif /* MBEDTLS_RSA_C */
-#if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
+#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
     if (pk_alg == MBEDTLS_PK_ECKEY || pk_alg == MBEDTLS_PK_ECKEY_DH) {
 #if defined(MBEDTLS_PK_HAVE_RFC8410_CURVES)
         if (MBEDTLS_PK_IS_RFC8410_GROUP_ID(ec_grp_id)) {
             if ((ret =
                      pk_use_ecparams_rfc8410(&params, ec_grp_id, pk)) != 0 ||
                 (ret =
-                     pk_parse_key_rfc8410_der(pk, p, len, end, f_rng,
-                                              p_rng)) != 0) {
+                     pk_parse_key_rfc8410_der(pk, p, len, end)) != 0) {
                 mbedtls_pk_free(pk);
                 return ret;
             }
@@ -834,13 +817,13 @@ static int pk_parse_key_pkcs8_unencrypted_der(
 #endif
         {
             if ((ret = pk_use_ecparams(&params, pk)) != 0 ||
-                (ret = pk_parse_key_sec1_der(pk, p, len, f_rng, p_rng)) != 0) {
+                (ret = pk_parse_key_sec1_der(pk, p, len)) != 0) {
                 mbedtls_pk_free(pk);
                 return ret;
             }
         }
     } else
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
     return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
 
     end = p + len;
@@ -861,22 +844,17 @@ static int pk_parse_key_pkcs8_unencrypted_der(
  * free it after use.
  *
  */
-#if defined(MBEDTLS_PKCS12_C) || defined(MBEDTLS_PKCS5_C)
+#if defined(MBEDTLS_PKCS5_C)
 MBEDTLS_STATIC_TESTABLE int mbedtls_pk_parse_key_pkcs8_encrypted_der(
     mbedtls_pk_context *pk,
     unsigned char *key, size_t keylen,
-    const unsigned char *pwd, size_t pwdlen,
-    int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+    const unsigned char *pwd, size_t pwdlen)
 {
     int ret, decrypted = 0;
     size_t len;
     unsigned char *buf;
     unsigned char *p, *end;
     mbedtls_asn1_buf pbe_alg_oid, pbe_params;
-#if defined(MBEDTLS_PKCS12_C) && defined(MBEDTLS_CIPHER_PADDING_PKCS7) && defined(MBEDTLS_CIPHER_C)
-    mbedtls_cipher_type_t cipher_alg;
-    mbedtls_md_type_t md_alg;
-#endif
     size_t outlen = 0;
 
     p = key;
@@ -918,24 +896,6 @@ MBEDTLS_STATIC_TESTABLE int mbedtls_pk_parse_key_pkcs8_encrypted_der(
 
     buf = p;
 
-    /*
-     * Decrypt EncryptedData with appropriate PBE
-     */
-#if defined(MBEDTLS_PKCS12_C) && defined(MBEDTLS_CIPHER_PADDING_PKCS7) && defined(MBEDTLS_CIPHER_C)
-    if (mbedtls_oid_get_pkcs12_pbe_alg(&pbe_alg_oid, &md_alg, &cipher_alg) == 0) {
-        if ((ret = mbedtls_pkcs12_pbe_ext(&pbe_params, MBEDTLS_PKCS12_PBE_DECRYPT,
-                                          cipher_alg, md_alg,
-                                          pwd, pwdlen, p, len, buf, len, &outlen)) != 0) {
-            if (ret == MBEDTLS_ERR_PKCS12_PASSWORD_MISMATCH) {
-                return MBEDTLS_ERR_PK_PASSWORD_MISMATCH;
-            }
-
-            return ret;
-        }
-
-        decrypted = 1;
-    } else
-#endif /* MBEDTLS_PKCS12_C && MBEDTLS_CIPHER_PADDING_PKCS7 && MBEDTLS_CIPHER_C */
 #if defined(MBEDTLS_PKCS5_C) && defined(MBEDTLS_CIPHER_PADDING_PKCS7) && defined(MBEDTLS_CIPHER_C)
     if (MBEDTLS_OID_CMP(MBEDTLS_OID_PKCS5_PBES2, &pbe_alg_oid) == 0) {
         if ((ret = mbedtls_pkcs5_pbes2_ext(&pbe_params, MBEDTLS_PKCS5_DECRYPT, pwd, pwdlen,
@@ -957,9 +917,9 @@ MBEDTLS_STATIC_TESTABLE int mbedtls_pk_parse_key_pkcs8_encrypted_der(
     if (decrypted == 0) {
         return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
     }
-    return pk_parse_key_pkcs8_unencrypted_der(pk, buf, outlen, f_rng, p_rng);
+    return mbedtls_pk_parse_key_pkcs8_unencrypted_der(pk, buf, outlen);
 }
-#endif /* MBEDTLS_PKCS12_C || MBEDTLS_PKCS5_C */
+#endif /* MBEDTLS_PKCS5_C */
 
 /***********************************************************************
  *
@@ -972,8 +932,7 @@ MBEDTLS_STATIC_TESTABLE int mbedtls_pk_parse_key_pkcs8_encrypted_der(
  */
 int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
                          const unsigned char *key, size_t keylen,
-                         const unsigned char *pwd, size_t pwdlen,
-                         int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+                         const unsigned char *pwd, size_t pwdlen)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     const mbedtls_pk_info_t *pk_info;
@@ -989,7 +948,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
 #if defined(MBEDTLS_PEM_PARSE_C)
     mbedtls_pem_init(&pem);
 
-#if defined(MBEDTLS_RSA_C)
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
     /* Avoid calling mbedtls_pem_read_buffer() on non-null-terminated string */
     if (key[keylen - 1] != '\0') {
         ret = MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT;
@@ -1002,8 +961,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     if (ret == 0) {
         pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_RSA);
         if ((ret = mbedtls_pk_setup(pk, pk_info)) != 0 ||
-            (ret = mbedtls_rsa_parse_key(mbedtls_pk_rsa(*pk),
-                                         pem.buf, pem.buflen)) != 0) {
+            (ret = mbedtls_pk_rsa_set_key(pk, pem.buf, pem.buflen)) != 0) {
             mbedtls_pk_free(pk);
         }
 
@@ -1016,9 +974,9 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     } else if (ret != MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT) {
         return ret;
     }
-#endif /* MBEDTLS_RSA_C */
+#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
 
-#if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
     /* Avoid calling mbedtls_pem_read_buffer() on non-null-terminated string */
     if (key[keylen - 1] != '\0') {
         ret = MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT;
@@ -1033,8 +991,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
 
         if ((ret = mbedtls_pk_setup(pk, pk_info)) != 0 ||
             (ret = pk_parse_key_sec1_der(pk,
-                                         pem.buf, pem.buflen,
-                                         f_rng, p_rng)) != 0) {
+                                         pem.buf, pem.buflen)) != 0) {
             mbedtls_pk_free(pk);
         }
 
@@ -1047,7 +1004,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     } else if (ret != MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT) {
         return ret;
     }
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 
     /* Avoid calling mbedtls_pem_read_buffer() on non-null-terminated string */
     if (key[keylen - 1] != '\0') {
@@ -1058,8 +1015,9 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
                                       key, NULL, 0, &len);
     }
     if (ret == 0) {
-        if ((ret = pk_parse_key_pkcs8_unencrypted_der(pk,
-                                                      pem.buf, pem.buflen, f_rng, p_rng)) != 0) {
+        if ((ret = mbedtls_pk_parse_key_pkcs8_unencrypted_der(pk,
+                                                              pem.buf,
+                                                              pem.buflen)) != 0) {
             mbedtls_pk_free(pk);
         }
 
@@ -1069,7 +1027,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
         return ret;
     }
 
-#if defined(MBEDTLS_PKCS12_C) || defined(MBEDTLS_PKCS5_C)
+#if defined(MBEDTLS_PKCS5_C)
     /* Avoid calling mbedtls_pem_read_buffer() on non-null-terminated string */
     if (key[keylen - 1] != '\0') {
         ret = MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT;
@@ -1081,7 +1039,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     }
     if (ret == 0) {
         if ((ret = mbedtls_pk_parse_key_pkcs8_encrypted_der(pk, pem.buf, pem.buflen,
-                                                            pwd, pwdlen, f_rng, p_rng)) != 0) {
+                                                            pwd, pwdlen)) != 0) {
             mbedtls_pk_free(pk);
         }
 
@@ -1090,7 +1048,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     } else if (ret != MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT) {
         return ret;
     }
-#endif /* MBEDTLS_PKCS12_C || MBEDTLS_PKCS5_C */
+#endif /* MBEDTLS_PKCS5_C */
 #else
     ((void) pwd);
     ((void) pwdlen);
@@ -1103,7 +1061,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
      * We try the different DER format parsers to see if one passes without
      * error
      */
-#if defined(MBEDTLS_PKCS12_C) || defined(MBEDTLS_PKCS5_C)
+#if defined(MBEDTLS_PKCS5_C)
     if (pwdlen != 0) {
         unsigned char *key_copy;
 
@@ -1114,7 +1072,7 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
         memcpy(key_copy, key, keylen);
 
         ret = mbedtls_pk_parse_key_pkcs8_encrypted_der(pk, key_copy, keylen,
-                                                       pwd, pwdlen, f_rng, p_rng);
+                                                       pwd, pwdlen);
 
         mbedtls_zeroize_and_free(key_copy, keylen);
     }
@@ -1129,9 +1087,9 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     if (ret == MBEDTLS_ERR_PK_PASSWORD_MISMATCH) {
         return ret;
     }
-#endif /* MBEDTLS_PKCS12_C || MBEDTLS_PKCS5_C */
+#endif /* MBEDTLS_PKCS5_C */
 
-    ret = pk_parse_key_pkcs8_unencrypted_der(pk, key, keylen, f_rng, p_rng);
+    ret = mbedtls_pk_parse_key_pkcs8_unencrypted_der(pk, key, keylen);
     if (ret == 0) {
         return 0;
     }
@@ -1139,35 +1097,35 @@ int mbedtls_pk_parse_key(mbedtls_pk_context *pk,
     mbedtls_pk_free(pk);
     mbedtls_pk_init(pk);
 
-#if defined(MBEDTLS_RSA_C)
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
 
     pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_RSA);
     if (mbedtls_pk_setup(pk, pk_info) == 0 &&
-        mbedtls_rsa_parse_key(mbedtls_pk_rsa(*pk), key, keylen) == 0) {
+        mbedtls_pk_rsa_set_key(pk, key, keylen) == 0) {
         return 0;
     }
 
     mbedtls_pk_free(pk);
     mbedtls_pk_init(pk);
-#endif /* MBEDTLS_RSA_C */
+#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
 
-#if defined(MBEDTLS_PK_HAVE_ECC_KEYS)
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
     pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY);
     if (mbedtls_pk_setup(pk, pk_info) == 0 &&
         pk_parse_key_sec1_der(pk,
-                              key, keylen, f_rng, p_rng) == 0) {
+                              key, keylen) == 0) {
         return 0;
     }
     mbedtls_pk_free(pk);
-#endif /* MBEDTLS_PK_HAVE_ECC_KEYS */
+#endif /* PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY */
 
-    /* If MBEDTLS_RSA_C is defined but MBEDTLS_PK_HAVE_ECC_KEYS isn't,
+    /* If PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY is defined but PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY isn't,
      * it is ok to leave the PK context initialized but not
      * freed: It is the caller's responsibility to call pk_init()
      * before calling this function, and to call pk_free()
-     * when it fails. If MBEDTLS_PK_HAVE_ECC_KEYS is defined but MBEDTLS_RSA_C
-     * isn't, this leads to mbedtls_pk_free() being called
-     * twice, once here and once by the caller, but this is
+     * when it fails. If PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY is defined but
+     * PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY isn't, this leads to mbedtls_pk_free()
+     * being called twice, once here and once by the caller, but this is
      * also ok and in line with the mbedtls_pk_free() calls
      * on failed PEM parsing attempts. */
 
@@ -1182,9 +1140,9 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char *p;
-#if defined(MBEDTLS_RSA_C)
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
     const mbedtls_pk_info_t *pk_info;
-#endif
+#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
 #if defined(MBEDTLS_PEM_PARSE_C)
     size_t len;
     mbedtls_pem_context pem;
@@ -1196,7 +1154,7 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
 
 #if defined(MBEDTLS_PEM_PARSE_C)
     mbedtls_pem_init(&pem);
-#if defined(MBEDTLS_RSA_C)
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
     /* Avoid calling mbedtls_pem_read_buffer() on non-null-terminated string */
     if (key[keylen - 1] != '\0') {
         ret = MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT;
@@ -1218,7 +1176,7 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
             return ret;
         }
 
-        if ((ret = mbedtls_rsa_parse_pubkey(mbedtls_pk_rsa(*ctx), p, pem.buflen)) != 0) {
+        if ((ret = mbedtls_pk_rsa_set_pubkey(ctx, p, pem.buflen)) != 0) {
             mbedtls_pk_free(ctx);
         }
 
@@ -1228,7 +1186,7 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
         mbedtls_pem_free(&pem);
         return ret;
     }
-#endif /* MBEDTLS_RSA_C */
+#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
 
     /* Avoid calling mbedtls_pem_read_buffer() on non-null-terminated string */
     if (key[keylen - 1] != '\0') {
@@ -1255,7 +1213,7 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     mbedtls_pem_free(&pem);
 #endif /* MBEDTLS_PEM_PARSE_C */
 
-#if defined(MBEDTLS_RSA_C)
+#if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY)
     if ((pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) == NULL) {
         return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
     }
@@ -1265,15 +1223,15 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     }
 
     p = (unsigned char *) key;
-    ret = mbedtls_rsa_parse_pubkey(mbedtls_pk_rsa(*ctx), p, keylen);
+    ret = mbedtls_pk_rsa_set_pubkey(ctx, p, keylen);
     if (ret == 0) {
         return ret;
     }
     mbedtls_pk_free(ctx);
-    if (ret != MBEDTLS_ERR_ASN1_UNEXPECTED_TAG) {
+    if (ret != MBEDTLS_ERR_PK_INVALID_PUBKEY) {
         return ret;
     }
-#endif /* MBEDTLS_RSA_C */
+#endif /* PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY */
     p = (unsigned char *) key;
 
     ret = mbedtls_pk_parse_subpubkey(&p, p + keylen, ctx);
@@ -1345,8 +1303,7 @@ int mbedtls_pk_load_file(const char *path, unsigned char **buf, size_t *n)
  * Load and parse a private key
  */
 int mbedtls_pk_parse_keyfile(mbedtls_pk_context *ctx,
-                             const char *path, const char *pwd,
-                             int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+                             const char *path, const char *pwd)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t n;
@@ -1357,10 +1314,10 @@ int mbedtls_pk_parse_keyfile(mbedtls_pk_context *ctx,
     }
 
     if (pwd == NULL) {
-        ret = mbedtls_pk_parse_key(ctx, buf, n, NULL, 0, f_rng, p_rng);
+        ret = mbedtls_pk_parse_key(ctx, buf, n, NULL, 0);
     } else {
         ret = mbedtls_pk_parse_key(ctx, buf, n,
-                                   (const unsigned char *) pwd, strlen(pwd), f_rng, p_rng);
+                                   (const unsigned char *) pwd, strlen(pwd));
     }
 
     mbedtls_zeroize_and_free(buf, n);

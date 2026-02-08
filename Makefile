@@ -6,50 +6,96 @@ empty:
 
 CUR_DIR = $(shell pwd)/
 
-.PHONY: clean all project lua extend core 
+.PHONY: clean all luas extend core 
 
-all: clean project backup
+all:
+	@start=$$(date +%s); \
+	$(MAKE) clean; \
+	$(MAKE) $(MAKEFLAGS) luas extend core backup; \
+	end=$$(date +%s); \
+	duration=$$((end - start)); \
+	echo "make all cost time: $$duration second"
 
-quanta: clean project 
-
-project: lua extend core 
+proj:
+	@start=$$(date +%s); \
+	$(MAKE) clean; \
+	$(MAKE) $(MAKEFLAGS) luas extend core ; \
+	end=$$(date +%s%3N); \
+	duration=$$((end - start)); \
+	echo "make proj cost time: $$duration second"
 
 clean:
 	rm -rf temp;
 
-core:
-	cd core/luabus; make SOLUTION_DIR=$(CUR_DIR) -f luabus.mak;
-	cd core/quanta; make SOLUTION_DIR=$(CUR_DIR) -f quanta.mak;
+luabus: lualib
+	$(MAKE) -C core/luabus -f luabus.mak SOLUTION_DIR=$(CUR_DIR)
+quanta: luabus
+	$(MAKE) -C core/quanta -f quanta.mak SOLUTION_DIR=$(CUR_DIR)
 
-backup:
-	cd extend/laoi; make SOLUTION_DIR=$(CUR_DIR) -f laoi.mak;
-	cd extend/ldetour; make SOLUTION_DIR=$(CUR_DIR) -f ldetour.mak;
-	cd extend/lmdb; make SOLUTION_DIR=$(CUR_DIR) -f lmdb.mak;
-	cd extend/lsqlite; make SOLUTION_DIR=$(CUR_DIR) -f lsqlite.mak;
-	cd extend/ltoml; make SOLUTION_DIR=$(CUR_DIR) -f ltoml.mak;
-	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f luac.mak;
-	cd extend/luakcp; make SOLUTION_DIR=$(CUR_DIR) -f luakcp.mak;
-	cd extend/luaxml; make SOLUTION_DIR=$(CUR_DIR) -f luaxml.mak;
-	cd extend/luazip; make SOLUTION_DIR=$(CUR_DIR) -f luazip.mak;
-	cd extend/lunqlite; make SOLUTION_DIR=$(CUR_DIR) -f lunqlite.mak;
-	cd extend/lyaml; make SOLUTION_DIR=$(CUR_DIR) -f lyaml.mak;
+core: luabus quanta
+.PHONY: luabus quanta
 
-extend:
-	cd extend/lbson; make SOLUTION_DIR=$(CUR_DIR) -f lbson.mak;
-	cd extend/lcodec; make SOLUTION_DIR=$(CUR_DIR) -f lcodec.mak;
-	cd extend/ljson; make SOLUTION_DIR=$(CUR_DIR) -f ljson.mak;
-	cd extend/lprofile; make SOLUTION_DIR=$(CUR_DIR) -f lprofile.mak;
-	cd extend/lsmdb; make SOLUTION_DIR=$(CUR_DIR) -f lsmdb.mak;
-	cd extend/lstdfs; make SOLUTION_DIR=$(CUR_DIR) -f lstdfs.mak;
-	cd extend/ltimer; make SOLUTION_DIR=$(CUR_DIR) -f ltimer.mak;
-	cd extend/luacsv; make SOLUTION_DIR=$(CUR_DIR) -f luacsv.mak;
-	cd extend/lualog; make SOLUTION_DIR=$(CUR_DIR) -f lualog.mak;
-	cd extend/luapb; make SOLUTION_DIR=$(CUR_DIR) -f luapb.mak;
-	cd extend/luatls; make SOLUTION_DIR=$(CUR_DIR) -f luatls.mak;
-	cd extend/luaxlsx; make SOLUTION_DIR=$(CUR_DIR) -f luaxlsx.mak;
-	cd extend/lworker; make SOLUTION_DIR=$(CUR_DIR) -f lworker.mak;
+laoi: lualib
+	$(MAKE) -C extend/laoi -f laoi.mak SOLUTION_DIR=$(CUR_DIR)
+ldetour: lualib
+	$(MAKE) -C extend/ldetour -f ldetour.mak SOLUTION_DIR=$(CUR_DIR)
+lmdb: lualib
+	$(MAKE) -C extend/lmdb -f lmdb.mak SOLUTION_DIR=$(CUR_DIR)
+lsqlite: lualib
+	$(MAKE) -C extend/lsqlite -f lsqlite.mak SOLUTION_DIR=$(CUR_DIR)
+ltoml: lualib
+	$(MAKE) -C extend/ltoml -f ltoml.mak SOLUTION_DIR=$(CUR_DIR)
+luac: lualib
+	$(MAKE) -C extend/lua -f luac.mak SOLUTION_DIR=$(CUR_DIR)
+luakcp: lualib
+	$(MAKE) -C extend/luakcp -f luakcp.mak SOLUTION_DIR=$(CUR_DIR)
+luaxml: lualib
+	$(MAKE) -C extend/luaxml -f luaxml.mak SOLUTION_DIR=$(CUR_DIR)
+luazip: lualib
+	$(MAKE) -C extend/luazip -f luazip.mak SOLUTION_DIR=$(CUR_DIR)
+lunqlite: lualib
+	$(MAKE) -C extend/lunqlite -f lunqlite.mak SOLUTION_DIR=$(CUR_DIR)
+lyaml: lualib
+	$(MAKE) -C extend/lyaml -f lyaml.mak SOLUTION_DIR=$(CUR_DIR)
 
-lua:
-	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lualib.mak;
-	cd extend/lua; make SOLUTION_DIR=$(CUR_DIR) -f lua.mak;
+backup: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lunqlite lyaml
+.PHONY: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lunqlite lyaml
+
+lbson: lualib
+	$(MAKE) -C extend/lbson -f lbson.mak SOLUTION_DIR=$(CUR_DIR)
+lcodec: lualib
+	$(MAKE) -C extend/lcodec -f lcodec.mak SOLUTION_DIR=$(CUR_DIR)
+ljson: lualib
+	$(MAKE) -C extend/ljson -f ljson.mak SOLUTION_DIR=$(CUR_DIR)
+lprofile: lualib
+	$(MAKE) -C extend/lprofile -f lprofile.mak SOLUTION_DIR=$(CUR_DIR)
+lsmdb: lualib
+	$(MAKE) -C extend/lsmdb -f lsmdb.mak SOLUTION_DIR=$(CUR_DIR)
+lstdfs: lualib
+	$(MAKE) -C extend/lstdfs -f lstdfs.mak SOLUTION_DIR=$(CUR_DIR)
+ltimer: lualib
+	$(MAKE) -C extend/ltimer -f ltimer.mak SOLUTION_DIR=$(CUR_DIR)
+luacsv: lualib
+	$(MAKE) -C extend/luacsv -f luacsv.mak SOLUTION_DIR=$(CUR_DIR)
+lualog: lualib
+	$(MAKE) -C extend/lualog -f lualog.mak SOLUTION_DIR=$(CUR_DIR)
+luapb: lualib
+	$(MAKE) -C extend/luapb -f luapb.mak SOLUTION_DIR=$(CUR_DIR)
+luatls: lualib
+	$(MAKE) -C extend/luatls -f luatls.mak SOLUTION_DIR=$(CUR_DIR)
+luaxlsx: lualib
+	$(MAKE) -C extend/luaxlsx -f luaxlsx.mak SOLUTION_DIR=$(CUR_DIR)
+lworker: lualib
+	$(MAKE) -C extend/lworker -f lworker.mak SOLUTION_DIR=$(CUR_DIR)
+
+extend: lbson lcodec ljson lprofile lsmdb lstdfs ltimer luacsv lualog luapb luatls luaxlsx lworker
+.PHONY: lbson lcodec ljson lprofile lsmdb lstdfs ltimer luacsv lualog luapb luatls luaxlsx lworker
+
+lualib: 
+	$(MAKE) -C extend/lua -f lualib.mak SOLUTION_DIR=$(CUR_DIR)
+lua: lualib
+	$(MAKE) -C extend/lua -f lua.mak SOLUTION_DIR=$(CUR_DIR)
+
+luas: lualib lua
+.PHONY: lualib lua
 

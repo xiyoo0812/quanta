@@ -24,9 +24,9 @@
 #ifndef MBEDTLS_BN_MUL_H
 #define MBEDTLS_BN_MUL_H
 
-#include "mbedtls/build_info.h"
+#include "tf-psa-crypto/build_info.h"
 
-#include "mbedtls/bignum.h"
+#include "mbedtls/private/bignum.h"
 
 
 /*
@@ -243,7 +243,7 @@
 /*
  * There are some issues around different compilers requiring different constraint
  * syntax for updating pointers from assembly code (see notes for
- * MBEDTLS_ASM_AARCH64_PTR_CONSTRAINT in common.h), especially on aarch64_32 (aka ILP32).
+ * MBEDTLS_ASM_AARCH64_PTR_CONSTRAINT in tf_psa_crypto_common.h), especially on aarch64_32 (aka ILP32).
  *
  * For this reason we cast the pointers to/from uintptr_t here.
  */

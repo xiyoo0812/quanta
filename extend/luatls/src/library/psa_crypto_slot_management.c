@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -16,15 +16,13 @@
 #include "psa_crypto_driver_wrappers_no_static.h"
 #include "psa_crypto_slot_management.h"
 #include "psa_crypto_storage.h"
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-#include "psa_crypto_se.h"
-#endif
 
 #include <stdlib.h>
 #include <string.h>
 #include "mbedtls/platform.h"
 #if defined(MBEDTLS_THREADING_C)
 #include "mbedtls/threading.h"
+#include "threading_internal.h"
 #endif
 
 
@@ -691,25 +689,6 @@ static psa_status_t psa_load_persistent_key_into_slot(psa_key_slot_t *slot)
         goto exit;
     }
 
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-    /* Special handling is required for loading keys associated with a
-     * dynamically registered SE interface. */
-    const psa_drv_se_t *drv;
-    psa_drv_se_context_t *drv_context;
-    if (psa_get_se_driver(slot->attr.lifetime, &drv, &drv_context)) {
-        psa_se_key_data_storage_t *data;
-
-        if (key_data_length != sizeof(*data)) {
-            status = PSA_ERROR_DATA_INVALID;
-            goto exit;
-        }
-        data = (psa_se_key_data_storage_t *) key_data;
-        status = psa_copy_key_material_into_slot(
-            slot, data->slot_number, sizeof(data->slot_number));
-        goto exit;
-    }
-#endif /* MBEDTLS_PSA_CRYPTO_SE_C */
-
     status = psa_copy_key_material_into_slot(slot, key_data, key_data_length);
     if (status != PSA_SUCCESS) {
         goto exit;
@@ -940,31 +919,6 @@ psa_status_t psa_unregister_read_under_mutex(psa_key_slot_t *slot)
     return status;
 }
 
-psa_status_t psa_validate_key_location(psa_key_lifetime_t lifetime,
-                                       psa_se_drv_table_entry_t **p_drv)
-{
-    if (psa_key_lifetime_is_external(lifetime)) {
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-        /* Check whether a driver is registered against this lifetime */
-        psa_se_drv_table_entry_t *driver = psa_get_se_driver_entry(lifetime);
-        if (driver != NULL) {
-            if (p_drv != NULL) {
-                *p_drv = driver;
-            }
-            return PSA_SUCCESS;
-        }
-#else /* MBEDTLS_PSA_CRYPTO_SE_C */
-        (void) p_drv;
-#endif /* MBEDTLS_PSA_CRYPTO_SE_C */
-
-        /* Key location for external keys gets checked by the wrapper */
-        return PSA_SUCCESS;
-    } else {
-        /* Local/internal keys are always valid */
-        return PSA_SUCCESS;
-    }
-}
-
 psa_status_t psa_validate_key_persistence(psa_key_lifetime_t lifetime)
 {
     if (PSA_KEY_LIFETIME_IS_VOLATILE(lifetime)) {
@@ -982,75 +936,6 @@ psa_status_t psa_validate_key_persistence(psa_key_lifetime_t lifetime)
         return PSA_ERROR_NOT_SUPPORTED;
 #endif /* !MBEDTLS_PSA_CRYPTO_STORAGE_C */
     }
-}
-
-psa_status_t psa_open_key(mbedtls_svc_key_id_t key, psa_key_handle_t *handle)
-{
-#if defined(MBEDTLS_PSA_CRYPTO_STORAGE_C) || \
-    defined(MBEDTLS_PSA_CRYPTO_BUILTIN_KEYS)
-    psa_status_t status;
-    psa_key_slot_t *slot;
-
-    status = psa_get_and_lock_key_slot(key, &slot);
-    if (status != PSA_SUCCESS) {
-        *handle = PSA_KEY_HANDLE_INIT;
-        if (status == PSA_ERROR_INVALID_HANDLE) {
-            status = PSA_ERROR_DOES_NOT_EXIST;
-        }
-
-        return status;
-    }
-
-    *handle = key;
-
-    return psa_unregister_read_under_mutex(slot);
-
-#else /* MBEDTLS_PSA_CRYPTO_STORAGE_C || MBEDTLS_PSA_CRYPTO_BUILTIN_KEYS */
-    (void) key;
-    *handle = PSA_KEY_HANDLE_INIT;
-    return PSA_ERROR_NOT_SUPPORTED;
-#endif /* MBEDTLS_PSA_CRYPTO_STORAGE_C || MBEDTLS_PSA_CRYPTO_BUILTIN_KEYS */
-}
-
-psa_status_t psa_close_key(psa_key_handle_t handle)
-{
-    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
-    psa_key_slot_t *slot;
-
-    if (psa_key_handle_is_null(handle)) {
-        return PSA_SUCCESS;
-    }
-
-#if defined(MBEDTLS_THREADING_C)
-    /* We need to set status as success, otherwise CORRUPTION_DETECTED
-     * would be returned if the lock fails. */
-    status = PSA_SUCCESS;
-    PSA_THREADING_CHK_RET(mbedtls_mutex_lock(
-                              &mbedtls_threading_key_slot_mutex));
-#endif
-    status = psa_get_and_lock_key_slot_in_memory(handle, &slot);
-    if (status != PSA_SUCCESS) {
-        if (status == PSA_ERROR_DOES_NOT_EXIST) {
-            status = PSA_ERROR_INVALID_HANDLE;
-        }
-#if defined(MBEDTLS_THREADING_C)
-        PSA_THREADING_CHK_RET(mbedtls_mutex_unlock(
-                                  &mbedtls_threading_key_slot_mutex));
-#endif
-        return status;
-    }
-
-    if (slot->var.occupied.registered_readers == 1) {
-        status = psa_wipe_key_slot(slot);
-    } else {
-        status = psa_unregister_read(slot);
-    }
-#if defined(MBEDTLS_THREADING_C)
-    PSA_THREADING_CHK_RET(mbedtls_mutex_unlock(
-                              &mbedtls_threading_key_slot_mutex));
-#endif
-
-    return status;
 }
 
 psa_status_t psa_purge_key(mbedtls_svc_key_id_t key)

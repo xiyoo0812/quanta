@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -15,11 +15,11 @@
 #include "psa_crypto_pake.h"
 #include "psa_crypto_slot_management.h"
 
-#include <mbedtls/ecjpake.h>
+#include <mbedtls/private/ecjpake.h>
 #include "psa_util_internal.h"
 
 #include <mbedtls/platform.h>
-#include <mbedtls/error.h>
+#include <mbedtls/private/error_common.h>
 #include <string.h>
 
 /*
@@ -28,7 +28,6 @@
  *   psa_pake_setup()
  *   |
  *   |-- In any order:
- *   |   | psa_pake_set_password_key()
  *   |   | psa_pake_set_user()
  *   |   | psa_pake_set_peer()
  *   |   | psa_pake_set_role()
@@ -63,7 +62,7 @@
  *   |           | psa_pake_input(PSA_PAKE_STEP_ZK_PUBLIC)
  *   |           | psa_pake_input(PSA_PAKE_STEP_ZK_PROOF)
  *   |
- *   psa_pake_get_implicit_key()
+ *   psa_pake_get_shared_key()
  *   psa_pake_abort()
  */
 
@@ -104,15 +103,15 @@
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_JPAKE)
 static psa_status_t mbedtls_ecjpake_to_psa_error(int ret)
 {
+    /* Only legacy error codes need to be translated.
+     * Those are either a low-level error code (-127..-2)
+     * or a high-level error code (<= -0x1000). */
+    if (ret > -0x1000 && ret <= -0x80) {
+        return (psa_status_t) ret;
+    }
     switch (ret) {
-        case MBEDTLS_ERR_MPI_BAD_INPUT_DATA:
-        case MBEDTLS_ERR_ECP_BAD_INPUT_DATA:
         case MBEDTLS_ERR_ECP_INVALID_KEY:
-        case MBEDTLS_ERR_ECP_VERIFY_FAILED:
             return PSA_ERROR_DATA_INVALID;
-        case MBEDTLS_ERR_MPI_BUFFER_TOO_SMALL:
-        case MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL:
-            return PSA_ERROR_BUFFER_TOO_SMALL;
         case MBEDTLS_ERR_MD_FEATURE_UNAVAILABLE:
             return PSA_ERROR_NOT_SUPPORTED;
         case MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED:
@@ -221,11 +220,11 @@ psa_status_t mbedtls_psa_pake_setup(mbedtls_psa_pake_operation_t *operation,
     operation->alg = cipher_suite.algorithm;
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_JPAKE)
-    if (cipher_suite.algorithm == PSA_ALG_JPAKE) {
+    if (PSA_ALG_IS_JPAKE(cipher_suite.algorithm)) {
         if (cipher_suite.type != PSA_PAKE_PRIMITIVE_TYPE_ECC ||
             cipher_suite.family != PSA_ECC_FAMILY_SECP_R1 ||
             cipher_suite.bits != 256 ||
-            cipher_suite.hash != PSA_ALG_SHA_256) {
+            PSA_ALG_GET_HASH(cipher_suite.algorithm) != PSA_ALG_SHA_256) {
             status = PSA_ERROR_NOT_SUPPORTED;
             goto error;
         }
@@ -305,7 +304,7 @@ static psa_status_t mbedtls_psa_pake_output_internal(
      * and data is sliced down by parsing the ECPoint records in order
      * to return the right parts on each step.
      */
-    if (operation->alg == PSA_ALG_JPAKE) {
+    if (PSA_ALG_IS_JPAKE(operation->alg)) {
         /* Initialize & write round on KEY_SHARE sequences */
         if (step == PSA_JPAKE_X1_STEP_KEY_SHARE) {
             ret = mbedtls_ecjpake_write_round_one(&operation->ctx.jpake,
@@ -425,7 +424,7 @@ static psa_status_t mbedtls_psa_pake_input_internal(
      *
      * This causes any input error to be only detected on the last step.
      */
-    if (operation->alg == PSA_ALG_JPAKE) {
+    if (PSA_ALG_IS_JPAKE(operation->alg)) {
         /*
          * Copy input to local buffer and format it as the Mbed TLS API
          * expects, i.e. as defined by draft-cragie-tls-ecjpake-01 section 7.
@@ -526,7 +525,7 @@ psa_status_t mbedtls_psa_pake_get_implicit_key(
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_JPAKE)
-    if (operation->alg == PSA_ALG_JPAKE) {
+    if (PSA_ALG_IS_JPAKE(operation->alg)) {
         ret = mbedtls_ecjpake_write_shared_key(&operation->ctx.jpake,
                                                output,
                                                output_size,
@@ -552,7 +551,7 @@ psa_status_t mbedtls_psa_pake_abort(mbedtls_psa_pake_operation_t *operation)
     operation->password_len = 0;
 
 #if defined(MBEDTLS_PSA_BUILTIN_ALG_JPAKE)
-    if (operation->alg == PSA_ALG_JPAKE) {
+    if (PSA_ALG_IS_JPAKE(operation->alg)) {
         operation->role = MBEDTLS_ECJPAKE_NONE;
         mbedtls_platform_zeroize(operation->buffer, sizeof(operation->buffer));
         operation->buffer_length = 0;

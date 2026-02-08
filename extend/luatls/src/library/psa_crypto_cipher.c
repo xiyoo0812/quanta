@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -15,8 +15,8 @@
 #include "psa_crypto_random_impl.h"
 #include "constant_time_internal.h"
 
-#include "mbedtls/cipher.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/cipher.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
@@ -44,9 +44,6 @@ static psa_status_t mbedtls_cipher_validate_values(
 #endif
 #if !defined(PSA_WANT_KEY_TYPE_CHACHA20)
     MBEDTLS_ASSUME(key_type != PSA_KEY_TYPE_CHACHA20);
-#endif
-#if !defined(PSA_WANT_KEY_TYPE_DES)
-    MBEDTLS_ASSUME(key_type != PSA_KEY_TYPE_DES);
 #endif
 #if !defined(PSA_WANT_ALG_CCM)
     MBEDTLS_ASSUME(alg != PSA_ALG_AEAD_WITH_SHORTENED_TAG(PSA_ALG_CCM, 0));
@@ -112,7 +109,6 @@ static psa_status_t mbedtls_cipher_validate_values(
         alg == PSA_ALG_CMAC) {
         if (key_type == PSA_KEY_TYPE_AES ||
             key_type == PSA_KEY_TYPE_ARIA ||
-            key_type == PSA_KEY_TYPE_DES ||
             key_type == PSA_KEY_TYPE_CAMELLIA) {
             return PSA_SUCCESS;
         }
@@ -124,16 +120,10 @@ static psa_status_t mbedtls_cipher_validate_values(
 psa_status_t mbedtls_cipher_values_from_psa(
     psa_algorithm_t alg,
     psa_key_type_t key_type,
-    size_t *key_bits,
     mbedtls_cipher_mode_t *mode,
     mbedtls_cipher_id_t *cipher_id)
 {
     mbedtls_cipher_id_t cipher_id_tmp;
-    /* Only DES modifies key_bits */
-#if !defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_DES)
-    (void) key_bits;
-#endif
-
     if (PSA_ALG_IS_AEAD(alg)) {
         alg = PSA_ALG_AEAD_WITH_SHORTENED_TAG(alg, 0);
     }
@@ -215,23 +205,6 @@ psa_status_t mbedtls_cipher_values_from_psa(
             cipher_id_tmp = MBEDTLS_CIPHER_ID_ARIA;
             break;
 #endif
-#if defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_DES)
-        case PSA_KEY_TYPE_DES:
-            /* key_bits is 64 for Single-DES, 128 for two-key Triple-DES,
-             * and 192 for three-key Triple-DES. */
-            if (*key_bits == 64) {
-                cipher_id_tmp = MBEDTLS_CIPHER_ID_DES;
-            } else {
-                cipher_id_tmp = MBEDTLS_CIPHER_ID_3DES;
-            }
-            /* mbedtls doesn't recognize two-key Triple-DES as an algorithm,
-             * but two-key Triple-DES is functionally three-key Triple-DES
-             * with K1=K3, so that's how we present it to mbedtls. */
-            if (*key_bits == 128) {
-                *key_bits = 192;
-            }
-            break;
-#endif
 #if defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_CAMELLIA)
         case PSA_KEY_TYPE_CAMELLIA:
             cipher_id_tmp = MBEDTLS_CIPHER_ID_CAMELLIA;
@@ -263,7 +236,7 @@ const mbedtls_cipher_info_t *mbedtls_cipher_info_from_psa(
     psa_status_t status;
     mbedtls_cipher_id_t cipher_id_tmp = MBEDTLS_CIPHER_ID_NONE;
 
-    status = mbedtls_cipher_values_from_psa(alg, key_type, &key_bits, &mode, &cipher_id_tmp);
+    status = mbedtls_cipher_values_from_psa(alg, key_type, &mode, &cipher_id_tmp);
     if (status != PSA_SUCCESS) {
         return NULL;
     }
@@ -306,17 +279,6 @@ static psa_status_t psa_cipher_setup(
         goto exit;
     }
 
-#if defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_DES)
-    if (key_type == PSA_KEY_TYPE_DES && key_bits == 128) {
-        /* Two-key Triple-DES is 3-key Triple-DES with K1=K3 */
-        uint8_t keys[24];
-        memcpy(keys, key_buffer, 16);
-        memcpy(keys + 16, key_buffer, 8);
-        ret = mbedtls_cipher_setkey(&operation->ctx.cipher,
-                                    keys,
-                                    192, cipher_operation);
-    } else
-#endif
     {
         ret = mbedtls_cipher_setkey(&operation->ctx.cipher, key_buffer,
                                     (int) key_bits, cipher_operation);

@@ -6,12 +6,12 @@
  *
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_RSA_C)
 
-#include "mbedtls/rsa.h"
-#include "mbedtls/bignum.h"
+#include "mbedtls/private/rsa.h"
+#include "mbedtls/private/bignum.h"
 #include "bignum_internal.h"
 #include "rsa_alt_helpers.h"
 

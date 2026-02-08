@@ -5,13 +5,13 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_BIGNUM_C) && defined(MBEDTLS_ECP_WITH_MPI_UINT)
 
 #include <string.h>
 
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 #include "mbedtls/platform_util.h"
 
 #include "mbedtls/platform.h"
