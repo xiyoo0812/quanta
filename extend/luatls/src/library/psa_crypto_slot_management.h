@@ -11,7 +11,6 @@
 
 #include "psa/crypto.h"
 #include "psa_crypto_core.h"
-#include "psa_crypto_se.h"
 
 /** Range of volatile key identifiers.
  *
@@ -302,23 +301,6 @@ static inline int psa_key_lifetime_is_external(psa_key_lifetime_t lifetime)
     return PSA_KEY_LIFETIME_GET_LOCATION(lifetime)
            != PSA_KEY_LOCATION_LOCAL_STORAGE;
 }
-
-/** Validate a key's location.
- *
- * This function checks whether the key's attributes point to a location that
- * is known to the PSA Core, and returns the driver function table if the key
- * is to be found in an external location.
- *
- * \param[in] lifetime      The key lifetime attribute.
- * \param[out] p_drv        On success, when a key is located in external
- *                          storage, returns a pointer to the driver table
- *                          associated with the key's storage location.
- *
- * \retval #PSA_SUCCESS \emptydescription
- * \retval #PSA_ERROR_INVALID_ARGUMENT \emptydescription
- */
-psa_status_t psa_validate_key_location(psa_key_lifetime_t lifetime,
-                                       psa_se_drv_table_entry_t **p_drv);
 
 /** Validate the persistence of a key.
  *

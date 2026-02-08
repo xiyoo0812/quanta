@@ -5,13 +5,13 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PLATFORM_C)
 
 #include "mbedtls/platform.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 /* The compile time configuration of memory allocation via the macros
  * MBEDTLS_PLATFORM_{FREE/CALLOC}_MACRO takes precedence over the runtime

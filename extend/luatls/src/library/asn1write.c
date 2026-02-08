@@ -5,13 +5,14 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
-#if defined(MBEDTLS_ASN1_WRITE_C) || defined(MBEDTLS_X509_USE_C) || \
-    defined(MBEDTLS_PSA_UTIL_HAVE_ECDSA)
+#if defined(MBEDTLS_ASN1_WRITE_C) || defined(MBEDTLS_ASN1_PARSE_C) || \
+    defined(PSA_HAVE_ALG_SOME_ECDSA)
 
 #include "mbedtls/asn1write.h"
-#include "mbedtls/error.h"
+#include "bignum_core.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
@@ -63,7 +64,7 @@ int mbedtls_asn1_write_tag(unsigned char **p, const unsigned char *start, unsign
 
     return 1;
 }
-#endif /* MBEDTLS_ASN1_WRITE_C || MBEDTLS_X509_USE_C || MBEDTLS_PSA_UTIL_HAVE_ECDSA */
+#endif /* MBEDTLS_ASN1_WRITE_C || MBEDTLS_ASN1_PARSE_C || PSA_HAVE_ALG_SOME_ECDSA */
 
 #if defined(MBEDTLS_ASN1_WRITE_C)
 static int mbedtls_asn1_write_len_and_tag(unsigned char **p,
@@ -436,5 +437,71 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
     }
 
     return cur;
+}
+
+int mbedtls_asn1_write_integer(unsigned char **p,
+                               unsigned char *start,
+                               const unsigned char *integer,
+                               size_t integer_length)
+{
+
+    int asn1_frame_size = 0;
+    unsigned int number_of_leading_zeros = 0;
+    size_t output_buffer_size = (*p-start);
+    const unsigned char *integer_start = NULL;
+
+    // asn1 specifies that the bignum must be encoded in the minimum allowable space, so leading zeros must be removed.
+    while ((number_of_leading_zeros < integer_length)
+           && (integer[number_of_leading_zeros] == 0x0)) {
+        number_of_leading_zeros++;
+    }
+
+    if (integer != NULL) {
+        integer_start = integer + number_of_leading_zeros;
+    }
+
+    integer_length -= number_of_leading_zeros;
+
+    if (output_buffer_size < integer_length) {
+        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;//TC3 buffer less than integer size.
+    }
+
+    memset(start, 0, output_buffer_size);
+
+    /* Special case - if integer_length is zero, the value is zero and it
+     * should be encoded as one byte. */
+    if (integer_length == 0) {
+        if (output_buffer_size < 1) {
+            return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+        }
+
+        *p -= 1;
+        integer_length = 1;
+
+    } else {
+
+        *p -= integer_length;
+
+        memcpy(*p, integer_start, integer_length);
+
+        // DER format assumes 2s complement for numbers, so the leftmost bit
+        // should be 0.
+        if (**p & 0x80) {
+            if (*p - start < 1) {
+                return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+            }
+
+            *--(*p) = 0x00;
+            integer_length += 1;
+        }
+    }
+
+    asn1_frame_size =
+        mbedtls_asn1_write_len_and_tag(p, start, integer_length, MBEDTLS_ASN1_INTEGER);
+    if (asn1_frame_size < 0) {
+        return asn1_frame_size;//TC4 mbedtls_asn1_write_len_and_tag failed.
+    }
+
+    return asn1_frame_size;
 }
 #endif /* MBEDTLS_ASN1_WRITE_C */

@@ -9,7 +9,7 @@
 #ifndef PSA_CRYPTO_CIPHER_H
 #define PSA_CRYPTO_CIPHER_H
 
-#include <mbedtls/cipher.h>
+#include <mbedtls/private/cipher.h>
 #include <psa/crypto.h>
 
 /** Get Mbed TLS cipher information given the cipher algorithm PSA identifier
@@ -18,8 +18,6 @@
  *
  * \param[in]      alg          PSA cipher algorithm identifier
  * \param[in]      key_type     PSA key type
- * \param[in,out]  key_bits     Size of the key in bits. The value provided in input
- *                              might be updated if necessary.
  * \param[out]     mode         Mbed TLS cipher mode
  * \param[out]     cipher_id    Mbed TLS cipher algorithm identifier
  *
@@ -30,7 +28,7 @@
  */
 
 psa_status_t mbedtls_cipher_values_from_psa(psa_algorithm_t alg, psa_key_type_t key_type,
-                                            size_t *key_bits, mbedtls_cipher_mode_t *mode,
+                                            mbedtls_cipher_mode_t *mode,
                                             mbedtls_cipher_id_t *cipher_id);
 
 #if defined(MBEDTLS_CIPHER_C)

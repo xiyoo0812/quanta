@@ -14,7 +14,7 @@
 #ifndef MBEDTLS_LMOTS_H
 #define MBEDTLS_LMOTS_H
 
-#include "mbedtls/build_info.h"
+#include "tf-psa-crypto/build_info.h"
 
 #include "psa/crypto.h"
 
@@ -263,9 +263,6 @@ int mbedtls_lmots_calculate_public_key(mbedtls_lmots_public_t *ctx,
  *
  * \param ctx                The initialized LMOTS context from which the
  *                           private key will be read.
- * \param f_rng              The RNG function to be used for signature
- *                           generation.
- * \param p_rng              The RNG context to be passed to f_rng
  * \param msg                The buffer from which the message will be read.
  * \param msg_size           The size of the message that will be read.
  * \param sig                The buf into which the signature will be stored.
@@ -275,8 +272,7 @@ int mbedtls_lmots_calculate_public_key(mbedtls_lmots_public_t *ctx,
  * \return         A non-zero error code on failure.
  */
 int mbedtls_lmots_sign(mbedtls_lmots_private_t *ctx,
-                       int (*f_rng)(void *, unsigned char *, size_t),
-                       void *p_rng, const unsigned char *msg, size_t msg_size,
+                       const unsigned char *msg, size_t msg_size,
                        unsigned char *sig, size_t sig_size, size_t *sig_len);
 
 #endif /* defined(MBEDTLS_LMS_PRIVATE) */

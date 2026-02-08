@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -17,11 +17,11 @@
 #include <string.h>
 #include "mbedtls/platform.h"
 
-#include "mbedtls/ccm.h"
-#include "mbedtls/chachapoly.h"
-#include "mbedtls/cipher.h"
-#include "mbedtls/gcm.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/ccm.h"
+#include "mbedtls/private/chachapoly.h"
+#include "mbedtls/private/cipher.h"
+#include "mbedtls/private/gcm.h"
+#include "mbedtls/private/error_common.h"
 
 static psa_status_t psa_aead_setup(
     mbedtls_psa_aead_operation_t *operation,
@@ -33,11 +33,10 @@ static psa_status_t psa_aead_setup(
     psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
     mbedtls_cipher_id_t cipher_id;
     mbedtls_cipher_mode_t mode;
-    size_t key_bits = attributes->bits;
     (void) key_buffer_size;
 
     status = mbedtls_cipher_values_from_psa(alg, attributes->type,
-                                            &key_bits, &mode, &cipher_id);
+                                            &mode, &cipher_id);
     if (status != PSA_SUCCESS) {
         return status;
     }
@@ -56,7 +55,7 @@ static psa_status_t psa_aead_setup(
             mbedtls_ccm_init(&operation->ctx.ccm);
             status = mbedtls_to_psa_error(
                 mbedtls_ccm_setkey(&operation->ctx.ccm, cipher_id,
-                                   key_buffer, (unsigned int) key_bits));
+                                   key_buffer, (unsigned int) attributes->bits));
             if (status != PSA_SUCCESS) {
                 return status;
             }
@@ -76,7 +75,7 @@ static psa_status_t psa_aead_setup(
             mbedtls_gcm_init(&operation->ctx.gcm);
             status = mbedtls_to_psa_error(
                 mbedtls_gcm_setkey(&operation->ctx.gcm, cipher_id,
-                                   key_buffer, (unsigned int) key_bits));
+                                   key_buffer, (unsigned int) attributes->bits));
             if (status != PSA_SUCCESS) {
                 return status;
             }

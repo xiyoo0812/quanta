@@ -14,7 +14,7 @@
 #ifndef MBEDTLS_RSA_INTERNAL_H
 #define MBEDTLS_RSA_INTERNAL_H
 
-#include "mbedtls/rsa.h"
+#include "mbedtls/private/rsa.h"
 #include "mbedtls/asn1.h"
 
 /**

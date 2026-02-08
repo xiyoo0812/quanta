@@ -54,14 +54,7 @@
 extern "C" {
 #endif
 
-/*
- * Include the build-time configuration information header. Here, we do not
- * include `"mbedtls/build_info.h"` directly but `"psa/build_info.h"`, which
- * is basically just an alias to it. This is to ease the maintenance of the
- * TF-PSA-Crypto repository which has a different build system and
- * configuration.
- */
-#include "psa/build_info.h"
+#include "tf-psa-crypto/build_info.h"
 
 /* Include the context definition for the compiled-in drivers for the primitive
  * algorithms. */
@@ -237,34 +230,6 @@ struct psa_custom_key_parameters_s {
  */
 #define PSA_CUSTOM_KEY_PARAMETERS_INIT { 0 }
 
-#ifndef __cplusplus
-/* Omitted when compiling in C++, because one of the parameters is a
- * pointer to a struct with a flexible array member, and that is not
- * standard C++.
- * https://github.com/Mbed-TLS/mbedtls/issues/9020
- */
-/* This is a deprecated variant of `struct psa_custom_key_parameters_s`.
- * It has exactly the same layout, plus an extra field which is a flexible
- * array member. Thus a `const struct psa_key_production_parameters_s *`
- * can be passed to any function that reads a
- * `const struct psa_custom_key_parameters_s *`.
- */
-struct psa_key_production_parameters_s {
-    uint32_t flags;
-    uint8_t data[];
-};
-
-/** The default production parameters for key generation or key derivation.
- *
- * Calling psa_generate_key_ext() or psa_key_derivation_output_key_ext()
- * with `params=PSA_KEY_PRODUCTION_PARAMETERS_INIT` and
- * `params_data_length == 0` is equivalent to
- * calling psa_generate_key() or psa_key_derivation_output_key()
- * respectively.
- */
-#define PSA_KEY_PRODUCTION_PARAMETERS_INIT { 0 }
-#endif /* !__cplusplus */
-
 struct psa_key_policy_s {
     psa_key_usage_t MBEDTLS_PRIVATE(usage);
     psa_algorithm_t MBEDTLS_PRIVATE(alg);
@@ -293,10 +258,6 @@ typedef uint16_t psa_key_bits_t;
 #define PSA_MAX_KEY_BITS 0xfff8
 
 struct psa_key_attributes_s {
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-    psa_key_slot_number_t MBEDTLS_PRIVATE(slot_number);
-    int MBEDTLS_PRIVATE(has_slot_number);
-#endif /* MBEDTLS_PSA_CRYPTO_SE_C */
     psa_key_type_t MBEDTLS_PRIVATE(type);
     psa_key_bits_t MBEDTLS_PRIVATE(bits);
     psa_key_lifetime_t MBEDTLS_PRIVATE(lifetime);
@@ -315,16 +276,10 @@ struct psa_key_attributes_s {
     mbedtls_svc_key_id_t MBEDTLS_PRIVATE(id);
 };
 
-#if defined(MBEDTLS_PSA_CRYPTO_SE_C)
-#define PSA_KEY_ATTRIBUTES_MAYBE_SLOT_NUMBER 0, 0,
-#else
-#define PSA_KEY_ATTRIBUTES_MAYBE_SLOT_NUMBER
-#endif
-#define PSA_KEY_ATTRIBUTES_INIT { PSA_KEY_ATTRIBUTES_MAYBE_SLOT_NUMBER \
-                                      PSA_KEY_TYPE_NONE, 0,            \
-                                      PSA_KEY_LIFETIME_VOLATILE,       \
-                                      PSA_KEY_POLICY_INIT,             \
-                                      MBEDTLS_SVC_KEY_ID_INIT }
+#define PSA_KEY_ATTRIBUTES_INIT { PSA_KEY_TYPE_NONE, 0,            \
+                                  PSA_KEY_LIFETIME_VOLATILE,       \
+                                  PSA_KEY_POLICY_INIT,             \
+                                  MBEDTLS_SVC_KEY_ID_INIT }
 
 static inline struct psa_key_attributes_s psa_key_attributes_init(void)
 {
@@ -516,6 +471,118 @@ psa_verify_hash_interruptible_operation_init(void)
 {
     const struct psa_verify_hash_interruptible_operation_s v =
         PSA_VERIFY_HASH_INTERRUPTIBLE_OPERATION_INIT;
+
+    return v;
+}
+
+/**
+ * \brief The context for PSA interruptible key agreement.
+ */
+struct psa_key_agreement_iop_s {
+#if defined(MBEDTLS_PSA_CRYPTO_CLIENT) && !defined(MBEDTLS_PSA_CRYPTO_C)
+    mbedtls_psa_client_handle_t handle;
+#else
+    /**
+     *  Unique ID indicating which driver got assigned to do the
+     * operation. Since driver contexts are driver-specific, swapping
+     * drivers halfway through the operation is not supported.
+     * ID values are auto-generated in psa_crypto_driver_wrappers.h
+     * ID value zero means the context is not valid or not assigned to
+     * any driver (i.e. none of the driver contexts are active).
+     */
+    unsigned int MBEDTLS_PRIVATE(id);
+    mbedtls_psa_key_agreement_interruptible_operation_t MBEDTLS_PRIVATE(mbedtls_ctx);
+    uint32_t MBEDTLS_PRIVATE(num_ops);
+    psa_key_attributes_t MBEDTLS_PRIVATE(attributes);
+    unsigned int MBEDTLS_PRIVATE(error_occurred) : 1;
+#endif
+};
+
+#if defined(MBEDTLS_PSA_CRYPTO_CLIENT) && !defined(MBEDTLS_PSA_CRYPTO_C)
+#define PSA_KEY_AGREEMENT_IOP_INIT { 0 }
+#else
+#define PSA_KEY_AGREEMENT_IOP_INIT { 0, MBEDTLS_PSA_KEY_AGREEMENT_IOP_INIT, 0, \
+                                     PSA_KEY_ATTRIBUTES_INIT, 0 }
+#endif
+
+static inline struct psa_key_agreement_iop_s
+psa_key_agreement_iop_init(void)
+{
+    const struct psa_key_agreement_iop_s v = PSA_KEY_AGREEMENT_IOP_INIT;
+
+    return v;
+}
+
+/**
+ * \brief The context for PSA interruptible key generation.
+ */
+struct psa_generate_key_iop_s {
+#if defined(MBEDTLS_PSA_CRYPTO_CLIENT) && !defined(MBEDTLS_PSA_CRYPTO_C)
+    mbedtls_psa_client_handle_t handle;
+#else
+    /**
+     *  Unique ID indicating which driver got assigned to do the
+     * operation. Since driver contexts are driver-specific, swapping
+     * drivers halfway through the operation is not supported.
+     * ID values are auto-generated in psa_crypto_driver_wrappers.h
+     * ID value zero means the context is not valid or not assigned to
+     * any driver (i.e. none of the driver contexts are active).
+     */
+    unsigned int MBEDTLS_PRIVATE(id);
+    mbedtls_psa_generate_key_iop_t MBEDTLS_PRIVATE(ctx);
+    psa_key_attributes_t MBEDTLS_PRIVATE(attributes);
+    unsigned int MBEDTLS_PRIVATE(error_occurred) : 1;
+    uint32_t MBEDTLS_PRIVATE(num_ops);
+#endif
+};
+
+#if defined(MBEDTLS_PSA_CRYPTO_CLIENT) && !defined(MBEDTLS_PSA_CRYPTO_C)
+#define PSA_GENERATE_KEY_IOP_INIT { 0 }
+#else
+#define PSA_GENERATE_KEY_IOP_INIT { 0, MBEDTLS_PSA_GENERATE_KEY_IOP_INIT, PSA_KEY_ATTRIBUTES_INIT, \
+                                    0, 0 }
+#endif
+
+static inline struct psa_generate_key_iop_s
+psa_generate_key_iop_init(void)
+{
+    const struct psa_generate_key_iop_s v = PSA_GENERATE_KEY_IOP_INIT;
+
+    return v;
+}
+
+/**
+ * \brief The context for PSA interruptible export public-key.
+ */
+struct psa_export_public_key_iop_s {
+#if defined(MBEDTLS_PSA_CRYPTO_CLIENT) && !defined(MBEDTLS_PSA_CRYPTO_C)
+    mbedtls_psa_client_handle_t handle;
+#else
+    /**
+     *  Unique ID indicating which driver got assigned to do the
+     * operation. Since driver contexts are driver-specific, swapping
+     * drivers halfway through the operation is not supported.
+     * ID values are auto-generated in psa_crypto_driver_wrappers.h
+     * ID value zero means the context is not valid or not assigned to
+     * any driver (i.e. none of the driver contexts are active).
+     */
+    unsigned int MBEDTLS_PRIVATE(id);
+    mbedtls_psa_export_public_key_iop_t MBEDTLS_PRIVATE(ctx);
+    unsigned int MBEDTLS_PRIVATE(error_occurred) : 1;
+    uint32_t MBEDTLS_PRIVATE(num_ops);
+#endif
+};
+
+#if defined(MBEDTLS_PSA_CRYPTO_CLIENT) && !defined(MBEDTLS_PSA_CRYPTO_C)
+#define PSA_EXPORT_PUBLIC_KEY_IOP_INIT { 0 }
+#else
+#define PSA_EXPORT_PUBLIC_KEY_IOP_INIT { 0, MBEDTLS_PSA_EXPORT_PUBLIC_KEY_IOP_INIT, 0, 0 }
+#endif
+
+static inline struct psa_export_public_key_iop_s
+psa_export_public_key_iop_init(void)
+{
+    const struct psa_export_public_key_iop_s v = PSA_EXPORT_PUBLIC_KEY_IOP_INIT;
 
     return v;
 }

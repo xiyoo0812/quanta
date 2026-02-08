@@ -23,19 +23,19 @@
  *
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_RSA_C)
 
-#include "mbedtls/rsa.h"
+#include "mbedtls/private/rsa.h"
 #include "bignum_core.h"
 #include "bignum_internal.h"
 #include "rsa_alt_helpers.h"
 #include "rsa_internal.h"
-#include "mbedtls/oid.h"
+#include "crypto_oid.h"
 #include "mbedtls/asn1write.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 #include "constant_time_internal.h"
 #include "mbedtls/constant_time.h"
 #include "md_psa.h"
@@ -156,7 +156,7 @@ int mbedtls_rsa_parse_key(mbedtls_rsa_context *rsa, const unsigned char *key, si
         goto cleanup;
     }
 
-#if !defined(MBEDTLS_RSA_NO_CRT) && !defined(MBEDTLS_RSA_ALT)
+#if !defined(MBEDTLS_RSA_NO_CRT)
     /*
      * The RSA CRT parameters DP, DQ and QP are nominally redundant, in
      * that they can be easily recomputed from D, P and Q. However by
@@ -412,7 +412,7 @@ end_of_export:
     return (int) len;
 }
 
-#if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C) && !defined(MBEDTLS_RSA_ALT)
+#if defined(MBEDTLS_PKCS1_V15) && defined(MBEDTLS_RSA_C)
 
 /** This function performs the unpadding part of a PKCS#1 v1.5 decryption
  *  operation (EME-PKCS1-v1_5 decoding).
@@ -565,9 +565,7 @@ static int mbedtls_ct_rsaes_pkcs1_v15_unpadding(unsigned char *input,
     return ret;
 }
 
-#endif /* MBEDTLS_PKCS1_V15 && MBEDTLS_RSA_C && ! MBEDTLS_RSA_ALT */
-
-#if !defined(MBEDTLS_RSA_ALT)
+#endif /* MBEDTLS_PKCS1_V15 && MBEDTLS_RSA_C */
 
 int mbedtls_rsa_import(mbedtls_rsa_context *ctx,
                        const mbedtls_mpi *N,
@@ -2814,8 +2812,6 @@ void mbedtls_rsa_free(mbedtls_rsa_context *ctx)
 #endif
 }
 
-#endif /* !MBEDTLS_RSA_ALT */
-
 #if defined(MBEDTLS_SELF_TEST)
 
 
@@ -2895,7 +2891,7 @@ int mbedtls_rsa_self_test(int verbose)
     unsigned char rsa_plaintext[PT_LEN];
     unsigned char rsa_decrypted[PT_LEN];
     unsigned char rsa_ciphertext[KEY_LEN];
-#if defined(MBEDTLS_MD_CAN_SHA1)
+#if defined(PSA_WANT_ALG_SHA_1)
     unsigned char sha1sum[20];
 #endif
 
@@ -2976,7 +2972,7 @@ int mbedtls_rsa_self_test(int verbose)
         mbedtls_printf("passed\n");
     }
 
-#if defined(MBEDTLS_MD_CAN_SHA1)
+#if defined(PSA_WANT_ALG_SHA_1)
     if (verbose != 0) {
         mbedtls_printf("  PKCS#1 data sign  : ");
     }
@@ -3018,7 +3014,7 @@ int mbedtls_rsa_self_test(int verbose)
     if (verbose != 0) {
         mbedtls_printf("passed\n");
     }
-#endif /* MBEDTLS_MD_CAN_SHA1 */
+#endif /* PSA_WANT_ALG_SHA_1 */
 
     if (verbose != 0) {
         mbedtls_printf("\n");

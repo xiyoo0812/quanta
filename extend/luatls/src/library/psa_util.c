@@ -6,10 +6,10 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 /* This is needed for MBEDTLS_ERR_XXX macros */
-#include <mbedtls/error.h>
+#include <mbedtls/private/error_common.h>
 
 #if defined(MBEDTLS_ASN1_WRITE_C)
 #include <mbedtls/asn1write.h>
@@ -28,25 +28,23 @@
 #if defined(MBEDTLS_LMS_C)
 #include <mbedtls/lms.h>
 #endif
-#if defined(MBEDTLS_SSL_TLS_C) && \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) || defined(MBEDTLS_SSL_PROTO_TLS1_3))
-#include <mbedtls/ssl.h>
-#endif
 #if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY) ||    \
     defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_BASIC)
-#include <mbedtls/rsa.h>
+#include <mbedtls/private/rsa.h>
 #endif
-#if defined(MBEDTLS_USE_PSA_CRYPTO) && \
-    defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
-#include <mbedtls/ecp.h>
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+#include <mbedtls/private/ecp.h>
 #endif
 #if defined(MBEDTLS_PK_C)
 #include <mbedtls/pk.h>
+#if defined(MBEDTLS_PK_HAVE_PRIVATE_HEADER)
+#include <mbedtls/private/pk_private.h>
+#endif /* MBEDTLS_PK_HAVE_PRIVATE_HEADER */
 #endif
 #if defined(MBEDTLS_BLOCK_CIPHER_SOME_PSA)
-#include <mbedtls/cipher.h>
+#include <mbedtls/private/cipher.h>
 #endif
-#include <mbedtls/entropy.h>
+#include <mbedtls/private/entropy.h>
 
 /* PSA_SUCCESS is kept at the top of each error table since
  * it's the most common status when everything functions properly. */
@@ -79,20 +77,6 @@ const mbedtls_error_pair_t psa_to_lms_errors[] =
 };
 #endif
 
-#if defined(MBEDTLS_SSL_TLS_C) && \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) || defined(MBEDTLS_SSL_PROTO_TLS1_3))
-const mbedtls_error_pair_t psa_to_ssl_errors[] =
-{
-    { PSA_SUCCESS,                     0 },
-    { PSA_ERROR_INSUFFICIENT_MEMORY,   MBEDTLS_ERR_SSL_ALLOC_FAILED },
-    { PSA_ERROR_NOT_SUPPORTED,         MBEDTLS_ERR_SSL_FEATURE_UNAVAILABLE },
-    { PSA_ERROR_INVALID_SIGNATURE,     MBEDTLS_ERR_SSL_INVALID_MAC },
-    { PSA_ERROR_INVALID_ARGUMENT,      MBEDTLS_ERR_SSL_BAD_INPUT_DATA },
-    { PSA_ERROR_BAD_STATE,             MBEDTLS_ERR_SSL_INTERNAL_ERROR },
-    { PSA_ERROR_BUFFER_TOO_SMALL,      MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL }
-};
-#endif
-
 #if defined(PSA_WANT_KEY_TYPE_RSA_PUBLIC_KEY) ||    \
     defined(PSA_WANT_KEY_TYPE_RSA_KEY_PAIR_BASIC)
 const mbedtls_error_pair_t psa_to_pk_rsa_errors[] =
@@ -108,8 +92,7 @@ const mbedtls_error_pair_t psa_to_pk_rsa_errors[] =
 };
 #endif
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO) && \
-    defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
+#if defined(PSA_WANT_KEY_TYPE_ECC_PUBLIC_KEY)
 const mbedtls_error_pair_t psa_to_pk_ecdsa_errors[] =
 {
     { PSA_SUCCESS,                     0 },
@@ -190,65 +173,57 @@ psa_ecc_family_t mbedtls_ecc_group_to_psa(mbedtls_ecp_group_id grpid,
                                           size_t *bits)
 {
     switch (grpid) {
-#if defined(MBEDTLS_ECP_HAVE_SECP192R1)
+#if defined(PSA_WANT_ECC_SECP_R1_192)
         case MBEDTLS_ECP_DP_SECP192R1:
             *bits = 192;
             return PSA_ECC_FAMILY_SECP_R1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_SECP224R1)
-        case MBEDTLS_ECP_DP_SECP224R1:
-            *bits = 224;
-            return PSA_ECC_FAMILY_SECP_R1;
-#endif
-#if defined(MBEDTLS_ECP_HAVE_SECP256R1)
+#if defined(PSA_WANT_ECC_SECP_R1_256)
         case MBEDTLS_ECP_DP_SECP256R1:
             *bits = 256;
             return PSA_ECC_FAMILY_SECP_R1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_SECP384R1)
+#if defined(PSA_WANT_ECC_SECP_R1_384)
         case MBEDTLS_ECP_DP_SECP384R1:
             *bits = 384;
             return PSA_ECC_FAMILY_SECP_R1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_SECP521R1)
+#if defined(PSA_WANT_ECC_SECP_R1_521)
         case MBEDTLS_ECP_DP_SECP521R1:
             *bits = 521;
             return PSA_ECC_FAMILY_SECP_R1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_BP256R1)
+#if defined(PSA_WANT_ECC_BRAINPOOL_P_R1_256)
         case MBEDTLS_ECP_DP_BP256R1:
             *bits = 256;
             return PSA_ECC_FAMILY_BRAINPOOL_P_R1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_BP384R1)
+#if defined(PSA_WANT_ECC_BRAINPOOL_P_R1_384)
         case MBEDTLS_ECP_DP_BP384R1:
             *bits = 384;
             return PSA_ECC_FAMILY_BRAINPOOL_P_R1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_BP512R1)
+#if defined(PSA_WANT_ECC_BRAINPOOL_P_R1_512)
         case MBEDTLS_ECP_DP_BP512R1:
             *bits = 512;
             return PSA_ECC_FAMILY_BRAINPOOL_P_R1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_CURVE25519)
+#if defined(PSA_WANT_ECC_MONTGOMERY_255)
         case MBEDTLS_ECP_DP_CURVE25519:
             *bits = 255;
             return PSA_ECC_FAMILY_MONTGOMERY;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_SECP192K1)
+#if defined(PSA_WANT_ECC_SECP_K1_192)
         case MBEDTLS_ECP_DP_SECP192K1:
             *bits = 192;
             return PSA_ECC_FAMILY_SECP_K1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_SECP224K1)
-    /* secp224k1 is not and will not be supported in PSA (#3541). */
-#endif
-#if defined(MBEDTLS_ECP_HAVE_SECP256K1)
+#if defined(PSA_WANT_ECC_SECP_K1_256)
         case MBEDTLS_ECP_DP_SECP256K1:
             *bits = 256;
             return PSA_ECC_FAMILY_SECP_K1;
 #endif
-#if defined(MBEDTLS_ECP_HAVE_CURVE448)
+#if defined(PSA_WANT_ECC_MONTGOMERY_448)
         case MBEDTLS_ECP_DP_CURVE448:
             *bits = 448;
             return PSA_ECC_FAMILY_MONTGOMERY;
@@ -268,10 +243,6 @@ mbedtls_ecp_group_id mbedtls_ecc_group_from_psa(psa_ecc_family_t family,
 #if defined(PSA_WANT_ECC_SECP_R1_192)
                 case 192:
                     return MBEDTLS_ECP_DP_SECP192R1;
-#endif
-#if defined(PSA_WANT_ECC_SECP_R1_224)
-                case 224:
-                    return MBEDTLS_ECP_DP_SECP224R1;
 #endif
 #if defined(PSA_WANT_ECC_SECP_R1_256)
                 case 256:
@@ -324,9 +295,6 @@ mbedtls_ecp_group_id mbedtls_ecc_group_from_psa(psa_ecc_family_t family,
                 case 192:
                     return MBEDTLS_ECP_DP_SECP192K1;
 #endif
-#if defined(PSA_WANT_ECC_SECP_K1_224)
-            /* secp224k1 is not and will not be supported in PSA (#3541). */
-#endif
 #if defined(PSA_WANT_ECC_SECP_K1_256)
                 case 256:
                     return MBEDTLS_ECP_DP_SECP256K1;
@@ -365,7 +333,7 @@ int mbedtls_psa_get_random(void *p_rng,
 
 #endif /* MBEDTLS_PSA_CRYPTO_CLIENT */
 
-#if defined(MBEDTLS_PSA_UTIL_HAVE_ECDSA)
+#if defined(PSA_HAVE_ALG_SOME_ECDSA)
 
 /**
  * \brief  Convert a single raw coordinate to DER ASN.1 format. The output der
@@ -611,4 +579,4 @@ int mbedtls_ecdsa_der_to_raw(size_t bits, const unsigned char *der, size_t der_l
     return 0;
 }
 
-#endif /* MBEDTLS_PSA_UTIL_HAVE_ECDSA */
+#endif /* PSA_HAVE_ALG_SOME_ECDSA */

@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -14,16 +14,16 @@
 #include "psa_crypto_core.h"
 #include "psa_crypto_ecp.h"
 #include "psa_crypto_random_impl.h"
-#include "mbedtls/psa_util.h"
+#include "psa_util_internal.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include "mbedtls/platform.h"
 
-#include <mbedtls/ecdsa.h>
-#include <mbedtls/ecdh.h>
-#include <mbedtls/ecp.h>
-#include <mbedtls/error.h>
+#include <mbedtls/private/ecdsa.h>
+#include <mbedtls/private/ecdh.h>
+#include <mbedtls/private/ecp.h>
+#include <mbedtls/private/error_common.h>
 
 #if defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_BASIC) || \
     defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_IMPORT) || \
@@ -77,7 +77,6 @@ static int check_ecc_parameters(psa_ecc_family_t family, size_t *bits)
         case PSA_ECC_FAMILY_SECP_K1:
             switch (*bits) {
                 case 192:
-                /* secp224k1 is not and will not be supported in PSA (#3541). */
                 case 256:
                     return PSA_SUCCESS;
             }
@@ -590,5 +589,275 @@ exit:
 }
 #endif /* MBEDTLS_PSA_BUILTIN_ALG_ECDH */
 
+/****************************************************************/
+/* Interruptible ECC Key Generation */
+/****************************************************************/
+
+#if defined(MBEDTLS_ECP_RESTARTABLE) && \
+    defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_GENERATE)
+
+uint32_t mbedtls_psa_generate_key_iop_get_num_ops(
+    mbedtls_psa_generate_key_iop_t *operation)
+{
+    return operation->num_ops;
+}
+
+psa_status_t mbedtls_psa_ecp_generate_key_iop_setup(
+    mbedtls_psa_generate_key_iop_t *operation,
+    const psa_key_attributes_t *attributes)
+{
+    int status = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    mbedtls_ecp_keypair_init(&operation->ecp);
+
+    psa_ecc_family_t curve = PSA_KEY_TYPE_ECC_GET_FAMILY(
+        psa_get_key_type(attributes));
+    mbedtls_ecp_group_id grp_id =
+        mbedtls_ecc_group_from_psa(curve, psa_get_key_bits(attributes));
+    if (grp_id == MBEDTLS_ECP_DP_NONE) {
+        return PSA_ERROR_NOT_SUPPORTED;
+    }
+
+    status = mbedtls_ecp_group_load(&operation->ecp.grp, grp_id);
+
+    return mbedtls_to_psa_error(status);
+}
+
+psa_status_t mbedtls_psa_ecp_generate_key_iop_complete(
+    mbedtls_psa_generate_key_iop_t *operation,
+    uint8_t *key_output,
+    size_t key_output_size,
+    size_t *key_len)
+{
+    *key_len = 0;
+    int status = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    *key_len = PSA_BITS_TO_BYTES(operation->ecp.grp.nbits);
+
+    if (*key_len > key_output_size) {
+        return PSA_ERROR_BUFFER_TOO_SMALL;
+    }
+
+    status = mbedtls_ecp_gen_privkey(&operation->ecp.grp, &operation->ecp.d,
+                                     mbedtls_psa_get_random, MBEDTLS_PSA_RANDOM_STATE);
+
+    if (status != 0) {
+        return mbedtls_to_psa_error(status);
+    }
+
+    /* Our implementation of key generation only generates the private key
+       which doesn't invlolve any ECC arithmetic operations so number of ops
+       is less than 1 but we round up to 1 to differentiate between num ops of
+       0 which means no work has been done this facilitates testing. */
+    operation->num_ops = 1;
+
+    status = mbedtls_mpi_write_binary(&operation->ecp.d, key_output, key_output_size);
+
+    return mbedtls_to_psa_error(status);
+}
+
+psa_status_t mbedtls_psa_ecp_generate_key_iop_abort(
+    mbedtls_psa_generate_key_iop_t *operation)
+{
+    mbedtls_ecp_keypair_free(&operation->ecp);
+    operation->num_ops = 0;
+    return PSA_SUCCESS;
+}
+
+#endif /* MBEDTLS_ECP_RESTARTABLE && MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_GENERATE */
+
+#if defined(MBEDTLS_ECP_RESTARTABLE) && \
+    (defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_IMPORT) || \
+    defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_EXPORT) || \
+    defined(MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_PUBLIC_KEY))
+
+uint32_t mbedtls_psa_ecp_export_public_key_iop_get_num_ops(
+    mbedtls_psa_export_public_key_iop_t *operation)
+{
+    return operation->num_ops;
+}
+
+psa_status_t mbedtls_psa_ecp_export_public_key_iop_setup(
+    mbedtls_psa_export_public_key_iop_t *operation,
+    uint8_t *key,
+    size_t key_len,
+    const psa_key_attributes_t *key_attributes)
+{
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+
+    status = mbedtls_psa_ecp_load_representation(
+        psa_get_key_type(key_attributes),
+        psa_get_key_bits(key_attributes),
+        key,
+        key_len,
+        &operation->key);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    mbedtls_ecp_restart_init(&operation->restart_ctx);
+    operation->num_ops = 0;
+
+exit:
+    return status;
+}
+
+psa_status_t mbedtls_psa_ecp_export_public_key_iop_complete(
+    mbedtls_psa_export_public_key_iop_t *operation,
+    uint8_t *pub_key,
+    size_t pub_key_size,
+    size_t *pub_key_len)
+{
+    int ret = 0;
+
+    if (mbedtls_ecp_is_zero(&operation->key->Q)) {
+        mbedtls_psa_interruptible_set_max_ops(psa_interruptible_get_max_ops());
+
+        ret = mbedtls_ecp_mul_restartable(&operation->key->grp, &operation->key->Q,
+                                          &operation->key->d, &operation->key->grp.G,
+                                          mbedtls_psa_get_random, MBEDTLS_PSA_RANDOM_STATE,
+                                          &operation->restart_ctx);
+        operation->num_ops += operation->restart_ctx.ops_done;
+    }
+
+    if (ret == 0) {
+        ret = mbedtls_ecp_write_public_key(operation->key,
+                                           MBEDTLS_ECP_PF_UNCOMPRESSED, pub_key_len,
+                                           pub_key, pub_key_size);
+    }
+
+    return mbedtls_to_psa_error(ret);
+}
+
+psa_status_t mbedtls_psa_ecp_export_public_key_iop_abort(
+    mbedtls_psa_export_public_key_iop_t *operation)
+{
+    mbedtls_ecp_keypair_free(operation->key);
+    mbedtls_free(operation->key);
+    mbedtls_ecp_restart_free(&operation->restart_ctx);
+    operation->num_ops = 0;
+    return PSA_SUCCESS;
+}
+
+#endif /* MBEDTLS_ECP_RESTARTABLE && \
+          (MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_IMPORT ||
+           MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_KEY_PAIR_EXPORT || \
+           MBEDTLS_PSA_BUILTIN_KEY_TYPE_ECC_PUBLIC_KEY) */
+
+/****************************************************************/
+/* Interruptible ECC Key Agreement */
+/****************************************************************/
+
+#if defined(MBEDTLS_PSA_BUILTIN_ALG_ECDH) && defined(MBEDTLS_ECP_RESTARTABLE)
+
+uint32_t mbedtls_psa_key_agreement_iop_get_num_ops(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation)
+{
+    return operation->num_ops;
+}
+
+psa_status_t mbedtls_psa_key_agreement_iop_setup(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation,
+    const psa_key_attributes_t *private_key_attributes,
+    const uint8_t *private_key_buffer,
+    size_t private_key_buffer_len,
+    const uint8_t *peer_key,
+    size_t peer_key_length)
+{
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+    mbedtls_ecp_keypair *our_key = NULL;
+    mbedtls_ecp_keypair *their_key = NULL;
+
+    mbedtls_ecdh_init(&operation->ctx);
+    mbedtls_ecdh_enable_restart(&operation->ctx);
+
+    /* We need to clear number of ops here in case there was a previous
+       complete operation which doesn't reset it after finsishing. */
+    operation->num_ops = 0;
+
+    psa_key_type_t private_key_type = psa_get_key_type(private_key_attributes);
+    if (!PSA_KEY_TYPE_IS_ECC_KEY_PAIR(private_key_type)) {
+        status = PSA_ERROR_INVALID_ARGUMENT;
+        goto exit;
+    }
+
+    status = mbedtls_psa_ecp_load_representation(
+        psa_get_key_type(private_key_attributes),
+        psa_get_key_bits(private_key_attributes),
+        private_key_buffer,
+        private_key_buffer_len,
+        &our_key);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    status = mbedtls_to_psa_error(
+        mbedtls_ecdh_get_params(&operation->ctx, our_key, MBEDTLS_ECDH_OURS));
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    mbedtls_ecp_keypair_free(our_key);
+    mbedtls_free(our_key);
+    our_key = NULL;
+
+    status = mbedtls_psa_ecp_load_representation(
+        PSA_KEY_TYPE_PUBLIC_KEY_OF_KEY_PAIR(private_key_type),
+        psa_get_key_bits(private_key_attributes),
+        peer_key,
+        peer_key_length,
+        &their_key);
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+    /* mbedtls_psa_ecp_load_representation() calls mbedtls_ecp_check_pubkey() which
+       takes MBEDTLS_ECP_OPS_CHK amount of ops. */
+    operation->num_ops += MBEDTLS_ECP_OPS_CHK;
+
+    status = mbedtls_to_psa_error(
+        mbedtls_ecdh_get_params(&operation->ctx, their_key, MBEDTLS_ECDH_THEIRS));
+    if (status != PSA_SUCCESS) {
+        goto exit;
+    }
+
+exit:
+    mbedtls_ecp_keypair_free(our_key);
+    mbedtls_free(our_key);
+    mbedtls_ecp_keypair_free(their_key);
+    mbedtls_free(their_key);
+    return status;
+}
+
+psa_status_t mbedtls_psa_key_agreement_iop_complete(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation,
+    uint8_t *shared_secret,
+    size_t shared_secret_size,
+    size_t *shared_secret_length)
+{
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+
+    mbedtls_psa_interruptible_set_max_ops(psa_interruptible_get_max_ops());
+
+    status = mbedtls_to_psa_error(mbedtls_ecdh_calc_secret(&operation->ctx, shared_secret_length,
+                                                           shared_secret,
+                                                           shared_secret_size,
+                                                           mbedtls_psa_get_random,
+                                                           MBEDTLS_PSA_RANDOM_STATE));
+
+    operation->num_ops += operation->ctx.rs.ops_done;
+
+    return status;
+}
+
+psa_status_t mbedtls_psa_key_agreement_iop_abort(
+    mbedtls_psa_key_agreement_interruptible_operation_t *operation)
+{
+    operation->num_ops = 0;
+    mbedtls_ecdh_free(&operation->ctx);
+    return PSA_SUCCESS;
+}
+
+#endif /* MBEDTLS_PSA_BUILTIN_ALG_ECDH */
 
 #endif /* MBEDTLS_PSA_CRYPTO_C */

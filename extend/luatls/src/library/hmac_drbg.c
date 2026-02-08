@@ -11,13 +11,13 @@
  *  References below are based on rev. 1 (January 2012).
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_HMAC_DRBG_C)
 
-#include "mbedtls/hmac_drbg.h"
+#include "mbedtls/private/hmac_drbg.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
@@ -34,7 +34,7 @@ void mbedtls_hmac_drbg_init(mbedtls_hmac_drbg_context *ctx)
 {
     memset(ctx, 0, sizeof(mbedtls_hmac_drbg_context));
 
-    ctx->reseed_interval = MBEDTLS_HMAC_DRBG_RESEED_INTERVAL;
+    ctx->reseed_interval = MBEDTLS_PSA_RNG_RESEED_INTERVAL;
 }
 
 /*
@@ -100,7 +100,10 @@ int mbedtls_hmac_drbg_seed_buf(mbedtls_hmac_drbg_context *ctx,
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
-    if ((ret = mbedtls_md_setup(&ctx->md_ctx, md_info, 1)) != 0) {
+    if ((ret = mbedtls_md_setup(&ctx->md_ctx, md_info, 0)) != 0) {
+        return ret;
+    }
+    if ((ret = mbedtls_md_hmac_setup(&ctx->md_ctx, md_info)) != 0) {
         return ret;
     }
 
@@ -229,7 +232,10 @@ int mbedtls_hmac_drbg_seed(mbedtls_hmac_drbg_context *ctx,
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t md_size;
 
-    if ((ret = mbedtls_md_setup(&ctx->md_ctx, md_info, 1)) != 0) {
+    if ((ret = mbedtls_md_setup(&ctx->md_ctx, md_info, 0)) != 0) {
+        return ret;
+    }
+    if ((ret = mbedtls_md_hmac_setup(&ctx->md_ctx, md_info)) != 0) {
         return ret;
     }
 
@@ -419,7 +425,7 @@ void mbedtls_hmac_drbg_free(mbedtls_hmac_drbg_context *ctx)
 #endif
     mbedtls_md_free(&ctx->md_ctx);
     mbedtls_platform_zeroize(ctx, sizeof(mbedtls_hmac_drbg_context));
-    ctx->reseed_interval = MBEDTLS_HMAC_DRBG_RESEED_INTERVAL;
+    ctx->reseed_interval = MBEDTLS_PSA_RNG_RESEED_INTERVAL;
 }
 
 #if defined(MBEDTLS_FS_IO)
@@ -498,7 +504,7 @@ exit:
 
 #if defined(MBEDTLS_SELF_TEST)
 
-#if !defined(MBEDTLS_MD_CAN_SHA1)
+#if !defined(PSA_WANT_ALG_SHA_1)
 /* Dummy checkup routine */
 int mbedtls_hmac_drbg_self_test(int verbose)
 {
@@ -627,7 +633,7 @@ int mbedtls_hmac_drbg_self_test(int verbose)
 
     return 0;
 }
-#endif /* MBEDTLS_MD_CAN_SHA1 */
+#endif /* PSA_WANT_ALG_SHA_1 */
 #endif /* MBEDTLS_SELF_TEST */
 
 #endif /* MBEDTLS_HMAC_DRBG_C */

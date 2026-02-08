@@ -27,11 +27,13 @@
 #define MBEDTLS_PLATFORM_H
 #include "mbedtls/private_access.h"
 
-#include "mbedtls/build_info.h"
+#include "tf-psa-crypto/build_info.h"
 
 #if defined(MBEDTLS_HAVE_TIME)
 #include "mbedtls/platform_time.h"
 #endif
+
+#include <psa/crypto_driver_random.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -445,6 +447,45 @@ mbedtls_platform_context;
 #else
 #include "platform_alt.h"
 #endif /* !MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT */
+
+/**
+ * \brief       User defined callback function that is used from the entropy
+ *              module to gather entropy data from some hardware device.
+ *
+ * \param flags                 A mask of `PSA_DRIVER_GET_ENTROPY_xxx` flags.
+ *                              As of TF-PSA-Crypto 1.0, this is always \c 0.
+ * \param[out] estimate_bits    Measure of the entropy content (in bits) of the
+ *                              data written in the \p output buffer.
+ * \param[out] output           Output buffer where the entropy data will be
+ *                              stored.
+ * \param output_size           Size of the \p output buffer in bytes.
+ *
+ * \retval 0
+ *         Success.
+ * \retval #PSA_ERROR_INSUFFICIENT_ENTROPY
+ *         The entropy source failed.
+ * \retval #PSA_ERROR_NOT_SUPPORTED
+ *         The value of \p flags is not supported.
+ *
+ * \warning     For the time being TF-PSA-Crypto only supports implementations
+ *              that return a maximum entropy output on each call, i.e.
+ *              \p estimate_bits = `8 * output_size`. Returning a smaller
+ *              entropy content is the same as returning
+ *              #PSA_ERROR_INSUFFICIENT_ENTROPY so the hardware polling will
+ *              fail.
+ *              In the future TF-PSA-Crypto will be smarter and capable to cope
+ *              with entropy sources with lower entropy content (i.e.
+ *              0 < \p estimate_bits < 8 * output_size) by calling the callback
+ *              function in loop.
+ *
+ * \note        This function is not meant to be called by application code, and
+ *              it is not guaranteed that this function will exist or will behave
+ *              in the same way in future versions of the library. Applications
+ *              should call psa_generate_random() to obtain random data.
+ */
+int mbedtls_platform_get_entropy(psa_driver_get_entropy_flags_t flags,
+                                 size_t *estimate_bits,
+                                 unsigned char *output, size_t output_size);
 
 /**
  * \brief   This function performs any platform-specific initialization

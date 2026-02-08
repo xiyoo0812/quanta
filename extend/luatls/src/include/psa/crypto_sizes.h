@@ -28,14 +28,7 @@
 #ifndef PSA_CRYPTO_SIZES_H
 #define PSA_CRYPTO_SIZES_H
 
-/*
- * Include the build-time configuration information header. Here, we do not
- * include `"mbedtls/build_info.h"` directly but `"psa/build_info.h"`, which
- * is basically just an alias to it. This is to ease the maintenance of the
- * TF-PSA-Crypto repository which has a different build system and
- * configuration.
- */
-#include "psa/build_info.h"
+#include "tf-psa-crypto/build_info.h"
 
 #define PSA_BITS_TO_BYTES(bits) (((bits) + 7u) / 8u)
 #define PSA_BYTES_TO_BITS(bytes) ((bytes) * 8u)
@@ -259,10 +252,6 @@
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 256u
 #elif defined(PSA_WANT_ECC_MONTGOMERY_255)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 255u
-#elif defined(PSA_WANT_ECC_SECP_R1_224)
-#define PSA_VENDOR_ECC_MAX_CURVE_BITS 224u
-#elif defined(PSA_WANT_ECC_SECP_K1_224)
-#define PSA_VENDOR_ECC_MAX_CURVE_BITS 224u
 #elif defined(PSA_WANT_ECC_SECP_R1_192)
 #define PSA_VENDOR_ECC_MAX_CURVE_BITS 192u
 #elif defined(PSA_WANT_ECC_SECP_K1_192)
@@ -1104,8 +1093,6 @@
 #if (defined(PSA_WANT_KEY_TYPE_AES) || defined(PSA_WANT_KEY_TYPE_ARIA) || \
     defined(PSA_WANT_KEY_TYPE_CAMELLIA) || defined(PSA_WANT_KEY_TYPE_CHACHA20))
 #define PSA_CIPHER_MAX_KEY_LENGTH       32u
-#elif defined(PSA_WANT_KEY_TYPE_DES)
-#define PSA_CIPHER_MAX_KEY_LENGTH       24u
 #else
 #define PSA_CIPHER_MAX_KEY_LENGTH       0u
 #endif

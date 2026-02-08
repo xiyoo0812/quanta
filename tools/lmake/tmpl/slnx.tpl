@@ -2,12 +2,14 @@
   <Configurations>
     <Platform Name="x64"/>
   </Configurations>
-  {{% local ALL_PROJS = {} %}}
-  {{% for _, GROUP in pairs(GROUPS or {}) do %}}
-    {{% for _, PROJ in ipairs(GROUP.PROJECTS) do %}}
-      {{% ALL_PROJS[PROJ.NAME] = PROJ %}}
-    {{% end %}}
-  {{% end %}}
+  {{%
+    local ALL_PROJS = {}
+    for _, GROUP in pairs(GROUPS or {}) do
+      for _, PROJ in ipairs(GROUP.PROJECTS) do
+        ALL_PROJS[PROJ.NAME] = PROJ
+      end
+    end
+  %}}
   {{% for _, GROUP in pairs(GROUPS or {}) do %}}
   {{% if GROUP.NAME ~= IGNORE_GROUP then %}}
   <Folder Name="/all/{{%= GROUP.NAME %}}/">

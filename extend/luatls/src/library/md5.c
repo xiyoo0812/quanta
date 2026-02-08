@@ -10,19 +10,17 @@
  *  http://www.ietf.org/rfc/rfc1321.txt
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_MD5_C)
 
-#include "mbedtls/md5.h"
+#include "mbedtls/private/md5.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
 #include "mbedtls/platform.h"
-
-#if !defined(MBEDTLS_MD5_ALT)
 
 void mbedtls_md5_init(mbedtls_md5_context *ctx)
 {
@@ -60,9 +58,8 @@ int mbedtls_md5_starts(mbedtls_md5_context *ctx)
     return 0;
 }
 
-#if !defined(MBEDTLS_MD5_PROCESS_ALT)
-int mbedtls_internal_md5_process(mbedtls_md5_context *ctx,
-                                 const unsigned char data[64])
+static int mbedtls_internal_md5_process(mbedtls_md5_context *ctx,
+                                        const unsigned char data[64])
 {
     struct {
         uint32_t X[16], A, B, C, D;
@@ -195,8 +192,6 @@ int mbedtls_internal_md5_process(mbedtls_md5_context *ctx,
     return 0;
 }
 
-#endif /* !MBEDTLS_MD5_PROCESS_ALT */
-
 /*
  * MD5 process buffer
  */
@@ -308,8 +303,6 @@ exit:
     mbedtls_md5_free(ctx);
     return ret;
 }
-
-#endif /* !MBEDTLS_MD5_ALT */
 
 /*
  * output = MD5( input buffer )

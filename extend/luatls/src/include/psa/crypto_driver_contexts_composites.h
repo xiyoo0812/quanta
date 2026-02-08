@@ -1,10 +1,12 @@
-/*
- *  Declaration of context structures for use with the PSA driver wrapper
+/**
+ * \file crypto_driver_contexts_composites.h
+ *
+ * \brief Declaration of context structures for use with the PSA driver wrapper
  *  interface. This file contains the context structures for 'composite'
  *  operations, i.e. those operations which need to make use of other operations
  *  from the primitives (crypto_driver_contexts_primitives.h)
  *
- *  Warning: This file will be auto-generated in the future.
+ * \warning This file will be auto-generated in the future.
  *
  * \note This file may not be included directly. Applications must
  * include psa/crypto.h.
@@ -31,7 +33,7 @@
  * declared during the autogeneration process. */
 
 #if defined(MBEDTLS_TEST_LIBTESTDRIVER1)
-#include <libtestdriver1/include/psa/crypto.h>
+#include <libtestdriver1/tf-psa-crypto/include/psa/crypto.h>
 #endif
 
 #if defined(PSA_CRYPTO_DRIVER_TEST)

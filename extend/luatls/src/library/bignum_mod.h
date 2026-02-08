@@ -69,10 +69,10 @@
 #ifndef MBEDTLS_BIGNUM_MOD_H
 #define MBEDTLS_BIGNUM_MOD_H
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_BIGNUM_C)
-#include "mbedtls/bignum.h"
+#include "mbedtls/private/bignum.h"
 #endif
 
 /** How residues associated with a modulus are represented.

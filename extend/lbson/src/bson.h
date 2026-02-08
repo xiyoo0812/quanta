@@ -146,8 +146,8 @@ namespace lbson {
             uint8_t* value = (uint8_t*)lua_tolstring(L, 1, &data_len);
             m_buff->write<uint8_t>(0);
             m_buff->write<uint8_t>((uint8_t)BSON_BINARY);
-            m_buff->write<uint8_t>(0); //subtype
             m_buff->write<int32_t>(data_len);
+            m_buff->write<uint8_t>(0); //subtype
             if (data_len > 0) m_buff->push_data(value, data_len);
             lua_pushlstring(L, (cpchar)m_buff->head(), m_buff->size());
             return 1;

@@ -10,7 +10,7 @@
 #ifndef PSA_CRYPTO_RANDOM_IMPL_H
 #define PSA_CRYPTO_RANDOM_IMPL_H
 
-#include "psa_util_internal.h"
+#include "mbedtls/psa_util.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG)
 
@@ -18,33 +18,48 @@ typedef mbedtls_psa_external_random_context_t mbedtls_psa_random_context_t;
 
 #else /* MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG */
 
-#include "mbedtls/entropy.h"
+#include "mbedtls/private/entropy.h"
+#include "mbedtls/private/error_common.h"
+
+#if !defined(PSA_WANT_ALG_SHA_256)
+MBEDTLS_STATIC_ASSERT(MBEDTLS_PSA_CRYPTO_RNG_HASH != PSA_ALG_SHA_256,
+                      "SHA_256 used as the hash for the random generator, but not enabled");
+#endif
+
+#if !defined(PSA_WANT_ALG_SHA_512)
+MBEDTLS_STATIC_ASSERT(MBEDTLS_PSA_CRYPTO_RNG_HASH != PSA_ALG_SHA_512,
+                      "SHA_512 used as the hash for the random generator, but not enabled");
+#endif
+
+MBEDTLS_STATIC_ASSERT((MBEDTLS_PSA_CRYPTO_RNG_HASH == PSA_ALG_SHA_256) || \
+                      (MBEDTLS_PSA_CRYPTO_RNG_HASH == PSA_ALG_SHA_512),
+                      "Invalid hashing algorithm for MBEDTLS_PSA_CRYPTO_RNG_HASH");
+
+MBEDTLS_STATIC_ASSERT(PSA_BYTES_TO_BITS(PSA_HASH_LENGTH(
+                                            MBEDTLS_PSA_CRYPTO_RNG_HASH))
+                      >= MBEDTLS_PSA_CRYPTO_RNG_STRENGTH,
+                      "The hash size (in bits) of MBEDTLS_PSA_CRYPTO_RNG_HASH must be at least MBEDTLS_PSA_CRYPTO_RNG_STRENGTH");
 
 /* Choose a DRBG based on configuration and availability */
 #if defined(MBEDTLS_CTR_DRBG_C)
 
-#include "mbedtls/ctr_drbg.h"
+#include "mbedtls/private/ctr_drbg.h"
+
+#if (MBEDTLS_PSA_CRYPTO_RNG_STRENGTH > 128) && \
+    defined(MBEDTLS_AES_ONLY_128_BIT_KEY_LENGTH)
+#error "CTR_DRBG cannot meet the configured RNG strength using only 128-bit AES keys."
+#endif
+
+#if MBEDTLS_PSA_CRYPTO_RNG_STRENGTH > PSA_BYTES_TO_BITS(MBEDTLS_CTR_DRBG_KEYSIZE)
+#error "The CTR_DRBG key size (in bits) must be at least MBEDTLS_PSA_CRYPTO_RNG_STRENGTH"
+#endif
+
 #undef MBEDTLS_PSA_HMAC_DRBG_MD_TYPE
 
 #elif defined(MBEDTLS_HMAC_DRBG_C)
 
-#include "mbedtls/hmac_drbg.h"
-#if defined(MBEDTLS_MD_CAN_SHA512) && defined(MBEDTLS_MD_CAN_SHA256)
-#include <limits.h>
-#if SIZE_MAX > 0xffffffff
-/* Looks like a 64-bit system, so prefer SHA-512. */
-#define MBEDTLS_PSA_HMAC_DRBG_MD_TYPE MBEDTLS_MD_SHA512
-#else
-/* Looks like a 32-bit system, so prefer SHA-256. */
-#define MBEDTLS_PSA_HMAC_DRBG_MD_TYPE MBEDTLS_MD_SHA256
-#endif
-#elif defined(MBEDTLS_MD_CAN_SHA512)
-#define MBEDTLS_PSA_HMAC_DRBG_MD_TYPE MBEDTLS_MD_SHA512
-#elif defined(MBEDTLS_MD_CAN_SHA256)
-#define MBEDTLS_PSA_HMAC_DRBG_MD_TYPE MBEDTLS_MD_SHA256
-#else
-#error "No hash algorithm available for HMAC_DBRG."
-#endif
+#include "mbedtls/private/hmac_drbg.h"
+#define MBEDTLS_PSA_HMAC_DRBG_MD_TYPE MBEDTLS_ENTROPY_MD
 
 #else /* !MBEDTLS_CTR_DRBG_C && !MBEDTLS_HMAC_DRBG_C*/
 
@@ -113,12 +128,21 @@ static inline int mbedtls_psa_drbg_seed(mbedtls_psa_drbg_context_t *drbg_ctx,
                                         mbedtls_entropy_context *entropy,
                                         const unsigned char *custom, size_t len)
 {
+#if !defined(MBEDTLS_STATIC_ASSERT_SUPPORT)
+    if (PSA_BYTES_TO_BITS(PSA_HASH_LENGTH(MBEDTLS_PSA_CRYPTO_RNG_HASH)) <
+        MBEDTLS_PSA_CRYPTO_RNG_STRENGTH) {
+        /* MBEDTLS_PSA_CRYPTO_RNG_HASH size (in bits) must be at least
+         * MBEDTLS_PSA_CRYPTO_RNG_STRENGTH.
+         */
+        return MBEDTLS_ERR_ERROR_GENERIC_ERROR;
+    }
+#endif
 #if defined(MBEDTLS_CTR_DRBG_C)
     return mbedtls_ctr_drbg_seed(drbg_ctx, mbedtls_entropy_func, entropy, custom, len);
 #elif defined(MBEDTLS_HMAC_DRBG_C)
     const mbedtls_md_info_t *md_info = mbedtls_md_info_from_type(MBEDTLS_PSA_HMAC_DRBG_MD_TYPE);
     return mbedtls_hmac_drbg_seed(drbg_ctx, md_info, mbedtls_entropy_func, entropy, custom, len);
-#endif
+#endif /* MBEDTLS_HMAC_DRBG_C */
 }
 
 #endif /* MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG */

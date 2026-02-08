@@ -12,52 +12,49 @@
 #ifndef MBEDTLS_CIPHER_WRAP_H
 #define MBEDTLS_CIPHER_WRAP_H
 
-#include "mbedtls/build_info.h"
+#include "tf-psa-crypto/build_info.h"
 
-#include "mbedtls/cipher.h"
+#include "mbedtls/private/cipher.h"
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO)
 #include "psa/crypto.h"
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Support for GCM either through Mbed TLS SW implementation or PSA */
-#if defined(MBEDTLS_GCM_C) || \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) && defined(PSA_WANT_ALG_GCM))
+#if defined(MBEDTLS_GCM_C) || defined(PSA_WANT_ALG_GCM)
 #define MBEDTLS_CIPHER_HAVE_GCM_VIA_LEGACY_OR_USE_PSA
 #endif
 
 #if (defined(MBEDTLS_GCM_C) && defined(MBEDTLS_AES_C)) || \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) && defined(PSA_WANT_ALG_GCM) && defined(PSA_WANT_KEY_TYPE_AES))
+    (defined(PSA_WANT_ALG_GCM) && defined(PSA_WANT_KEY_TYPE_AES))
 #define MBEDTLS_CIPHER_HAVE_GCM_AES_VIA_LEGACY_OR_USE_PSA
 #endif
 
 #if defined(MBEDTLS_CCM_C) || \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) && defined(PSA_WANT_ALG_CCM))
+    defined(PSA_WANT_ALG_CCM)
 #define MBEDTLS_CIPHER_HAVE_CCM_VIA_LEGACY_OR_USE_PSA
 #endif
 
 #if (defined(MBEDTLS_CCM_C) && defined(MBEDTLS_AES_C)) || \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) && defined(PSA_WANT_ALG_CCM) && defined(PSA_WANT_KEY_TYPE_AES))
+    (defined(PSA_WANT_ALG_CCM) && defined(PSA_WANT_KEY_TYPE_AES))
 #define MBEDTLS_CIPHER_HAVE_CCM_AES_VIA_LEGACY_OR_USE_PSA
 #endif
 
 #if defined(MBEDTLS_CCM_C) || \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) && defined(PSA_WANT_ALG_CCM_STAR_NO_TAG))
+    defined(PSA_WANT_ALG_CCM_STAR_NO_TAG)
 #define MBEDTLS_CIPHER_HAVE_CCM_STAR_NO_TAG_VIA_LEGACY_OR_USE_PSA
 #endif
 
 #if (defined(MBEDTLS_CCM_C) && defined(MBEDTLS_AES_C)) || \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) && defined(PSA_WANT_ALG_CCM_STAR_NO_TAG) && \
+    (defined(PSA_WANT_ALG_CCM_STAR_NO_TAG) && \
     defined(PSA_WANT_KEY_TYPE_AES))
 #define MBEDTLS_CIPHER_HAVE_CCM_STAR_NO_TAG_AES_VIA_LEGACY_OR_USE_PSA
 #endif
 
 #if defined(MBEDTLS_CHACHAPOLY_C) || \
-    (defined(MBEDTLS_USE_PSA_CRYPTO) && defined(PSA_WANT_ALG_CHACHA20_POLY1305))
+    defined(PSA_WANT_ALG_CHACHA20_POLY1305)
 #define MBEDTLS_CIPHER_HAVE_CHACHAPOLY_VIA_LEGACY_OR_USE_PSA
 #endif
 
@@ -144,7 +141,6 @@ typedef struct {
     const mbedtls_cipher_info_t *info;
 } mbedtls_cipher_definition_t;
 
-#if defined(MBEDTLS_USE_PSA_CRYPTO)
 typedef enum {
     MBEDTLS_CIPHER_PSA_KEY_UNSET = 0,
     MBEDTLS_CIPHER_PSA_KEY_OWNED, /* Used for PSA-based cipher contexts which */
@@ -163,7 +159,6 @@ typedef struct {
     mbedtls_svc_key_id_t slot;
     mbedtls_cipher_psa_key_ownership slot_state;
 } mbedtls_cipher_context_psa;
-#endif /* MBEDTLS_USE_PSA_CRYPTO */
 
 extern const mbedtls_cipher_definition_t mbedtls_cipher_definitions[];
 

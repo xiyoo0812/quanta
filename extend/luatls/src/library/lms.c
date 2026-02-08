@@ -18,7 +18,7 @@
  *      https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-208.pdf
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_LMS_C)
 
@@ -29,7 +29,7 @@
 #include "psa/crypto.h"
 #include "psa_util_internal.h"
 #include "mbedtls/lms.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 #include "mbedtls/platform_util.h"
 
 #include "mbedtls/platform.h"
@@ -386,7 +386,6 @@ int mbedtls_lms_verify(const mbedtls_lms_public_t *ctx,
     if (ret != 0) {
         return MBEDTLS_ERR_LMS_VERIFY_FAILED;
     }
-
     curr_node_id = MERKLE_TREE_INTERNAL_NODE_AM(ctx->params.type) +
                    q_leaf_identifier;
 
@@ -571,8 +570,7 @@ void mbedtls_lms_private_free(mbedtls_lms_private_t *ctx)
 int mbedtls_lms_generate_private_key(mbedtls_lms_private_t *ctx,
                                      mbedtls_lms_algorithm_type_t type,
                                      mbedtls_lmots_algorithm_type_t otstype,
-                                     int (*f_rng)(void *, unsigned char *, size_t),
-                                     void *p_rng, const unsigned char *seed,
+                                     const unsigned char *seed,
                                      size_t seed_size)
 {
     unsigned int idx = 0;
@@ -594,9 +592,8 @@ int mbedtls_lms_generate_private_key(mbedtls_lms_private_t *ctx,
     ctx->params.otstype = otstype;
     ctx->have_private_key = 1;
 
-    ret = f_rng(p_rng,
-                ctx->params.I_key_identifier,
-                MBEDTLS_LMOTS_I_KEY_ID_LEN);
+    ret = psa_generate_random(ctx->params.I_key_identifier,
+                              MBEDTLS_LMOTS_I_KEY_ID_LEN);
     if (ret != 0) {
         goto exit;
     }
@@ -702,8 +699,7 @@ exit:
 
 
 int mbedtls_lms_sign(mbedtls_lms_private_t *ctx,
-                     int (*f_rng)(void *, unsigned char *, size_t),
-                     void *p_rng, const unsigned char *msg,
+                     const unsigned char *msg,
                      unsigned int msg_size, unsigned char *sig, size_t sig_size,
                      size_t *sig_len)
 {
@@ -744,8 +740,6 @@ int mbedtls_lms_sign(mbedtls_lms_private_t *ctx,
     }
 
     ret = mbedtls_lmots_sign(&ctx->ots_private_keys[q_leaf_identifier],
-                             f_rng,
-                             p_rng,
                              msg,
                              msg_size,
                              sig + SIG_OTS_SIG_OFFSET,

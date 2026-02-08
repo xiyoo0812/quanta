@@ -10,19 +10,17 @@
  *  http://www.itl.nist.gov/fipspubs/fip180-1.htm
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_SHA1_C)
 
-#include "mbedtls/sha1.h"
+#include "mbedtls/private/sha1.h"
 #include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <string.h>
 
 #include "mbedtls/platform.h"
-
-#if !defined(MBEDTLS_SHA1_ALT)
 
 void mbedtls_sha1_init(mbedtls_sha1_context *ctx)
 {
@@ -61,9 +59,8 @@ int mbedtls_sha1_starts(mbedtls_sha1_context *ctx)
     return 0;
 }
 
-#if !defined(MBEDTLS_SHA1_PROCESS_ALT)
-int mbedtls_internal_sha1_process(mbedtls_sha1_context *ctx,
-                                  const unsigned char data[64])
+static int mbedtls_internal_sha1_process(mbedtls_sha1_context *ctx,
+                                         const unsigned char data[64])
 {
     struct {
         uint32_t temp, W[16], A, B, C, D, E;
@@ -230,8 +227,6 @@ int mbedtls_internal_sha1_process(mbedtls_sha1_context *ctx,
     return 0;
 }
 
-#endif /* !MBEDTLS_SHA1_PROCESS_ALT */
-
 /*
  * SHA-1 process buffer
  */
@@ -345,8 +340,6 @@ exit:
     mbedtls_sha1_free(ctx);
     return ret;
 }
-
-#endif /* !MBEDTLS_SHA1_ALT */
 
 /*
  * output = SHA-1( input buffer )

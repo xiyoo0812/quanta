@@ -7,14 +7,14 @@
 
 #include <limits.h>
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_BASE64_C)
 
 #include "mbedtls/base64.h"
 #include "base64_internal.h"
 #include "constant_time_internal.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/error_common.h"
 
 #include <stdint.h>
 

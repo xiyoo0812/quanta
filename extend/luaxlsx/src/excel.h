@@ -2,6 +2,7 @@
 
 #include <map>
 #include <vector>
+#include <filesystem>
 #include <unordered_map>
 
 #include "miniz.h"
@@ -118,7 +119,8 @@ namespace lxlsx {
                     return 1;
                 }
             }
-            return 0;
+            lua_pushstring(L, "");
+            return 1;
         }
 
         string shared = "";
@@ -148,7 +150,8 @@ namespace lxlsx {
 
         int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
             if (auto cell = get_cell(row, col);  cell) return cell->get_value(L);
-            return 0;
+            lua_pushstring(L, "");
+            return 1;
         }
 
         int set_cell_value(lua_State* L, uint32_t row, uint32_t col) {
@@ -243,15 +246,21 @@ namespace lxlsx {
 
         void open(cpchar filename) {
             mz_zip_archive archive = {};
-            if (!mz_zip_reader_init_file(&archive, filename, 0)) {
-                throw runtime_error("read zip error");
+            if (mz_zip_reader_init_file(&archive, filename, 0)) {
+                read_xlsx_files(&archive);
+                return;
             }
-            read_rels(&archive, "_rels/.rels");
-            read_styles(&archive, "xl/styles.xml");
-            read_sstrings(&archive, "xl/sharedStrings.xml");
-            read_workbook(&archive, "xl/workbook.xml");
-            open_xml(&archive, "[Content_Types].xml");
-            mz_zip_reader_end(&archive);
+            FILE* file = fopen(filename, "rb");
+            if (file) {
+                auto file_size = filesystem::file_size(filename);
+                if (mz_zip_reader_init_cfile(&archive, file, file_size, 0)) {
+                    read_xlsx_files(&archive);
+                    fclose(file);
+                    return;
+                }
+                fclose(file);
+            }
+            throw runtime_error("read zip error");
         }
 
         void save(cpchar filename) {
@@ -268,6 +277,15 @@ namespace lxlsx {
             }
             mz_zip_writer_finalize_archive(&archive);
             mz_zip_writer_end(&archive);
+        }
+
+        void read_xlsx_files(mz_zip_archive* archive) {
+            read_rels(archive, "_rels/.rels");
+            read_styles(archive, "xl/styles.xml");
+            read_sstrings(archive, "xl/sharedStrings.xml");
+            read_workbook(archive, "xl/workbook.xml");
+            open_xml(archive, "[Content_Types].xml");
+            mz_zip_reader_end(archive);
         }
 
         workbook* open_workbook(cpchar name) {

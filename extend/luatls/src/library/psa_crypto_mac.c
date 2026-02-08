@@ -6,7 +6,7 @@
  *  SPDX-License-Identifier: Apache-2.0 OR GPL-2.0-or-later
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PSA_CRYPTO_C)
 
@@ -16,7 +16,7 @@
 #include "psa_crypto_mac.h"
 #include <mbedtls/md.h>
 
-#include <mbedtls/error.h>
+#include <mbedtls/private/error_common.h>
 #include "mbedtls/constant_time.h"
 #include <string.h>
 
@@ -159,16 +159,6 @@ static psa_status_t cmac_setup(mbedtls_psa_mac_operation_t *operation,
                                const uint8_t *key_buffer)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
-
-#if defined(PSA_WANT_KEY_TYPE_DES)
-    /* Mbed TLS CMAC does not accept 3DES with only two keys, nor does it accept
-     * to do CMAC with pure DES, so return NOT_SUPPORTED here. */
-    if (psa_get_key_type(attributes) == PSA_KEY_TYPE_DES &&
-        (psa_get_key_bits(attributes) == 64 ||
-         psa_get_key_bits(attributes) == 128)) {
-        return PSA_ERROR_NOT_SUPPORTED;
-    }
-#endif
 
     const mbedtls_cipher_info_t *cipher_info =
         mbedtls_cipher_info_from_psa(

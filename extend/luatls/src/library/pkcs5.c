@@ -15,19 +15,19 @@
  * http://tools.ietf.org/html/rfc6070 (Test vectors)
  */
 
-#include "common.h"
+#include "tf_psa_crypto_common.h"
 
 #if defined(MBEDTLS_PKCS5_C)
 
-#include "mbedtls/pkcs5.h"
-#include "mbedtls/error.h"
+#include "mbedtls/private/pkcs5.h"
+#include "mbedtls/private/error_common.h"
 
 #if defined(MBEDTLS_ASN1_PARSE_C)
 #include "mbedtls/asn1.h"
 #if defined(MBEDTLS_CIPHER_C)
-#include "mbedtls/cipher.h"
+#include "mbedtls/private/cipher.h"
 #endif /* MBEDTLS_CIPHER_C */
-#include "mbedtls/oid.h"
+#include "crypto_oid.h"
 #endif /* MBEDTLS_ASN1_PARSE_C */
 
 #include <string.h>
@@ -383,7 +383,10 @@ int mbedtls_pkcs5_pbkdf2_hmac_ext(mbedtls_md_type_t md_alg,
 
     mbedtls_md_init(&md_ctx);
 
-    if ((ret = mbedtls_md_setup(&md_ctx, md_info, 1)) != 0) {
+    if ((ret = mbedtls_md_setup(&md_ctx, md_info, 0)) != 0) {
+        goto exit;
+    }
+    if ((ret = mbedtls_md_hmac_setup(&md_ctx, md_info)) != 0) {
         goto exit;
     }
     ret = pkcs5_pbkdf2_hmac(&md_ctx, password, plen, salt, slen,
@@ -395,7 +398,7 @@ exit:
 
 #if defined(MBEDTLS_SELF_TEST)
 
-#if !defined(MBEDTLS_MD_CAN_SHA1)
+#if !defined(PSA_WANT_ALG_SHA_1)
 int mbedtls_pkcs5_self_test(int verbose)
 {
     if (verbose != 0) {
@@ -493,7 +496,7 @@ int mbedtls_pkcs5_self_test(int verbose)
 exit:
     return ret;
 }
-#endif /* MBEDTLS_MD_CAN_SHA1 */
+#endif /* PSA_WANT_ALG_SHA_1 */
 
 #endif /* MBEDTLS_SELF_TEST */
 
