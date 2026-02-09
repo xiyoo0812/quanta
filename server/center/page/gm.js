@@ -13,6 +13,7 @@ GMConsole.prototype = {
         var cmd_index = 0;
         var historyCmds = [];
         var treeNodes = [{}];
+        var oriTreeNodes = null;
 
         // 加载命令列表
         $.ajax({
@@ -22,32 +23,84 @@ GMConsole.prototype = {
             contentType: "utf-8",
             success: function (res) {
                 treeNodes[0] = res;
+                that.oriTreeNodes = res;
                 that._showConsole(treeNodes);
             },
             error: function(status) {
                 document.write(JSON.stringify(status));
             }
         });
+        
+        //搜索框事件
+        document.getElementById('treeSearch').addEventListener('input', function(e) {
+            that._filterTree(e.target.value);
+        }, false);
 
         //sendMsg事件
         document.getElementById('send').addEventListener('click', function(){
             that._sendCommand(historyCmds);
-            cmd_index = historyCmds.length
+            cmd_index = historyCmds.length;
         }, false);
 
         //inputMsg事件
-        document.getElementById('inputMsg').addEventListener('keyup', function(e){
-            if (e.keyCode == 13 && e.ctrlKey){
+        document.getElementById('inputMsg').addEventListener('keydown', function(e){
+            if (e.key == "Enter"){
+                if (e.shiftKey) return;
+                e.preventDefault();
                 that._sendCommand(historyCmds);
-                cmd_index = historyCmds.length
-            } else if (e.keyCode == 38){
-                if (cmd_index > 0) cmd_index = cmd_index - 1
-                that._showCommand(historyCmds[cmd_index])
-            } else if (e.keyCode == 40){
-                if (cmd_index < historyCmds.length - 1) cmd_index = cmd_index + 1
-                that._showCommand(historyCmds[cmd_index])
+                cmd_index = historyCmds.length;
+                return;
+            }
+            if (e.key == 'ArrowUp'){
+                if (e.ctrlKey || e.shiftKey) return;
+                if (cmd_index > 0) cmd_index--;
+                that._showCommand(historyCmds[cmd_index] || '');
+                return;
+            }
+            if (e.key == 'ArrowDown'){
+                if (e.ctrlKey || e.shiftKey) return;
+                if (cmd_index < historyCmds.length - 1) cmd_index++;
+                that._showCommand(historyCmds[cmd_index] || '');
+                return;
             }
         }, false);
+    },
+
+    // 树节点过滤函数
+    _filterTree: function(searchText) {
+        var that = this;
+        if (!that.oriTreeNodes) return;
+        if (!searchText.trim()) {
+            that._showConsole([that.oriTreeNodes]);
+            return;
+        }    
+        var lowerTerm = searchText.toLowerCase();        
+        function isMatch(node) {
+            return (node.text && node.text.toLowerCase().indexOf(lowerTerm) !== -1) ||
+                (node.name && node.name.toLowerCase().indexOf(lowerTerm) !== -1);
+        }
+        function copyAndFilter(nodes) {
+            if (!nodes) return null;        
+            var newNodes = [];
+            for (var i = 0; i < nodes.length; i++) {
+                var node = nodes[i];
+                var matched = isMatch(node);
+                var newChildren = copyAndFilter(node.nodes);
+                if (matched || newChildren !== null) {
+                    var newNode = $.extend(true, {}, node);
+                    newNode.nodes = newChildren;
+                    if (newChildren && newChildren.length > 0) {
+                        newNode.state = newNode.state || {};
+                        newNode.state.expanded = true;
+                    }
+                    newNodes.push(newNode);                    
+                }
+            }
+            return newNodes.length > 0 ? newNodes : null;
+        }
+        var filteredRoot = $.extend(true, {}, that.oriTreeNodes);
+        filteredRoot.nodes = copyAndFilter(that.oriTreeNodes.nodes);
+        that._showConsole([filteredRoot]);
     },
 
     _showCommand: function(cmd) {

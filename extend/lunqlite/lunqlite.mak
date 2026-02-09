@@ -121,6 +121,7 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
+	mkdir -p $(SOLUTION_DIR)library
 	mkdir -p $(INT_DIR)/src
 
 #后编译

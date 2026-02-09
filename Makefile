@@ -20,7 +20,7 @@ proj:
 	@start=$$(date +%s); \
 	$(MAKE) clean; \
 	$(MAKE) $(MAKEFLAGS) luas extend core ; \
-	end=$$(date +%s%3N); \
+	end=$$(date +%s); \
 	duration=$$((end - start)); \
 	echo "make proj cost time: $$duration second"
 

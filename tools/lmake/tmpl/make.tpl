@@ -271,6 +271,7 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
+	mkdir -p $(SOLUTION_DIR){{%= DST_LIB_DIR %}}
 {{%
 table.sort(SRC_GROUPS, function(a, b) return a < b end)
 for _, CSRC in ipairs(SRC_GROUPS) do
