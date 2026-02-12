@@ -119,8 +119,7 @@ namespace lxlsx {
                     return 1;
                 }
             }
-            lua_pushstring(L, "");
-            return 1;
+            return 0;
         }
 
         string shared = "";
@@ -150,8 +149,7 @@ namespace lxlsx {
 
         int get_cell_value(lua_State* L, uint32_t row, uint32_t col) {
             if (auto cell = get_cell(row, col);  cell) return cell->get_value(L);
-            lua_pushstring(L, "");
-            return 1;
+            return 0;
         }
 
         int set_cell_value(lua_State* L, uint32_t row, uint32_t col) {

@@ -53,13 +53,11 @@ luaxml: lualib
 	$(MAKE) -C extend/luaxml -f luaxml.mak SOLUTION_DIR=$(CUR_DIR)
 luazip: lualib
 	$(MAKE) -C extend/luazip -f luazip.mak SOLUTION_DIR=$(CUR_DIR)
-lunqlite: lualib
-	$(MAKE) -C extend/lunqlite -f lunqlite.mak SOLUTION_DIR=$(CUR_DIR)
 lyaml: lualib
 	$(MAKE) -C extend/lyaml -f lyaml.mak SOLUTION_DIR=$(CUR_DIR)
 
-backup: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lunqlite lyaml
-.PHONY: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lunqlite lyaml
+backup: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lyaml
+.PHONY: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lyaml
 
 lbson: lualib
 	$(MAKE) -C extend/lbson -f lbson.mak SOLUTION_DIR=$(CUR_DIR)

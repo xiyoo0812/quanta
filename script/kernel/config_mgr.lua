@@ -110,6 +110,14 @@ function ConfigMgr:select(name, query, key)
     end
 end
 
+-- 筛选配置表记录
+function ConfigMgr:select_all(name, query, key)
+    local conf_tab = self.table_list[name]
+    if conf_tab then
+        return conf_tab:select_all(query, key)
+    end
+end
+
 -- export
 quanta.config_mgr = ConfigMgr()
 return ConfigMgr
