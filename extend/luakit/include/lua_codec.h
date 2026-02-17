@@ -533,8 +533,10 @@ namespace luakit {
         virtual luabuf* get_buff() { return m_buf; }
         virtual size_t get_packet_len() { return m_packet_len; }
         virtual void set_buff(luabuf* buf) { m_buf = buf; }
+        virtual void set_tag(vstring tag) { m_tag = tag; }
 
     protected:
+        sstring m_tag = "";
         luabuf* m_buf = nullptr;
         slice* m_slice = nullptr;
         uint32_t m_packet_len = 0;

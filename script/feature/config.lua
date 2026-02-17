@@ -9,7 +9,7 @@ local log_warn      = logger.warn
 local tconcat       = table.concat
 local tinsert       = table.insert
 local tunpack       = table.unpack
-local qtcopy        = table.copy
+local tcopy         = table.copy
 local sformat       = string.format
 local tointeger     = math.tointeger
 
@@ -56,10 +56,9 @@ function ConfigTable:upsert(row)
     end
     local row_index = self:build_index(tunpack(row_indexs))
     if row_index then
-        row.version = self.version
         local raw_row = self.rows[row_index]
         if raw_row then
-            qtcopy(row, raw_row)
+            tcopy(row, raw_row)
         else
             self.count = self.count + 1
             self.rows[row_index] = row
@@ -166,7 +165,6 @@ end
 
 -- 获取所有项，参数{field1=val1,field2=val2,field3=val3}，与初始化index无关
 function ConfigTable:select(query, key)
-    local rows = {}
     for _, row in pairs(self.rows) do
         for field, value in pairs(query or {}) do
             if row[field] ~= value then
@@ -174,13 +172,30 @@ function ConfigTable:select(query, key)
             end
         end
         if key then
-            tinsert(rows, row[key])
+            return row[key]
         else
-            tinsert(rows, row)
+            return row
         end
         ::continue::
     end
-    return rows
+end
+
+function ConfigTable:select_all(query, key)
+    local result = {}
+    for _, row in pairs(self.rows) do
+        for field, value in pairs(query or {}) do
+            if row[field] ~= value then
+                goto continue
+            end
+        end
+        if key then
+            tinsert(result, row[key])
+        else
+            tinsert(result, row)
+        end
+        ::continue::
+    end
+    return result
 end
 
 --迭代器

@@ -114,6 +114,9 @@ local value_func = {
 --获取cell value
 local function get_cell_value(book, row, col, field_type)
     local value = book.get_cell_value(row, col)
+    if not value or value == "" then
+        return nil
+    end
     if field_type then
         local func = value_func[slower(field_type)]
         if func then

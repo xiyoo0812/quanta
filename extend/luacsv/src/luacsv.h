@@ -47,8 +47,7 @@ namespace luacsv {
                 lua_pushstring(L, cell->value.c_str());
                 return 1;
             }
-            lua_pushstring(L, "");
-            return 1;
+            return 0;
         }
 
         string name;

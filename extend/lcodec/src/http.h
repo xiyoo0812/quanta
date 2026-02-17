@@ -62,11 +62,19 @@ namespace lcodec {
     
     class http_codec_base : public codec_base {
     public:
-        virtual void set_content_codec(string_view type, codec_base* codec) {
+        virtual void set_content_encoding_codec(codec_base* codec) {
+            m_encoding = codec;
+        }
+        virtual void set_content_type_codec(string_view type, codec_base* codec) {
             m_codecs.emplace(type, codec);
         }
 
-        codec_base* get_content_codec(string_view content) {
+        codec_base* get_content_encoding_codec(string_view tag) {
+            if (m_encoding) m_encoding->set_tag(tag);
+            return m_encoding;
+        }
+
+        codec_base* get_content_type_codec(string_view content) {
             if (content.empty()) return nullptr;
             if (auto it = m_codecs.find(content.data()); it != m_codecs.end()) {
                 return it->second;
@@ -74,6 +82,7 @@ namespace lcodec {
             return nullptr;
         }
     protected:
+        codec_base* m_encoding = nullptr;
         map<string, codec_base*> m_codecs;
     };
 
@@ -83,10 +92,6 @@ namespace lcodec {
             if (!m_slice) return 0;
             if (!is_packet_complete((char*)m_slice->head(), data_len)) return 0;
             return data_len;
-        }
-
-        virtual void set_content_codec(string_view type, codec_base* codec) {
-            m_codecs.emplace(type, codec);
         }
 
         virtual size_t decode(lua_State* L) {
@@ -113,7 +118,7 @@ namespace lcodec {
             //body
             uint8_t* body = nullptr;
             if (lua_type(L, index + 1) == LUA_TTABLE) {
-                auto codec = get_content_codec(content_type);
+                auto codec = get_content_type_codec(content_type);
                 if (!codec) luaL_error(L, "http json not suppert, con't use lua table!");
                 body = codec->encode(L, index + 1, len);
             } else {
@@ -179,10 +184,10 @@ namespace lcodec {
             try {
                 size_t len = m_buffer.size();
                 uint8_t* data = (uint8_t*)m_buffer.c_str();
-                if (auto codec = get_content_codec(contend_encoding); codec) {
+                if (auto codec = get_content_encoding_codec(contend_encoding); codec) {
                     data = codec->decode(data, &len);
                 }
-                if (auto codec = get_content_codec(contend_type); codec) {
+                if (auto codec = get_content_type_codec(contend_type); codec) {
                     codec->decode(L, data, len);
                     return;
                 }

@@ -58,9 +58,12 @@ namespace lcodec {
         return hcodec;
     }
 
-    static void set_content_codec(codec_base* base, string_view type, codec_base* codec) {
+    static void set_content_codec(codec_base* base, string_view type, codec_base* content_type, codec_base* content_encoding) {
         http_codec_base* hcodec = dynamic_cast<http_codec_base*>(base);
-        if (hcodec) hcodec->set_content_codec(type, codec);
+        if (hcodec){
+            hcodec->set_content_encoding_codec(content_encoding);
+            hcodec->set_content_type_codec(type, content_type);
+        }
     }
 
     static codec_base* mysql_codec(size_t session_id) {
