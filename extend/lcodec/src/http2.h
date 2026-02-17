@@ -397,7 +397,7 @@ namespace lcodec {
 
         codec_base* find_codec(http_codec_base* hcodec, map<string, string>& headers, const char* name) {
             if (headers.contains(name)) {
-                return hcodec->get_content_codec(headers[name]);
+                return hcodec->get_content_type_codec(headers[name]);
             }
             return nullptr;
         }

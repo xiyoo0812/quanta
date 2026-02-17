@@ -35,30 +35,6 @@ quanta: luabus
 core: luabus quanta
 .PHONY: luabus quanta
 
-laoi: lualib
-	$(MAKE) -C extend/laoi -f laoi.mak SOLUTION_DIR=$(CUR_DIR)
-ldetour: lualib
-	$(MAKE) -C extend/ldetour -f ldetour.mak SOLUTION_DIR=$(CUR_DIR)
-lmdb: lualib
-	$(MAKE) -C extend/lmdb -f lmdb.mak SOLUTION_DIR=$(CUR_DIR)
-lsqlite: lualib
-	$(MAKE) -C extend/lsqlite -f lsqlite.mak SOLUTION_DIR=$(CUR_DIR)
-ltoml: lualib
-	$(MAKE) -C extend/ltoml -f ltoml.mak SOLUTION_DIR=$(CUR_DIR)
-luac: lualib
-	$(MAKE) -C extend/lua -f luac.mak SOLUTION_DIR=$(CUR_DIR)
-luakcp: lualib
-	$(MAKE) -C extend/luakcp -f luakcp.mak SOLUTION_DIR=$(CUR_DIR)
-luaxml: lualib
-	$(MAKE) -C extend/luaxml -f luaxml.mak SOLUTION_DIR=$(CUR_DIR)
-luazip: lualib
-	$(MAKE) -C extend/luazip -f luazip.mak SOLUTION_DIR=$(CUR_DIR)
-lyaml: lualib
-	$(MAKE) -C extend/lyaml -f lyaml.mak SOLUTION_DIR=$(CUR_DIR)
-
-backup: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lyaml
-.PHONY: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip lyaml
-
 lbson: lualib
 	$(MAKE) -C extend/lbson -f lbson.mak SOLUTION_DIR=$(CUR_DIR)
 lcodec: lualib
@@ -88,6 +64,28 @@ lworker: lualib
 
 extend: lbson lcodec ljson lprofile lsmdb lstdfs ltimer luacsv lualog luapb luatls luaxlsx lworker
 .PHONY: lbson lcodec ljson lprofile lsmdb lstdfs ltimer luacsv lualog luapb luatls luaxlsx lworker
+
+laoi: lualib
+	$(MAKE) -C extend/laoi -f laoi.mak SOLUTION_DIR=$(CUR_DIR)
+ldetour: lualib
+	$(MAKE) -C extend/ldetour -f ldetour.mak SOLUTION_DIR=$(CUR_DIR)
+lmdb: lualib
+	$(MAKE) -C extend/lmdb -f lmdb.mak SOLUTION_DIR=$(CUR_DIR)
+lsqlite: lualib
+	$(MAKE) -C extend/lsqlite -f lsqlite.mak SOLUTION_DIR=$(CUR_DIR)
+ltoml: lualib
+	$(MAKE) -C extend/ltoml -f ltoml.mak SOLUTION_DIR=$(CUR_DIR)
+luac: lualib
+	$(MAKE) -C extend/lua -f luac.mak SOLUTION_DIR=$(CUR_DIR)
+luakcp: lualib
+	$(MAKE) -C extend/luakcp -f luakcp.mak SOLUTION_DIR=$(CUR_DIR)
+luaxml: lualib
+	$(MAKE) -C extend/luaxml -f luaxml.mak SOLUTION_DIR=$(CUR_DIR)
+luazip: lualib
+	$(MAKE) -C extend/luazip -f luazip.mak SOLUTION_DIR=$(CUR_DIR)
+
+backup: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip
+.PHONY: laoi ldetour lmdb lsqlite ltoml luac luakcp luaxml luazip
 
 lualib: 
 	$(MAKE) -C extend/lua -f lualib.mak SOLUTION_DIR=$(CUR_DIR)

@@ -51,7 +51,7 @@
         <BuildDependency Project="extend\lua\lualib.vcxproj"/>
      </Project>
   </Folder>
-  <Folder Name="/all/lua/">
+  <Folder Name="/all/luas/">
      <Project Path="extend\lua\lualib.vcxproj" Id="B0AEF51E-FBD8-3472-DB40-2C819DE2E5DF"/>
      <Project Path="extend\lua\lua.vcxproj" Id="F8DBBBDB-3B80-B4F1-70A8-272978F579EB">
         <BuildDependency Project="extend\lua\lualib.vcxproj"/>
