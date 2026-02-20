@@ -1,5 +1,5 @@
 --cache_cfg.lua
---source: cache.csv
+--source: cache.xlsm
 --luacheck: ignore 631
 
 --获取配置表

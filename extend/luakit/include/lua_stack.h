@@ -3,24 +3,39 @@
 #include "lua_base.h"
 
 namespace luakit {
+    template <typename T> inline constexpr bool is_smart_ptr_v = false;
+    template <typename T> inline constexpr bool is_smart_ptr_v<std::weak_ptr<T>> = true;
+    template <typename T> inline constexpr bool is_smart_ptr_v<std::shared_ptr<T>> = true;
+    template <typename T, typename D> inline constexpr bool is_smart_ptr_v<std::unique_ptr<T, D>> = true;
+
+    template <typename T> inline constexpr bool is_string_v = false;
+    template <typename C, typename T> inline constexpr bool is_string_v<std::basic_string_view<C, T>> = true;
+    template <typename C, typename T, typename A> inline constexpr bool is_string_v<std::basic_string<C, T, A>> = true;
+
+    template <typename T> inline constexpr bool is_span_v = false;
+    template <typename T, size_t N> inline constexpr bool is_span_v<std::span<T, N>> = true;
+
+    template <typename T> inline constexpr bool is_path_v = false;
+    template <> inline constexpr bool is_path_v<std::filesystem::path> = true;
+
+    template <typename T> using rm_cvref_t = std::remove_cvref_t<T>;
+    template <typename T> concept std_keytype = requires { typename rm_cvref_t<T>::key_type; };
+    template <typename T> concept std_mapped = requires { typename rm_cvref_t<T>::mapped_type; };
+
     template <typename T>
-    concept std_string = std::same_as<T, std::basic_string<typename T::value_type>> || std::same_as<T, std::basic_string_view<typename T::value_type>>;
-    template <typename T>
-    concept std_container = !std_string<T> && requires { typename T::value_type; typename T::iterator; typename T::size_type; };
-    template <typename T>
-    concept std_keytype = requires { typename T::key_type; };
-    template <typename T>
-    concept std_mapped = requires { typename T::mapped_type; };
-    template <typename T>
-    concept std_map = std_container<T> && std_mapped<T>;
-    template <typename T>
-    concept std_set = std_container<T> && std_keytype<T> && !std_mapped<T>;
-    template <typename T>
-    concept std_sequence = std_container<T> && !std_keytype<T> && !std_mapped<T>;
-    template <typename T>
-    concept std_pointer = std::is_pointer_v<T> || std::same_as<T, std::nullptr_t>;
-    template <typename T>
-    concept std_integer = std::integral<T> || std::is_enum_v<T>;
+    concept std_container = !is_string_v<rm_cvref_t<T>> && !is_span_v<rm_cvref_t<T>> && requires(rm_cvref_t<T> t) {
+        typename rm_cvref_t<T>::value_type; typename rm_cvref_t<T>::iterator; typename rm_cvref_t<T>::size_type;
+        { std::begin(t) } -> std::same_as<typename rm_cvref_t<T>::iterator>;
+        { std::end(t) } -> std::same_as<typename rm_cvref_t<T>::iterator>;
+    };
+    template <typename T> concept std_smart_ptr = is_smart_ptr_v<T>;
+    template <typename T> concept std_fspath = is_path_v<rm_cvref_t<T>>;
+    template <typename T> concept std_string = is_string_v<rm_cvref_t<T>>;
+    template <typename T> concept std_map = std_container<T> && std_mapped<T>;
+    template <typename T> concept std_set = std_container<T> && std_keytype<T> && !std_mapped<T>;
+    template <typename T> concept std_sequence = std_container<T> && !std_keytype<T> && !std_mapped<T>;
+    template <typename T> concept std_integer = std::integral<rm_cvref_t<T>> || std::is_enum_v<rm_cvref_t<T>>;
+    template <typename T> concept std_pointer = std::is_pointer_v<rm_cvref_t<T>> || std::same_as<rm_cvref_t<T>, std::nullptr_t>;
 
     template <std_string T>
     T lua_to_native(lua_State* L, int i) {
@@ -71,7 +86,7 @@ namespace luakit {
     
     template <std_pointer T>
     T lua_to_native(lua_State* L, int i) {
-        using type = std::remove_cv_t<std::remove_pointer_t<T>>;
+        using type = rm_cvref_t<std::remove_pointer_t<T>>;
         if constexpr (std::is_same_v<type, char>) {
             return (T)lua_tostring(L, i);
         }
@@ -80,7 +95,7 @@ namespace luakit {
 
     template <std_pointer T>
     int native_to_lua(lua_State* L, T v) {
-        using type = std::remove_cv_t<std::remove_pointer_t<T>>;
+        using type = rm_cvref_t<std::remove_pointer_t<T>>;
         if constexpr (std::is_same_v<type, char>) {
             lua_pushstring(L, v);
         } else {
@@ -88,6 +103,17 @@ namespace luakit {
         }
         return 1;
     }
+
+    template <std_smart_ptr T>
+    int native_to_lua(lua_State* L, T v) {
+        if (v == nullptr) {
+            lua_pushnil(L);
+        } else {
+            lua_push_object(L, v.get());
+        }
+        return 1;
+    }
+    
 
     //std::array/std::list/std::deque/std::forward_list
     //std::set/std::multiset/std::unordered_set/std::unordered_multiset
@@ -158,13 +184,13 @@ namespace luakit {
         return v;
     }
 
-    template <typename T> requires std::same_as<T, std::filesystem::path>
+    template <std_fspath T>
     int native_to_lua(lua_State* L, T v) {
         lua_pushlstring(L, reinterpret_cast<cpchar>(v.u8string().c_str()), v.u8string().size());
         return 1;
     }
 
-    template <typename T> requires std::same_as<T, std::filesystem::path>
+    template <std_fspath T>
     T lua_to_native(lua_State* L, int i) {
         std::string_view fpath = lua_to_native<std::string_view>(L, i);
         #if defined(WIN32)
@@ -182,7 +208,6 @@ namespace luakit {
             lua_pushnil(L);
             return;
         }
-
         lua_getfield(L, LUA_REGISTRYINDEX, "__objects__");
         if (lua_isnil(L, -1)) {
             lua_pop(L, 1);

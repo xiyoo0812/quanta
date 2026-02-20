@@ -33,5 +33,6 @@ book.set_cell_value(14, 2, 18880)
 book.set_cell_value(14, 3, 0.6)
 book.set_cell_value(1, 3, 88)
 book.set_cell_value(13, 4, nil)
+book.set_cell_value(8, 1, 222)
 
 excel.save("test2.xlsx")

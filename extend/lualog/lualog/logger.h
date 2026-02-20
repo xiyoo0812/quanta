@@ -94,13 +94,14 @@ namespace logger {
 
     class log_dest {
     public:
-        virtual void flush(){};
+        virtual ~log_dest() = default;
         virtual bool crcn() { return true; }
         virtual void write(sptr<log_message> logmsg);
         virtual void raw_write(vstring logtxt, log_level lvl) = 0;
         virtual void ignore_prefix(bool prefix) { prefix_ = !prefix; }
         virtual void ignore_suffix(bool suffix) { suffix_ = !suffix; }
         virtual void set_custom_output(custom_output fn) { output_ = fn; }
+        virtual void flush(){ };
 
     protected:
         size_t line_ = 0;

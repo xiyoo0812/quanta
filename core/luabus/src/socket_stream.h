@@ -12,7 +12,7 @@ struct socket_stream : public socket_object
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
     bool accept_socket(socket_t fd, const char ip[]);
-    void connect(const char ip[], int port, int timeout);
+    void connect(const char ip[], int port, int timeout) override;
     bool update(int64_t now) override;
     bool do_connect();
     void try_connect();
@@ -23,8 +23,8 @@ struct socket_stream : public socket_object
     void set_timeout(int duration) override { m_timeout = duration; }
     void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
 
-    int get_sendbuf_size() { return m_send_buffer->size(); }
-    int get_recvbuf_size() { return m_recv_buffer->size(); }
+    int get_sendbuf_size() override { return m_send_buffer->size(); }
+    int get_recvbuf_size() override { return m_recv_buffer->size(); }
 
     bool send(const void* data, size_t data_len) override;
     bool sendv(const sendv_item items[], int count) override;

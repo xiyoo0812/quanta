@@ -14,8 +14,8 @@ a,b,c,d
 local xlua = csv.decode(csvdata, 1)
 log_dump("luacsv decode csv:{}",  xlua)
 
-local yxml = csv.encode(xlua)
-log_dump("luacsv encode csv:{}", yxml)
+local ylua = csv.encode(xlua)
+log_dump("luacsv encode csv:{}", ylua)
 
 local ok = csv.save("./bb.csv", xlua)
 log_dump("luacsv save csv:{}", ok)

@@ -7,6 +7,20 @@ TARGET_NAME = {{%= TARGET_NAME %}}
 #系统环境
 UNAME_S = $(shell uname -s)
 
+#编译器
+ifneq (,$(findstring clang++, $(CXX)))
+    COMPILER := clang
+else ifneq (,$(findstring g++, $(CXX)))
+    COMPILER := gcc
+else
+    COMPILER := unknown
+endif
+
+$(info ==============================================)
+$(info PROJECT: $(PROJECT_NAME))
+$(info OS: $(UNAME_S) Compiler: $(COMPILER) ($(CXX)))
+$(info ==============================================)
+
 #伪目标
 .PHONY: clean all target pre_build post_build
 all : pre_build target post_build
@@ -31,6 +45,20 @@ endif
 {{% if #DARWIN_FLAGS > 0 then %}}
 ifeq ($(UNAME_S), Darwin)
 {{% for _, flag in ipairs(DARWIN_FLAGS) do %}}
+MYCFLAGS += -{{%= flag %}}
+{{% end %}}
+endif
+{{% end %}}
+{{% if #GCC_FLAGS > 0 then %}}
+ifeq ($(COMPILER), gcc)
+{{% for _, flag in ipairs(GCC_FLAGS) do %}}
+MYCFLAGS += -{{%= flag %}}
+{{% end %}}
+endif
+{{% end %}}
+{{% if #CLANG_FLAGS > 0 then %}}
+ifeq ($(COMPILER), clang)
+{{% for _, flag in ipairs(CLANG_FLAGS) do %}}
 MYCFLAGS += -{{%= flag %}}
 {{% end %}}
 endif
