@@ -3,12 +3,12 @@
 {{%
   local TEMPS, DIR_GROUPS = {}, {}
   local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE }
-  local CINCLUDES, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) 
+  local CINCLUDES, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS)
 %}}
   <ItemGroup>
   {{% for _, CINC in pairs(CINCLUDES or {}) do %}}
     <ClInclude Include="{{%= CINC[1] %}}">
-      {{% 
+      {{%
         local FGROUP = CINC[2]
         TEMPS[FGROUP] = true
         local i, j = FGROUP:find("\\")
@@ -40,7 +40,7 @@
   {{% end %}}
   </ItemGroup>
   <ItemGroup>
-  {{% 
+  {{%
     for GROUP in pairs(TEMPS or {}) do
       table.insert(DIR_GROUPS, GROUP)
     end

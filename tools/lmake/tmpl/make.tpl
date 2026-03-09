@@ -245,7 +245,7 @@ for _, CSRC in ipairs(CSOURCES) do
 	local fmtsrc = string.gsub(CSRC[1], '\\', '/')
 %}}
 SOURCES += {{%= fmtsrc %}}
-{{% 
+{{%
 	TEMPS[CSRC[2]] = true
 	end
 for CSRC in pairs(TEMPS) do

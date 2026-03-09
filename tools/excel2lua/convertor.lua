@@ -1,8 +1,6 @@
 --convertor.lualog
 require("ljson")
 require("lstdfs")
-require("luacsv")
-require("luaxlsx")
 
 local pairs         = pairs
 local iopen         = io.open
@@ -299,9 +297,11 @@ end
 
 local function load_workbook(ext, filename)
     if ext == ".xlsx" or ext == ".xlsm" then
+        require("luaxlsx")
         return xlsx.open(filename)
     end
     if ext == ".csv" then
+        require("luacsv")
         return csv.open(filename)
     end
 end

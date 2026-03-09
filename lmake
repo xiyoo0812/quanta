@@ -12,7 +12,7 @@ LMAKE_DIR = "tools/lmake"
 --MSVC_VERSION = 18
 --MSVC_TOOLSET = 145
 --MSVC_FMT_SLNX = false
---MSVC_VERSION_FULL = "18.0.11205.157"
+--MSVC_VERSION_FULL = "18.2.11205.157"
 
 --备份工程是否编译
 IGNORE_GROUP = "backup"
