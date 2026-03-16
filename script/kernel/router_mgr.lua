@@ -42,6 +42,7 @@ function RouterMgr:on_service_close(id, name)
     local router = self.routers[id]
     if router then
         router:close()
+        self:check_router()
     end
 end
 

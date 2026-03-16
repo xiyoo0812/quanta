@@ -294,13 +294,13 @@ namespace lcodec {
 
     class httpccodec : public httpcodec {
     protected:
-        virtual void format_http(lua_State* L, int* index)  {
-            char buf[CHAR_MAX];
+        virtual void format_http(lua_State* L, int* index) {
             session_id = lua_tointeger(L, (*index)++);
             cpchar url = lua_tostring(L, (*index)++);
             cpchar method = lua_tostring(L, (*index)++);
-            size_t len = format_to_n(buf, CHAR_MAX, "{} {} HTTP/1.1\r\n", method, url).size;
-            m_buf->push_data((const uint8_t*)buf, len);
+            auto buf = m_buf->peek_space(USHRT_MAX);
+            size_t len = format_to_n(buf, USHRT_MAX, "{} {} HTTP/1.1\r\n", method, url).size;
+            m_buf->pop_space(len);
         }
 
         virtual void parse_http_packet(lua_State* L, string_view& buf) {

@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 {{%
+  local ASAS = {}
   local ALIBS = {}
   local STDAFX = nil
   local AINCLUDES = {}
   local ALIBDIRS = {}
   local ADEFINES = {}
   for _, CLIB in pairs(LIBS or {}) do
+    table.insert(ASAS, string.format("$(SolutionDir)%s/$(Platform)/lib%s.lib", DST_LIB_DIR, CLIB))
     table.insert(ALIBS, CLIB .. ".lib")
   end
   for _, WLIB in pairs(WINDOWS_LIBS or {}) do
+    table.insert(ASAS, string.format("$(SolutionDir)%s/$(Platform)/lib%s.lib", DST_LIB_DIR, WLIB))
     table.insert(ALIBS, WLIB)
   end
   for _, DDEF in pairs(DEFINES or {}) do
@@ -33,6 +36,7 @@
     local C_LIB_DIR = string.gsub(LIB_DIR, '/', '\\')
     table.insert(ALIBDIRS, C_LIB_DIR)
   end
+  local FMT_ASAS = table.concat(ASAS, ";")
   local FMT_LIBS = table.concat(ALIBS, ";")
   local FMT_INCLUDES = table.concat(AINCLUDES, ";")
   local FMT_LIBRARY_DIR = table.concat(ALIBDIRS, ";")
@@ -161,7 +165,11 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    {{% if PROJECT_TYPE ~= "static" then %}}
+    {{% if PROJECT_TYPE == "static" then %}}
+	  <Lib>
+      <LibAdditionalDependencies>{{%= FMT_ASAS %}};%(LibAdditionalDependencies)</LibAdditionalDependencies>
+    </Lib>
+    {{% else %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -230,7 +238,11 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    {{% if PROJECT_TYPE ~= "static" then %}}
+    {{% if PROJECT_TYPE == "static" then %}}
+	  <Lib>
+      <LibAdditionalDependencies>{{%= FMT_ASAS %}};%(LibAdditionalDependencies)</LibAdditionalDependencies>
+    </Lib>
+    {{% else %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
