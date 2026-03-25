@@ -194,10 +194,12 @@ end
 --错误处理
 function RpcClient:on_socket_error(token, err)
     log_err("[RpcClient][on_socket_error] socket {}:{} {}!", self.ip, self.port, err)
-    self.alive = false
-    self.socket = nil
-    self.timer:change_period(SECOND_MS)
-    self.holder:on_socket_error(self, token, err)
+    if self.socket then
+        self.alive = false
+        self.socket = nil
+        self.timer:change_period(SECOND_MS)
+        self.holder:on_socket_error(self, token, err)
+    end
 end
 
 --连接成功

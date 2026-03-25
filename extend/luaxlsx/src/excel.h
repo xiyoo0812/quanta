@@ -339,8 +339,6 @@ namespace lxlsx {
                     merge_cells(book, mcell.attribute("ref").as_string());
                 });
             }
-            //删除现有cell节点，方便写回
-            sheetdata.remove_children();
             book->worksheet = worksheet;
             book->sheetdata = sheetdata;
         }

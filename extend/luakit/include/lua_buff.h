@@ -30,7 +30,7 @@ namespace luakit {
             return m_size;
         }
 
-        inline size_t empty() {
+        inline bool empty() {
             return m_tail == m_head;
         }
 

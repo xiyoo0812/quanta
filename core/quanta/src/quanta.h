@@ -26,7 +26,7 @@ protected:
     template<typename... Args>
     void exception_handler(vstring msg, Args&&... args){
         m_error = std::vformat(msg, std::make_format_args(args...)).c_str();
-        printf(m_error.c_str());
+        printf("%s", m_error.c_str());
     }
 
 private:

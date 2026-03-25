@@ -113,7 +113,7 @@ namespace lworker {
                     m_read_buf->clean();
                     break;
                 }
-                m_read_buf->pop_size(plen);
+                m_read_buf->pop_size(m_codec.get_packet_len());
                 if (luakit::steady_ms() - clock_ms > 100) break;
                 slice = read_slice(m_read_buf, &plen);
             }

@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 {{%
-  local AINCLUDES = {}
-  local ALIBDIRS = {}
-  local FMT_LIBS = ""
+  local ASAS = {}
+  local ALIBS = {}
   local ADEFINES = {}
+  local ALIBDIRS = {}
+  local AINCLUDES = {}
   local PROJECT_PREFIX = ""
   if LIB_PREFIX then
     PROJECT_PREFIX = "lib"
   end
   for _, CLIB in pairs(LIBS or {}) do
-    FMT_LIBS = string.format("%s-l%s;", FMT_LIBS, CLIB)
+    table.insert(ASAS, string.format("$(SolutionDir)%s/$(Platform)/lib%s.a", DST_LIB_DIR, CLIB))
+    table.insert(ALIBS, "-l" .. CLIB)
   end
-  for _, PSLIB in pairs(NSLIBS or {}) do
-    FMT_LIBS = string.format("%s-l%s;", FMT_LIBS, PSLIB)
+  for _, NSLIB in pairs(NSLIBS or {}) do
+    table.insert(ASAS, string.format("$(SolutionDir)%s/$(Platform)/lib%s.a", DST_LIB_DIR, NSLIB))
+    table.insert(ALIBS, "-l" .. NSLIB)
   end
   for _, DDEF in pairs(DEFINES or {}) do
     table.insert(ADEFINES, DDEF)
@@ -29,6 +32,8 @@
     local C_LIB_DIR = string.gsub(LIB_DIR, '/', '\\')
     table.insert(ALIBDIRS, C_LIB_DIR)
   end
+  local FMT_ASAS = table.concat(ASAS, ";")
+  local FMT_LIBS = table.concat(ALIBS, ";")
   local FMT_INCLUDES = table.concat(AINCLUDES, ";")
   local FMT_LIBRARY_DIR = table.concat(ALIBDIRS, ";")
   local FMT_NROLIBS = table.concat(NROLIBS or {}, ";")
@@ -146,7 +151,11 @@
       <PreprocessorDefinitions>{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    {{% if PROJECT_TYPE ~= "static" then %}}
+    {{% if PROJECT_TYPE == "static" then %}}
+	  <Lib>
+      <LibAdditionalDependencies>{{%= FMT_ASAS %}};%(LibAdditionalDependencies)</LibAdditionalDependencies>
+    </Lib>
+    {{% else %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_DIR %}};$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)
@@ -162,12 +171,12 @@
     {{% end %}}
     <PreBuildEvent>
       {{%
-        if next(WINDOWS_PREBUILDS) then
-          local pre_commands = {}
-          for _, PREBUILD_CMD in pairs(WINDOWS_PREBUILDS) do
-            local pre_build_cmd = string.gsub(PREBUILD_CMD[2], '/', '\\')
-            table.insert(pre_commands, string.format("%s %s", PREBUILD_CMD[1], pre_build_cmd))
-          end
+      if next(WINDOWS_PREBUILDS) then
+        local pre_commands = {}
+        for _, PREBUILD_CMD in pairs(WINDOWS_PREBUILDS) do
+          local pre_build_cmd = string.gsub(PREBUILD_CMD[2], '/', '\\')
+          table.insert(pre_commands, string.format("%s %s", PREBUILD_CMD[1], pre_build_cmd))
+        end
       %}}
       {{%= string.format("<Command>%s</Command>", table.concat(pre_commands, "\n")) %}}
       {{% end %}}
@@ -206,7 +215,11 @@
       <PreprocessorDefinitions>{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    {{% if PROJECT_TYPE ~= "static" then %}}
+    {{% if PROJECT_TYPE == "static" then %}}
+	  <Lib>
+      <LibAdditionalDependencies>{{%= FMT_ASAS %}};%(LibAdditionalDependencies)</LibAdditionalDependencies>
+    </Lib>
+    {{% else %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_DIR %}};$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)

@@ -1,8 +1,6 @@
 --convertor.lualog
 require("ljson")
 require("lstdfs")
-require("luacsv")
-require("luaxlsx")
 
 local pairs         = pairs
 local iopen         = io.open
@@ -290,15 +288,20 @@ local function export_workbook_to_output(book, output, fname, bookname)
     print(sformat("export file: %s book: %s to %s success!", fname, bookname, title))
 end
 
-local function is_config_file(ext)
+local function is_config_file(ext, filename)
+    if filename:sub(1, 2) == "~$" then
+        return false
+    end
     return ext == ".xlsx" or ext == ".xlsm" or ext == ".csv"
 end
 
 local function load_workbook(ext, filename)
     if ext == ".xlsx" or ext == ".xlsm" then
+        require("luaxlsx")
         return xlsx.open(filename)
     end
     if ext == ".csv" then
+        require("luacsv")
         return csv.open(filename)
     end
 end
@@ -326,10 +329,10 @@ local function export_config(input, output)
             goto continue
         end
         local ext = lextension(fullname)
-        if is_config_file(ext) then
-            local fname = lfilename(fullname)
-            local workbook = load_workbook(ext, fullname)
-            if not workbook then
+        local fname = lfilename(fullname)
+        if is_config_file(ext, fname) then
+            local ok, workbook = pcall(load_workbook, ext, fullname)
+            if not ok then
                 print(sformat("open config %s failed!", fullname))
                 goto continue
             end

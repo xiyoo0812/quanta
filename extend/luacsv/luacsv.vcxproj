@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\csv.hpp" />
     <ClInclude Include="src\luacsv.h" />
+    <ClInclude Include="src\rapidcsv.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\luacsv.cpp" />

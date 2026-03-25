@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 {{%
-  local AINCLUDES = {}
+  local ASAS = {}
+  local ALIBS = {}
   local ALIBDIRS = {}
-  local FMT_LIBS = ""
   local ADEFINES = {}
+  local AINCLUDES = {}
   local PROJECT_PREFIX = ""
   if LIB_PREFIX then
     PROJECT_PREFIX = "lib"
   end
   for _, CLIB in pairs(LIBS or {}) do
-    FMT_LIBS = string.format("%s-l%s;", FMT_LIBS, CLIB)
+    table.insert(ASAS, string.format("$(SolutionDir)%s/$(Platform)/lib%s.a", DST_LIB_DIR, CLIB))
+    table.insert(ALIBS, "-l" .. CLIB)
   end
   for _, PSLIB in pairs(PSLIBS or {}) do
-    FMT_LIBS = string.format("%s-l%s;", FMT_LIBS, PSLIB)
+    table.insert(ASAS, string.format("$(SolutionDir)%s/$(Platform)/lib%s.a", DST_LIB_DIR, PSLIB))
+    table.insert(ALIBS, "-l" .. PSLIB)
   end
   for _, DDEF in pairs(DEFINES or {}) do
     table.insert(ADEFINES, DDEF)
@@ -29,6 +32,8 @@
     local C_LIB_DIR = string.gsub(LIB_DIR, '/', '\\')
     table.insert(ALIBDIRS, C_LIB_DIR)
   end
+  local FMT_ASAS = table.concat(ASAS, ";")
+  local FMT_LIBS = table.concat(ALIBS, ";")
   local FMT_INCLUDES = table.concat(AINCLUDES, ";")
   local FMT_LIBRARY_DIR = table.concat(ALIBDIRS, ";")
   local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE }
@@ -116,7 +121,11 @@
       <PreprocessorDefinitions>_DEBUG;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    {{% if PROJECT_TYPE ~= "static" then %}}
+    {{% if PROJECT_TYPE == "static" then %}}
+	  <Lib>
+      <LibAdditionalDependencies>{{%= FMT_ASAS %}};%(LibAdditionalDependencies)</LibAdditionalDependencies>
+    </Lib>
+    {{% else %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_DIR %}};$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)
@@ -175,7 +184,11 @@
       <PreprocessorDefinitions>NDEBUG;{{%= FMT_DEFINES %}};%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>{{%= FMT_INCLUDES %}};%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
-    {{% if PROJECT_TYPE ~= "static" then %}}
+    {{% if PROJECT_TYPE == "static" then %}}
+	  <Lib>
+      <LibAdditionalDependencies>{{%= FMT_ASAS %}};%(LibAdditionalDependencies)</LibAdditionalDependencies>
+    </Lib>
+    {{% else %}}
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <AdditionalLibraryDirectories>$(SolutionDir){{%= DST_DIR %}};$(SolutionDir){{%= DST_LIB_DIR %}}\$(Platform);{{%= FMT_LIBRARY_DIR %}};%(AdditionalLibraryDirectories)

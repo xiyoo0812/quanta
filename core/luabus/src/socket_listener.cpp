@@ -91,7 +91,7 @@ void socket_listener::on_complete(WSAOVERLAPPED* ovl) {
     int remote_addr_len = 0;
     char ip[INET6_ADDRSTRLEN];
 
-    (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
+    (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[1]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
     get_ip_string(ip, sizeof(ip), remote_addr);
 
     set_no_block(node->fd);
@@ -148,7 +148,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
         int remote_addr_len = 0;
         char ip[INET6_ADDRSTRLEN];
 
-        (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[2]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
+        (*m_addrs_func)(node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[1]), &local_addr, &local_addr_len, &remote_addr, &remote_addr_len);
         get_ip_string(ip, sizeof(ip), remote_addr);
 
         uint32_t token = m_mgr->accept_stream(m_token, node->fd, ip);

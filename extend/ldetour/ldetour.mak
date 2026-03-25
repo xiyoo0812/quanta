@@ -7,6 +7,20 @@ TARGET_NAME = ldetour
 #系统环境
 UNAME_S = $(shell uname -s)
 
+#编译器
+ifneq (,$(findstring clang++, $(CXX)))
+    COMPILER := clang
+else ifneq (,$(findstring g++, $(CXX)))
+    COMPILER := gcc
+else
+    COMPILER := unknown
+endif
+
+$(info ==============================================)
+$(info PROJECT: $(PROJECT_NAME))
+$(info OS: $(UNAME_S) Compiler: $(COMPILER) ($(CXX)))
+$(info ==============================================)
+
 #伪目标
 .PHONY: clean all target pre_build post_build
 all : pre_build target post_build
@@ -21,8 +35,10 @@ MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
 MYCFLAGS += -Wno-unused-but-set-variable
 MYCFLAGS += -Wno-unused-but-set-parameter
+ifeq ($(COMPILER), gcc)
 MYCFLAGS += -Wno-class-memaccess
 MYCFLAGS += -Wno-maybe-uninitialized
+endif
 
 #c标准库版本
 #gnu99/gnu11/gnu17

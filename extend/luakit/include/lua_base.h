@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <span>
 #include <mutex>
 #include <format>
 #include <atomic>

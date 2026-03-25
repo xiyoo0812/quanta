@@ -249,6 +249,7 @@ namespace luatls {
                 if (read == 0) break;
                 if (read < 0) {
                     if (read == MBEDTLS_ERR_SSL_WANT_READ) break;
+                    if (read == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) break;
                     if (read == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) continue;
                     tls_error(L, "mbedtls_ssl_read", read, true);
                 }
