@@ -4,7 +4,7 @@
 
 namespace luakit {
 
-    const size_t BUFFER_DEF = 8 * 1024;         //4K
+    const size_t BUFFER_DEF = 8 * 1024;         //8K
     const size_t BUFFER_MAX = 16 * 1024 * 1024; //16M
     const size_t ALIGN_SIZE = 16;               //水位
 

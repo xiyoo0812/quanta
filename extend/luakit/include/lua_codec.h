@@ -506,7 +506,7 @@ namespace luakit {
         }
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             int n = lua_gettop(L) - index + 1;
-            slice* slice = encode_slice(L, m_buf, index, n);
+            slice* slice = encode_slice(L, &m_buf, index, n);
             return slice->data(len);
         }
         virtual uint8_t* decode(uint8_t* data, size_t* len) {
@@ -521,23 +521,22 @@ namespace luakit {
         }
         template<typename... Args>
         uint8_t* encode(size_t* len, uint8_t num, Args&&... args) {
-            m_buf->clean();
-            value_encode(m_buf, num);
-            (typeval_encode(m_buf, std::forward<Args>(args)), ...);
-            return m_buf->data(len);
+            m_buf.clean();
+            value_encode(&m_buf, num);
+            (typeval_encode(&m_buf, std::forward<Args>(args)), ...);
+            return m_buf.data(len);
         }
         virtual void set_slice(slice* slice) {
             m_slice = slice;
             m_packet_len = 0;
         }
-        virtual luabuf* get_buff() { return m_buf; }
+        virtual luabuf* get_buff() { return &m_buf; }
         virtual size_t get_packet_len() { return m_packet_len; }
-        virtual void set_buff(luabuf* buf) { m_buf = buf; }
         virtual void set_tag(vstring tag) { m_tag = tag; }
 
     protected:
+        luabuf m_buf;
         sstring m_tag = "";
-        luabuf* m_buf = nullptr;
         slice* m_slice = nullptr;
         uint32_t m_packet_len = 0;
     };
@@ -556,7 +555,7 @@ namespace luakit {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            slice* slice = encode_slice(L, m_buf, index, 1);
+            slice* slice = encode_slice(L, &m_buf, index, 1);
             return slice->data(len);
         }
     };

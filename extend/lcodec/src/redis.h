@@ -14,15 +14,15 @@ namespace lcodec {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf->clean();
+            m_buf.clean();
             int n = lua_gettop(L);
             uint32_t session_id = lua_tointeger(L, index++);
-            m_buf->write(std::format("*{}\r\n", n - index + 1));
+            m_buf.write(std::format("*{}\r\n", n - index + 1));
             for (int i = index; i <= n; ++i) {
                 encode_bulk_string(L, i);
             }
             m_sessions.push_back(session_id);
-            return m_buf->data(len);
+            return m_buf.data(len);
         }
 
         virtual size_t decode(lua_State* L) {
@@ -144,24 +144,24 @@ namespace lcodec {
 
         void number_encode(double value) {
             auto res = to_chars(m_buffer, m_buffer + sizeof(m_buffer), value, chars_format::general, 25);
-            m_buf->write(std::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
+            m_buf.write(std::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
         }
 
         void integer_encode(int64_t integer) {
             auto res = to_chars(m_buffer, m_buffer + sizeof(m_buffer), integer);
-            m_buf->write(std::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
+            m_buf.write(std::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
         }
 
         void string_encode(lua_State* L, int idx) {
             size_t len;
             cpchar data = lua_tolstring(L, idx, &len);
-            m_buf->write(std::format("${}\r\n{}\r\n", len, string_view(data, len)));
+            m_buf.write(std::format("${}\r\n{}\r\n", len, string_view(data, len)));
         }
 
         void table_encode(lua_State* L, int idx) {
             size_t len;
             char* body = (char*)m_jcodec->encode(L, idx, &len);
-            m_buf->write(std::format("${}\r\n[js]{}\r\n", len + 4, string_view(body, len)));
+            m_buf.write(std::format("${}\r\n[js]{}\r\n", len + 4, string_view(body, len)));
         }
 
         void encode_bulk_string(lua_State* L, int idx) {
@@ -179,7 +179,7 @@ namespace lcodec {
                 table_encode(L, idx);
                 break;
             default:
-                m_buf->write("$-1\r\n");
+                m_buf.write("$-1\r\n");
                 break;
             }
         }

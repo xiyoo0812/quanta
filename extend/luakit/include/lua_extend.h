@@ -4,25 +4,31 @@
 
 namespace luakit {
 
-    static bool lua_string_starts_with(lua_State* L, vstring str, vstring with) {
+    inline cpchar push_string(lua_State* L, cpchar data, size_t sz, int index, lua_Alloc alc = nullptr, void* ud = nullptr) {
+        bool external = luaL_opt(L, lua_toboolean, index, true);
+        if (external) return lua_pushexternalstring(L, data, sz, alc, ud);
+        return lua_pushlstring(L, data, sz);
+    }
+
+    inline bool lua_string_starts_with(lua_State* L, vstring str, vstring with) {
         return str.starts_with(with);
     }
 
-    static bool lua_string_ends_with(lua_State* L, vstring str, vstring with) {
+    inline bool lua_string_ends_with(lua_State* L, vstring str, vstring with) {
         return str.ends_with(with);
     }
 
-    static sstring lua_string_title(sstring str) {
+    inline sstring lua_string_title(sstring str) {
         if (!str.empty()) str[0] = std::toupper(static_cast<unsigned char>(str[0]));
         return str;
     }
 
-    static sstring lua_string_untitle(sstring str) {
+    inline sstring lua_string_untitle(sstring str) {
         if (!str.empty()) str[0] = std::tolower(static_cast<unsigned char>(str[0]));
         return str;
     }
 
-    static int lua_string_split(lua_State* L, vstring str, vstring delim) {
+    inline int lua_string_split(lua_State* L, vstring str, vstring delim) {
         size_t step = delim.size();
         if (step == 0) luaL_error(L, "delimiter cannot be empty");
         size_t cur = 0, len = 0;
@@ -42,7 +48,7 @@ namespace luakit {
         return (pack) ? 1 : (int)len;
     }
 
-    static void lua_os_setenv(vstring key, vstring value) {
+    inline void lua_os_setenv(vstring key, vstring value) {
         #ifdef WIN32
             _putenv_s(key.data(), value.data());
         #else
@@ -50,7 +56,7 @@ namespace luakit {
         #endif
     }
 
-    static bool is_lua_array(lua_State* L, int index, bool emy_as_arr = false) {
+    inline bool is_lua_array(lua_State* L, int index, bool emy_as_arr = false) {
         if (lua_type(L, index) != LUA_TTABLE) return false;
         size_t raw_len = lua_rawlen(L, index);
         if (raw_len == 0 && !emy_as_arr) return false;
@@ -68,7 +74,7 @@ namespace luakit {
         return curlen == raw_len;
     }
 
-    static void copy_table(lua_State* L, int src_idx, int dst_idx) {
+    inline void copy_table(lua_State* L, int src_idx, int dst_idx) {
         src_idx = lua_absindex(L, src_idx);
         dst_idx = lua_absindex(L, dst_idx);
         lua_pushnil(L);
@@ -93,7 +99,7 @@ namespace luakit {
         }
     }
 
-    static int lua_table_deepcopy(lua_State* L) {
+    inline int lua_table_deepcopy(lua_State* L) {
         if (!lua_istable(L, 2)) {
             lua_settop(L, 1);
             lua_createtable(L, 0, 8);
@@ -104,7 +110,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_copy(lua_State* L) {
+    inline int lua_table_copy(lua_State* L) {
         if (!lua_istable(L, 2)) {
             lua_settop(L, 1);
             lua_createtable(L, 0, 8);
@@ -121,7 +127,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_clean(lua_State* L) {
+    inline int lua_table_clean(lua_State* L) {
         if (lua_istable(L, 1)) {
             lua_pushnil(L);
             while (lua_next(L, 1) != 0) {
@@ -134,7 +140,7 @@ namespace luakit {
         return 0;
     }
 
-    static int lua_table_size(lua_State* L) {
+    inline int lua_table_size(lua_State* L) {
         uint32_t len = 0;
         if (lua_istable(L, 1)) {
             lua_pushnil(L);
@@ -147,7 +153,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_keys(lua_State* L) {
+    inline int lua_table_keys(lua_State* L) {
         lua_createtable(L, 8, 0);
         if (lua_istable(L, 1)) {
             int i = 0;
@@ -161,7 +167,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_vals(lua_State* L) {
+    inline int lua_table_vals(lua_State* L) {
         lua_createtable(L, 8, 0);
         if (lua_istable(L, 1)) {
             int i = 0;
@@ -175,7 +181,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_kvals(lua_State* L) {
+    inline int lua_table_kvals(lua_State* L) {
         lua_createtable(L, 8, 0);
         if (lua_istable(L, 1)) {
             int i = 0;
@@ -191,7 +197,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_pushback(lua_State* L) {
+    inline int lua_table_pushback(lua_State* L) {
         int argn = 0;
         if (lua_istable(L, 1)) {
             argn = lua_gettop(L) - 1;
@@ -205,7 +211,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_join(lua_State* L) {
+    inline int lua_table_join(lua_State* L) {
         if (lua_istable(L, 1) && lua_istable(L, 2)) {
             size_t src_len = lua_rawlen(L, 1);
             size_t dst_len = lua_rawlen(L, 2);
@@ -217,7 +223,7 @@ namespace luakit {
         return 1;
     }
 
-    static int lua_table_indexof(lua_State* L) {
+    inline int lua_table_indexof(lua_State* L) {
         if (lua_istable(L, 1)) {
             lua_pushnil(L);
             while (lua_next(L, 1) != 0) {
@@ -231,7 +237,7 @@ namespace luakit {
         return 0;
     }
 
-    static int lua_table_erase(lua_State* L) {
+    inline int lua_table_erase(lua_State* L) {
         size_t deleted_count = 0;
         if (lua_istable(L, 1)) {
             size_t write_index = 1;
@@ -261,7 +267,7 @@ namespace luakit {
         return 0;
     }
 
-    static int lua_table_slice(lua_State* L) {
+    inline int lua_table_slice(lua_State* L) {
         if (lua_istable(L, 1)) {
             size_t spos = luaL_optinteger(L, 2, 0);
             size_t epos = luaL_optinteger(L, 3, 0);

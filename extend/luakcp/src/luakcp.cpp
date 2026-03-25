@@ -47,9 +47,9 @@ namespace luakcp {
 #endif
     }
 
+    thread_local luabuf lkbuf;
     inline char* alloc_buff(size_t sz) {
-        auto buf = luakit::get_buff();
-        return (char*)buf->peek_space(sz);
+        return (char*)lkbuf.peek_space(sz);
     }
 
     class kcp_socket;

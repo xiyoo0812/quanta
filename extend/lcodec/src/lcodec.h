@@ -7,11 +7,19 @@
 using namespace std;
 using namespace luakit;
 
-inline char fromhex(unsigned char x) {
-    if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
-    else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
-    else if (x >= '0' && x <= '9') return x - '0';
-    else return x;
+namespace lcodec {
+    inline thread_local luabuf lcbuf;
+    
+    inline luabuf* get_buff() {
+        return &lcbuf;
+    }
+
+    inline char fromhex(unsigned char x) {
+        if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
+        else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
+        else if (x >= '0' && x <= '9') return x - '0';
+        else return x;
+    }
 }
 
 #include "url.h"
