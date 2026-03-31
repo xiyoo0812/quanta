@@ -24,7 +24,7 @@ void socket_udp::set_buff_size(int rcv_size, int snd_size) {
 
 bool socket_udp::setup(bool noblock, bool broadcast, bool reuse) {
     socket_t fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (fd <= 0) {
+    if (fd == INVALID_SOCKET) {
         return false;
     }
     m_fd = fd;

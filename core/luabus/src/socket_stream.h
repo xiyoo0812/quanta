@@ -56,7 +56,6 @@ struct socket_stream : public socket_object
     int64_t m_connecting_time = 0;
 
     socket_mgr* m_mgr = nullptr;
-    socket_t m_socket = INVALID_SOCKET;
 
     std::function<void(slice*)> m_package_cb = nullptr;
     std::function<void(const char*)> m_error_cb = nullptr;

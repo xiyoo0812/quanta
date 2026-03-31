@@ -5,9 +5,11 @@
 #ifdef IO_IOCP
 socket_listener::socket_listener(socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) {
     mgr->increase_count();
-    m_mgr = mgr;
+    m_token = mgr->new_token();
     m_accept_func = accept_func;
     m_addrs_func = addrs_func;
+    m_kind = m_token;
+    m_mgr = mgr;
     for (auto& node : m_nodes) {
         node.fd = INVALID_SOCKET;
     }
@@ -15,6 +17,8 @@ socket_listener::socket_listener(socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPF
 #else
 socket_listener::socket_listener(socket_mgr* mgr) {
     mgr->increase_count();
+    m_token = mgr->new_token();
+    m_kind = m_token;
     m_mgr = mgr;
 }
 #endif

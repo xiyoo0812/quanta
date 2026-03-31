@@ -169,7 +169,8 @@ namespace luazip {
 
     inline int zstd_encode(lua_State* L) {
         size_t data_len = 0;
-        auto dest = zcodec.encode_zstd(L, 1, &data_len);
+        int level = luaL_optinteger(L, 3, ZSTD_defaultCLevel());
+        auto dest = zcodec.encode_zstd(L, 1, &data_len, level);
         if (data_len > 0) {
             push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
@@ -194,7 +195,8 @@ namespace luazip {
 
     inline int deflate_encode(lua_State* L) {
         size_t data_len = 0;
-        auto dest = zcodec.encode_deflate(L, 1, &data_len);
+        int level = luaL_optinteger(L, 3, MZ_DEFAULT_LEVEL);
+        auto dest = zcodec.encode_deflate(L, 1, &data_len, level);
         if (data_len > 0) {
             push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
@@ -219,7 +221,8 @@ namespace luazip {
 
     inline int zlib_encode(lua_State* L) {
         size_t data_len = 0;
-        auto dest = zcodec.encode_zlib(L, 1, &data_len);
+        int level = luaL_optinteger(L, 3, MZ_DEFAULT_LEVEL);
+        auto dest = zcodec.encode_zlib(L, 1, &data_len, level);
         if (data_len > 0) {
             push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
@@ -244,7 +247,8 @@ namespace luazip {
 
     inline int gzip_encode(lua_State* L) {
         size_t data_len = 0;
-        auto dest = zcodec.encode_gzip(L, 1, &data_len);
+        int level = luaL_optinteger(L, 3, MZ_DEFAULT_LEVEL);
+        auto dest = zcodec.encode_gzip(L, 1, &data_len, level);
         if (data_len > 0) {
             push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;

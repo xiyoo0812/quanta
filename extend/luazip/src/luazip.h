@@ -66,11 +66,11 @@ namespace luazip {
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             m_buf.clean();
-            if (m_tag == "gzip") return encode_gzip(L, index, len);
+            if (m_tag == "gzip") return encode_gzip(L, index, len, MZ_DEFAULT_LEVEL);
+            if (m_tag == "zlib") return encode_zlib(L, index, len, MZ_DEFAULT_LEVEL);
+            if (m_tag == "deflate") return encode_deflate(L, index, len, MZ_DEFAULT_LEVEL);
+            if (m_tag == "zstd") return encode_zstd(L, index, len, ZSTD_defaultCLevel());
             if (m_tag == "lz4") return encode_lz4(L, index, len);
-            if (m_tag == "deflate") return encode_deflate(L, index, len);
-            if (m_tag == "zlib") return encode_zlib(L, index, len);
-            if (m_tag == "zstd") return encode_zstd(L, index, len);
             return nullptr;
         }
 
@@ -98,12 +98,11 @@ namespace luazip {
             return nullptr;
         }
 
-        uint8_t* encode_zlib(lua_State* L, int index, size_t* len) {
+        uint8_t* encode_zlib(lua_State* L, int index, size_t* len, int level) {
             size_t data_len = 0;
             cpchar message = luaL_checklstring(L, index, &data_len);
             size_t dst_len = mz_compressBound(data_len);
             if (dst_len < luakit::BUFFER_MAX) {
-                int level = luaL_optinteger(L, index + 1, 3);
                 auto dest = m_buf.peek_space(dst_len);
                 *(size_t*)dest = data_len;
                 uint32_t comp_flags = tdefl_create_comp_flags_from_zip_params(level, 15, MZ_DEFAULT_STRATEGY);
@@ -113,13 +112,12 @@ namespace luazip {
             return nullptr;
         }
 
-        uint8_t* encode_gzip(lua_State* L, int index, size_t* len) {
+        uint8_t* encode_gzip(lua_State* L, int index, size_t* len, int level) {
             size_t data_len = 0;
             cpchar message = luaL_checklstring(L, index, &data_len);
             size_t dst_len = mz_compressBound(data_len);
             size_t gzip_len = 10 + dst_len + 8;
             if (gzip_len < luakit::BUFFER_MAX) {
-                int level = luaL_optinteger(L, index + 1, 3);
                 pbyte gzip = m_buf.peek_space(gzip_len);
                 // GZIP header
                 gzip[0] = 0x1f; gzip[1] = 0x8b;  // magic
@@ -143,13 +141,13 @@ namespace luazip {
             return nullptr;
         }
 
-        uint8_t* encode_zstd(lua_State* L, int index, size_t* len) {
+        uint8_t* encode_zstd(lua_State* L, int index, size_t* len, int level) {
             size_t data_len = 0;
             cpchar message = luaL_checklstring(L, index, &data_len);
             size_t zsize = ZSTD_compressBound(data_len);
             if (!ZSTD_isError(zsize) && zsize < luakit::BUFFER_MAX) {
                 auto dest = m_buf.peek_space(zsize);
-                size_t comp_ize = ZSTD_compress(dest, zsize, message, data_len, ZSTD_defaultCLevel());
+                size_t comp_ize = ZSTD_compress(dest, zsize, message, data_len, level);
                 if (!ZSTD_isError(comp_ize)) {
                     *len = comp_ize;
                     return dest;
@@ -157,12 +155,12 @@ namespace luazip {
             }
             return nullptr;
         }
-        uint8_t* encode_deflate(lua_State* L, int index, size_t* len) {
+
+        uint8_t* encode_deflate(lua_State* L, int index, size_t* len, int level) {
             size_t data_len = 0;
             cpchar message = luaL_checklstring(L, index, &data_len);
             size_t dst_len = mz_compressBound(data_len);
             if (dst_len < luakit::BUFFER_MAX) {
-                int level = luaL_optinteger(L, index + 1, 3);
                 auto dest = m_buf.peek_space(dst_len);
                 uint32_t comp_flags = tdefl_create_comp_flags_from_zip_params(level, -15, MZ_DEFAULT_STRATEGY);
                 *len = tdefl_compress_mem_to_mem(dest, dst_len, message, data_len, comp_flags);

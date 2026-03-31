@@ -49,9 +49,9 @@ namespace ljson {
         int encode_impl(lua_State* L, yyjson_write_flag flag) {
             try {
                 size_t data_len;
-                bool emy_as_arr = luaL_opt(L, lua_toboolean, 2, false);
+                bool emy_as_arr = luaL_opt(L, lua_toboolean, 3, false);
                 char* json = encode_core(L, flag, emy_as_arr, 1, &data_len);
-                push_string(L, json, data_len, 3, clean, &m_alc);
+                push_string(L, json, data_len, 2, clean, &m_alc);
                 return 1;
             } catch(const std::exception& e) {
                 luaL_error(L, e.what());

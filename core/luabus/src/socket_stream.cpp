@@ -9,6 +9,7 @@ socket_stream::socket_stream(socket_mgr* mgr, socket_t fd, LPFN_CONNECTEX connec
     mgr->increase_count();
     m_mgr = mgr;
     m_socket = fd;
+    m_token = mgr->new_token();
     m_connect_func = connect_func;
     m_ip[0] = 0;
 }
@@ -16,6 +17,7 @@ socket_stream::socket_stream(socket_mgr* mgr, socket_t fd, LPFN_CONNECTEX connec
 
 socket_stream::socket_stream(socket_mgr* mgr, socket_t fd) {
     mgr->increase_count();
+    m_token = mgr->new_token();
     m_socket = fd;
     m_mgr = mgr;
     m_ip[0] = 0;
