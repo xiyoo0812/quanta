@@ -108,7 +108,7 @@ int socket_mgr::wait(int64_t now, int timeout) {
         socket_object* object = it->second;
         if (!object->update(now)) {
 #ifdef IO_POLL
-            poll_event_ctl(it->first, 0);
+            poll_event_ctl(object->get_fd(), it->first, 0);
 #endif
             it = m_objects.erase(it);
             delete object;

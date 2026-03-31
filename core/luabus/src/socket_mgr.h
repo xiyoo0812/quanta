@@ -45,7 +45,7 @@ struct socket_object {
     virtual int get_sendbuf_size() { return 0; }
     virtual int get_recvbuf_size() { return 0; }
     virtual uint32_t get_token() { return m_token; }
-    virtual uint32_t get_socket() { return m_socket; }
+    virtual uint32_t get_fd() { return m_fd; }
     virtual void close() { m_link_status = LINK_CLOSED; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char ip[], int port, int timeout) { }
@@ -72,7 +72,7 @@ struct socket_object {
 protected:
     uint32_t m_kind = 0;
     uint32_t m_token = 0;
-    socket_t m_socket = INVALID_SOCKET;
+    socket_t m_fd = INVALID_SOCKET;
     codec_base* m_codec = nullptr;
     link_status m_link_status = LINK_INIT;
 };

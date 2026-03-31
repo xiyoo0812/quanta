@@ -21,7 +21,7 @@ struct socket_stream : public socket_object
     void set_connect_callback(const std::function<void(bool, const char*)> cb) override { m_connect_cb = cb; }
     void set_package_callback(const std::function<void(slice*)> cb) override { m_package_cb = cb; }
     void set_timeout(int duration) override { m_timeout = duration; }
-    void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
+    void set_nodelay(int flag) override { set_no_delay(m_fd, flag); }
 
     int get_sendbuf_size() override { return m_send_buffer->size(); }
     int get_recvbuf_size() override { return m_recv_buffer->size(); }
