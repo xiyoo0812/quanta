@@ -5,21 +5,19 @@
 namespace lcodec {
 
     static uint8_t* alloc_buff(size_t sz) {
-        auto buf = luakit::get_buff();
+        auto buf = get_buff();
         return buf->peek_space(sz);
     }
 
     static codec_base* rds_codec(codec_base* codec) {
         rdscodec* rcodec = new rdscodec();
         rcodec->set_codec(codec);
-        rcodec->set_buff(luakit::get_buff());
         return rcodec;
     }
 
     static codec_base* wss_codec(codec_base* codec, bool mask) {
         wsscodec* wcodec = new wsscodec();
         wcodec->set_codec(codec);
-        wcodec->set_buff(luakit::get_buff());
         if (mask) wcodec->build_mask();
         return wcodec;
     }
@@ -29,33 +27,23 @@ namespace lcodec {
     }
 
     static codec_base* httpd_codec() {
-        httpcodec* hcodec = new httpdcodec();
-        hcodec->set_buff(luakit::get_buff());
-        return hcodec;
+        return new httpdcodec();
     }
 
     static codec_base* httpc_codec() {
-        httpcodec* hcodec = new httpccodec();
-        hcodec->set_buff(luakit::get_buff());
-        return hcodec;
+        return new httpccodec();
     }
 
     static codec_base* http2c_codec() {
-        auto hcodec = new http2codec<h2c_stream>();
-        hcodec->set_buff(luakit::get_buff());
-        return hcodec;
+        return new http2codec<h2c_stream>();
     }
 
     static codec_base* grpcc_codec() {
-        auto hcodec = new http2codec<grpcc_stream>();
-        hcodec->set_buff(luakit::get_buff());
-        return hcodec;
+        return new http2codec<grpcc_stream>();
     }
 
     static codec_base* http2d_codec() {
-        auto hcodec = new http2codec<h2d_stream>();
-        hcodec->set_buff(luakit::get_buff());
-        return hcodec;
+        return new http2codec<h2d_stream>();
     }
 
     static void set_content_codec(codec_base* base, string_view type, codec_base* content_type, codec_base* content_encoding) {
@@ -67,36 +55,28 @@ namespace lcodec {
     }
 
     static codec_base* mysql_codec(size_t session_id) {
-        mysqlscodec* codec = new mysqlscodec(session_id);
-        codec->set_buff(luakit::get_buff());
-        return codec;
+        return new mysqlscodec(session_id);
     }
 
     static codec_base* pgsql_codec() {
-        pgsqlscodec* codec = new pgsqlscodec();
-        codec->set_buff(luakit::get_buff());
-        return codec;
+        return new pgsqlscodec();
     }
 
-    static int tohex(lua_State* L, const unsigned char* text, size_t sz) {
+    static int tohex(lua_State* L, upchar text, size_t sz, int index) {
         static char hex[] = "0123456789abcdef";
-        char tmp[UCHAR_MAX];
-        char* buffer = tmp;
-        if (sz > UCHAR_MAX / 2) {
-            buffer = (char*)lua_newuserdata(L, sz * 2);
-        }
+        auto buffer = alloc_buff(sz * 2);
         for (size_t i = 0; i < sz; i++) {
             buffer[i * 2] = hex[text[i] >> 4];
             buffer[i * 2 + 1] = hex[text[i] & 0xf];
         }
-        lua_pushlstring(L, buffer, sz * 2);
+        push_string(L, (cpchar)buffer, sz * 2, index);
         return 1;
     }
 
     static int ltohex(lua_State* L) {
         size_t sz = 0;
-        const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
-        return tohex(L, text, sz);
+        upchar text = (upchar)luaL_tolstring(L, 1, &sz);
+        return tohex(L, text, sz, 2);
     }
 
     static int lrandomkey(lua_State* L) {
@@ -106,15 +86,15 @@ namespace lcodec {
             tmp[i] = rand() & 0xff;
         }
         if (lua_toboolean(L, 2)) {
-            return tohex(L, (const unsigned char*)tmp, size);
+            return tohex(L, (upchar)tmp, size, 3);
         }
-        lua_pushlstring(L, (cpchar)tmp, size);
+        push_string(L, (cpchar)tmp, size, 3);
         return 1;
     }
 
     static int lfromhex(lua_State* L) {
         size_t sz = 0;
-        const unsigned char* text = (const unsigned char*)luaL_checklstring(L, 1, &sz);
+        upchar text = (upchar)luaL_checklstring(L, 1, &sz);
         if (sz & 2) {
             return luaL_error(L, "Invalid hex text size %lu", (int)sz);
         }
@@ -128,7 +108,7 @@ namespace lcodec {
             }
             buffer[i / 2] = hi << 4 | low;
         }
-        lua_pushlstring(L, (cpchar)buffer, len);
+        push_string(L, (cpchar)buffer, len, 2);
         return 1;
     }
 
@@ -143,7 +123,7 @@ namespace lcodec {
         for (size_t i = 0; i < len1; i++) {
             buffer[i] = s1[i] ^ s2[i];
         }
-        lua_pushlstring(L, (cpchar)buffer, len1);
+        push_string(L, (cpchar)buffer, len1, 3);
         return 1;
     }
 
@@ -242,7 +222,7 @@ namespace lcodec {
 extern "C" {
     LUALIB_API int luaopen_lcodec(lua_State* L) {
         lcodec::init_huffman_tree();
-        lcodec::init_static_headers(luakit::get_buff());
+        lcodec::init_static_headers(lcodec::get_buff());
         auto llcodec = lcodec::open_lcodec(L);
         return llcodec.push_stack();
     }

@@ -17,9 +17,7 @@ namespace luakit {
     }
 
     inline codec_base* lua_codec() {
-        luacodec* codec = new luacodec();
-        codec->set_buff(&lbuf);
-        return codec;
+        return new luacodec();
     }
 
     class kit_state;
@@ -67,8 +65,8 @@ namespace luakit {
                 luakit.set_function("luacodec", lua_codec);
                 luakit.set_function("next_id", [&]() { return ++m_serial32; });
                 luakit.set_function("next_id64", [&]() { return ++m_serial64; });
-                luakit.set_function("encode", [&](lua_State* L) { return encode(L, &lbuf); });
-                luakit.set_function("decode", [&](lua_State* L) { return decode(L, &lbuf); });
+                luakit.set_function("encode", [&](lua_State* L) { return encode(L, get_buff()); });
+                luakit.set_function("decode", [&](lua_State* L) { return decode(L, get_buff()); });
             }
         }
 
@@ -105,7 +103,8 @@ namespace luakit {
         void set_path(cpchar field, cpchar path) {
             if (strcmp(field, "LUA_PATH") == 0) {
                 set_lua_path("path", path, LUA_PATH_DEFAULT);
-            } else {
+            }
+            else {
                 set_lua_path("cpath", path, LUA_CPATH_DEFAULT);
             }
         }
@@ -175,11 +174,11 @@ namespace luakit {
             return lua_call_function(m_L, efn, 0, 0);
         }
 
-        bool run_script(const std::string& script, error_fn efn= nullptr) {
+        bool run_script(const std::string& script, error_fn efn = nullptr) {
             return run_script(script.c_str(), efn);
         }
 
-        bool run_script(cpchar script, error_fn efn= nullptr) {
+        bool run_script(cpchar script, error_fn efn = nullptr) {
             lua_guard g(m_L);
             if (luaL_loadstring(m_L, script)) {
                 if (efn) {
@@ -236,7 +235,7 @@ namespace luakit {
         }
 
     protected:
-        void set_lua_path(cpchar fieldname, cpchar path, cpchar dft){
+        void set_lua_path(cpchar fieldname, cpchar path, cpchar dft) {
             std::string buffer;
             lua_table package = get<lua_table>(LUA_LOADLIBNAME);
             cpchar dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
@@ -251,7 +250,8 @@ namespace luakit {
                     buffer.append(LUA_PATH_SEP);
                     buffer.append(dftmark + 2, (path + len - 2) - dftmark);
                 }
-            } else {
+            }
+            else {
                 buffer.append(path);
             }
 #ifdef WIN32
@@ -280,7 +280,7 @@ namespace luakit {
         lstring.set_function("untitle", lua_string_untitle);
         lstring.set_function("ends_with", lua_string_ends_with);
         lstring.set_function("starts_with", lua_string_starts_with);
-        lstring.set_function("serialize", [&](lua_State* L) { return serialize(L, &lbuf); });
+        lstring.set_function("serialize", [&](lua_State* L) { return serialize(L, get_buff()); });
         lstring.set_function("unserialize", unserialize);
         auto ltable = kit->get<lua_table>("table");
         ltable.set_function("copy", lua_table_copy);

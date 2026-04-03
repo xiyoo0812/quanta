@@ -128,8 +128,7 @@ end
 
 --委托一个mixin给class
 local function delegate(class, ...)
-    local mixins = { ... }
-    for _, mixin in ipairs(mixins) do
+    for _, mixin in ipairs({...}) do
         if not has_mixin(class, mixin) then
             delegate_one(class, mixin)
         end

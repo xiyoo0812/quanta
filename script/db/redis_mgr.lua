@@ -40,10 +40,11 @@ end
 
 function RedisMgr:execute(cmd, ...)
     if self.redis_db then
-        log_debug("[RedisMgr][execute]: cmd {}, args: {}", cmd, {...})
+        local args = {...}
+        log_debug("[RedisMgr][execute]: cmd {}, args: {}", cmd, args)
         local res = tpack(self.redis_db:execute(cmd, ...))
         if not res[1] then
-            log_err("[RedisMgr][execute] execute {} ({}) failed, because: {}", cmd, {...}, res[2])
+            log_err("[RedisMgr][execute] execute {} ({}) failed, because: {}", cmd, args, res[2])
             return res[1] and SUCCESS or REDIS_FAILED, res[2]
         end
         return SUCCESS, tunpack(res, 2)

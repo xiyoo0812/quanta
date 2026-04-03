@@ -138,16 +138,15 @@ namespace luazip {
 
     inline codec_base* zip_codec(vstring tag) {
         zipcodec* codec = new zipcodec();
-        codec->set_buff(luakit::get_buff());
         codec->set_tag(tag);
         return codec;
     }
 
     inline int lz4_encode(lua_State* L) {
-        size_t out_len = 0;
-        auto dest = zcodec.encode_lz4(L, 1, &out_len);
+        size_t data_len = 0;
+        auto dest = zcodec.encode_lz4(L, 1, &data_len);
         if (dest) {
-            lua_pushlstring(L, (char*)dest, out_len);
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -160,7 +159,7 @@ namespace luazip {
         cpchar message = luaL_checklstring(L, 1, &data_len);
         auto dest = zcodec.decode_lz4((pbyte)message, &data_len);
         if (dest) {
-            lua_pushlstring(L, (char*)dest, data_len);
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -169,10 +168,11 @@ namespace luazip {
     }
 
     inline int zstd_encode(lua_State* L) {
-        size_t out_len = 0;
-        auto dest = zcodec.encode_zstd(L, 1, &out_len);
-        if (out_len > 0) {
-            lua_pushlstring(L, (char*)dest, out_len);
+        size_t data_len = 0;
+        int level = luaL_optinteger(L, 3, ZSTD_defaultCLevel());
+        auto dest = zcodec.encode_zstd(L, 1, &data_len, level);
+        if (data_len > 0) {
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -185,7 +185,7 @@ namespace luazip {
         cpchar message = luaL_checklstring(L, 1, &data_len);
         auto dest = zcodec.decode_zstd((pbyte)message, &data_len);
         if (dest) {
-            lua_pushlstring(L, (char*)dest, data_len);
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -194,10 +194,11 @@ namespace luazip {
     }
 
     inline int deflate_encode(lua_State* L) {
-        size_t out_len = 0;
-        auto dest = zcodec.encode_deflate(L, 1, &out_len);
-        if (out_len > 0) {
-            lua_pushlstring(L, (char*)dest, out_len);
+        size_t data_len = 0;
+        int level = luaL_optinteger(L, 3, MZ_DEFAULT_LEVEL);
+        auto dest = zcodec.encode_deflate(L, 1, &data_len, level);
+        if (data_len > 0) {
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -210,7 +211,7 @@ namespace luazip {
         cpchar message = luaL_checklstring(L, 1, &data_len);
         auto dest = zcodec.decode_deflate((pbyte)message, &data_len);
         if (dest) {
-            lua_pushlstring(L, (char*)dest, data_len);
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -219,10 +220,11 @@ namespace luazip {
     }
 
     inline int zlib_encode(lua_State* L) {
-        size_t out_len = 0;
-        auto dest = zcodec.encode_zlib(L, 1, &out_len);
-        if (out_len > 0) {
-            lua_pushlstring(L, (char*)dest, out_len);
+        size_t data_len = 0;
+        int level = luaL_optinteger(L, 3, MZ_DEFAULT_LEVEL);
+        auto dest = zcodec.encode_zlib(L, 1, &data_len, level);
+        if (data_len > 0) {
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -235,7 +237,7 @@ namespace luazip {
         cpchar message = luaL_checklstring(L, 1, &data_len);
         auto dest = zcodec.decode_zlib((pbyte)message, &data_len);
         if (dest) {
-            lua_pushlstring(L, (char*)dest, data_len);
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -244,10 +246,11 @@ namespace luazip {
     }
 
     inline int gzip_encode(lua_State* L) {
-        size_t out_len = 0;
-        auto dest = zcodec.encode_gzip(L, 1, &out_len);
-        if (out_len > 0) {
-            lua_pushlstring(L, (char*)dest, out_len);
+        size_t data_len = 0;
+        int level = luaL_optinteger(L, 3, MZ_DEFAULT_LEVEL);
+        auto dest = zcodec.encode_gzip(L, 1, &data_len, level);
+        if (data_len > 0) {
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -260,7 +263,7 @@ namespace luazip {
         auto message = (cpbyte)luaL_checklstring(L, 1, &data_len);
         auto dest = zcodec.decode_gzip((pbyte)message, &data_len);
         if (dest) {
-            lua_pushlstring(L, (char*)dest, data_len);
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
             return 1;
         }
         lua_pushnil(L);
@@ -270,7 +273,6 @@ namespace luazip {
 
     luakit::lua_table open_luazip(lua_State* L) {
         luakit::kit_state kit_state(L);
-        zcodec.set_buff(luakit::get_buff());
         luakit::lua_table lzip = kit_state.new_table("zip");
         lzip.set_function("exist", zip_exist);
         lzip.set_function("read", zip_read);

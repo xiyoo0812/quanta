@@ -108,7 +108,7 @@ int socket_mgr::wait(int64_t now, int timeout) {
         socket_object* object = it->second;
         if (!object->update(now)) {
 #ifdef IO_POLL
-            poll_event_ctl(it->first, 0);
+            poll_event_ctl(object->get_fd(), it->first, 0);
 #endif
             it = m_objects.erase(it);
             delete object;
@@ -137,7 +137,7 @@ int socket_mgr::wait(int64_t now, int timeout) {
     for (auto& pfd : m_events) {
         if (pfd.revents != 0) {
             event_count++;
-            auto object = get_object(pfd.fd);
+            auto object = get_poll_object(pfd.fd);
             if (object) {
                 if (pfd.revents & POLLIN) object->on_can_recv();
                 if (pfd.revents & POLLOUT) object->on_can_send();
@@ -199,9 +199,7 @@ int socket_mgr::listen(std::string& err, const char ip[], int port) {
     if(ret == SOCKET_ERROR) goto Exit0;
 
     if (watch_listen(fd, listener) && listener->setup(fd)) {
-        int token = new_token();
-        listener->set_kind(token);
-        listener->set_token(token);
+        auto token = listener->get_token();
         m_objects[token] = listener;
         return token;
     }
@@ -231,9 +229,8 @@ int socket_mgr::connect(std::string& err, const char ip[], int port, int timeout
 #else
     socket_stream* stm = new socket_stream(this, fd);
 #endif
-    uint32_t token = new_token();
+    uint32_t token = stm->get_token();
     stm->connect(ip, port, timeout);
-    stm->set_token(token);
     m_objects[token] = stm;
     return token;
 }
@@ -349,15 +346,15 @@ void socket_mgr::set_error_callback(uint32_t token, const std::function<void(con
 }
 
 #ifdef IO_POLL
-bool socket_mgr::poll_event_ctl(socket_t fd, short fevts) {
+bool socket_mgr::poll_event_ctl(socket_t fd, uint32_t token, short fevts) {
     if (fevts == 0) {
         m_event_map.erase(fd);
     } else {
-        m_event_map[fd] = fevts;
+        m_event_map[fd] = poll_arg{ token, fevts };
     }
     m_events.clear();
-    for (const auto [efd, evts] : m_event_map) {
-        m_events.emplace_back(pollfd{ efd, evts });
+    for (const auto [efd, arg] : m_event_map) {
+        m_events.emplace_back(pollfd{ efd, arg.ev });
     }
     return true;
 }
@@ -369,7 +366,7 @@ bool socket_mgr::watch_listen(socket_t fd, socket_object* object) {
 #endif
 
 #ifdef IO_POLL
-    return poll_event_ctl(fd, POLLIN);
+    return poll_event_ctl(fd, object->get_token(), POLLIN);
 #endif
 
 #ifdef IO_EPOLL
@@ -392,7 +389,7 @@ bool socket_mgr::watch_accepted(socket_t fd, socket_object* object) {
 #endif
 
 #ifdef IO_POLL
-    return poll_event_ctl(fd, POLLIN);
+    return poll_event_ctl(fd, object->get_token(), POLLIN);
 #endif
 
 #ifdef IO_EPOLL
@@ -416,7 +413,7 @@ bool socket_mgr::watch_connecting(socket_t fd, socket_object* object) {
 #endif
 
 #ifdef IO_POLL
-    return poll_event_ctl(fd, POLLOUT);
+    return poll_event_ctl(fd, object->get_token(), POLLOUT);
 #endif
 
 #ifdef IO_EPOLL
@@ -439,7 +436,7 @@ bool socket_mgr::watch_connected(socket_t fd, socket_object* object) {
 #endif
 
 #ifdef IO_POLL
-    return poll_event_ctl(fd, POLLIN);
+    return poll_event_ctl(fd, object->get_token(), POLLIN);
 #endif
 
 #ifdef IO_EPOLL
@@ -463,7 +460,7 @@ bool socket_mgr::watch_send(socket_t fd, socket_object* object, bool enable) {
 #endif
 
 #ifdef IO_POLL
-    return poll_event_ctl(fd, POLLIN | (enable ? POLLOUT : 0));
+    return poll_event_ctl(fd, object->get_token(), POLLIN | (enable ? POLLOUT : 0));
 #endif
 
 #ifdef IO_EPOLL
@@ -483,9 +480,8 @@ bool socket_mgr::watch_send(socket_t fd, socket_object* object, bool enable) {
 uint32_t socket_mgr::accept_stream(uint32_t ltoken, socket_t fd, const char ip[]) {
     auto* stm = new socket_stream(this, fd);
     if (watch_accepted(fd, stm) && stm->accept_socket(fd, ip)) {
-        uint32_t token = new_token();
+        uint32_t token = stm->get_token();
         stm->set_kind(ltoken);
-        stm->set_token(token);
         m_objects[token] = stm;
         return token;
     }

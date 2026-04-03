@@ -1,4 +1,5 @@
 --json_test.lua
+require "lbson"
 
 local jencode       = json.encode
 local jdecode       = json.decode

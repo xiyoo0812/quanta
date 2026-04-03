@@ -28,12 +28,14 @@ struct std::formatter<lua_variant> {
 
 namespace logger {
 
+    thread_local luabuf llbuf;
     thread_local shared_ptr<log_agent> s_agent = make_shared<log_agent>();
     static shared_ptr<log_service> s_logger = make_shared<log_service>();
 
     const int LOG_FLAG_FORMAT = 1;
     const int LOG_FLAG_PRETTY = 2;
     const int LOG_FLAG_MONITOR = 4;
+
     lua_variant read_args(lua_State* L, int flag, int index) {
         switch (lua_type(L, index)) {
         case LUA_TNIL: return vstring("nil");
@@ -42,19 +44,14 @@ namespace logger {
         case LUA_TUSERDATA:  return vstring("userdata");
         case LUA_TLIGHTUSERDATA: return vstring("userdata");
         case LUA_TBOOLEAN: return vstring(lua_toboolean(L, index) ? "true" : "false");
-        case LUA_TSTRING: {
-            size_t len;
-            const char* buf = lua_tolstring(L, index, &len);
-            return vstring(buf, len);
-        }
+        case LUA_TSTRING: return lua_to_native<vstring>(L, index);
         case LUA_TTABLE:
             if ((flag & LOG_FLAG_FORMAT) == LOG_FLAG_FORMAT) {
-                auto buf = luakit::get_buff();
-                buf->clean();
-                serialize_one(L, buf, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
-                return string((char*)buf->head(), buf->size());
+                llbuf.clean();
+                serialize_one(L, &llbuf, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
+                return string((char*)llbuf.head(), llbuf.size());
             }
-            return vstring(luaL_tolstring(L, index, nullptr));
+            return lua_to_native<vstring>(L, index);
         case LUA_TNUMBER:
             if (lua_isinteger(L, index)) {
                 return lua_tointeger(L, index);

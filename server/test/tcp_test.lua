@@ -4,7 +4,7 @@ local log_debug     = logger.debug
 
 local thread_mgr    = quanta.get("thread_mgr")
 
-if quanta.index == 1 then
+local function test_server()
     local tcp = luabus.tcp(true)
     local ok, err = tcp.listen("127.0.0.1", 8700)
     log_debug("tcp-svr listen: {}, err: {}", ok, err)
@@ -35,7 +35,9 @@ if quanta.index == 1 then
             end
         end
     end)
-elseif quanta.index == 2 then
+end
+
+local function test_client()
     thread_mgr:fork(function()
         local index = 0
         local client = nil
@@ -69,3 +71,6 @@ elseif quanta.index == 2 then
         end
     end)
 end
+
+test_server()
+test_client()

@@ -60,7 +60,7 @@ function GrpcClient:check_alive()
 end
 
 function GrpcClient:on_socket_recv(socket, ...)
-    log_debug("[GrpcClient][on_socket_recv] client(token:{}) args({})!", socket.token, { ... })
+    log_debug("[GrpcClient][on_socket_recv] client(token:{}) args({})!", socket.token, {...})
 end
 
 function GrpcClient:on_socket_error(socket, token, err)

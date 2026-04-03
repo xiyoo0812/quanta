@@ -43,7 +43,7 @@ function HttpClient:on_quit()
 end
 
 function HttpClient:on_socket_recv(socket, ...)
-    log_debug("[HttpClient][on_socket_recv] client(token:{}) args({})!", socket.token, { ... })
+    log_debug("[HttpClient][on_socket_recv] client(token:{}) args({})!", socket.token, {...})
 end
 
 function HttpClient:on_socket_error(socket, token, err)

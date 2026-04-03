@@ -4,17 +4,16 @@ local ltime         = timer.time
 local log_debug     = logger.debug
 
 local thread_mgr    = quanta.get("thread_mgr")
-
 local http_client   = quanta.http_client()
 
-local data = {aaa = 123}
-
-if quanta.index == 1 then
+local function test_http()
     thread_mgr:fork(function()
         local ok, status, body, headers = http_client:call_get("https://yuanbao.tencent.com/download")
         log_debug("call_get : {}, {}, {}, {}", ok, status, headers, body)
     end)
-elseif quanta.index == 2 then
+end
+
+local function test_http_server()
     local on_post = function(path, body, params)
         log_debug("on_post: path: {}, params: {}, body: {}", path, params, body)
         return body
@@ -39,8 +38,12 @@ elseif quanta.index == 2 then
     server:register_put("*", on_put)
     server:register_del("*", on_del)
     quanta.server = server
-elseif quanta.index == 3 then
-    for i = 1, 1 do
+end
+
+local function test_http_client()
+    local data = {aaa = 123}
+    thread_mgr:fork(function()
+        thread_mgr:sleep(1000)
         local tk1 = ltime()
         thread_mgr:fork(function()
             local tk2 = ltime()
@@ -70,5 +73,9 @@ elseif quanta.index == 3 then
             local ok, status, res = http_client:call_del("http://127.0.0.1:8888/node_status4", args)
             log_debug("node_status4 : {}, {}, {}, {}", ltime() - tk2, ok, status, res)
         end)
-    end
+    end)
 end
+
+test_http()
+test_http_server()
+test_http_client()

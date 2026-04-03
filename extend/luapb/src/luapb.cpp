@@ -6,7 +6,7 @@ using namespace std;
 using namespace luakit;
 
 namespace luapb {
-
+    thread_local luabuf                                 lpbuf;
     thread_local unordered_map<uint32_t, pb_message*>   pb_cmd_ids;
     thread_local unordered_map<string, pb_message*>     pb_cmd_names;
     thread_local unordered_map<string, uint32_t>        pb_cmd_indexs;
@@ -95,17 +95,17 @@ namespace luapb {
             header.type = (uint8_t)lua_tointeger(L, index++);
             header.target_id = lua_tointeger(L, index++);
             //encode
-            m_buf->clean();
-            m_buf->hold_place(sizeof(pb_header));
+            m_buf.clean();
+            m_buf.hold_place(sizeof(pb_header));
             try {
-                encode_message(L, index, m_buf, msg);
+                encode_message(L, index, &m_buf, msg);
             } catch (const exception& e) {
                 luaL_error(L, e.what());
             }
-            *len = m_buf->size();
+            *len = m_buf.size();
             header.len = *len;
-            m_buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
-            return m_buf->head();
+            m_buf.copy(0, (uint8_t*)&header, sizeof(pb_header));
+            return m_buf.head();
         }
 
         virtual size_t decode(lua_State* L) {
@@ -144,24 +144,24 @@ namespace luapb {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf->clean();
-            m_buf->hold_place(sizeof(grpc_header));
+            m_buf.clean();
+            m_buf.hold_place(sizeof(grpc_header));
             //input_type
             auto input_type = lua_tostring(L, index + 1);
             pb_message* msg = find_message(input_type);
             if (!msg) luaL_error(L, "invalid input_type: %s", input_type);
             try {
-                encode_message(L, index, m_buf, msg);
+                encode_message(L, index, &m_buf, msg);
             } catch (const exception& e) {
                 luaL_error(L, e.what());
             }
             //header
             grpc_header header;
-            uint32_t size = m_buf->size() - sizeof(grpc_header);
+            uint32_t size = m_buf.size() - sizeof(grpc_header);
             header.length = byteswap(size);
             header.compose = 0;
-            m_buf->copy(0, (uint8_t*)&header, sizeof(grpc_header));
-            return m_buf->data(len);
+            m_buf.copy(0, (uint8_t*)&header, sizeof(grpc_header));
+            return m_buf.data(len);
         }
 
         virtual size_t decode(lua_State* L) {
@@ -184,15 +184,11 @@ namespace luapb {
     };
 
     inline codec_base* pb_codec() {
-        pbcodec* codec = new pbcodec();
-        codec->set_buff(luakit::get_buff());
-        return codec;
+        return new pbcodec();
     }
 
     inline codec_base* grpc_codec() {
-        grpccodec* codec = new grpccodec();
-        codec->set_buff(luakit::get_buff());
-        return codec;
+        return new grpccodec();
     }
 
     int load_pb(lua_State* L) {
@@ -207,11 +203,10 @@ namespace luapb {
     int load_file(lua_State* L, const char* filename) {
         FILE* fp = fopen(filename, "rb");
         if (!fp) return 0;
-        auto buf = luakit::get_buff();
         auto len = filesystem::file_size(filename);
-        auto lbuf = buf->peek_space(len);
-        fread(lbuf, 1, len, fp);
-        auto fslice = slice(lbuf, len);
+        auto buf = lpbuf.peek_space(len);
+        fread(buf, 1, len, fp);
+        auto fslice = slice(buf, len);
         read_file_descriptor_set(L, &fslice);
         lua_pushboolean(L, 1);
         fclose(fp);
@@ -222,14 +217,13 @@ namespace luapb {
         auto cmd_name = lua_tostring(L, 1);
         auto msg = find_message(cmd_name);
         if (msg == nullptr) luaL_error(L, "invalid pb cmd type");
-        auto buf = luakit::get_buff();
-        buf->clean();
+        lpbuf.clean();
         try {
-            encode_message(L, 2, buf, msg);
+            encode_message(L, 2, &lpbuf, msg);
         } catch (const exception& e){
             luaL_error(L, e.what());
         }
-        lua_pushlstring(L, (char*)buf->head(), buf->size());
+        push_string(L, (char*)lpbuf.head(), lpbuf.size(), 3, nullptr, nullptr);
         return 1;
     }
 

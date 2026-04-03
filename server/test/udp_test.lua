@@ -4,7 +4,7 @@ local log_debug     = logger.debug
 
 local thread_mgr    = quanta.get("thread_mgr")
 
-if quanta.index == 1 then
+local function test_server()
     local udp = luabus.udp(true)
     local ok, err = udp.bind("127.0.0.1", 8600)
     log_debug("udp-svr bind: {}, err: {}", ok, err)
@@ -25,7 +25,9 @@ if quanta.index == 1 then
             thread_mgr:sleep(1000)
         end
     end)
-elseif quanta.index == 2 then
+end
+
+local function test_client()
     local udp = luabus.udp(true)
     local ok, err = udp.bind("127.0.0.1", 8601)
     log_debug("udp-cli bind: {}, err: {}", ok, err)
@@ -49,3 +51,6 @@ elseif quanta.index == 2 then
         end
     end)
 end
+
+test_server()
+test_client()

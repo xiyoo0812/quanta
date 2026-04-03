@@ -8,7 +8,8 @@
 socket_stream::socket_stream(socket_mgr* mgr, socket_t fd, LPFN_CONNECTEX connect_func) {
     mgr->increase_count();
     m_mgr = mgr;
-    m_socket = fd;
+    m_fd = fd;
+    m_token = mgr->new_token();
     m_connect_func = connect_func;
     m_ip[0] = 0;
 }
@@ -16,15 +17,16 @@ socket_stream::socket_stream(socket_mgr* mgr, socket_t fd, LPFN_CONNECTEX connec
 
 socket_stream::socket_stream(socket_mgr* mgr, socket_t fd) {
     mgr->increase_count();
-    m_socket = fd;
+    m_token = mgr->new_token();
+    m_fd = fd;
     m_mgr = mgr;
     m_ip[0] = 0;
 }
 
 socket_stream::~socket_stream() {
-    if (m_socket != INVALID_SOCKET) {
-        closesocket(m_socket);
-        m_socket = INVALID_SOCKET;
+    if (m_fd != INVALID_SOCKET) {
+        closesocket(m_fd);
+        m_fd = INVALID_SOCKET;
     }
     if (m_codec) {
         m_codec = nullptr;
@@ -44,7 +46,7 @@ bool socket_stream::accept_socket(socket_t fd, const char ip[]) {
     m_ovl_ref++;
 #endif
     strncpy(m_ip, ip, INET_ADDRSTRLEN - 1);
-    m_socket = fd;
+    m_fd = fd;
     m_link_status = LINK_CONNECTED;
     m_last_recv_time = luakit::steady_ms();
     return true;
@@ -60,13 +62,13 @@ void socket_stream::close() {
     if (m_link_status == LINK_CLOSED) {
         return;
     }
-    if (m_socket == INVALID_SOCKET) {
+    if (m_fd == INVALID_SOCKET) {
         m_link_status = LINK_CLOSED;
         return;
     }
-    shutdown(m_socket, SD_RECEIVE);
+    shutdown(m_fd, SD_RECEIVE);
 #ifdef IO_IOCP
-    if (wsa_io_cancel(m_socket, m_recv_ovl)) {
+    if (wsa_io_cancel(m_fd, m_recv_ovl)) {
         m_ovl_ref--;
     }
 #endif
@@ -127,18 +129,18 @@ static bool bind_any(socket_t s) {
 }
 
 bool socket_stream::do_connect() {
-    if (!bind_any(m_socket)) {
+    if (!bind_any(m_fd)) {
         on_connect(false, "bind-failed");
         return false;
     }
 
-    if (!m_mgr->watch_connecting(m_socket, this)) {
+    if (!m_mgr->watch_connecting(m_fd, this)) {
         on_connect(false, "watch-failed");
         return false;
     }
 
     memset(&m_send_ovl, 0, sizeof(m_send_ovl));
-    auto ret = (*m_connect_func)(m_socket, &m_addr, sizeof(sockaddr), nullptr, 0, nullptr, &m_send_ovl);
+    auto ret = (*m_connect_func)(m_fd, &m_addr, sizeof(sockaddr), nullptr, 0, nullptr, &m_send_ovl);
     if (!ret) {
         int err = get_socket_error();
         if (err == ERROR_IO_PENDING) {
@@ -149,7 +151,7 @@ bool socket_stream::do_connect() {
         return false;
     }
 
-    if (!wsa_recv_empty(m_socket, m_recv_ovl)) {
+    if (!wsa_recv_empty(m_fd, m_recv_ovl)) {
         on_connect(false, "connect-failed");
         return false;
     }
@@ -162,7 +164,7 @@ bool socket_stream::do_connect() {
 
 #ifndef IO_IOCP
 bool socket_stream::do_connect() {
-    auto ret = ::connect(m_socket, &m_addr, sizeof(sockaddr));
+    auto ret = ::connect(m_fd, &m_addr, sizeof(sockaddr));
     if (ret != SOCKET_ERROR) {
         on_connect(true, "ok");
         return true;
@@ -171,7 +173,7 @@ bool socket_stream::do_connect() {
     if (get_socket_error() != EINPROGRESS)
         return false;
 
-    if (!m_mgr->watch_connecting(m_socket, this)) {
+    if (!m_mgr->watch_connecting(m_fd, this)) {
         on_connect(false, "watch-failed");
         return false;
     }
@@ -180,13 +182,13 @@ bool socket_stream::do_connect() {
 #endif
 
 void socket_stream::try_connect() {
-    if (m_socket == INVALID_SOCKET) {
+    if (m_fd == INVALID_SOCKET) {
         on_connect(false, "connect-failed");
         return;
     }
-    set_no_block(m_socket);
-    set_no_delay(m_socket, 1);
-    set_close_on_exec(m_socket);
+    set_no_block(m_fd);
+    set_no_delay(m_fd, 1);
+    set_close_on_exec(m_fd);
     get_ip_string(m_ip, sizeof(m_ip), &m_addr);
     m_link_status = LINK_CONNECTING;
     if (!do_connect()){
@@ -216,7 +218,7 @@ bool socket_stream::sendv(const sendv_item items[], int count) {
 void socket_stream::stream_send(const char* data, size_t data_len) {
     if (m_send_buffer->empty()) {
         while (data_len > 0) {
-            int send_len = ::send(m_socket, data, (int)data_len, 0);
+            int send_len = ::send(m_fd, data, (int)data_len, 0);
             if (send_len == 0) {
                 on_error("connection-send-lost");
                 return;
@@ -236,13 +238,13 @@ void socket_stream::stream_send(const char* data, size_t data_len) {
         return;
     }
 #ifdef IO_IOCP
-    if (!wsa_send_empty(m_socket, m_send_ovl)) {
+    if (!wsa_send_empty(m_fd, m_send_ovl)) {
         on_error("send-failed");
         return;
     }
     m_ovl_ref++;
 #else
-    if (!m_mgr->watch_send(m_socket, this, true)) {
+    if (!m_mgr->watch_send(m_fd, this, true)) {
         on_error("watch-error");
         return;
     }
@@ -270,9 +272,9 @@ void socket_stream::on_complete(WSAOVERLAPPED* ovl) {
     if (m_link_status == LINK_CONNECTING) {
         int seconds = 0;
         socklen_t sock_len = (socklen_t)sizeof(seconds);
-        auto ret = getsockopt(m_socket, SOL_SOCKET, SO_CONNECT_TIME, (char*)&seconds, &sock_len);
+        auto ret = getsockopt(m_fd, SOL_SOCKET, SO_CONNECT_TIME, (char*)&seconds, &sock_len);
         if (ret == 0 && seconds != 0xffffffff) {
-            if (!wsa_recv_empty(m_socket, m_recv_ovl)) {
+            if (!wsa_recv_empty(m_fd, m_recv_ovl)) {
                 on_connect(false, "connect-failed");
                 return;
             }
@@ -294,9 +296,9 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof) {
     if (m_link_status == LINK_CONNECTING) {
         int err = 0;
         socklen_t sock_len = sizeof(err);
-        auto ret = getsockopt(m_socket, SOL_SOCKET, SO_ERROR, (char*)&err, &sock_len);
+        auto ret = getsockopt(m_fd, SOL_SOCKET, SO_ERROR, (char*)&err, &sock_len);
         if (ret == 0 && err == 0 && !is_eof) {
-            if (!m_mgr->watch_connected(m_socket, this)) {
+            if (!m_mgr->watch_connected(m_fd, this)) {
                 on_connect(false, "watch-error");
                 return;
             }
@@ -314,7 +316,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
         size_t data_len = 0;
         auto data = m_send_buffer->data(&data_len);
         if (data_len == 0) {
-            if (!m_mgr->watch_send(m_socket, this, false)) {
+            if (!m_mgr->watch_send(m_fd, this, false)) {
                 on_error("watch-error");
                 return;
             }
@@ -322,12 +324,12 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
         }
 
         size_t try_len = std::min<size_t>(data_len, max_len - total_send);
-        int send_len = ::send(m_socket, (char*)data, (int)try_len, 0);
+        int send_len = ::send(m_fd, (char*)data, (int)try_len, 0);
         if (send_len == SOCKET_ERROR) {
             int err = get_socket_error();
 #ifdef IO_IOCP
             if (err == WSAEWOULDBLOCK) {
-                if (!wsa_send_empty(m_socket, m_send_ovl)) {
+                if (!wsa_send_empty(m_fd, m_send_ovl)) {
                     on_error("send-failed");
                     return;
                 }
@@ -363,12 +365,12 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
             on_error("recv-buffer-full");
             return;
         }
-        int recv_len = ::recv(m_socket, (char*)space, SOCKET_TCP_RECV_LEN, 0);
+        int recv_len = ::recv(m_fd, (char*)space, SOCKET_TCP_RECV_LEN, 0);
         if (recv_len < 0) {
             int err = get_socket_error();
 #ifdef IO_IOCP
             if (err == WSAEWOULDBLOCK) {
-                if (!wsa_recv_empty(m_socket, m_recv_ovl)) {
+                if (!wsa_recv_empty(m_fd, m_recv_ovl)) {
                     on_error("recv-failed");
                     return;
                 }

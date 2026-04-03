@@ -44,6 +44,8 @@ struct socket_object {
     virtual bool update(int64_t now) = 0;
     virtual int get_sendbuf_size() { return 0; }
     virtual int get_recvbuf_size() { return 0; }
+    virtual uint32_t get_token() { return m_token; }
+    virtual uint32_t get_fd() { return m_fd; }
     virtual void close() { m_link_status = LINK_CLOSED; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char ip[], int port, int timeout) { }
@@ -70,6 +72,7 @@ struct socket_object {
 protected:
     uint32_t m_kind = 0;
     uint32_t m_token = 0;
+    socket_t m_fd = INVALID_SOCKET;
     codec_base* m_codec = nullptr;
     link_status m_link_status = LINK_INIT;
 };
@@ -117,6 +120,11 @@ public:
     void decrease_count() { m_count--; }
     bool is_full() { return m_count >= m_max_count; }
 
+    uint32_t new_token() {
+        while (++m_token == 0 || m_objects.contains(m_token)) {}
+        return m_token;
+    }
+
 private:
 #ifdef IO_IOCP
     LPFN_ACCEPTEX m_accept_func = nullptr;
@@ -137,22 +145,26 @@ private:
 #endif
 
 #ifdef IO_POLL
+    struct poll_arg {
+        uint32_t token = 0;
+        short ev = 0;
+    };
     std::vector<struct pollfd> m_events;
-    std::unordered_map<socket_t, short> m_event_map;
-    bool poll_event_ctl(socket_t fd, short fevts);
-#endif
-
-    socket_object* get_object(uint32_t token) {
-        auto it = m_objects.find(token);
-        if (it != m_objects.end()) {
-            return it->second;
+    std::unordered_map<socket_t, poll_arg> m_event_map;
+    bool poll_event_ctl(socket_t fd, uint32_t token, short fevts);
+    socket_object* get_poll_object(uint32_t fd) {
+        if (auto it = m_event_map.find(fd); it != m_event_map.end()) {
+            return get_object(it->second.token);
         }
         return nullptr;
     }
+#endif
 
-    uint32_t new_token() {
-        while (++m_token == 0 || m_objects.contains(m_token)) {}
-        return m_token;
+    socket_object* get_object(uint32_t token) {
+        if (auto it = m_objects.find(token); it != m_objects.end()) {
+            return it->second;
+        }
+        return nullptr;
     }
 
     uint32_t m_count = 0;

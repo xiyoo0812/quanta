@@ -26,7 +26,6 @@ struct socket_listener : public socket_object
 
 private:
     socket_mgr* m_mgr = nullptr;
-    socket_t m_socket = INVALID_SOCKET;
     std::function<void(int)> m_accept_cb;
     std::function<void(const char*)> m_error_cb;
 

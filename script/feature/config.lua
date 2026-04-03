@@ -73,7 +73,8 @@ function ConfigTable:build_index(...)
         return ...
     end
     if n > 0 then
-        return tconcat({...}, "@@")
+        local args = {...}
+        return tconcat(args, "@@")
     end
 end
 

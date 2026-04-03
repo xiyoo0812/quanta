@@ -6,9 +6,9 @@
 
 namespace luatls {
 
+    thread_local luabuf ltbuf;
     static uint8_t* alloc_buff(size_t sz) {
-        auto buf = luakit::get_buff();
-        return buf->peek_space(sz);
+        return ltbuf.peek_space(sz);
     }
 
     static psa_status_t psa_pbkdf2_hmac(psa_algorithm_t alg, uint8_t* pwd, size_t pwdlen
@@ -33,20 +33,20 @@ namespace luatls {
         psa_key_derivation_abort(&op);
         return status;
     }
-    
-    static int tohex(lua_State* L, const unsigned char* text, size_t sz) {
+
+    static int tohex(lua_State* L, upchar text, size_t sz, int index) {
         static char hex[] = "0123456789abcdef";
-        char tmp[UCHAR_MAX];
-        char* buffer = tmp;
-        if (sz > UCHAR_MAX / 2) {
-            buffer = (char*)lua_newuserdata(L, sz * 2);
-        }
+        auto buffer = alloc_buff(sz * 2);
         for (size_t i = 0; i < sz; i++) {
             buffer[i * 2] = hex[text[i] >> 4];
             buffer[i * 2 + 1] = hex[text[i] & 0xf];
         }
-        lua_pushlstring(L, buffer, sz * 2);
+        push_string(L, (cpchar)buffer, sz * 2, index);
         return 1;
+    }
+
+    static void* bufclean(void* ud, void* ptr, size_t osize, size_t nsize) {
+        free(ptr); return nullptr;
     }
 
     static int lxxtea_encode(lua_State* L) {
@@ -54,9 +54,8 @@ namespace luatls {
         size_t encode_len = 0;
         cpchar key = luaL_checkstring(L, 1);
         cpchar message = luaL_checklstring(L, 2, &data_len);
-        char* encode_out = (char*)xxtea_encrypt(message, data_len, key, &encode_len);
-        lua_pushlstring(L, encode_out, encode_len);
-        free(encode_out);
+        auto encode_out = xxtea_encrypt(message, data_len, key, &encode_len);
+        lua_pushexternalstring(L, (cpchar)encode_out, encode_len, bufclean, nullptr);
         return 1;
     }
 
@@ -65,103 +64,103 @@ namespace luatls {
         size_t decode_len = 0;
         cpchar key = luaL_checkstring(L, 1);
         cpchar message = luaL_checklstring(L, 2, &data_len);
-        char* decode_out = (char*)xxtea_decrypt(message, data_len, key, &decode_len);
-        lua_pushlstring(L, decode_out, decode_len);
-        free(decode_out);
+        auto decode_out = xxtea_decrypt(message, data_len, key, &decode_len);
+        lua_pushexternalstring(L, (cpchar)decode_out, decode_len, bufclean, nullptr);
         return 1;
     }
 
     static int lbase64_encode(lua_State* L) {
         size_t data_len = 0;
-        cpchar input = luaL_checklstring(L, 1, &data_len);
+        auto input = (upchar)luaL_checklstring(L, 1, &data_len);
         size_t out_len = BASE64_ENCODE_OUT_SIZE(data_len);
-        unsigned char* output = alloc_buff(out_len);
-        mbedtls_base64_encode(output, out_len, &out_len, (unsigned char*)input, data_len);
-        lua_pushlstring(L, (cpchar)output, out_len);
+        auto output = alloc_buff(out_len);
+        mbedtls_base64_encode(output, out_len, &out_len, input, data_len);
+        push_string(L, (cpchar)output, out_len, 2);
         return 1;
     }
 
     static int lbase64_decode(lua_State* L) {
         size_t data_len = 0;
-        cpchar input = luaL_checklstring(L, 1, &data_len);
+        auto input = (upchar)luaL_checklstring(L, 1, &data_len);
         size_t out_len = BASE64_DECODE_OUT_SIZE(data_len);
-        unsigned char* output = alloc_buff(out_len);
-        mbedtls_base64_decode(output, out_len, &out_len, (const unsigned char*)input, data_len);
+        auto output = alloc_buff(out_len);
+        mbedtls_base64_decode(output, out_len, &out_len, input, data_len);
         lua_pushlstring(L, (cpchar)output, out_len);
+        push_string(L, (cpchar)output, out_len, 2);
         return 1;
     }
 
     static int lmd5(lua_State* L) {
         size_t data_len = 0;
-        auto message = (const unsigned char*)luaL_checklstring(L, 1, &data_len);
-        unsigned char output[MD5_DIGEST_SIZE];
+        auto message = (upchar)luaL_checklstring(L, 1, &data_len);
+        auto output = alloc_buff(MD5_DIGEST_SIZE);
         auto md_info = mbedtls_md_info_from_type(MBEDTLS_MD_MD5);
         mbedtls_md(md_info, message, data_len, output);
         if (lua_toboolean(L, 2)) {
-            return tohex(L, output, MD5_DIGEST_SIZE);
+            return tohex(L, output, MD5_DIGEST_SIZE, 3);
         }
-        lua_pushlstring(L, (cpchar)output, MD5_DIGEST_SIZE);
+        push_string(L, (cpchar)output, MD5_DIGEST_SIZE, 3);
         return 1;
     }
 
     static int pbkdf2_sha1(lua_State* L) {
         size_t psz = 0, ssz = 0;
-        uint8_t digest[SHA_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA_DIGEST_SIZE);
         uint8_t* passwd = (uint8_t*)luaL_checklstring(L, 1, &psz);
         uint8_t* salt = (uint8_t*)luaL_checklstring(L, 2, &ssz);
         int iter = lua_tointeger(L, 3);
         psa_pbkdf2_hmac(PSA_ALG_SHA_1, passwd, psz, salt, ssz, iter, digest, SHA_DIGEST_SIZE);
-        lua_pushlstring(L, (cpchar)digest, SHA_DIGEST_SIZE);
+        push_string(L, (cpchar)digest, SHA_DIGEST_SIZE, 4);
         return 1;
     }
 
     static int pbkdf2_sha256(lua_State* L) {
         size_t psz = 0, ssz = 0;
-        uint8_t digest[SHA256_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA256_DIGEST_SIZE);
         upchar passwd = (upchar)luaL_checklstring(L, 1, &psz);
         upchar salt = (upchar)luaL_checklstring(L, 2, &ssz);
         int iter = lua_tointeger(L, 3);
         psa_pbkdf2_hmac(PSA_ALG_SHA_256, passwd, psz, salt, ssz, iter, digest, SHA256_DIGEST_SIZE);
-        lua_pushlstring(L, (cpchar)digest, SHA256_DIGEST_SIZE);
+        push_string(L, (cpchar)digest, SHA256_DIGEST_SIZE, 4);
         return 1;
     }
 
     static int lsha1(lua_State* L) {
         size_t sz = 0;
-        uint8_t digest[SHA_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA_DIGEST_SIZE);
         uint8_t* input = (uint8_t*)luaL_checklstring(L, 1, &sz);
         psa_hash_compute(PSA_ALG_SHA_1, input, sz, digest, sizeof(digest), &sz);
-        lua_pushlstring(L, (cpchar)digest, sz);
+        push_string(L, (cpchar)digest, sz, 2);
         return 1;
     }
 
     static int lsha256(lua_State* L) {
         size_t sz = 0;
-        uint8_t digest[SHA256_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA256_DIGEST_SIZE);
         uint8_t* input = (uint8_t*)luaL_checklstring(L, 1, &sz);
         psa_hash_compute(PSA_ALG_SHA_256, input, sz, digest, sizeof(digest), &sz);
-        lua_pushlstring(L, (cpchar)digest, sz);
+        push_string(L, (cpchar)digest, sz, 2);
         return 1;
     }
 
     static int lsha512(lua_State* L) {
         size_t sz = 0;
-        uint8_t digest[SHA512_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA512_DIGEST_SIZE);
         uint8_t* input = (uint8_t*)luaL_checklstring(L, 1, &sz);
         psa_hash_compute(PSA_ALG_SHA_512, input, sz, digest, sizeof(digest), &sz);
-        lua_pushlstring(L, (cpchar)digest, sz);
+        push_string(L, (cpchar)digest, sz, 2);
         return 1;
     }
 
     static int lhmac_sha1(lua_State* L) {
         psa_key_id_t key_id = 0;
         size_t key_sz = 0, text_sz = 0;
-        uint8_t digest[SHA_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA_DIGEST_SIZE);
         uint8_t* key = (uint8_t*)luaL_checklstring(L, 1, &key_sz);
         uint8_t* text = (uint8_t*)luaL_checklstring(L, 2, &text_sz);
         load_psa_key(key, key_sz, PSA_KEY_TYPE_HMAC, PSA_ALG_HMAC(PSA_ALG_SHA_1), PSA_KEY_USAGE_SIGN_MESSAGE, key_id);
         psa_mac_compute(key_id, PSA_ALG_HMAC(PSA_ALG_SHA_1), text, text_sz, digest, SHA_DIGEST_SIZE, &key_sz);
-        lua_pushlstring(L, (cpchar)digest, key_sz);
+        push_string(L, (cpchar)digest, key_sz, 3);
         if (key_id) psa_destroy_key(key_id);
         return 1;
     }
@@ -169,12 +168,12 @@ namespace luatls {
     static int lhmac_sha256(lua_State* L) {
         psa_key_id_t key_id = 0;
         size_t key_sz = 0, text_sz = 0;
-        uint8_t digest[SHA256_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA256_DIGEST_SIZE);
         uint8_t* key = (uint8_t*)luaL_checklstring(L, 1, &key_sz);
         uint8_t* text = (uint8_t*)luaL_checklstring(L, 2, &text_sz);
         load_psa_key(key, key_sz, PSA_KEY_TYPE_HMAC, PSA_ALG_HMAC(PSA_ALG_SHA_256), PSA_KEY_USAGE_SIGN_MESSAGE, key_id);
         psa_mac_compute(key_id, PSA_ALG_HMAC(PSA_ALG_SHA_256), text, text_sz, digest, SHA256_DIGEST_SIZE, &key_sz);
-        lua_pushlstring(L, (cpchar)digest, key_sz);
+        push_string(L, (cpchar)digest, key_sz, 3);
         if (key_id) psa_destroy_key(key_id);
         return 1;
     }
@@ -182,12 +181,12 @@ namespace luatls {
     static int lhmac_sha512(lua_State* L) {
         psa_key_id_t key_id = 0;
         size_t key_sz = 0, text_sz = 0;
-        uint8_t digest[SHA512_DIGEST_SIZE];
+        auto digest = alloc_buff(SHA512_DIGEST_SIZE);
         uint8_t* key = (uint8_t*)luaL_checklstring(L, 1, &key_sz);
         uint8_t* text = (uint8_t*)luaL_checklstring(L, 2, &text_sz);
         load_psa_key(key, key_sz, PSA_KEY_TYPE_HMAC, PSA_ALG_HMAC(PSA_ALG_SHA_512), PSA_KEY_USAGE_SIGN_MESSAGE, key_id);
         psa_mac_compute(key_id, PSA_ALG_HMAC(PSA_ALG_SHA_512), text, text_sz, digest, SHA512_DIGEST_SIZE, &key_sz);
-        lua_pushlstring(L, (cpchar)digest, key_sz);
+        push_string(L, (cpchar)digest, key_sz, 3);
         if (key_id) psa_destroy_key(key_id);
         return 1;
     }

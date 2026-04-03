@@ -42,7 +42,7 @@ function SubComponent:on_subscriber(event, guid, ...)
     if not self.subscribers[event] then
         self.subscribers[event] = {}
     end
-    self.subscribers[event][guid] = { ... }
+    self.subscribers[event][guid] = {...}
     self:notify_event(sformat("on_sub_%s", event), self, ...)
 end
 

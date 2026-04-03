@@ -5,9 +5,11 @@
 #ifdef IO_IOCP
 socket_listener::socket_listener(socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPFN_GETACCEPTEXSOCKADDRS addrs_func) {
     mgr->increase_count();
-    m_mgr = mgr;
+    m_token = mgr->new_token();
     m_accept_func = accept_func;
     m_addrs_func = addrs_func;
+    m_kind = m_token;
+    m_mgr = mgr;
     for (auto& node : m_nodes) {
         node.fd = INVALID_SOCKET;
     }
@@ -15,6 +17,8 @@ socket_listener::socket_listener(socket_mgr* mgr, LPFN_ACCEPTEX accept_func, LPF
 #else
 socket_listener::socket_listener(socket_mgr* mgr) {
     mgr->increase_count();
+    m_token = mgr->new_token();
+    m_kind = m_token;
     m_mgr = mgr;
 }
 #endif
@@ -29,23 +33,23 @@ socket_listener::~socket_listener() {
     }
 #endif
 
-    if (m_socket != INVALID_SOCKET) {
-        closesocket(m_socket);
-        m_socket = INVALID_SOCKET;
+    if (m_fd != INVALID_SOCKET) {
+        closesocket(m_fd);
+        m_fd = INVALID_SOCKET;
     }
     m_mgr->decrease_count();
 }
 
 bool socket_listener::setup(socket_t fd) {
-    m_socket = fd;
+    m_fd = fd;
     m_link_status = LINK_CONNECTED;
     return true;
 }
 
 bool socket_listener::update(int64_t) {
-    if (m_link_status == LINK_CLOSED && m_socket != INVALID_SOCKET) {
-        closesocket(m_socket);
-        m_socket = INVALID_SOCKET;
+    if (m_link_status == LINK_CLOSED && m_fd != INVALID_SOCKET) {
+        closesocket(m_fd);
+        m_fd = INVALID_SOCKET;
     }
 
 #ifdef IO_IOCP
@@ -110,7 +114,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
 
     sockaddr_storage listen_addr;
     socklen_t listen_addr_len = sizeof(listen_addr);
-    getsockname(m_socket, (sockaddr*)&listen_addr, &listen_addr_len);
+    getsockname(m_fd, (sockaddr*)&listen_addr, &listen_addr_len);
 
     while (m_link_status == LINK_CONNECTED) {
         memset(ovl, 0, sizeof(*ovl));
@@ -126,7 +130,7 @@ void socket_listener::queue_accept(WSAOVERLAPPED* ovl) {
 
         DWORD bytes = 0;
         static_assert(sizeof(sockaddr_storage) >= sizeof(sockaddr_in6) + 16, "buffer too small");
-        auto ret = (*m_accept_func)(m_socket, node->fd, node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[1]), &bytes, ovl);
+        auto ret = (*m_accept_func)(m_fd, node->fd, node->buffer, 0, sizeof(node->buffer[0]), sizeof(node->buffer[1]), &bytes, ovl);
         if (!ret) {
             int err = get_socket_error();
             if (err != ERROR_IO_PENDING) {
@@ -166,7 +170,7 @@ void socket_listener::on_can_recv(size_t max_len, bool is_eof) {
         socklen_t addr_len = (socklen_t)sizeof(addr);
         char ip[INET_ADDRSTRLEN];
 
-        socket_t fd = accept(m_socket, (sockaddr*)&addr, &addr_len);
+        socket_t fd = accept(m_fd, (sockaddr*)&addr, &addr_len);
         if (fd == INVALID_SOCKET)
             break;
 
