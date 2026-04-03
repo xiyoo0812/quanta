@@ -6,6 +6,7 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local tunpack       = table.unpack
 local tcopy         = table.copy
+local lnext_id      = luakit.next_id
 local http2ccodec   = codec.http2ccodec
 local grpcccodec    = codec.grpcccodec
 
@@ -61,7 +62,7 @@ end
 function SocketH2:on_tls_handshaked()
     self:send_data("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
     local h2codec = self:new_h2_codec()
-    local handshake_id = thread_mgr:build_session_id()
+    local handshake_id = lnext_id()
     h2codec.h2_handshaked = function()
         thread_mgr:response(handshake_id, true)
     end
@@ -156,11 +157,11 @@ end
 function SocketH2:send_packet(url, ...)
     if self.alive then
         local stream_id = self.stream_id
-        local send_len = self.session.call_data(stream_id, url, ...)
+        local send_len = self.session.call_text(stream_id, url, ...)
         if send_len <= 0 then
             return false, "send data failed"
         end
-        local session_id = thread_mgr:build_session_id()
+        local session_id = lnext_id()
         self.streams[stream_id] = session_id
         self.stream_id = stream_id + 2
         return thread_mgr:yield(session_id, url, HTTP_TIMEOUT)

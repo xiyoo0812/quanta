@@ -17,4 +17,4 @@ jobs:
         submodules: recursive
 
     - name: make
-      run: make all
+      run: make -j4 all

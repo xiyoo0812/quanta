@@ -2,8 +2,6 @@
 local RpcServer     = import("network/rpc_server.lua")
 local HttpServer    = import("network/http_server.lua")
 
-local env_get       = environ.get
-local env_addr      = environ.addr
 local log_warn      = logger.warn
 local log_info      = logger.info
 local log_debug     = logger.debug
@@ -25,10 +23,11 @@ prop:reader("watcher_list", {})
 
 function DiscoverMgr:__init()
     --创建rpc服务器
-    local ip, port = env_addr("QUANTA_DISCOVER_HOST")
+    local ip, port = environ.addr("QUANTA_DISCOVER_HOST")
     self.rpc_server = RpcServer(self, ip, port)
     --创建HTTP服务器
-    local server = HttpServer(env_get("QUANTA_DISCOVER_HTTP"))
+    local server = HttpServer()
+    server:listen(environ.addr("QUANTA_DISCOVER_HTTP"))
     server:register_post("/command", "on_server_command", self)
     server:register_post("/shutdown", "on_server_shutdown", self)
     --初始化变量
@@ -50,10 +49,6 @@ function DiscoverMgr:load_discover()
 end
 
 function DiscoverMgr:on_client_accept(client)
-    local routers = self.service_list["router"]
-    if next(routers) then
-        self.rpc_server:send(client, "rpc_service_ready", "router", routers)
-    end
 end
 
 function DiscoverMgr:on_client_register(client, node)
@@ -68,6 +63,10 @@ function DiscoverMgr:on_client_register(client, node)
     if serv_name == "router" then
         self.rpc_server:unservicecast(serv_name, "rpc_service_ready", serv_name, { node })
     else
+        local routers = self.service_list["router"]
+        if next(routers) then
+            self.rpc_server:send(client, "rpc_service_ready", "router", routers)
+        end
         local watchers = self.watcher_list[serv_name] or {}
         self.rpc_server:groupecast(watchers, "rpc_service_ready", serv_name, { node })
     end
@@ -81,20 +80,22 @@ function DiscoverMgr:on_client_error(client, token, err)
     if not services or not services[token] then
         return
     end
-    services[token] = nil
     --清理观察的服务
     for _, watchers in pairs(self.watcher_list) do
         watchers[token] = nil
     end
+    local node = services[token]
+    services[token] = nil
     if serv_name == "router" then
-        self.rpc_server:unservicecast(serv_name, "rpc_service_close", client.id, serv_name)
+        self.rpc_server:unservicecast(serv_name, "rpc_service_close", node)
     else
         local watchers = self.watcher_list[serv_name] or {}
-        self.rpc_server:groupecast(watchers, "rpc_service_close", client.id, serv_name)
+        self.rpc_server:groupecast(watchers, "rpc_service_close", node)
     end
 end
 
-function DiscoverMgr:rpc_watch_service(client, serv_name)
+function DiscoverMgr:rpc_watch_service(message, serv_name)
+    local client = message.session
     log_info("[DiscoverMgr][rpc_watch_service] node:{}, watch:{}", client.name, serv_name)
     local watchers = self.watcher_list[serv_name]
     if not watchers then

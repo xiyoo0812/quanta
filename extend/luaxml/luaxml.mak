@@ -7,6 +7,20 @@ TARGET_NAME = luaxml
 #系统环境
 UNAME_S = $(shell uname -s)
 
+#编译器
+ifneq (,$(findstring clang++, $(CXX)))
+    COMPILER := clang
+else ifneq (,$(findstring g++, $(CXX)))
+    COMPILER := gcc
+else
+    COMPILER := unknown
+endif
+
+$(info ==============================================)
+$(info PROJECT: $(PROJECT_NAME))
+$(info OS: $(UNAME_S) Compiler: $(COMPILER) ($(CXX)))
+$(info ==============================================)
+
 #伪目标
 .PHONY: clean all target pre_build post_build
 all : pre_build target post_build
@@ -42,11 +56,6 @@ LDFLAGS =
 
 #需要连接的库文件
 LIBS =
-ifneq ($(UNAME_S), Darwin)
-#是否启用mimalloc库
-LIBS += -lmimalloc
-MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
-endif
 #自定义库
 LIBS += -llua
 #系统库
@@ -93,7 +102,7 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 #自动生成目标
 SOURCES =
 SOURCES += src/luaxml.cpp
-SOURCES += src/tinyxml2.cpp
+SOURCES += src/pugixml.cpp
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))
@@ -124,6 +133,7 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
+	mkdir -p $(SOLUTION_DIR)library
 	mkdir -p $(INT_DIR)/src
 
 #后编译

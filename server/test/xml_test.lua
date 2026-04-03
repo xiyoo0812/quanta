@@ -102,13 +102,13 @@ local cxml = [[
 ]]
 
 local xlua, err = xml.decode(cxml)
-log_dump("luaxml decode err: {}, xml:{}", err, xlua)
+log_dump("luaxml decode xml: {}, err:{}", xlua, err)
 local exml = xml.encode(xlua)
 log_dump("luaxml encode xml:{}", exml)
 
 local xxlua = xml.decode(cxml)
-local ok = xml.save("./bb.xml", xxlua, 'xml version="1.0" encoding="gbk"')
+local ok = xml.save("./bb.xml", xxlua, "1.0", "gbk")
 log_dump("luaxml save xml:{}", ok)
 local flua, ferr = xml.open("./bb.xml")
-log_dump("luaxml open err: {}, xml:{}", ferr, flua)
+log_dump("luaxml open xml: {}, err:{}", flua, ferr)
 

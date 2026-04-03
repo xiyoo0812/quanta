@@ -88,11 +88,11 @@ function CacheGM:register()
 end
 
 --删除角色
-function CacheGM:signed(role_id)
+function CacheGM:signed(player_id)
     --查询open_id
-    local p_code, player_doc = cache_mgr:load_document("player", role_id)
+    local p_code, player_doc = cache_mgr:load_document("player", player_id)
     if qfailed(p_code) then
-        log_err("[CacheGM][signed] load_document failed! role_id={}", role_id)
+        log_err("[CacheGM][signed] load_document failed! player_id={}", player_id)
         return "failed"
     end
 
@@ -100,14 +100,14 @@ function CacheGM:signed(role_id)
     if not open_id then
         return "failed. cant find data"
     end
-    log_info("[CacheGM][signed] unroll role_id:{} open_id:{}", role_id, open_id)
+    log_info("[CacheGM][signed] unroll player_id:{} open_id:{}", player_id, open_id)
     local code, doc = cache_mgr:load_document("account", open_id)
     if qfailed(code) then
         log_err("[CacheGM][signed] load_document failed! open_id={}", open_id)
         return "failed"
     end
     local wholes = doc:get_wholes()
-    wholes.roles = {}
+    wholes.players = {}
     doc:update_wholes(wholes)
     return "success"
 end

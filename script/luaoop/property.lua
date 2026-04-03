@@ -60,7 +60,7 @@ local function prop_wraper(class, name, fields)
         return tunpack(res)
     end
     class["set_" .. name] = function(self, ...)
-        local args = { ... }
+        local args = {...}
         local num = clamp(select("#", ...), 1, #fields)
         for i = 1, num do
             local key, value = fields[i], args[i]
@@ -79,7 +79,7 @@ local property_writer = function(self, name, default)
     prop_accessor(self.__class, name, default, WRITER)
 end
 local property_wraper = function(self, name, ...)
-    prop_wraper(self.__class, name, { ... })
+    prop_wraper(self.__class, name, {...})
 end
 local property_accessor = function(self, name, default)
     prop_accessor(self.__class, name, default, ACCESSOR)

@@ -1,13 +1,13 @@
 
 --mongo.lua
-local Socket        = import("driver/socket.lua")
+require("lbson")
 
 local log_err       = logger.err
 local log_info      = logger.info
+local tjoin         = table.join
 local tinsert       = table.insert
 local tunpack       = table.unpack
-local qjoin         = qtable.join
-local tdelete       = qtable.delete
+local terase        = table.erase
 local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch
@@ -19,23 +19,29 @@ local make_timer    = quanta.make_timer
 local make_functer  = quanta.make_functer
 local makechan      = quanta.make_channel
 
-local lmd5          = ssl.md5
-local lsha1         = ssl.sha1
-local lxor_byte     = ssl.xor_byte
-local lrandomkey    = ssl.randomkey
-local lb64encode    = ssl.b64_encode
-local lb64decode    = ssl.b64_decode
-local lhmac_sha1    = ssl.hmac_sha1
-local pbkdf2_sha1   = ssl.pbkdf2_sha1
+local lmd5          = tls.md5
+local lsha1         = tls.sha1
+local lb64encode    = tls.b64_encode
+local lb64decode    = tls.b64_decode
+local lhmac_sha1    = tls.hmac_sha1
+local pbkdf2_sha1   = tls.pbkdf2_sha1
+local lxor_byte     = codec.xor_byte
+local lrandomkey    = codec.randomkey
+local lnext_id      = luakit.next_id
 
 local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
-local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local DBCALL_TO     = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local CONNECT_TO    = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 3)
+
+local Socket        = import("driver/socket.lua")
 
 local MongoDB = class()
 local prop = property(MongoDB)
@@ -90,9 +96,9 @@ function MongoDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.rcfunctor = make_functer(self.check_alive)
-    self.timer:loop(SECOND_MS, function()
-        self.rcfunctor:call(self)
+    self.rcfunctor = make_functer("check_alive", CONNECT_TO)
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.rcfunctor:run(self)
     end)
 end
 
@@ -212,7 +218,7 @@ function MongoDB:auth(sock, username, password)
 end
 
 function MongoDB:delive(sock)
-    tdelete(self.alives, sock)
+    terase(self.alives, sock)
     self.connections[sock.id] = sock
 end
 
@@ -254,16 +260,16 @@ function MongoDB:op_msg(sock, session_id, cmd, ...)
     if not sock:send_data(session_id, cmd, ...) then
         return false, "send failed"
     end
-    return thread_mgr:yield(session_id, cmd, DB_TIMEOUT)
+    return thread_mgr:yield(session_id, cmd, DBCALL_TO)
 end
 
 function MongoDB:adminCommand(sock, cmd, cmd_v, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:op_msg(sock, session_id, cmd, cmd_v, "$db", "admin", ...)
 end
 
 function MongoDB:runCommand(cmd, cmd_v, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     return self:op_msg(self.executer, session_id, cmd, cmd_v or 1, "$db", self.name, ...)
 end
 
@@ -353,7 +359,7 @@ function MongoDB:find(co_name, query, projection, sortor, limit, skip)
     local cursor = reply.cursor
     while cursor do
         local documents = cursor.firstBatch or cursor.nextBatch
-        qjoin(documents, results)
+        tjoin(documents, results)
         if not cursor.id or cursor.id == 0 then
             break
         end

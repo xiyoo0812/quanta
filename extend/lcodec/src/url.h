@@ -6,15 +6,8 @@ namespace lcodec {
         return  x > 9 ? x + 55 : x + 48; 
     }
     
-    inline unsigned char fromhex(unsigned char x) { 
-        if (x >= 'A' && x <= 'Z') return x - 'A' + 10;
-        else if (x >= 'a' && x <= 'z') return x - 'a' + 10;
-        else if (x >= '0' && x <= '9') return x - '0';
-        else return x;
-    }
-    
-    static std::string url_encode(std::string str) {
-        std::string temp = "";
+    static sstring url_encode(sstring str) {
+        sstring temp = "";
         size_t length = str.length();
         for (size_t i = 0; i < length; i++) {
             if (isalnum((unsigned char)str[i]) || (str[i] == '-') || (str[i] == '_') || (str[i] == '.') || (str[i] == '~'))
@@ -30,8 +23,8 @@ namespace lcodec {
         return temp;
     }
     
-    static std::string url_decode(std::string str) {
-        std::string temp = "";
+    static sstring url_decode(sstring str) {
+        sstring temp = "";
         size_t length = str.length();
         for (size_t i = 0; i < length; i++) {
             if (str[i] == '+') temp += ' ';

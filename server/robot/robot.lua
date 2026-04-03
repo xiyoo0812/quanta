@@ -1,4 +1,6 @@
 -- robot.lua
+local json          = require("ljson")
+
 local jpretty       = json.pretty
 local log_err       = logger.err
 local log_debug     = logger.debug
@@ -31,7 +33,7 @@ prop:reader("access_token", "123456")
 
 function Robot:__init()
     self.device_id = guid_string()
-    self.upfunctor = make_functer(self.on_update)
+    self.upfunctor = make_functer("on_update")
 end
 
 --检查错误码
@@ -47,7 +49,7 @@ end
 
 function Robot:send_gm(gm)
     if self.login_success then
-        self:send("NID_UTILITY_GM_COMMAND_REQ", { command = sformat(gm, self.player_id) })
+        self:send("NID_GM_COMMAND_REQ", { command = sformat(gm, self.player_id) })
     end
 end
 
@@ -90,7 +92,7 @@ end
 
 function Robot:update(force)
     if self.case then
-        self.upfunctor:call(self, force)
+        self.upfunctor:run(self, force)
     end
 end
 

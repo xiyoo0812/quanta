@@ -1,13 +1,18 @@
 ﻿#include <locale>
 #include "quanta.h"
 
-int main(int argc, const char* argv[])
+int main(int argc, cpchar argv[])
 {
 #ifdef WIN32
     setlocale(LC_ALL, ".UTF8");
 #endif
     quanta_app q_app;
-    q_app.setup(argc, argv);
+    if (!q_app.setup(argc, argv)) {
+#ifdef WIN32
+        return getchar();
+#endif
+        return 0;
+    }
     q_app.run();
     return 0;
 }

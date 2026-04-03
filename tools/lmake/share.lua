@@ -32,11 +32,19 @@ FLAGS = {
 }
 
 LINUX_FLAGS = {
-    
+
 }
 
 DARWIN_FLAGS = {
-    
+
+}
+
+GCC_FLAGS = {
+
+}
+
+CLANG_FLAGS = {
+
 }
 
 --需要的include目录
@@ -116,9 +124,6 @@ RECURSION = true
 EXCLUDE_FILE = {
 }
 
---是否启用mimalloc库
-MIMALLOC_DIR = "extend/mimalloc/mimalloc/include"
-
 --需要连接的库文件
 LIBS = {
 }
@@ -142,12 +147,13 @@ LDFLAGS = {
 }
 
 LINUX_LDFLAGS = {
-    
+
 }
 
 DARWIN_LDFLAGS = {
-    
+
 }
+
 
 --WINDOWS预编译命令
 --格式: { cmd, args }
@@ -176,9 +182,6 @@ NWINDOWS_POSTBUILDS = {
 --目标文件，可以在这里定义，如果没有定义，share.mak会自动生成
 OBJS = {
 }
-
---是否启用mimalloc库
-MIMALLOC = true
 
 --依赖项目
 DEPS = {

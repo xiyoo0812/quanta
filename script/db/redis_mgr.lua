@@ -17,10 +17,18 @@ local prop = property(RedisMgr)
 prop:reader("redis_db", nil)    --redis_db
 
 function RedisMgr:__init()
+    local funcs = {"execute", "autoinc_id"}
+    for _, func in ipairs(funcs) do
+        --定义函数
+        local func_name = "rpc_redis_" .. func
+        RedisMgr[func_name] = function(message, ...)
+            return self[func](self, ...)
+        end
+        -- 注册事件
+        event_mgr:add_listener(self, func_name)
+    end
+    --启动DB引擎
     self:setup()
-    -- 注册事件
-    event_mgr:add_listener(self, "rpc_redis_execute", "execute")
-    event_mgr:add_listener(self, "rpc_redis_autoinc_id", "autoinc_id")
 end
 
 --初始化
@@ -32,10 +40,11 @@ end
 
 function RedisMgr:execute(cmd, ...)
     if self.redis_db then
-        log_debug("[RedisMgr][execute]: cmd {}, args: {}", cmd, {...})
+        local args = {...}
+        log_debug("[RedisMgr][execute]: cmd {}, args: {}", cmd, args)
         local res = tpack(self.redis_db:execute(cmd, ...))
         if not res[1] then
-            log_err("[RedisMgr][execute] execute {} ({}) failed, because: {}", cmd, {...}, res[2])
+            log_err("[RedisMgr][execute] execute {} ({}) failed, because: {}", cmd, args, res[2])
             return res[1] and SUCCESS or REDIS_FAILED, res[2]
         end
         return SUCCESS, tunpack(res, 2)
@@ -43,7 +52,7 @@ function RedisMgr:execute(cmd, ...)
     return REDIS_FAILED, "redis db not exist"
 end
 
-function RedisMgr:autoinc_id()
+function RedisMgr:autoinc_id(message)
     local aok, origin_id = self.redis_db:execute("INCR", AUTOINCKEY)
     if not aok then
         return REDIS_FAILED, origin_id

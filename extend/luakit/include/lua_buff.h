@@ -1,10 +1,10 @@
 #pragma once
-#include <concepts>
+
 #include "lua_slice.h"
 
 namespace luakit {
 
-    const size_t BUFFER_DEF = 64 * 1024;        //64K
+    const size_t BUFFER_DEF = 8 * 1024;         //8K
     const size_t BUFFER_MAX = 16 * 1024 * 1024; //16M
     const size_t ALIGN_SIZE = 16;               //水位
 
@@ -30,7 +30,7 @@ namespace luakit {
             return m_size;
         }
 
-        inline size_t empty() {
+        inline bool empty() {
             return m_tail == m_head;
         }
 
@@ -46,7 +46,7 @@ namespace luakit {
             m_head = m_tail = m_data;
         }
 
-        inline size_t copy(size_t offset, const uint8_t* src, size_t src_len) {
+        inline size_t copy(size_t offset, cpbyte src, size_t src_len) {
             if (offset + src_len <= m_size) {
                 memmove(m_head + offset, src, src_len);
                 return src_len;
@@ -71,7 +71,7 @@ namespace luakit {
             return nullptr;
         }
 
-        inline size_t push_data(const uint8_t* src, size_t push_len) {
+        inline size_t push_data(cpbyte src, size_t push_len) {
             uint8_t* target = peek_space(push_len);
             if (target) {
                 memcpy(target, src, push_len);
@@ -92,7 +92,7 @@ namespace luakit {
         }
 
         inline size_t pop_size(size_t erase_len) {
-            if (m_head + erase_len <= m_tail) {
+            if (erase_len > 0 && m_head + erase_len <= m_tail) {
                 m_head += erase_len;
                 size_t data_len = (size_t)(m_tail - m_head);
                 if (m_size > m_max && data_len < BUFFER_DEF) {
@@ -148,26 +148,33 @@ namespace luakit {
             return m_tail;
         }
 
+        inline uint8_t* drain(size_t* len) {
+            *len = (size_t)(m_tail - m_head);
+            auto data = m_head;
+            m_head = m_tail;
+            return data;
+        }
+
         inline uint8_t* data(size_t* len) {
             *len = (size_t)(m_tail - m_head);
             return m_head;
         }
 
-        inline std::string_view string() {
+        inline vstring string() {
             size_t len = (size_t)(m_tail - m_head);
-            return std::string_view((const char*)m_head, len);
+            return std::string_view((cpchar)m_head, len);
         }
 
-        inline size_t write(const char* src) {
-            return push_data((const uint8_t*)src, strlen(src));
+        inline size_t write(cpchar src) {
+            return push_data((cpbyte)src, strlen(src));
         }
 
-        inline size_t write(const std::string& src) {
-            return push_data((const uint8_t*)src.c_str(), src.size());
+        inline size_t write(cstring& src) {
+            return push_data((cpbyte)src.c_str(), src.size());
         }
 
-        inline size_t write(const std::string_view& src) {
-            return push_data((const uint8_t*)src.data(), src.size());
+        inline size_t write(cvstring src) {
+            return push_data((cpbyte)src.data(), src.size());
         }
 
         template <arithmetic T, size_t N = sizeof(T)>
@@ -198,7 +205,7 @@ namespace luakit {
             auto target = peek_space(N);
             if (target) {
                 val = byteswap(val);
-                const uint8_t* src = reinterpret_cast<uint8_t*>(&val) + sizeof(T) - N;
+                cpbyte src = reinterpret_cast<uint8_t*>(&val) + sizeof(T) - N;
                 memcpy(target, src, N);
                 m_tail += N;
                 return N;

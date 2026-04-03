@@ -2,11 +2,15 @@
 import("kernel.lua")
 
 local env_addr  = environ.addr
+
+local INDUCE = quanta.enum("PortMode", "INDUCE")
+
 quanta.startup(function()
     --创建客户端网络管理
     local TcpServer = import("network/tcp_server.lua")
+    local ip, port = env_addr("QUANTA_LOGIN_ADDR")
     local client_mgr = TcpServer()
-    client_mgr:listen(env_addr("QUANTA_LOGIN_ADDR"))
+    client_mgr:listen(ip, port, INDUCE)
     quanta.client_mgr = client_mgr
 
     --加载登陆管理
@@ -15,5 +19,9 @@ quanta.startup(function()
     import("login/login_mgr.lua")
     import("login/login_servlet.lua")
     -- 协议过滤器
-    import("business/admin/shield.lua")
+    import("base/admin/shield.lua")
+    -- watch services
+    local login_mgr = quanta.get("login_mgr")
+    login_mgr:watch_service("gateway")
+    login_mgr:watch_service("lobby")
 end)

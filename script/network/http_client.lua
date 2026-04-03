@@ -1,4 +1,5 @@
 --http_client.lua
+local json          = require("ljson")
 
 local pairs         = pairs
 local busdns        = luabus.dns
@@ -14,7 +15,6 @@ local luencode      = codec.url_encode
 
 local HTTP_2        = "h2"
 local HTTP_1_1      = "http/1.1"
-local PROTO_TEXT    = luabus.eproto_type.TEXT
 
 local update_mgr    = quanta.get("update_mgr")
 
@@ -43,13 +43,13 @@ function HttpClient:on_quit()
 end
 
 function HttpClient:on_socket_recv(socket, ...)
-    log_debug("[HttpClient][on_socket_recv] client(token:{}) args({})!", socket.token, { ... })
+    log_debug("[HttpClient][on_socket_recv] client(token:{}) args({})!", socket.token, {...})
 end
 
 function HttpClient:on_socket_error(socket, token, err)
     log_debug("[HttpClient][on_socket_error] client(token:{}) close({})!", token, err)
     if self.version == HTTP_2 then
-        self.clients[socket.name] = nil
+        self.clients[socket.host_name] = nil
     end
 end
 
@@ -60,7 +60,7 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
         log_err("[HttpClient][send_request] failed : {}", port)
         return false, ip
     end
-    local socket, err = self:connect(host, ip, port, scheme)
+    local socket, err = self:connect(host, ip, port, scheme, timeout)
     if not socket then
         log_err("[HttpClient][connect] failed : {}", err)
         return false, err
@@ -83,22 +83,23 @@ function HttpClient:send_request(url, timeout, querys, headers, method, datas)
     return socket:send_packet(fmt_url, method, ori_headers, datas or "")
 end
 
-function HttpClient:connect(host, ip, port, scheme)
+function HttpClient:connect(host, ip, port, scheme, timeout)
     local socket
     if self.version == HTTP_2 then
         socket = self.clients[host]
         if not socket then
             socket = SocketH2(self)
             self.clients[host] = socket
-            socket.name = host
+            socket.host_name = host
         end
     else
         socket = Socketls(self)
         if scheme == "http" then
             socket:set_tls_enable(false)
         end
+        socket.host_name = host
     end
-    local ok, cerr = socket:connect(ip, port, PROTO_TEXT)
+    local ok, cerr = socket:connect(ip, port, timeout)
     if not ok then
         return nil, cerr
     end

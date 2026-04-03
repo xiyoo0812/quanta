@@ -1,8 +1,6 @@
 --convertor.lualog
 require("ljson")
 require("lstdfs")
-require("luacsv")
-require("luaxlsx")
 
 local pairs         = pairs
 local iopen         = io.open
@@ -15,8 +13,8 @@ local lfilename     = stdfs.filename
 local lextension    = stdfs.extension
 local lcurdir       = stdfs.current_path
 local jpretty       = json.pretty
-local serialize     = luakit.serialize
-local unserialize   = luakit.unserialize
+local serialize     = string.serialize
+local unserialize   = string.unserialize
 local sfind         = string.find
 local sgsub         = string.gsub
 local sformat       = string.format
@@ -43,19 +41,6 @@ local head_line     = nil
 local recursion     = false
 --是否导出所有workbook
 local allbook      = false
-
---设置utf8
-if quanta.platform == "linux" then
-    local locale = os.setlocale("C.UTF-8")
-    if not locale then
-        print("switch utf8 mode failed!")
-    end
-else
-    local locale = os.setlocale(".UTF8")
-    if not locale then
-        print("switch utf8 mode failed!")
-    end
-end
 
 local function conv_integer(v)
     return mtointeger(v) or v
@@ -128,7 +113,7 @@ local value_func = {
 local function get_cell_value(book, row, col, field_type)
     local value = book.get_cell_value(row, col)
     if not value or value == "" then
-        return
+        return nil
     end
     if field_type then
         local func = value_func[slower(field_type)]
@@ -303,15 +288,20 @@ local function export_workbook_to_output(book, output, fname, bookname)
     print(sformat("export file: %s book: %s to %s success!", fname, bookname, title))
 end
 
-local function is_config_file(ext)
+local function is_config_file(ext, filename)
+    if filename:sub(1, 2) == "~$" then
+        return false
+    end
     return ext == ".xlsx" or ext == ".xlsm" or ext == ".csv"
 end
 
 local function load_workbook(ext, filename)
     if ext == ".xlsx" or ext == ".xlsm" then
+        require("luaxlsx")
         return xlsx.open(filename)
     end
     if ext == ".csv" then
+        require("luacsv")
         return csv.open(filename)
     end
 end
@@ -339,10 +329,10 @@ local function export_config(input, output)
             goto continue
         end
         local ext = lextension(fullname)
-        if is_config_file(ext) then
-            local fname = lfilename(fullname)
-            local workbook = load_workbook(ext, fullname)
-            if not workbook then
+        local fname = lfilename(fullname)
+        if is_config_file(ext, fname) then
+            local ok, workbook = pcall(load_workbook, ext, fullname)
+            if not ok then
                 print(sformat("open config %s failed!", fullname))
                 goto continue
             end

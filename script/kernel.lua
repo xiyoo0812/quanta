@@ -1,4 +1,9 @@
 --kernel.lua
+require("luapb")
+require("lcodec")
+require("ltimer")
+require("luabus")
+
 import("basic/basic.lua")
 
 local log_warn      = logger.warn
@@ -17,12 +22,6 @@ local THREAD_MASTER = quanta.master
 
 --初始化基础库
 local function init_library()
-    --加载扩展库
-    require("luassl")
-    require("luapb")
-    require("ljson")
-    require("lbson")
-    require("lcodec")
     --加载基础库
     import("kernel/thread_mgr.lua")
     import("kernel/event_mgr.lua")
@@ -32,7 +31,6 @@ end
 
 --初始化网络
 local function init_network()
-    require("luabus")
     local max_conn = environ.number("QUANTA_MAX_CONN", 64)
     socket_mgr = luabus.create_socket_mgr(max_conn)
     quanta.socket_mgr = socket_mgr
@@ -63,19 +61,6 @@ local function init_mainloop()
     end
 end
 
---初始化store
-local function init_store()
-    import("store/store_mgr.lua")
-    local smode = environ.get("QUANTA_STORE")
-    if smode == "cache" then
-        import("store/store_cache.lua")
-    elseif smode == "mongo" then
-        import("store/store_mgo.lua")
-    else
-        import("store/store_kv.lua")
-    end
-end
-
 --初始化路由和服务发现
 local function init_discover()
     if environ.status("QUANTA_DISCOVER") then
@@ -93,8 +78,6 @@ function quanta.main()
     init_network()
     --加载服务发现
     init_discover()
-    --初始化store
-    init_store()
 end
 
 --启动
@@ -107,9 +90,7 @@ function quanta.startup(entry)
     --初始化quanta
     quanta.main()
     --启动服务器
-    pcall(entry)
-    --输出启动信息
-    quanta.report("startup")
+    qxpcall(entry, "quanta startup err: {}")
 end
 
 local function run_frame()

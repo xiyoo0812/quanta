@@ -19,9 +19,7 @@ LIBS = {
 }
 
 --LINUX需要连接的库文件
---gcc9.1前filesystem需要链接stdc++fs
 LINUX_LIBS = {
-    "stdc++fs"
 }
 
 --WINDOWS需要定义的选项

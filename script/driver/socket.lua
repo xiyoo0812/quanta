@@ -2,8 +2,9 @@
 
 local log_err           = logger.err
 local log_info          = logger.info
+local lnext_id          = luakit.next_id
 
-local PROTO_TEXT        = luabus.eproto_type.TEXT
+local PROTO_TEXT        = luabus.proto_type.TEXT
 
 local socket_mgr        = quanta.get("socket_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
@@ -71,27 +72,25 @@ function Socket:set_codec(codec)
     end
 end
 
-function Socket:connect(ip, port)
+function Socket:connect(ip, port, timeout, proto)
     if self.session then
         if self.alive then
             return true
         end
         return false, "socket in connecting"
     end
-    local session, cerr = socket_mgr.connect(ip, port, CONNECT_TIMEOUT, PROTO_TEXT)
+    local session, cerr = socket_mgr.connect(ip, port, timeout or CONNECT_TIMEOUT, proto or PROTO_TEXT)
     if not session then
         log_err("[Socket][connect] failed to connect: {}:{} err={}", ip, port, cerr)
         return false, cerr
     end
     --设置阻塞id
     local token = session.token
-    local block_id = thread_mgr:build_session_id()
+    local block_id = lnext_id()
     session.on_connect = function(res)
         local success = res == "ok"
-        self.alive = success
         if not success then
-            self.token = nil
-            self.session = nil
+            self:close()
         end
         thread_mgr:response(block_id, success, res)
     end
@@ -99,15 +98,15 @@ function Socket:connect(ip, port)
     --阻塞挂起
     local ok, res = thread_mgr:yield(block_id, "connect", CONNECT_TIMEOUT)
     if not ok then
-        --处理超时
         self:close()
         return ok, res
     end
-    log_info("[Socket][connect] connect success!")
+    log_info("[Socket][connect] connect {}:{} success!", ip, port)
     return self:on_socket_connected()
 end
 
 function Socket:on_socket_connected()
+    self.alive = true
     return true
 end
 
@@ -135,7 +134,7 @@ function Socket:init_session(session, token, ip, port)
     self.token = token
     self.session = session
     self.ip, self.port = ip, port
-    session.on_call_data = function(recv_len, ...)
+    session.on_call_text = function(recv_len, ...)
         thread_mgr:fork(self.on_socket_recv, nil, self, ...)
     end
     session.on_error = function(stoken, err)
@@ -152,7 +151,7 @@ end
 
 function Socket:send_data(...)
     if self.alive then
-        local send_len = self.session.call_data(...)
+        local send_len = self.session.call_text(...)
         return send_len > 0
     end
     return false, "socket not alive"

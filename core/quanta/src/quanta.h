@@ -1,33 +1,39 @@
 ﻿#pragma once
 
-#include "logger.h"
+#include "lua_kit.h"
 
 class quanta_app final
 {
 public:
-    void run();
-    bool init();
-    bool step();
-    void setup(int argc, const char* argv[]);
-    void load(int argc, const char* argv[]);
-    void set_signal(uint32_t n, bool b = true);
-    void add_path(const char* field, const char* path);
-    void set_env(const char* key, const char* value, int over = 0);
-    void set_library() { m_process = false; }
-
-    luakit::kit_state* state() { return &m_lua; };
+    ~quanta_app();
     
-    lua_State* L() { return m_lua.L();  }
+    void run();
+    bool step();
+    bool init();
+    bool load(int argc, cpchar argv[]);
+    void set_signal(uint32_t n, bool b = true);
+    void add_path(cpchar field, cpchar path);
+    void set_env(cpchar key, cpchar value, int over = 0);
+    bool setup(int argc, cpchar argv[], lua_State* L = nullptr);
+
+    luakit::kit_state* state() { return m_lua; };
+    
+    lua_State* L() { return m_lua->L();  }
+    sstring last_error() { return m_error;  }
 
 protected:
-    void exception_handler(std::string_view msg, std::string_view err);
-    const char* get_env(const char* key);
+    cpchar get_env(cpchar key);
+    template<typename... Args>
+    void exception_handler(vstring msg, Args&&... args){
+        m_error = std::vformat(msg, std::make_format_args(args...)).c_str();
+        printf("%s", m_error.c_str());
+    }
 
 private:
-    bool m_process = true;
+    sstring m_error = "";
     uint64_t m_signal = 0;
-    luakit::kit_state m_lua;
-    std::unordered_map<std::string, std::string> m_environs;
+    luakit::kit_state* m_lua = nullptr;
+    std::unordered_map<sstring, sstring> m_environs;
 };
 
 extern quanta_app* g_app;

@@ -6,7 +6,7 @@ namespace lprofile {
     thread_local profile tprofile;
 
     luakit::lua_table open_lprofile(lua_State* L) {
-        luakit::kit_state kit_state(L);
+        luakit::kit_state kit_state(L, true);
         auto prof = kit_state.new_table("profile");
         prof.set_function("enable", []() { tprofile.enable(); });
         prof.set_function("disable", []() { tprofile.disable(); });

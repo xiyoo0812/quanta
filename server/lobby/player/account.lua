@@ -4,17 +4,16 @@ local store_mgr = quanta.get("store_mgr")
 
 local Account = class()
 local prop = property(Account)
-prop:reader("params", {})           --params
-prop:reader("user_id", 0)           --user_id
-prop:reader("channel","")           --channel
 prop:reader("open_id", "")          --open_id
-prop:reader("device_id", 0)         --device_id
-prop:reader("create_time", 0)       --create_time
-prop:accessor("reload_token", 0)    --reload_token
+prop:accessor("params", {})         --params
+prop:accessor("user_id", 0)         --user_id
+prop:accessor("channel","")         --channel
+prop:accessor("device_id", 0)       --device_id
+prop:accessor("create_time", 0)     --create_time
 
 local store = storage(Account, "account")
 store:store_value("lobby", 0)       --lobby
-store:store_values("roles", {})     --roles
+store:store_values("players", {})   --players
 
 function Account:__init(open_id)
     self.open_id = open_id
@@ -27,7 +26,7 @@ end
 function Account:on_db_account_load(data)
     if data.open_id then
         self:set_lobby(data.lobby)
-        self:set_roles(data.roles)
+        self:set_players(data.players)
         self:set_params(data.params)
         self:set_user_id(data.user_id)
         self:set_device_id(data.device_id)
@@ -38,19 +37,19 @@ function Account:on_db_account_load(data)
     return false
 end
 
-function Account:update_nick(role_id, name)
-    local role = self.roles[role_id]
-    if role then
-        role.name = name
-        self:save_roles_field(role_id, role)
+function Account:update_nick(player_id, name)
+    local player = self.players[player_id]
+    if player then
+        player.name = name
+        self:save_players_field(player_id, player)
     end
 end
 
-function Account:update_custom(role_id, custom)
-    local role = self.roles[role_id]
-    if role then
-        role.custom = custom
-        self:save_roles_field(role_id, role)
+function Account:update_facade(player_id, facade)
+    local player = self.players[player_id]
+    if player then
+        player.facade = facade
+        self:save_players_field(player_id, player)
     end
 end
 

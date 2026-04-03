@@ -1,7 +1,6 @@
 --deque.lua
 --队列: 普通双端队列，元素可重复
 --索引队列： 支持索引，元素不能重复
-local qtweak    = qtable.weak
 local log_warn  = logger.warn
 
 local Deque = class()
@@ -15,12 +14,12 @@ prop:reader("datas", {})
 function Deque:__init(index)
     if index then
         self.index = index
-        self.indexs = qtweak({}, "v")
+        self.indexs = {}
     end
 end
 
 function Deque:clear()
-    self.indexs = qtweak({})
+    self.indexs = {}
     self.datas = {}
     self.first = 1
     self.tail = 0

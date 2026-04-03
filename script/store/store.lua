@@ -3,17 +3,16 @@ local log_dump      = logger.dump
 local log_debug     = logger.debug
 local tconcat       = table.concat
 
-local store_mgr     = quanta.get("store_mgr")
-
 local Store = class()
 local prop = property(Store)
 prop:reader("sheet", "")        -- sheet
 prop:reader("wholes", nil)      -- wholes
-prop:reader("increases", {})    -- increases
 prop:reader("primary_id", "")   -- primary_id
+prop:reader("store_mgr", "")    -- store_mgr
 
-function Store:__init(sheet, primary_id)
+function Store:__init(mgr, sheet, primary_id)
     self.sheet = sheet
+    self.store_mgr = mgr
     self.primary_id = primary_id
 end
 
@@ -29,14 +28,14 @@ function Store:flush(obj, timely)
     if timely then
         self:sync_whole()
     else
-        store_mgr:save_wholes(self)
+        self.store_mgr:save_wholes(self)
     end
     log_debug("[Store][flush] {}.{}={}", self.primary_id, self.sheet, self.wholes)
 end
 
-function Store:update_value(layers, key, value)
-    log_dump("[Store][update_value] {}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(layers, "."), key, value)
-    local cur_data = self.wholes
+function Store:update_value(layers, key, value, data)
+    log_dump("[Store][update_value] {}.{}.{}.{}={}", self.sheet, self.primary_id, tconcat(layers, "."), key, value)
+    local cur_data = data or self.wholes
     for _, cfield in ipairs(layers) do
         if not cur_data[cfield] then
             cur_data[cfield] = {}
@@ -46,9 +45,9 @@ function Store:update_value(layers, key, value)
     cur_data[key] = value
 end
 
-function Store:update_field(layers, field, key, value)
-    log_dump("[Store][update_field] {}.{}.{}.{}.{}={}", self.primary_id, self.sheet, tconcat(layers, "."), field, key, value)
-    local cur_data = self.wholes
+function Store:update_field(layers, field, key, value, data)
+    log_dump("[Store][update_field] {}.{}.{}.{}.{}={}", self.sheet, self.primary_id, tconcat(layers, "."), field, key, value)
+    local cur_data =  data or self.wholes
     for _, cfield in ipairs(layers) do
         if not cur_data[cfield] then
             cur_data[cfield] = {}

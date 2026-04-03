@@ -1,31 +1,42 @@
 --functor.lua
+local xpcall        = xpcall
+local dtraceback    = debug.traceback
 
 local thread_mgr    = quanta.get("thread_mgr")
-local SECOND_30_MS  = quanta.enum("PeriodTime", "SECOND_30_MS")
 
 local Functor = class()
 local prop = property(Functor)
 prop:reader("time", 0)
+prop:reader("name", nil)
 prop:reader("functor", nil)
 
-function Functor:__init(func, reenter)
-    if reenter then
-        self.functor = func
-        return
-    end
-    self.functor = function(...)
-        self.time = quanta.clock_ms + SECOND_30_MS
-        func(...)
-        self.time = 0
+function Functor:__init(func_name, lock_ms)
+    self.name = func_name
+    if lock_ms > 0 then
+        self.functor = function(obj, ...)
+            self.time = quanta.clock_ms + lock_ms
+            obj[self.name](obj, ...)
+            self.time = 0
+        end
     end
 end
 
-function Functor:call(...)
-    if self.time > quanta.clock_ms then
-        return false
+function Functor:run(obj, ...)
+    if self.functor then
+        if self.time == 0 or self.time <= quanta.clock_ms then
+            thread_mgr:fork(self.functor, nil, obj, ...)
+        end
+    else
+        thread_mgr:fork(obj[self.name], nil, obj, ...)
     end
-    thread_mgr:fork(self.functor, nil, ...)
-    return true
+end
+
+function Functor:pcall(obj, ...)
+    return xpcall(obj[self.name], dtraceback, obj, ...)
+end
+
+function Functor:call(obj, ...)
+    return obj[self.name](obj, ...)
 end
 
 return Functor

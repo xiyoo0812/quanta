@@ -7,7 +7,7 @@ TARGET_NAME = "ldetour"
 ----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
 
-FLAGS = {
+GCC_FLAGS = {
     "Wno-class-memaccess",
     "Wno-maybe-uninitialized"
 }

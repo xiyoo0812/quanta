@@ -8,18 +8,19 @@ local sgsub         = string.gsub
 local sformat       = string.format
 local sgmatch       = string.gmatch
 local tinsert       = table.insert
+local terase        = table.erase
 local mrandom       = qmath.random
-local tdelete       = qtable.delete
+local lnext_id      = luakit.next_id
 
-local lmd5          = ssl.md5
-local lsha256       = ssl.sha256
-local lxor_byte     = ssl.xor_byte
-local lrandomkey    = ssl.randomkey
-local lb64encode    = ssl.b64_encode
-local lb64decode    = ssl.b64_decode
-local lhmac_sha256  = ssl.hmac_sha256
-local pbkdf2_sha256 = ssl.pbkdf2_sha256
+local lmd5          = tls.md5
+local lsha256       = tls.sha256
+local lb64encode    = tls.b64_encode
+local lb64decode    = tls.b64_decode
+local lhmac_sha256  = tls.hmac_sha256
+local pbkdf2_sha256 = tls.pbkdf2_sha256
 
+local lxor_byte     = codec.xor_byte
+local lrandomkey    = codec.randomkey
 local qhash         = codec.hash_code
 local pgsqlcodec    = codec.pgsqlcodec
 
@@ -31,9 +32,12 @@ local thread_mgr    = quanta.get("thread_mgr")
 local update_mgr    = quanta.get("update_mgr")
 
 local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
-local DB_TIMEOUT    = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local DBCALL_TO     = quanta.enum("NetwkTime", "DB_CALL_TIMEOUT")
+local CONNECT_TO    = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
+
 local POOL_COUNT    = environ.number("QUANTA_DB_POOL_COUNT", 1)
 
 local AUTH_TYPE     = codec.auth_type_t
@@ -115,9 +119,9 @@ function PgsqlDB:setup_pool(hosts)
             count = count + 1
         end
     end
-    self.rcfunctor = make_functer(self.check_alive)
-    self.timer:loop(SECOND_MS, function()
-        self.rcfunctor:call(self)
+    self.rcfunctor = make_functer("check_alive", CONNECT_TO)
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.rcfunctor:run(self)
     end)
 end
 
@@ -231,7 +235,7 @@ end
 
 function PgsqlDB:delive(sock)
     sock.stmts = {}
-    tdelete(self.alives, sock)
+    terase(self.alives, sock)
     self.connections[sock.id] = sock
 end
 
@@ -253,18 +257,18 @@ function PgsqlDB:on_socket_recv(socket, session_id, ...)
 end
 
 function PgsqlDB:auth_request(socket, cmd, quote, ...)
-    local session_id = thread_mgr:build_session_id()
+    local session_id = lnext_id()
     if socket:send_data(cmd, session_id, ...) then
-        return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+        return thread_mgr:yield(session_id, quote, DBCALL_TO)
     end
     return false, "send request failed"
 end
 
 function PgsqlDB:request(cmd, quote, ...)
     if self.executer then
-        local session_id = thread_mgr:build_session_id()
+        local session_id = lnext_id()
         if self.executer:send_data(cmd, session_id, ...) then
-            return thread_mgr:yield(session_id, quote, DB_TIMEOUT)
+            return thread_mgr:yield(session_id, quote, DBCALL_TO)
         end
     end
     return false, "send request failed"
@@ -310,12 +314,12 @@ function PgsqlDB:execute(name, ...)
         return false, "prepare statement not found"
     end
     local argfmt = ""
-    local bind_args = {...}
-    for _, val in pairs(bind_args) do
-        local args = tostring(val)
-        argfmt = argfmt .. spack(">i", #args) .. args
+    local args = {...}
+    for _, val in pairs(args) do
+        local arg = tostring(val)
+        argfmt = argfmt .. spack(">i", #arg) .. arg
     end
-    local bquery = sformat("%s\0%s\0%s%s%s%s", name, name, ZERO_BIT2, spack(">h", #bind_args), argfmt, ZERO_BIT2)
+    local bquery = sformat("%s\0%s\0%s%s%s%s", name, name, ZERO_BIT2, spack(">h", #args), argfmt, ZERO_BIT2)
     self:send(REQUEST_CMD.BIND, bquery)
     self:send(REQUEST_CMD.DISCRIBE, 'S' .. name .. '\0')
     self:send(REQUEST_CMD.EXECUTE, sformat("%s\0%s", name, ZERO_BIT4))

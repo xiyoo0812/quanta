@@ -7,6 +7,7 @@
 #include "lua_codec.h"
 #include "lua_table.h"
 #include "lua_class.h"
+#include "lua_logger.h"
 #include "lua_extend.h"
 
 namespace luakit {
@@ -16,9 +17,7 @@ namespace luakit {
     }
 
     inline codec_base* lua_codec() {
-        luacodec* codec = new luacodec();
-        codec->set_buff(&lbuf);
-        return codec;
+        return new luacodec();
     }
 
     class kit_state;
@@ -29,26 +28,13 @@ namespace luakit {
         kit_state() {
             m_L = luaL_newstate();
             luaL_openlibs(m_L);
-            new_class<kit_state>();
-            new_class<codec_base>();
-            new_class<class_member>();
-            new_class<function_wrapper>();
-            new_class<slice>(
-                "size", &slice::size,
-                "recv", &slice::recv,
-                "peek", &slice::check,
-                "string", &slice::string
-            );
-            luakit_extendlibs(this);
-            lua_checkstack(m_L, 1024);
-            lua_table luakit = new_table("luakit");
-            luakit.set_function("luacodec", lua_codec);
-            luakit.set_function("encode", [&](lua_State* L) { return encode(L, &lbuf); });
-            luakit.set_function("decode", [&](lua_State* L) { return decode(L, &lbuf); });
-            luakit.set_function("unserialize", [&](lua_State* L) {  return unserialize(L); });
-            luakit.set_function("serialize", [&](lua_State* L) { return serialize(L, &lbuf); });
+            init_luakit(m_L);
+            get_logger()->init(m_L);
         }
-        kit_state(lua_State* L) : m_L(L) {}
+
+        kit_state(lua_State* L, bool initlog = false) : m_L(L) {
+            if (initlog) get_logger()->init(L);
+        }
 
         void __gc() {}
 
@@ -59,41 +45,66 @@ namespace luakit {
             }
         }
 
+        void init_luakit(lua_State* L) {
+            lua_guard g(L);
+            lua_getglobal(L, "luakit");
+            if (lua_isnil(L, -1)) {
+                new_class<kit_state>();
+                new_class<codec_base>();
+                new_class<class_member>();
+                new_class<function_wrapper>();
+                new_class<slice>(
+                    "size", &slice::size,
+                    "recv", &slice::recv,
+                    "peek", &slice::check,
+                    "string", &slice::string
+                );
+                luakit_extendlibs(this);
+                lua_checkstack(L, 1024);
+                lua_table luakit = new_table("luakit");
+                luakit.set_function("luacodec", lua_codec);
+                luakit.set_function("next_id", [&]() { return ++m_serial32; });
+                luakit.set_function("next_id64", [&]() { return ++m_serial64; });
+                luakit.set_function("encode", [&](lua_State* L) { return encode(L, get_buff()); });
+                luakit.set_function("decode", [&](lua_State* L) { return decode(L, get_buff()); });
+            }
+        }
+
         template<typename T>
-        void set(const char* name, T obj) {
+        void set(cpchar name, T obj) {
             native_to_lua(m_L, obj);
             lua_setglobal(m_L, name);
         }
 
         template<typename T>
-        T get(const char* name) {
+        T get(cpchar name) {
             lua_guard g(m_L);
             lua_getglobal(m_L, name);
             return lua_to_native<T>(m_L, -1);
         }
 
         template <typename F>
-        void set_function(const char* function, F func) {
+        void set_function(cpchar function, F func) {
             lua_push_function(m_L, func);
             lua_setglobal(m_L, function);
         }
 
-        bool get_function(const char* function) {
-            get_global_function(m_L, function);
-            return lua_isfunction(m_L, -1);
+        bool get_function(cpchar function) {
+            return get_global_function(m_L, function);
         }
 
-        const char* get_path(const char* field) {
+        cpchar get_path(cpchar field) {
             lua_guard g(m_L);
             lua_getglobal(m_L, LUA_LOADLIBNAME);
             lua_getfield(m_L, -1, field);
             return lua_tostring(m_L, -1);
         }
 
-        void set_path(const char* field, const char* path) {
+        void set_path(cpchar field, cpchar path) {
             if (strcmp(field, "LUA_PATH") == 0) {
                 set_lua_path("path", path, LUA_PATH_DEFAULT);
-            } else {
+            }
+            else {
                 set_lua_path("cpath", path, LUA_CPATH_DEFAULT);
             }
         }
@@ -107,11 +118,11 @@ namespace luakit {
         }
 
         template <typename... ret_types, typename... arg_types>
-        bool call(const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool call(cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_global_function(m_L, function, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
-        bool call(const char* function, error_fn efn = nullptr) {
+        bool call(cpchar function, error_fn efn = nullptr) {
             return call_global_function(m_L, function, efn, std::tie());
         }
 
@@ -120,31 +131,31 @@ namespace luakit {
         }
 
         template <typename... ret_types, typename... arg_types>
-        bool table_call(const char* table, const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool table_call(cpchar table, cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_table_function(m_L, table, function, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
         template <typename... ret_types, typename... arg_types>
-        bool table_call(const char* table, const char* function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool table_call(cpchar table, cpchar function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_table_function(m_L, table, function, efn, codec, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
-        bool table_call(const char* table, const char* function, error_fn efn = nullptr) {
+        bool table_call(cpchar table, cpchar function, error_fn efn = nullptr) {
             return call_table_function(m_L, table, function, efn, std::tie());
         }
 
         template <typename T, typename... ret_types, typename... arg_types>
-        bool object_call(T* obj, const char* function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool object_call(T* obj, cpchar function, error_fn efn, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_object_function<T>(m_L, obj, function, efn, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
         template <typename T, typename... ret_types, typename... arg_types>
-        bool object_call(T* obj, const char* function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
+        bool object_call(T* obj, cpchar function, error_fn efn, codec_base* codec, std::tuple<ret_types&...>&& rets, arg_types... args) {
             return call_object_function<T>(m_L, obj, function, efn, codec, std::forward<std::tuple<ret_types&...>>(rets), std::forward<arg_types>(args)...);
         }
 
         template <typename T>
-        bool object_call(T* obj, const char* function, error_fn efn = nullptr) {
+        bool object_call(T* obj, cpchar function, error_fn efn = nullptr) {
             return call_object_function<T>(function, obj, efn, std::tie());
         }
 
@@ -152,7 +163,7 @@ namespace luakit {
             return run_file(filename.c_str(), efn);
         }
 
-        bool run_file(const char* filename, error_fn efn = nullptr) {
+        bool run_file(cpchar filename, error_fn efn = nullptr) {
             lua_guard g(m_L);
             if (luaL_loadfile(m_L, filename)) {
                 if (efn) {
@@ -163,11 +174,11 @@ namespace luakit {
             return lua_call_function(m_L, efn, 0, 0);
         }
 
-        bool run_script(const std::string& script, error_fn efn= nullptr) {
+        bool run_script(const std::string& script, error_fn efn = nullptr) {
             return run_script(script.c_str(), efn);
         }
 
-        bool run_script(const char* script, error_fn efn= nullptr) {
+        bool run_script(cpchar script, error_fn efn = nullptr) {
             lua_guard g(m_L);
             if (luaL_loadstring(m_L, script)) {
                 if (efn) {
@@ -178,7 +189,7 @@ namespace luakit {
             return lua_call_function(m_L, efn, 0, 0);
         }
 
-        lua_table new_table(const char* name = nullptr) {
+        lua_table new_table(cpchar name = nullptr) {
             lua_guard g(m_L);
             lua_createtable(m_L, 0, 8);
             if (name) {
@@ -189,14 +200,14 @@ namespace luakit {
         }
 
         template <typename... arg_types>
-        lua_table new_table(const char* name, arg_types... args) {
+        lua_table new_table(cpchar name, arg_types... args) {
             lua_table table = new_table(name);
             table.create_with(std::forward<arg_types>(args)...);
             return table;
         }
 
         template <typename... enum_value>
-        lua_table new_enum(const char* name, enum_value... args) {
+        lua_table new_enum(cpchar name, enum_value... args) {
             lua_table table = new_table(name);
             table.create_with(std::forward<enum_value>(args)...);
             return table;
@@ -224,10 +235,10 @@ namespace luakit {
         }
 
     protected:
-        void set_lua_path(const char* fieldname, const char* path, const char* dft){
+        void set_lua_path(cpchar fieldname, cpchar path, cpchar dft) {
             std::string buffer;
             lua_table package = get<lua_table>(LUA_LOADLIBNAME);
-            const char* dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
+            cpchar dftmark = strstr(path, LUA_PATH_SEP LUA_PATH_SEP);
             if (dftmark != nullptr) {
                 if (path < dftmark) {
                     buffer.append(path, dftmark - path);
@@ -239,7 +250,8 @@ namespace luakit {
                     buffer.append(LUA_PATH_SEP);
                     buffer.append(dftmark + 2, (path + len - 2) - dftmark);
                 }
-            } else {
+            }
+            else {
                 buffer.append(path);
             }
 #ifdef WIN32
@@ -255,18 +267,33 @@ namespace luakit {
 
     protected:
         lua_State* m_L = nullptr;
+        uint32_t m_serial32 = 0;
+        uint64_t m_serial64 = 0;
     };
 
     inline void luakit_extendlibs(kit_state* kit) {
+        auto los = kit->get<lua_table>("os");
+        los.set_function("setenv", lua_os_setenv);
         auto lstring = kit->get<lua_table>("string");
         lstring.set_function("split", lua_string_split);
         lstring.set_function("title", lua_string_title);
         lstring.set_function("untitle", lua_string_untitle);
         lstring.set_function("ends_with", lua_string_ends_with);
         lstring.set_function("starts_with", lua_string_starts_with);
+        lstring.set_function("serialize", [&](lua_State* L) { return serialize(L, get_buff()); });
+        lstring.set_function("unserialize", unserialize);
         auto ltable = kit->get<lua_table>("table");
         ltable.set_function("copy", lua_table_copy);
+        ltable.set_function("size", lua_table_size);
+        ltable.set_function("keys", lua_table_keys);
+        ltable.set_function("vals", lua_table_vals);
+        ltable.set_function("join", lua_table_join);
+        ltable.set_function("kvals", lua_table_kvals);
         ltable.set_function("clean", lua_table_clean);
+        ltable.set_function("erase", lua_table_erase);
+        ltable.set_function("slice", lua_table_slice);
+        ltable.set_function("indexof", lua_table_indexof);
+        ltable.set_function("pushback", lua_table_pushback);
         ltable.set_function("deepcopy", lua_table_deepcopy);
         ltable.set_function("is_array", [](lua_State* L) { return is_lua_array(L, 1, true); });
     }

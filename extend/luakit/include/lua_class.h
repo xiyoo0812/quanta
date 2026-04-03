@@ -1,4 +1,5 @@
 ﻿#pragma once
+
 #include "lua_function.h"
 
 namespace luakit {
@@ -76,7 +77,7 @@ namespace luakit {
             lua_pushnil(L);
             return 1;
         }
-        const char* key = lua_tostring(L, 2);
+        cpchar key = lua_tostring(L, 2);
         if (!key) {
             lua_pushnil(L);
             return 1;
@@ -98,7 +99,7 @@ namespace luakit {
         if (!lua_getmetatable(L, 1)) return 0;
         T* obj = lua_to_object<T*>(L, 1);
         if (!obj) return 0;
-        const char* key = lua_tostring(L, 2);
+        cpchar key = lua_tostring(L, 2);
         if (!key) return 0;
 
         lua_pushstring(L, key);
@@ -132,7 +133,7 @@ namespace luakit {
     inline void lua_wrap_member(lua_State* L) {}
 
     template <typename MT>
-    void lua_wrap_member(lua_State* L, const char* name, MT member) {
+    void lua_wrap_member(lua_State* L, cpchar name, MT member) {
         lua_pushstring(L, name);
         if constexpr (std::is_function<typename member_traits<decltype(member)>::type>::value) {
             lua_push_object(L, new class_member({ true, lua_export_helper::getter(member), nullptr }));
@@ -144,7 +145,7 @@ namespace luakit {
     }
 
     template <typename MT, typename... arg_types>
-    void lua_wrap_member(lua_State* L, const char* name, MT member, arg_types&&... args) {
+    void lua_wrap_member(lua_State* L, cpchar name, MT member, arg_types&&... args) {
         lua_wrap_member(L, name, member);
         lua_wrap_member(L, std::forward<arg_types>(args)...);
     }

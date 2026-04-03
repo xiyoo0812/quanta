@@ -19,7 +19,7 @@ socket_tcp::~socket_tcp() {
 }
 
 void socket_tcp::close() {
-    if (m_fd > 0) {
+    if (m_fd != INVALID_SOCKET) {
         closesocket(m_fd);
         m_fd = INVALID_SOCKET;
     }

@@ -12,7 +12,6 @@ namespace lworker {
     {
     public:
         ~scheduler() {
-            m_codec.set_buff(nullptr);
             shutdown();
         }
 
@@ -22,7 +21,6 @@ namespace lworker {
             lua_table quanta = m_lua->get<lua_table>(ns.data());
             m_platform = quanta.get<sstring>("platform");
             m_environs = quanta.get<environ_map>("environs");
-            m_codec.set_buff(luakit::get_buff());
         }
 
         std::shared_ptr<worker> find_worker(vstring name) {
@@ -104,12 +102,16 @@ namespace lworker {
             slice* slice = read_slice(m_read_buf, &plen);
             while (slice) {
                 m_codec.set_slice(slice);
-                m_lua->table_call(ns, "on_scheduler", nullptr, &m_codec, std::tie());
-                if (m_codec.failed()) {
+                try {
+                    m_lua->table_call(ns, "on_scheduler", nullptr, &m_codec, std::tie());
+                } catch (const std::length_error&) {
+                    m_read_buf->pop_size(m_codec.get_packet_len());
+                    break;
+                } catch (...) {
                     m_read_buf->clean();
                     break;
                 }
-                m_read_buf->pop_size(plen);
+                m_read_buf->pop_size(m_codec.get_packet_len());
                 if (luakit::steady_ms() - clock_ms > 100) break;
                 slice = read_slice(m_read_buf, &plen);
             }

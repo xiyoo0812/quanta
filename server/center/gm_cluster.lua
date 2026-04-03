@@ -1,12 +1,10 @@
 --gm_cluster.lua
 import("center/gm_mgr.lua")
-import("agent/online_agent.lua")
 
 local log_err           = logger.err
 local make_sid          = service.make_sid
 local guid_index        = codec.guid_index
 
-local online            = quanta.get("online")
 local gm_mgr            = quanta.get("gm_mgr")
 local router_mgr        = quanta.get("router_mgr")
 
@@ -73,14 +71,14 @@ end
 --player command
 function GM_Cluster:exec_player_cmd(service_id, cmd_name, player_id, ...)
     if player_id == 0 then
-        local ok, codeoe, res = router_mgr:call_lobby_random("rpc_command_execute", cmd_name, player_id, ...)
+        local ok, codeoe, res = router_mgr:call_master(service_id, "rpc_command_execute", cmd_name, player_id, ...)
         if not ok then
             log_err("[GM_Cluster][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
             return { code = 1, msg = codeoe }
         end
         return { code = codeoe, msg = res }
     end
-    local ok, codeoe, res = online:call_service(player_id, "rpc_command_execute", "lobby", cmd_name, player_id, ...)
+    local ok, codeoe, res = router_mgr:relay_call(player_id, service_id, "rpc_command_execute", cmd_name, player_id, ...)
     if not ok then
         log_err("[GM_Cluster][exec_player_cmd] rpc_command_execute failed! cmd_name={} player_id={}", cmd_name, player_id)
         return { code = 1, msg = codeoe }

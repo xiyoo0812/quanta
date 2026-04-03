@@ -13,10 +13,10 @@ import("basic/time.lua")
 import("basic/table.lua")
 import("basic/string.lua")
 import("basic/trace.lua")
+import("basic/environ.lua")
 import("basic/logger.lua")
 import("basic/profile.lua")
 import("basic/signal.lua")
-import("basic/environ.lua")
 import("basic/console.lua")
 import("basic/service.lua")
 
@@ -30,6 +30,7 @@ local dtraceback    = debug.traceback
 
 local FAILED        = enum("KernCode").FAILED
 local SUCCESS       = enum("KernCode").SUCCESS
+local SECOND_5_MS   = enum("PeriodTime").SECOND_5_MS
 
 local MQ_DRIVER     = environ.get("QUANTA_MQ_DRIVER", "redis")
 
@@ -79,6 +80,10 @@ function quanta.failed(code, ok, def_code)
     return not ok or code ~= SUCCESS, code or (def_code or FAILED)
 end
 
+function quanta.unset(name)
+    quanta[name] = nil
+end
+
 function quanta.get(name)
     local global_obj = quanta[name]
     if not global_obj then
@@ -126,10 +131,9 @@ function quanta.defer(handler)
     return Defer(handler)
 end
 
---创建仿函数
-function quanta.make_functer(func, reenter)
+function quanta.make_functer(func_name, lock_ms)
     local Functer = import("feature/functor.lua")
-    return Functer(func, reenter)
+    return Functer(func_name, lock_ms or SECOND_5_MS)
 end
 
 function quanta.http_client(version)

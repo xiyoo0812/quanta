@@ -7,6 +7,20 @@ TARGET_NAME = quanta
 #系统环境
 UNAME_S = $(shell uname -s)
 
+#编译器
+ifneq (,$(findstring clang++, $(CXX)))
+    COMPILER := clang
+else ifneq (,$(findstring g++, $(CXX)))
+    COMPILER := gcc
+else
+    COMPILER := unknown
+endif
+
+$(info ==============================================)
+$(info PROJECT: $(PROJECT_NAME))
+$(info OS: $(UNAME_S) Compiler: $(COMPILER) ($(CXX)))
+$(info ==============================================)
+
 #伪目标
 .PHONY: clean all target pre_build post_build
 all : pre_build target post_build
@@ -33,8 +47,6 @@ STDCPP = -std=c++20
 #需要的include目录
 MYCFLAGS += -I../../extend/lua/lua
 MYCFLAGS += -I../../extend/luakit/include
-MYCFLAGS += -I../../extend/lualog/lualog
-MYCFLAGS += -I../../extend/luaxlsx/src
 
 #需要定义的选项
 
@@ -44,17 +56,8 @@ LDFLAGS =
 
 #需要连接的库文件
 LIBS =
-ifneq ($(UNAME_S), Darwin)
-#是否启用mimalloc库
-LIBS += -lmimalloc
-MYCFLAGS += -I$(SOLUTION_DIR)extend/mimalloc/mimalloc/include -include ../../mimalloc-ex.h
-endif
 #自定义库
 LIBS += -llua
-LIBS += -llualog
-ifeq ($(UNAME_S), Linux)
-LIBS += -lstdc++fs
-endif
 #系统库
 LIBS += -lm -ldl -lstdc++ -lpthread
 
@@ -119,9 +122,8 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
+	mkdir -p $(SOLUTION_DIR)library
 	mkdir -p $(INT_DIR)/src
-	ln -s $(TARGET_DIR)/lualog.so $(TARGET_DIR)/liblualog.so
 
 #后编译
 post_build:
-	rm -fr $(TARGET_DIR)/liblualog.so

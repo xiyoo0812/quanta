@@ -9,33 +9,33 @@ local MONGO_FAILED  = quanta.enum("KernCode", "MONGO_FAILED")
 local AUTOINCCC     = environ.get("QUANTA_DB_AUTOINCTB")
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 
+local MongoDB = import("driver/mongo.lua")
+
 local MongoMgr = singleton()
 local prop = property(MongoMgr)
 prop:reader("mongo_db", nil)    --mongo_db
 
 function MongoMgr:__init()
+    local funcs = {
+        "find", "count", "insert", "delete", "update", "execute", "find_one",
+        "aggregate", "bulkwrite", "autoinc_id", "drop_indexes", "create_indexes", "find_and_modify"
+    }
+    for _, func in ipairs(funcs) do
+        --定义函数
+        local func_name = "rpc_mongo_" .. func
+        MongoMgr[func_name] = function(message, ...)
+            return self[func](self, ...)
+        end
+        -- 注册事件
+        event_mgr:add_listener(self, func_name)
+    end
+    --启动DB引擎
     self:setup()
-    -- 注册事件
-    event_mgr:add_listener(self, "rpc_mongo_find", "find")
-    event_mgr:add_listener(self, "rpc_mongo_count", "count")
-    event_mgr:add_listener(self, "rpc_mongo_insert", "insert")
-    event_mgr:add_listener(self, "rpc_mongo_delete", "delete")
-    event_mgr:add_listener(self, "rpc_mongo_update", "update")
-    event_mgr:add_listener(self, "rpc_mongo_execute", "execute")
-    event_mgr:add_listener(self, "rpc_mongo_find_one", "find_one")
-    event_mgr:add_listener(self, "rpc_mongo_aggregate", "aggregate")
-    event_mgr:add_listener(self, "rpc_mongo_bulkwrite", "bulkwrite")
-    event_mgr:add_listener(self, "rpc_mongo_autoinc_id", "autoinc_id")
-    event_mgr:add_listener(self, "rpc_mongo_drop_indexes", "drop_indexes")
-    event_mgr:add_listener(self, "rpc_mongo_create_indexes", "create_indexes")
-    event_mgr:add_listener(self, "rpc_mongo_find_and_modify", "find_and_modify")
 end
 
 --初始化
 function MongoMgr:setup()
-    local MongoDB = import("driver/mongo.lua")
     local driver = environ.driver("QUANTA_MONGO_URL")
-
     self.mongo_db = MongoDB(driver)
 end
 

@@ -16,9 +16,9 @@ return {
         },
         [3] = {
             type = "REQ",
-            cmd_id = "NID_LOGIN_ROLE_LOGOUT_REQ",
+            cmd_id = "NID_LOGIN_PLAYER_LOGOUT_REQ",
             inputs = {
-                role_id = { type = "attr", value = "player_id" },
+                player_id = { type = "attr", value = "player_id" },
             },
         },
     }

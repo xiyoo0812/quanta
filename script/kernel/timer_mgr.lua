@@ -1,12 +1,11 @@
 --timer_mgr.lua
 
 local ipairs    = ipairs
-local tpack     = table.pack
 local tunpack   = table.unpack
-local new_guid  = codec.guid_new
-local lclock_ms = timer.clock_ms
 local ltinsert  = timer.insert
 local ltupdate  = timer.update
+local lclock_ms = timer.clock_ms
+local next_i464 = luakit.next_id64
 
 --定时器精度，20ms
 local TIMER_ACCURYACY = 20
@@ -28,9 +27,9 @@ function TimerMgr:trigger(timer_id, handle, clock_ms)
         handle.times = times - 1
     end
     --防止在定时器中阻塞
-    local params = handle.params
-    params[#params] = clock_ms - handle.last
-    thread_mgr:fork(handle.cb, nil, tunpack(params))
+    local args = handle.args
+    args[#args] = clock_ms - handle.last
+    thread_mgr:fork(handle.cb, nil, tunpack(args))
     if timer_id == handle.timer_id then
         --更新定时器数据
         if times == 0 then
@@ -67,21 +66,20 @@ function TimerMgr:loop(period, cb, ...)
 end
 
 function TimerMgr:register(interval, period, times, cb, ...)
+    local args = {...}
     --生成id并注册
     local reg_ms = lclock_ms()
-    local timer_id = new_guid(period, interval)
+    local timer_id = next_i464()
     --矫正时间误差
     interval = interval + (reg_ms - self.last_ms)
     ltinsert(timer_id, interval // TIMER_ACCURYACY)
-    --包装回调参数
-    local params = tpack(...)
-    params[#params + 1] = 0
+    args[#args + 1] = 0
     --保存信息
     self.timers[timer_id] = {
         cb = cb,
+        args = args,
         last = reg_ms,
         times = times,
-        params = params,
         timer_id = timer_id,
         period = period // TIMER_ACCURYACY
     }
@@ -101,7 +99,7 @@ function TimerMgr:change_period(timer_id, period)
             return timer_id
         end
         self.timers[timer_id] = nil
-        local new_timer_id = new_guid(period, period)
+        local new_timer_id = next_i464()
         handle.timer_id = new_timer_id
         handle.period = new_period
         ltinsert(new_timer_id, new_period)

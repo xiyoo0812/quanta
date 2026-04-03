@@ -12,7 +12,7 @@ struct socket_stream : public socket_object
     ~socket_stream();
     bool get_remote_ip(std::string& ip) override;
     bool accept_socket(socket_t fd, const char ip[]);
-    void connect(const char ip[], int port, int timeout);
+    void connect(const char ip[], int port, int timeout) override;
     bool update(int64_t now) override;
     bool do_connect();
     void try_connect();
@@ -21,13 +21,13 @@ struct socket_stream : public socket_object
     void set_connect_callback(const std::function<void(bool, const char*)> cb) override { m_connect_cb = cb; }
     void set_package_callback(const std::function<void(slice*)> cb) override { m_package_cb = cb; }
     void set_timeout(int duration) override { m_timeout = duration; }
-    void set_nodelay(int flag) override { set_no_delay(m_socket, flag); }
+    void set_nodelay(int flag) override { set_no_delay(m_fd, flag); }
 
-    int get_sendbuf_size() { return m_send_buffer->size(); }
-    int get_recvbuf_size() { return m_recv_buffer->size(); }
+    int get_sendbuf_size() override { return m_send_buffer->size(); }
+    int get_recvbuf_size() override { return m_recv_buffer->size(); }
 
-    void send(const void* data, size_t data_len) override;
-    void sendv(const sendv_item items[], int count) override;
+    bool send(const void* data, size_t data_len) override;
+    bool sendv(const sendv_item items[], int count) override;
     void stream_send(const char* data, size_t data_len);
 
 #ifdef IO_IOCP
@@ -56,7 +56,6 @@ struct socket_stream : public socket_object
     int64_t m_connecting_time = 0;
 
     socket_mgr* m_mgr = nullptr;
-    socket_t m_socket = INVALID_SOCKET;
 
     std::function<void(slice*)> m_package_cb = nullptr;
     std::function<void(const char*)> m_error_cb = nullptr;

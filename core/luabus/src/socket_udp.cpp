@@ -6,10 +6,11 @@ socket_udp::~socket_udp() {
 }
 
 void socket_udp::close() {
-    if (m_fd > 0) {
+    if (m_fd != INVALID_SOCKET) {
         if (m_mreq) {
             setsockopt(m_fd, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char*)m_mreq, sizeof(ip_mreq));
             delete m_mreq;
+            m_mreq = nullptr;
         }
         closesocket(m_fd);
         m_fd = INVALID_SOCKET;
@@ -23,7 +24,7 @@ void socket_udp::set_buff_size(int rcv_size, int snd_size) {
 
 bool socket_udp::setup(bool noblock, bool broadcast, bool reuse) {
     socket_t fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (fd <= 0) {
+    if (fd == INVALID_SOCKET) {
         return false;
     }
     m_fd = fd;

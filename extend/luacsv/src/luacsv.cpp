@@ -2,48 +2,33 @@
 
 #include <sstream>
 
-#include "lua_kit.h"
 #include "luacsv.h"
 
 using namespace std;
-using namespace csv2;
 using namespace luakit;
 
 namespace luacsv {
 
-    inline void decode_value(lua_State* L, string key) {
+    inline void decode_value(lua_State* L, cstring& key) {
         if (const char* value = key.data(); lua_stringtonumber(L, value) == 0) {
             lua_pushlstring(L, value, key.length());
         }
     }
 
-    inline int decode_reader(lua_State* L, csv_reader& reader) {
-        vector<string> headers;
-        for (const auto& cell : reader.header()) {
-            string value;
-            cell.read_value(value);
-            headers.push_back(value);
-        }
+    inline int decode_document(lua_State* L, Document& doc) {
         int index = 1;
         int keyidx = luaL_optinteger(L, 2, 0) - 1;
         lua_createtable(L, 0, 4);
-        for (const auto& row : reader) {
-            if (row.length() <= 0) {
-                continue;
-            }
-            vector<string> values;
-            for (const auto& cell : row) {
-                string value;
-                cell.read_value(value);
-                values.push_back(value);
-            }
+        vector<string> headers = doc.GetColumnNames();
+        for (int row = 0; row < doc.GetRowCount(); ++row) {
+            auto rows = doc.GetRow<sstring>(row);
             lua_createtable(L, 0, 4);
             string* key = nullptr;
-            for (int i = 0; i < values.size(); ++i) {
+            for (int i = 0; i < rows.size(); ++i) {
                 if (i < headers.size()) {
-                    if (i == keyidx) key = &values[i];
+                    if (i == keyidx) key = &rows[i];
                     decode_value(L, headers[i]);
-                    decode_value(L, values[i]);
+                    decode_value(L, rows[i]);
                     lua_rawset(L, -3);
                 }
             }
@@ -51,30 +36,32 @@ namespace luacsv {
                 decode_value(L, *key);
                 lua_insert(L, -2);
                 lua_rawset(L, -3);
-            }
-            else {
+            } else {
                 lua_seti(L, -2, index++);
             }
         }
         return 1;
     }
 
-    inline int decode_csv(lua_State* L, string doc) {
-        csv_reader csv;
-        if (!csv.parse(doc)) {
+    inline int decode_csv(lua_State* L, cpchar doc) {
+        try {
+            stringstream ss(doc);
+            Document csv(ss);
+            return decode_document(L, csv);
+        } catch(...) {
             luaL_error(L, "parse csv failed!");
             return 0;
         }
-        return decode_reader(L, csv);
     }
 
-    inline int read_csv(lua_State* L, const char* csvfile) {
-        csv_reader csv;
-        if (!csv.mmap(csvfile)) {
+    inline int read_csv(lua_State* L, cpchar csvfile) {
+        try {
+            Document csv(csvfile);
+            return decode_document(L, csv);
+        } catch (...) {
             luaL_error(L, "parse csv failed!");
             return 0;
         }
-        return decode_reader(L, csv);
     }
 
     inline const char* encode_value(lua_State* L, int index) {
@@ -120,10 +107,11 @@ namespace luacsv {
         }
     }
 
-    inline void encode_rows(lua_State* L, vector<vector<string>>& rows) {
+    inline size_t encode_rows(lua_State* L, Document& doc) {
         lua_pushnil(L);
         bool header_load = false;
         vector<string> header;
+        vector<vector<string>> rows;
         while (lua_next(L, -2) != 0) {
             if (lua_type(L, -1) == LUA_TTABLE) {
                 if (!is_lua_array(L, -1) && !header_load) {
@@ -137,30 +125,33 @@ namespace luacsv {
             }
             lua_pop(L, 1);
         }
+        size_t col_ccount = header.size();
+        for (size_t r = 0; r < rows.size(); ++r) {
+            for (size_t c = 0; c < col_ccount; ++c) {
+                doc.SetCell(c, r, rows[r][c]);
+            }
+        }
+        return col_ccount;
     }
 
     inline int encode_csv(lua_State* L) {
-        vector<vector<string>> rows;
-        encode_rows(L, rows);
+        Document doc("", LabelParams(-1, -1));
+        size_t col_ccount = encode_rows(L, doc);
         stringstream stm;
-        Writer writer(stm);
-        writer.write_rows(rows);
+        doc.Save(stm);
         lua_pushlstring(L, stm.str().c_str(), stm.str().length());
         return 1;
     }
 
-    static int save_csv(lua_State* L, const char* csvfile) {
-        vector<vector<string>> rows;
-        encode_rows(L, rows);
-        ofstream fstm(csvfile);
-        Writer writer(fstm);
-        writer.write_rows(rows);
-        fstm.close();
+    static int save_csv(lua_State* L, sstring csvfile) {
+        Document doc("", LabelParams(-1, -1));
+        size_t col_ccount = encode_rows(L, doc);
+        doc.Save(csvfile);
         lua_pushboolean(L, true);
         return 1;
     }
 
-    static csv_file* open_csv(const char* filename) {
+    static csv_file* open_csv(cpchar filename) {
         auto excel = new csv_file();
         if (!excel->open(filename)) {
             delete excel;

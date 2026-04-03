@@ -24,7 +24,7 @@ namespace lcodec {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf->clean();
+            m_buf.clean();
             uint8_t* body = nullptr;
             size_t opcode = lua_tointeger(L, index);
             if (lua_type(L, index + 1) == LUA_TTABLE) {
@@ -36,23 +36,23 @@ namespace lcodec {
             }
             size_t masklen = m_mask.size();
             uint8_t maskflag = masklen > 0 ? 0x80 : 0;
-            m_buf->write<uint8_t>((0x80 | opcode));
+            m_buf.write<uint8_t>((0x80 | opcode));
             if (*len < 0x7e) {
-                m_buf->write<uint8_t>(maskflag | *len);
+                m_buf.write<uint8_t>(maskflag | *len);
             } else if (*len <= 0xffff) {
-                m_buf->write<uint8_t>(maskflag | 0x7e);
-                m_buf->swap_write<uint16_t>(*len);
+                m_buf.write<uint8_t>(maskflag | 0x7e);
+                m_buf.swap_write<uint16_t>(*len);
             } else {
-                m_buf->write<uint8_t>(maskflag | 0x7f);
-                m_buf->swap_write<uint64_t>(*len);
+                m_buf.write<uint8_t>(maskflag | 0x7f);
+                m_buf.swap_write<uint64_t>(*len);
             }
             if (masklen > 0) {
-                m_buf->push_data((uint8_t*)m_mask.data(), masklen);
-                xor_byte((char*)body, m_mask.data(), *len, masklen, m_buf);
+                m_buf.push_data((uint8_t*)m_mask.data(), masklen);
+                xor_byte((char*)body, m_mask.data(), *len, masklen, &m_buf);
             } else {
-                m_buf->push_data(body, *len);
+                m_buf.push_data(body, *len);
             }
-            return m_buf->data(len);
+            return m_buf.data(len);
         }
 
         virtual size_t decode(lua_State* L) {

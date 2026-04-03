@@ -1,5 +1,5 @@
 --service_cfg.lua
---source: service.csv
+--source: service.xlsm
 --luacheck: ignore 631
 
 --获取配置表

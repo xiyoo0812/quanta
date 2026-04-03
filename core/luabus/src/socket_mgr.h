@@ -4,7 +4,7 @@
 
 using namespace luakit;
 
-enum class elink_status : uint8_t {
+enum class link_status : uint8_t {
     LINK_INIT       = 0,
     LINK_CONNECTING = 1,
     LINK_CONNECTED  = 2,
@@ -13,15 +13,26 @@ enum class elink_status : uint8_t {
 };
 
 // 协议类型
-enum class eproto_type : uint8_t {
+enum class proto_type : uint8_t {
     PROTO_PB        = 0,    // pb协议，pb
     PROTO_RPC       = 1,    // rpc协议，rpc
     PROTO_TEXT      = 2,    // text协议，mysql/mongo/http/wss/redis
-    PROTO_MAX       = 3,    // max
+    PROTO_MAX       = 4,    // max
 };
 
-using enum elink_status;
-using enum eproto_type;
+// 协议掩码
+enum class proto_flag : uint32_t {
+    FLAG_RES        = 0,    // 协议回执/通知标记
+    FLAG_REQ        = 1,    // 协议请求标记
+    FLAG_ZIP        = 2,    // 协议压缩标记
+    FLAG_CRYPT      = 4,    // 协议加密标记
+    FLAG_UNREACH    = 8,    // 协议不可达
+    FLAG_BAD        = 16,   // 协议 内容错误
+};
+
+using enum link_status;
+using enum proto_type;
+using enum proto_flag;
 
 struct sendv_item {
     const void* data;
@@ -33,13 +44,15 @@ struct socket_object {
     virtual bool update(int64_t now) = 0;
     virtual int get_sendbuf_size() { return 0; }
     virtual int get_recvbuf_size() { return 0; }
+    virtual uint32_t get_token() { return m_token; }
+    virtual uint32_t get_fd() { return m_fd; }
     virtual void close() { m_link_status = LINK_CLOSED; };
     virtual bool get_remote_ip(std::string& ip) = 0;
     virtual void connect(const char ip[], int port, int timeout) { }
     virtual void set_timeout(int duration) { }
     virtual void set_nodelay(int flag) { }
-    virtual void send(const void* data, size_t data_len) { }
-    virtual void sendv(const sendv_item items[], int count) { };
+    virtual bool send(const void* data, size_t data_len) { return false; }
+    virtual bool sendv(const sendv_item items[], int count) { return false; };
     virtual void set_kind(uint32_t kind) { m_kind = kind; }
     virtual void set_token(uint32_t token) { m_token = token; }
     virtual void set_codec(codec_base* codec) { m_codec = codec; }
@@ -59,8 +72,9 @@ struct socket_object {
 protected:
     uint32_t m_kind = 0;
     uint32_t m_token = 0;
+    socket_t m_fd = INVALID_SOCKET;
     codec_base* m_codec = nullptr;
-    elink_status m_link_status = LINK_INIT;
+    link_status m_link_status = LINK_INIT;
 };
 
 class socket_mgr {
@@ -83,8 +97,8 @@ public:
     int get_recvbuf_size(uint32_t token);
     void set_timeout(uint32_t token, int duration);
     void set_nodelay(uint32_t token, int flag);
-    void send(uint32_t token, const void* data, size_t data_len);
-    void sendv(uint32_t token, const sendv_item items[], int count);
+    bool send(uint32_t token, const void* data, size_t data_len);
+    bool sendv(uint32_t token, const sendv_item items[], int count);
     void broadcast(size_t kind, const void* data, size_t data_len);
     void broadgroup(std::vector<uint32_t>& groups, const void* data, size_t data_len);
     void close(uint32_t token);
@@ -106,6 +120,11 @@ public:
     void decrease_count() { m_count--; }
     bool is_full() { return m_count >= m_max_count; }
 
+    uint32_t new_token() {
+        while (++m_token == 0 || m_objects.contains(m_token)) {}
+        return m_token;
+    }
+
 private:
 #ifdef IO_IOCP
     LPFN_ACCEPTEX m_accept_func = nullptr;
@@ -126,22 +145,26 @@ private:
 #endif
 
 #ifdef IO_POLL
+    struct poll_arg {
+        uint32_t token = 0;
+        short ev = 0;
+    };
     std::vector<struct pollfd> m_events;
-    std::unordered_map<socket_t, short> m_event_map;
-    bool poll_event_ctl(socket_t fd, short fevts);
-#endif
-
-    socket_object* get_object(uint32_t token) {
-        auto it = m_objects.find(token);
-        if (it != m_objects.end()) {
-            return it->second;
+    std::unordered_map<socket_t, poll_arg> m_event_map;
+    bool poll_event_ctl(socket_t fd, uint32_t token, short fevts);
+    socket_object* get_poll_object(uint32_t fd) {
+        if (auto it = m_event_map.find(fd); it != m_event_map.end()) {
+            return get_object(it->second.token);
         }
         return nullptr;
     }
+#endif
 
-    uint32_t new_token() {
-        while (++m_token == 0 || m_objects.contains(m_token)) {}
-        return m_token;
+    socket_object* get_object(uint32_t token) {
+        if (auto it = m_objects.find(token); it != m_objects.end()) {
+            return it->second;
+        }
+        return nullptr;
     }
 
     uint32_t m_count = 0;

@@ -1,4 +1,5 @@
 -- sqlite.lua
+local json          = require("ljson")
 local sqlite        = require("lsqlite")
 
 local log_err       = logger.err
@@ -135,6 +136,6 @@ function Sqlite:autoinc_id()
     return true, SUCCESS, record[1].AUTOINC_ID
 end
 
-quanta.sdb_driver = Sqlite()
+quanta.sqlite = Sqlite()
 
 return Sqlite

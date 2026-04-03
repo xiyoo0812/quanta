@@ -107,12 +107,12 @@ namespace lcodec {
         return 2;
     }
 
-    static uint64_t string_toguid(std::string guid) {
-        return strtoull(guid.c_str(), nullptr, 10);
+    static uint64_t string_toguid(vstring guid) {
+        return strtoull(guid.data(), nullptr, 10);
     }
 
-    static uint64_t hex_toguid(std::string guid) {
-        return strtoull(guid.c_str(), nullptr, 10);
+    static uint64_t hex_toguid(vstring guid) {
+        return strtoull(guid.data(), nullptr, 10);
     }
 
     static int guid_encode(lua_State* L) {
@@ -133,10 +133,10 @@ namespace lcodec {
         return val - 48;
     }
 
-    static uint64_t guid_decode(std::string sval){
+    static uint64_t guid_decode(vstring sval){
         uint64_t val = 0;
         size_t len = sval.size();
-        const char* cval = sval.c_str();
+        cpchar cval = sval.data();
         for (size_t i = 0; i < len; ++i) {
             val += uint64_t(find_index(cval[i]) * pow(LETTER_SIZE, i));
         }

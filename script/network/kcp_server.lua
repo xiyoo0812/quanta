@@ -3,7 +3,6 @@
 local log_err           = logger.err
 local log_info          = logger.info
 local log_warn          = logger.warn
-local log_debug         = logger.debug
 local signalquit        = signal.quit
 local kcp_update        = kcp.update
 local qdefer            = quanta.defer
@@ -17,16 +16,19 @@ local thread_mgr        = quanta.get("thread_mgr")
 local socket_mgr        = quanta.get("socket_mgr")
 local protobuf_mgr      = quanta.get("protobuf_mgr")
 
-local FLAG_REQ          = quanta.enum("FlagMask", "REQ")
-local FLAG_RES          = quanta.enum("FlagMask", "RES")
 local NETWORK_TIMEOUT   = quanta.enum("NetwkTime", "NETWORK_TIMEOUT")
 local SLOW_MS           = quanta.enum("PeriodTime", "SLOW_MS")
 local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local TOO_FAST          = quanta.enum("KernCode", "TOO_FAST")
+local INDUCE            = quanta.enum("PortMode", "INDUCE")
+local INCR              = quanta.enum("PortMode", "INCR")
 
 local FLOW_CTRL         = environ.status("QUANTA_FLOW_CTRL")
 local FC_PACKETS        = environ.number("QUANTA_FLOW_CTRL_PACKAGE")
 local FC_BYTES          = environ.number("QUANTA_FLOW_CTRL_BYTES")
+
+local FLAG_REQ          = luabus.proto_flag.REQ
+local FLAG_RES          = luabus.proto_flag.RES
 
 -- CS协议会话对象管理器
 local KcpServer = class()
@@ -45,9 +47,11 @@ function KcpServer:__init(session_type)
     --注册退出
     update_mgr:attach_quit(self)
     --注册更新函数
-    update_mgr:register_frame("kcp_update", function(clock_ms)
-        kcp_update(clock_ms)
-    end)
+    update_mgr:attach_frame(self)
+end
+
+function KcpServer:on_frame(clock_ms)
+    kcp_update(clock_ms)
 end
 
 function KcpServer:on_quit()
@@ -55,11 +59,10 @@ function KcpServer:on_quit()
         self.listener.close()
         self.listener = nil
         self.codec = nil
-        log_debug("[KcpServer][on_quit]")
+        log_info("[KcpServer][on_quit]")
     end
 end
 
---induce：根据 order 推导port
 function KcpServer:listen(ip, port, induce)
     -- 开启监听
     if not ip or not port then
@@ -67,15 +70,18 @@ function KcpServer:listen(ip, port, induce)
         signalquit()
         return
     end
-    local induce_port = induce and (port + quanta.order - 1) or port
-    local real_port = derive_port(induce_port, ip)
-    local listener = kcp.listen(ip, real_port)
+    if induce == INDUCE then
+        port = port + quanta.order - 1
+    elseif induce == INCR then
+        port = derive_port(port + quanta.order - 1, ip)
+    end
+    local listener = kcp.listen(ip, port)
     if not listener then
-        log_err("[KcpServer][setup] failed to listen: {}:{}", ip, real_port)
+        log_err("[KcpServer][setup] failed to listen: {}:{}", ip, port)
         signalquit()
         return
     end
-    log_info("[KcpServer][listen] start listen at: {}:{}", ip, real_port)
+    log_info("[KcpServer][listen] start listen at: {}:{}", ip, port)
     -- 安装回调
     listener.on_accept = function(session)
         qxpcall(self.on_socket_accept, "on_socket_accept: {}", self, session)
@@ -83,7 +89,7 @@ function KcpServer:listen(ip, port, induce)
     listener.on_error = function(stoken, err)
         log_err("[KcpServer][listen] error: {}:{}", stoken, err)
     end
-    self.ip, self.port = ip, real_port
+    self.ip, self.port = ip, port
     self.listener = listener
 end
 
@@ -271,7 +277,7 @@ function KcpServer:remove_session(token)
 end
 
 -- 查询会话
-function KcpServer:get_session_by_token(token)
+function KcpServer:get_session(token)
     return self.sessions[token]
 end
 

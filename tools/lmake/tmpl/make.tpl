@@ -7,6 +7,20 @@ TARGET_NAME = {{%= TARGET_NAME %}}
 #系统环境
 UNAME_S = $(shell uname -s)
 
+#编译器
+ifneq (,$(findstring clang++, $(CXX)))
+    COMPILER := clang
+else ifneq (,$(findstring g++, $(CXX)))
+    COMPILER := gcc
+else
+    COMPILER := unknown
+endif
+
+$(info ==============================================)
+$(info PROJECT: $(PROJECT_NAME))
+$(info OS: $(UNAME_S) Compiler: $(COMPILER) ($(CXX)))
+$(info ==============================================)
+
 #伪目标
 .PHONY: clean all target pre_build post_build
 all : pre_build target post_build
@@ -31,6 +45,20 @@ endif
 {{% if #DARWIN_FLAGS > 0 then %}}
 ifeq ($(UNAME_S), Darwin)
 {{% for _, flag in ipairs(DARWIN_FLAGS) do %}}
+MYCFLAGS += -{{%= flag %}}
+{{% end %}}
+endif
+{{% end %}}
+{{% if #GCC_FLAGS > 0 then %}}
+ifeq ($(COMPILER), gcc)
+{{% for _, flag in ipairs(GCC_FLAGS) do %}}
+MYCFLAGS += -{{%= flag %}}
+{{% end %}}
+endif
+{{% end %}}
+{{% if #CLANG_FLAGS > 0 then %}}
+ifeq ($(COMPILER), clang)
+{{% for _, flag in ipairs(CLANG_FLAGS) do %}}
 MYCFLAGS += -{{%= flag %}}
 {{% end %}}
 endif
@@ -131,13 +159,6 @@ endif
 
 #需要连接的库文件
 LIBS =
-ifneq ($(UNAME_S), Darwin)
-{{% if MIMALLOC and MIMALLOC_DIR then %}}
-#是否启用mimalloc库
-LIBS += -lmimalloc
-MYCFLAGS += -I$(SOLUTION_DIR){{%= MIMALLOC_DIR %}} -include ../../mimalloc-ex.h
-{{% end %}}
-endif
 #自定义库
 {{% if #LIBS > 0 then %}}
 {{% for _, lib in ipairs(LIBS) do %}}
@@ -216,17 +237,21 @@ LDFLAGS += -L$(SOLUTION_DIR){{%= DST_LIB_DIR %}}
 
 #自动生成目标
 SOURCES =
-{{% local TEMPS, SRC_GROUPS = {}, {} %}}
-{{% local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE } %}}
-{{% local _, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS) %}}
-{{% for _, CSRC in ipairs(CSOURCES) do %}}
-{{% local fmtsrc = string.gsub(CSRC[1], '\\', '/') %}}
+{{%
+local TEMPS, SRC_GROUPS = {}, {}
+local ARGS = {RECURSION = RECURSION, OBJS = OBJS, EXCLUDE_FILE = EXCLUDE_FILE }
+local _, CSOURCES = COLLECT_SOURCES(WORK_DIR, SRC_DIRS, ARGS)
+for _, CSRC in ipairs(CSOURCES) do
+	local fmtsrc = string.gsub(CSRC[1], '\\', '/')
+%}}
 SOURCES += {{%= fmtsrc %}}
-{{% TEMPS[CSRC[2]] = true %}}
-{{% end %}}
-{{% for CSRC in pairs(TEMPS) do %}}
-{{% SRC_GROUPS[#SRC_GROUPS+1] = CSRC %}}
-{{% end %}}
+{{%
+	TEMPS[CSRC[2]] = true
+	end
+for CSRC in pairs(TEMPS) do
+	SRC_GROUPS[#SRC_GROUPS+1] = CSRC
+end
+%}}
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))
@@ -274,9 +299,12 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
-{{% table.sort(SRC_GROUPS, function(a, b) return a < b end) %}}
-{{% for _, CSRC in ipairs(SRC_GROUPS) do %}}
-{{% local fmtsub_dir = string.gsub(CSRC, '\\', '/') %}}
+	mkdir -p $(SOLUTION_DIR){{%= DST_LIB_DIR %}}
+{{%
+table.sort(SRC_GROUPS, function(a, b) return a < b end)
+for _, CSRC in ipairs(SRC_GROUPS) do
+	local fmtsub_dir = string.gsub(CSRC, '\\', '/')
+%}}
 	mkdir -p $(INT_DIR)/{{%= fmtsub_dir %}}
 {{% end %}}
 {{% for _, pre_cmd in ipairs(NWINDOWS_PREBUILDS) do %}}

@@ -1,8 +1,11 @@
 --socketls.lua
+local tls           = require("luatls")
+
 local Socket        = import("driver/socket.lua")
 
 local log_info      = logger.info
-local stlscodec     = ssl.tlscodec
+local stlscodec     = tls.tlscodec
+local lnext_id      = luakit.next_id
 local httpccodec    = codec.httpccodec
 local content_codec = codec.set_content_codec
 
@@ -11,14 +14,21 @@ local thread_mgr    = quanta.get("thread_mgr")
 local TIMEOUT       = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local HTTP_TIMEOUT  = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
+
+
 local Socketls = class(Socket)
 local prop = property(Socketls)
 prop:reader("tls_handshake", false) --handshake
 prop:reader("alpn_protos", nil)     --alpn_protos
 prop:reader("tls_codec", nil)       --tls_codec
+prop:reader("host_name", nil)       --host_name
 prop:accessor("tls_enable", true)   --tls_enable
 
 function Socketls:__init(host, ip, port)
+end
+
+function Socketls:__init_static()
+    tls.init_cas("./data/cacert.pem")
 end
 
 function Socketls:set_codec(codec)
@@ -34,13 +44,12 @@ function Socketls:set_content_codec(content, codec)
     content_codec(self.tls_codec or self.codec, content, codec)
 end
 
-function Socketls:on_tls_handshake(codec, message)
-    if message then
-        self:send_data(message)
-    end
+function Socketls:on_tls_handshake(codec)
     if codec.isfinish() then
         self.tls_handshake = true
         codec.tls_handshaked()
+    else
+        self:send_data()
     end
 end
 
@@ -50,9 +59,10 @@ function Socketls:on_tls_handshaked()
 end
 
 function Socketls:on_socket_connected()
+    self.alive = true
     if self.tls_enable then
-        local tlscodec = stlscodec(true, self.alpn_protos)
-        local handshake_id = thread_mgr:build_session_id()
+        local tlscodec = stlscodec(self.host_name, self.alpn_protos)
+        local handshake_id = lnext_id()
         tlscodec.tls_handshaked = function()
             thread_mgr:response(handshake_id, true)
         end
@@ -83,8 +93,8 @@ end
 
 function Socketls:send_packet(url, ...)
     if self.alive then
-        local session_id = thread_mgr:build_session_id()
-        local send_len = self.session.call_data(session_id, url, ...)
+        local session_id = lnext_id()
+        local send_len = self.session.call_text(session_id, url, ...)
         if send_len <= 0 then
             return false, "send data failed"
         end

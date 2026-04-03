@@ -2,13 +2,13 @@
 
 local log_debug     = logger.debug
 local log_dump      = logger.dump
-local lhex_encode   = ssl.hex_encode
+local lhex_encode   = codec.hex_encode
 
 local hash_code     = codec.hash_code
 local encode        = luakit.encode
 local decode        = luakit.decode
-local serialize     = luakit.serialize
-local unserialize   = luakit.unserialize
+local serialize     = string.serialize
+local unserialize   = string.unserialize
 
 quanta.profile()
 

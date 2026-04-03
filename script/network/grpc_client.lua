@@ -10,8 +10,10 @@ local update_mgr    = quanta.get("update_mgr")
 
 local SocketH2      = import("driver/socketh2.lua")
 
+local FAST_MS       = quanta.enum("PeriodTime", "FAST_MS")
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_10_MS  = quanta.enum("PeriodTime", "SECOND_10_MS")
+local CONNECT_TO    = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 
 local GrpcClient = class()
 local prop = property(GrpcClient)
@@ -33,9 +35,9 @@ function GrpcClient:__init(addr)
     --attach_hour
     update_mgr:attach_hour(self)
     --timer
-    self.rcfunctor = make_functer(self.check_alive)
-    self.timer:loop(SECOND_MS, function()
-        self.rcfunctor:call(self)
+    self.rcfunctor = make_functer("check_alive", CONNECT_TO)
+    self.timer:register(FAST_MS, SECOND_MS, -1, function()
+        self.rcfunctor:run(self)
     end)
 end
 
@@ -58,7 +60,7 @@ function GrpcClient:check_alive()
 end
 
 function GrpcClient:on_socket_recv(socket, ...)
-    log_debug("[GrpcClient][on_socket_recv] client(token:{}) args({})!", socket.token, { ... })
+    log_debug("[GrpcClient][on_socket_recv] client(token:{}) args({})!", socket.token, {...})
 end
 
 function GrpcClient:on_socket_error(socket, token, err)

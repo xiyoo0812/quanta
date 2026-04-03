@@ -13,7 +13,7 @@ local WEEK_FLUSH    = quanta.enum("FlushType", "WEEK")
 local SERVER_UPHOLD = protobuf_mgr:error_code("KICK_SERVER_UPHOLD")
 
 local Account       = import("lobby/player/account.lua")
-local EntityMgr     = import("business/entity/entity_mgr.lua")
+local EntityMgr     = import("base/entity/entity_mgr.lua")
 
 local PlayerMgr = singleton(EntityMgr)
 local prop = property(PlayerMgr)

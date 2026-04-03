@@ -11,7 +11,7 @@ KernCode.RPC_FAILED         = 5     --RPC调用失败
 KernCode.OPERATOR_SELF      = 6     --不能对自己操作
 KernCode.PLAYER_NOT_EXIST   = 7     --玩家不存在
 KernCode.TOKEN_ERROR        = 8     --登录token错误
-KernCode.RPC_UNREACHABLE    = 9     --RPC目标不可达
+KernCode.UNREACHABLE        = 9     --RPC目标不可达
 KernCode.DB_NOTINIT         = 100   --数据库没有初始化
 KernCode.LOGIC_FAILED       = 101   --业务执行失败
 KernCode.MYSQL_FAILED       = 102   --MYSQL执行失败
@@ -19,29 +19,14 @@ KernCode.MONGO_FAILED       = 103   --MONGO执行失败
 KernCode.REDIS_FAILED       = 104   --REDIS执行失败
 KernCode.PGSQL_FAILED       = 105   --PGSQL执行失败
 
---服务模式
-local QuantaMode = enum("QuantaMode", 0)
-QuantaMode.STANDLONE        = 0     --独立模式(不加载lua框架,此处仅列举,配置无效)
-QuantaMode.SERVICE          = 1     --服务模式(加载全量)
-QuantaMode.ROUTER           = 2     --路由模式(加载路由)
-QuantaMode.TOOL             = 3     --工具模式(加载基础和网络)
-
---协议flag掩码
-local FlagMask              = enum("FlagMask", 0)
-FlagMask.REQ                = 0x01  -- 请求/回执
-FlagMask.RES                = 0x02  -- 响应
-FlagMask.ENCRYPT            = 0x04  -- 开启加密
-FlagMask.ZIP                = 0x08  -- 开启zip压缩
-
 --网络时间常量定义
 local NetwkTime             = enum("NetwkTime", 0)
 NetwkTime.CONNECT_TIMEOUT   = 3000      --连接等待时间
-NetwkTime.RPC_CALL_TIMEOUT  = 6000      --RPC调用超时时间
-NetwkTime.HTTP_CALL_TIMEOUT = 6000      --HTTP调用超时时间
+NetwkTime.RPC_CALL_TIMEOUT  = 5000      --RPC调用超时时间
+NetwkTime.HTTP_CALL_TIMEOUT = 5000      --HTTP调用超时时间
 NetwkTime.DB_CALL_TIMEOUT   = 5000      --DB调用超时时间
 NetwkTime.RPCLINK_TIMEOUT   = 20000     --RPC连接超时时间
-NetwkTime.RECONNECT_TIME    = 5         --RPC连接重连时间（s）
-NetwkTime.HEARTBEAT_TIME    = 5000      --RPC连接心跳时间
+NetwkTime.HEARTBEAT_TIME    = 8000      --RPC连接心跳时间
 NetwkTime.NETWORK_TIMEOUT   = 30000     --心跳断线时间
 NetwkTime.OFFLINE_TIMEOUT   = 45000     --掉线清理时间
 NetwkTime.KICKOUT_TIMEOUT   = 80000     --强制清理时间
@@ -108,10 +93,11 @@ FlushType.WEEK              = 1       -- 每周一刷新
 
 --Cache错误码
 local CacheCode = enum("CacheCode", 0)
-CacheCode.CACHE_DB_LOAD_ERR         = 10001  -- DB加载失败
-CacheCode.CACHE_DELETE_FAILD        = 10002  -- 缓存删除失败
+CacheCode.CACHE_DB_LOAD_ERR     = 10001  -- DB加载失败
+CacheCode.CACHE_DELETE_FAILD    = 10002  -- 缓存删除失败
 
---路由分配规则
-local RouteAllocRule = enum("RouteAllocRule", 0)
-RouteAllocRule.DEFAULT    = 0  -- 默认(缓存服务类型)
-RouteAllocRule.HASHKEY    = 1 -- 哈希值
+--网络端口模式
+local PortMode = enum("PortMode", 0)
+PortMode.FIX                = 0     --固定端口号
+PortMode.INCR               = 1     --端口累加模式，遇到冲突，端口号则加1
+PortMode.INDUCE             = 2     --端口推导模式，按照运维参数推导端口号

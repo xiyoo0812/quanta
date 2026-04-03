@@ -1,10 +1,13 @@
 ﻿#pragma once
 
+#include <span>
 #include <mutex>
 #include <format>
 #include <atomic>
 #include <string>
 #include <cstdint>
+#include <cstring>
+#include <concepts>
 #include <stdexcept>
 #include <functional>
 #include <type_traits>
@@ -16,6 +19,16 @@ extern "C" {
     #include "lualib.h"
     #include "lauxlib.h"
 }
+
+using pchar     = char*;
+using pbyte     = uint8_t*;
+using cpchar    = const char*;
+using upchar    = unsigned char*;
+using cpbyte    = const uint8_t*;
+using sstring   = std::string;
+using vstring   = std::string_view;
+using cstring   = const std::string;
+using cvstring  = const std::string_view;
 
 namespace luakit {
 
@@ -30,7 +43,7 @@ namespace luakit {
     }
 
     template<typename T>
-    const char* lua_get_meta_name() {
+    cpchar lua_get_meta_name() {
         using OT = std::remove_cv_t<std::remove_pointer_t<T>>;
         return typeid(OT).name();
     }
@@ -54,11 +67,11 @@ namespace luakit {
     class lua_exception : public std::logic_error {
     public:
         template <class... Args>
-        explicit lua_exception(const char* fmt, Args&&... args) : std::logic_error(format(fmt, std::forward<Args>(args)...)) {}
+        explicit lua_exception(cpchar fmt, Args&&... args) : std::logic_error(format(fmt, std::forward<Args>(args)...)) {}
 
     protected:
         template <class... Args>
-        std::string format(const char* fmt, Args&&... args) {
+        std::string format(cpchar fmt, Args&&... args) {
             try {
                 return std::vformat(fmt, std::make_format_args(args...));
             } catch (const std::format_error& e) {

@@ -114,7 +114,7 @@ function EventMgr:fire_frame(event, ...)
         tinsert(self.fevent_set, event)
         return
     end
-    local args = { ... }
+    local args = {...}
     tinsert(self.fevent_set, function()
         self:notify_trigger(event, tunpack(args))
     end)
@@ -126,7 +126,7 @@ function EventMgr:fire_second(event, ...)
         tinsert(self.sevent_set, event)
         return
     end
-    local args = { ... }
+    local args = {...}
     tinsert(self.sevent_set, function()
         self:notify_trigger(event, tunpack(args))
     end)
@@ -134,18 +134,20 @@ end
 
 --下一帧发布
 function EventMgr:notify_frame(obj, event, ...)
+    local args = {...}
     if not self.fnotify_map[obj] then
-        self.fnotify_map[obj] = {[event] = {...}}
+        self.fnotify_map[obj] = {[event] = args}
     end
-    self.fnotify_map[obj][event] = {...}
+    self.fnotify_map[obj][event] = args
 end
 
 --下一秒发布
 function EventMgr:notify_second(obj, event, ...)
+    local args = {...}
     if not self.snotify_map[obj] then
-        self.snotify_map[obj] = {[event] = {...}}
+        self.snotify_map[obj] = {[event] = args}
     end
-    self.snotify_map[obj][event] = {...}
+    self.snotify_map[obj][event] = args
 end
 
 -- export

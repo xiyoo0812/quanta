@@ -4,6 +4,7 @@ import("kernel.lua")
 local env_get       = environ.get
 
 quanta.startup(function()
+    require("luatls")
     --初始化dbsvr
     local service = env_get("QUANTA_SERVICE")
     if service == "mongo" then
@@ -12,5 +13,7 @@ quanta.startup(function()
         import("db/mysql_mgr.lua")
     elseif service == "redis" then
         import("db/redis_mgr.lua")
+    elseif service == "pgsql" then
+        import("db/pgsql_mgr.lua")
     end
 end)
