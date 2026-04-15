@@ -1,5 +1,6 @@
 --span.lua
 
+local tostring      = tostring
 local mrandom       = qmath.random
 local lnow_cs       = timer.now_cs
 local sformat       = string.format
@@ -8,7 +9,7 @@ local guid_tohex    = codec.guid_tohex
 
 local HOST, BHOST   = luabus.host()
 local KIND_PB       = protobuf.enum("zipkin.Kind", "CLIENT")
-local KIND_JS       = protobuf.enum("zipkin.Kind", KIND_PB)
+local KIND_JS       = protobuf.enum("zipkin.Kind", "CLIENT")
 local SERVICE_NAME  = sformat("%s<%s>[%s.%s]", quanta.name, quanta.pid, quanta.thread, quanta.tid)
 local ENDPOINT_JS   = { serviceName = SERVICE_NAME, ipv4 = HOST }
 local ENDPOINT_PB   = { service_name = SERVICE_NAME, ipv4 = BHOST }

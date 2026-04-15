@@ -56,11 +56,10 @@ function UpdateMgr:update(now_ms, clock_ms, master)
     quanta.clock_ms = clock_ms
     quanta.now_ms = now_ms
     --帧更新
-    local frame = quanta.frame + 1
     for functor, obj in pairs(self.frame_objs) do
-        functor:run(obj, clock_ms, frame)
+        functor:run(obj, clock_ms)
     end
-    quanta.frame = frame
+    quanta.frame = quanta.frame + 1
     --快帧100ms更新
     if clock_ms < self.next_frame then
         return
@@ -75,6 +74,7 @@ function UpdateMgr:update(now_ms, clock_ms, master)
         return
     end
     quanta.now = now
+    quanta.frame = 0
     --热更检查
     if HOTFIXABLE then
         quanta.reload()
@@ -121,10 +121,10 @@ function UpdateMgr:update_by_time(now, clock_ms)
     end
     self.last_hour = cur_hour
     for functor, obj in pairs(self.hour_objs) do
-        functor:run(obj, clock_ms)
+        functor:run(obj, clock_ms, cur_hour, time)
     end
     --清理日志
-    log_clean();
+    log_clean()
     --每日4点执行一次全量更新
     if cur_hour == 4 then
         collgarbage("collect")

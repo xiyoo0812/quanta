@@ -47,7 +47,11 @@ inline int socket_ping(lua_State* L, const char* ip, uint32_t times) {
     icmp_header.type = ICMP_ECHO;
     icmp_header.cksum = checksum((uint16_t*)&icmp_header, sizeof(icmp_header));
 
-    int timeout = 1000;
+#ifdef WIN32 
+    DWORD timeout = 1000;
+#else
+    timeval timeout{ .tv_sec = 1, .tv_usec = 0 };
+#endif
     socket_t fd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
 

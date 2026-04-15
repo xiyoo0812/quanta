@@ -1,6 +1,4 @@
 #pragma once
-#include <regex>
-#include <filesystem>
 
 #include "lua_buff.h"
 #include "lua_time.h"
