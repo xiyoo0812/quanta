@@ -271,6 +271,32 @@ namespace luazip {
         return 2;
     }
 
+    inline int snappy_encode(lua_State* L) {
+        size_t data_len = 0;
+        int level = luaL_optinteger(L, 3, snappy::CompressionOptions::DefaultCompressionLevel());
+        auto dest = zcodec.encode_snappy(L, 1, &data_len, level);
+        if (data_len > 0) {
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
+            return 1;
+        }
+        lua_pushnil(L);
+        lua_pushliteral(L, "snappy compress: deflate failed");
+        return 2;
+    }
+
+    inline int snappy_decode(lua_State* L) {
+        size_t data_len = 0;
+        auto message = (cpbyte)luaL_checklstring(L, 1, &data_len);
+        auto dest = zcodec.decode_snappy((pbyte)message, &data_len);
+        if (dest) {
+            push_string(L, (char*)dest, data_len, 2, nullptr, nullptr);
+            return 1;
+        }
+        lua_pushnil(L);
+        lua_pushliteral(L, "snappy decompress: data too short");
+        return 2;
+    }
+
     luakit::lua_table open_luazip(lua_State* L) {
         luakit::kit_state kit_state(L);
         luakit::lua_table lzip = kit_state.new_table("zip");
@@ -286,6 +312,8 @@ namespace luazip {
         lzip.set_function("zlib_decode", zlib_decode);
         lzip.set_function("zstd_encode", zstd_encode);
         lzip.set_function("zstd_decode", zstd_decode);
+        lzip.set_function("snappy_encode", snappy_encode);
+        lzip.set_function("snappy_decode", snappy_decode);
         lzip.set_function("deflate_encode", deflate_encode);
         lzip.set_function("deflate_decode", deflate_decode);
         return lzip;

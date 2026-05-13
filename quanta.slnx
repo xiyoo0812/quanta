@@ -44,6 +44,9 @@
      <Project Path="extend\luaxlsx\luaxlsx.vcxproj" Id="B2999D78-279A-1A53-CC82-74D494144722">
         <BuildDependency Project="extend\lua\lualib.vcxproj"/>
      </Project>
+     <Project Path="extend\luazip\luazip.vcxproj" Id="7BDB3534-51A4-0AE7-E92A-160CB3EF7B2C">
+        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
+     </Project>
      <Project Path="extend\lworker\lworker.vcxproj" Id="7186BCD3-4393-85B5-963F-880AC8A6F795">
         <BuildDependency Project="extend\lua\lualib.vcxproj"/>
      </Project>

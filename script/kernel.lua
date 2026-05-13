@@ -37,8 +37,10 @@ local function init_network()
     --加载协议
     import("kernel/protobuf_mgr.lua")
     --加载监控
-    import("driver/webhook.lua")
     import("driver/loki.lua")
+    import("driver/webhook.lua")
+    import("driver/prometheus.lua")
+    import("feature/metric.lua")
 end
 
 --初始化loop

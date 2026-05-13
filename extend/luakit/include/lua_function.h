@@ -241,7 +241,7 @@ namespace luakit {
 
     template <typename T>
     bool get_object_function(lua_State* L, T* object, cpchar function) {
-        lua_push_object(L, object);
+        lua_bridge_object(L, object);
         if (!lua_istable(L, -1)) {
             lua_pop(L, 1);
             return false;

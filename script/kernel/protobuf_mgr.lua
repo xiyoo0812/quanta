@@ -201,7 +201,7 @@ function ProtobufMgr:register(doer, pb_name, callback)
         log_warn("[ProtobufMgr][register] proto_name: [{}] can't find!", pb_name)
         return
     end
-    event_mgr:add_cmd_listener(doer, proto.id, callback)
+    event_mgr:add_pb_listener(doer, proto.id, callback)
 end
 
 -- 重新加载

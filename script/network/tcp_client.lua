@@ -84,10 +84,10 @@ function TcpClient:dispatch_wait(cmd_id, body)
     end
 end
 
-function TcpClient:dispatch_command(socket, message, cmd_id, session_id)
+function TcpClient:dispatch_pb_message(socket, message, cmd_id, session_id)
     if session_id == 0 then
         -- 事件分发
-        event_mgr:notify_command(cmd_id, socket, message, message.request)
+        event_mgr:notify_pb_message(cmd_id, socket, message, message.request)
     else
         --异步回调
         thread_mgr:response(session_id, true, message.request)
@@ -96,7 +96,7 @@ end
 
 function TcpClient:dispatch_message(socket, message, cmd_id, session_id, flag)
     -- 事件统计
-    event_mgr:notify_trigger("on_recv_message", message)
+    event_mgr:notify_trigger("on_recv_tcp_message", message)
     -- 错误处理
     if flag == FLAG_UNREACH or flag == FLAG_BAD then
         log_err("[TcpClient][dispatch_message] cmd_id {} is unreachable in router!", cmd_id)
@@ -107,7 +107,7 @@ function TcpClient:dispatch_message(socket, message, cmd_id, session_id, flag)
         return
     end
     -- 事件分发
-    self:dispatch_command(socket, message, cmd_id, session_id)
+    self:dispatch_pb_message(socket, message, cmd_id, session_id)
     self:dispatch_wait(cmd_id, message.request)
 end
 
@@ -143,7 +143,7 @@ function TcpClient:connect()
             log_err("[TcpClient][call_client] call_pb failed! code:{}", send_len)
             return false
         end
-        event_mgr:notify_trigger("on_send_message", cmd_id, body, send_len)
+        event_mgr:notify_trigger("on_send_tcp_message", cmd_id, body, send_len)
         return true
     end
     socket.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, body, err)

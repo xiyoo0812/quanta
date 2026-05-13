@@ -1,5 +1,4 @@
 --trace.lua
-local mrandom       = qmath.random
 local co_running    = coroutine.running
 
 local CHAIN_INFOS   = quanta.init("CHAIN_INFOS")
@@ -10,8 +9,7 @@ local function new_chain(span_id, trace_id)
 end
 
 function quanta.new_trace()
-    local Chain = import("feature/chain.lua")
-    return Chain(mrandom())
+    return new_chain(0)
 end
 
 function quanta.bind_trace(chain, co)

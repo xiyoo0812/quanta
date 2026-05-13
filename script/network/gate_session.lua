@@ -40,15 +40,15 @@ function GateSession:relocation(ip, port)
     end)
 end
 
-function GateSession:dispatch_command(socket, message, cmd_id, session_id)
+function GateSession:dispatch_pb_message(socket, message, cmd_id, session_id)
     if message.flag & FLAG_REQ == FLAG_REQ then
         -- 事件分发
         local pbmessage<close> = message
         local player_id = message.target_id
         local player = player_mgr:get_entity(player_id)
-        local nok, err = event_mgr:notify_command(cmd_id, player or self, pbmessage, message.request, message.response, player_id)
+        local nok, err = event_mgr:notify_pb_message(cmd_id, player or self, pbmessage, message.request, message.response, player_id)
         if not nok then
-            log_err("[GateSession][dispatch_message] notify_command failed! cmd_id:{}, err:{}", cmd_id, err)
+            log_err("[GateSession][dispatch_message] notify_pb_message failed! cmd_id:{}, err:{}", cmd_id, err)
             message:callback_code(FRAME_FAILED)
         end
     else

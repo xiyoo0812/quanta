@@ -133,7 +133,10 @@ int socket_mgr::wait(int64_t now, int timeout) {
 #ifdef IO_POLL
     int event_count = 0;
     int ret = ::poll(&m_events[0], (int)m_events.size(), timeout);
-    if (ret == SOCKET_ERROR) return event_count;
+    if (ret == SOCKET_ERROR) {
+        luakit::sleep(timeout);
+        return event_count;
+    }
     for (auto& pfd : m_events) {
         if (pfd.revents != 0) {
             event_count++;
