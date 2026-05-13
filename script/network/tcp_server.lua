@@ -85,14 +85,14 @@ end
 function TcpServer:dispatch_message(session, cmd_message)
     local message<close> = cmd_message
     -- 前置处理: 协议过滤/统计
-    event_mgr:notify_trigger("on_recv_message", message)
+    event_mgr:notify_trigger("on_recv_tcp_message", message)
     -- 参数检测
     if message.flag & FLAG_REQ ~= FLAG_REQ then
         return message:callback_code(FRAME_PARAMS)
     end
     -- 事件分发
     local cmd_id = message.cmd_id
-    local nok = event_mgr:notify_command(cmd_id, session, message, message.request, message.response)
+    local nok = event_mgr:notify_pb_message(cmd_id, session, message, message.request, message.response)
     if not nok then
         return message:callback_code(FRAME_FAILED)
     end
@@ -121,7 +121,7 @@ function TcpServer:on_socket_accept(session)
             log_err("[TcpServer][call_client] call_pb failed! code:{}", send_len)
             return false
         end
-        event_mgr:notify_trigger("on_send_message", cmd_id, body, send_len)
+        event_mgr:notify_trigger("on_send_tcp_message", cmd_id, body, send_len)
         return true
     end
     session.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, body, err)

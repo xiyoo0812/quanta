@@ -71,3 +71,4 @@ bin/config
 *.prx
 *.elf
 *.xml
+*.pb

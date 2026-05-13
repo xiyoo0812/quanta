@@ -10,9 +10,9 @@ PROJECT_TYPE = "dynamic"
 --需要的include目录
 INCLUDES = {
     "../lua/lua",
-    "../luazip/src",
     "../luaxml/src",
-    "../luakit/include"
+    "../luakit/include",
+    "../luazip/src/miniz"
 }
 
 --LINUX需要定义的选项
@@ -33,8 +33,8 @@ WINDOWS_DEFINES = {
 --源文件路径
 SRC_DIRS = {
     "src",
-    "../luazip/src",
     "../luaxml/src",
+    "../luazip/src/miniz"
 }
 
 --目标文件

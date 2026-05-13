@@ -76,6 +76,7 @@ end
 --调用rpc后续处理
 function RpcClient:on_call_router(rpc, send_len)
     if send_len > 0 then
+        event_mgr:notify_trigger("on_send_rpc_message", rpc, send_len)
         return true, send_len
     end
     log_err("[RpcClient][on_call_router] rpc {} call failed! code:{}", rpc, send_len)
@@ -89,7 +90,7 @@ end
 --rpc事件
 function RpcClient:dispatch_rpc_message(socket, recv_len, session_id, flag, source, rpc, ...)
     -- 事件统计
-    event_mgr:notify_trigger("on_recv_rpc", rpc, recv_len)
+    event_mgr:notify_trigger("on_recv_rpc_message", rpc, recv_len)
     if rpc == "on_heartbeat" then
         return
     end

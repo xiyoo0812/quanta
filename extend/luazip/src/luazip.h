@@ -1,8 +1,9 @@
 #pragma once
 
-#include "lz4.h"
-#include "miniz.h"
-#include "zstd.c"
+#include "lz4/lz4.h"
+#include "zstd/zstd.h"
+#include "miniz/miniz.h"
+#include "snappy/snappy.h"
 
 #include "lua_kit.h"
 
@@ -68,8 +69,9 @@ namespace luazip {
             m_buf.clean();
             if (m_tag == "gzip") return encode_gzip(L, index, len, MZ_DEFAULT_LEVEL);
             if (m_tag == "zlib") return encode_zlib(L, index, len, MZ_DEFAULT_LEVEL);
-            if (m_tag == "deflate") return encode_deflate(L, index, len, MZ_DEFAULT_LEVEL);
             if (m_tag == "zstd") return encode_zstd(L, index, len, ZSTD_defaultCLevel());
+            if (m_tag == "deflate") return encode_deflate(L, index, len, MZ_DEFAULT_LEVEL);
+            if (m_tag == "snappy") return encode_snappy(L, index, len, snappy::CompressionOptions::DefaultCompressionLevel());
             if (m_tag == "lz4") return encode_lz4(L, index, len);
             return nullptr;
         }
@@ -77,6 +79,7 @@ namespace luazip {
         virtual uint8_t* decode(uint8_t* data, size_t* len) {
             if (m_tag == "gzip") return decode_gzip(data, len);
             if (m_tag == "lz4") return decode_lz4(data, len);
+            if (m_tag == "snappy") return decode_snappy(data, len);
             if (m_tag == "deflate") return decode_deflate(data, len);
             if (m_tag == "zlib") return decode_zlib(data, len);
             if (m_tag == "zstd") return decode_zstd(data, len);
@@ -152,6 +155,19 @@ namespace luazip {
                     *len = comp_ize;
                     return dest;
                 }
+            }
+            return nullptr;
+        }
+
+        uint8_t* encode_snappy(lua_State* L, int index, size_t* len, int level) {
+            size_t data_len = 0;
+            cpchar message = luaL_checklstring(L, index, &data_len);
+            size_t dst_len = snappy::MaxCompressedLength(data_len);
+            if (dst_len < luakit::BUFFER_MAX) {
+                auto dest = m_buf.peek_space(dst_len);
+                snappy::CompressionOptions option(level);
+                snappy::RawCompress(message, data_len, (char*)dest, len, option);
+                if (*len > 0) return dest;
             }
             return nullptr;
         }
@@ -243,6 +259,20 @@ namespace luazip {
                 size_t dec_size = ZSTD_decompress(dest, size, data, *len);
                 if (!ZSTD_isError(dec_size)) {
                     *len = dec_size;
+                    return dest;
+                }
+            }
+            return nullptr;
+        }
+
+        uint8_t* decode_snappy(uint8_t* data, size_t* len) {
+            size_t dst_len = 0;
+            size_t data_len = *len;
+            bool success = snappy::GetUncompressedLength((char*)data, data_len, &dst_len);
+            if (success && dst_len < luakit::BUFFER_MAX) {
+                auto dest = m_buf.peek_space(dst_len);
+                if (snappy::RawUncompress((char*)data, data_len, (char*)dest)) {
+                    *len = dst_len;
                     return dest;
                 }
             }

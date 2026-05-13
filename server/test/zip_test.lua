@@ -30,18 +30,18 @@ for i = 1, 2000 do
 end
 log_info("zstd_decode: {}=>{}",  #zstdd, timer.now_ms() - t2)
 
-local s1 = timer.now_ms()
+local l1 = timer.now_ms()
 local lz4c = zip.lz4_encode(jdata, false)
 for i = 1, 2000 do
     zip.lz4_encode(jdata)
 end
-log_info("lz4_encode: {}=>{}",  #lz4c, timer.now_ms() - s1)
-local s2 = timer.now_ms()
+log_info("lz4_encode: {}=>{}",  #lz4c, timer.now_ms() - l1)
+local l2 = timer.now_ms()
 local lz4d = zip.lz4_decode(lz4c, false)
 for i = 1, 2000 do
     zip.lz4_decode(lz4c)
 end
-log_info("lz4_decode: {}=>{}",  #lz4d, timer.now_ms() - s2)
+log_info("lz4_decode: {}=>{}",  #lz4d, timer.now_ms() - l2)
 
 local z1 = timer.now_ms()
 local z4c = zip.zlib_encode(jdata, false)
@@ -81,3 +81,16 @@ for i = 1, 2000 do
     zip.deflate_decode(def4c)
 end
 log_info("deflate_decode: {}=>{}",  #def4d, timer.now_ms() - d2)
+
+local s1 = timer.now_ms()
+local snappyc = zip.snappy_encode(jdata, false)
+for i = 1, 2000 do
+    zip.snappy_encode(jdata)
+end
+log_info("snappy_encode: {}=>{}", #snappyc, timer.now_ms() - s1)
+local s2 = timer.now_ms()
+local snappyd = zip.snappy_decode(snappyc, false)
+for i = 1, 2000 do
+    zip.snappy_decode(snappyc)
+end
+log_info("snappy_decode: {}=>{}",  #snappyd, timer.now_ms() - s2)

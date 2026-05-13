@@ -70,5 +70,6 @@ inline int socket_ping(lua_State* L, const char* ip, uint32_t times) {
     auto elapsed = duration_cast<microseconds>(end_time - start_time).count();
     lua_pushnumber(L, std::ceil(elapsed / times /1000.0f));
     lua_pushnumber(L, success_time);
+    closesocket(fd);
     return 2;
 }

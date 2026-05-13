@@ -13,14 +13,12 @@
   <ItemGroup>
     <ClInclude Include="..\luaxml\src\pugiconfig.hpp" />
     <ClInclude Include="..\luaxml\src\pugixml.hpp" />
-    <ClInclude Include="..\luazip\src\luazip.h" />
-    <ClInclude Include="..\luazip\src\lz4.h" />
-    <ClInclude Include="..\luazip\src\miniz.h" />
+    <ClInclude Include="..\luazip\src\miniz\miniz.h" />
     <ClInclude Include="src\excel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\luaxml\src\pugixml.cpp" />
-    <ClCompile Include="..\luazip\src\miniz.c" />
+    <ClCompile Include="..\luazip\src\miniz\miniz.c" />
     <ClCompile Include="src\luaxlsx.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -69,7 +67,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\lua\lua;..\luazip\src;..\luaxml\src;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lua\lua;..\luaxml\src;..\luakit\include;..\luazip\src\miniz;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -101,7 +99,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\lua\lua;..\luazip\src;..\luaxml\src;..\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lua\lua;..\luaxml\src;..\luakit\include;..\luazip\src\miniz;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

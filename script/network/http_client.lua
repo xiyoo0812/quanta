@@ -27,11 +27,15 @@ prop:reader("jcodec", nil)  --codec
 prop:reader("clients", {})  --clients
 prop:reader("domains", {})  --domains
 prop:reader("version", nil) --version
+prop:reader("content_codecs", {})  --content_codecs
 
 function HttpClient:__init(version)
     self.jcodec = jsoncodec()
     self.version = version or HTTP_1_1
     update_mgr:attach_quit(self)
+    self.content_codecs = {
+        ["application/json"] = self.jcodec,
+    }
 end
 
 function HttpClient:on_quit()
@@ -51,6 +55,10 @@ function HttpClient:on_socket_error(socket, token, err)
     if self.version == HTTP_2 then
         self.clients[socket.host_name] = nil
     end
+end
+
+function HttpClient:set_content_codec(ctype, codec)
+    self.content_codecs[ctype] = codec
 end
 
 --构建请求
@@ -103,7 +111,9 @@ function HttpClient:connect(host, ip, port, scheme, timeout)
     if not ok then
         return nil, cerr
     end
-    socket:set_content_codec("application/json", self.jcodec)
+    for content, codec in pairs(self.content_codecs) do
+        socket:set_content_codec(content, codec)
+    end
     return socket
 end
 

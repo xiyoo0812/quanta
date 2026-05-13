@@ -57,11 +57,13 @@ luatls: lualib
 	$(MAKE) -C extend/luatls -f luatls.mak SOLUTION_DIR=$(CUR_DIR)
 luaxlsx: lualib
 	$(MAKE) -C extend/luaxlsx -f luaxlsx.mak SOLUTION_DIR=$(CUR_DIR)
+luazip: lualib
+	$(MAKE) -C extend/luazip -f luazip.mak SOLUTION_DIR=$(CUR_DIR)
 lworker: lualib
 	$(MAKE) -C extend/lworker -f lworker.mak SOLUTION_DIR=$(CUR_DIR)
 
-extend: lbson lcodec ljson lprofile lsmdb lstdfs ltimer lualog luapb luatls luaxlsx lworker
-.PHONY: lbson lcodec ljson lprofile lsmdb lstdfs ltimer lualog luapb luatls luaxlsx lworker
+extend: lbson lcodec ljson lprofile lsmdb lstdfs ltimer lualog luapb luatls luaxlsx luazip lworker
+.PHONY: lbson lcodec ljson lprofile lsmdb lstdfs ltimer lualog luapb luatls luaxlsx luazip lworker
 
 laoi: lualib
 	$(MAKE) -C extend/laoi -f laoi.mak SOLUTION_DIR=$(CUR_DIR)
@@ -81,11 +83,9 @@ luakcp: lualib
 	$(MAKE) -C extend/luakcp -f luakcp.mak SOLUTION_DIR=$(CUR_DIR)
 luaxml: lualib
 	$(MAKE) -C extend/luaxml -f luaxml.mak SOLUTION_DIR=$(CUR_DIR)
-luazip: lualib
-	$(MAKE) -C extend/luazip -f luazip.mak SOLUTION_DIR=$(CUR_DIR)
 
-backup: laoi ldetour lmdb lsqlite ltoml luac luacsv luakcp luaxml luazip
-.PHONY: laoi ldetour lmdb lsqlite ltoml luac luacsv luakcp luaxml luazip
+backup: laoi ldetour lmdb lsqlite ltoml luac luacsv luakcp luaxml
+.PHONY: laoi ldetour lmdb lsqlite ltoml luac luacsv luakcp luaxml
 
 lualib: 
 	$(MAKE) -C extend/lua -f lualib.mak SOLUTION_DIR=$(CUR_DIR)

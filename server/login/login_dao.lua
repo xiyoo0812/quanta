@@ -1,5 +1,5 @@
 --login.lua
-import("agent/mongo_agent.lua")
+import("agent/mongo_proxy.lua")
 
 local log_err       = logger.err
 local tunpack       = table.unpack
@@ -8,7 +8,7 @@ local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
 local store_mgr     = quanta.get("store_mgr")
-local mongo_agent   = quanta.get("mongo_agent")
+local mongo_proxy   = quanta.get("mongo_proxy")
 
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 local NAME_EXIST    = protobuf_mgr:error_code("LOGIN_PLAYER_NAME_EXIST")
@@ -32,7 +32,7 @@ function LoginDao:get_autoinc_id(user_id)
 end
 
 function LoginDao:check_name_exist(name)
-    local ok, code, udata = mongo_agent:find_one({ "player", { nick = name }, { nick = 1 } })
+    local ok, code, udata = mongo_proxy:find_one({ "player", { nick = name }, { nick = 1 } })
     if qfailed(code, ok) then
         log_err("[LoginDao][check_name_exist] name: {} find failed! code: {}, res: {}", name, code, udata)
         return false
@@ -50,7 +50,7 @@ function LoginDao:create_player(open_id, player_id, data)
         user_id = data.user_id,
         create_time = quanta.now
     }
-    local ok, code, udata = mongo_agent:insert({ "player", pdata })
+    local ok, code, udata = mongo_proxy:insert({ "player", pdata })
     if qfailed(code, ok) then
         log_err("[LoginDao][create_player] player_id: {} create failed! code: {}, res: {}", player_id, code, udata)
         return false
@@ -95,7 +95,7 @@ end
 
 --账号数量
 function LoginDao:account_count(channel)
-    local ok, code, cur_num = mongo_agent:count({"account", { channel = channel}})
+    local ok, code, cur_num = mongo_proxy:count({"account", { channel = channel}})
     if qfailed(code, ok) then
         log_err("[LoginDao][account_limit] load account num failed! code: {}, res: {}", code, cur_num)
         return false

@@ -16,14 +16,14 @@ local ips = {
     "10.96.8.40"
 }
 
-local ip = luabus.dns("www.google.com")
-log_debug("luabus dns-> {}", ip)
+local dns = luabus.dns("www.google.com")
+log_debug("luabus dns-> {}", dns)
 
-local ip1 = luabus.host()
-log_debug("luabus host-> {}", ip1)
+local host = luabus.host()
+log_debug("luabus host-> {}", host)
 
-local ip = luabus.ipconfig()
-log_debug("luabus ipconfig-> {}", ip)
+local ipc = luabus.ipconfig()
+log_debug("luabus ipconfig-> {}", ipc)
 
 for _, ip in ipairs(ips) do
     local ok, region = ip2region.search(ip)

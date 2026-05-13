@@ -7,12 +7,11 @@ local sformat       = string.format
 local guid_tobin    = codec.guid_tobin
 local guid_tohex    = codec.guid_tohex
 
-local HOST, BHOST   = luabus.host()
-local KIND_PB       = protobuf.enum("zipkin.Kind", "CLIENT")
-local KIND_JS       = protobuf.enum("zipkin.Kind", "CLIENT")
+local HOST_IP       = luabus.host()
+local KIND_CLI      = protobuf.enum("zipkin.Kind", "CLIENT")
 local SERVICE_NAME  = sformat("%s<%s>[%s.%s]", quanta.name, quanta.pid, quanta.thread, quanta.tid)
-local ENDPOINT_JS   = { serviceName = SERVICE_NAME, ipv4 = HOST }
-local ENDPOINT_PB   = { service_name = SERVICE_NAME, ipv4 = BHOST }
+local ENDPOINT_JS   = { serviceName = SERVICE_NAME, ipv4 = HOST_IP }
+local ENDPOINT_PB   = { service_name = SERVICE_NAME, ipv4 = HOST_IP }
 
 local Span = class()
 local prop = property(Span)
@@ -42,7 +41,7 @@ end
 function Span:context(pb)
     if pb then
         return {
-            kind = KIND_PB,
+            kind = KIND_CLI,
             tags = self.tags,
             name = self.name,
             trace_id = self.chain.bin,
@@ -55,7 +54,7 @@ function Span:context(pb)
         }
     end
     return {
-        kind = KIND_JS,
+        kind = KIND_CLI,
         tags = self.tags,
         name = self.name,
         traceId = self.chain.hex,

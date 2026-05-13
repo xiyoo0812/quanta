@@ -3,7 +3,7 @@
 local log_err       = logger.err
 local qfailed       = quanta.failed
 
-local mongo_agent   = quanta.get("mongo_agent")
+local mongo_proxy   = quanta.get("mongo_proxy")
 
 local Store         = import("store/store.lua")
 
@@ -17,7 +17,7 @@ end
 function StoreMgo:load(key)
     self.primary_key = key
     local primary_id = self.primary_id
-    local ok, code, data = mongo_agent:find_one({ self.sheet, { [key] = primary_id }}, primary_id)
+    local ok, code, data = mongo_proxy:find_one({ self.sheet, { [key] = primary_id }}, primary_id)
     if qfailed(code, ok) then
         log_err("[StoreMgo][load_{}] primary_id: {} find failed! code: {}, res: {}", self.sheet, primary_id, code, data)
         return false
@@ -29,7 +29,7 @@ end
 function StoreMgo:delete()
     self.wholes = nil
     local primary_id = self.primary_id
-    local ok, code, data = mongo_agent:delete({ self.sheet, { [self.primary_key] = primary_id }, true}, primary_id)
+    local ok, code, data = mongo_proxy:delete({ self.sheet, { [self.primary_key] = primary_id }, true}, primary_id)
     if qfailed(code, ok) then
         log_err("[StoreMgo][load_{}] primary_id: {} find failed! code: {}, res: {}", self.sheet, primary_id, code, data)
     end
@@ -51,7 +51,7 @@ function StoreMgo:sync_whole()
     if not self.wholes[primary_key] then
         self.wholes[primary_key] = primary_id
     end
-    local ok, code, adata = mongo_agent:update({ self.sheet, self.wholes, {[primary_key] = primary_id }, true}, primary_id)
+    local ok, code, adata = mongo_proxy:update({ self.sheet, self.wholes, {[primary_key] = primary_id }, true}, primary_id)
     if qfailed(code, ok) then
         log_err("[StoreMgo][sync_whole] flush {}.{} failed! code: {}, res: {}", self.sheet, primary_id, code, adata)
     end
