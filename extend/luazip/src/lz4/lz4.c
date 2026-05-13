@@ -347,9 +347,9 @@ typedef enum {
  */
 #if !defined(LZ4_memcpy)
 #  if defined(__GNUC__) && (__GNUC__ >= 4)
-#    define LZ4_memcpy(dst, src, size) __builtin_memcpy(dst, src, size)
+#    define LZ4_memcpy(dst, src, size) (assert((size) > 0), __builtin_memcpy(dst, src, size))
 #  else
-#    define LZ4_memcpy(dst, src, size) memcpy(dst, src, size)
+#    define LZ4_memcpy(dst, src, size) (assert((size) > 0), memcpy(dst, src, size))
 #  endif
 #endif
 
