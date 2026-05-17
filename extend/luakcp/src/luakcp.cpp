@@ -76,6 +76,7 @@ namespace luakcp {
         void __gc() {}
         void close() {
             m_status = LINK_CLOSED;
+            m_token = 0;
         }
 
         void set_codec(codec_base* codec) {
@@ -108,7 +109,7 @@ namespace luakcp {
         }
 
         bool connect(const char* ip, int port) {
-            auto ok = bind(INADDR_ANY, port);
+            auto ok = bind(INADDR_ANY, 0);
             if (!ok) return false;
             m_status = LINK_READY;
             m_port = port;
