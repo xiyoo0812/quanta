@@ -2,6 +2,7 @@
 
 #include <span>
 #include <mutex>
+#include <regex>
 #include <format>
 #include <atomic>
 #include <string>
@@ -9,6 +10,7 @@
 #include <cstring>
 #include <concepts>
 #include <stdexcept>
+#include <filesystem>
 #include <functional>
 #include <type_traits>
 #include <string_view>

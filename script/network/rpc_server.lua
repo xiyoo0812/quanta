@@ -77,7 +77,7 @@ end
 --rpc事件
 function RpcServer:dispatch_rpc_message(client, recv_len, session_id, flag, source, rpc, ...)
     -- 事件统计
-    event_mgr:notify_trigger("on_recv_rpc", rpc, recv_len)
+    event_mgr:notify_trigger("on_recv_rpc_message", rpc, recv_len)
     -- 事件分发
     if client.id or rpc == "rpc_register" then
         if flag & FLAG_REQ == FLAG_REQ then
@@ -94,6 +94,7 @@ end
 --调用rpc后续处理
 function RpcServer:on_call_router(rpc, send_len)
     if send_len > 0 then
+        event_mgr:notify_trigger("on_send_rpc_message", rpc, send_len)
         return true, SUCCESS
     end
     log_err("[RpcServer][on_call_router] rpc {} call failed! code:{}", rpc, send_len)

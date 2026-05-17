@@ -76,14 +76,6 @@ log_debug("encode-> bufe: {}, {}", #bufe, lhex_encode(bufe))
 local datae = decode(bufe, #bufe)
 log_debug("decode-> {}", datae)
 
-local t1 = timer.clock_ms()
-local ip = luabus.dns("www.google.com")
-log_debug("luabus dns-> {}", ip)
-log_debug("luabus dns-> {}", timer.clock_ms() - t1)
-
-local host = luabus.host()
-log_debug("luabus host-> {}", host)
-
 --dump
 log_dump("dump-> a: {}", t)
 

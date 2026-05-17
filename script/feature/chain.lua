@@ -1,8 +1,6 @@
 --chain.lua
-local json          = require("ljson")
 
 local log_err       = logger.err
-local jencode       = json.encode
 local tinsert       = table.insert
 local new_guid      = codec.guid_new
 local guid_time     = codec.guid_time
@@ -14,11 +12,9 @@ local SERV_IDX      = quanta.index
 
 local CHAIN_INFOS   = quanta.get("CHAIN_INFOS")
 local CHAIN_PB_URL  = environ.get("QUANTA_CHAIN_PB_URL")
-local CHAIN_JS_URL  = environ.get("QUANTA_CHAIN_JSON_URL")
+local CHAIN_JS_URL  = environ.get("QUANTA_CHAIN_JS_URL")
 
 local http_client   = quanta.http_client()
-
-local log_dump      = logfeature.dump("spans", true)
 
 local Chain = class()
 local prop = property(Chain)
@@ -59,8 +55,6 @@ function Chain:output()
             if not ok or status >= 300 then
                 log_err("[Chain][output] opentrace json output field: {}:{}", status, res)
             end
-        else
-            log_dump("{}", jencode(self.spans))
         end
     end
 end

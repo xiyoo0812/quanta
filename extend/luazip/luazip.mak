@@ -52,9 +52,11 @@ MYCFLAGS += -I../../extend/luakit/include
 #需要定义的选项
 ifeq ($(UNAME_S), Linux)
 MYCFLAGS += -D_LARGEFILE64_SOURCE
+MYCFLAGS += -DHAVE_CONFIG_H
 endif
 ifeq ($(UNAME_S), Darwin)
 MYCFLAGS += -D_LARGEFILE64_SOURCE
+MYCFLAGS += -DHAVE_CONFIG_H
 endif
 
 #LDFLAGS
@@ -109,8 +111,12 @@ LDFLAGS += -L$(SOLUTION_DIR)library
 #自动生成目标
 SOURCES =
 SOURCES += src/luazip.cpp
-SOURCES += src/lz4.c
-SOURCES += src/miniz.c
+SOURCES += src/lz4/lz4.c
+SOURCES += src/miniz/miniz.c
+SOURCES += src/snappy/snappy-sinksource.cc
+SOURCES += src/snappy/snappy-stubs-internal.cc
+SOURCES += src/snappy/snappy.cc
+SOURCES += src/zstd/zstd.c
 
 CSOURCES = $(patsubst %.c, $(INT_DIR)/%.o, $(SOURCES))
 MSOURCES = $(patsubst %.m, $(INT_DIR)/%.o, $(CSOURCES))
@@ -143,6 +149,10 @@ pre_build:
 	mkdir -p $(TARGET_DIR)
 	mkdir -p $(SOLUTION_DIR)library
 	mkdir -p $(INT_DIR)/src
+	mkdir -p $(INT_DIR)/src/lz4
+	mkdir -p $(INT_DIR)/src/miniz
+	mkdir -p $(INT_DIR)/src/snappy
+	mkdir -p $(INT_DIR)/src/zstd
 
 #后编译
 post_build:

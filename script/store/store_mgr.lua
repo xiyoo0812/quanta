@@ -1,6 +1,6 @@
 --store_mgr.lua
-import("agent/mongo_agent.lua")
-import("agent/cache_agent.lua")
+import("agent/mongo_proxy.lua")
+import("agent/cache_proxy.lua")
 
 local log_err       = logger.err
 local log_debug     = logger.debug
@@ -11,7 +11,7 @@ local makechan      = quanta.make_channel
 
 local update_mgr    = quanta.get("update_mgr")
 local config_mgr    = quanta.get("config_mgr")
-local mongo_agent   = quanta.get("mongo_agent")
+local mongo_proxy   = quanta.get("mongo_proxy")
 
 local QUANTA_STORE  = environ.get("QUANTA_STORE")
 local STORE_INCRE   = environ.number("QUANTA_STORE_FLUSH")
@@ -48,10 +48,10 @@ end
 function StoreMgr:setup_driver()
     if QUANTA_STORE == "cache" then
         self:bind_store(QUANTA_STORE, import("store/store_cache.lua"))
-        self:bind_driver(QUANTA_STORE, mongo_agent)
+        self:bind_driver(QUANTA_STORE, mongo_proxy)
     elseif QUANTA_STORE == "mongo" then
         self:bind_store(QUANTA_STORE, import("store/store_mongo.lua"))
-        self:bind_driver(QUANTA_STORE, mongo_agent)
+        self:bind_driver(QUANTA_STORE, mongo_proxy)
     else
         if QUANTA_STORE == "smdb" then
             import("driver/smdb.lua")

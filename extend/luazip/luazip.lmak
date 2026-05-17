@@ -13,24 +13,22 @@ INCLUDES = {
     "../../extend/luakit/include"
 }
 
---需要排除的源文件,目录基于$(SRC_DIR)
-EXCLUDE_FILE = {
-    "zstd.c"
-}
-
 --LINUX需要定义的选项
 LINUX_DEFINES = {
     "_LARGEFILE64_SOURCE",
+    "HAVE_CONFIG_H"
 }
 
 --DARWIN需要定义的选项
 DARWIN_DEFINES = {
     "_LARGEFILE64_SOURCE",
+    "HAVE_CONFIG_H"
 }
 
 --WINDOWS需要定义的选项
 WINDOWS_DEFINES = {
-    "LUA_BUILD_AS_DLL"
+    "LUA_BUILD_AS_DLL",
+    "HAVE_CONFIG_H"
 }
 
 DEFINES = {
@@ -51,4 +49,4 @@ DEPS = {
 }
 
 --分组定义
-GROUP = "backup"
+GROUP = "extend"

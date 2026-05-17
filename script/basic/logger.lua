@@ -95,8 +95,8 @@ local LOG_OPTIONS = {
     [LOG_LEVEL.WARN]    = { "warn",  LOG_FLAG.FORMAT, "warn" },
     [LOG_LEVEL.ERROR]   = { "err",   LOG_FLAG.FORMAT, "error" },
     [LOG_LEVEL.FATAL]   = { "fatal", LOG_FLAG.FORMAT, "fatal" },
+    [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT, "trace" },
     [LOG_LEVEL.DUMP]    = { "dump",  LOG_FLAG.FORMAT | LOG_FLAG.PRETTY, "dump" },
-    [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT | LOG_FLAG.PRETTY, "trace" },
 }
 
 for lvl, conf in pairs(LOG_OPTIONS) do

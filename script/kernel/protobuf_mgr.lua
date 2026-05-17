@@ -201,7 +201,7 @@ function ProtobufMgr:register(doer, pb_name, callback)
         log_warn("[ProtobufMgr][register] proto_name: [{}] can't find!", pb_name)
         return
     end
-    event_mgr:add_cmd_listener(doer, proto.id, callback)
+    event_mgr:add_pb_listener(doer, proto.id, callback)
 end
 
 -- 重新加载
@@ -209,7 +209,6 @@ function ProtobufMgr:on_reload()
     if not self.allow_reload then
         return
     end
-    -- gc env_
     protobuf.clear()
     -- register pb文件
     self:load_protos()

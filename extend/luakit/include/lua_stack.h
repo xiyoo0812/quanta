@@ -236,11 +236,26 @@ namespace luakit {
             }
             // stack: __objects__, table, metatab
             lua_setmetatable(L, -2);
+            // stack: __objects__, table
             lua_pushvalue(L, -1);
             // stack: __objects__, table, table
             lua_seti(L, -3, pkey);
         }
         // stack: __objects__, table
+        lua_remove(L, -2);
+    }
+
+    template <typename T>
+    void lua_bridge_object(lua_State* L, T obj) {
+        if (obj == nullptr) {
+            lua_pushnil(L);
+            return;
+        }
+        lua_getfield(L, LUA_REGISTRYINDEX, "__objects__");
+        if (lua_isnil(L, -1)) {
+            return;
+        }
+        lua_geti(L, -1, lua_get_object_key(obj));
         lua_remove(L, -2);
     }
 

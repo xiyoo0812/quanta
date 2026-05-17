@@ -12,13 +12,25 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\luazip.h" />
-    <ClInclude Include="src\lz4.h" />
-    <ClInclude Include="src\miniz.h" />
+    <ClInclude Include="src\lz4\lz4.h" />
+    <ClInclude Include="src\miniz\miniz.h" />
+    <ClInclude Include="src\snappy\config.h" />
+    <ClInclude Include="src\snappy\snappy-internal.h" />
+    <ClInclude Include="src\snappy\snappy-sinksource.h" />
+    <ClInclude Include="src\snappy\snappy-stubs-internal.h" />
+    <ClInclude Include="src\snappy\snappy-stubs-public.h" />
+    <ClInclude Include="src\snappy\snappy.h" />
+    <ClInclude Include="src\zstd\zstd.h" />
+    <ClInclude Include="src\zstd\zstd_errors.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\luazip.cpp" />
-    <ClCompile Include="src\lz4.c" />
-    <ClCompile Include="src\miniz.c" />
+    <ClCompile Include="src\lz4\lz4.c" />
+    <ClCompile Include="src\miniz\miniz.c" />
+    <ClCompile Include="src\snappy\snappy-sinksource.cc" />
+    <ClCompile Include="src\snappy\snappy-stubs-internal.cc" />
+    <ClCompile Include="src\snappy\snappy.cc" />
+    <ClCompile Include="src\zstd\zstd.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{7BDB3534-51A4-0AE7-E92A-160CB3EF7B2C}</ProjectGuid>
@@ -67,7 +79,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\extend\lua\lua;..\..\extend\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;HAVE_CONFIG_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader></PrecompiledHeader>
@@ -99,7 +111,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\extend\lua\lua;..\..\extend\luakit\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;LUA_BUILD_AS_DLL;HAVE_CONFIG_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <PrecompiledHeader></PrecompiledHeader>

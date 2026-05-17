@@ -1,0 +1,25 @@
+syntax = "proto3";
+package prometheus;
+
+// Remote Write 的请求体，包含一个或多个时间序列
+message WriteRequest {
+  repeated TimeSeries timeseries = 1;
+}
+
+// 单条时间序列，包含标签集合和具体的样本点
+message TimeSeries {
+  repeated Label labels   = 1;
+  repeated Sample samples = 2;
+}
+
+// 标签，即指标的键值对（例如：{name="lobby-1", service="lobby"}）
+message Label {
+  string name  = 1;
+  string value = 2;
+}
+
+// 样本点，包含时间戳和具体的数值
+message Sample {
+  double value    = 1; // 指标的值（例如：1 或 49）
+  int64 timestamp = 2; // 毫秒级的时间戳
+}

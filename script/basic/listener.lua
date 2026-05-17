@@ -11,9 +11,9 @@ local make_functer  = quanta.make_functer
 
 local Listener = class()
 function Listener:__init()
-    self._triggers = {}     -- map<event, {{[listener] = func_name}, ...}
-    self._listeners = {}    -- map<event, {[listener] = func_name}
-    self._commands = {}     -- map<cmd, {[listener] = func_name}
+    self._triggers = {}     -- map<event, {{[functor] = trigger}, ...}
+    self._listeners = {}    -- map<event, {[functor] = listener}
+    self._pblisteners = {}  -- map<cmd, {[functor] = listener}
     self._ignores = {}      -- map<cmd, bool>
 end
 
@@ -62,23 +62,23 @@ function Listener:remove_listener(event)
     self._listeners[event] = nil
 end
 
-function Listener:add_cmd_listener(listener, cmd, handler)
-    if self._commands[cmd] then
-        log_warn("[Listener][add_cmd_listener] cmd({}) repeat!", cmd)
+function Listener:add_pb_listener(listener, pb_cmd, handler)
+    if self._pblisteners[pb_cmd] then
+        log_warn("[Listener][add_pb_listener] pb_cmd({}) repeat!", pb_cmd)
         return
     end
     local func_name = handler
     local callback_func = listener[func_name]
     if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[Listener][add_cmd_listener] cmd({}) handler not define!", cmd)
+        log_warn("[Listener][add_pb_listener] pb_cmd({}) handler not define!", pb_cmd)
         return
     end
     local functor = make_functer(func_name, 0)
-    self._commands[cmd] = qtweak({ [functor] = listener })
+    self._pblisteners[pb_cmd] = qtweak({ [functor] = listener })
 end
 
-function Listener:remove_cmd_listener(cmd)
-    self._commands[cmd] = nil
+function Listener:remove_pb_listener(pb_cmd)
+    self._pblisteners[pb_cmd] = nil
 end
 
 function Listener:notify_trigger(event, ...)
@@ -132,20 +132,20 @@ function Listener:notify_message(event, message,...)
     message:callback(false, "event handler is nil")
 end
 
-function Listener:notify_command(cmd, ...)
+function Listener:notify_pb_message(pb_cmd, ...)
     --执行事件
-    local listener_map = self._commands[cmd] or {}
+    local listener_map = self._pblisteners[pb_cmd] or {}
     for functor, listener in pairs(listener_map) do
         local ok, err = functor:pcall(listener, ...)
         if not ok then
-            log_fatal("[Listener][notify_command] xpcall [{}:{}] failed: {}!", listener:source(), functor.name, err)
+            log_fatal("[Listener][notify_pb_message] xpcall [{}:{}] failed: {}!", listener:source(), functor.name, err)
             return false
         end
         return ok
     end
-    if not self._ignores[cmd] then
-        log_warn("[Listener][notify_command] command {} handler is nil!", cmd)
-        self._ignores[cmd] = true
+    if not self._ignores[pb_cmd] then
+        log_warn("[Listener][notify_pb_message] command {} handler is nil!", pb_cmd)
+        self._ignores[pb_cmd] = true
     end
     return false
 end

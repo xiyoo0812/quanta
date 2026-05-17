@@ -32,7 +32,7 @@ function TimerMgr:trigger(timer_id, handle, clock_ms)
     thread_mgr:fork(handle.cb, nil, tunpack(args))
     if timer_id == handle.timer_id then
         --更新定时器数据
-        if times == 0 then
+        if handle.times == 0 then
             self.timers[timer_id] = nil
             return
         end
