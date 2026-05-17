@@ -209,7 +209,6 @@ function ProtobufMgr:on_reload()
     if not self.allow_reload then
         return
     end
-    -- gc env_
     protobuf.clear()
     -- register pb文件
     self:load_protos()
