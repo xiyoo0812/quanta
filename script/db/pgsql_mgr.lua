@@ -16,7 +16,7 @@ function PgsqlMgr:__init()
         --定义函数
         local func_name = "rpc_pgsql_" .. func
         PgsqlMgr[func_name] = function(message, ...)
-            return self[func](self, ...)
+            return PgsqlMgr[func](self, ...)
         end
         -- 注册事件
         event_mgr:add_listener(self, func_name)

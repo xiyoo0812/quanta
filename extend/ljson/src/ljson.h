@@ -254,11 +254,11 @@ namespace ljson {
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             try {
-                m_buf.clean();
+                m_buf->clean();
                 auto json = m_yyjson->encode_core(L, YYJSON_WRITE_ALLOW_INVALID_UNICODE, m_emy_as_arr, index, len);
-                m_buf.push_data((cpbyte)json, *len);
+                m_buf->push_data((cpbyte)json, *len);
                 m_yyjson->jsonfree(json);
-                return m_buf.data(len);
+                return m_buf->data(len);
             } catch(const std::exception& e) {
                 luaL_error(L, e.what());
                 return nullptr;

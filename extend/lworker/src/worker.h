@@ -153,6 +153,7 @@ namespace lworker {
 
         void run(std::stop_token stoken){
             LOG_INIT(m_lua.L());
+            m_codec.set_buff(&m_buf);
             auto quanta = m_lua.new_table(m_namespace.c_str());
             auto tid = std::this_thread::get_id();
             quanta.set("thread", m_name);
@@ -202,6 +203,7 @@ namespace lworker {
         }
 
     private:
+        luabuf m_buf;
         kit_state m_lua;
         spin_mutex m_mutex;
         worker_codec m_codec;

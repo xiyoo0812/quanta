@@ -219,7 +219,7 @@ function MysqlDB:prepare_check(name)
     end
     local ok, stmtid_or_err = self:request(COM_STMT_PREPARE, "mysql prepare", query)
     if not ok then
-        return true, stmtid_or_err
+        return false, stmtid_or_err
     end
     self.executer.stmts[name] = stmtid_or_err
     return true, stmtid_or_err
@@ -227,8 +227,8 @@ end
 
 --执行预处理语句
 function MysqlDB:execute(name, ...)
-    local stmt_id = self:check_prepare(name)
-    if not stmt_id then
+    local ok, stmt_id = self:prepare_check(name)
+    if not ok then
         return false, "prepare statement not found"
     end
     return self:request(COM_STMT_EXECUTE, "mysql execute", stmt_id, ...)

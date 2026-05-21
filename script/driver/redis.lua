@@ -146,7 +146,6 @@ function RedisDB:setup_pool(hosts)
         for _ = 1, POOL_COUNT do
             local socket = Socket(self, host[1], host[2])
             self.connections[count] = socket
-            socket:set_codec(rediscodec(self.jcodec))
             socket:set_id(count)
             count = count + 1
         end
@@ -239,6 +238,7 @@ function RedisDB:login(socket)
         log_err("[RedisDB][login] connect db({}:{}:{}:{}) failed: {}!", ip, port, self.name, id, err)
         return false
     end
+    socket:set_codec(rediscodec(self.jcodec))
     if self.passwd and #self.passwd > 0 then
         local aok, res = self:auth(socket)
         if not aok or res ~= "OK" then

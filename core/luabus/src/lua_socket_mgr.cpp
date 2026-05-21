@@ -3,6 +3,7 @@
 
 bool lua_socket_mgr::setup(lua_State* L, int max_fd) {
     m_lvm = L;
+    m_codec.set_buff(&m_buf);
     m_mgr = std::make_shared<socket_mgr>();
     m_relay = std::make_shared<socket_relay>(m_mgr);
     m_router = std::make_shared<socket_router>(m_mgr, &m_codec);

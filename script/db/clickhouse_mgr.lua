@@ -16,7 +16,7 @@ function ClickHouseMgr:__init()
         --定义函数
         local func_name = "rpc_clickhouse_" .. func
         ClickHouseMgr[func_name] = function(message, ...)
-            return self[func](self, ...)
+            return ClickHouseMgr[func](self, ...)
         end
         -- 注册事件
         event_mgr:add_listener(self, func_name)
