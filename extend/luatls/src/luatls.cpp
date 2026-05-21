@@ -36,12 +36,16 @@ namespace luatls {
 
     static int tohex(lua_State* L, upchar text, size_t sz, int index) {
         static char hex[] = "0123456789abcdef";
-        auto buffer = alloc_buff(sz * 2);
+        char tmp[UCHAR_MAX];
+        char* buffer = tmp;
+        if (sz > UCHAR_MAX / 2) {
+            buffer = (char*)lua_newuserdata(L, sz * 2);
+        }
         for (size_t i = 0; i < sz; i++) {
             buffer[i * 2] = hex[text[i] >> 4];
             buffer[i * 2 + 1] = hex[text[i] & 0xf];
         }
-        push_string(L, (cpchar)buffer, sz * 2, index);
+        push_string(L, buffer, sz * 2, index);
         return 1;
     }
 
@@ -85,15 +89,14 @@ namespace luatls {
         size_t out_len = BASE64_DECODE_OUT_SIZE(data_len);
         auto output = alloc_buff(out_len);
         mbedtls_base64_decode(output, out_len, &out_len, input, data_len);
-        lua_pushlstring(L, (cpchar)output, out_len);
         push_string(L, (cpchar)output, out_len, 2);
         return 1;
     }
 
     static int lmd5(lua_State* L) {
         size_t data_len = 0;
+        uint8_t output[MD5_DIGEST_SIZE];
         auto message = (upchar)luaL_checklstring(L, 1, &data_len);
-        auto output = alloc_buff(MD5_DIGEST_SIZE);
         auto md_info = mbedtls_md_info_from_type(MBEDTLS_MD_MD5);
         mbedtls_md(md_info, message, data_len, output);
         if (lua_toboolean(L, 2)) {
@@ -105,7 +108,7 @@ namespace luatls {
 
     static int pbkdf2_sha1(lua_State* L) {
         size_t psz = 0, ssz = 0;
-        auto digest = alloc_buff(SHA_DIGEST_SIZE);
+        uint8_t digest[SHA_DIGEST_SIZE];
         uint8_t* passwd = (uint8_t*)luaL_checklstring(L, 1, &psz);
         uint8_t* salt = (uint8_t*)luaL_checklstring(L, 2, &ssz);
         int iter = lua_tointeger(L, 3);
@@ -116,7 +119,7 @@ namespace luatls {
 
     static int pbkdf2_sha256(lua_State* L) {
         size_t psz = 0, ssz = 0;
-        auto digest = alloc_buff(SHA256_DIGEST_SIZE);
+        uint8_t digest[SHA256_DIGEST_SIZE];
         upchar passwd = (upchar)luaL_checklstring(L, 1, &psz);
         upchar salt = (upchar)luaL_checklstring(L, 2, &ssz);
         int iter = lua_tointeger(L, 3);
@@ -129,7 +132,7 @@ namespace luatls {
         size_t sz = 0;
         auto digest = alloc_buff(SHA_DIGEST_SIZE);
         uint8_t* input = (uint8_t*)luaL_checklstring(L, 1, &sz);
-        psa_hash_compute(PSA_ALG_SHA_1, input, sz, digest, sizeof(digest), &sz);
+        psa_hash_compute(PSA_ALG_SHA_1, input, sz, digest, SHA_DIGEST_SIZE, &sz);
         push_string(L, (cpchar)digest, sz, 2);
         return 1;
     }
@@ -138,7 +141,7 @@ namespace luatls {
         size_t sz = 0;
         auto digest = alloc_buff(SHA256_DIGEST_SIZE);
         uint8_t* input = (uint8_t*)luaL_checklstring(L, 1, &sz);
-        psa_hash_compute(PSA_ALG_SHA_256, input, sz, digest, sizeof(digest), &sz);
+        psa_hash_compute(PSA_ALG_SHA_256, input, sz, digest, SHA256_DIGEST_SIZE, &sz);
         push_string(L, (cpchar)digest, sz, 2);
         return 1;
     }
@@ -147,7 +150,7 @@ namespace luatls {
         size_t sz = 0;
         auto digest = alloc_buff(SHA512_DIGEST_SIZE);
         uint8_t* input = (uint8_t*)luaL_checklstring(L, 1, &sz);
-        psa_hash_compute(PSA_ALG_SHA_512, input, sz, digest, sizeof(digest), &sz);
+        psa_hash_compute(PSA_ALG_SHA_512, input, sz, digest, SHA512_DIGEST_SIZE, &sz);
         push_string(L, (cpchar)digest, sz, 2);
         return 1;
     }

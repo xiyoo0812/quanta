@@ -22,7 +22,7 @@ function RedisMgr:__init()
         --定义函数
         local func_name = "rpc_redis_" .. func
         RedisMgr[func_name] = function(message, ...)
-            return self[func](self, ...)
+            return RedisMgr[func](self, ...)
         end
         -- 注册事件
         event_mgr:add_listener(self, func_name)

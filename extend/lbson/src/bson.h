@@ -51,9 +51,9 @@ namespace lbson {
     public:
         friend mgocodec;
         slice* encode_slice(lua_State* L) {
-            m_buff.clean();
+            m_buff->clean();
             pack_dict(L, 0);
-            return m_buff.get_slice();
+            return m_buff->get_slice();
         }
 
         int encode(lua_State* L) {
@@ -65,11 +65,11 @@ namespace lbson {
         }
 
         int decode(lua_State* L) {
-            m_buff.clean();
+            m_buff->clean();
             size_t data_len = 0;
             cpchar buf = lua_tolstring(L, 1, &data_len);
-            if (data_len > 0) m_buff.push_data((uint8_t*)buf, data_len);
-            return decode_slice(L, m_buff.get_slice());
+            if (data_len > 0) m_buff->push_data((uint8_t*)buf, data_len);
+            return decode_slice(L, m_buff->get_slice());
         }
 
         int decode_slice(lua_State* L, slice* slice) {
@@ -88,8 +88,8 @@ namespace lbson {
                 luaL_error(L, "Invalid ordered dict");
             }
             size_t sz;
-            size_t offset = m_buff.size();
-            m_buff.write<uint32_t>(0);
+            size_t offset = m_buff->size();
+            m_buff->write<uint32_t>(0);
             for (int i = 0; i < n; i += 2) {
                 int vt = lua_type(L, i + 2);
                 if (vt != LUA_TNIL && vt != LUA_TNONE) {
@@ -102,11 +102,15 @@ namespace lbson {
                     lua_pop(L, 1);
                 }
             }
-            m_buff.write<uint8_t>(0);
-            uint32_t size = m_buff.size() - offset;
-            m_buff.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+            m_buff->write<uint8_t>(0);
+            uint32_t size = m_buff->size() - offset;
+            m_buff->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
             //返回结果
-            return m_buff.data(data_len);
+            return m_buff->data(data_len);
+        }
+
+        void set_buff(luabuf* buf) {
+            m_buff = buf;
         }
 
         int date(lua_State* L, int64_t value) {
@@ -127,50 +131,50 @@ namespace lbson {
         }
 
         int pairs(lua_State* L) {
-            m_buff.clean();
+            m_buff->clean();
             size_t data_len = 0;
-            m_buff.write<uint8_t>(0);
-            m_buff.write<uint8_t>((uint8_t)BSON_DOCUMENT);
+            m_buff->write<uint8_t>(0);
+            m_buff->write<uint8_t>((uint8_t)BSON_DOCUMENT);
             uint8_t* data = encode_pairs(L, &data_len);
             lua_pushlstring(L, (cpchar)data, data_len);
             return 1;
         }
 
         int binary(lua_State* L) {
-            m_buff.clean();
+            m_buff->clean();
             size_t data_len = 0;
             uint8_t* value = (uint8_t*)lua_tolstring(L, 1, &data_len);
-            m_buff.write<uint8_t>(0);
-            m_buff.write<uint8_t>((uint8_t)BSON_BINARY);
-            m_buff.write<int32_t>(data_len);
-            m_buff.write<uint8_t>(0); //subtype
-            if (data_len > 0) m_buff.push_data(value, data_len);
-            lua_pushlstring(L, (cpchar)m_buff.head(), m_buff.size());
+            m_buff->write<uint8_t>(0);
+            m_buff->write<uint8_t>((uint8_t)BSON_BINARY);
+            m_buff->write<int32_t>(data_len);
+            m_buff->write<uint8_t>(0); //subtype
+            if (data_len > 0) m_buff->push_data(value, data_len);
+            lua_pushlstring(L, (cpchar)m_buff->head(), m_buff->size());
             return 1;
         }
 
         int regex(lua_State* L) {
-            m_buff.clean();
+            m_buff->clean();
             size_t data_len = 0;
-            m_buff.write<uint8_t>(0);
-            m_buff.write<uint8_t>((uint8_t)BSON_REGEX);
+            m_buff->write<uint8_t>(0);
+            m_buff->write<uint8_t>((uint8_t)BSON_REGEX);
             uint8_t* val1 = (uint8_t*)lua_tolstring(L, 1, &data_len);
-            m_buff.push_data(val1, data_len);
-            m_buff.write<uint8_t>(0);
+            m_buff->push_data(val1, data_len);
+            m_buff->write<uint8_t>(0);
             uint8_t* val2 = (uint8_t*)lua_tolstring(L, 2, &data_len);
-            m_buff.push_data(val2, data_len);
-            m_buff.write<uint8_t>(0);
-            lua_pushlstring(L, (cpchar)m_buff.head(), m_buff.size());
+            m_buff->push_data(val2, data_len);
+            m_buff->write<uint8_t>(0);
+            lua_pushlstring(L, (cpchar)m_buff->head(), m_buff->size());
             return 1;
         }
 
     protected:
         int make_bson_value(lua_State *L, bson_type type, uint8_t* value, size_t len) {
-            m_buff.clean();
-            m_buff.write<uint8_t>(0);
-            m_buff.write<uint8_t>((uint8_t)type);
-            m_buff.push_data(value, len);
-            lua_pushlstring(L, (cpchar)m_buff.head(), m_buff.size());
+            m_buff->clean();
+            m_buff->write<uint8_t>(0);
+            m_buff->write<uint8_t>((uint8_t)type);
+            m_buff->push_data(value, len);
+            lua_pushlstring(L, (cpchar)m_buff->head(), m_buff->size());
             return 1;
         }
 
@@ -184,13 +188,13 @@ namespace lbson {
 
         void pack_date(lua_State* L) {
             lua_getfield(L, -1, "date");
-            m_buff.write<uint64_t>(lua_tointeger(L, -1) * 1000);
+            m_buff->write<uint64_t>(lua_tointeger(L, -1) * 1000);
             lua_pop(L, 1);
         }
 
         void pack_int64(lua_State* L) {
             lua_getfield(L, -1, "value");
-            m_buff.write<uint64_t>(lua_tointeger(L, -1));
+            m_buff->write<uint64_t>(lua_tointeger(L, -1));
             lua_pop(L, 1);
         }
 
@@ -198,7 +202,7 @@ namespace lbson {
             size_t data_len;
             lua_getfield(L, -1, "value");
             cpchar data = lua_tolstring(L, -1, &data_len);
-            m_buff.push_data((uint8_t*)data, data_len);
+            m_buff->push_data((uint8_t*)data, data_len);
             lua_pop(L, 1);
         }
 
@@ -209,7 +213,7 @@ namespace lbson {
             if (data_len != 24) luaL_error(L, "Invalid object id");
             char buffer[16] = { 0 };
             write_objectid(L, buffer, data);
-            m_buff.push_data((uint8_t*)buffer, 12);
+            m_buff->push_data((uint8_t*)buffer, 12);
             lua_pop(L, 1);
         }
 
@@ -219,9 +223,9 @@ namespace lbson {
             lua_getfield(L, -1, "binary");
             cpchar bin = lua_tolstring(L, -1, &bin_len);
             lua_getfield(L, -2, "subtype");
-            m_buff.write<uint32_t>(bin_len);
-            m_buff.write<uint8_t>(lua_tointeger(L, -1));
-            m_buff.push_data((uint8_t*)bin, bin_len);
+            m_buff->write<uint32_t>(bin_len);
+            m_buff->write<uint8_t>(lua_tointeger(L, -1));
+            m_buff->push_data((uint8_t*)bin, bin_len);
         }
 
         void pack_regex(lua_State* L) {
@@ -236,24 +240,24 @@ namespace lbson {
         }
         
         void write_cstring(cpchar buf, size_t len) {
-            if (len > 0) m_buff.push_data((uint8_t*)buf, len);
-            m_buff.write<char>('\0');
+            if (len > 0) m_buff->push_data((uint8_t*)buf, len);
+            m_buff->write<char>('\0');
         }
 
         void write_string(cpchar buf, size_t len) {
-            m_buff.write<uint32_t>(len + 1);
+            m_buff->write<uint32_t>(len + 1);
             write_cstring(buf, len);
         }
 
         void write_key(bson_type type, cpchar key, size_t klen) {
-            m_buff.write<uint8_t>((uint8_t)type);
+            m_buff->write<uint8_t>((uint8_t)type);
             write_cstring(key, klen);
         }
 
         template<typename T>
         void write_pair(bson_type type, cpchar key, size_t klen, T value) {
             write_key(type, key, klen);
-            m_buff.write(value);
+            m_buff->write(value);
         }
 
         void read_objectid(lua_State* L, slice* slice) {
@@ -295,23 +299,23 @@ namespace lbson {
         void pack_array(lua_State *L, int depth, size_t len) {
             // length占位
             char numkey[32];
-            size_t offset = m_buff.size();
-            m_buff.write<uint32_t>(0);
+            size_t offset = m_buff->size();
+            m_buff->write<uint32_t>(0);
             for (size_t i = 1; i <= len; i++) {
                 lua_rawgeti(L, -1, i);
                 size_t len = bson_index(numkey, i - 1);
                 pack_one(L, numkey, len, depth);
                 lua_pop(L, 1);
             }
-            m_buff.write<uint8_t>(0);
-            uint32_t size = m_buff.size() - offset;
-            m_buff.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+            m_buff->write<uint8_t>(0);
+            uint32_t size = m_buff->size() - offset;
+            m_buff->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
         void pack_order(lua_State* L, int depth, size_t len) {
             size_t sz;
-            size_t offset = m_buff.size();
-            m_buff.write<uint32_t>(0);
+            size_t offset = m_buff->size();
+            m_buff->write<uint32_t>(0);
             for (int i = 1; i + 1 <= len; i += 2) {
                 lua_rawgeti(L, -1, i);
                 if (!lua_isstring(L, -1)) {
@@ -322,9 +326,9 @@ namespace lbson {
                 pack_one(L, key, sz, depth);
                 lua_pop(L, 2);
             }
-            m_buff.write<uint8_t>(0);
-            uint32_t size = m_buff.size() - offset;
-            m_buff.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+            m_buff->write<uint8_t>(0);
+            uint32_t size = m_buff->size() - offset;
+            m_buff->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
         bson_type check_doctype(lua_State *L, size_t raw_len) {
@@ -428,7 +432,7 @@ namespace lbson {
                     cpchar buf = lua_tolstring(L, -1, &sz);
                     if (sz > 2 && buf[0] == 0 && buf[1] != 0) {
                         write_key((bson_type)buf[1], key, klen);
-                        m_buff.push_data((uint8_t*)(buf + 2), sz - 2);
+                        m_buff->push_data((uint8_t*)(buf + 2), sz - 2);
                     } else {
                         write_key(BSON_STRING, key, klen);
                         write_string(buf, sz);
@@ -461,16 +465,16 @@ namespace lbson {
 
         void pack_dict(lua_State *L, int depth) {
             // length占位
-            size_t offset = m_buff.size();
-            m_buff.write<uint32_t>(0);
+            size_t offset = m_buff->size();
+            m_buff->write<uint32_t>(0);
             lua_pushnil(L);
             while(lua_next(L, -2) != 0) {
                 pack_dict_data(L, depth, lua_type(L, -2));
                 lua_pop(L, 1);
             }
-            m_buff.write<uint8_t>(0);
-            uint32_t size = m_buff.size() - offset;
-            m_buff.copy(offset, (uint8_t*)&size, sizeof(uint32_t));
+            m_buff->write<uint8_t>(0);
+            uint32_t size = m_buff->size() - offset;
+            m_buff->copy(offset, (uint8_t*)&size, sizeof(uint32_t));
         }
 
         cpchar read_bytes(lua_State* L, slice* slice, size_t sz) {
@@ -604,7 +608,7 @@ namespace lbson {
             }
         }
     private:
-        luabuf m_buff;
+        luabuf* m_buff;
     };
 
     class mgocodec : public codec_base {
@@ -621,16 +625,16 @@ namespace lbson {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf.clean();
-            m_buf.write<uint32_t>(0);
-            m_buf.write<uint32_t>(lua_tointeger(L, 1));
-            m_buf.write<uint32_t>(0);
-            m_buf.write<uint32_t>(OP_MSG_CODE);
-            m_buf.write<uint32_t>(0);
-            m_buf.write<uint8_t>(0);
+            m_buf->clean();
+            m_buf->write<uint32_t>(0);
+            m_buf->write<uint32_t>(lua_tointeger(L, 1));
+            m_buf->write<uint32_t>(0);
+            m_buf->write<uint32_t>(OP_MSG_CODE);
+            m_buf->write<uint32_t>(0);
+            m_buf->write<uint8_t>(0);
             lua_remove(L, 1);
             uint8_t* data = m_bson->encode_pairs(L, len);
-            m_buf.copy(0, (uint8_t*)len, sizeof(uint32_t));
+            m_buf->copy(0, (uint8_t*)len, sizeof(uint32_t));
             return data;
         }
 

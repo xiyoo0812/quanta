@@ -105,7 +105,7 @@ namespace lcodec {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf.clean();
+            m_buf->clean();
             //url,method,status
             format_http(L, &index);
             //headers
@@ -125,9 +125,9 @@ namespace lcodec {
                 body = (uint8_t*)lua_tolstring(L, index + 1, len);
             }
             format_http_header("Content-Length", std::to_string(*len));
-            m_buf.push_data((const uint8_t*)CRLF, LCRLF);
-            m_buf.push_data(body, *len);
-            return m_buf.data(len);
+            m_buf->push_data((const uint8_t*)CRLF, LCRLF);
+            m_buf->push_data(body, *len);
+            return m_buf->data(len);
         }
 
     protected:
@@ -197,7 +197,7 @@ namespace lcodec {
 
         void format_http_header(string_view key, string_view val, string_view* type = nullptr) {
             if (type && key.starts_with(CONTENTT)) *type = val;
-            m_buf.write(std::format("{}: {}\r\n", key, val));
+            m_buf->write(std::format("{}: {}\r\n", key, val));
         }
 
         vector<string_view> split(string_view str, string_view delim) {
@@ -232,15 +232,15 @@ namespace lcodec {
         virtual void format_http(lua_State* L, int* index) {
             size_t status = lua_tointeger(L, (*index)++);
             switch (status) {
-            case SC_OK:         m_buf.write("HTTP/1.1 200 OK\r\n"); break;
-            case SC_NOCONTENT:  m_buf.write("HTTP/1.1 204 No Content\r\n"); break;
-            case SC_PARTIAL:    m_buf.write("HTTP/1.1 206 Partial Content\r\n"); break;
-            case SC_BADREQUEST: m_buf.write("HTTP/1.1 400 Bad Request\r\n"); break;
-            case SC_OBJMOVED:   m_buf.write("HTTP/1.1 302 Moved Temporarily\r\n"); break;
-            case SC_NOTFOUND:   m_buf.write("HTTP/1.1 404 Not Found\r\n"); break;
-            case SC_BADMETHOD:  m_buf.write("HTTP/1.1 405 Method Not Allowed\r\n"); break;
-            case SC_PROTOCOL:   m_buf.write("HTTP/1.1 101 Switching Protocols\r\n"); break;
-            default: m_buf.write("HTTP/1.1 500 Internal Server Error\r\n"); break;
+            case SC_OK:         m_buf->write("HTTP/1.1 200 OK\r\n"); break;
+            case SC_NOCONTENT:  m_buf->write("HTTP/1.1 204 No Content\r\n"); break;
+            case SC_PARTIAL:    m_buf->write("HTTP/1.1 206 Partial Content\r\n"); break;
+            case SC_BADREQUEST: m_buf->write("HTTP/1.1 400 Bad Request\r\n"); break;
+            case SC_OBJMOVED:   m_buf->write("HTTP/1.1 302 Moved Temporarily\r\n"); break;
+            case SC_NOTFOUND:   m_buf->write("HTTP/1.1 404 Not Found\r\n"); break;
+            case SC_BADMETHOD:  m_buf->write("HTTP/1.1 405 Method Not Allowed\r\n"); break;
+            case SC_PROTOCOL:   m_buf->write("HTTP/1.1 101 Switching Protocols\r\n"); break;
+            default: m_buf->write("HTTP/1.1 500 Internal Server Error\r\n"); break;
             }
         }
 
@@ -298,9 +298,9 @@ namespace lcodec {
             session_id = lua_tointeger(L, (*index)++);
             cpchar url = lua_tostring(L, (*index)++);
             cpchar method = lua_tostring(L, (*index)++);
-            auto buf = m_buf.peek_space(USHRT_MAX);
+            auto buf = m_buf->peek_space(USHRT_MAX);
             size_t len = format_to_n(buf, USHRT_MAX, "{} {} HTTP/1.1\r\n", method, url).size;
-            m_buf.pop_space(len);
+            m_buf->pop_space(len);
         }
 
         virtual void parse_http_packet(lua_State* L, string_view& buf) {

@@ -21,6 +21,7 @@ namespace lworker {
             lua_table quanta = m_lua->get<lua_table>(ns.data());
             m_platform = quanta.get<sstring>("platform");
             m_environs = quanta.get<environ_map>("environs");
+            m_codec.set_buff(&m_buf);
         }
 
         std::shared_ptr<worker> find_worker(vstring name) {
@@ -145,6 +146,7 @@ namespace lworker {
         }
 
     private:
+        luabuf m_buf;
         spin_mutex m_mutex;
         worker_codec m_codec;
         uint64_t m_last_tick = 0;

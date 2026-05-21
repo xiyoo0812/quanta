@@ -39,6 +39,7 @@ public:
     std::vector<uint32_t> query_servers(uint32_t client_id);
 
 private:
+    luabuf m_buf;
     lua_State* m_lvm;
     luarpc_codec m_codec;
     stdsptr<socket_mgr> m_mgr;

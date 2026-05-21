@@ -95,17 +95,17 @@ namespace luapb {
             header.type = (uint8_t)lua_tointeger(L, index++);
             header.target_id = lua_tointeger(L, index++);
             //encode
-            m_buf.clean();
-            m_buf.hold_place(sizeof(pb_header));
+            m_buf->clean();
+            m_buf->hold_place(sizeof(pb_header));
             try {
-                encode_message(L, index, &m_buf, msg);
+                encode_message(L, index, m_buf, msg);
             } catch (const exception& e) {
                 luaL_error(L, e.what());
             }
-            *len = m_buf.size();
+            *len = m_buf->size();
             header.len = *len;
-            m_buf.copy(0, (uint8_t*)&header, sizeof(pb_header));
-            return m_buf.head();
+            m_buf->copy(0, (uint8_t*)&header, sizeof(pb_header));
+            return m_buf->head();
         }
 
         virtual size_t decode(lua_State* L) {
@@ -144,24 +144,24 @@ namespace luapb {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf.clean();
-            m_buf.hold_place(sizeof(grpc_header));
+            m_buf->clean();
+            m_buf->hold_place(sizeof(grpc_header));
             //input_type
             auto input_type = lua_tostring(L, index + 1);
             pb_message* msg = find_message(input_type);
             if (!msg) luaL_error(L, "invalid input_type: %s", input_type);
             try {
-                encode_message(L, index, &m_buf, msg);
+                encode_message(L, index, m_buf, msg);
             } catch (const exception& e) {
                 luaL_error(L, e.what());
             }
             //header
             grpc_header header;
-            uint32_t size = m_buf.size() - sizeof(grpc_header);
+            uint32_t size = m_buf->size() - sizeof(grpc_header);
             header.length = byteswap(size);
             header.compose = 0;
-            m_buf.copy(0, (uint8_t*)&header, sizeof(grpc_header));
-            return m_buf.data(len);
+            m_buf->copy(0, (uint8_t*)&header, sizeof(grpc_header));
+            return m_buf->data(len);
         }
 
         virtual size_t decode(lua_State* L) {
@@ -184,11 +184,15 @@ namespace luapb {
     };
 
     inline codec_base* pb_codec() {
-        return new pbcodec();
+        pbcodec* codec = new pbcodec();
+        codec->set_buff(&lpbuf);
+        return codec;
     }
 
     inline codec_base* grpc_codec() {
-        return new grpccodec();
+        grpccodec* codec = new grpccodec();
+        codec->set_buff(&lpbuf);
+        return codec;
     }
 
     int load_pb(lua_State* L) {

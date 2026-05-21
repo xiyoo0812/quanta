@@ -5,7 +5,7 @@
 namespace luakit {
 
     inline cpchar push_string(lua_State* L, cpchar data, size_t sz, int index, lua_Alloc alc = nullptr, void* ud = nullptr) {
-        bool external = luaL_opt(L, lua_toboolean, index, true);
+        bool external = luaL_opt(L, lua_toboolean, index, false);
         if (external) return lua_pushexternalstring(L, data, sz, alc, ud);
         return lua_pushlstring(L, data, sz);
     }

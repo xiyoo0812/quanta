@@ -6,6 +6,7 @@
 
 namespace luazip {
 
+    thread_local luabuf lzbuf;
     thread_local zip_file zfile;
     thread_local zipcodec zcodec;
 
@@ -138,6 +139,7 @@ namespace luazip {
 
     inline codec_base* zip_codec(vstring tag) {
         zipcodec* codec = new zipcodec();
+        codec->set_buff(&lzbuf);
         codec->set_tag(tag);
         return codec;
     }

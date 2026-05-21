@@ -504,14 +504,14 @@ namespace lcodec {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf.clean();
+            m_buf->clean();
             uint32_t stream_id = lua_tointeger(L, index++);
             auto stream = get_stream(stream_id);
-            h2_frame_header* h2hf = stream->encode_header_frame(L, sender, &m_buf, &index);
-            if (stream->encode_data_frame(L, &m_buf, index + 1) > 0) {
+            h2_frame_header* h2hf = stream->encode_header_frame(L, sender, m_buf, &index);
+            if (stream->encode_data_frame(L, m_buf, index + 1) > 0) {
                 h2hf->headers.end_stream = 0;
             }
-            return m_buf.data(len);
+            return m_buf->data(len);
         }
 
         virtual size_t decode(lua_State* L) {

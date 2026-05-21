@@ -100,7 +100,7 @@ end
 function PgsqlDB:on_hour()
     for _, sock in pairs(self.alives) do
         self.executer = sock
-        self:request(REQUEST_CMD.SYNC, "pgsql ping")
+        self:request(REQUEST_CMD.QUERY, "pgsql ping", "select 1\0")
     end
 end
 

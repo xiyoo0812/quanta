@@ -15,7 +15,9 @@ namespace luakit {
     }
 
     inline codec_base* lua_codec() {
-        return new luacodec();
+        luacodec* codec = new luacodec();
+        codec->set_buff(&lbuf);
+        return codec;
     }
 
     class kit_state;
@@ -101,8 +103,7 @@ namespace luakit {
         void set_path(cpchar field, cpchar path) {
             if (strcmp(field, "LUA_PATH") == 0) {
                 set_lua_path("path", path, LUA_PATH_DEFAULT);
-            }
-            else {
+            } else {
                 set_lua_path("cpath", path, LUA_CPATH_DEFAULT);
             }
         }
@@ -248,8 +249,7 @@ namespace luakit {
                     buffer.append(LUA_PATH_SEP);
                     buffer.append(dftmark + 2, (path + len - 2) - dftmark);
                 }
-            }
-            else {
+            } else {
                 buffer.append(path);
             }
 #ifdef WIN32

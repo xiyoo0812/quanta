@@ -69,13 +69,13 @@ namespace lcodec {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf.clean();
+            m_buf->clean();
             // cmd_id
             uint8_t cmd_id = (uint8_t)lua_tointeger(L, index++);
             // session_id
             size_t session_id = lua_tointeger(L, index++);
             //4 byte header placeholder
-            m_buf.write<uint32_t>(0);
+            m_buf->write<uint32_t>(0);
             if (cmd_id != COM_CONNECT) {
                 return comand_encode(L, cmd_id, session_id, index, len);
             }
@@ -128,57 +128,57 @@ namespace lcodec {
         }
 
         uint8_t* comand_encode(lua_State* L, uint8_t cmd_id, size_t session_id, int index, size_t* len) {
-            m_buf.write<uint8_t>(cmd_id);
+            m_buf->write<uint8_t>(cmd_id);
             int top = lua_gettop(L);
             if (index <= top) {
                 if (lua_type(L, index) == LUA_TNUMBER) {
-                    m_buf.write<uint32_t>(lua_tointeger(L, index++));
+                    m_buf->write<uint32_t>(lua_tointeger(L, index++));
                 } else {
                     size_t data_len;
                     uint8_t* query = (uint8_t*)lua_tolstring(L, index++, &data_len);
-                    m_buf.push_data(query, data_len);
+                    m_buf->push_data(query, data_len);
                 }
             }
             if (index <= top) {
                 encode_stmt_args(L, index, top - index + 1);
             }
             // header
-            uint32_t size = (m_buf.size() - 4) & 0xffffff;
-            m_buf.copy(0, (uint8_t*)&size, 4);
+            uint32_t size = (m_buf->size() - 4) & 0xffffff;
+            m_buf->copy(0, (uint8_t*)&size, 4);
             // cmd
             if (cmd_id != COM_STMT_CLOSE) {
                 sessions.push_back(mysql_cmd{ cmd_id, session_id });
             }
-            return m_buf.data(len);
+            return m_buf->data(len);
         }
 
         uint8_t* auth_encode(lua_State* L, uint8_t cmd_id, size_t session_id, int index, size_t* len) {
             //4 byte client_flag
-            m_buf.write<uint32_t>(CLIENT_FLAG);
+            m_buf->write<uint32_t>(CLIENT_FLAG);
             //4 byte max_packet_size
-            m_buf.write<uint32_t>(MAX_PACKET_SIZE);
+            m_buf->write<uint32_t>(MAX_PACKET_SIZE);
             //1 byte character_set
-            m_buf.write<uint8_t>((uint8_t)lua_tointeger(L, index++));
+            m_buf->write<uint8_t>((uint8_t)lua_tointeger(L, index++));
             //23 byte filler(all 0)
-            m_buf.pop_space(23);
+            m_buf->pop_space(23);
             // username
             uint8_t* user = (uint8_t*)lua_tolstring(L, index++, len);
-            m_buf.push_data(user, *len);
-            m_buf.push_data((uint8_t*)"\0", 1);
+            m_buf->push_data(user, *len);
+            m_buf->push_data((uint8_t*)"\0", 1);
             // auth_data
             uint8_t* auth_data = (uint8_t*)lua_tolstring(L, index++, len);
-            m_buf.write<uint8_t>(*len);
-            m_buf.push_data(auth_data, *len);
+            m_buf->write<uint8_t>(*len);
+            m_buf->push_data(auth_data, *len);
             // dbname
             const uint8_t* dbname = (const uint8_t*)lua_tolstring(L, index++, len);
-            m_buf.push_data(dbname, *len);
-            m_buf.push_data((uint8_t*)"\0", 1);
+            m_buf->push_data(dbname, *len);
+            m_buf->push_data((uint8_t*)"\0", 1);
             // header
-            uint32_t size = ((m_buf.size() - 4) & 0xffffff) | 0x01000000;
-            m_buf.copy(0, (uint8_t*)&size, 4);
+            uint32_t size = ((m_buf->size() - 4) & 0xffffff) | 0x01000000;
+            m_buf->copy(0, (uint8_t*)&size, 4);
             // cmd
             sessions.push_back(mysql_cmd{ cmd_id, session_id });
-            return m_buf.data(len);
+            return m_buf->data(len);
         }
 
         void command_decode(lua_State* L) {
@@ -439,9 +439,9 @@ namespace lcodec {
 
         void encode_stmt_args(lua_State* L, int index, int argnum) {
             //enum_cursor_type
-            m_buf.write<uint8_t>(0);
+            m_buf->write<uint8_t>(0);
             //iteration_count
-            m_buf.write<uint32_t>(1);
+            m_buf->write<uint32_t>(1);
             //null_bitmap, length= (argnum + 7) / 8
             int argpos = 0;
             int argbyte = (argnum + 7) / 8;
@@ -454,10 +454,10 @@ namespace lcodec {
                         byte |= (bit < j);
                     }
                 }
-                m_buf.write<uint8_t>(byte);
+                m_buf->write<uint8_t>(byte);
             }
             //new_params_bind_flag
-            m_buf.write<uint8_t>(1);
+            m_buf->write<uint8_t>(1);
             //parameter_type
             for (int i = 0; i < argnum; ++i) {
                 encode_args_type(L, index + i);
@@ -471,16 +471,16 @@ namespace lcodec {
         void encode_args_type(lua_State* L, int index) {
             switch (lua_type(L, index)) {
             case LUA_TNIL:
-                m_buf.write<uint16_t>(MYSQL_TYPE_NULL);
+                m_buf->write<uint16_t>(MYSQL_TYPE_NULL);
                 break;
             case LUA_TBOOLEAN:
-                m_buf.write<uint16_t>(MYSQL_TYPE_TINY);
+                m_buf->write<uint16_t>(MYSQL_TYPE_TINY);
                 break;
             case LUA_TSTRING:
-                m_buf.write<uint16_t>(MYSQL_TYPE_VARCHAR);
+                m_buf->write<uint16_t>(MYSQL_TYPE_VARCHAR);
                 break;
             case LUA_TNUMBER:
-                m_buf.write<uint16_t>(lua_isinteger(L, index) ? MYSQL_TYPE_LONGLONG : MYSQL_TYPE_DOUBLE);
+                m_buf->write<uint16_t>(lua_isinteger(L, index) ? MYSQL_TYPE_LONGLONG : MYSQL_TYPE_DOUBLE);
                 break;
             default:
                 throw lua_exception("invalid mysql stmt args type");
@@ -490,26 +490,26 @@ namespace lcodec {
         void encode_args_value(lua_State* L, int index) {
             switch (lua_type(L, index)) {
             case LUA_TBOOLEAN:
-                m_buf.write<uint8_t>(lua_toboolean(L, index) ? 1 : 0);
+                m_buf->write<uint8_t>(lua_toboolean(L, index) ? 1 : 0);
                 break;
             case LUA_TNUMBER:
-                lua_isinteger(L, index) ? m_buf.write<uint64_t>(lua_tointeger(L, index)) : m_buf.write<double>(lua_tonumber(L, index));
+                lua_isinteger(L, index) ? m_buf->write<uint64_t>(lua_tointeger(L, index)) : m_buf->write<double>(lua_tonumber(L, index));
                 break;
             case LUA_TSTRING: {
                     uint32_t data_len;
                     uint8_t* data = (uint8_t*)lua_tolstring(L, index, (size_t*)&data_len);
                     if (data_len < 0xfb) {
-                        m_buf.write<uint8_t>(data_len);
+                        m_buf->write<uint8_t>(data_len);
                     } else if (data_len < 0xffff) {
-                        m_buf.write<uint8_t>(0xfc);
-                        m_buf.write<uint16_t>(data_len);
+                        m_buf->write<uint8_t>(0xfc);
+                        m_buf->write<uint16_t>(data_len);
                     } else if (data_len < 0xffffff) {
-                        m_buf.write<uint32_t>((0xfd << 24) | data_len);
+                        m_buf->write<uint32_t>((0xfd << 24) | data_len);
                     } else {
-                        m_buf.write<uint8_t>(0xfe);
-                        m_buf.write<uint64_t>(data_len);
+                        m_buf->write<uint8_t>(0xfe);
+                        m_buf->write<uint64_t>(data_len);
                     }
-                    m_buf.push_data(data, data_len);
+                    m_buf->push_data(data, data_len);
                 }
                 break;
             }

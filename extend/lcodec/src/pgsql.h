@@ -101,7 +101,7 @@ namespace lcodec {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
-            m_buf.clean();
+            m_buf->clean();
             // cmd_type
             cmd_type_f cmd_type = (cmd_type_f)lua_tointeger(L, index++);
             // session_id
@@ -157,35 +157,35 @@ namespace lcodec {
         uint8_t* comand_encode(lua_State* L, cmd_type_f cmd_type, size_t session_id, int index, size_t* len) {
             size_t data_len;
             uint8_t* query = (uint8_t*)lua_tolstring(L, index++, &data_len);
-            m_buf.write<uchar>((uchar)cmd_type);
-            m_buf.swap_write<uint32_t>(data_len + sizeof(uint32_t));
-            m_buf.push_data(query, data_len);
-            if (session_id > 0) sessions.push_back(session_id);
-            return m_buf.data(len);
+            m_buf->write<uchar>((uchar)cmd_type);
+            m_buf->swap_write<uint32_t>(data_len + sizeof(uint32_t));
+            m_buf->push_data(query, data_len);
+            sessions.push_back(session_id);
+            return m_buf->data(len);
         }
 
         uint8_t* encode_startup(lua_State* L, size_t session_id, int index, size_t* len) {
             //4 byte header placeholder
-            m_buf.write<uint32_t>(0);
+            m_buf->write<uint32_t>(0);
             // 4 byte protocol_version
-            m_buf.swap_write(PROTOCOL_VERSION);
+            m_buf->swap_write(PROTOCOL_VERSION);
             // username
-            m_buf.push_data(HEADER_USER, sizeof(HEADER_USER));
+            m_buf->push_data(HEADER_USER, sizeof(HEADER_USER));
             uint8_t* user = (uint8_t*)lua_tolstring(L, index++, len);
-            m_buf.push_data(user, *len);
-            m_buf.push_data((uint8_t*)"\0", 1);
+            m_buf->push_data(user, *len);
+            m_buf->push_data((uint8_t*)"\0", 1);
             // dbname
-            m_buf.push_data(HEADER_DATABASE, sizeof(HEADER_DATABASE));
+            m_buf->push_data(HEADER_DATABASE, sizeof(HEADER_DATABASE));
             const uint8_t* dbname = (const uint8_t*)lua_tolstring(L, index++, len);
-            m_buf.push_data(dbname, *len);
-            m_buf.push_data((uint8_t*)"\0", 1);
-            m_buf.push_data((uint8_t*)"\0", 1);
+            m_buf->push_data(dbname, *len);
+            m_buf->push_data((uint8_t*)"\0", 1);
+            m_buf->push_data((uint8_t*)"\0", 1);
             // header
-            uint32_t size = byteswap<uint32_t>(m_buf.size());
-            m_buf.copy(0, (uint8_t*)&size, 4);
+            uint32_t size = byteswap<uint32_t>(m_buf->size());
+            m_buf->copy(0, (uint8_t*)&size, 4);
             // cmd
             sessions.push_back(session_id);
-            return m_buf.data(len);
+            return m_buf->data(len);
         }
 
         void command_decode(lua_State* L, cmd_type_b cmd) {
