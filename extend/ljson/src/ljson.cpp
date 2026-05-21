@@ -4,12 +4,14 @@
 
 namespace ljson {
     thread_local yyjson tjson;
+    thread_local luabuf ljbuf;
     
     static codec_base* json_codec(bool numkey, bool empty_as_arr) {
         jsoncodec* codec = new jsoncodec();
         codec->set_empty_as_arr(empty_as_arr);
         codec->set_numkeydisable(numkey);
         codec->set_json(&tjson);
+        codec->set_buff(&ljbuf);
         return codec;
     }
 

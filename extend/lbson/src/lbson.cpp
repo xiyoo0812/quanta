@@ -5,6 +5,7 @@
 namespace lbson {
 
     thread_local bson tbson;
+    thread_local luabuf lbbuf;
 
     static int encode(lua_State* L) {
         return tbson.encode(L);
@@ -39,12 +40,14 @@ namespace lbson {
 
     static codec_base* mongo_codec(lua_State* L) {
         mgocodec* codec = new mgocodec();
+        codec->set_buff(&lbbuf);
         codec->set_bson(&tbson);
         return codec;
     }
 
     luakit::lua_table open_lbson(lua_State* L) {
         luakit::kit_state kit_state(L);
+        tbson.set_buff(&lbbuf);
         auto llbson = kit_state.new_table("bson");
         llbson.set_function("mongocodec", mongo_codec);
         llbson.set_function("objectid", objectid);

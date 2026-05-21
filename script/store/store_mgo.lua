@@ -1,4 +1,5 @@
 --store_mgo.lua
+import("agent/mongo_proxy.lua")
 
 local log_err       = logger.err
 local qfailed       = quanta.failed

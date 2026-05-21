@@ -12,12 +12,14 @@ namespace lcodec {
     static codec_base* rds_codec(codec_base* codec) {
         rdscodec* rcodec = new rdscodec();
         rcodec->set_codec(codec);
+        rcodec->set_buff(get_buff());
         return rcodec;
     }
 
     static codec_base* wss_codec(codec_base* codec, bool mask) {
         wsscodec* wcodec = new wsscodec();
         wcodec->set_codec(codec);
+        wcodec->set_buff(get_buff());
         if (mask) wcodec->build_mask();
         return wcodec;
     }
@@ -27,23 +29,33 @@ namespace lcodec {
     }
 
     static codec_base* httpd_codec() {
-        return new httpdcodec();
+        httpcodec* hcodec = new httpdcodec();
+        hcodec->set_buff(get_buff());
+        return hcodec;
     }
 
     static codec_base* httpc_codec() {
-        return new httpccodec();
+        httpcodec* hcodec = new httpccodec();
+        hcodec->set_buff(get_buff());
+        return hcodec;
     }
 
     static codec_base* http2c_codec() {
-        return new http2codec<h2c_stream>();
+        auto hcodec = new http2codec<h2c_stream>();
+        hcodec->set_buff(get_buff());
+        return hcodec;
     }
 
     static codec_base* grpcc_codec() {
-        return new http2codec<grpcc_stream>();
+        auto hcodec = new http2codec<grpcc_stream>();
+        hcodec->set_buff(get_buff());
+        return hcodec;
     }
 
     static codec_base* http2d_codec() {
-        return new http2codec<h2d_stream>();
+        auto hcodec = new http2codec<h2d_stream>();
+        hcodec->set_buff(get_buff());
+        return hcodec;
     }
 
     static void set_content_codec(codec_base* base, string_view type, codec_base* content_type, codec_base* content_encoding) {
@@ -55,16 +67,24 @@ namespace lcodec {
     }
 
     static codec_base* mysql_codec(size_t session_id) {
-        return new mysqlscodec(session_id);
+        mysqlscodec* codec = new mysqlscodec(session_id);
+        codec->set_buff(get_buff());
+        return codec;
     }
 
     static codec_base* pgsql_codec() {
-        return new pgsqlscodec();
+        pgsqlscodec* codec = new pgsqlscodec();
+        codec->set_buff(get_buff());
+        return codec;
     }
 
     static int tohex(lua_State* L, upchar text, size_t sz, int index) {
         static char hex[] = "0123456789abcdef";
-        auto buffer = alloc_buff(sz * 2);
+        char tmp[UCHAR_MAX];
+        char* buffer = tmp;
+        if (sz > UCHAR_MAX / 2) {
+            buffer = (char*)lua_newuserdata(L, sz * 2);
+        }
         for (size_t i = 0; i < sz; i++) {
             buffer[i * 2] = hex[text[i] >> 4];
             buffer[i * 2 + 1] = hex[text[i] & 0xf];
