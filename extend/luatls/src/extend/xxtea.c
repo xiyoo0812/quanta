@@ -140,6 +140,7 @@ static uint8_t * xxtea_to_ubyte_array(const uint32_t * data, size_t len, int inc
     }
 
     out = (uint8_t *)malloc(n + 1);
+    if (!out) return NULL;
 
 #if defined(BYTE_ORDER) && (BYTE_ORDER == LITTLE_ENDIAN)
     memcpy(out, data, n);
