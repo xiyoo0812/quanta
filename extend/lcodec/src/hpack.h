@@ -594,7 +594,7 @@ namespace lcodec {
         return string((char*)data, length);
     }
 
-    void add_dynmic_header(h2_dynamic* dynamic, string_view name, string_view val) {
+    void add_dynamic_header(h2_dynamic* dynamic, string_view name, string_view val) {
         auto header_size = get_header_size(name, val);
         //若新条目大小超过当前动态表剩余空间，则​​清空整个动态表​​
         if (header_size > dynamic->capacity) {

@@ -15,8 +15,8 @@ function ClickHouseMgr:__init()
     for _, func in ipairs(funcs) do
         --定义函数
         local func_name = "rpc_clickhouse_" .. func
-        ClickHouseMgr[func_name] = function(message, ...)
-            return ClickHouseMgr[func](self, ...)
+        ClickHouseMgr[func_name] = function(this, message, ...)
+            return ClickHouseMgr[func](this, ...)
         end
         -- 注册事件
         event_mgr:add_listener(self, func_name)

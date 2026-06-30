@@ -137,8 +137,8 @@ namespace lcodec {
         void http_parse_body(lua_State* L, string_view header_buf, string_view& buf) {
             m_buffer.clear();
             lua_createtable(L, 0, 4);
-            string_view contend_type;
-            string_view contend_encoding;
+            string_view content_type;
+            string_view content_encoding;
             vector<string_view> header_strs = split(header_buf, CRLF);
             for (auto head_val : header_strs) {
                 if (size_t pos = head_val.find(":"); pos != string_view::npos) {
@@ -147,9 +147,9 @@ namespace lcodec {
                     while (hpos < head_val.size() && isspace(head_val[hpos])) ++hpos;
                     head_val.remove_prefix(hpos);
                     if (key.starts_with(CONTENTT)) {
-                        contend_type = head_val;
+                        content_type = head_val;
                     }else if (key.starts_with(CONTENTE)) {
-                        contend_encoding = head_val;
+                        content_encoding = head_val;
                     } else if (key.starts_with(CONTENTL)) {
                         size_t content_size = atol(head_val.data());
                         m_buffer.append(buf.data(), content_size);
@@ -184,10 +184,10 @@ namespace lcodec {
             try {
                 size_t len = m_buffer.size();
                 uint8_t* data = (uint8_t*)m_buffer.c_str();
-                if (auto codec = get_content_encoding_codec(contend_encoding); codec) {
+                if (auto codec = get_content_encoding_codec(content_encoding); codec) {
                     data = codec->decode(data, &len);
                 }
-                if (auto codec = get_content_type_codec(contend_type); codec) {
+                if (auto codec = get_content_type_codec(content_type); codec) {
                     codec->decode(L, data, len);
                     return;
                 }

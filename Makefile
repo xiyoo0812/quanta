@@ -43,8 +43,6 @@ ljson: lualib
 	$(MAKE) -C extend/ljson -f ljson.mak SOLUTION_DIR=$(CUR_DIR)
 lprofile: lualib
 	$(MAKE) -C extend/lprofile -f lprofile.mak SOLUTION_DIR=$(CUR_DIR)
-lsmdb: lualib
-	$(MAKE) -C extend/lsmdb -f lsmdb.mak SOLUTION_DIR=$(CUR_DIR)
 lstdfs: lualib
 	$(MAKE) -C extend/lstdfs -f lstdfs.mak SOLUTION_DIR=$(CUR_DIR)
 ltimer: lualib
@@ -62,8 +60,8 @@ luazip: lualib
 lworker: lualib
 	$(MAKE) -C extend/lworker -f lworker.mak SOLUTION_DIR=$(CUR_DIR)
 
-extend: lbson lcodec ljson lprofile lsmdb lstdfs ltimer lualog luapb luatls luaxlsx luazip lworker
-.PHONY: lbson lcodec ljson lprofile lsmdb lstdfs ltimer lualog luapb luatls luaxlsx luazip lworker
+extend: lbson lcodec ljson lprofile lstdfs ltimer lualog luapb luatls luaxlsx luazip lworker
+.PHONY: lbson lcodec ljson lprofile lstdfs ltimer lualog luapb luatls luaxlsx luazip lworker
 
 laoi: lualib
 	$(MAKE) -C extend/laoi -f laoi.mak SOLUTION_DIR=$(CUR_DIR)
