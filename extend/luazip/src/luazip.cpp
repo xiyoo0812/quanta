@@ -300,6 +300,7 @@ namespace luazip {
     }
 
     luakit::lua_table open_luazip(lua_State* L) {
+        zcodec.set_buff(&lzbuf);
         luakit::kit_state kit_state(L);
         luakit::lua_table lzip = kit_state.new_table("zip");
         lzip.set_function("exist", zip_exist);

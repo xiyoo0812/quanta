@@ -1,6 +1,6 @@
 -- cache_mgr.lua
-import("driver/smdb.lua")
 import("db/mongo_mgr.lua")
+import("db/redis_mgr.lua")
 
 local log_err       = logger.err
 local log_debug     = logger.debug
@@ -9,11 +9,11 @@ local tinsert       = table.insert
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
 
-local kvdriver      = quanta.get("smdb")
 local event_mgr     = quanta.get("event_mgr")
 local mongo_mgr     = quanta.get("mongo_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local update_mgr    = quanta.get("update_mgr")
+local router_mgr    = quanta.get("router_mgr")
 
 local cache_db      = config_mgr:init_table("cache", "sheet")
 
@@ -35,13 +35,13 @@ prop:reader("del_documents", {})    -- del documents
 prop:reader("save_documents", {})   -- save documents
 
 function CacheMgr:__init()
-    kvdriver:open(quanta.name)
     -- 监听rpc事件
     event_mgr:add_listener(self, "rpc_cache_load")
     event_mgr:add_listener(self, "rpc_cache_copy")
     event_mgr:add_listener(self, "rpc_cache_flush")
     event_mgr:add_listener(self, "rpc_cache_update")
     event_mgr:add_listener(self, "rpc_cache_delete")
+    event_mgr:add_listener(self, "rpc_cache_load_notify")
     --定时器
     update_mgr:attach_frame(self)
     update_mgr:attach_second(self)
@@ -170,13 +170,21 @@ function CacheMgr:load_document(message, coll_name, primary_id)
 end
 
 function CacheMgr:rpc_cache_load(message, primary_id, coll_name)
-    local code, doc = self:load_document(message, coll_name, primary_id)
+    local code, doc, from_mem = self:load_document(message, coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
     end
+    if not from_mem then
+        router_mgr:call_cache_all("rpc_cache_load_notify", primary_id, coll_name)
+    end
     log_debug("[CacheMgr][rpc_cache_load] coll_name={}, primary={}, {}", coll_name, primary_id, doc:load_wholes())
     return code, doc:load_wholes()
+end
+
+--监听其他节点加载通知，清理本节点文档
+function CacheMgr:rpc_cache_load_notify(primary_id, coll_name)
+    self:clear_document(coll_name, primary_id)
 end
 
 --更新缓存

@@ -135,7 +135,7 @@ bool socket_stream::do_connect() {
     }
 
     if (!m_mgr->watch_connecting(m_fd, this)) {
-        on_connect(false, "watch-failed");
+        on_connect(false, "watch-connecting-failed");
         return false;
     }
 
@@ -147,7 +147,7 @@ bool socket_stream::do_connect() {
             m_ovl_ref++;
             return true;
         }
-        on_connect(false, "connect-failed");
+        on_connect(false, std::format("connect-failed: {}", err).c_str());
         return false;
     }
 
@@ -174,7 +174,7 @@ bool socket_stream::do_connect() {
         return false;
 
     if (!m_mgr->watch_connecting(m_fd, this)) {
-        on_connect(false, "watch-failed");
+        on_connect(false, "watch-connecting-failed");
         return false;
     }
     return true;
@@ -245,7 +245,7 @@ void socket_stream::stream_send(const char* data, size_t data_len) {
     m_ovl_ref++;
 #else
     if (!m_mgr->watch_send(m_fd, this, true)) {
-        on_error("watch-error");
+        on_error("watch-send-error");
         return;
     }
 #endif
@@ -299,7 +299,7 @@ void socket_stream::on_can_send(size_t max_len, bool is_eof) {
         auto ret = getsockopt(m_fd, SOL_SOCKET, SO_ERROR, (char*)&err, &sock_len);
         if (ret == 0 && err == 0 && !is_eof) {
             if (!m_mgr->watch_connected(m_fd, this)) {
-                on_connect(false, "watch-error");
+                on_connect(false, "watch-connected-error");
                 return;
             }
             on_connect(true, "ok");
@@ -317,7 +317,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
         auto data = m_send_buffer->data(&data_len);
         if (data_len == 0) {
             if (!m_mgr->watch_send(m_fd, this, false)) {
-                on_error("watch-error");
+                on_error("watch-send-error");
                 return;
             }
             break;
@@ -330,7 +330,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
 #ifdef IO_IOCP
             if (err == WSAEWOULDBLOCK) {
                 if (!wsa_send_empty(m_fd, m_send_ovl)) {
-                    on_error("send-failed");
+                    on_error(std::format("send-failed: {}", err).c_str());
                     return;
                 }
                 m_ovl_ref++;
@@ -342,7 +342,7 @@ void socket_stream::do_send(size_t max_len, bool is_eof) {
             if (err == EAGAIN)
                 break;
 #endif
-            on_error("send-failed");
+            on_error(std::format("send-failed: {}", err).c_str());
             return;
         }
         if (send_len == 0) {
@@ -371,7 +371,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
 #ifdef IO_IOCP
             if (err == WSAEWOULDBLOCK) {
                 if (!wsa_recv_empty(m_fd, m_recv_ovl)) {
-                    on_error("recv-failed");
+                    on_error(std::format("recv-failed: {}", err).c_str());
                     return;
                 }
                 m_ovl_ref++;
@@ -383,7 +383,7 @@ void socket_stream::do_recv(size_t max_len, bool is_eof) {
             if (err == EAGAIN)
                 break;
 #endif
-            on_error("recv-failed");
+            on_error(std::format("recv-failed: {}", err).c_str());
             return;
         }
         if (recv_len == 0) {
