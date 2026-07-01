@@ -23,8 +23,8 @@ function MongoMgr:__init()
     for _, func in ipairs(funcs) do
         --定义函数
         local func_name = "rpc_mongo_" .. func
-        MongoMgr[func_name] = function(message, ...)
-            return MongoMgr[func](self, ...)
+        MongoMgr[func_name] = function(this, message, ...)
+            return MongoMgr[func](this, ...)
         end
         -- 注册事件
         event_mgr:add_listener(self, func_name)
@@ -51,7 +51,7 @@ function MongoMgr:find(primary_id, coll_name, selector, fields, sortor, limit, s
 end
 
 function MongoMgr:find_one(primary_id, coll_name, selector, fields)
-    log_debug("[MongoMgr][find_one]: {}, selector:{}", coll_name, selector)
+    log_debug("[MongoMgr][find_one]: {}， {}, selector:{}", primary_id, coll_name, selector)
     local mongodb = self.mongo_db
     if mongodb and mongodb:set_executer(primary_id) then
         local ok, res_oe = mongodb:find_one(coll_name, selector, fields or {_id = 0})

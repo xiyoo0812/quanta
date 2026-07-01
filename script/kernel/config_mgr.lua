@@ -5,6 +5,7 @@ local log_warn  = logger.warn
 local Config    = import("feature/config.lua")
 
 local ConfigMgr = singleton()
+
 function ConfigMgr:__init()
     -- 配置对象列表
     self.table_list = {}

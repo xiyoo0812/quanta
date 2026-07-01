@@ -256,7 +256,7 @@ namespace lcodec {
                 break;
             default: throw lua_exception("invalid h2 header type"); break;
             }
-            return is_packet_complate();
+            return is_packet_complete();
         }
         
         virtual void push_packet(lua_State* L) {
@@ -280,7 +280,7 @@ namespace lcodec {
         }
 
     protected:
-        virtual bool is_packet_complate () {
+        virtual bool is_packet_complete () {
             return state == H2S_CLOSED;
         }
 
@@ -346,7 +346,7 @@ namespace lcodec {
             auto [match, index] = get_static_index(name, value);
             if (match) return encode_integer(buf, 0x80, 7, index);
             encode_literal(buf, name, value, H2_INCREMENTAL, index);
-            add_dynmic_header(sender, name, value);
+            add_dynamic_header(sender, name, value);
         }
 
         void decode_header(h2_dynamic* recver, slice* slice, luabuf* buf) {
@@ -363,14 +363,14 @@ namespace lcodec {
                         slice->erase(1);
                         auto key = decode_string_literal(slice, buf);
                         auto val = decode_string_literal(slice, buf);
-                        add_dynmic_header(recver, key, val);
+                        add_dynamic_header(recver, key, val);
                         save_header(key, val);
                         continue;
                     }
                     uint16_t index = decode_integer(slice, 6);
                     auto header = index_header(recver, index);
                     auto val = decode_string_literal(slice, buf);
-                    add_dynmic_header(recver, header->key, val);
+                    add_dynamic_header(recver, header->key, val);
                     save_header(header->key, val);
                     continue;
                 }
@@ -436,7 +436,7 @@ namespace lcodec {
             }
         }
 
-        virtual bool is_packet_complate() {
+        virtual bool is_packet_complete() {
             if (state == H2S_CLOSED) return true;
             auto codec = find_codec(hcodec, send_headers, CONTENTT);
             if (!codec) return true;

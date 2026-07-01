@@ -15,8 +15,8 @@ function MysqlMgr:__init()
     for _, func in ipairs(funcs) do
         --定义函数
         local func_name = "rpc_mysql_" .. func
-        MysqlMgr[func_name] = function(message, ...)
-            return MysqlMgr[func](self, ...)
+        MysqlMgr[func_name] = function(this, message, ...)
+            return MysqlMgr[func](this, ...)
         end
         -- 注册事件
         event_mgr:add_listener(self, func_name)

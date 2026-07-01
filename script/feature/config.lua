@@ -20,6 +20,7 @@ local TABLE_MAX_INDEX = 3
 local ConfigTable = class()
 local prop = property(ConfigTable)
 prop:reader("rows", {})
+prop:reader("fields", {})
 prop:reader("groups", {})
 prop:reader("count", 0)
 prop:reader("indexs", nil)
@@ -39,6 +40,10 @@ function ConfigTable:setup(name, ...)
     else
         log_err("[ConfigTable][setup] keys len illegal. name={}, size={}", name, size)
     end
+end
+
+function ConfigTable:upsert_field(key, type)
+    self.fields[key] = type
 end
 
 -- 更新一行配置表
@@ -210,6 +215,13 @@ function ConfigTable:iterator()
         end
     end
     return iter
+end
+
+--校验工具方法，运行时不需要
+function ConfigTable:upsert_validate(validate)
+end
+
+function ConfigTable:set_verify_file(file_name)
 end
 
 return ConfigTable

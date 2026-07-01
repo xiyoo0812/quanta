@@ -67,7 +67,7 @@ private:
     void on_rpc_reply(router_header* header, slice* slice);
 
     proto_type m_type;
-    codec_base* m_codec;
+    codec_base* m_codec = nullptr;
     stdsptr<kit_state> m_lvm = nullptr;
     stdsptr<socket_mgr> m_mgr = nullptr;
     stdsptr<socket_relay> m_relay = nullptr;
