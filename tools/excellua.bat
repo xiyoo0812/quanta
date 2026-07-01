@@ -6,7 +6,7 @@ chcp 65001
 
 set LUA_PATH=!/../tools/excel2lua/?.lua;;
 
-..\bin\quanta.exe --entry=convertor --input=./cfg_xls --output=./config
+..\bin\quanta.exe --entry=excel2lua --input=./cfg_xls --output=./config
 
 pause
 

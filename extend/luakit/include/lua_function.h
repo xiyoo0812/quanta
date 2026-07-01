@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "lua_stack.h"
-
 namespace luakit {
 
     //错误函数
