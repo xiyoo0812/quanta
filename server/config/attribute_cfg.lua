@@ -6,6 +6,15 @@
 local config_mgr = quanta.get("config_mgr")
 local attribute = config_mgr:get_table("attribute")
 
+--导出配置字段
+attribute:upsert_field("complex", "bool")
+attribute:upsert_field("enum_key", "string")
+attribute:upsert_field("id", "int")
+attribute:upsert_field("increase", "bool")
+attribute:upsert_field("limit", "string")
+attribute:upsert_field("nick", "string")
+attribute:upsert_field("type", "string")
+
 --导出配置内容
 attribute:upsert({
     complex=false,
@@ -334,5 +343,21 @@ attribute:upsert({
     nick='line',
     type='int'
 })
+
+
+--导出配置验证
+attribute:upsert_validate({
+    field='id',
+    name='attribute',
+    primary=true
+})
+
+attribute:upsert_validate({
+    field='type',
+    name='attribute',
+    required=true
+})
+
+attribute:set_verify_file('attribute.lua')
 
 attribute:update()

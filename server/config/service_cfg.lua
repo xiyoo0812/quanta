@@ -6,6 +6,12 @@
 local config_mgr = quanta.get("config_mgr")
 local service = config_mgr:get_table("service")
 
+--导出配置字段
+service:upsert_field("enable", "bool")
+service:upsert_field("enum_key", "string")
+service:upsert_field("id", "int")
+service:upsert_field("name", "string")
+
 --导出配置内容
 service:upsert({
     enable=true,

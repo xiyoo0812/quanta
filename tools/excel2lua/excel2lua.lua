@@ -1,4 +1,4 @@
---convertor.lualog
+--excel2lua.lualog
 require("ljson")
 require("lstdfs")
 
@@ -23,6 +23,7 @@ local tconcat       = table.concat
 local tunpack       = table.unpack
 local tinsert       = table.insert
 local tsort         = table.sort
+local tsize         = table.size
 local mtointeger    = math.tointeger
 local slower        = string.lower
 local qgetenv       = quanta.getenv
@@ -50,14 +51,6 @@ local function conv_number(v)
     return mtointeger(v) or tonumber(v)
 end
 
-local function tsize(t)
-    local c = 0
-    for _ in pairs(t or {}) do
-        c = c + 1
-    end
-    return c
-end
-
 local value_func = {
     ["int"] = conv_number,
     ["float"] = conv_number,
@@ -73,16 +66,20 @@ local value_func = {
         return unserialize(value)
     end,
     ["map"] = function(value)
-        if sfind(value, '|') then
-            value = sgsub(value, '|', ']=')
-            value = sgsub(value, ',', ',[')
-            return unserialize('{[' .. value .. '}')
+        if sfind(value, ',') then
+            value = sgsub(value, ',', '"]=')
+            value = sgsub(value, ';', ',["')
+            return unserialize('{["' .. value .. '}')
         end
         return {}
     end,
     ["smap"] = function(value)
-        value = sgsub(value, '|', '=')
-        return unserialize('{' .. value .. '}')
+        if sfind(value, ',') then
+            value = sgsub(value, ',', '"]="')
+            value = sgsub(value, ';', '",["')
+            return unserialize('{["' .. value .. '"}')
+        end
+        return '{' .. value .. '}'
     end,
     ["array"] = function(value)
         value = sgsub(value, '|', ',')
@@ -181,7 +178,7 @@ end
 
 --导出到lua
 --使用configmgr结构
-local function export_records_to_conf(output, title, fname, records)
+local function export_records_to_conf(output, title, fname, records, fields, validates)
     local table_name = sformat("%s_cfg", title)
     local filename = lappend(output, lconcat(table_name, ".lua"))
     local export_file = iopen(filename, "w")
@@ -196,9 +193,30 @@ local function export_records_to_conf(output, title, fname, records)
     tinsert(lines, '--获取配置表\nlocal config_mgr = quanta.get("config_mgr")')
     tinsert(lines, sformat('local %s = config_mgr:get_table("%s")\n', title, title))
 
-    tinsert(lines, "--导出配置内容")
+    tinsert(lines, "--导出配置字段")
+    for _, field in pairs(mapsort(fields)) do
+        tinsert(lines, sformat('%s:upsert_field("%s", "%s")', title, field[1], field[2]))
+    end
+    tinsert(lines, "\n--导出配置内容")
     for _, rec in pairs(records) do
         tinsert(lines, sformat("%s:upsert(%s)\n", title, serialize(rec, 1, mapsort)))
+    end
+    if next(validates) then
+        local file = nil
+        tinsert(lines, "\n--导出配置验证")
+        local vrecs = build_records(validates)
+        for _, vrec in pairs(vrecs) do
+            if (not allbook) or vrec.name == title then
+                if vrec.file then
+                    file = vrec.file
+                    vrec.file = nil
+                end
+                tinsert(lines, sformat("%s:upsert_validate(%s)\n", title, serialize(vrec, 1, mapsort)))
+            end
+        end
+        if file then
+            tinsert(lines, sformat("%s:set_verify_file('%s')\n", title, file))
+        end
     end
     tinsert(lines, sformat("%s:update()\n", title))
     export_file:write(tconcat(lines, "\n"))
@@ -260,7 +278,7 @@ local function find_workbook_data_struct(book)
 end
 
 --导出到目标文件
-local function export_workbook_to_output(book, output, fname, bookname)
+local function export_workbook_to_output(book, output, fname, bookname, validates)
     local headers, field_types = find_workbook_data_struct(book)
     if tsize(field_types) <= 1 then
         --未定义数据定义，不导出此book
@@ -268,6 +286,7 @@ local function export_workbook_to_output(book, output, fname, bookname)
         return
     end
     -- 开始处理
+    local fields = {}
     local records = {}
     for row = start_line, book.last_row do
         local record = {}
@@ -275,6 +294,7 @@ local function export_workbook_to_output(book, output, fname, bookname)
         for col = start_col, book.last_col do
             -- 过滤掉没有配置的行
             if field_types[col] and headers[col] then
+                fields[headers[col]] = field_types[col]
                 local value = get_cell_value(book, row, col, field_types[col], headers[col])
                 if value ~= nil then
                     tinsert(record, {headers[col], value, field_types[col]})
@@ -283,9 +303,12 @@ local function export_workbook_to_output(book, output, fname, bookname)
         end
         tinsert(records, record)
     end
-    local title = allbook and bookname or slower(lstem(fname))
-    export_method(output, title, fname, build_records(records))
-    print(sformat("export file: %s book: %s to %s success!", fname, bookname, title))
+    if output then
+        local title = allbook and bookname or slower(lstem(fname))
+        export_method(output, title, fname, build_records(records), fields, validates)
+        print(sformat("export file: %s book: %s to %s success!", fname, bookname, title))
+    end
+    return records
 end
 
 local function is_config_file(ext, filename)
@@ -333,17 +356,22 @@ local function export_config(input, output)
         if is_config_file(ext, fname) then
             local ok, workbook = pcall(load_workbook, ext, fullname)
             if not ok then
-                print(sformat("open config %s failed!", fullname))
+                error(sformat("open config %s failed!", fullname))
                 goto continue
+            end
+            local validates = {}
+            local vbook = workbook.open("validate")
+            if vbook then
+                validates = export_workbook_to_output(vbook, nil, fname, "validate")
             end
             local workbooks = workbook.workbooks()
             for _, book in ipairs(workbooks) do
                 local bookname = slower(book.name)
-                if book.last_row < start_line or book.last_col <= 0 then
+                if book.last_row < start_line or book.last_col <= 0 or bookname == "validate" then
                     print(sformat("export config %s book %s empty!", fullname, bookname))
                     goto next
                 end
-                export_workbook_to_output(book, output, fname, bookname)
+                export_workbook_to_output(book, output, fname, bookname, validates)
                 if not allbook then
                     break
                 end
@@ -407,12 +435,12 @@ local function read_cmdline()
     return input, output
 end
 
-print("useage: quanta.exe [--entry=convertor] [--input=xxx] [--output=xxx]")
+print("usage: quanta.exe [--entry=excel2lua] [--input=xxx] [--output=xxx]")
 print("begin export configs to lua!")
 local input, output = read_cmdline()
-local ok, err = pcall(export_config, input, output)
+local ok, err = xpcall(export_config, debug.traceback, input, output)
 if not ok then
-    print("export config to lua failed:", err)
+    error(sformat("export config to lua failed: %s", err))
     return
 end
 print("success export configs to lua!")

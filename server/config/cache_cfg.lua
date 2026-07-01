@@ -6,6 +6,17 @@
 local config_mgr = quanta.get("config_mgr")
 local cache = config_mgr:get_table("cache")
 
+--导出配置字段
+cache:upsert_field("copyable", "bool")
+cache:upsert_field("count", "int")
+cache:upsert_field("group", "string")
+cache:upsert_field("id", "int")
+cache:upsert_field("inertable", "bool")
+cache:upsert_field("key", "string")
+cache:upsert_field("key2", "string")
+cache:upsert_field("sheet", "string")
+cache:upsert_field("time", "int")
+
 --导出配置内容
 cache:upsert({
     copyable=false,

@@ -6,6 +6,12 @@
 local config_mgr = quanta.get("config_mgr")
 local player_attr = config_mgr:get_table("player_attr")
 
+--导出配置字段
+player_attr:upsert_field("key", "string")
+player_attr:upsert_field("range", "int")
+player_attr:upsert_field("save", "bool")
+player_attr:upsert_field("share", "bool")
+
 --导出配置内容
 player_attr:upsert({
     key='ATTR_HP',
@@ -251,5 +257,25 @@ player_attr:upsert({
     save=false,
     share=false
 })
+
+
+--导出配置验证
+player_attr:upsert_validate({
+    field='key',
+    foreign={
+        'attribute',
+        'id'
+    },
+    name='player_attr',
+    primary=true
+})
+
+player_attr:upsert_validate({
+    field='range',
+    name='player_attr',
+    required=true
+})
+
+player_attr:set_verify_file('player_attr.lua')
 
 player_attr:update()
