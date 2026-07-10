@@ -283,7 +283,7 @@ void socket_mgr::broadcast(size_t kind, const void* data, size_t data_len) {
     }
 }
 
-void socket_mgr::broadgroup(std::vector<uint32_t>& groups, const void* data, size_t data_len) {
+void socket_mgr::broadgroup(std::span<const uint32_t> groups, const void* data, size_t data_len) {
     for(auto token : groups) {
         send(token, data, data_len);
     }

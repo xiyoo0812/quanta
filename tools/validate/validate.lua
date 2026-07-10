@@ -155,7 +155,6 @@ local value_funcs = {
 }
 
 local function std_output(val, color)
-
     iowrite((color or "\27[31m") .. val .. "\n" .. "\27[0m")
 end
 
@@ -170,7 +169,7 @@ end
 
 local function validate_range(value, range, con_name, source, field)
     local min, max = tunpack(range)
-    if value < min or value > max then
+    if value == nil or value < min or value > max then
         std_output(sformat("config %s field '%s' is not in <%s-%s>! => %s", con_name, field, min, max, source))
     end
 end
@@ -178,7 +177,7 @@ end
 local function validate_foreign(value, foreign_name, foreign_key, con_name, source, field)
     local conf = config_mgr:get_table(foreign_name)
     local foreign_data = conf:get_foreign(foreign_key)
-    if not foreign_data[value] then
+    if value ~= nil and value ~= 0 and foreign_data[value] ~= nil then
         std_output(sformat("config %s field '%s' is foreign (%s.%s) not exist! => %s", con_name, field, foreign_name, foreign_key, source))
     end
 end
