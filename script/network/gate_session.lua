@@ -97,4 +97,8 @@ function GateSession:group_send(group, cmd_id, data)
     return self:output(cmd_id, data, GROUP, 0, 0, group)
 end
 
+function GateSession:kickout(player_id)
+   self:send("NID_GATE_KICK_CLIENT_REQ", { player_id = player_id })
+end
+
 return GateSession

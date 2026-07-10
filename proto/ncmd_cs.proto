@@ -18,9 +18,11 @@ enum NCmdId
     NID_GATE_BIND_SERVER_RES            = 2004;
     NID_GATE_BIND_SERVICE_REQ           = 2005;
     NID_GATE_BIND_SERVICE_RES           = 2006;
-    NID_GATE_KICK_CLIENT_NTF            = 2007;
-    NID_GATE_VERIFY_CODE_NTF            = 2008;
-    NID_GATE_LOST_CLIENT_NTF            = 2009;
+    NID_GATE_KICK_CLIENT_REQ            = 2007;
+    NID_GATE_KICK_CLIENT_RES            = 2008;
+    NID_GATE_KICK_CLIENT_NTF            = 2009;
+    NID_GATE_VERIFY_CODE_NTF            = 2010;
+    NID_GATE_LOST_CLIENT_NTF            = 2011;
     
     //登陆系统10001-10100
     NID_LOGIN_ACCOUNT_LOGIN_REQ         = 10001;    //登陆账号请求

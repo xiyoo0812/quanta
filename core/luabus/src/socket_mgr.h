@@ -100,7 +100,7 @@ public:
     bool send(uint32_t token, const void* data, size_t data_len);
     bool sendv(uint32_t token, const sendv_item items[], int count);
     void broadcast(size_t kind, const void* data, size_t data_len);
-    void broadgroup(std::vector<uint32_t>& groups, const void* data, size_t data_len);
+    void broadgroup(std::span<const uint32_t> groups, const void* data, size_t data_len);
     void close(uint32_t token);
     void set_codec(uint32_t token, codec_base* codec);
     bool get_remote_ip(uint32_t token, std::string& ip);
