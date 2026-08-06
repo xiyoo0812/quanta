@@ -66,7 +66,7 @@ namespace luakit {
         if constexpr (std::is_same_v<T, bool>) {
             return lua_toboolean(L, i);
         }
-        return (T)lua_tointeger(L, i);
+        return (T)lua_tonumber(L, i);
     }
 
     template <std_integer T>

@@ -66,8 +66,8 @@ namespace luakit {
                 luakit.set_function("luacodec", lua_codec);
                 luakit.set_function("next_id", [&]() { return ++m_serial32; });
                 luakit.set_function("next_id64", [&]() { return ++m_serial64; });
+                luakit.set_function("decode", [&](lua_State* L) { return decode(L); });
                 luakit.set_function("encode", [&](lua_State* L) { return encode(L, get_buff()); });
-                luakit.set_function("decode", [&](lua_State* L) { return decode(L, get_buff()); });
             }
         }
 

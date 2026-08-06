@@ -24,8 +24,6 @@ body {
     font-size: 13px;
     background: #f0f2f5;
 }
-
-/* ===== 主布局 ===== */
 .gm-container {
     display: flex;
     padding: 0 10px;
@@ -53,8 +51,6 @@ body {
     background: #ffffff;
     box-shadow: 0 2px 6px rgba(0,0,0,.06);
 }
-
-/* ===== 消息区 ===== */
 .historyMsg {
     flex: 1;
     margin: 5px;
@@ -66,8 +62,6 @@ body {
     flex-direction: column;
     gap: 5px;
 }
-
-/* 每条消息通用容器 */
 .historyMsg .msg-item {
     padding: 8px 12px;
     border-radius: 6px;
@@ -77,8 +71,6 @@ body {
     line-height: 1.6;
     font-size: 13px;
 }
-
-/* 消息类型 label 行 */
 .historyMsg .msg-cmd-label {
     font-weight: 700;
     font-size: 11px;
@@ -89,40 +81,30 @@ body {
     align-items: center;
     gap: 4px;
 }
-
-/* ★ 自己发的命令 → 琥珀/橙暖色（醒目，区别于其他三类） */
 .historyMsg .myMsg {
     background-color: #fff3e0;
     color: #e65100;
     border-left-color: #ff9800;
 }
 .historyMsg .myMsg .msg-cmd-label { color: #ef6c00; }
-
-/* 服务器返回：成功 → 绿色 */
 .historyMsg .newMsg {
     background-color: #e8f5e9;
     color: #1b5e20;
     border-left-color: #4caf50;
 }
 .historyMsg .newMsg .msg-cmd-label { color: #2e7d32; }
-
-/* 服务器返回：错误 → 红色 */
 .historyMsg .errMsg {
     background-color: #ffebee;
     color: #b71c1c;
     border-left-color: #ef5350;
 }
 .historyMsg .errMsg .msg-cmd-label { color: #c62828; }
-
-/* 命令说明 → 蓝色 */
 .historyMsg .cmdInfo {
     background-color: #e3f2fd;
     color: #0d47a1;
     border-left-color: #1e88e5;
 }
 .historyMsg .cmdInfo .msg-cmd-label { color: #1565c0; }
-
-/* 命令说明里的字段行 */
 .historyMsg .cmdInfo .field-row {
     padding: 1px 0;
 }
@@ -130,14 +112,10 @@ body {
     font-weight: 600;
     color: #1565c0;
 }
-
-/* JSON / 代码输出 */
 .historyMsg .json-output {
     font-family: Consolas, Monaco, "Courier New", monospace;
     white-space: pre-wrap;
 }
-
-/* ===== 输入区 ===== */
 .control {
     height: 130px;
     margin: 5px;
@@ -165,15 +143,12 @@ body {
     height: 100%;
     font-weight: 600;
 }
-
 footer {
     text-align: center;
     margin-top: 10px;
     color: #6c757d;
     font-size: 12px;
 }
-
-/* ===== 搜索框 ===== */
 .treeSearch {
     width: 96%;
     padding: 6px 10px;
@@ -188,8 +163,6 @@ footer {
     border-color: #86b7fe;
     box-shadow: 0 0 0 0.15rem rgba(13,110,253,.15);
 }
-
-/* ===== 自定义树形控件（带统一图标） ===== */
 #consoleTree {
     padding: 3px 6px;
     font-size: 13px;
@@ -209,7 +182,6 @@ footer {
 .tree-row:hover {
     background-color: #eef1f4;
 }
-/* 图标列：固定宽度，保证所有行对齐 */
 .tree-icon {
     width: 18px;
     text-align: center;
@@ -217,25 +189,19 @@ footer {
     font-size: 12px;
     color: #90a4ae;
 }
-/* 文件夹图标颜色 */
 .tree-icon.folder { color: #ffa726; }
-/* 叶子/文件图标颜色 */
 .tree-icon.file { color: #42a5f5; }
-/* 日志类型图标颜色 */
 .tree-icon.log { color: #ab47bc; }
-
 .tree-label {
     flex: 1;
     padding-left: 2px;
     word-break: break-all;
 }
-/* 子节点缩进 */
 .tree-children {
     padding-left: 22px;
     border-left: 1px solid #e0e4e8;
     margin-left: 10px;
 }
-/* 选中态 */
 .tree-node.selected > .tree-row {
     background-color: #0d6efd;
     color: white;
@@ -278,7 +244,6 @@ window.onload = function(){
     gmconsole.init();
 };
 
-// ==================== 自定义树形控件（带图标） ====================
 var SimpleTree = {
     render: function(containerId, nodes) {
         var container = document.getElementById(containerId);
@@ -292,20 +257,16 @@ var SimpleTree = {
         container.appendChild(root);
     },
     
-    // 根据节点类型决定图标
     _getIcon: function(node, isOpen) {
-        // 日志类
         if (node.tag == "log") {
             return '<i class="fas fa-file-lines"></i>';
         }
-        // 有子节点 → 文件夹
         var hasChildren = node.nodes && node.nodes.length > 0;
         if (hasChildren) {
             return isOpen 
                 ? '<i class="fas fa-folder-open"></i>' 
                 : '<i class="fas fa-folder"></i>';
         }
-        // 叶子节点 → GM 命令用终端图标，其他用文件图标
         if (node.tag == "gm") {
             return '<i class="fas fa-terminal"></i>';
         }
@@ -316,13 +277,15 @@ var SimpleTree = {
         var wrap = document.createElement('div');
         wrap.className = 'tree-node';
         wrap.setAttribute('data-level', level);
+        wrap._node = node;
+        wrap._hasChildren = node.nodes && node.nodes.length > 0;
         
-        var hasChildren = node.nodes && node.nodes.length > 0;
+        var hasChildren = wrap._hasChildren;
         
         var row = document.createElement('div');
         row.className = 'tree-row';
         
-        // ★ 统一图标列（固定宽度，保证对齐）
+        // 图标列
         var iconSpan = document.createElement('span');
         var iconClass = 'tree-icon';
         if (hasChildren) iconClass += ' folder';
@@ -330,7 +293,9 @@ var SimpleTree = {
         else if (node.tag == "log") iconClass += ' log';
         else iconClass += ' file';
         iconSpan.className = iconClass;
-        iconSpan.innerHTML = SimpleTree._getIcon(node, true);
+        // 默认：第一级（level===0）展开，其他级别折叠
+        var defaultExpand = (level === 0);
+        iconSpan.innerHTML = SimpleTree._getIcon(node, defaultExpand);
         row.appendChild(iconSpan);
         
         // 节点标签
@@ -345,30 +310,68 @@ var SimpleTree = {
         if (hasChildren) {
             var children = document.createElement('div');
             children.className = 'tree-children';
+            children.style.display = defaultExpand ? 'block' : 'none'; // 第一级默认展开
             node.nodes.forEach(function(child) {
                 children.appendChild(SimpleTree._buildNode(child, level + 1));
             });
             wrap.appendChild(children);
             
-            // 点击 toggle：折叠/展开 + 切换文件夹图标
-            iconSpan.addEventListener('click', function(e) {
+            // 整行点击：切换展开/折叠 + 选中（手风琴效果）
+            row.addEventListener('click', function(e) {
                 e.stopPropagation();
+                
                 var isExpanded = children.style.display !== 'none';
-                children.style.display = isExpanded ? 'none' : 'block';
-                iconSpan.innerHTML = SimpleTree._getIcon(node, isExpanded ? false : true);
+                if (isExpanded) {
+                    // 折叠当前节点
+                    children.style.display = 'none';
+                    iconSpan.innerHTML = SimpleTree._getIcon(node, false);
+                } else {
+                    // 展开前关闭所有同级兄弟节点
+                    var parentWrap = wrap.parentElement;
+                    if (parentWrap) {
+                        var siblingNodes = parentWrap.querySelectorAll(':scope > .tree-node');
+                        siblingNodes.forEach(function(sib) {
+                            if (sib !== wrap) {
+                                var sibChildren = sib.querySelector(':scope > .tree-children');
+                                if (sibChildren && sibChildren.style.display !== 'none') {
+                                    sibChildren.style.display = 'none';
+                                    var sibIcon = sib.querySelector(':scope > .tree-row > .tree-icon');
+                                    if (sibIcon) {
+                                        if (sib._hasChildren) {
+                                            sibIcon.innerHTML = SimpleTree._getIcon(sib._node, false);
+                                        } else {
+                                            sibIcon.innerHTML = SimpleTree._getIcon(sib._node, false);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    // 展开当前节点
+                    children.style.display = 'block';
+                    iconSpan.innerHTML = SimpleTree._getIcon(node, true);
+                }
+                
+                // 选中节点
+                document.querySelectorAll('.tree-node.selected').forEach(function(el) {
+                    el.classList.remove('selected');
+                });
+                wrap.classList.add('selected');
+                var event = new CustomEvent('treeNodeSelected', { detail: node });
+                document.dispatchEvent(event);
+            });
+        } else {
+            // 叶子节点：点击只触发选中
+            row.addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.querySelectorAll('.tree-node.selected').forEach(function(el) {
+                    el.classList.remove('selected');
+                });
+                wrap.classList.add('selected');
+                var event = new CustomEvent('treeNodeSelected', { detail: node });
+                document.dispatchEvent(event);
             });
         }
-        
-        // 点击行：选中 + 派发事件
-        row.addEventListener('click', function(e) {
-            e.stopPropagation();
-            document.querySelectorAll('.tree-node.selected').forEach(function(el) {
-                el.classList.remove('selected');
-            });
-            wrap.classList.add('selected');
-            var event = new CustomEvent('treeNodeSelected', { detail: node });
-            document.dispatchEvent(event);
-        });
         
         return wrap;
     },
@@ -435,12 +438,15 @@ GMConsole.prototype = {
             var filtered = SimpleTree.filterNodes(oriTreeNodes, term);
             SimpleTree.render('consoleTree', filtered);
             // 搜索结果全部展开
-            document.querySelectorAll('.tree-children').forEach(function(el) {
-                el.style.display = 'block';
-            });
-            // 刷新所有文件夹图标为打开态
-            document.querySelectorAll('.tree-icon.folder').forEach(function(el) {
-                el.innerHTML = '<i class="fas fa-folder-open"></i>';
+            document.querySelectorAll('#consoleTree .tree-node').forEach(function(nodeEl) {
+                var children = nodeEl.querySelector(':scope > .tree-children');
+                if (children) {
+                    children.style.display = 'block';
+                    var icon = nodeEl.querySelector(':scope > .tree-row > .tree-icon');
+                    if (icon && nodeEl._hasChildren) {
+                        icon.innerHTML = SimpleTree._getIcon(nodeEl._node, true);
+                    }
+                }
             });
         });
 
