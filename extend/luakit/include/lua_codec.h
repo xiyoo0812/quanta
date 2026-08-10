@@ -298,13 +298,12 @@ namespace luakit {
         return getnum;
     }
 
-    inline int decode(lua_State* L, luabuf* buff) {
+    inline int decode(lua_State* L) {
         try {
-            buff->clean();
             size_t data_len = 0;
             cpchar buf = lua_tolstring(L, 1, &data_len);
-            buff->push_data((uint8_t*)buf, data_len);
-            return decode_slice(L, buff->get_slice());
+            slice input((uint8_t*)buf, data_len);
+            return decode_slice(L, &input);
         } catch (const std::exception& e){
             luaL_error(L, e.what());
         }
