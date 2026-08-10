@@ -82,9 +82,12 @@ function Webhook:collect_log(content, ...)
         end
         hookinfo.count = hookinfo.count + 1
         if now - hookinfo.time > MINUTE_10_S then
-            self:fire_hook(content, hookinfo.count)
-            self.hook_limit[hookpos] = { time = now, count = 0 }
-            return
+            hookinfo.time = now
+            if hookinfo.count >= 20 then
+                hookinfo.count = hookinfo.count - 20
+            else
+                hookinfo.count = 0
+            end
         end
         if hookinfo.count > LIMIT_COUNT then
             return
