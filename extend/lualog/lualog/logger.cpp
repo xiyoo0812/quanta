@@ -15,99 +15,89 @@ namespace logger {
 
     // class log_message
     // --------------------------------------------------------------------------------
-    void log_message::option(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int32_t line) {
-        time_ = system_clock::now();
-        suffix_ = std::format("[{}:{}]", source, line);
-        feature_ = feature;
-        level_ = level;
+    void log_message::option(log_level lvl, sstring&& msg, cpchar tag, cpchar feature, cpchar trace_id) {
         tag_ = tag;
-        msg_ = msg;
+        level_ = lvl;
+        feature_ = feature;
+        trace_id_ = trace_id;
+        time_ = system_clock::now();
+        msg_ = std::move(msg);
     }
 
-    void log_message::prepare(pchar secbuf, seconds& last) {
+    void log_message::format(pchar secbuf, seconds& last) {
         auto point = time_.time_since_epoch();
         if (auto now = duration_cast<seconds>(point); now != last) {
-            last = now;
             format_time(secbuf, "%Y-%m-%d %H:%M:%S", time_);
+            last = now;
         }
-        auto ms = duration_cast<milliseconds>(point) % 1000;
-        prefix_ = std::format("[{}.{:03}][{}][{}] ", secbuf, ms.count(), tag_, level_names[(int)level_]);
-    }
-
-    sstring log_message::format(bool prefix, bool suffix, bool crcn) {
-        return std::format("{}{}{}{}", prefix ? prefix_ : "", msg_, suffix ? suffix_ : "", crcn ? "\n" : "");
-    }
-
-    // class log_message_pool
-    // --------------------------------------------------------------------------------
-    sptr<log_message> log_message_pool::allocate() {
-        if (alloc_msgs_->empty()) {
-            if (free_msgs_->empty()) {
-                free_msgs_->reserve(QUEUE_SIZE);
-                alloc_msgs_->reserve(QUEUE_SIZE);
-                for (size_t i = 0; i < QUEUE_SIZE; ++i) {
-                    alloc_msgs_->push_back(std::make_shared<log_message>());
-                }
-            } else {
-                std::lock_guard<spin_mutex> lock(mutex_);
-                alloc_msgs_.swap(free_msgs_);
-            }
+        auto lvn = level_names[(int)level_];
+        uint32_t ms = duration_cast<milliseconds>(point).count() % 1000;
+        if (trace_id_.empty()) {
+            msg_ = std::format("[{}.{:03}][{}][{}] {}\n", secbuf, ms, tag_, lvn, msg_);
+        } else {
+            msg_ = std::format("[{}.{:03}][{}][{}][T-{}] {}\n", secbuf, ms, tag_, lvn, trace_id_, msg_);
         }
-        if (alloc_msgs_->empty()) {
-            return std::make_shared<log_message>();
-        }
-        auto logmsg = alloc_msgs_->back();
-        alloc_msgs_->pop_back();
-        return logmsg;
-    }
-
-    void log_message_pool::recycle(sptr<log_messages> logmsgs) {
-        std::lock_guard<spin_mutex> lock(mutex_);
-        size_t fspace = free_msgs_->capacity() - free_msgs_->size();
-        size_t n = std::min(fspace, logmsgs->size());
-        if (n == 0) return;
-        auto siter = logmsgs->begin();
-        free_msgs_->insert(free_msgs_->end(), std::make_move_iterator(siter), std::make_move_iterator(siter + n));
     }
 
     // class log_message_queue
     // --------------------------------------------------------------------------------
-    void log_message_queue::put(sptr<log_message> logmsg) {
-        std::lock_guard<spin_mutex> lock(mutex_);
-        write_msgs_->push_back(std::move(logmsg));
+    log_message* log_message_queue::allocate() {
+        size_t tail = tail_.load(std::memory_order_relaxed);
+        size_t head = head_.load(std::memory_order_acquire);
+        if (tail - head >= QUEUE_SIZE) return nullptr;
+        return &msgs_[tail % QUEUE_SIZE];
     }
 
-    sptr<log_messages> log_message_queue::timed_getv(bool running) {
-        if (running) {
-            if (write_msgs_->empty()) return nullptr;
-            std::unique_lock<spin_mutex> lock(mutex_, std::try_to_lock);
-            if (lock.owns_lock()) {
-                read_msgs_.swap(write_msgs_);
-                return read_msgs_;
-            }
-            return nullptr;
-        }
-        std::lock_guard<spin_mutex> lock(mutex_);
-        read_msgs_.swap(write_msgs_);
-        return read_msgs_;
+    void log_message_queue::commit() {
+        tail_.fetch_add(1, std::memory_order_release);
+    }
+
+    bool log_message_queue::empty() const {
+        size_t tail = tail_.load(std::memory_order_acquire);
+        size_t head = head_.load(std::memory_order_relaxed);
+        return head == tail;
+    }
+    
+    size_t log_message_queue::size() const {
+        size_t tail = tail_.load(std::memory_order_acquire);
+        size_t head = head_.load(std::memory_order_relaxed);
+        return tail - head;
+    }
+
+    bool log_message_queue::full() const {
+        size_t tail = tail_.load(std::memory_order_acquire);
+        size_t head = head_.load(std::memory_order_relaxed);
+        return (tail - head + 1) % QUEUE_SIZE == tail;
+    }
+
+    log_message* log_message_queue::pop() {
+        size_t head = head_.load(std::memory_order_relaxed);
+        size_t tail = tail_.load(std::memory_order_acquire);
+        if (head == tail) return nullptr;
+        log_message* logmsg = &msgs_[head % QUEUE_SIZE];
+        head_.fetch_add(1, std::memory_order_release);
+        return logmsg;
     }
 
     // class log_dest
     // --------------------------------------------------------------------------------
-    void log_dest::write(sptr<log_message> msg) {
+    void log_dest::write(log_message* msg) {
         line_++;
-        auto logtxt = msg->format(prefix_, suffix_, crcn());
-        if (output_) output_(logtxt.c_str(), logtxt.size(), (int)msg->level());
-        else raw_write(logtxt, msg->level());
+        if (!output_) {
+            raw_write(msg);
+            return;
+        }
+        auto data = msg->data();
+        output_(data.data(), data.size(), msg->level());
     }
 
     // class stdio_dest
     // --------------------------------------------------------------------------------
-    void stdio_dest::raw_write(vstring logtxt, log_level lvl) {
+    void stdio_dest::raw_write(log_message* msg) {
 #ifdef WIN32
-        std::cout << level_colors[(int)lvl] << logtxt << "\x1b[0m" << std::endl;
+        std::cout << level_colors[msg->level()] << msg->data() << "\x1b[0m";
 #else
-        std::cout << logtxt << std::endl;
+        std::cout << msg->data();
 #endif
     }
 
@@ -128,14 +118,15 @@ namespace logger {
         size_ = 0;
     }
 
-    void log_file_base::raw_write(vstring logtxt, log_level lvl) {
-        size_t size = logtxt.size();
+    void log_file_base::raw_write(log_message* msg) {
+        auto data = msg->data();
+        auto size = data.size();
         if (size_ + size >= USHRT_MAX) flush();
         if (size >= USHRT_MAX) {
-            file_->write(log_buf_, size);
+            file_->write(data.data(), size);
             return;
         }
-        memcpy(log_buf_ + size_, logtxt.data(), size);
+        memcpy(log_buf_ + size_, data.data(), size);
         size_ += size;
     }
 
@@ -216,7 +207,7 @@ namespace logger {
     }
 
     bool log_service::add_dest(cpchar feature) {
-        std::lock_guard<spin_mutex> lock(mutex_);
+        std::unique_lock lock(mutex_);
         if (!dest_features_.contains(feature)) {
             sptr<log_dest> logfile = nullptr;
             fspath logger_path = build_path(feature);
@@ -234,13 +225,13 @@ namespace logger {
         return true;
     }
 
-    bool log_service::add_lvl_dest(log_level log_lvl) {
+    bool log_service::add_lvl_dest(size_t log_lvl) {
         if (!dest_lvls_.contains(log_lvl)) {
             sstring feature = level_names[(int)log_lvl];
             std::transform(feature.begin(), feature.end(), feature.begin(), [](auto c) { return std::tolower(c); });
             fspath logger_path = build_path(service_.c_str());
             logger_path.append(feature);
-            std::lock_guard<spin_mutex> lock(mutex_);
+            std::unique_lock lock(mutex_);
             if (rolling_type_ == DAILY) {
                 auto logfile = std::make_shared<log_dailyrollingfile>(logger_path, feature, max_line_);
                 dest_lvls_.insert(std::make_pair(log_lvl, logfile));
@@ -253,14 +244,13 @@ namespace logger {
     }
 
     bool log_service::add_file_dest(cpchar feature, cpchar fname) {
-        std::lock_guard<spin_mutex> lock(mutex_);
+        std::unique_lock lock(mutex_);
         if (!dest_features_.contains(feature)) {
             try {
                 fspath logger_path = build_path(service_.c_str());
                 create_directories(logger_path);
                 auto logfile = std::make_shared<log_file_base>(max_line_);
                 logfile->create(logger_path, fname);
-                logfile->ignore_prefix(true);
                 dest_features_.insert(std::make_pair(feature, logfile));
             } catch (...) {}
         }
@@ -268,35 +258,23 @@ namespace logger {
     }
 
     void log_service::del_agent(log_agent* agent) {
-        std::lock_guard<spin_mutex> lock(mutex_);
+        std::unique_lock lock(mutex_);
         agents_.erase(agent);
     }
 
     void log_service::add_agent(log_agent* agent) {
-        std::lock_guard<spin_mutex> lock(mutex_);
+        std::unique_lock lock(mutex_);
         agents_.emplace(agent);
     }
 
     void log_service::del_dest(cpchar feature) {
-        std::lock_guard<spin_mutex> lock(mutex_);
+        std::unique_lock lock(mutex_);
         dest_features_.erase(feature);
     }
 
-    void log_service::del_lvl_dest(log_level log_lvl) {
-        std::lock_guard<spin_mutex> lock(mutex_);
+    void log_service::del_lvl_dest(size_t log_lvl) {
+        std::unique_lock lock(mutex_);
         dest_lvls_.erase(log_lvl);
-    }
-
-    void log_service::ignore_prefix(cpchar feature, bool prefix) {
-        if (auto it = dest_features_.find(feature); it != dest_features_.end()) {
-            it->second->ignore_prefix(prefix);
-        }
-    }
-
-    void log_service::ignore_suffix(cpchar feature, bool suffix) {
-        if (auto it = dest_features_.find(feature); it != dest_features_.end()) {
-            it->second->ignore_suffix(suffix);
-        }
     }
 
     log_service::log_service(){
@@ -316,7 +294,6 @@ namespace logger {
     }
 
     void log_service::flush() {
-        std::lock_guard<spin_mutex> lock(mutex_);
         if (main_dest_) main_dest_->flush();
         if (std_dest_) std_dest_->flush();
         for (auto dest : dest_features_)
@@ -332,11 +309,10 @@ namespace logger {
                 running_ = false;
             }
             bool empty = true;
+            std::shared_lock lock(mutex_);
             for (auto& agent : agents_) {
-                auto logmsgs = agent->timed_getv(running_);
-                if (logmsgs == nullptr) continue;
-                for (auto logmsg : *logmsgs) {
-                    logmsg->prepare(time_buf_, last_time_);
+                while (!agent->empty()) {
+                    auto logmsg = agent->get_message();
                     if (log_std_) std_dest_->write(logmsg);
                     if (auto it = dest_features_.find(logmsg->feature()); it != dest_features_.end()) {
                         it->second->write(logmsg);
@@ -346,15 +322,13 @@ namespace logger {
                         it->second->write(logmsg);
                     }
                     main_dest_->write(logmsg);
+                    empty = false;
                 }
-                empty = false;
-                agent->recycle(logmsgs);
-                logmsgs->clear();
             }
             if (empty) {
                 if (!running_) break;
-                std::this_thread::sleep_for(milliseconds(50));
-            } else {
+                std::unique_lock<std::mutex> lock(cvmutex_);
+                cv_.wait_for(lock, milliseconds(50));
                 flush();
             }
         }
@@ -362,13 +336,20 @@ namespace logger {
 
     log_agent::log_agent() {
         logmsgque_ = std::make_shared<log_message_queue>();
-        message_pool_ = std::make_shared<log_message_pool>();
     }
 
     log_agent::~log_agent() {
         if (auto service = service_.lock(); service) {
             service->del_agent(this);
         }
+    }
+
+    log_message* log_agent::get_message() {
+        auto message = logmsgque_->pop();
+        if (message) {
+            message->format(time_buf_, last_time_);
+        }
+        return message;
     }
 
     void log_agent::attach(wptr<log_service> service) {
@@ -378,11 +359,14 @@ namespace logger {
         }
     }
 
-    void log_agent::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar source, int line) {
+    void log_agent::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar trace_id) {
         if (!is_filter(level)) {
-            auto logmsg_ = message_pool_->allocate();
-            logmsg_->option(level, std::move(msg), tag, feature, source, line);
-            logmsgque_->put(logmsg_);
+            auto logmsg_ = logmsgque_->allocate();
+            if (logmsg_){
+                logmsg_->option(level, std::move(msg), tag, feature, trace_id);
+                logmsgque_->commit();
+                service_.lock()->notify_one();
+            }
         }
     }
 

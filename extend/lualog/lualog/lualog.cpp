@@ -62,13 +62,12 @@ namespace logger {
     }
 
     int zformat(lua_State* L, log_level lvl, cpchar tag, cpchar trace_id, cpchar feature, size_t flag, sstring&& msg) {
-        if (trace_id) msg = std::format("[T-{}]{}", trace_id, msg);
         if ((flag & LOG_FLAG_MONITOR) == LOG_FLAG_MONITOR) {
             lua_pushlstring(L, msg.c_str(), msg.size());
-            s_agent->output(lvl, std::move(msg), tag, feature);
+            s_agent->output(lvl, std::move(msg), tag, feature, trace_id);
             return 1;
         }
-        s_agent->output(lvl, std::move(msg), tag, feature);
+        s_agent->output(lvl, std::move(msg), tag, feature, trace_id);
         return 0;
     }
 
@@ -165,11 +164,9 @@ namespace logger {
         lualog.set_function("filter", [](int lv, bool on) { s_agent->filter((log_level)lv, on); });
         lualog.set_function("is_filter", [](int lv) { return s_agent->is_filter((log_level)lv); });
         lualog.set_function("del_dest", [](cpchar feature) { s_logger->del_dest(feature); });
-        lualog.set_function("del_lvl_dest", [](int lv) { s_logger->del_lvl_dest((log_level)lv); });
-        lualog.set_function("add_lvl_dest", [](int lv) { return s_logger->add_lvl_dest((log_level)lv); });
+        lualog.set_function("del_lvl_dest", [](size_t lv) { s_logger->del_lvl_dest(lv); });
+        lualog.set_function("add_lvl_dest", [](size_t lv) { return s_logger->add_lvl_dest(lv); });
         lualog.set_function("set_rolling_type", [](rolling_type type) { s_logger->set_rolling_type(type); });
-        lualog.set_function("ignore_prefix", [](cpchar feature, bool prefix) { s_logger->ignore_prefix(feature, prefix); });
-        lualog.set_function("ignore_suffix", [](cpchar feature, bool suffix) { s_logger->ignore_suffix(feature, suffix); });
         lualog.set_function("add_dest", [](cpchar feature) { return s_logger->add_dest(feature); });
         lualog.set_function("add_file_dest", [](cpchar feature, cpchar fname) { return s_logger->add_file_dest(feature, fname); });
         lualog.set_function("option", [](fspath log_path, cpchar service, cpchar index) { return s_logger->option(log_path, service, index); });

@@ -50,4 +50,5 @@ function quanta.trace_id()
     if chain then
         return chain.hex
     end
+    return ""
 end

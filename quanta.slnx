@@ -23,9 +23,6 @@
      <Project Path="extend\lprofile\lprofile.vcxproj" Id="8E8841F6-C7F8-DE1A-13D6-267C73A59A6B">
         <BuildDependency Project="extend\lua\lualib.vcxproj"/>
      </Project>
-     <Project Path="extend\lsmdb\lsmdb.vcxproj" Id="799C6974-0FF3-C066-4E2D-272573765A1B">
-        <BuildDependency Project="extend\lua\lualib.vcxproj"/>
-     </Project>
      <Project Path="extend\lstdfs\lstdfs.vcxproj" Id="8667E717-B97C-935C-4FDF-2878AF7DAB1A">
         <BuildDependency Project="extend\lua\lualib.vcxproj"/>
      </Project>
