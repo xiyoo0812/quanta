@@ -16,33 +16,36 @@ using environ_map = std::unordered_map<sstring, sstring>;
 
 namespace lworker {
 
+    const size_t WORKER_CAPACITY = 1024 * 1024 * 8;
+
     class worker_codec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
-            if (!m_slice) return 0;
-            uint32_t* packet_len = (uint32_t*)m_slice->peek(sizeof(uint32_t));
-            if (!packet_len) return 0;
-            if (m_packet_len > 0xffffff) return -1;
-            if (m_packet_len > data_len) return 0;
-            if (!m_slice->peek(m_packet_len)) return 0;
-            return m_packet_len;
+        virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
+            m_buf->clean();
+            auto base = m_buf->hold_place(sizeof(uint16_t));
+            int n = lua_gettop(L) - index + 1;
+            encode_slice(L, m_buf, index, n);
+            auto date_len = m_buf->size();
+            m_buf->copy(base, (uint8_t*)&date_len, sizeof(uint16_t));
+            return m_buf->data(len);
         }
     };
 
-    static slice* read_slice(std::shared_ptr<luabuf> buff, size_t* pack_len) {
-        uint8_t* plen = buff->peek_data(sizeof(uint32_t));
+    static slice* read_slice(luabuf& buff) {
+        uint16_t* plen = (uint16_t*)buff.peek_data(sizeof(uint16_t));
         if (plen) {
-            uint32_t len = *(uint32_t*)plen;
-            uint8_t* pdata = buff->peek_data(len);
+            buff.pop_size(sizeof(uint16_t));
+            uint16_t len = *plen - sizeof(uint16_t);
+            uint8_t* pdata = buff.peek_data(len);
             if (pdata) {
-                *pack_len = sizeof(uint32_t) + len;
-                return buff->get_slice(len, sizeof(uint32_t));
+                auto slice = buff.get_slice(len);
+                buff.pop_size(len);
+                return slice;
             }
         }
         return nullptr;
     }
 
-    class worker;
     class ischeduler {
     public:
         virtual int broadcast(lua_State* L) = 0;
@@ -84,41 +87,35 @@ namespace lworker {
             m_lua.set_path(field, epath.c_str());
         }
 
-        bool call(uint8_t* data, size_t data_len) {
-            std::lock_guard<spin_mutex> lock(m_mutex);
-            uint8_t* target = m_write_buf->peek_space(data_len + sizeof(uint32_t));
-            if (target) {
-                m_write_buf->write<uint32_t>(data_len);
-                m_write_buf->push_data(data, data_len);
-                return true;
+        int call(lua_State* L, uint8_t* data, size_t data_len) {
+            if (data_len > USHRT_MAX) {
+                lua_pushboolean(L, false);
+                lua_pushstring(L, "send data large than USHRT_MAX!");
             }
-            return false;
+            if (m_mbsc.push(data, data_len)) {
+                lua_pushboolean(L, true);
+                return 1;
+            }
+            lua_pushboolean(L, false);
+            lua_pushstring(L, "send buff full!");
+            return 2;
         }
 
         void update(uint64_t clock_ms) {
-            if (m_read_buf->empty()) {
-                if (m_write_buf->empty()) {
-                    return;
-                }
-                std::lock_guard<spin_mutex> lock(m_mutex);
-                m_read_buf.swap(m_write_buf);
-            }
-            size_t plen = 0;
-            cpchar ns = m_namespace.c_str();
-            slice* slice = read_slice(m_read_buf, &plen);
+            size_t size = m_mbsc.size();
+            if (size == 0) return;
+            // peek all data
+            m_dec.clean();
+            auto data = m_dec.peek_space(size);
+            m_mbsc.pop(data, size);
+            m_dec.pop_space(size);
+            // process all data
+            slice* slice = read_slice(m_dec);
+            auto ns = m_namespace.c_str();
             while (slice) {
                 m_codec.set_slice(slice);
-                try {
-                    m_lua.table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
-                } catch (const std::length_error&) {
-                    m_read_buf->pop_size(m_codec.get_packet_len());
-                    break;
-                } catch (...) {
-                    m_read_buf->clean();
-                    break;
-                }
-                m_read_buf->pop_size(m_codec.get_packet_len());
-                slice = read_slice(m_read_buf, &plen);
+                m_lua.table_call(ns, "on_worker", nullptr, &m_codec, std::tie());
+                slice = read_slice(m_dec);
                 if (luakit::steady_ms() - clock_ms > 100) break;
             }
         }
@@ -153,7 +150,7 @@ namespace lworker {
 
         void run(std::stop_token stoken){
             LOG_INIT(m_lua.L());
-            m_codec.set_buff(&m_buf);
+            m_codec.set_buff(&m_enc);
             auto quanta = m_lua.new_table(m_namespace.c_str());
             auto tid = std::this_thread::get_id();
             quanta.set("thread", m_name);
@@ -203,15 +200,13 @@ namespace lworker {
         }
 
     private:
-        luabuf m_buf;
         kit_state m_lua;
-        spin_mutex m_mutex;
+        luabuf m_enc, m_dec;
         worker_codec m_codec;
         environ_map m_environs = {};
         ischeduler* m_schedulor = nullptr;
+        mpscbuff<WORKER_CAPACITY> m_mbsc;
         sstring m_name, m_namespace, m_platform;
-        std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
-        std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();
         std::jthread m_thread;
         bool m_running = true;
     };

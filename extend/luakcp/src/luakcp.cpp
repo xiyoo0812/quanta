@@ -1,6 +1,7 @@
 #define LUA_LIB
 
 #ifdef _MSC_VER
+#define NOMINMAX
 #include <Ws2tcpip.h>
 #include <windows.h>
 #pragma comment(lib, "Ws2_32.lib")

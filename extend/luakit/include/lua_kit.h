@@ -2,6 +2,7 @@
 
 #include "lua_buff.h"
 #include "lua_time.h"
+#include "lua_ring.h"
 #include "lua_stack.h"
 #include "lua_codec.h"
 #include "lua_table.h"

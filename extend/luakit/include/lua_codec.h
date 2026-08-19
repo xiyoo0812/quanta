@@ -45,9 +45,9 @@ namespace luakit {
         buff->push_data((cpbyte)data, len);
     }
 
-    inline int8_t find_index(vstring& str) {
+    inline int8_t find_index(cpchar sptr) {
         for (int i = 0; i < t_sshares.size(); ++i) {
-            if (t_sshares[i] == str) return i;
+            if (t_sshares[i].data() == sptr) return i;
         }
         return -1;
     }
@@ -93,12 +93,11 @@ namespace luakit {
             string_write(buff, ptr, sz);
             return;
         }
-        vstring value(ptr, sz);
-        int8_t sindex = find_index(value);
+        int8_t sindex = find_index(ptr);
         if (sindex < 0){
             if (t_sshares.size() < max_share_string) {
                 value_encode(buff, type_istring);
-                t_sshares.push_back(value);
+                t_sshares.push_back(vstring(ptr, sz));
             } else {
                 value_encode(buff, type_string8);
             }
@@ -178,7 +177,6 @@ namespace luakit {
         if (num > UCHAR_MAX || num < 0) {
             luaL_error(L, "encode can't pack too many args");
         }
-        buff->clean();
         t_sshares.clear();
         buff->write<uint8_t>(num);
         for (int i = 0; i < num; i++) {
@@ -188,6 +186,7 @@ namespace luakit {
     }
 
     inline int encode(lua_State* L, luabuf* buff) {
+        buff->clean();
         size_t data_len = 0;
         slice* slice = encode_slice(L, buff, 1, 1);
         cpchar data = (cpchar)slice->data(&data_len);
@@ -355,7 +354,7 @@ namespace luakit {
         serialize_crcn(buff, depth, line);
         if (lua_type(L, -2) == LUA_TNUMBER) {
             lua_pushvalue(L, -2);
-            serialize_quote(buff, lua_tostring(L, -2), "[", "]=");
+            serialize_quote(buff, lua_tostring(L, -1), "[", "]=");
             lua_pop(L, 1);
         } else if (lua_type(L, -2) == LUA_TSTRING) {
             vstring val = lua_to_native<vstring>(L, -2);    
@@ -494,11 +493,16 @@ namespace luakit {
     class codec_base {
     public:
         virtual ~codec_base() {};
-        virtual int load_packet(size_t data_len) = 0;
+        virtual int load_packet(size_t data_len) {
+            if (!m_slice) return 0;
+            m_packet_len = data_len;
+            return data_len;
+        }
         virtual size_t decode(lua_State* L) {
             return decode_slice(L, m_slice);
         }
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
+            m_buf->clean();
             int n = lua_gettop(L) - index + 1;
             slice* slice = encode_slice(L, m_buf, index, n);
             return slice->data(len);
@@ -550,6 +554,7 @@ namespace luakit {
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
+            m_buf->clean();
             slice* slice = encode_slice(L, m_buf, index, 1);
             return slice->data(len);
         }

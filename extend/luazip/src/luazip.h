@@ -59,12 +59,6 @@ namespace luazip {
 
     class zipcodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
-            if (!m_slice) return 0;
-            m_packet_len = data_len;
-            return data_len;
-        }
-
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             m_buf->clean();
             if (m_tag == "gzip") return encode_gzip(L, index, len, MZ_DEFAULT_LEVEL);

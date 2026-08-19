@@ -14,7 +14,6 @@
 #include "lua_kit.h"
 
 #ifdef WIN32
-#define NOMINMAX
 #define getpid _getpid
 #else
 #include <unistd.h>
