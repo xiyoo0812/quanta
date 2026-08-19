@@ -208,11 +208,6 @@ namespace luatls {
             m_inbuf.clean();
         }
 
-        virtual int load_packet(size_t data_len) override {
-            if (!m_slice) return 0;
-            return data_len;
-        }
-
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) override {
             if (!is_handshake) {
                 tls_handshake(L);

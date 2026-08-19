@@ -1,6 +1,7 @@
 #ifndef __SCHEDULER_H__
 #define __SCHEDULER_H__
 #include <map>
+#include <shared_mutex>
 
 #include "worker.h"
 
@@ -21,11 +22,11 @@ namespace lworker {
             lua_table quanta = m_lua->get<lua_table>(ns.data());
             m_platform = quanta.get<sstring>("platform");
             m_environs = quanta.get<environ_map>("environs");
-            m_codec.set_buff(&m_buf);
+            m_codec.set_buff(&m_enc);
         }
 
         std::shared_ptr<worker> find_worker(vstring name) {
-            std::lock_guard<spin_mutex> lock(m_mutex);
+            std::shared_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it != m_worker_map.end()) {
                 return it->second;
             }
@@ -33,7 +34,7 @@ namespace lworker {
         }
 
         bool startup(vstring name, environ_map& envs, vstring conf) {
-            std::lock_guard<spin_mutex> lock(m_mutex);
+            std::unique_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it == m_worker_map.end()) {
                 auto workor = std::make_shared<worker>(this, name, m_namespace, m_platform);
                 m_worker_map.insert(std::make_pair(name, workor));
@@ -49,41 +50,42 @@ namespace lworker {
 
         int broadcast(lua_State* L) {
             size_t data_len;
-            uint8_t* data = m_codec.encode(L, 2, &data_len);
+            uint8_t* data = m_codec.encode(L, 1, &data_len);
             if (data) {
-                std::lock_guard<spin_mutex> lock(m_mutex);
-                for (auto it : m_worker_map) {
-                    it.second->call(data, data_len);
+                std::shared_lock lock(m_mutex);
+                for (auto& [_, worker] : m_worker_map) {
+                    worker->call(L, data, data_len);
                 }
             }
             return 0;
         }
 
         int call(lua_State* L, vstring name, uint8_t* data, size_t data_len) {
-            if (data) {
-                if (name == "master") {
-                    lua_pushboolean(L, call(data, data_len));
-                    return 1;
-                }
-                auto workor = find_worker(name);
-                if (workor) {
-                    lua_pushboolean(L, workor->call(data, data_len));
-                    return 1;
-                }
+            if (name == "master") {
+                return call(L, data, data_len);
+            }
+            auto workor = find_worker(name);
+            if (workor) {
+                return workor->call(L, data, data_len);
             }
             lua_pushboolean(L, false);
-            return 1;
+            lua_pushstring(L, "worker not found!");
+            return 2;
         }
 
-        bool call(uint8_t* data, size_t data_len) {
-            std::lock_guard<spin_mutex> lock(m_mutex);
-            uint8_t* target = m_write_buf->peek_space(data_len + sizeof(uint32_t));
-            if (target) {
-                m_write_buf->write<uint32_t>(data_len);
-                m_write_buf->push_data(data, data_len);
-                return true;
+        int call(lua_State* L, uint8_t* data, size_t data_len) {
+            if (data_len > USHRT_MAX) {
+                lua_pushboolean(L, false);
+                lua_pushstring(L, "send data large than USHRT_MAX!");
+                return 2;
             }
-            return false;
+            if (m_mbsc.push(data, data_len)) {
+                lua_pushboolean(L, true);
+                return 1;
+            }
+            lua_pushboolean(L, false);
+            lua_pushstring(L, "send buff full!");
+            return 2;
         }
 
         void update(uint64_t clock_ms) {
@@ -91,35 +93,26 @@ namespace lworker {
                 m_last_tick = clock_ms;
                 check_worker();
             }
-            if (m_read_buf->empty()) {
-                if (m_write_buf->empty()) {
-                    return;
-                }
-                std::lock_guard<spin_mutex> lock(m_mutex);
-                m_read_buf.swap(m_write_buf);
-            }
-            size_t plen = 0;
-            const char* ns = m_namespace.c_str();
-            slice* slice = read_slice(m_read_buf, &plen);
+            size_t size = m_mbsc.size();
+            if (size == 0) return;
+            // peek all data
+            m_dec.clean();
+            auto data = m_dec.peek_space(size);
+            m_mbsc.pop(data, size);
+            m_dec.pop_space(size);
+            // process all data
+            slice* slice = read_slice(m_dec);
+            auto ns = m_namespace.c_str();
             while (slice) {
                 m_codec.set_slice(slice);
-                try {
-                    m_lua->table_call(ns, "on_scheduler", nullptr, &m_codec, std::tie());
-                } catch (const std::length_error&) {
-                    m_read_buf->pop_size(m_codec.get_packet_len());
-                    break;
-                } catch (...) {
-                    m_read_buf->clean();
-                    break;
-                }
-                m_read_buf->pop_size(m_codec.get_packet_len());
+                m_lua->table_call(ns, "on_scheduler", nullptr, &m_codec, std::tie());
+                slice = read_slice(m_dec);
                 if (luakit::steady_ms() - clock_ms > 100) break;
-                slice = read_slice(m_read_buf, &plen);
             }
         }
 
         void check_worker() {
-            std::lock_guard<spin_mutex> lock(m_mutex);
+            std::unique_lock lock(m_mutex);
             for (auto& [name, worker] : m_worker_map) {
                 if (!worker->running()) {
                     worker->stop();
@@ -130,7 +123,7 @@ namespace lworker {
         }
 
         void stop(vstring name) {
-            std::lock_guard<spin_mutex> lock(m_mutex);
+            std::unique_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it != m_worker_map.end()) {
                 it->second->stop();
                 m_worker_map.erase(it);
@@ -138,7 +131,7 @@ namespace lworker {
         }
 
         void shutdown() {
-            std::lock_guard<spin_mutex> lock(m_mutex);
+            std::unique_lock lock(m_mutex);
             for (auto it : m_worker_map) {
                 it.second->stop();
             }
@@ -146,15 +139,14 @@ namespace lworker {
         }
 
     private:
-        luabuf m_buf;
-        spin_mutex m_mutex;
+        luabuf m_enc, m_dec;
         worker_codec m_codec;
         uint64_t m_last_tick = 0;
         environ_map m_environs = {};
+        std::shared_mutex m_mutex;
         sstring m_namespace, m_platform;
+        mpscbuff<WORKER_CAPACITY> m_mbsc;
         std::shared_ptr<kit_state> m_lua = nullptr;
-        std::shared_ptr<luabuf> m_read_buf = std::make_shared<luabuf>();
-        std::shared_ptr<luabuf> m_write_buf = std::make_shared<luabuf>();
         std::map<sstring, std::shared_ptr<worker>, std::less<>> m_worker_map;
     };
 }

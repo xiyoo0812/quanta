@@ -4,7 +4,7 @@
 
 namespace luakit {
 
-    const size_t BUFFER_DEF = 8 * 1024;         //8K
+    const size_t BUFFER_DEF = 64 * 1024;        //64K
     const size_t BUFFER_MAX = 16 * 1024 * 1024; //16M
     const size_t ALIGN_SIZE = 16;               //水位
 
@@ -39,10 +39,6 @@ namespace luakit {
         }
 
         inline void clean() {
-            size_t data_len = m_tail - m_head;
-            if (m_size > m_max && data_len < BUFFER_DEF) {
-                _resize(m_size / 2);
-            }
             m_head = m_tail = m_data;
         }
 

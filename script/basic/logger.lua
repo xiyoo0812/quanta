@@ -112,9 +112,8 @@ end
 
 for lvl, conf in pairs(LOG_OPTIONS) do
     local lvl_name, flag = tunpack(conf)
-    logfeature[lvl_name] = function(feature, ign_prefix)
+    logfeature[lvl_name] = function(feature)
         log.add_dest(feature)
-        log.ignore_prefix(feature, ign_prefix)
         return function(fmt, ...)
             logger_output(flag, feature, lvl, lvl_name, fmt, ...)
         end

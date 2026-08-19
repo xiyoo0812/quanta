@@ -66,6 +66,11 @@ namespace luakit {
         if constexpr (std::is_same_v<T, bool>) {
             return lua_toboolean(L, i);
         }
+        int is_integer = 0;
+        lua_Integer value = lua_tointegerx(L, i, &is_integer);
+        if (is_integer || lua_type(L, i) != LUA_TNUMBER) {
+            return (T)value;
+        }
         return (T)lua_tonumber(L, i);
     }
 
