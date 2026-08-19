@@ -16,11 +16,11 @@ local THREAD_NAME   = quanta.thread
 local LOG_LEVEL     = log.LOG_LEVEL
 
 local function log_info(fmt, ...)
-    lprint(LOG_LEVEL.DEBUG, 0, THREAD_NAME, nil, "", fmt, ...)
+    lprint(LOG_LEVEL.DEBUG, 0, THREAD_NAME, "", "", fmt, ...)
 end
 
 local function log_err(fmt, ...)
-    lprint(LOG_LEVEL.ERROR, 0, THREAD_NAME, nil, "", fmt, ...)
+    lprint(LOG_LEVEL.ERROR, 0, THREAD_NAME, "", "", fmt, ...)
 end
 
 --设置日志路径和服务

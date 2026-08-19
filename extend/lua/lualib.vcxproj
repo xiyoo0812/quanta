@@ -31,7 +31,6 @@
     <ClInclude Include="lua\lstate.h" />
     <ClInclude Include="lua\lstring.h" />
     <ClInclude Include="lua\ltable.h" />
-    <ClInclude Include="lua\ltests.h" />
     <ClInclude Include="lua\ltm.h" />
     <ClInclude Include="lua\lua.h" />
     <ClInclude Include="lua\luaconf.h" />

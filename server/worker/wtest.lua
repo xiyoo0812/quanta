@@ -20,7 +20,7 @@ quanta.startup(function()
     quanta.qtest1 = WorkerTest()
     local timer_mgr = quanta.get("timer_mgr")
     timer_mgr:loop(2000, function()
-        local ok, res1, res2 = quanta.call_master("test_master_rpc", 1, 2, 3, 4)
+        local ok, res1, res2 = quanta.call_master("test_master_rpc", 4, 3, 2, 1)
         if not ok then
             log_err("[worker][call_master] test_master_rpc failed: {}", res1)
             return

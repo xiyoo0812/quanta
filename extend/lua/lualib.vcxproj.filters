@@ -61,9 +61,6 @@
     <ClInclude Include="lua\ltable.h">
       <Filter>lua</Filter>
     </ClInclude>
-    <ClInclude Include="lua\ltests.h">
-      <Filter>lua</Filter>
-    </ClInclude>
     <ClInclude Include="lua\ltm.h">
       <Filter>lua</Filter>
     </ClInclude>

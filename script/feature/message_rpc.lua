@@ -2,8 +2,6 @@
 
 local FLAG_RES  = luabus.proto_flag.RES
 
-local SUCCESS   = quanta.enum("KernCode", "SUCCESS")
-
 local Message   = import("feature/message.lua")
 
 local MessageRpc = class(Message)
@@ -26,7 +24,7 @@ function MessageRpc:callback(...)
 end
 
 function MessageRpc:on_defer()
-    self:callback(SUCCESS)
+    self:callback(true)
 end
 
 return MessageRpc
