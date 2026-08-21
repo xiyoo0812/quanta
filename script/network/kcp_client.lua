@@ -14,7 +14,7 @@ local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
-local Message           = import("feature/message_pb.lua")
+local Message           = import("feature/message.lua")
 
 local UNREACHABLE       = quanta.enum("KernCode", "UNREACHABLE")
 local PARAM_ERROR       = quanta.enum("KernCode", "PARAM_ERROR")

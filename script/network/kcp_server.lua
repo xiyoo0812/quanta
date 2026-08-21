@@ -20,7 +20,7 @@ local INCR              = quanta.enum("PortMode", "INCR")
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_PARAMS      = protobuf_mgr:error_code("FRAME_PARAMS")
 
-local Message           = import("feature/message_pb.lua")
+local Message           = import("feature/message.lua")
 
 -- CS协议会话对象管理器
 local KcpServer = class()

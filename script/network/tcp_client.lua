@@ -27,7 +27,7 @@ local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local UNREACHABLE       = quanta.enum("KernCode", "UNREACHABLE")
 local PARAM_ERROR       = quanta.enum("KernCode", "PARAM_ERROR")
 
-local Message           = import("feature/message_pb.lua")
+local Message           = import("feature/message.lua")
 
 local TcpClient = class()
 local prop = property(TcpClient)
