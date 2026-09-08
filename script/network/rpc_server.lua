@@ -24,8 +24,6 @@ local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local INDUCE            = quanta.enum("PortMode", "INDUCE")
 local INCR              = quanta.enum("PortMode", "INCR")
 
-local Message           = import("feature/message_rpc.lua")
-
 local RpcServer = singleton()
 
 local prop = property(RpcServer)

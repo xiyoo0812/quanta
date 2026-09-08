@@ -26,8 +26,6 @@ local RPC_TIMEOUT       = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
 
-local Message           = import("feature/message_rpc.lua")
-
 local RpcClient = class()
 local prop = property(RpcClient)
 prop:reader("id", 0)
@@ -104,9 +102,9 @@ function RpcClient:dispatch_rpc_message(socket, recv_len, session_id, flag, sour
     -- 事件分发
     if flag & FLAG_REQ == FLAG_REQ then
         local message<close> = Message(socket, session_id, recv_len, source, rpc)
-        local ok, err = pcall(event_mgr.notify_message, event_mgr, rpc, message, ...)
-        if not ok then
-            log_fatal("[RpcClient][dispatch_rpc_message] rpc {} call failed: {}", rpc, err)
+        local rpc_datas = event_mgr:notify_listener(rpc, ...)
+        if not rpc_datas then
+            log_fatal("[RpcClient][dispatch_rpc_message] rpc {} call failed: {}", rpc)
             message:callback(false, "dispatch rpc message field!")
         end
         return

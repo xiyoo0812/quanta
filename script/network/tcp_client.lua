@@ -95,8 +95,6 @@ function TcpClient:dispatch_pb_message(socket, message, cmd_id, session_id)
 end
 
 function TcpClient:dispatch_message(socket, message, cmd_id, session_id, flag)
-    -- 事件统计
-    event_mgr:notify_trigger("on_recv_tcp_message", message)
     -- 错误处理
     if flag == FLAG_UNREACH or flag == FLAG_BAD then
         log_err("[TcpClient][dispatch_message] cmd_id {} is unreachable in router!", cmd_id)
@@ -148,6 +146,9 @@ function TcpClient:connect()
     end
     socket.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, body, err)
         if body then
+            -- 事件统计
+            event_mgr:notify_trigger("on_recv_tcp_message", cmd_id, recv_len)
+            -- 事件分发
             local message = Message(socket, session_id, recv_len, body, cmd_id, flag, target_id)
             thread_mgr:fork(self.dispatch_message, nil, self, socket, message, cmd_id, session_id, flag)
             return
