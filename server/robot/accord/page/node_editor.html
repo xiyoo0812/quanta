@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Robot 节点编辑器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#1e1e1e;color:#ccc}
+
+/* ===== 顶栏 ===== */
+#toolbar{height:48px;background:#252526;display:flex;align-items:center;padding:0 12px;gap:6px;border-bottom:1px solid #3e3e42;flex-shrink:0}
+#toolbar button{background:#0e639c;color:#fff;border:none;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap}
+#toolbar button:hover{background:#1177bb}
+#toolbar button.gray{background:#3e3e42;color:#ccc}
+#toolbar button.gray:hover{background:#4e4e57}
+#toolbar .sep{width:1px;height:24px;background:#464647;margin:0 4px}
+#toolbar label{color:#999;font-size:12px}
+#toolbar input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 8px;font-size:12px;font-family:inherit}
+#toolbar input[type=text]{width:160px}
+
+/* ===== 主体 ===== */
+#main{flex:1;display:flex;overflow:hidden}
+
+/* 左侧节点面板 */
+#palette{width:165px;background:#252526;border-right:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:6px}
+#palette h3{color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin:8px 4px 4px}
+.palette-item{display:flex;align-items:center;gap:8px;padding:7px 8px;margin:2px 0;border-radius:4px;cursor:grab;border:1px solid transparent;transition:background .12s}
+.palette-item:hover{background:#2d2d30;border-color:#464647}
+.palette-item:active{cursor:grabbing}
+.palette-item .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(255,255,255,.2)}
+.palette-item span{color:#ccc;font-size:12px}
+
+/* 画布 */
+#canvas-wrap{flex:1;position:relative;overflow:auto;background:#1e1e1e}
+#canvas-wrap::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,#2a2a2c 1px,transparent 1px);background-size:18px 18px;width:100%;height:100%;pointer-events:none}
+#canvas{position:relative;width:4000px;height:3000px}
+#svg-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#svg-layer path{pointer-events:stroke;cursor:pointer}
+
+/* 节点 */
+.node{position:absolute;min-width:155px;background:#2d2d30;border:1px solid #464647;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
+.node:hover{border-color:#5a5a5e}
+.node.selected{border-color:#007acc;box-shadow:0 0 0 1px #007acc,0 2px 10px rgba(0,0,0,.35)}
+.node-head{padding:6px 10px;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;cursor:move;white-space:nowrap}
+.node-head .nicon{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.node-head .nid{margin-left:auto;background:rgba(255,255,255,.15);padding:0 6px;border-radius:8px;font-size:10px;font-weight:400}
+.node-head .root-badge{background:#007acc;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600}
+.node-body{padding:4px 0 6px}
+.node-field{padding:2px 10px;color:#888;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+.node-field .k{color:#9cdcfe}
+.node-field .v{color:#ce9178}
+.node-field .empty{color:#555;font-style:italic}
+
+/* 端口 */
+/* 端口手柄(发起连线用，hover显示) */
+.port-handle{position:absolute;right:-8px;display:flex;align-items:center;gap:3px;cursor:crosshair;z-index:5;opacity:.25;transition:opacity .15s}
+.node:hover .port-handle{opacity:1}
+.port-handle .hdot{width:10px;height:10px;border-radius:50%;border:2px solid #1e1e1e;flex-shrink:0}
+.port-handle .hlbl{font-size:9px;color:#aaa;white-space:nowrap;background:#333;padding:0 3px;border-radius:2px}
+
+/* 连线 */
+.conn-path{fill:none;stroke:#4ec9b0;stroke-width:2;transition:stroke .1s}
+.conn-path.selected{stroke:#007acc;stroke-width:3}
+.conn-temp{fill:none;stroke:#007acc;stroke-width:2;stroke-dasharray:5;pointer-events:none}
+
+/* 右侧属性面板 */
+#props{width:310px;background:#252526;border-left:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:10px}
+#props h2{color:#ccc;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+#props h2 .dot{width:10px;height:10px;border-radius:50%}
+#props .field{margin-bottom:12px}
+#props .field>label{display:block;color:#9cdcfe;font-size:11px;margin-bottom:3px;font-weight:600}
+#props .field input[type=text],#props .field input[type=number],#props .field textarea,#props .field select{
+  width:100%;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit}
+#props .field textarea{min-height:55px;resize:vertical;font-family:'Consolas','Courier New',monospace;font-size:11px}
+#props .field input:focus,#props .field textarea:focus,#props .field select:focus{outline:none;border-color:#007acc}
+#props .io-row{display:flex;gap:3px;margin-bottom:3px}
+#props .io-row select{width:62px;flex-shrink:0}
+#props .io-row input{flex:1;min-width:0}
+#props .kv-row{display:flex;gap:3px;margin-bottom:3px;align-items:center}
+#props .kv-row .kv-key{width:70px;flex-shrink:0}
+#props .kv-row select{width:58px;flex-shrink:0}
+#props .kv-row .kv-val{flex:1;min-width:0}
+#props .kv-row .del-btn{width:24px;height:24px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:14px;line-height:1}
+#props .kv-row .del-btn:hover{background:#a1260d;color:#fff}
+#props .add-btn{background:#37373d;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;margin-top:2px}
+#props .add-btn:hover{background:#4e4e57}
+#props .target-row{display:flex;gap:4px;margin-bottom:4px;align-items:center;font-size:11px;color:#888}
+#props .target-row input{width:50px;flex-shrink:0;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:3px 5px;font-size:11px}
+#props .target-row .target-to{color:#4ec9b0;flex:1}
+#props .empty-prop{color:#666;text-align:center;padding:60px 20px;line-height:1.8}
+#props .adv-toggle{color:#888;font-size:11px;cursor:pointer;margin:8px 0 4px;display:block}
+#props .adv-toggle:hover{color:#ccc}
+#props .adv-fields{display:none;padding-top:4px;border-top:1px solid #3e3e42}
+#props .adv-fields.show{display:block}
+#props .btn-row{display:flex;gap:6px;margin-top:8px}
+#props .btn-row button{flex:1;padding:5px;border-radius:3px;border:1px solid #464647;background:#3e3e42;color:#ccc;cursor:pointer;font-size:11px}
+#props .btn-row button:hover{background:#4e4e57}
+#props .btn-row button.danger:hover{background:#a1260d;color:#fff}
+
+/* 模态框 */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:#252526;border:1px solid #464647;border-radius:8px;width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.modal-head{padding:12px 16px;border-bottom:1px solid #3e3e42;display:flex;justify-content:space-between;align-items:center}
+.modal-head h3{color:#ccc;font-size:14px}
+.modal-head .close{background:none;border:none;color:#999;cursor:pointer;font-size:18px}
+.modal-body{padding:12px 16px;overflow-y:auto;flex:1}
+.modal-body textarea{width:100%;height:340px;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:4px;padding:8px;font-family:'Consolas','Courier New',monospace;font-size:12px;resize:vertical}
+.modal-foot{padding:10px 16px;border-top:1px solid #3e3e42;display:flex;justify-content:flex-end;gap:8px}
+.modal-foot button{padding:6px 16px;border-radius:3px;border:none;cursor:pointer;font-size:12px}
+.modal-foot .primary{background:#0e639c;color:#fff}
+.modal-foot .primary:hover{background:#1177bb}
+.modal-foot .secondary{background:#3e3e42;color:#ccc;border:1px solid #555}
+.modal-foot .secondary:hover{background:#4e4e57}
+
+/* 提示 */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0e639c;color:#fff;padding:8px 20px;border-radius:4px;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div id="toolbar">
+  <button onclick="exportModal('json')">导出 JSON</button>
+  <button onclick="exportModal('lua')">导出 Lua</button>
+  <button class="gray" onclick="importModal()">导入 JSON</button>
+  <button class="gray" onclick="loadExample()">加载示例</button>
+  <div class="sep"></div>
+  <label>用例名称</label>
+  <input type="text" id="case-name" value="untitled" oninput="state.caseName=this.value">
+  <div class="sep"></div>
+  <button class="gray" onclick="clearAll()">清空</button>
+</div>
+
+<!-- 主体 -->
+<div id="main">
+  <!-- 左侧节点面板 -->
+  <div id="palette">
+    <h3>节点类型</h3>
+    <div id="palette-list"></div>
+  </div>
+
+  <!-- 画布 -->
+  <div id="canvas-wrap">
+    <div id="canvas">
+      <svg id="svg-layer"></svg>
+    </div>
+  </div>
+
+  <!-- 右侧属性面板 -->
+  <div id="props">
+    <div class="empty-prop" id="prop-empty">
+      点击节点编辑属性<br>右键节点可设为根节点
+    </div>
+    <div id="prop-content" style="display:none"></div>
+  </div>
+</div>
+
+<!-- 模态框容器 -->
+<div id="modal-container"></div>
+<!-- 提示 -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+//  节点类型定义
+// ============================================================
+const NODE_TYPES = {
+  SOCK: {
+    label: "Socket连接", color: "#4caf50",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"ip",   label:"IP地址",  render:"input"},
+      {key:"port", label:"端口",    render:"input"},
+    ]
+  },
+  REQ: {
+    label: "协议请求", color: "#2196f3",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmd_id",  label:"协议ID",   render:"text"},
+      {key:"inputs",  label:"输入参数", render:"kv"},
+      {key:"outputs", label:"输出参数", render:"kv"},
+    ]
+  },
+  NTF: {
+    label: "等待通知", color: "#9c27b0",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmd_id",  label:"协议ID",     render:"text"},
+      {key:"cond",    label:"条件(Lua)",  render:"textarea"},
+      {key:"outputs", label:"输出参数",   render:"kv"},
+    ]
+  },
+  GM: {
+    label: "GM命令", color: "#ff5722",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmds", label:"命令列表", render:"list"},
+      {key:"time", label:"延迟(ms)", render:"number"},
+    ]
+  },
+  COND: {
+    label: "条件分支", color: "#ff9800",
+    outputs: [{id:"success",label:"成功"},{id:"failed",label:"失败"}],
+    fields: [
+      {key:"cond", label:"条件表达式(Lua)", render:"textarea"},
+    ]
+  },
+  CASE: {
+    label: "子用例", color: "#00bcd4",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"case",    label:"用例名称", render:"text"},
+      {key:"in_args", label:"输入参数", render:"kv-raw"},
+    ]
+  },
+  WAIT: {
+    label: "等待", color: "#607d8b",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"time", label:"等待(ms)",   render:"number"},
+      {key:"cond", label:"条件(Lua)",  render:"textarea"},
+    ]
+  },
+  SCRIPT: {
+    label: "脚本", color: "#e91e63",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"script",  label:"Lua脚本",   render:"textarea"},
+      {key:"outputs", label:"输出参数",  render:"kv"},
+    ]
+  },
+  SWITCH: {
+    label: "开关分支", color: "#795548",
+    outputs: "dynamic",
+    fields: [
+      {key:"inputs", label:"输入参数",   render:"kv"},
+    ]
+  },
+};
+
+const TYPE_OPTIONS = ["attr","var","lua","const"];
+
+// ============================================================
+//  状态管理
+// ============================================================
+let state = {
+  caseName: "untitled",
+  nodes: {},          // {id: {type, x, y, data:{...}}}
+  connections: [],    // [{from, port, to}]
+  selected: null,     // 选中的节点id
+  selectedConn: null, // 选中的连线index
+  root: null,
+  rewind: null,
+  nextId: 1,
+};
+
+let drag = null;    // 节点拖拽 {id, offsetX, offsetY}
+let connDrag = null; // 连线拖拽 {fromId, port, x, y}
+
+const $ = id => document.getElementById(id);
+const canvas = $('canvas');
+const svg = $('svg-layer');
+const canvasWrap = $('canvas-wrap');
+
+// ============================================================
+//  初始化
+// ============================================================
+function init() {
+  // 渲染节点面板
+  const palList = $('palette-list');
+  for (const [type, def] of Object.entries(NODE_TYPES)) {
+    const el = document.createElement('div');
+    el.className = 'palette-item';
+    el.innerHTML = `<div class="dot" style="background:${def.color}"></div><span>${def.label}</span>`;
+    el.onmousedown = e => { e.preventDefault(); createNode(type, e); };
+    palList.appendChild(el);
+  }
+
+  // 画布点击空白处取消选中
+  canvas.onmousedown = e => {
+    if (e.target === canvas || e.target === canvasWrap || e.target === svg) {
+      selectNode(null);
+      state.selectedConn = null;
+      renderConnections();
+    }
+  };
+
+  // 键盘删除
+  document.onkeydown = e => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement === document.body) {
+      if (state.selectedConn !== null) {
+        state.connections.splice(state.selectedConn, 1);
+        state.selectedConn = null;
+        renderAll();
+      } else if (state.selected !== null) {
+        deleteNode(state.selected);
+      }
+    }
+  };
+
+  loadExample();
+}
+
+// ============================================================
+//  创建节点
+// ============================================================
+function createNode(type, mouseEvent) {
+  const id = state.nextId++;
+  // 在画布可视区域居中创建，避免被左侧面板遮挡
+  const cnt = Object.keys(state.nodes).length;
+  const x = canvasWrap.scrollLeft + canvasWrap.clientWidth / 2 - 80 + (cnt % 3) * 30;
+  const y = canvasWrap.scrollTop + canvasWrap.clientHeight / 2 - 30 + Math.floor(cnt / 3) * 30;
+  const def = NODE_TYPES[type];
+
+  // 初始化data
+  const data = {};
+  for (const f of def.fields) {
+    if (f.render === 'kv') data[f.key] = {};
+    else if (f.render === 'kv-raw') data[f.key] = {};
+    else if (f.render === 'list') data[f.key] = [];
+    else if (f.render === 'number') data[f.key] = 0;
+    else if (f.render === 'input') data[f.key] = {type:"attr", value:""};
+    else data[f.key] = "";
+  }
+  // SWITCH 默认分支
+  if (type === 'SWITCH') data._targetKeys = ["1"];
+
+  state.nodes[id] = {type, x, y, data};
+  if (state.root === null) state.root = id;
+  renderAll();
+  selectNode(id);
+}
+
+// ============================================================
+//  渲染
+// ============================================================
+function renderAll() {
+  renderNodes();
+  renderConnections();
+}
+
+function renderNodes() {
+  // 移除旧节点DOM
+  canvas.querySelectorAll('.node').forEach(n => n.remove());
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    const id = parseInt(idStr);
+    const def = NODE_TYPES[node.type];
+    const el = document.createElement('div');
+    el.className = 'node' + (state.selected === id ? ' selected' : '');
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+    el.dataset.id = id;
+
+    // 头部
+    let headHtml = `<div class="node-head" style="background:${def.color}">
+      <div class="nicon" style="background:rgba(255,255,255,.7)"></div>
+      <span>${def.label}</span>
+      ${state.root === id ? '<span class="root-badge">ROOT</span>' : ''}
+      <span class="nid">#${id}</span>
+    </div>`;
+
+    // 字段预览
+    let bodyHtml = '<div class="node-body">';
+    for (const f of def.fields) {
+      const val = node.data[f.key];
+      let display = '';
+      if (f.render === 'kv' || f.render === 'kv-raw') {
+        const keys = Object.keys(val || {});
+        display = keys.length ? keys.map(k => {
+          if (f.render === 'kv-raw') return k;
+          return k + '←' + (val[k]?.value || '?');
+        }).join(', ') : '';
+      } else if (f.render === 'input') {
+        display = (val?.type || '?') + ': ' + (val?.value || '');
+      } else if (f.render === 'list') {
+        display = (val || []).length + '条命令';
+      } else if (f.render === 'textarea') {
+        display = val ? String(val).substring(0, 30) : '';
+      } else {
+        display = val !== undefined && val !== '' ? String(val) : '';
+      }
+      bodyHtml += `<div class="node-field"><span class="k">${f.label}</span>: <span class="${display?'v':'empty'}">${display||'未设置'}</span></div>`;
+    }
+    // SWITCH 分支预览
+    if (node.type === 'SWITCH') {
+      const tk = node.data._targetKeys || [];
+      bodyHtml += `<div class="node-field"><span class="k">分支</span>: <span class="${tk.length?'v':'empty'}">${tk.length?tk.join(', '):'未设置'}</span></div>`;
+    }
+    bodyHtml += '</div>';
+
+    el.innerHTML = headHtml + bodyHtml;
+
+    // 输出端口手柄（仅用于发起连线，hover时显示，不作为视觉连接点）
+    let outPorts = def.outputs;
+    if (node.type === 'SWITCH') {
+      const tk = node.data._targetKeys || [];
+      outPorts = tk.map((k, i) => ({id:`target_${i}`, label:String(k)}));
+    }
+    const portCount = outPorts.length || 1;
+    const portSpacing = 22;
+    const startY = 30;
+    outPorts.forEach((p, i) => {
+      const handle = document.createElement('div');
+      handle.className = 'port-handle';
+      handle.style.top = (startY + i * portSpacing - 6) + 'px';
+      handle.innerHTML = `<span class="hlbl">${p.label}</span><div class="hdot" style="background:${def.color}"></div>`;
+      handle.onmousedown = e => { e.stopPropagation(); startConnection(id, p.id, e); };
+      el.appendChild(handle);
+    });
+
+    if (portCount > 1) el.style.minHeight = (startY + portCount * portSpacing + 6) + 'px';
+
+    canvas.appendChild(el);
+
+    // 事件
+    el.querySelector('.node-head').onmousedown = e => startDragNode(e, id);
+    el.onmousedown = e => {
+      if (e.target.closest('.port-handle')) return;
+      e.stopPropagation();
+      selectNode(id);
+    };
+    el.oncontextmenu = e => { e.preventDefault(); showContextMenu(e, id); };
+  }
+}
+
+// ============================================================
+//  四方向连线路由 + SVG端点绘制
+// ============================================================
+
+function nodeBounds(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node) return null;
+  const el = canvas.querySelector(`.node[data-id="${nodeId}"]`);
+  const w = el ? el.offsetWidth : 160;
+  const h = el ? el.offsetHeight : 60;
+  return { x: node.x, y: node.y, w, h, cx: node.x + w / 2, cy: node.y + h / 2 };
+}
+
+function sidePoint(b, side, frac = 0.5) {
+  // frac 0..1 沿边分布位置（0.5=居中）
+  switch (side) {
+    case 'right':  return { x: b.x + b.w,            y: b.y + b.h * frac };
+    case 'left':   return { x: b.x,                  y: b.y + b.h * frac };
+    case 'bottom': return { x: b.x + b.w * frac,     y: b.y + b.h };
+    case 'top':    return { x: b.x + b.w * frac,     y: b.y };
+  }
+}
+
+function oppositeSide(side) {
+  return { right: 'left', left: 'right', top: 'bottom', bottom: 'top' }[side];
+}
+
+// 统计每个节点的每条边上有多少条连线出入，用于分散端点
+function buildSideIndex() {
+  // key: `${nodeId}:${side}` -> count
+  const idx = {};
+  state.connections.forEach(conn => {
+    const pts = calcConnSides(conn.from, conn.to);
+    if (!pts) return;
+    const fk = `${conn.from}:${pts.fromSide}`;
+    const tk = `${conn.to}:${pts.toSide}`;
+    idx[fk] = (idx[fk] || 0) + 1;
+    idx[tk] = (idx[tk] || 0) + 1;
+  });
+  return idx;
+}
+
+// 计算两节点之间的进出边方向
+function calcConnSides(fromId, toId) {
+  const fb = nodeBounds(fromId);
+  const tb = nodeBounds(toId);
+  if (!fb || !tb) return null;
+  const dx = tb.cx - fb.cx;
+  const dy = tb.cy - fb.cy;
+  let fromSide, toSide;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    fromSide = dx >= 0 ? 'right' : 'left';
+  } else {
+    fromSide = dy >= 0 ? 'bottom' : 'top';
+  }
+  toSide = oppositeSide(fromSide);
+  return { fromSide, toSide };
+}
+
+// 为每条连线分配沿边的分数位置，避免同边多条线重叠
+function assignFracs(sideIdx) {
+  // 为每条边维护一个递增计数器
+  const counters = {};
+  const result = [];
+  state.connections.forEach(conn => {
+    const pts = calcConnSides(conn.from, conn.to);
+    if (!pts) { result.push(null); return; }
+    const fk = `${conn.from}:${pts.fromSide}`;
+    const tk = `${conn.to}:${pts.toSide}`;
+    const fc = counters[fk] = (counters[fk] || 0) + 1;
+    const tc = counters[tk] = (counters[tk] || 0) + 1;
+    const fTotal = sideIdx[fk] || 1;
+    const tTotal = sideIdx[tk] || 1;
+    // 在 0.2 ~ 0.8 之间均匀分布
+    const fromFrac = fTotal === 1 ? 0.5 : 0.2 + 0.6 * ((fc - 0.5) / fTotal);
+    const toFrac   = tTotal === 1 ? 0.5 : 0.2 + 0.6 * ((tc - 0.5) / tTotal);
+    result.push({ pts, fromFrac, toFrac });
+  });
+  return result;
+}
+
+function getConnPoints(fromId, toId) {
+  const fb = nodeBounds(fromId);
+  const tb = nodeBounds(toId);
+  if (!fb || !tb) return null;
+  const sides = calcConnSides(fromId, toId);
+  if (!sides) return null;
+  return {
+    from: sidePoint(fb, sides.fromSide, 0.5),
+    to: sidePoint(tb, sides.toSide, 0.5),
+    fromSide: sides.fromSide,
+    toSide: sides.toSide
+  };
+}
+
+// 临时连线：源节点跟随鼠标方向选择出口边
+function getTempConnPoints(fromId, mx, my) {
+  const fb = nodeBounds(fromId);
+  if (!fb) return null;
+  const dx = mx - fb.cx;
+  const dy = my - fb.cy;
+  let fromSide;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    fromSide = dx >= 0 ? 'right' : 'left';
+  } else {
+    fromSide = dy >= 0 ? 'bottom' : 'top';
+  }
+  return {
+    from: sidePoint(fb, fromSide, 0.5),
+    to: { x: mx, y: my },
+    fromSide,
+    toSide: oppositeSide(fromSide)
+  };
+}
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function renderConnections() {
+  svg.innerHTML = '';
+  svg.setAttribute('width', canvas.offsetWidth);
+  svg.setAttribute('height', canvas.offsetHeight);
+
+  const sideIdx = buildSideIndex();
+  const fracs = assignFracs(sideIdx);
+
+  state.connections.forEach((conn, idx) => {
+    const fa = fracs[idx];
+    if (!fa) return;
+    const fb = nodeBounds(conn.from);
+    const tb = nodeBounds(conn.to);
+    if (!fb || !tb) return;
+    const from = sidePoint(fb, fa.pts.fromSide, fa.fromFrac);
+    const to   = sidePoint(tb, fa.pts.toSide,   fa.toFrac);
+
+    // 连线
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', bezierPathDir(from.x, from.y, to.x, to.y, fa.pts.fromSide, fa.pts.toSide));
+    path.setAttribute('class', 'conn-path' + (state.selectedConn === idx ? ' selected' : ''));
+    path.onclick = e => { e.stopPropagation(); state.selectedConn = idx; selectNode(null); renderConnections(); };
+    svg.appendChild(path);
+
+    // 源端点（输出，琥珀色实心圆）
+    svg.appendChild(svgDot(from.x, from.y, '#f0a020', state.selectedConn === idx));
+
+    // 目标端点（输入，青色箭头）
+    svg.appendChild(svgArrow(to.x, to.y, fa.pts.toSide, '#4ec9b0', state.selectedConn === idx));
+  });
+
+  // 临时连线（跟随鼠标）
+  if (connDrag) {
+    const pts = getTempConnPoints(connDrag.fromId, connDrag.x, connDrag.y);
+    if (pts) {
+      const path = document.createElementNS(SVGNS, 'path');
+      path.setAttribute('d', bezierPathDir(pts.from.x, pts.from.y, pts.to.x, pts.to.y, pts.fromSide, pts.toSide));
+      path.setAttribute('class', 'conn-temp');
+      svg.appendChild(path);
+      // 临时源端点
+      svg.appendChild(svgDot(pts.from.x, pts.from.y, '#f0a020', false));
+    }
+  }
+}
+
+// SVG 元素辅助
+function svgDot(x, y, color, selected) {
+  const c = document.createElementNS(SVGNS, 'circle');
+  c.setAttribute('cx', x);
+  c.setAttribute('cy', y);
+  c.setAttribute('r', selected ? 5 : 4);
+  c.setAttribute('fill', color);
+  c.setAttribute('stroke', '#1e1e1e');
+  c.setAttribute('stroke-width', '1.5');
+  return c;
+}
+
+function svgArrow(x, y, side, color, selected) {
+  const angle = { right: 0, left: Math.PI, bottom: Math.PI / 2, top: -Math.PI / 2 }[side];
+  const size = selected ? 7 : 6;
+  const g = document.createElementNS(SVGNS, 'g');
+  g.setAttribute('transform', `translate(${x},${y}) rotate(${angle * 180 / Math.PI})`);
+  const tri = document.createElementNS(SVGNS, 'polygon');
+  tri.setAttribute('points', `${size},0 ${-size*0.7},${-size*0.7} ${-size*0.7},${size*0.7}`);
+  tri.setAttribute('fill', color);
+  tri.setAttribute('stroke', '#1e1e1e');
+  tri.setAttribute('stroke-width', '1');
+  g.appendChild(tri);
+  return g;
+}
+
+// 带方向的贝塞尔曲线：控制点沿出口/入口边方向延伸
+function bezierPathDir(x1, y1, x2, y2, fromSide, toSide) {
+  const dist = Math.max(40, Math.hypot(x2 - x1, y2 - y1) * 0.4);
+  const cp1 = ctrlOffset(x1, y1, fromSide, dist);
+  const cp2 = ctrlOffset(x2, y2, toSide, dist);
+  return `M ${x1} ${y1} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${x2} ${y2}`;
+}
+
+function ctrlOffset(x, y, side, d) {
+  switch (side) {
+    case 'right':  return { x: x + d, y };
+    case 'left':   return { x: x - d, y };
+    case 'bottom': return { x, y: y + d };
+    case 'top':    return { x, y: y - d };
+  }
+}
+
+// ============================================================
+//  拖拽节点
+// ============================================================
+function startDragNode(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectNode(id);
+  const node = state.nodes[id];
+  const rect = canvas.getBoundingClientRect();
+  drag = {
+    id,
+    offsetX: e.clientX - rect.left - canvasWrap.scrollLeft - node.x,
+    offsetY: e.clientY - rect.top - canvasWrap.scrollTop - node.y,
+  };
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (drag) {
+    const rect = canvas.getBoundingClientRect();
+    state.nodes[drag.id].x = e.clientX - rect.left - canvasWrap.scrollLeft - drag.offsetX;
+    state.nodes[drag.id].y = e.clientY - rect.top - canvasWrap.scrollTop - drag.offsetY;
+    const el = canvas.querySelector(`.node[data-id="${drag.id}"]`);
+    if (el) { el.style.left = state.nodes[drag.id].x + 'px'; el.style.top = state.nodes[drag.id].y + 'px'; }
+    renderConnections();
+  }
+  if (connDrag) {
+    const rect = canvas.getBoundingClientRect();
+    connDrag.x = e.clientX - rect.left + canvasWrap.scrollLeft;
+    connDrag.y = e.clientY - rect.top + canvasWrap.scrollTop;
+    renderConnections();
+  }
+}
+
+function onDragEnd(e) {
+  drag = null;
+  if (connDrag) {
+    // 落在节点任意位置即可建立连线（不再要求精确落在输入端口圆点上）
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const nodeEl = el ? el.closest('.node') : null;
+    if (nodeEl) {
+      completeConnection(parseInt(nodeEl.dataset.id));
+    } else {
+      connDrag = null;
+      renderConnections();
+    }
+  }
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragEnd);
+}
+
+// ============================================================
+//  连线
+// ============================================================
+function startConnection(fromId, port, e) {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  connDrag = {
+    fromId, port,
+    x: e.clientX - rect.left + canvasWrap.scrollLeft,
+    y: e.clientY - rect.top + canvasWrap.scrollTop,
+  };
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+}
+
+function completeConnection(toId) {
+  if (!connDrag) return;
+  if (connDrag.fromId === toId) { connDrag = null; return; }
+  // 移除同from+port的旧连线
+  state.connections = state.connections.filter(c =>
+    !(c.from === connDrag.fromId && c.port === connDrag.port)
+  );
+  state.connections.push({from: connDrag.fromId, port: connDrag.port, to: toId});
+  connDrag = null;
+  renderAll();
+}
+
+// ============================================================
+//  选中 / 删除
+// ============================================================
+function selectNode(id) {
+  state.selected = id;
+  state.selectedConn = null;
+  renderAll();
+  updatePropPanel();
+}
+
+function deleteNode(id) {
+  delete state.nodes[id];
+  state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
+  if (state.root === id) state.root = Object.keys(state.nodes)[0] ? parseInt(Object.keys(state.nodes)[0]) : null;
+  if (state.rewind === id) state.rewind = null;
+  if (state.selected === id) state.selected = null;
+  renderAll();
+  updatePropPanel();
+}
+
+function showContextMenu(e, id) {
+  // 简易菜单：用prompt模拟
+  const action = prompt(
+    `节点 #${id} (${NODE_TYPES[state.nodes[id].type].label})\n\n` +
+    `输入数字选择操作:\n1. 设为根节点\n2. 设为回退节点\n3. 删除节点`
+  );
+  if (action === '1') { state.root = id; renderAll(); toast('已设为根节点'); }
+  else if (action === '2') { state.rewind = id; renderAll(); toast('已设为回退节点'); }
+  else if (action === '3') { deleteNode(id); }
+}
+
+// ============================================================
+//  属性面板
+// ============================================================
+function updatePropPanel() {
+  const empty = $('prop-empty');
+  const content = $('prop-content');
+  if (state.selected === null || !state.nodes[state.selected]) {
+    empty.style.display = '';
+    content.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  content.style.display = '';
+  const id = state.selected;
+  const node = state.nodes[id];
+  const def = NODE_TYPES[node.type];
+
+  let html = `<h2><div class="dot" style="background:${def.color}"></div>${def.label} <span style="color:#666">#${id}</span></h2>`;
+
+  // 各字段
+  for (const f of def.fields) {
+    html += renderField(f, node.data[f.key], id);
+  }
+
+  // SWITCH 分支管理
+  if (node.type === 'SWITCH') {
+    const tk = node.data._targetKeys || [];
+    html += `<div class="field"><label>分支管理</label>`;
+    tk.forEach((key, i) => {
+      const conn = state.connections.find(c => c.from === id && c.port === `target_${i}`);
+      const toStr = conn ? `→ #${conn.to}` : '未连接';
+      html += `<div class="target-row">
+        <span>分支${i+1}</span>
+        <input type="text" value="${escapeAttr(key)}" onchange="updateTargetKey(${id},${i},this.value)">
+        <span class="target-to">${toStr}</span>
+        <button class="del-btn" onclick="removeTarget(${id},${i})">×</button>
+      </div>`;
+    });
+    html += `<button class="add-btn" onclick="addTarget(${id})">+ 添加分支</button></div>`;
+  }
+
+  // 高级选项
+  html += `<span class="adv-toggle" onclick="this.nextElementSibling.classList.toggle('show')">▶ 高级 (before/after 脚本)</span>`;
+  html += `<div class="adv-fields">`;
+  html += renderField({key:'before', label:'前置脚本(Lua)', render:'textarea'}, node.data.before || '', id);
+  html += renderField({key:'after',  label:'后置脚本(Lua)', render:'textarea'}, node.data.after || '', id);
+  html += `</div>`;
+
+  // 操作按钮
+  html += `<div class="btn-row">
+    <button onclick="state.root=${id};renderAll()">设为根节点</button>
+    <button onclick="state.rewind=${id};toast('已设为回退节点')">设为回退</button>
+  </div>`;
+  html += `<div class="btn-row">
+    <button class="danger" onclick="deleteNode(${id})">删除节点</button>
+  </div>`;
+
+  content.innerHTML = html;
+}
+
+function renderField(f, val, nodeId) {
+  const k = f.key;
+  switch (f.render) {
+    case 'text':
+      return `<div class="field"><label>${f.label}</label>
+        <input type="text" value="${escapeAttr(val||'')}" onchange="setField(${nodeId},'${k}',this.value)"></div>`;
+    case 'number':
+      return `<div class="field"><label>${f.label}</label>
+        <input type="number" value="${val||0}" onchange="setField(${nodeId},'${k}',parseInt(this.value)||0)"></div>`;
+    case 'textarea':
+      return `<div class="field"><label>${f.label}</label>
+        <textarea onchange="setField(${nodeId},'${k}',this.value)">${escapeHtml(val||'')}</textarea></div>`;
+    case 'input':
+      return `<div class="field"><label>${f.label}</label>
+        <div class="io-row">
+          <select onchange="setInputType(${nodeId},'${k}',this.value)">${typeOpts(val?.type)}</select>
+          <input type="text" value="${escapeAttr(val?.value||'')}" onchange="setInputValue(${nodeId},'${k}',this.value)">
+        </div></div>`;
+    case 'kv':
+    case 'kv-raw': {
+      const obj = val || {};
+      const keys = Object.keys(obj);
+      let html = `<div class="field"><label>${f.label}</label>`;
+      keys.forEach(key => {
+        const v = obj[key];
+        if (f.render === 'kv-raw') {
+          html += `<div class="kv-row">
+            <input class="kv-key" type="text" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}','${escapeAttr(key)}',this.value)">
+            <input class="kv-val" type="text" value="${escapeAttr(v||'')}" onchange="setKvRawValue(${nodeId},'${k}',this.previousElementSibling.value,this.value)">
+            <button class="del-btn" onclick="delKvKey(${nodeId},'${k}',this.parentElement.querySelector('.kv-key').value)">×</button>
+          </div>`;
+        } else {
+          html += `<div class="kv-row">
+            <input class="kv-key" type="text" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}','${escapeAttr(key)}',this.value)">
+            <select onchange="setKvType(${nodeId},'${k}',this.previousElementSibling.value,this.value)">${typeOpts(v?.type)}</select>
+            <input class="kv-val" type="text" value="${escapeAttr(v?.value||'')}" onchange="setKvValue(${nodeId},'${k}',this.parentElement.querySelector('.kv-key').value,this.value)">
+            <button class="del-btn" onclick="delKvKey(${nodeId},'${k}',this.parentElement.querySelector('.kv-key').value)">×</button>
+          </div>`;
+        }
+      });
+      html += `<button class="add-btn" onclick="addKvKey(${nodeId},'${k}','${f.render}')">+ 添加</button></div>`;
+      return html;
+    }
+    case 'list': {
+      const arr = val || [];
+      let html = `<div class="field"><label>${f.label}</label>`;
+      arr.forEach((item, i) => {
+        html += `<div class="io-row">
+          <input type="text" value="${escapeAttr(item)}" onchange="setListItem(${nodeId},'${k}',${i},this.value)">
+          <button class="del-btn" onclick="delListItem(${nodeId},'${k}',${i})">×</button>
+        </div>`;
+      });
+      html += `<button class="add-btn" onclick="addListItem(${nodeId},'${k}')">+ 添加</button></div>`;
+      return html;
+    }
+  }
+  return '';
+}
+
+function typeOpts(selected) {
+  return TYPE_OPTIONS.map(t => `<option value="${t}" ${t===selected?'selected':''}>${t}</option>`).join('');
+}
+
+// 属性修改函数
+function setField(id, key, val) { state.nodes[id].data[key] = val; renderNodes(); }
+function setInputType(id, key, type) {
+  if (!state.nodes[id].data[key]) state.nodes[id].data[key] = {};
+  state.nodes[id].data[key].type = type;
+  renderNodes();
+}
+function setInputValue(id, key, val) {
+  if (!state.nodes[id].data[key]) state.nodes[id].data[key] = {type:'attr'};
+  state.nodes[id].data[key].value = val;
+  renderNodes();
+}
+function addKvKey(id, key, renderType) {
+  const obj = state.nodes[id].data[key] || {};
+  let n = 1;
+  let nk = `param${n}`;
+  while (obj[nk]) { n++; nk = `param${n}`; }
+  obj[nk] = renderType === 'kv-raw' ? '' : {type:'attr', value:''};
+  state.nodes[id].data[key] = obj;
+  updatePropPanel(); renderNodes();
+}
+function renameKvKey(id, key, oldK, newK) {
+  if (!newK || oldK === newK) return;
+  const obj = state.nodes[id].data[key];
+  if (obj[newK]) { toast('键名已存在'); updatePropPanel(); return; }
+  obj[newK] = obj[oldK]; delete obj[oldK];
+  updatePropPanel(); renderNodes();
+}
+function setKvType(id, key, k, type) {
+  state.nodes[id].data[key][k].type = type;
+  renderNodes();
+}
+function setKvValue(id, key, k, val) {
+  state.nodes[id].data[key][k].value = val;
+  renderNodes();
+}
+function setKvRawValue(id, key, k, val) {
+  state.nodes[id].data[key][k] = val;
+  renderNodes();
+}
+function delKvKey(id, key, k) {
+  delete state.nodes[id].data[key][k];
+  updatePropPanel(); renderNodes();
+}
+function addListItem(id, key) {
+  (state.nodes[id].data[key] = state.nodes[id].data[key] || []).push("");
+  updatePropPanel(); renderNodes();
+}
+function setListItem(id, key, i, val) {
+  state.nodes[id].data[key][i] = val;
+  renderNodes();
+}
+function delListItem(id, key, i) {
+  state.nodes[id].data[key].splice(i, 1);
+  updatePropPanel(); renderNodes();
+}
+function addTarget(id) {
+  (state.nodes[id].data._targetKeys = state.nodes[id].data._targetKeys || []).push(String((state.nodes[id].data._targetKeys.length||0)+1));
+  updatePropPanel(); renderAll();
+}
+function removeTarget(id, i) {
+  state.nodes[id].data._targetKeys.splice(i, 1);
+  // 移除对应连线，并重新映射target_N
+  state.connections = state.connections.filter(c => !(c.from === id && c.port === `target_${i}`));
+  // 重映射后续端口名
+  state.connections.forEach(c => {
+    if (c.from === id && c.port.startsWith('target_')) {
+      const idx = parseInt(c.port.split('_')[1]);
+      if (idx > i) c.port = `target_${idx - 1}`;
+    }
+  });
+  updatePropPanel(); renderAll();
+}
+function updateTargetKey(id, i, val) {
+  state.nodes[id].data._targetKeys[i] = val;
+  renderNodes(); renderConnections();
+}
+
+// ============================================================
+//  导入/导出
+// ============================================================
+function buildExportData() {
+  const result = { name: state.caseName || "untitled", root: state.root };
+  if (state.rewind != null) result.rewind = state.rewind;
+  const nodes = {};
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    const id = parseInt(idStr);
+    const n = { type: node.type };
+    // 复制data中的字段
+    for (const [k, v] of Object.entries(node.data)) {
+      if (k === '_targetKeys') continue;
+      // 深拷贝
+      n[k] = JSON.parse(JSON.stringify(v));
+    }
+    // 设置连接
+    const conns = state.connections.filter(c => c.from === id);
+    let hasResult = false;
+    for (const c of conns) {
+      if (c.port === 'next') n.next = c.to;
+      else if (c.port === 'success') { n.result = n.result || {}; n.result.success = c.to; hasResult = true; }
+      else if (c.port === 'failed') { n.result = n.result || {}; n.result.failed = c.to; hasResult = true; }
+      else if (c.port.startsWith('target_')) {
+        const idx = parseInt(c.port.split('_')[1]);
+        const key = node.data._targetKeys?.[idx] || String(idx + 1);
+        n.targets = n.targets || [];
+        n.targets.push([key, c.to]);
+      }
+    }
+    nodes[id] = n;
+  }
+  result.nodes = nodes;
+  return result;
+}
+
+function exportModal(fmt) {
+  const data = buildExportData();
+  let text = fmt === 'json' ? JSON.stringify(data, null, 2) : ('return ' + jsonToLua(data));
+  showModal(`导出 ${fmt.toUpperCase()}`, text, false);
+}
+
+function importModal() {
+  showModal('导入 JSON', '', true);
+}
+
+function doImport(text) {
+  try {
+    const data = JSON.parse(text);
+    state.caseName = data.name || "untitled";
+    $('case-name').value = state.caseName;
+    state.root = data.root;
+    state.rewind = data.rewind || data.root;
+    state.nodes = {};
+    state.connections = [];
+    state.nextId = 1;
+
+    for (const [idStr, conf] of Object.entries(data.nodes)) {
+      const id = parseInt(idStr);
+      if (id >= state.nextId) state.nextId = id + 1;
+      const type = conf.type;
+      const nodeData = {};
+      const def = NODE_TYPES[type];
+      for (const f of def.fields) {
+        if (conf[f.key] !== undefined) nodeData[f.key] = JSON.parse(JSON.stringify(conf[f.key]));
+      }
+      if (type === 'SWITCH') {
+        nodeData._targetKeys = (conf.targets || []).map(t => t[0]);
+      }
+      // 自动布局
+      const count = Object.keys(state.nodes).length;
+      const x = 80 + (count % 5) * 210;
+      const y = 60 + Math.floor(count / 5) * 160;
+      state.nodes[id] = {type, x, y, data: nodeData};
+
+      // 解析连接
+      if (conf.next != null) state.connections.push({from: id, port: 'next', to: conf.next});
+      if (conf.result) {
+        if (conf.result.success != null) state.connections.push({from: id, port: 'success', to: conf.result.success});
+        if (conf.result.failed != null) state.connections.push({from: id, port: 'failed', to: conf.result.failed});
+      }
+      if (conf.targets) {
+        conf.targets.forEach((t, i) => {
+          state.connections.push({from: id, port: `target_${i}`, to: t[1]});
+        });
+      }
+    }
+    state.selected = null;
+    renderAll();
+    updatePropPanel();
+    closeModal();
+    toast('导入成功');
+  } catch (e) {
+    alert('导入失败: ' + e.message);
+  }
+}
+
+// JSON转Lua表
+function jsonToLua(obj, indent) {
+  indent = indent || 0;
+  const pad = '    '.repeat(indent);
+  const pad2 = '    '.repeat(indent + 1);
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '{}';
+    const lines = obj.map(v => pad2 + jsonToLua(v, indent + 1) + ',');
+    return '{\n' + lines.join('\n') + '\n' + pad + '}';
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return '{}';
+    const lines = keys.map(k => {
+      const key = /^\d+$/.test(k) ? `[${k}]` : k;
+      return pad2 + key + ' = ' + jsonToLua(obj[k], indent + 1) + ',';
+    });
+    return '{\n' + lines.join('\n') + '\n' + pad + '}';
+  }
+  if (typeof obj === 'string') {
+    if (obj.includes('\n')) return '[[' + obj + ']]';
+    return '"' + obj.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"';
+  }
+  if (typeof obj === 'boolean') return obj ? 'true' : 'false';
+  if (obj === null || obj === undefined) return 'nil';
+  return String(obj);
+}
+
+// ============================================================
+//  模态框
+// ============================================================
+function showModal(title, text, isImport) {
+  const c = $('modal-container');
+  c.innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>${title}</h3><button class="close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <textarea id="modal-text" placeholder="${isImport?'粘贴JSON数据...':''}">${escapeHtml(text)}</textarea>
+      </div>
+      <div class="modal-foot">
+        ${isImport
+          ? '<button class="primary" onclick="doImport($(\'modal-text\').value)">导入</button><button class="secondary" onclick="closeModal()">取消</button>'
+          : '<button class="primary" onclick="copyText($(\'modal-text\').value)">复制到剪贴板</button><button class="secondary" onclick="closeModal()">关闭</button>'}
+      </div>
+    </div>
+  </div>`;
+  $('modal-bg').onclick = closeModal;
+}
+
+function closeModal() { $('modal-container').innerHTML = ''; }
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('已复制')).catch(() => {
+    const ta = $('modal-text'); ta.select(); document.execCommand('copy'); toast('已复制');
+  });
+}
+
+// ============================================================
+//  辅助
+// ============================================================
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+
+function clearAll() {
+  if (!confirm('确定清空所有节点？')) return;
+  state.nodes = {}; state.connections = []; state.root = null; state.rewind = null; state.selected = null; state.nextId = 1;
+  renderAll(); updatePropPanel();
+}
+
+function loadExample() {
+  const example = {
+    name: "login_base",
+    root: 1,
+    rewind: 1,
+    nodes: {
+      1: { type:"SOCK", ip:{type:"attr",value:"ip"}, port:{type:"attr",value:"port"}, next:2 },
+      2: { type:"REQ", cmd_id:"NID_LOGIN_ACCOUNT_LOGIN_REQ",
+        inputs:{ openid:{type:"attr",value:"open_id"}, session:{type:"attr",value:"access_token"}, platform:{type:"lua",value:"1"} },
+        outputs:{ players:{type:"attr",value:"players"}, user_id:{type:"attr",value:"user_id"} },
+        next:3 },
+      3: { type:"COND", cond:"#robot.players>0", result:{success:4, failed:5} },
+      4: { type:"REQ", cmd_id:"NID_LOGIN_PALYER_CHOOSE_REQ",
+        inputs:{ user_id:{type:"attr",value:"user_id"}, player_id:{type:"lua",value:"robot.players[1].player_id"} },
+        outputs:{ lobby:{type:"attr",value:"lobby"}, gate_port:{type:"attr",value:"port"} },
+        next:6 },
+      5: { type:"REQ", cmd_id:"NID_LOGIN_PALYER_CREATE_REQ",
+        inputs:{ user_id:{type:"attr",value:"user_id"}, name:{type:"lua",value:"codec.guid_encode()"} },
+        next:4 },
+      6: { type:"SOCK", ip:{type:"attr",value:"gate_ip"}, port:{type:"attr",value:"gate_port"}, next:7 },
+      7: { type:"REQ", cmd_id:"NID_LOGIN_PALYER_LOGIN_REQ",
+        inputs:{ lobby:{type:"attr",value:"lobby"}, token:{type:"attr",value:"lobby_token"} },
+        next:8 },
+      8: { type:"NTF", cmd_id:"NID_ENTITY_ENTER_SCENE_NTF", cond:"res.id==robot.player_id",
+        outputs:{ login_success:{type:"lua",value:"true"} } },
+    }
+  };
+  doImport(JSON.stringify(example));
+}
+
+// 启动
+init();
+</script>
+</body>
+</html>
