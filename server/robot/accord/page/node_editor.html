@@ -38,25 +38,35 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #svg-layer path{pointer-events:stroke;cursor:pointer}
 
 /* 节点 */
-.node{position:absolute;min-width:155px;background:#2d2d30;border:1px solid #464647;border-radius:6px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
-.node:hover{border-color:#5a5a5e}
+.node{position:absolute;min-width:155px;background:#2d2d30;border:1px solid #55555a;border-radius:6px;overflow:visible;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
+.node:hover{border-color:#6a6a6e}
 .node.selected{border-color:#007acc;box-shadow:0 0 0 1px #007acc,0 2px 10px rgba(0,0,0,.35)}
-.node-head{padding:6px 10px;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;cursor:move;white-space:nowrap}
+.node-head{padding:6px 10px;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;cursor:move;white-space:nowrap;border-radius:5px 5px 0 0}
 .node-head .nicon{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .node-head .nid{margin-left:auto;background:rgba(255,255,255,.15);padding:0 6px;border-radius:8px;font-size:10px;font-weight:400}
 .node-head .root-badge{background:#007acc;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600}
 .node-body{padding:4px 0 6px}
-.node-field{padding:2px 10px;color:#888;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+.node-field{padding:2px 14px 2px 10px;color:#888;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
 .node-field .k{color:#9cdcfe}
 .node-field .v{color:#ce9178}
 .node-field .empty{color:#555;font-style:italic}
 
-/* 端口 */
-/* 端口手柄(发起连线用，hover显示) */
-.port-handle{position:absolute;right:-8px;display:flex;align-items:center;gap:3px;cursor:crosshair;z-index:5;opacity:.25;transition:opacity .15s}
-.node:hover .port-handle{opacity:1}
-.port-handle .hdot{width:10px;height:10px;border-radius:50%;border:2px solid #1e1e1e;flex-shrink:0}
-.port-handle .hlbl{font-size:9px;color:#aaa;white-space:nowrap;background:#333;padding:0 3px;border-radius:2px}
+/* 端口圆点（绘制在节点上，位置随连线路由同步） */
+.port-dot{position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid #1e1e1e;z-index:6}
+.port-dot.out{background:#f0a020;cursor:crosshair}
+.port-dot.out:hover{transform:scale(1.35)}
+.port-dot.out.dragging{box-shadow:0 0 0 2px rgba(240,160,32,.45)}
+.port-dot.in{background:#4ec9b0;pointer-events:none}
+.port-dot-label{position:absolute;font-size:9px;color:#ccc;background:rgba(37,37,38,.92);padding:0 3px;border-radius:2px;white-space:nowrap;pointer-events:none;z-index:6;line-height:14px}
+body.connecting .node{border-color:#2a6f97}
+
+/* 用例选择列表（打开用例） */
+.case-list{max-height:400px;overflow-y:auto}
+.case-item{padding:8px 10px;border:1px solid #3e3e42;border-radius:4px;margin-bottom:4px;cursor:pointer;transition:background .12s,border-color .12s}
+.case-item:hover{background:#2d2d30;border-color:#007acc}
+.case-item .case-name{color:#ccc;font-size:13px;display:block}
+.case-item .case-path{color:#666;font-size:10px;display:block;margin-top:2px}
+.workdir-label{color:#888;font-size:11px;margin-left:2px;white-space:nowrap}
 
 /* 连线 */
 .conn-path{fill:none;stroke:#4ec9b0;stroke-width:2;transition:stroke .1s}
@@ -76,12 +86,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #props .io-row{display:flex;gap:3px;margin-bottom:3px}
 #props .io-row select{width:62px;flex-shrink:0}
 #props .io-row input{flex:1;min-width:0}
-#props .kv-row{display:flex;gap:3px;margin-bottom:3px;align-items:center}
-#props .kv-row .kv-key{width:70px;flex-shrink:0}
-#props .kv-row select{width:58px;flex-shrink:0}
-#props .kv-row .kv-val{flex:1;min-width:0}
-#props .kv-row .del-btn{width:24px;height:24px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:14px;line-height:1}
-#props .kv-row .del-btn:hover{background:#a1260d;color:#fff}
+/* 参数卡片：上行 名称+类型+删除，下行 取值 */
+#props .kv2{border:1px solid #3e3e42;border-radius:3px;padding:4px;margin-bottom:4px;background:#1b1b1c}
+#props .kv2-row1{display:flex;gap:3px;margin-bottom:3px}
+#props .kv2-row1 .kv-key{flex:1;min-width:0}
+#props .kv2-row1 select{width:66px;flex-shrink:0}
+#props .kv2-tag{color:#9cdcfe;font-size:11px;font-weight:600;align-self:center;padding:0 2px;flex-shrink:0}
+#props .kv2 .kv-val{width:100%;font-family:'Consolas','Courier New',monospace;font-size:11px}
+#props .kv2 .del-btn{width:22px;height:24px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
+#props .kv2 .del-btn:hover{background:#a1260d;color:#fff}
+#props .kv-empty{color:#555;font-size:11px;margin:2px 0 4px;font-style:italic}
 #props .add-btn{background:#37373d;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;margin-top:2px}
 #props .add-btn:hover{background:#4e4e57}
 #props .target-row{display:flex;gap:4px;margin-bottom:4px;align-items:center;font-size:11px;color:#888}
@@ -123,8 +137,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 <div id="toolbar">
   <button onclick="exportModal('json')">导出 JSON</button>
   <button onclick="exportModal('lua')">导出 Lua</button>
-  <button class="gray" onclick="importModal()">导入 JSON</button>
+  <button class="gray" onclick="saveEditorFile()">保存</button>
+  <button class="gray" onclick="openCaseFile()">打开</button>
   <button class="gray" onclick="loadExample()">加载示例</button>
+  <button class="gray" onclick="pickWorkDir()">工作目录</button>
+  <span id="workdir-label" class="workdir-label">未设置</span>
   <div class="sep"></div>
   <label>用例名称</label>
   <input type="text" id="case-name" value="untitled" oninput="state.caseName=this.value">
@@ -211,7 +228,7 @@ const NODE_TYPES = {
     label: "子用例", color: "#00bcd4",
     outputs: [{id:"next",label:"Next"}],
     fields: [
-      {key:"case",    label:"用例名称", render:"text"},
+      {key:"case",    label:"用例名称", render:"case-select"},
       {key:"in_args", label:"输入参数", render:"kv-raw"},
     ]
   },
@@ -300,6 +317,7 @@ function init() {
     }
   };
 
+  updateWorkDirLabel();
   loadExample();
 }
 
@@ -338,6 +356,7 @@ function createNode(type, mouseEvent) {
 // ============================================================
 function renderAll() {
   renderNodes();
+  renderPorts();
   renderConnections();
 }
 
@@ -392,32 +411,12 @@ function renderNodes() {
 
     el.innerHTML = headHtml + bodyHtml;
 
-    // 输出端口手柄（仅用于发起连线，hover时显示，不作为视觉连接点）
-    let outPorts = def.outputs;
-    if (node.type === 'SWITCH') {
-      const tk = node.data._targetKeys || [];
-      outPorts = tk.map((k, i) => ({id:`target_${i}`, label:String(k)}));
-    }
-    const portCount = outPorts.length || 1;
-    const portSpacing = 22;
-    const startY = 30;
-    outPorts.forEach((p, i) => {
-      const handle = document.createElement('div');
-      handle.className = 'port-handle';
-      handle.style.top = (startY + i * portSpacing - 6) + 'px';
-      handle.innerHTML = `<span class="hlbl">${p.label}</span><div class="hdot" style="background:${def.color}"></div>`;
-      handle.onmousedown = e => { e.stopPropagation(); startConnection(id, p.id, e); };
-      el.appendChild(handle);
-    });
-
-    if (portCount > 1) el.style.minHeight = (startY + portCount * portSpacing + 6) + 'px';
-
     canvas.appendChild(el);
 
-    // 事件
+    // 事件（端口圆点由 renderPorts 绘制并绑定）
     el.querySelector('.node-head').onmousedown = e => startDragNode(e, id);
     el.onmousedown = e => {
-      if (e.target.closest('.port-handle')) return;
+      if (e.target.closest('.port-dot')) return;
       e.stopPropagation();
       selectNode(id);
     };
@@ -438,13 +437,16 @@ function nodeBounds(nodeId) {
   return { x: node.x, y: node.y, w, h, cx: node.x + w / 2, cy: node.y + h / 2 };
 }
 
+// 插座中心到边框的外偏移：插座整体绘制在边框之外，不与节点内容重叠
+const PORT_OFF = 8;
+
 function sidePoint(b, side, frac = 0.5) {
-  // frac 0..1 沿边分布位置（0.5=居中）
+  // frac 0..1 沿边分布位置；返回边框外侧的插座中心坐标
   switch (side) {
-    case 'right':  return { x: b.x + b.w,            y: b.y + b.h * frac };
-    case 'left':   return { x: b.x,                  y: b.y + b.h * frac };
-    case 'bottom': return { x: b.x + b.w * frac,     y: b.y + b.h };
-    case 'top':    return { x: b.x + b.w * frac,     y: b.y };
+    case 'right':  return { x: b.x + b.w + PORT_OFF, y: b.y + b.h * frac };
+    case 'left':   return { x: b.x - PORT_OFF,       y: b.y + b.h * frac };
+    case 'bottom': return { x: b.x + b.w * frac,     y: b.y + b.h + PORT_OFF };
+    case 'top':    return { x: b.x + b.w * frac,     y: b.y - PORT_OFF };
   }
 }
 
@@ -452,19 +454,145 @@ function oppositeSide(side) {
   return { right: 'left', left: 'right', top: 'bottom', bottom: 'top' }[side];
 }
 
-// 统计每个节点的每条边上有多少条连线出入，用于分散端点
-function buildSideIndex() {
-  // key: `${nodeId}:${side}` -> count
-  const idx = {};
-  state.connections.forEach(conn => {
-    const pts = calcConnSides(conn.from, conn.to);
-    if (!pts) return;
-    const fk = `${conn.from}:${pts.fromSide}`;
-    const tk = `${conn.to}:${pts.toSide}`;
-    idx[fk] = (idx[fk] || 0) + 1;
-    idx[tk] = (idx[tk] || 0) + 1;
+// ============================================================
+//  端口布局：连线端点与节点圆点共用同一套 side/frac，保证位置同步
+// ============================================================
+// layout[nodeId] = { outs: {portId:{label, pos:{side,frac}|null}}, ins: {[side]:{frac}} }
+function computePortLayout() {
+  const layout = {};
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    const id = parseInt(idStr);
+    const def = NODE_TYPES[node.type];
+    let outPorts = def.outputs;
+    if (node.type === 'SWITCH') {
+      outPorts = (node.data._targetKeys || []).map((k, i) => ({id:`target_${i}`, label:String(k)}));
+    }
+    const outs = {};
+    outPorts.forEach(p => { outs[p.id] = { label: p.label, pos: null }; });
+    layout[id] = { outs, ins: {} };
+  }
+
+  // 统计每个节点每条边上的出入方向数量，并记录每个输出端口所在的边
+  const outCnt = {}, inCnt = {}, portSide = {};
+  const sidesArr = state.connections.map(conn => calcConnSides(conn.from, conn.to));
+  state.connections.forEach((conn, i) => {
+    const s = sidesArr[i];
+    if (!s) return;
+    outCnt[conn.from] = outCnt[conn.from] || {};
+    outCnt[conn.from][s.fromSide] = (outCnt[conn.from][s.fromSide] || 0) + 1;
+    inCnt[conn.to] = inCnt[conn.to] || {};
+    inCnt[conn.to][s.toSide] = (inCnt[conn.to][s.toSide] || 0) + 1;
+    portSide[conn.from] = portSide[conn.from] || {};
+    portSide[conn.from][conn.port] = s.fromSide;
   });
-  return idx;
+
+  // 区间内均匀取点
+  function spreadFracs(n, a, b) {
+    if (n <= 1) return [(a + b) / 2];
+    const res = [];
+    for (let i = 0; i < n; i++) res.push(a + (b - a) * i / (n - 1));
+    return res;
+  }
+
+  for (const [idStr, lay] of Object.entries(layout)) {
+    const id = parseInt(idStr);
+    const oc = outCnt[id] || {}, ic = inCnt[id] || {};
+    const ps = portSide[id] || {};
+    // 输出端口按所在边分组；同边有输入时输出让出尾部区间，与输入插座分区隔离
+    const buckets = {};
+    Object.entries(lay.outs).forEach(([portId]) => {
+      const side = ps[portId];
+      if (!side) return;
+      (buckets[side] = buckets[side] || []).push(portId);
+    });
+    for (const [side, portIds] of Object.entries(buckets)) {
+      const zone = ic[side] ? [0.15, 0.6] : [0.2, 0.8];
+      const fracs = spreadFracs(portIds.length, zone[0], zone[1]);
+      portIds.forEach((portId, i) => {
+        lay.outs[portId].pos = { side, frac: fracs[i] };
+      });
+    }
+    // 输入插座：同边多条输入共用一个（输入与输出永远不同位）
+    for (const side of Object.keys(ic)) {
+      lay.ins[side] = { frac: oc[side] ? 0.82 : 0.5 };
+    }
+  }
+  return layout;
+}
+
+// 节点局部坐标系中的插座位置（边框外侧）
+function edgePointLocal(w, h, side, frac) {
+  switch (side) {
+    case 'right':  return { x: w + PORT_OFF, y: h * frac };
+    case 'left':   return { x: -PORT_OFF,    y: h * frac };
+    case 'bottom': return { x: w * frac,     y: h + PORT_OFF };
+    case 'top':    return { x: w * frac,     y: -PORT_OFF };
+  }
+}
+
+// 在节点上绘制端口圆点与文字标签（坐标与连线端点完全一致）
+let portLayoutCache = null;
+
+function renderPorts() {
+  canvas.querySelectorAll('.port-dot,.port-dot-label').forEach(n => n.remove());
+  const layout = computePortLayout();
+  portLayoutCache = layout;
+
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    const id = parseInt(idStr);
+    const el = canvas.querySelector(`.node[data-id="${id}"]`);
+    if (!el) continue;
+    const lay = layout[id];
+    if (!lay) continue;
+
+    // 无连线的输出端口在右侧堆叠，多个时撑起节点最小高度
+    const unconnected = Object.values(lay.outs).filter(o => !o.pos).length;
+    if (unconnected > 1) el.style.minHeight = (30 + unconnected * 22 + 6) + 'px';
+    const w = el.offsetWidth, h = el.offsetHeight;
+
+    let stackIdx = 0;
+    for (const [portId, o] of Object.entries(lay.outs)) {
+      let x, y, side;
+      if (o.pos) {
+        // 有连线：圆点绘制在连线实际出口边（边框外侧）
+        side = o.pos.side;
+        const pt = edgePointLocal(w, h, side, o.pos.frac);
+        x = pt.x; y = pt.y;
+      } else {
+        // 无连线：右侧外堆叠，作为发起连线的拖拽手柄
+        side = 'right';
+        y = 30 + stackIdx * 22; stackIdx++;
+        x = w + PORT_OFF;
+      }
+      const dot = document.createElement('div');
+      dot.className = 'port-dot out';
+      dot.dataset.port = portId;
+      dot.style.left = (x - 5) + 'px';
+      dot.style.top = (y - 5) + 'px';
+      dot.onmousedown = e => { e.stopPropagation(); startConnection(id, portId, e); };
+      el.appendChild(dot);
+
+      // 文字标签：左右边插座的标签贴在边框内侧，上下边插座的标签在圆点旁侧
+      const lbl = document.createElement('div');
+      lbl.className = 'port-dot-label';
+      if (side === 'right')      { lbl.style.right = '9px';          lbl.style.top = (y - 7) + 'px'; }
+      else if (side === 'left')  { lbl.style.left = '9px';           lbl.style.top = (y - 7) + 'px'; }
+      else if (side === 'top')   { lbl.style.left = (x + 9) + 'px';  lbl.style.top = (y - 7) + 'px'; }
+      else                       { lbl.style.left = (x + 9) + 'px';  lbl.style.top = (y - 7) + 'px'; }
+      lbl.textContent = o.label;
+      el.appendChild(lbl);
+    }
+
+    // 输入插座（青色）：同边多条输入共用一个，位于边框外侧，与连线入口重合
+    for (const [side, inp] of Object.entries(lay.ins)) {
+      const pt = edgePointLocal(w, h, side, inp.frac);
+      const dot = document.createElement('div');
+      dot.className = 'port-dot in';
+      dot.style.left = (pt.x - 5) + 'px';
+      dot.style.top = (pt.y - 5) + 'px';
+      el.appendChild(dot);
+    }
+  }
 }
 
 // 计算两节点之间的进出边方向
@@ -484,62 +612,6 @@ function calcConnSides(fromId, toId) {
   return { fromSide, toSide };
 }
 
-// 为每条连线分配沿边的分数位置，避免同边多条线重叠
-function assignFracs(sideIdx) {
-  // 为每条边维护一个递增计数器
-  const counters = {};
-  const result = [];
-  state.connections.forEach(conn => {
-    const pts = calcConnSides(conn.from, conn.to);
-    if (!pts) { result.push(null); return; }
-    const fk = `${conn.from}:${pts.fromSide}`;
-    const tk = `${conn.to}:${pts.toSide}`;
-    const fc = counters[fk] = (counters[fk] || 0) + 1;
-    const tc = counters[tk] = (counters[tk] || 0) + 1;
-    const fTotal = sideIdx[fk] || 1;
-    const tTotal = sideIdx[tk] || 1;
-    // 在 0.2 ~ 0.8 之间均匀分布
-    const fromFrac = fTotal === 1 ? 0.5 : 0.2 + 0.6 * ((fc - 0.5) / fTotal);
-    const toFrac   = tTotal === 1 ? 0.5 : 0.2 + 0.6 * ((tc - 0.5) / tTotal);
-    result.push({ pts, fromFrac, toFrac });
-  });
-  return result;
-}
-
-function getConnPoints(fromId, toId) {
-  const fb = nodeBounds(fromId);
-  const tb = nodeBounds(toId);
-  if (!fb || !tb) return null;
-  const sides = calcConnSides(fromId, toId);
-  if (!sides) return null;
-  return {
-    from: sidePoint(fb, sides.fromSide, 0.5),
-    to: sidePoint(tb, sides.toSide, 0.5),
-    fromSide: sides.fromSide,
-    toSide: sides.toSide
-  };
-}
-
-// 临时连线：源节点跟随鼠标方向选择出口边
-function getTempConnPoints(fromId, mx, my) {
-  const fb = nodeBounds(fromId);
-  if (!fb) return null;
-  const dx = mx - fb.cx;
-  const dy = my - fb.cy;
-  let fromSide;
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    fromSide = dx >= 0 ? 'right' : 'left';
-  } else {
-    fromSide = dy >= 0 ? 'bottom' : 'top';
-  }
-  return {
-    from: sidePoint(fb, fromSide, 0.5),
-    to: { x: mx, y: my },
-    fromSide,
-    toSide: oppositeSide(fromSide)
-  };
-}
-
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 function renderConnections() {
@@ -547,70 +619,44 @@ function renderConnections() {
   svg.setAttribute('width', canvas.offsetWidth);
   svg.setAttribute('height', canvas.offsetHeight);
 
-  const sideIdx = buildSideIndex();
-  const fracs = assignFracs(sideIdx);
+  if (!portLayoutCache) portLayoutCache = computePortLayout();
+  const layout = portLayoutCache;
 
   state.connections.forEach((conn, idx) => {
-    const fa = fracs[idx];
-    if (!fa) return;
+    const lo = layout[conn.from] && layout[conn.from].outs[conn.port];
+    if (!lo || !lo.pos) return;
+    const toSide = oppositeSide(lo.pos.side);
+    const li = layout[conn.to] && layout[conn.to].ins[toSide];
+    if (!li) return;
     const fb = nodeBounds(conn.from);
     const tb = nodeBounds(conn.to);
     if (!fb || !tb) return;
-    const from = sidePoint(fb, fa.pts.fromSide, fa.fromFrac);
-    const to   = sidePoint(tb, fa.pts.toSide,   fa.toFrac);
+    // 端点坐标 = 节点上圆点（插座）的坐标（同一套布局结果）
+    const from = sidePoint(fb, lo.pos.side, lo.pos.frac);
+    const to   = sidePoint(tb, toSide, li.frac);
 
-    // 连线
     const path = document.createElementNS(SVGNS, 'path');
-    path.setAttribute('d', bezierPathDir(from.x, from.y, to.x, to.y, fa.pts.fromSide, fa.pts.toSide));
+    path.setAttribute('d', bezierPathDir(from.x, from.y, to.x, to.y, lo.pos.side, toSide));
     path.setAttribute('class', 'conn-path' + (state.selectedConn === idx ? ' selected' : ''));
-    path.onclick = e => { e.stopPropagation(); state.selectedConn = idx; selectNode(null); renderConnections(); };
+    path.onclick = e => {
+      e.stopPropagation();
+      selectNode(null);          // 取消节点选中
+      state.selectedConn = idx;  // 标记连线选中
+      renderConnections();
+    };
     svg.appendChild(path);
-
-    // 源端点（输出，琥珀色实心圆）
-    svg.appendChild(svgDot(from.x, from.y, '#f0a020', state.selectedConn === idx));
-
-    // 目标端点（输入，青色箭头）
-    svg.appendChild(svgArrow(to.x, to.y, fa.pts.toSide, '#4ec9b0', state.selectedConn === idx));
   });
 
-  // 临时连线（跟随鼠标）
+  // 临时连线（从起点圆点出发，跟随鼠标）
   if (connDrag) {
-    const pts = getTempConnPoints(connDrag.fromId, connDrag.x, connDrag.y);
-    if (pts) {
-      const path = document.createElementNS(SVGNS, 'path');
-      path.setAttribute('d', bezierPathDir(pts.from.x, pts.from.y, pts.to.x, pts.to.y, pts.fromSide, pts.toSide));
-      path.setAttribute('class', 'conn-temp');
-      svg.appendChild(path);
-      // 临时源端点
-      svg.appendChild(svgDot(pts.from.x, pts.from.y, '#f0a020', false));
-    }
+    const dx = connDrag.x - connDrag.from.x;
+    const dy = connDrag.y - connDrag.from.y;
+    const toSide = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'left' : 'right') : (dy >= 0 ? 'top' : 'bottom');
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', bezierPathDir(connDrag.from.x, connDrag.from.y, connDrag.x, connDrag.y, connDrag.fromSide, toSide));
+    path.setAttribute('class', 'conn-temp');
+    svg.appendChild(path);
   }
-}
-
-// SVG 元素辅助
-function svgDot(x, y, color, selected) {
-  const c = document.createElementNS(SVGNS, 'circle');
-  c.setAttribute('cx', x);
-  c.setAttribute('cy', y);
-  c.setAttribute('r', selected ? 5 : 4);
-  c.setAttribute('fill', color);
-  c.setAttribute('stroke', '#1e1e1e');
-  c.setAttribute('stroke-width', '1.5');
-  return c;
-}
-
-function svgArrow(x, y, side, color, selected) {
-  const angle = { right: 0, left: Math.PI, bottom: Math.PI / 2, top: -Math.PI / 2 }[side];
-  const size = selected ? 7 : 6;
-  const g = document.createElementNS(SVGNS, 'g');
-  g.setAttribute('transform', `translate(${x},${y}) rotate(${angle * 180 / Math.PI})`);
-  const tri = document.createElementNS(SVGNS, 'polygon');
-  tri.setAttribute('points', `${size},0 ${-size*0.7},${-size*0.7} ${-size*0.7},${size*0.7}`);
-  tri.setAttribute('fill', color);
-  tri.setAttribute('stroke', '#1e1e1e');
-  tri.setAttribute('stroke-width', '1');
-  g.appendChild(tri);
-  return g;
 }
 
 // 带方向的贝塞尔曲线：控制点沿出口/入口边方向延伸
@@ -655,6 +701,8 @@ function onDragMove(e) {
     state.nodes[drag.id].y = e.clientY - rect.top - canvasWrap.scrollTop - drag.offsetY;
     const el = canvas.querySelector(`.node[data-id="${drag.id}"]`);
     if (el) { el.style.left = state.nodes[drag.id].x + 'px'; el.style.top = state.nodes[drag.id].y + 'px'; }
+    // 节点移动后路由方向可能改变，圆点与连线一起刷新
+    renderPorts();
     renderConnections();
   }
   if (connDrag) {
@@ -668,15 +716,20 @@ function onDragMove(e) {
 function onDragEnd(e) {
   drag = null;
   if (connDrag) {
-    // 落在节点任意位置即可建立连线（不再要求精确落在输入端口圆点上）
+    // 落在目标节点任意位置即可建立连线
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const nodeEl = el ? el.closest('.node') : null;
-    if (nodeEl) {
-      completeConnection(parseInt(nodeEl.dataset.id));
-    } else {
-      connDrag = null;
-      renderConnections();
+    const toId = nodeEl ? parseInt(nodeEl.dataset.id) : null;
+    if (toId && toId !== connDrag.fromId) {
+      // 同一输出端口只保留一条连线
+      state.connections = state.connections.filter(c =>
+        !(c.from === connDrag.fromId && c.port === connDrag.port)
+      );
+      state.connections.push({ from: connDrag.fromId, port: connDrag.port, to: toId });
     }
+    connDrag = null;
+    document.body.classList.remove('connecting');
+    renderAll();
   }
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup', onDragEnd);
@@ -687,26 +740,36 @@ function onDragEnd(e) {
 // ============================================================
 function startConnection(fromId, port, e) {
   e.preventDefault();
+  e.stopPropagation();
+  // 起点 = 该端口圆点当前位置（与节点上绘制的圆点同步）
+  const lay = computePortLayout()[fromId];
+  const lo = lay ? lay.outs[port] : null;
+  const b = nodeBounds(fromId);
+  let from, fromSide;
+  if (lo && lo.pos) {
+    fromSide = lo.pos.side;
+    from = sidePoint(b, lo.pos.side, lo.pos.frac);
+  } else {
+    // 无连线端口：与 renderPorts 的右侧外堆叠位置保持一致
+    fromSide = 'right';
+    let stackIdx = 0;
+    for (const [pid, o] of Object.entries(lay ? lay.outs : {})) {
+      if (pid === port) break;
+      if (!o.pos) stackIdx++;
+    }
+    from = { x: b.x + b.w + PORT_OFF, y: b.y + 30 + stackIdx * 22 };
+  }
   const rect = canvas.getBoundingClientRect();
   connDrag = {
-    fromId, port,
+    fromId, port, from, fromSide,
     x: e.clientX - rect.left + canvasWrap.scrollLeft,
     y: e.clientY - rect.top + canvasWrap.scrollTop,
   };
+  document.body.classList.add('connecting');
+  const dotEl = canvas.querySelector(`.node[data-id="${fromId}"] .port-dot[data-port="${port}"]`);
+  if (dotEl) dotEl.classList.add('dragging');
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
-}
-
-function completeConnection(toId) {
-  if (!connDrag) return;
-  if (connDrag.fromId === toId) { connDrag = null; return; }
-  // 移除同from+port的旧连线
-  state.connections = state.connections.filter(c =>
-    !(c.from === connDrag.fromId && c.port === connDrag.port)
-  );
-  state.connections.push({from: connDrag.fromId, port: connDrag.port, to: toId});
-  connDrag = null;
-  renderAll();
 }
 
 // ============================================================
@@ -812,36 +875,54 @@ function renderField(f, val, nodeId) {
     case 'textarea':
       return `<div class="field"><label>${f.label}</label>
         <textarea onchange="setField(${nodeId},'${k}',this.value)">${escapeHtml(val||'')}</textarea></div>`;
-    case 'input':
+    case 'input': {
+      // 卡片式：名称 + 取值方式 + 独立value输入框（如 SOCK 的 ip/port）
+      const v = val || {};
       return `<div class="field"><label>${f.label}</label>
-        <div class="io-row">
-          <select onchange="setInputType(${nodeId},'${k}',this.value)">${typeOpts(val?.type)}</select>
-          <input type="text" value="${escapeAttr(val?.value||'')}" onchange="setInputValue(${nodeId},'${k}',this.value)">
+        <div class="kv2">
+          <div class="kv2-row1">
+            <span class="kv2-tag">${k}</span>
+            <select onchange="setInputType(${nodeId},'${k}',this.value)" title="取值方式">${typeOpts(v.type)}</select>
+          </div>
+          <input class="kv-val" type="text" placeholder="取值（attr=属性名 / const=直接值 / lua=表达式 / var=变量名）" value="${escapeAttr(v.value||'')}" onchange="setInputValue(${nodeId},'${k}',this.value)">
         </div></div>`;
+    }
     case 'kv':
     case 'kv-raw': {
       const obj = val || {};
       const keys = Object.keys(obj);
+      const isRaw = f.render === 'kv-raw';
       let html = `<div class="field"><label>${f.label}</label>`;
-      keys.forEach(key => {
+      keys.forEach((key, i) => {
         const v = obj[key];
-        if (f.render === 'kv-raw') {
-          html += `<div class="kv-row">
-            <input class="kv-key" type="text" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}','${escapeAttr(key)}',this.value)">
-            <input class="kv-val" type="text" value="${escapeAttr(v||'')}" onchange="setKvRawValue(${nodeId},'${k}',this.previousElementSibling.value,this.value)">
-            <button class="del-btn" onclick="delKvKey(${nodeId},'${k}',this.parentElement.querySelector('.kv-key').value)">×</button>
-          </div>`;
-        } else {
-          html += `<div class="kv-row">
-            <input class="kv-key" type="text" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}','${escapeAttr(key)}',this.value)">
-            <select onchange="setKvType(${nodeId},'${k}',this.previousElementSibling.value,this.value)">${typeOpts(v?.type)}</select>
-            <input class="kv-val" type="text" value="${escapeAttr(v?.value||'')}" onchange="setKvValue(${nodeId},'${k}',this.parentElement.querySelector('.kv-key').value,this.value)">
-            <button class="del-btn" onclick="delKvKey(${nodeId},'${k}',this.parentElement.querySelector('.kv-key').value)">×</button>
-          </div>`;
-        }
+        html += `<div class="kv2">
+          <div class="kv2-row1">
+            <input class="kv-key" type="text" placeholder="参数名" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}',${i},this.value)">
+            ${isRaw ? '' : `<select onchange="setKvType(${nodeId},'${k}',${i},this.value)" title="取值方式">${typeOpts(v?.type)}</select>`}
+            <button class="del-btn" onclick="delKvKey(${nodeId},'${k}',${i})" title="删除参数">×</button>
+          </div>
+          <input class="kv-val" type="text" placeholder="${isRaw ? '参数值' : '取值（attr=属性名 / var=变量名 / lua=表达式 / const=常量）'}" value="${escapeAttr(isRaw ? v : (v?.value || ''))}" onchange="${isRaw ? `setKvRawValue(${nodeId},'${k}',${i},this.value)` : `setKvValue(${nodeId},'${k}',${i},this.value)`}">
+        </div>`;
       });
-      html += `<button class="add-btn" onclick="addKvKey(${nodeId},'${k}','${f.render}')">+ 添加</button></div>`;
+      if (!keys.length) html += `<div class="kv-empty">暂无参数，点击下方按钮添加</div>`;
+      html += `<button class="add-btn" onclick="addKvKey(${nodeId},'${k}','${f.render}')">+ 添加参数</button></div>`;
       return html;
+    }
+    case 'case-select': {
+      // 子用例下拉：从已加载的子用例目录中选择，排除自身（防止自递归）
+      const current = val || '';
+      const opts = [];
+      opts.push(`<option value="" ${current ? '' : 'selected'} disabled>${subCases.length ? '请选择子用例' : '未加载子用例目录'}</option>`);
+      subCases.forEach(sc => {
+        if (sc.name === state.caseName) return;
+        opts.push(`<option value="${escapeAttr(sc.name)}" ${sc.name === current ? 'selected' : ''}>${escapeHtml(sc.name)}（${escapeHtml(sc.path)}）</option>`);
+      });
+      // 当前值不在已加载列表中时保留显示（如尚未加载目录或来自导入数据）
+      if (current && !subCases.some(sc => sc.name === current)) {
+        opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未在已加载目录中）</option>`);
+      }
+      return `<div class="field"><label>${f.label}</label>
+        <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
     }
     case 'list': {
       const arr = val || [];
@@ -864,60 +945,69 @@ function typeOpts(selected) {
 }
 
 // 属性修改函数
-function setField(id, key, val) { state.nodes[id].data[key] = val; renderNodes(); }
+function setField(id, key, val) { state.nodes[id].data[key] = val; renderAll(); }
 function setInputType(id, key, type) {
   if (!state.nodes[id].data[key]) state.nodes[id].data[key] = {};
   state.nodes[id].data[key].type = type;
-  renderNodes();
+  renderAll();
 }
 function setInputValue(id, key, val) {
   if (!state.nodes[id].data[key]) state.nodes[id].data[key] = {type:'attr'};
   state.nodes[id].data[key].value = val;
-  renderNodes();
+  renderAll();
 }
-function addKvKey(id, key, renderType) {
-  const obj = state.nodes[id].data[key] || {};
-  let n = 1;
-  let nk = `param${n}`;
+// 按索引定位参数名（避免 DOM 相邻引用与特殊字符转义问题）
+function kvKeyAt(id, field, idx) {
+  const obj = state.nodes[id].data[field] || {};
+  return Object.keys(obj)[idx];
+}
+function addKvKey(id, field, renderType) {
+  const obj = state.nodes[id].data[field] || {};
+  let n = 1, nk = `param${n}`;
   while (obj[nk]) { n++; nk = `param${n}`; }
   obj[nk] = renderType === 'kv-raw' ? '' : {type:'attr', value:''};
-  state.nodes[id].data[key] = obj;
-  updatePropPanel(); renderNodes();
+  state.nodes[id].data[field] = obj;
+  updatePropPanel(); renderAll();
 }
-function renameKvKey(id, key, oldK, newK) {
-  if (!newK || oldK === newK) return;
-  const obj = state.nodes[id].data[key];
-  if (obj[newK]) { toast('键名已存在'); updatePropPanel(); return; }
-  obj[newK] = obj[oldK]; delete obj[oldK];
-  updatePropPanel(); renderNodes();
+function renameKvKey(id, field, idx, newName) {
+  const obj = state.nodes[id].data[field]; if (!obj) return;
+  const oldKey = kvKeyAt(id, field, idx);
+  if (!oldKey || !newName || oldKey === newName) return;
+  if (obj[newName] !== undefined) { toast('参数名已存在'); updatePropPanel(); return; }
+  obj[newName] = obj[oldKey]; delete obj[oldKey];
+  updatePropPanel(); renderAll();
 }
-function setKvType(id, key, k, type) {
-  state.nodes[id].data[key][k].type = type;
-  renderNodes();
+function setKvType(id, field, idx, type) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  const item = state.nodes[id].data[field][key];
+  if (item && typeof item === 'object') { item.type = type; renderAll(); }
 }
-function setKvValue(id, key, k, val) {
-  state.nodes[id].data[key][k].value = val;
-  renderNodes();
+function setKvValue(id, field, idx, val) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  const item = state.nodes[id].data[field][key];
+  if (item && typeof item === 'object') { item.value = val; renderAll(); }
 }
-function setKvRawValue(id, key, k, val) {
-  state.nodes[id].data[key][k] = val;
-  renderNodes();
+function setKvRawValue(id, field, idx, val) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  state.nodes[id].data[field][key] = val;
+  renderAll();
 }
-function delKvKey(id, key, k) {
-  delete state.nodes[id].data[key][k];
-  updatePropPanel(); renderNodes();
+function delKvKey(id, field, idx) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  delete state.nodes[id].data[field][key];
+  updatePropPanel(); renderAll();
 }
 function addListItem(id, key) {
   (state.nodes[id].data[key] = state.nodes[id].data[key] || []).push("");
-  updatePropPanel(); renderNodes();
+  updatePropPanel(); renderAll();
 }
 function setListItem(id, key, i, val) {
   state.nodes[id].data[key][i] = val;
-  renderNodes();
+  renderAll();
 }
 function delListItem(id, key, i) {
   state.nodes[id].data[key].splice(i, 1);
-  updatePropPanel(); renderNodes();
+  updatePropPanel(); renderAll();
 }
 function addTarget(id) {
   (state.nodes[id].data._targetKeys = state.nodes[id].data._targetKeys || []).push(String((state.nodes[id].data._targetKeys.length||0)+1));
@@ -938,7 +1028,7 @@ function removeTarget(id, i) {
 }
 function updateTargetKey(id, i, val) {
   state.nodes[id].data._targetKeys[i] = val;
-  renderNodes(); renderConnections();
+  renderAll();
 }
 
 // ============================================================
@@ -977,65 +1067,342 @@ function buildExportData() {
   return result;
 }
 
+let exportExt = 'json';
+
 function exportModal(fmt) {
   const data = buildExportData();
-  let text = fmt === 'json' ? JSON.stringify(data, null, 2) : ('return ' + jsonToLua(data));
-  showModal(`导出 ${fmt.toUpperCase()}`, text, false);
+  exportExt = fmt;
+  const text = fmt === 'json' ? JSON.stringify(data, null, 2) : ('return ' + jsonToLua(data));
+  showModal(`导出 ${fmt.toUpperCase()}`, text);
 }
 
-function importModal() {
-  showModal('导入 JSON', '', true);
+function safeFileName() {
+  return (state.caseName || 'untitled').replace(/[\\/:*?"<>|]/g, '_');
 }
 
-function doImport(text) {
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// 保存文本：已有工作目录时静默写入（不弹对话框）；否则弹系统保存对话框；再不行直接下载
+async function saveTextToFolder(suggestedName, text, mime) {
+  // 已有工作目录：直接写入
+  if (await ensureWorkDirWritable()) {
+    try {
+      const fh = await workDirHandle.getFileHandle(suggestedName, { create: true });
+      const w = await fh.createWritable();
+      await w.write(text);
+      await w.close();
+      toast(`已保存 ${suggestedName} 到工作目录`);
+      return;
+    } catch (e) { /* 写入异常 → 走弹窗流程 */ }
+  }
+
+  if (window.showSaveFilePicker) {
+    try {
+      const ext = '.' + suggestedName.split('.').pop();
+      const desc = ext === '.json' ? 'JSON 文件' : (ext === '.lua' ? 'Lua 文件' : '文件');
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: desc, accept: { [mime]: [ext] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      toast(`已保存 ${handle.name}`);
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // 用户取消
+      // 其他异常（权限/环境不支持）回退为直接下载
+    }
+  }
+  downloadText(suggestedName, text);
+  toast(`已下载 ${suggestedName}`);
+}
+
+// 用用例名保存导出文件（可选择文件夹）
+function downloadExport() {
+  const name = safeFileName();
+  const mime = exportExt === 'json' ? 'application/json' : 'text/plain';
+  saveTextToFolder(`${name}.${exportExt}`, $('modal-text').value, mime);
+}
+
+// ============================================================
+//  编辑器存档：保存/加载节点位置与内容，可再次编辑
+// ============================================================
+function buildEditorData() {
+  return {
+    editor: "quanta-robot-node-editor",
+    version: 1,
+    name: state.caseName || "untitled",
+    root: state.root,
+    rewind: state.rewind,
+    nextId: state.nextId,
+    nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, n]) => [id, {
+      type: n.type,
+      x: Math.round(n.x),
+      y: Math.round(n.y),
+      data: JSON.parse(JSON.stringify(n.data)),
+    }])),
+    connections: state.connections.map(c => ({ from: c.from, port: c.port, to: c.to })),
+  };
+}
+
+// 保存存档：已有工作目录时静默写入（不弹对话框），无则选目录并设为工作路径
+async function saveEditorFile() {
+  const name = safeFileName();
+  const fname = `${name}.edit.json`;
+  const text = JSON.stringify(buildEditorData(), null, 2);
+
+  // 已有工作目录：直接写入
+  if (await ensureWorkDirWritable()) {
+    try {
+      const fh = await workDirHandle.getFileHandle(fname, { create: true });
+      const w = await fh.createWritable();
+      await w.write(text);
+      await w.close();
+      upsertSubCase(name, fname, fh);
+      toast(`已保存 ${fname} 到工作目录`);
+      return;
+    } catch (e) { /* 写入异常 → 走选目录流程 */ }
+  }
+
+  // 无工作目录：选择目录并设为工作路径
+  if (window.showDirectoryPicker) {
+    let dir = null;
+    try {
+      dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    if (dir) {
+      workDirHandle = dir;
+      try {
+        const fh = await dir.getFileHandle(fname, { create: true });
+        const w = await fh.createWritable();
+        await w.write(text);
+        await w.close();
+        subCases = [];
+        await scanSubCaseDir(dir, '');
+        updatePropPanel();
+        toast(`已保存 ${fname}，工作目录已设置`);
+      } catch (e) {
+        alert('保存失败: ' + e.message);
+      }
+      return;
+    }
+  }
+
+  // 浏览器不支持 → 回退为普通保存对话框
+  saveTextToFolder(fname, text, 'application/json');
+}
+
+function applyEditorData(data) {
+  if (!data || !data.nodes) throw new Error('不是有效的编辑器存档文件');
+  state.caseName = data.name || 'untitled';
+  $('case-name').value = state.caseName;
+  state.root = data.root ?? null;
+  state.rewind = data.rewind ?? null;
+  state.nextId = data.nextId || 1;
+  state.nodes = {};
+  state.connections = [];
+  state.selected = null;
+  state.selectedConn = null;
+  for (const [id, n] of Object.entries(data.nodes)) {
+    if (!NODE_TYPES[n.type]) throw new Error(`未知节点类型: ${n.type}`);
+    state.nodes[parseInt(id)] = {
+      type: n.type,
+      x: n.x || 0,
+      y: n.y || 0,
+      data: JSON.parse(JSON.stringify(n.data || {})),
+    };
+  }
+  state.connections = (data.connections || []).map(c => ({ from: c.from, port: c.port, to: c.to }));
+  if (state.root == null || !state.nodes[state.root]) {
+    state.root = Object.keys(state.nodes).length ? parseInt(Object.keys(state.nodes)[0]) : null;
+  }
+  renderAll();
+  updatePropPanel();
+}
+
+// 应用导出格式的用例数据（示例加载等内部使用）
+function applyCaseData(data) {
+  state.caseName = data.name || "untitled";
+  $('case-name').value = state.caseName;
+  state.root = data.root;
+  state.rewind = data.rewind || data.root;
+  state.nodes = {};
+  state.connections = [];
+  state.nextId = 1;
+
+  for (const [idStr, conf] of Object.entries(data.nodes)) {
+    const id = parseInt(idStr);
+    if (id >= state.nextId) state.nextId = id + 1;
+    const type = conf.type;
+    const nodeData = {};
+    const def = NODE_TYPES[type];
+    for (const f of def.fields) {
+      if (conf[f.key] !== undefined) nodeData[f.key] = JSON.parse(JSON.stringify(conf[f.key]));
+    }
+    if (type === 'SWITCH') {
+      nodeData._targetKeys = (conf.targets || []).map(t => t[0]);
+    }
+    // 自动布局
+    const count = Object.keys(state.nodes).length;
+    const x = 80 + (count % 5) * 210;
+    const y = 60 + Math.floor(count / 5) * 160;
+    state.nodes[id] = {type, x, y, data: nodeData};
+
+    // 解析连接
+    if (conf.next != null) state.connections.push({from: id, port: 'next', to: conf.next});
+    if (conf.result) {
+      if (conf.result.success != null) state.connections.push({from: id, port: 'success', to: conf.result.success});
+      if (conf.result.failed != null) state.connections.push({from: id, port: 'failed', to: conf.result.failed});
+    }
+    if (conf.targets) {
+      conf.targets.forEach((t, i) => {
+        state.connections.push({from: id, port: `target_${i}`, to: t[1]});
+      });
+    }
+  }
+  state.selected = null;
+  renderAll();
+  updatePropPanel();
+}
+
+// ============================================================
+//  工作目录：用例存档的默认保存位置，也是子用例列表的来源
+// ============================================================
+let workDirHandle = null;   // 工作目录句柄（仅存内存，刷新页面后需重新选择）
+let subCases = [];          // {name, path, handle}
+
+// 确保工作目录有读写权限（浏览器可能在会话恢复后回收权限）
+async function ensureWorkDirWritable() {
+  if (!workDirHandle || workDirHandle.kind !== 'directory') return false;
+  if (await workDirHandle.queryPermission({ mode: 'readwrite' }) === 'granted') return true;
+  return await workDirHandle.requestPermission({ mode: 'readwrite' }) === 'granted';
+}
+
+// 设置工作目录；已有工作目录时只刷新其下的用例列表，不再弹选择框
+async function pickWorkDir() {
+  if (!window.showDirectoryPicker) {
+    alert('当前浏览器不支持目录选择，请使用 Edge 或 Chrome');
+    return;
+  }
+  // 已有工作目录：恢复权限后直接刷新扫描
+  if (workDirHandle && workDirHandle.kind === 'directory') {
+    if (await ensureWorkDirWritable()) {
+      await refreshSubCases();
+      return;
+    }
+    // 权限无法恢复 → 继续走重新选择
+  }
   try {
-    const data = JSON.parse(text);
-    state.caseName = data.name || "untitled";
-    $('case-name').value = state.caseName;
-    state.root = data.root;
-    state.rewind = data.rewind || data.root;
-    state.nodes = {};
-    state.connections = [];
-    state.nextId = 1;
+    workDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    alert('打开目录失败: ' + e.message);
+    return;
+  }
+  await refreshSubCases();
+  updateWorkDirLabel();
+}
 
-    for (const [idStr, conf] of Object.entries(data.nodes)) {
-      const id = parseInt(idStr);
-      if (id >= state.nextId) state.nextId = id + 1;
-      const type = conf.type;
-      const nodeData = {};
-      const def = NODE_TYPES[type];
-      for (const f of def.fields) {
-        if (conf[f.key] !== undefined) nodeData[f.key] = JSON.parse(JSON.stringify(conf[f.key]));
-      }
-      if (type === 'SWITCH') {
-        nodeData._targetKeys = (conf.targets || []).map(t => t[0]);
-      }
-      // 自动布局
-      const count = Object.keys(state.nodes).length;
-      const x = 80 + (count % 5) * 210;
-      const y = 60 + Math.floor(count / 5) * 160;
-      state.nodes[id] = {type, x, y, data: nodeData};
+// 工具栏显示当前工作目录名
+function updateWorkDirLabel() {
+  const el = $('workdir-label');
+  if (el) el.textContent = workDirHandle ? `当前: ${workDirHandle.name}` : '未设置';
+}
 
-      // 解析连接
-      if (conf.next != null) state.connections.push({from: id, port: 'next', to: conf.next});
-      if (conf.result) {
-        if (conf.result.success != null) state.connections.push({from: id, port: 'success', to: conf.result.success});
-        if (conf.result.failed != null) state.connections.push({from: id, port: 'failed', to: conf.result.failed});
-      }
-      if (conf.targets) {
-        conf.targets.forEach((t, i) => {
-          state.connections.push({from: id, port: `target_${i}`, to: t[1]});
-        });
+async function refreshSubCases() {
+  if (!workDirHandle) return;
+  subCases = [];
+  try {
+    await scanSubCaseDir(workDirHandle, '');
+  } catch (e) {
+    alert('扫描目录失败: ' + e.message);
+  }
+  toast(`工作目录「${workDirHandle.name}」找到 ${subCases.length} 个用例`);
+  updatePropPanel();
+  updateWorkDirLabel();
+}
+
+async function scanSubCaseDir(dirHandle, prefix) {
+  for await (const [name, handle] of dirHandle.entries()) {
+    if (handle.kind === 'directory') {
+      await scanSubCaseDir(handle, prefix + name + '/');
+    } else if (name.endsWith('.edit.json')) {
+      // 优先使用存档内的用例名，其次文件名；同名去重
+      let caseName = name.replace(/\.edit\.json$/, '');
+      try {
+        const data = JSON.parse(await (await handle.getFile()).text());
+        if (data.name) caseName = data.name;
+      } catch (err) { /* 文件损坏时退回文件名 */ }
+      if (!subCases.some(sc => sc.name === caseName)) {
+        subCases.push({ name: caseName, path: prefix + name, handle });
       }
     }
-    state.selected = null;
-    renderAll();
-    updatePropPanel();
-    closeModal();
-    toast('导入成功');
-  } catch (e) {
-    alert('导入失败: ' + e.message);
   }
+}
+
+// 打开：无工作目录时先选目录（其路径即为工作路径），再从目录存档列表中点选打开
+async function openCaseFile() {
+  if (!workDirHandle) {
+    await pickWorkDir();
+    if (!workDirHandle) return; // 用户取消
+  }
+  if (!subCases.length) await refreshSubCases();
+  if (!subCases.length) { toast('工作目录下没有 edit.json 存档'); return; }
+  if (subCases.length === 1) { await openSubCase(subCases[0]); return; }
+  showSubCasePicker();
+}
+
+async function openSubCase(sc) {
+  try {
+    const data = JSON.parse(await (await sc.handle.getFile()).text());
+    if (Array.isArray(data.connections)) {
+      applyEditorData(data);   // 编辑器存档（含节点位置）
+    } else if (data.nodes) {
+      applyCaseData(data);     // 导出格式（自动布局）
+    } else {
+      throw new Error('无法识别的文件格式');
+    }
+    closeModal();
+    toast(`已打开 ${sc.name}`);
+  } catch (e) {
+    alert('打开失败: ' + e.message);
+  }
+}
+
+// 用例选择列表（工作目录下有多个存档时弹出）
+function showSubCasePicker() {
+  const items = subCases.map((sc, i) =>
+    `<div class="case-item" onclick="pickSubCase(${i})">
+       <span class="case-name">${escapeHtml(sc.name)}</span>
+       <span class="case-path">${escapeHtml(sc.path)}</span>
+     </div>`).join('');
+  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>打开用例（${subCases.length}）</h3><button class="close" onclick="closeModal()">×</button></div>
+      <div class="modal-body"><div class="case-list">${items}</div></div>
+    </div>
+  </div>`;
+  $('modal-bg').onclick = closeModal;
+}
+
+function pickSubCase(i) { openSubCase(subCases[i]); }
+
+// 保存后把存档加入/更新到用例列表（CASE 节点下拉框立即可选）
+function upsertSubCase(name, path, handle) {
+  const i = subCases.findIndex(sc => sc.name === name);
+  const entry = { name, path, handle };
+  if (i >= 0) subCases[i] = entry; else subCases.push(entry);
+  updatePropPanel();
 }
 
 // JSON转Lua表
@@ -1069,18 +1436,17 @@ function jsonToLua(obj, indent) {
 // ============================================================
 //  模态框
 // ============================================================
-function showModal(title, text, isImport) {
+function showModal(title, text) {
   const c = $('modal-container');
   c.innerHTML = `<div class="modal-bg" id="modal-bg">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-head"><h3>${title}</h3><button class="close" onclick="closeModal()">×</button></div>
       <div class="modal-body">
-        <textarea id="modal-text" placeholder="${isImport?'粘贴JSON数据...':''}">${escapeHtml(text)}</textarea>
+        <textarea id="modal-text">${escapeHtml(text)}</textarea>
       </div>
       <div class="modal-foot">
-        ${isImport
-          ? '<button class="primary" onclick="doImport($(\'modal-text\').value)">导入</button><button class="secondary" onclick="closeModal()">取消</button>'
-          : '<button class="primary" onclick="copyText($(\'modal-text\').value)">复制到剪贴板</button><button class="secondary" onclick="closeModal()">关闭</button>'}
+        <button class="primary" onclick="downloadExport()">保存文件</button>
+        <button class="secondary" onclick="closeModal()">关闭</button>
       </div>
     </div>
   </div>`;
@@ -1088,12 +1454,6 @@ function showModal(title, text, isImport) {
 }
 
 function closeModal() { $('modal-container').innerHTML = ''; }
-
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => toast('已复制')).catch(() => {
-    const ta = $('modal-text'); ta.select(); document.execCommand('copy'); toast('已复制');
-  });
-}
 
 // ============================================================
 //  辅助
@@ -1135,7 +1495,7 @@ function loadExample() {
         outputs:{ login_success:{type:"lua",value:"true"} } },
     }
   };
-  doImport(JSON.stringify(example));
+  applyCaseData(example);
 }
 
 // 启动
