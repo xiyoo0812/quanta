@@ -182,8 +182,7 @@ body.connecting .node{border-color:#2a6f97}
 <!-- 顶栏 -->
 <div id="toolbar">
   <button onclick="showExecPanel('case')">执行</button>
-  <button onclick="exportModal('json')">导出 JSON</button>
-  <button onclick="exportModal('lua')">导出 Lua</button>
+  <button onclick="exportModal()">导出 Lua</button>
   <button class="gray" onclick="saveEditorFile()">保存</button>
   <button class="gray" onclick="openCaseFile()">打开</button>
   <button class="gray" onclick="pickProtoFile()">载入协议</button>
@@ -1327,13 +1326,9 @@ function buildExportData() {
   return result;
 }
 
-let exportExt = 'json';
-
-function exportModal(fmt) {
+function exportModal() {
   const data = buildExportData();
-  exportExt = fmt;
-  const text = fmt === 'json' ? JSON.stringify(data, null, 2) : ('return ' + jsonToLua(data));
-  showModal(`导出 ${fmt.toUpperCase()}`, text);
+  showModal('导出 Lua', 'return ' + jsonToLua(data));
 }
 
 function safeFileName() {
@@ -1387,9 +1382,7 @@ async function saveTextToFolder(suggestedName, text, mime) {
 
 // 用用例名保存导出文件（可选择文件夹）
 function downloadExport() {
-  const name = safeFileName();
-  const mime = exportExt === 'json' ? 'application/json' : 'text/plain';
-  saveTextToFolder(`${name}.${exportExt}`, $('modal-text').value, mime);
+  saveTextToFolder(`${safeFileName()}.lua`, $('modal-text').value, 'text/plain');
 }
 
 // ============================================================
@@ -1865,9 +1858,9 @@ function showExecPanel(urlPath) {
       <div class="modal-body">
         <div class="io-row">
           <div class="field" style="flex:1"><label>地址</label>
-            <input type="text" id="exec-addr" value="${escapeAttr(execOpts.addr)}" oninput="updateExecPreview()"></div>
+            <input type="text" id="exec-addr" value="${escapeAttr(execOpts.addr)}" oninput="execAddrChanged()"></div>
           <div class="field" style="width:110px"><label>端口</label>
-            <input type="text" id="exec-port" value="${escapeAttr(execOpts.port)}" oninput="updateExecPreview()"></div>
+            <input type="text" id="exec-port" value="${escapeAttr(execOpts.port)}" oninput="execAddrChanged()"></div>
           <div class="field" style="width:120px"><label>URL</label>
             <input type="text" id="exec-url" value="${escapeAttr(urlPath)}" oninput="updateExecPreview()"></div>
         </div>
@@ -1895,10 +1888,24 @@ function showExecPanel(urlPath) {
 function addExecParam(key, value) {
   const row = document.createElement('div');
   row.className = 'exec-row';
-  row.innerHTML = `<input class="er-key" placeholder="参数名" value="${escapeAttr(key || '')}" oninput="updateExecPreview()">
-    <input class="er-val" placeholder="参数值" value="${escapeAttr(value || '')}" oninput="updateExecPreview()">
-    <button class="del-btn" onclick="this.parentElement.remove();updateExecPreview()" title="删除">×</button>`;
+  row.innerHTML = `<input class="er-key" placeholder="参数名" value="${escapeAttr(key || '')}" oninput="execParamChanged()">
+    <input class="er-val" placeholder="参数值" value="${escapeAttr(value || '')}" oninput="execParamChanged()">
+    <button class="del-btn" onclick="this.parentElement.remove();execParamChanged()" title="删除">×</button>`;
   $('exec-params').appendChild(row);
+  execParamChanged();
+}
+
+// 参数变更时实时保存到内存（无需点击执行，重新打开面板即回填）
+function execParamChanged() {
+  execOpts.params = collectExecParams();
+  updateExecPreview();
+}
+
+// 地址/端口变更时实时保存到内存
+function execAddrChanged() {
+  execOpts.addr = $('exec-addr').value.trim();
+  execOpts.port = $('exec-port').value.trim();
+  updateExecPreview();
 }
 
 function collectExecParams() {
