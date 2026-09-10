@@ -68,6 +68,22 @@ body.connecting .node{border-color:#2a6f97}
 .case-item .case-path{color:#666;font-size:10px;display:block;margin-top:2px}
 .workdir-label{color:#888;font-size:11px;margin-left:2px;white-space:nowrap}
 
+/* 节点执行按钮 */
+.exec-btn{background:rgba(255,255,255,.25);color:#fff;border-radius:3px;padding:0 5px;font-size:10px;cursor:pointer;margin-left:2px;line-height:16px}
+.exec-btn:hover{background:#4caf50}
+
+/* 执行面板 */
+.exec-row{display:flex;gap:4px;margin-bottom:4px;min-width:0}
+.exec-row input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit;min-width:0}
+.exec-row .er-key{flex:0 0 35%}
+.exec-row .er-val{flex:1}
+.exec-row .del-btn{width:22px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
+.exec-row .del-btn:hover{background:#a1260d;color:#fff}
+.exec-preview{background:#1e1e1e;border:1px solid #464647;border-radius:3px;padding:6px 8px;font-family:'Consolas','Courier New',monospace;font-size:11px;word-break:break-all}
+.exec-preview a{color:#4ec9b0;text-decoration:none}
+.exec-preview a:hover{text-decoration:underline;color:#5fd6c1}
+.exec-result{background:#1e1e1e;border:1px solid #464647;border-radius:3px;padding:6px 8px;font-family:'Consolas','Courier New',monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:160px;overflow-y:auto;color:#ccc}
+
 /* 协议下拉筛选 */
 :is(#props,.modal) .combo{position:relative}
 :is(#props,.modal) .combo .combo-input{width:100%}
@@ -165,6 +181,7 @@ body.connecting .node{border-color:#2a6f97}
 
 <!-- 顶栏 -->
 <div id="toolbar">
+  <button onclick="showExecPanel('case')">执行</button>
   <button onclick="exportModal('json')">导出 JSON</button>
   <button onclick="exportModal('lua')">导出 Lua</button>
   <button class="gray" onclick="saveEditorFile()">保存</button>
@@ -222,7 +239,7 @@ const NODE_TYPES = {
     ]
   },
   REQ: {
-    label: "协议请求", color: "#2196f3",
+    label: "协议请求", color: "#2196f3", exec: true,
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"cmd_id",  label:"协议",     render:"proto-select"},
@@ -231,7 +248,7 @@ const NODE_TYPES = {
     ]
   },
   HTTP: {
-    label: "HTTP请求", color: "#7e57c2",
+    label: "HTTP请求", color: "#7e57c2", exec: true,
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"url",     label:"请求地址",     render:"text"},
@@ -252,7 +269,7 @@ const NODE_TYPES = {
     ]
   },
   GM: {
-    label: "GM命令", color: "#ff5722",
+    label: "GM命令", color: "#ff5722", exec: true,
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"cmds", label:"命令列表", render:"list"},
@@ -283,7 +300,7 @@ const NODE_TYPES = {
     ]
   },
   SCRIPT: {
-    label: "脚本", color: "#e91e63",
+    label: "脚本", color: "#e91e63", exec: true,
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"script",  label:"Lua脚本",   render:"textarea"},
@@ -301,7 +318,7 @@ const NODE_TYPES = {
 
 const TYPE_OPTIONS = ["attr","var","lua","const"];
 // 原地编辑的渲染类型（直接显示在属性面板中，不走编辑弹窗）
-const IN_PLACE_RENDERS = ['proto-select', 'number', 'case-select', 'method-select', 'text'];
+const IN_PLACE_RENDERS = ['proto-select', 'number', 'case-select', 'method-select', 'text', 'input'];
 
 // ============================================================
 //  状态管理
@@ -421,6 +438,7 @@ function renderNodes() {
     let headHtml = `<div class="node-head" style="background:${def.color}">
       <div class="nicon" style="background:rgba(255,255,255,.7)"></div>
       <span>${def.label}</span>
+      ${def.exec ? '<span class="exec-btn" title="执行该节点">▶</span>' : ''}
       ${state.root === id ? '<span class="root-badge">ROOT</span>' : ''}
       <span class="nid">#${id}</span>
     </div>`;
@@ -460,6 +478,11 @@ function renderNodes() {
 
     // 事件（端口圆点由 renderPorts 绘制并绑定）
     el.querySelector('.node-head').onmousedown = e => startDragNode(e, id);
+    const execBtn = el.querySelector('.exec-btn');
+    if (execBtn) {
+      execBtn.onmousedown = e => e.stopPropagation();   // 阻止触发节点拖拽
+      execBtn.onclick = e => { e.stopPropagation(); showExecPanel('node'); };
+    }
     el.onmousedown = e => {
       if (e.target.closest('.port-dot')) return;
       e.stopPropagation();
@@ -910,8 +933,9 @@ function renderField(f, val, nodeId) {
       return `<div class="field"><label>${f.label}</label>
         <input type="text" value="${escapeAttr(val||'')}" onchange="setField(${nodeId},'${k}',this.value)"></div>`;
     case 'number':
+      // 普通文本输入框（无上下加减箭头），失焦时解析为数字
       return `<div class="field"><label>${f.label}</label>
-        <input type="number" value="${val||0}" onchange="setField(${nodeId},'${k}',parseInt(this.value)||0)"></div>`;
+        <input type="text" value="${val||0}" onchange="setField(${nodeId},'${k}',parseInt(this.value)||0)"></div>`;
     case 'textarea':
       return `<div class="field"><label>${f.label}</label>
         <textarea class="code-area" onchange="setField(${nodeId},'${k}',this.value)">${escapeHtml(val||'')}</textarea></div>`;
@@ -1827,6 +1851,99 @@ function showModal(title, text) {
 }
 
 function closeModal() { $('modal-container').innerHTML = ''; }
+
+// ============================================================
+//  执行面板：拼接 http://地址:端口/url?参数 并发起请求
+// ============================================================
+const execOpts = { addr: '127.0.0.1', port: '10101', params: [] };  // 记住上次配置
+
+function showExecPanel(urlPath) {
+  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal exec-modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>执行（${urlPath === 'node' ? '运行节点' : '运行用例'}）</h3>
+        <button class="close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="io-row">
+          <div class="field" style="flex:1"><label>地址</label>
+            <input type="text" id="exec-addr" value="${escapeAttr(execOpts.addr)}" oninput="updateExecPreview()"></div>
+          <div class="field" style="width:110px"><label>端口</label>
+            <input type="text" id="exec-port" value="${escapeAttr(execOpts.port)}" oninput="updateExecPreview()"></div>
+          <div class="field" style="width:120px"><label>URL</label>
+            <input type="text" id="exec-url" value="${escapeAttr(urlPath)}" oninput="updateExecPreview()"></div>
+        </div>
+        <div class="field"><label>输入参数列表</label>
+          <div id="exec-params"></div>
+          <button class="add-btn" onclick="addExecParam()">+ 添加参数</button>
+        </div>
+        <div class="field"><label>完整请求</label>
+          <div class="exec-preview" id="exec-preview"></div>
+        </div>
+        <div class="field" id="exec-result-wrap" style="display:none"><label>执行结果</label>
+          <div class="exec-result" id="exec-result"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="primary" onclick="doExecute()">执行</button>
+        <button class="secondary" onclick="closeModal()">取消</button>
+      </div>
+    </div>
+  </div>`;
+  execOpts.params.forEach(p => addExecParam(p.key, p.value));
+  updateExecPreview();
+}
+
+function addExecParam(key, value) {
+  const row = document.createElement('div');
+  row.className = 'exec-row';
+  row.innerHTML = `<input class="er-key" placeholder="参数名" value="${escapeAttr(key || '')}" oninput="updateExecPreview()">
+    <input class="er-val" placeholder="参数值" value="${escapeAttr(value || '')}" oninput="updateExecPreview()">
+    <button class="del-btn" onclick="this.parentElement.remove();updateExecPreview()" title="删除">×</button>`;
+  $('exec-params').appendChild(row);
+}
+
+function collectExecParams() {
+  const rows = [];
+  document.querySelectorAll('#exec-params .exec-row').forEach(row => {
+    const key = row.querySelector('.er-key').value.trim();
+    if (key) rows.push({ key, value: row.querySelector('.er-val').value });
+  });
+  return rows;
+}
+
+function buildExecUrl() {
+  const addr = $('exec-addr').value.trim() || '127.0.0.1';
+  const port = $('exec-port').value.trim() || '10101';
+  const urlPath = $('exec-url').value.trim().replace(/^\/+/, '');
+  const query = collectExecParams()
+    .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+    .join('&');
+  return `http://${addr}:${port}/${urlPath}${query ? '?' + query : ''}`;
+}
+
+function updateExecPreview() {
+  const url = buildExecUrl();
+  $('exec-preview').innerHTML = url
+    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`
+    : '';
+}
+
+async function doExecute() {
+  const url = buildExecUrl();
+  // 记住本次配置，下次打开面板自动回填
+  execOpts.addr = $('exec-addr').value.trim();
+  execOpts.port = $('exec-port').value.trim();
+  execOpts.params = collectExecParams();
+  const wrap = $('exec-result-wrap'), box = $('exec-result');
+  wrap.style.display = '';
+  box.textContent = '执行中...';
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    box.textContent = `状态码 ${res.status}\n${text.length > 800 ? text.substring(0, 800) + ' ...' : text}`;
+  } catch (e) {
+    box.textContent = `请求失败：${e.message}\n（可能是服务未启动或跨域限制，可点击上方链接直接打开）`;
+  }
+}
 
 // ============================================================
 //  辅助
