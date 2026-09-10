@@ -68,6 +68,34 @@ body.connecting .node{border-color:#2a6f97}
 .case-item .case-path{color:#666;font-size:10px;display:block;margin-top:2px}
 .workdir-label{color:#888;font-size:11px;margin-left:2px;white-space:nowrap}
 
+/* 协议下拉筛选 */
+:is(#props,.modal) .combo{position:relative}
+:is(#props,.modal) .combo .combo-input{width:100%}
+:is(#props,.modal) .combo-list{position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;background:#1e1e1e;border:1px solid #007acc;border-radius:3px;z-index:50;margin-top:1px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+:is(#props,.modal) .combo-item{display:flex;justify-content:space-between;gap:6px;padding:4px 8px;cursor:pointer;font-size:11px}
+:is(#props,.modal) .combo-item:hover{background:#0e639c}
+:is(#props,.modal) .combo-item .combo-name{color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#props,.modal) .combo-item:hover .combo-name{color:#fff}
+:is(#props,.modal) .combo-item .combo-id{color:#666;flex-shrink:0}
+:is(#props,.modal) .combo-item:hover .combo-id{color:#aad}
+:is(#props,.modal) .combo-empty{padding:6px 8px;color:#666;font-size:11px}
+/* 弹窗内下拉列表内嵌文档流，不遮挡、不被裁切 */
+.modal .combo-list{position:static;max-height:180px;margin-top:4px}
+
+/* 字段只读展示 + 编辑按钮 */
+#props .field-view{margin-bottom:12px;border:1px solid #3e3e42;border-radius:4px;background:#1b1b1c;overflow:hidden}
+#props .fv-head{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #2a2a2c}
+#props .fv-head label{color:#9cdcfe;font-size:11px;font-weight:600;margin:0}
+#props .fv-edit{background:#0e639c;color:#fff;border:none;border-radius:3px;padding:2px 12px;cursor:pointer;font-size:11px}
+#props .fv-edit:hover{background:#1177bb}
+#props .fv-body{padding:6px 8px;color:#ccc;font-size:11px;line-height:1.6;word-break:break-all;min-height:14px}
+#props .fv-body.fv-empty{color:#555;font-style:italic}
+#props .fv-body.fv-code{font-family:'Consolas','Courier New',monospace;white-space:pre-wrap;max-height:140px;overflow-y:auto}
+#props .fv-kvrow{display:flex;gap:8px;align-items:baseline}
+#props .fv-kvrow .fv-k{color:#9cdcfe;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;max-width:40%}
+#props .fv-kvrow .fv-t{color:#6a9955;flex-shrink:0}
+#props .fv-kvrow .fv-v{color:#ce9178;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+
 /* 连线 */
 .conn-path{fill:none;stroke:#4ec9b0;stroke-width:2;transition:stroke .1s}
 .conn-path.selected{stroke:#007acc;stroke-width:3}
@@ -77,30 +105,31 @@ body.connecting .node{border-color:#2a6f97}
 #props{width:310px;background:#252526;border-left:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:10px}
 #props h2{color:#ccc;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 #props h2 .dot{width:10px;height:10px;border-radius:50%}
-#props .field{margin-bottom:12px}
-#props .field>label{display:block;color:#9cdcfe;font-size:11px;margin-bottom:3px;font-weight:600}
-#props .field input[type=text],#props .field input[type=number],#props .field textarea,#props .field select{
+:is(#props,.modal) .field{margin-bottom:12px}
+:is(#props,.modal) .field>label{display:block;color:#9cdcfe;font-size:11px;margin-bottom:3px;font-weight:600}
+:is(#props,.modal) .field input[type=text],:is(#props,.modal) .field input[type=number],:is(#props,.modal) .field textarea,:is(#props,.modal) .field select{
   width:100%;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit}
-#props .field textarea{min-height:55px;resize:vertical;font-family:'Consolas','Courier New',monospace;font-size:11px}
-#props .field input:focus,#props .field textarea:focus,#props .field select:focus{outline:none;border-color:#007acc}
-#props .io-row{display:flex;gap:3px;margin-bottom:3px}
-#props .io-row select{width:62px;flex-shrink:0}
-#props .io-row input{flex:1;min-width:0}
+:is(#props,.modal) .field textarea{min-height:55px;height:auto;resize:vertical;font-family:'Consolas','Courier New',monospace;font-size:11px}
+:is(#props,.modal) .field textarea.code-area{min-height:220px}
+:is(#props,.modal) .field input:focus,:is(#props,.modal) .field textarea:focus,:is(#props,.modal) .field select:focus{outline:none;border-color:#007acc}
+:is(#props,.modal) .io-row{display:flex;gap:3px;margin-bottom:3px}
+:is(#props,.modal) .io-row select{width:62px;flex-shrink:0}
+:is(#props,.modal) .io-row input{flex:1;min-width:0}
 /* 参数卡片：上行 名称+类型+删除，下行 取值 */
-#props .kv2{border:1px solid #3e3e42;border-radius:3px;padding:4px;margin-bottom:4px;background:#1b1b1c}
-#props .kv2-row1{display:flex;gap:3px;margin-bottom:3px}
-#props .kv2-row1 .kv-key{flex:1;min-width:0}
-#props .kv2-row1 select{width:66px;flex-shrink:0}
-#props .kv2-tag{color:#9cdcfe;font-size:11px;font-weight:600;align-self:center;padding:0 2px;flex-shrink:0}
-#props .kv2 .kv-val{width:100%;font-family:'Consolas','Courier New',monospace;font-size:11px}
-#props .kv2 .del-btn{width:22px;height:24px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
-#props .kv2 .del-btn:hover{background:#a1260d;color:#fff}
-#props .kv-empty{color:#555;font-size:11px;margin:2px 0 4px;font-style:italic}
-#props .add-btn{background:#37373d;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;margin-top:2px}
-#props .add-btn:hover{background:#4e4e57}
-#props .target-row{display:flex;gap:4px;margin-bottom:4px;align-items:center;font-size:11px;color:#888}
-#props .target-row input{width:50px;flex-shrink:0;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:3px 5px;font-size:11px}
-#props .target-row .target-to{color:#4ec9b0;flex:1}
+:is(#props,.modal) .kv2{border:1px solid #3e3e42;border-radius:3px;padding:4px;margin-bottom:4px;background:#1b1b1c}
+:is(#props,.modal) .kv2-row1{display:flex;gap:3px;margin-bottom:3px}
+:is(#props,.modal) .kv2-row1 .kv-key{flex:1;min-width:0}
+:is(#props,.modal) .kv2-row1 select{width:66px;flex-shrink:0}
+:is(#props,.modal) .kv2-tag{color:#9cdcfe;font-size:11px;font-weight:600;align-self:center;padding:0 2px;flex-shrink:0}
+:is(#props,.modal) .kv2 .kv-val{width:100%;min-height:46px;height:auto;max-height:150px;overflow-y:auto;resize:vertical;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.5}
+:is(#props,.modal) .kv2 .del-btn{width:22px;height:24px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
+:is(#props,.modal) .kv2 .del-btn:hover{background:#a1260d;color:#fff}
+:is(#props,.modal) .kv-empty{color:#555;font-size:11px;margin:2px 0 4px;font-style:italic}
+:is(#props,.modal) .add-btn{background:#37373d;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;margin-top:2px}
+:is(#props,.modal) .add-btn:hover{background:#4e4e57}
+:is(#props,.modal) .target-row{display:flex;gap:4px;margin-bottom:4px;align-items:center;font-size:11px;color:#888;min-width:0}
+:is(#props,.modal) .target-row input{width:50px;flex-shrink:0;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:3px 5px;font-size:11px}
+:is(#props,.modal) .target-row .target-to{color:#4ec9b0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 #props .empty-prop{color:#666;text-align:center;padding:60px 20px;line-height:1.8}
 #props .adv-toggle{color:#888;font-size:11px;cursor:pointer;margin:8px 0 4px;display:block}
 #props .adv-toggle:hover{color:#ccc}
@@ -114,10 +143,11 @@ body.connecting .node{border-color:#2a6f97}
 /* 模态框 */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:1000}
 .modal{background:#252526;border:1px solid #464647;border-radius:8px;width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.modal.field-modal{width:760px;max-width:94vw;height:min(44vh,400px);max-height:60vh}
 .modal-head{padding:12px 16px;border-bottom:1px solid #3e3e42;display:flex;justify-content:space-between;align-items:center}
 .modal-head h3{color:#ccc;font-size:14px}
 .modal-head .close{background:none;border:none;color:#999;cursor:pointer;font-size:18px}
-.modal-body{padding:12px 16px;overflow-y:auto;flex:1}
+.modal-body{padding:12px 16px;overflow-y:auto;overflow-x:hidden;flex:1}
 .modal-body textarea{width:100%;height:340px;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:4px;padding:8px;font-family:'Consolas','Courier New',monospace;font-size:12px;resize:vertical}
 .modal-foot{padding:10px 16px;border-top:1px solid #3e3e42;display:flex;justify-content:flex-end;gap:8px}
 .modal-foot button{padding:6px 16px;border-radius:3px;border:none;cursor:pointer;font-size:12px}
@@ -139,12 +169,12 @@ body.connecting .node{border-color:#2a6f97}
   <button onclick="exportModal('lua')">导出 Lua</button>
   <button class="gray" onclick="saveEditorFile()">保存</button>
   <button class="gray" onclick="openCaseFile()">打开</button>
-  <button class="gray" onclick="loadExample()">加载示例</button>
+  <button class="gray" onclick="pickProtoFile()">载入协议</button>
   <button class="gray" onclick="pickWorkDir()">工作目录</button>
   <span id="workdir-label" class="workdir-label">未设置</span>
   <div class="sep"></div>
   <label>用例名称</label>
-  <input type="text" id="case-name" value="untitled" oninput="state.caseName=this.value">
+  <input type="text" id="case-name" value="case1" oninput="state.caseName=this.value">
   <div class="sep"></div>
   <button class="gray" onclick="clearAll()">清空</button>
 </div>
@@ -195,7 +225,7 @@ const NODE_TYPES = {
     label: "协议请求", color: "#2196f3",
     outputs: [{id:"next",label:"Next"}],
     fields: [
-      {key:"cmd_id",  label:"协议ID",   render:"text"},
+      {key:"cmd_id",  label:"协议",     render:"proto-select"},
       {key:"inputs",  label:"输入参数", render:"kv"},
       {key:"outputs", label:"输出参数", render:"kv"},
     ]
@@ -204,7 +234,7 @@ const NODE_TYPES = {
     label: "等待通知", color: "#9c27b0",
     outputs: [{id:"next",label:"Next"}],
     fields: [
-      {key:"cmd_id",  label:"协议ID",     render:"text"},
+      {key:"cmd_id",  label:"协议",       render:"proto-select"},
       {key:"cond",    label:"条件(Lua)",  render:"textarea"},
       {key:"outputs", label:"输出参数",   render:"kv"},
     ]
@@ -263,7 +293,7 @@ const TYPE_OPTIONS = ["attr","var","lua","const"];
 //  状态管理
 // ============================================================
 let state = {
-  caseName: "untitled",
+  caseName: "case1",
   nodes: {},          // {id: {type, x, y, data:{...}}}
   connections: [],    // [{from, port, to}]
   selected: null,     // 选中的节点id
@@ -318,7 +348,7 @@ function init() {
   };
 
   updateWorkDirLabel();
-  loadExample();
+  autoLoadProto();
 }
 
 // ============================================================
@@ -806,12 +836,17 @@ function showContextMenu(e, id) {
 // ============================================================
 //  属性面板
 // ============================================================
+let propPanelGen = 0;   // 面板渲染代数：面板重建后，旧渲染的失焦回调全部作废
+let fieldEditorCtx = null;  // 当前打开的字段编辑弹窗 {nodeId, key, snapshot}
+
 function updatePropPanel() {
+  propPanelGen++;
   const empty = $('prop-empty');
   const content = $('prop-content');
   if (state.selected === null || !state.nodes[state.selected]) {
     empty.style.display = '';
     content.style.display = 'none';
+    if (fieldEditorCtx) { fieldEditorCtx = null; closeModal(); }
     return;
   }
   empty.style.display = 'none';
@@ -822,34 +857,21 @@ function updatePropPanel() {
 
   let html = `<h2><div class="dot" style="background:${def.color}"></div>${def.label} <span style="color:#666">#${id}</span></h2>`;
 
-  // 各字段
+  // 各字段：简单字段（协议/子用例下拉、时间等）原地编辑，其余只读展示 + 编辑按钮
   for (const f of def.fields) {
-    html += renderField(f, node.data[f.key], id);
+    html += (f.render === 'proto-select' || f.render === 'number' || f.render === 'case-select')
+      ? renderField(f, node.data[f.key], id)
+      : renderFieldView(f, node.data[f.key], id);
   }
 
-  // SWITCH 分支管理
+  // SWITCH 分支：只读展示 + 编辑按钮
   if (node.type === 'SWITCH') {
-    const tk = node.data._targetKeys || [];
-    html += `<div class="field"><label>分支管理</label>`;
-    tk.forEach((key, i) => {
-      const conn = state.connections.find(c => c.from === id && c.port === `target_${i}`);
-      const toStr = conn ? `→ #${conn.to}` : '未连接';
-      html += `<div class="target-row">
-        <span>分支${i+1}</span>
-        <input type="text" value="${escapeAttr(key)}" onchange="updateTargetKey(${id},${i},this.value)">
-        <span class="target-to">${toStr}</span>
-        <button class="del-btn" onclick="removeTarget(${id},${i})">×</button>
-      </div>`;
-    });
-    html += `<button class="add-btn" onclick="addTarget(${id})">+ 添加分支</button></div>`;
+    html += renderFieldView({key:'_branches', label:'分支', render:'switch-edit'}, node.data._targetKeys, id);
   }
 
-  // 高级选项
-  html += `<span class="adv-toggle" onclick="this.nextElementSibling.classList.toggle('show')">▶ 高级 (before/after 脚本)</span>`;
-  html += `<div class="adv-fields">`;
-  html += renderField({key:'before', label:'前置脚本(Lua)', render:'textarea'}, node.data.before || '', id);
-  html += renderField({key:'after',  label:'后置脚本(Lua)', render:'textarea'}, node.data.after || '', id);
-  html += `</div>`;
+  // 高级脚本：只读展示 + 编辑按钮
+  html += renderFieldView({key:'before', label:'前置脚本(Lua)', render:'textarea'}, node.data.before || '', id);
+  html += renderFieldView({key:'after',  label:'后置脚本(Lua)', render:'textarea'}, node.data.after || '', id);
 
   // 操作按钮
   html += `<div class="btn-row">
@@ -861,6 +883,9 @@ function updatePropPanel() {
   </div>`;
 
   content.innerHTML = html;
+
+  // 字段编辑弹窗打开中：同步刷新弹窗内容
+  if (fieldEditorCtx) renderFieldEditor();
 }
 
 function renderField(f, val, nodeId) {
@@ -874,7 +899,7 @@ function renderField(f, val, nodeId) {
         <input type="number" value="${val||0}" onchange="setField(${nodeId},'${k}',parseInt(this.value)||0)"></div>`;
     case 'textarea':
       return `<div class="field"><label>${f.label}</label>
-        <textarea onchange="setField(${nodeId},'${k}',this.value)">${escapeHtml(val||'')}</textarea></div>`;
+        <textarea class="code-area" onchange="setField(${nodeId},'${k}',this.value)">${escapeHtml(val||'')}</textarea></div>`;
     case 'input': {
       // 卡片式：名称 + 取值方式 + 独立value输入框（如 SOCK 的 ip/port）
       const v = val || {};
@@ -892,16 +917,25 @@ function renderField(f, val, nodeId) {
       const obj = val || {};
       const keys = Object.keys(obj);
       const isRaw = f.render === 'kv-raw';
+      // REQ 输入参数：显示协议字段的类型提示
+      let protoHint = null;
+      if (f.render === 'kv') {
+        const node = state.nodes[nodeId];
+        const p = node && node.data.cmd_id ? protoDefs[node.data.cmd_id] : null;
+        if (p) protoHint = p.fields;
+      }
       let html = `<div class="field"><label>${f.label}</label>`;
       keys.forEach((key, i) => {
         const v = obj[key];
+        const hint = protoHint && protoHint[key] ? `（${escapeAttr(protoHint[key])}）` : '';
+        const placeholder = isRaw ? '参数值' : (hint ? '取值' + hint : '取值（attr=属性名 / var=变量名 / lua=表达式 / const=常量）');
         html += `<div class="kv2">
           <div class="kv2-row1">
             <input class="kv-key" type="text" placeholder="参数名" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}',${i},this.value)">
             ${isRaw ? '' : `<select onchange="setKvType(${nodeId},'${k}',${i},this.value)" title="取值方式">${typeOpts(v?.type)}</select>`}
             <button class="del-btn" onclick="delKvKey(${nodeId},'${k}',${i})" title="删除参数">×</button>
           </div>
-          <input class="kv-val" type="text" placeholder="${isRaw ? '参数值' : '取值（attr=属性名 / var=变量名 / lua=表达式 / const=常量）'}" value="${escapeAttr(isRaw ? v : (v?.value || ''))}" onchange="${isRaw ? `setKvRawValue(${nodeId},'${k}',${i},this.value)` : `setKvValue(${nodeId},'${k}',${i},this.value)`}">
+          <textarea class="kv-val" placeholder="${placeholder}" onchange="${isRaw ? `setKvRawValue(${nodeId},'${k}',${i},this.value)` : `setKvValue(${nodeId},'${k}',${i},this.value)`}">${escapeHtml(isRaw ? v : (v?.value || ''))}</textarea>
         </div>`;
       });
       if (!keys.length) html += `<div class="kv-empty">暂无参数，点击下方按钮添加</div>`;
@@ -924,6 +958,51 @@ function renderField(f, val, nodeId) {
       return `<div class="field"><label>${f.label}</label>
         <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
     }
+    case 'proto-select': {
+      // 协议下拉筛选：按节点类型取对应 type 的协议（REQ→req，NTF→ntf）
+      const node = state.nodes[nodeId];
+      const wantType = (node && node.type === 'NTF') ? 'ntf' : 'req';
+      const entries = Object.values(protoDefs)
+        .filter(p => p.type === wantType)
+        .sort((a, b) => (a.msg_id || 0) - (b.msg_id || 0));
+      const current = val || '';
+      const gen = propPanelGen;  // 失焦回调绑定当前渲染代数
+      let items = entries.map(p =>
+        `<div class="combo-item" data-v="${escapeAttr(p.name)}" onmousedown="event.preventDefault();pickProto(${nodeId},'${k}','${escapeAttr(p.name)}')">
+           <span class="combo-name">${escapeHtml(p.name)}</span><span class="combo-id">${p.msg_id || ''}</span>
+         </div>`).join('');
+      if (!entries.length) {
+        // 未载入协议：与子用例下拉一致，直接提示（保留已有值显示）
+        const opts = [`<option value="" ${current ? '' : 'selected'} disabled>未载入协议，请点击工具栏「载入协议」</option>`];
+        if (current) opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未载入协议）</option>`);
+        return `<div class="field"><label>${f.label}</label>
+          <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
+      }
+      return `<div class="field"><label>${f.label}</label>
+        <div class="combo">
+          <input type="text" class="combo-input" value="${escapeAttr(current)}" placeholder="输入筛选，或点击选择" oninput="protoComboFilter(this)" onfocus="protoComboShow(this)" onblur="protoComboBlur(this,${nodeId},'${k}',${gen})">
+          <div class="combo-list" style="display:none">${items}</div>
+        </div></div>`;
+    }
+    case 'switch-edit': {
+      // SWITCH 分支编辑：key 可改，目标节点在画布上拖拽连线建立
+      const node = state.nodes[nodeId];
+      const tk = (node.data._targetKeys) || [];
+      let html = `<div class="field"><label>分支（key → 目标节点）</label>`;
+      tk.forEach((bkey, i) => {
+        const conn = state.connections.find(c => c.from === nodeId && c.port === `target_${i}`);
+        const toStr = conn ? `→ #${conn.to}` : '未连接';
+        html += `<div class="target-row">
+          <span>分支${i+1}</span>
+          <input type="text" value="${escapeAttr(bkey)}" onchange="updateTargetKey(${nodeId},${i},this.value)">
+          <span class="target-to">${toStr}</span>
+          <button class="del-btn" onclick="removeTarget(${nodeId},${i})">×</button>
+        </div>`;
+      });
+      if (!tk.length) html += `<div class="kv-empty">暂无分支，点击下方按钮添加</div>`;
+      html += `<button class="add-btn" onclick="addTarget(${nodeId})">+ 添加分支</button></div>`;
+      return html;
+    }
     case 'list': {
       const arr = val || [];
       let html = `<div class="field"><label>${f.label}</label>`;
@@ -942,6 +1021,139 @@ function renderField(f, val, nodeId) {
 
 function typeOpts(selected) {
   return TYPE_OPTIONS.map(t => `<option value="${t}" ${t===selected?'selected':''}>${t}</option>`).join('');
+}
+
+// ============================================================
+//  属性面板：字段只读展示 + 编辑弹窗（确定后回显，取消还原）
+// ============================================================
+
+// 字段只读展示内容
+function fieldDisplayHtml(f, val, nodeId) {
+  const node = state.nodes[nodeId];
+  const isBlank = v => v === undefined || v === null || v === '';
+  switch (f.render) {
+    case 'text':
+    case 'number':
+    case 'case-select':
+      return { text: isBlank(val) ? '' : String(val) };
+    case 'proto-select': {
+      if (isBlank(val)) return { text: '' };
+      const p = protoDefs[val];
+      return { text: p ? `${val}（${p.msg_id}）` : val };
+    }
+    case 'textarea':
+      return { text: isBlank(val) ? '' : String(val), code: true };
+    case 'input':
+      return { text: isBlank(val?.value) ? '' : `${val.type}: ${val.value}` };
+    case 'kv':
+    case 'kv-raw': {
+      const keys = Object.keys(val || {});
+      if (!keys.length) return { text: '' };
+      let hint = null;
+      if (f.render === 'kv' && node && node.data.cmd_id && protoDefs[node.data.cmd_id]) {
+        hint = protoDefs[node.data.cmd_id].fields;
+      }
+      const rows = keys.map(k => {
+        const v = val[k];
+        if (f.render === 'kv-raw') {
+          return `<div class="fv-kvrow"><span class="fv-k">${escapeHtml(k)}</span><span class="fv-v">${isBlank(v) ? '未填' : escapeHtml(String(v))}</span></div>`;
+        }
+        const t = v?.type || '?';
+        const ht = hint && hint[k] ? '/' + hint[k] : '';
+        return `<div class="fv-kvrow"><span class="fv-k">${escapeHtml(k)}</span><span class="fv-t">${t}${escapeHtml(ht)}</span><span class="fv-v">${isBlank(v?.value) ? '未填' : escapeHtml(v.value)}</span></div>`;
+      });
+      return { html: `<div class="fv-kvs">${rows.join('')}</div>` };
+    }
+    case 'list': {
+      const arr = val || [];
+      if (!arr.length) return { text: '' };
+      return { html: arr.map(c => `<div class="fv-kvrow"><span class="fv-v">${isBlank(c) ? '未填' : escapeHtml(c)}</span></div>`).join('') };
+    }
+    case 'switch-edit': {
+      const tk = (node && node.data._targetKeys) || [];
+      if (!tk.length) return { text: '' };
+      const rows = tk.map((bkey, i) => {
+        const conn = state.connections.find(c => c.from === nodeId && c.port === `target_${i}`);
+        return `<div class="fv-kvrow"><span class="fv-k">${escapeHtml(bkey)}</span><span class="fv-v">${conn ? '→ #' + conn.to : '未连接'}</span></div>`;
+      });
+      return { html: `<div class="fv-kvs">${rows.join('')}</div>` };
+    }
+  }
+  return { text: isBlank(val) ? '' : String(val) };
+}
+
+// 字段只读展示块：标题 + 编辑按钮 + 内容
+function renderFieldView(f, val, nodeId) {
+  const d = fieldDisplayHtml(f, val, nodeId);
+  const body = d.html ? d.html : escapeHtml(d.text || '');
+  const cls = 'fv-body' + (d.code ? ' fv-code' : '') + (!body ? ' fv-empty' : '');
+  return `<div class="field-view">
+    <div class="fv-head"><label>${f.label}</label>
+      <button class="fv-edit" onclick="openFieldEditor(${nodeId},'${f.key}')">编辑</button>
+    </div>
+    <div class="${cls}">${body || '未设置'}</div>
+  </div>`;
+}
+
+// 根据字段key取编辑器定义（含特殊字段）
+function getFieldDef(node, key) {
+  const def = NODE_TYPES[node.type];
+  const f = def.fields.find(ff => ff.key === key);
+  if (f) return f;
+  if (key === '_branches') return { key, label: '分支', render: 'switch-edit' };
+  if (key === 'before') return { key, label: '前置脚本(Lua)', render: 'textarea' };
+  if (key === 'after') return { key, label: '后置脚本(Lua)', render: 'textarea' };
+  return { key, label: key, render: 'text' };
+}
+
+// 打开字段编辑弹窗（快照当前节点数据，供取消还原）；原地编辑类型的字段不走弹窗
+function openFieldEditor(nodeId, key) {
+  const node = state.nodes[nodeId];
+  if (!node) return;
+  const f = getFieldDef(node, key);
+  if (f.render === 'proto-select' || f.render === 'number' || f.render === 'case-select') return;
+  fieldEditorCtx = { nodeId, key, snapshot: JSON.stringify(node.data) };
+  renderFieldEditor();
+}
+
+// 渲染字段编辑弹窗（复用 renderField 的编辑控件）
+function renderFieldEditor() {
+  if (!fieldEditorCtx) return;
+  const { nodeId, key } = fieldEditorCtx;
+  const node = state.nodes[nodeId];
+  if (!node) { fieldEditorCtx = null; closeModal(); return; }
+  const f = getFieldDef(node, key);
+  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal field-modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>编辑 · ${f.label} <span style="color:#666">#${nodeId}</span></h3>
+        <button class="close" onclick="cancelFieldEditor()" title="取消（还原修改）">×</button></div>
+      <div class="modal-body">${renderField(f, node.data[f.key], nodeId)}</div>
+      <div class="modal-foot">
+        <button class="primary" onclick="confirmFieldEditor()">确定</button>
+        <button class="secondary" onclick="cancelFieldEditor()">取消</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// 确定：关闭弹窗并回显（修改已实时生效）
+function confirmFieldEditor() {
+  fieldEditorCtx = null;
+  closeModal();
+  renderAll();
+  updatePropPanel();
+}
+
+// 取消：还原打开弹窗时的数据快照
+function cancelFieldEditor() {
+  if (fieldEditorCtx) {
+    const node = state.nodes[fieldEditorCtx.nodeId];
+    if (node) node.data = JSON.parse(fieldEditorCtx.snapshot);
+  }
+  fieldEditorCtx = null;
+  closeModal();
+  renderAll();
+  updatePropPanel();
 }
 
 // 属性修改函数
@@ -1204,7 +1416,7 @@ async function saveEditorFile() {
 
 function applyEditorData(data) {
   if (!data || !data.nodes) throw new Error('不是有效的编辑器存档文件');
-  state.caseName = data.name || 'untitled';
+  state.caseName = data.name || 'case1';
   $('case-name').value = state.caseName;
   state.root = data.root ?? null;
   state.rewind = data.rewind ?? null;
@@ -1232,7 +1444,7 @@ function applyEditorData(data) {
 
 // 应用导出格式的用例数据（示例加载等内部使用）
 function applyCaseData(data) {
-  state.caseName = data.name || "untitled";
+  state.caseName = data.name || "case1";
   $('case-name').value = state.caseName;
   state.root = data.root;
   state.rewind = data.rewind || data.root;
@@ -1405,6 +1617,143 @@ function upsertSubCase(name, path, handle) {
   updatePropPanel();
 }
 
+// ============================================================
+//  协议定义：载入 proto.json，供 REQ/NTF 节点筛选选择
+// ============================================================
+let protoDefs = {};   // { 协议名: {msg_id, type, name, fields:{字段:类型}} }
+
+// 解析协议数据（格式与 proto.json 一致）
+function loadProtoData(obj) {
+  protoDefs = {};
+  for (const [key, item] of Object.entries(obj || {})) {
+    if (!item || typeof item !== 'object') continue;
+    protoDefs[key] = {
+      msg_id: item.msg_id || 0,
+      type: item.type || '',
+      name: item.name || key,
+      fields: (item.fields && typeof item.fields === 'object') ? item.fields : {},
+    };
+  }
+}
+
+// 工具栏：选择协议文件载入
+async function pickProtoFile() {
+  let text = null;
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'JSON 文件', accept: { 'application/json': ['.json'] } }],
+      });
+      text = await (await handle.getFile()).text();
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      text = null; // 环境不支持 → 回退普通文件选择框
+    }
+  }
+  if (text === null) {
+    text = await pickFileViaInput();
+    if (text === null) return;
+  }
+  try {
+    loadProtoData(JSON.parse(text));
+  } catch (e) {
+    alert('协议文件解析失败: ' + e.message);
+    return;
+  }
+  toast(`已加载 ${Object.keys(protoDefs).length} 个协议`);
+  updatePropPanel();
+}
+
+// 普通文件选择框回退（无 File System Access API 的浏览器）
+function pickFileViaInput() {
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsText(file);
+    };
+    input.click();
+  });
+}
+
+// 启动时尝试读取相邻的 proto/proto.json（本地 file:// 打开时静默失败，可用工具栏手动载入）
+async function autoLoadProto() {
+  try {
+    const res = await fetch('proto/proto.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    loadProtoData(await res.json());
+    updatePropPanel();
+  } catch (e) { /* 忽略 */ }
+}
+
+// 选中协议：记录名称；REQ 依据协议 fields 自动生成输入参数
+function applyProtoSelection(nodeId, key, name, nodeType, fromProto) {
+  const node = state.nodes[nodeId];
+  if (!node) return;
+  node.data[key] = name;
+  if (nodeType === 'REQ' && fromProto) {
+    const p = protoDefs[name];
+    const inputs = {};
+    for (const fname of Object.keys((p && p.fields) || {})) {
+      inputs[fname] = { type: 'attr', value: '' };
+    }
+    node.data.inputs = inputs;
+  }
+  renderNodes();
+  updatePropPanel();
+}
+
+function pickProto(nodeId, key, name) {
+  const nodeType = state.nodes[nodeId] ? state.nodes[nodeId].type : '';
+  applyProtoSelection(nodeId, key, name, nodeType, true);
+}
+
+// 协议下拉：展开与输入筛选
+function protoComboShow(input) {
+  const list = input.parentElement.querySelector('.combo-list');
+  if (list) list.style.display = '';
+}
+
+function protoComboFilter(input) {
+  const list = input.parentElement.querySelector('.combo-list');
+  if (!list) return;
+  list.style.display = '';
+  const kw = input.value.trim().toLowerCase();
+  list.querySelectorAll('.combo-item').forEach(item => {
+    const v = (item.dataset.v || '').toLowerCase();
+    item.style.display = (!kw || v.includes(kw)) ? '' : 'none';
+  });
+}
+
+// 失焦：收起列表；与协议名精确匹配（忽略大小写）时按选择处理，否则按自由文本保存
+// 面板重建（如已选中其他协议）后，旧渲染的失焦回调作废，避免旧值把新选择重置回去
+function protoComboBlur(input, nodeId, key, gen) {
+  setTimeout(() => {
+    if (gen !== undefined && gen !== propPanelGen) return;
+    const list = input.parentElement && input.parentElement.querySelector('.combo-list');
+    if (list) list.style.display = 'none';
+    const v = input.value.trim();
+    if (!v) return;
+    const node = state.nodes[nodeId];
+    if (!node) return;
+    const nodeType = node.type;
+    const wantType = nodeType === 'NTF' ? 'ntf' : 'req';
+    const lv = v.toLowerCase();
+    let p = null;
+    for (const cand of Object.values(protoDefs)) {
+      if (cand.type === wantType && cand.name.toLowerCase() === lv) { p = cand; break; }
+    }
+    if (node.data[key] === (p ? p.name : v)) return;
+    applyProtoSelection(nodeId, key, p ? p.name : v, nodeType, !!p);
+  }, 200);
+}
+
 // JSON转Lua表
 function jsonToLua(obj, indent) {
   indent = indent || 0;
@@ -1466,36 +1815,6 @@ function clearAll() {
   if (!confirm('确定清空所有节点？')) return;
   state.nodes = {}; state.connections = []; state.root = null; state.rewind = null; state.selected = null; state.nextId = 1;
   renderAll(); updatePropPanel();
-}
-
-function loadExample() {
-  const example = {
-    name: "login_base",
-    root: 1,
-    rewind: 1,
-    nodes: {
-      1: { type:"SOCK", ip:{type:"attr",value:"ip"}, port:{type:"attr",value:"port"}, next:2 },
-      2: { type:"REQ", cmd_id:"NID_LOGIN_ACCOUNT_LOGIN_REQ",
-        inputs:{ openid:{type:"attr",value:"open_id"}, session:{type:"attr",value:"access_token"}, platform:{type:"lua",value:"1"} },
-        outputs:{ players:{type:"attr",value:"players"}, user_id:{type:"attr",value:"user_id"} },
-        next:3 },
-      3: { type:"COND", cond:"#robot.players>0", result:{success:4, failed:5} },
-      4: { type:"REQ", cmd_id:"NID_LOGIN_PALYER_CHOOSE_REQ",
-        inputs:{ user_id:{type:"attr",value:"user_id"}, player_id:{type:"lua",value:"robot.players[1].player_id"} },
-        outputs:{ lobby:{type:"attr",value:"lobby"}, gate_port:{type:"attr",value:"port"} },
-        next:6 },
-      5: { type:"REQ", cmd_id:"NID_LOGIN_PALYER_CREATE_REQ",
-        inputs:{ user_id:{type:"attr",value:"user_id"}, name:{type:"lua",value:"codec.guid_encode()"} },
-        next:4 },
-      6: { type:"SOCK", ip:{type:"attr",value:"gate_ip"}, port:{type:"attr",value:"gate_port"}, next:7 },
-      7: { type:"REQ", cmd_id:"NID_LOGIN_PALYER_LOGIN_REQ",
-        inputs:{ lobby:{type:"attr",value:"lobby"}, token:{type:"attr",value:"lobby_token"} },
-        next:8 },
-      8: { type:"NTF", cmd_id:"NID_ENTITY_ENTER_SCENE_NTF", cond:"res.id==robot.player_id",
-        outputs:{ login_success:{type:"lua",value:"true"} } },
-    }
-  };
-  applyCaseData(example);
 }
 
 // 启动
