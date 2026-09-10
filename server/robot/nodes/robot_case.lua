@@ -12,6 +12,7 @@ local NodeSwitch = {
     COND    = import("robot/nodes/node_cond.lua"),
     CASE    = import("robot/nodes/node_case.lua"),
     WAIT    = import("robot/nodes/node_wait.lua"),
+    HTTP    = import("robot/nodes/node_http.lua"),
     SCRIPT  = import("robot/nodes/node_script.lua"),
     SWITCH  = import("robot/nodes/node_switch.lua"),
 }

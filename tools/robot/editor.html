@@ -230,6 +230,18 @@ const NODE_TYPES = {
       {key:"outputs", label:"输出参数", render:"kv"},
     ]
   },
+  HTTP: {
+    label: "HTTP请求", color: "#7e57c2",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"url",     label:"请求地址",     render:"text"},
+      {key:"method",  label:"请求方法",     render:"method-select"},
+      {key:"timeout", label:"超时(ms)",     render:"number", def:5000},
+      {key:"headers", label:"请求头",       render:"kv-raw"},
+      {key:"inputs",  label:"请求参数",     render:"kv"},
+      {key:"outputs", label:"响应输出映射", render:"kv"},
+    ]
+  },
   NTF: {
     label: "等待通知", color: "#9c27b0",
     outputs: [{id:"next",label:"Next"}],
@@ -288,6 +300,8 @@ const NODE_TYPES = {
 };
 
 const TYPE_OPTIONS = ["attr","var","lua","const"];
+// 原地编辑的渲染类型（直接显示在属性面板中，不走编辑弹窗）
+const IN_PLACE_RENDERS = ['proto-select', 'number', 'case-select', 'method-select', 'text'];
 
 // ============================================================
 //  状态管理
@@ -368,8 +382,9 @@ function createNode(type, mouseEvent) {
     if (f.render === 'kv') data[f.key] = {};
     else if (f.render === 'kv-raw') data[f.key] = {};
     else if (f.render === 'list') data[f.key] = [];
-    else if (f.render === 'number') data[f.key] = 0;
+    else if (f.render === 'number') data[f.key] = f.def !== undefined ? f.def : 0;
     else if (f.render === 'input') data[f.key] = {type:"attr", value:""};
+    else if (f.render === 'method-select') data[f.key] = 'GET';
     else data[f.key] = "";
   }
   // SWITCH 默认分支
@@ -857,9 +872,9 @@ function updatePropPanel() {
 
   let html = `<h2><div class="dot" style="background:${def.color}"></div>${def.label} <span style="color:#666">#${id}</span></h2>`;
 
-  // 各字段：简单字段（协议/子用例下拉、时间等）原地编辑，其余只读展示 + 编辑按钮
+  // 各字段：简单字段（协议/子用例下拉、时间、请求方法、地址等）原地编辑，其余只读展示 + 编辑按钮
   for (const f of def.fields) {
-    html += (f.render === 'proto-select' || f.render === 'number' || f.render === 'case-select')
+    html += IN_PLACE_RENDERS.includes(f.render)
       ? renderField(f, node.data[f.key], id)
       : renderFieldView(f, node.data[f.key], id);
   }
@@ -983,6 +998,15 @@ function renderField(f, val, nodeId) {
           <input type="text" class="combo-input" value="${escapeAttr(current)}" placeholder="输入筛选，或点击选择" oninput="protoComboFilter(this)" onfocus="protoComboShow(this)" onblur="protoComboBlur(this,${nodeId},'${k}',${gen})">
           <div class="combo-list" style="display:none">${items}</div>
         </div></div>`;
+    }
+    case 'method-select': {
+      // HTTP 请求方法下拉（GET 走 query，其余走 body）
+      const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+      const current = val || 'GET';
+      const opts = methods.map(m => `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`);
+      if (!methods.includes(current)) opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}</option>`);
+      return `<div class="field"><label>${f.label}</label>
+        <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
     }
     case 'switch-edit': {
       // SWITCH 分支编辑：key 可改，目标节点在画布上拖拽连线建立
@@ -1111,7 +1135,7 @@ function openFieldEditor(nodeId, key) {
   const node = state.nodes[nodeId];
   if (!node) return;
   const f = getFieldDef(node, key);
-  if (f.render === 'proto-select' || f.render === 'number' || f.render === 'case-select') return;
+  if (IN_PLACE_RENDERS.includes(f.render)) return;
   fieldEditorCtx = { nodeId, key, snapshot: JSON.stringify(node.data) };
   renderFieldEditor();
 }
