@@ -181,18 +181,19 @@ body.connecting .node{border-color:#2a6f97}
 
 <!-- 顶栏 -->
 <div id="toolbar">
-  <button onclick="showExecPanel('case')">执行</button>
-  <button onclick="exportModal()">导出 Lua</button>
-  <button class="gray" onclick="saveEditorFile()">保存</button>
+  <label>用例名称</label>
+  <input type="text" id="case-name" value="case1" oninput="state.caseName=this.value">
+  <div class="sep"></div>
   <button class="gray" onclick="openCaseFile()">打开</button>
+  <button class="gray" onclick="saveEditorFile()">保存</button>
+  <button class="gray" onclick="clearAll()">清空</button>
+  <div class="sep"></div>
   <button class="gray" onclick="pickProtoFile()">载入协议</button>
   <button class="gray" onclick="pickWorkDir()">工作目录</button>
   <span id="workdir-label" class="workdir-label">未设置</span>
   <div class="sep"></div>
-  <label>用例名称</label>
-  <input type="text" id="case-name" value="case1" oninput="state.caseName=this.value">
-  <div class="sep"></div>
-  <button class="gray" onclick="clearAll()">清空</button>
+  <button onclick="showExecPanel('case')">执行</button>
+  <button onclick="exportModal()">导出</button>
 </div>
 
 <!-- 主体 -->
