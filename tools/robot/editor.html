@@ -19,7 +19,38 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #toolbar input[type=text]{width:160px}
 
 /* ===== 主体 ===== */
-#main{flex:1;display:flex;overflow:hidden}
+#main{flex:1;display:flex;overflow:hidden;min-height:0}
+/* 中部编辑区：画布 + 日志纵向排列 */
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ===== 日志面板 ===== */
+#log-panel{display:none;flex-direction:column;height:200px;border-top:1px solid #3e3e42;background:#1b1b1c;flex-shrink:0}
+#log-panel.show{display:flex}
+#log-resize{height:5px;cursor:ns-resize;background:#2d2d30;flex-shrink:0;transition:background .1s}
+#log-resize:hover,#log-resize.dragging{background:#007acc}
+#log-header{display:flex;justify-content:space-between;align-items:center;padding:2px 10px;background:#252526;border-bottom:1px solid #2a2a2c;flex-shrink:0}
+.log-tabs{display:flex;gap:2px}
+.log-tab{background:none;border:none;color:#999;font-size:11px;padding:2px 10px;cursor:pointer;border-radius:3px}
+.log-tab:hover{color:#ccc}
+.log-tab.active{background:#0e639c;color:#fff}
+#log-header .log-clear{background:none;border:none;color:#999;cursor:pointer;font-size:11px}
+#log-header .log-clear:hover{color:#fff}
+#log-body{flex:1;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.6;padding:4px 10px;color:#ccc;white-space:pre-wrap;word-break:break-all}
+/* 消息 Tab：左列表右详情 */
+#tab-msg{display:none;flex:1;overflow:hidden}
+#msg-list{width:345px;overflow-y:auto;border-right:1px solid #333;flex-shrink:0}
+.msg-item{display:flex;justify-content:space-between;gap:6px;padding:4px 10px;cursor:pointer;font-size:11px;border-left:2px solid transparent}
+.msg-item:hover{background:#252526}
+.msg-item.selected{background:#2d2d30;border-left-color:#007acc}
+.msg-item .msg-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.msg-item .msg-id{flex-shrink:0}
+.msg-req{color:#569cd6}
+.msg-res{color:#4ec9b0}
+.msg-ntf{color:#f0a020}
+#msg-detail{flex:1;overflow:auto;padding:6px 10px}
+#msg-detail-head{color:#888;font-size:11px;padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid #2a2a2c}
+#msg-detail-head .dtime{color:#4ec9b0}
+#msg-detail pre{margin:0;font-family:'Consolas','Courier New',monospace;font-size:11px;color:#ccc;white-space:pre-wrap;word-break:break-all}
 
 /* 左侧节点面板 */
 #palette{width:165px;background:#252526;border-right:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:6px}
@@ -31,7 +62,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 .palette-item span{color:#ccc;font-size:12px}
 
 /* 画布 */
-#canvas-wrap{flex:1;position:relative;overflow:auto;background:#1e1e1e}
+#canvas-wrap{flex:1;position:relative;overflow:auto;background:#1e1e1e;min-height:0}
+/* 画布滚动条：平时隐藏，悬停画布时显示 */
+#canvas-wrap::-webkit-scrollbar{width:8px;height:8px}
+#canvas-wrap::-webkit-scrollbar-thumb{background:transparent;border-radius:4px}
+#canvas-wrap:hover::-webkit-scrollbar-thumb{background:#4a4a4e}
+#canvas-wrap::-webkit-scrollbar-thumb:hover{background:#5a5a5e}
+#canvas-wrap::-webkit-scrollbar-corner{background:transparent}
 #canvas-wrap::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,#2a2a2c 1px,transparent 1px);background-size:18px 18px;width:100%;height:100%;pointer-events:none}
 #canvas{position:relative;width:4000px;height:3000px}
 #svg-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
@@ -187,6 +224,7 @@ body.connecting .node{border-color:#2a6f97}
   <button class="gray" onclick="openCaseFile()">打开</button>
   <button class="gray" onclick="saveEditorFile()">保存</button>
   <button class="gray" onclick="clearAll()">清空</button>
+  <button class="gray" onclick="toggleLogPanel()">日志</button>
   <div class="sep"></div>
   <button class="gray" onclick="pickProtoFile()">载入协议</button>
   <button class="gray" onclick="pickWorkDir()">工作目录</button>
@@ -204,10 +242,30 @@ body.connecting .node{border-color:#2a6f97}
     <div id="palette-list"></div>
   </div>
 
-  <!-- 画布 -->
-  <div id="canvas-wrap">
-    <div id="canvas">
-      <svg id="svg-layer"></svg>
+  <!-- 中部编辑区：画布 + 日志 -->
+  <div id="center">
+    <!-- 画布 -->
+    <div id="canvas-wrap">
+      <div id="canvas">
+        <svg id="svg-layer"></svg>
+      </div>
+    </div>
+
+    <!-- 日志面板 -->
+    <div id="log-panel">
+      <div id="log-resize" title="拖拽调整高度"></div>
+      <div id="log-header">
+        <div class="log-tabs">
+          <button class="log-tab active" id="tab-btn-log" onclick="switchLogTab('log')">日志</button>
+          <button class="log-tab" id="tab-btn-msg" onclick="switchLogTab('msg')">消息</button>
+        </div>
+        <button class="log-clear" onclick="clearActiveTab()">清空</button>
+      </div>
+      <div id="log-body" class="tab-page"></div>
+      <div id="tab-msg" class="tab-page" style="display:none">
+        <div id="msg-list"></div>
+        <div id="msg-detail"><div id="msg-detail-head"></div><pre id="msg-detail-pre">未选择消息</pre></div>
+      </div>
     </div>
   </div>
 
@@ -380,6 +438,7 @@ function init() {
 
   updateWorkDirLabel();
   autoLoadProto();
+  seedTestMessages();
 }
 
 // ============================================================
@@ -1446,7 +1505,7 @@ async function saveEditorFile() {
         updatePropPanel();
         toast(`已保存 ${fname}，工作目录已设置`);
       } catch (e) {
-        alert('保存失败: ' + e.message);
+        uiAlert('保存失败: ' + e.message);
       }
       return;
     }
@@ -1545,7 +1604,7 @@ async function ensureWorkDirWritable() {
 // 设置工作目录；已有工作目录时只刷新其下的用例列表，不再弹选择框
 async function pickWorkDir() {
   if (!window.showDirectoryPicker) {
-    alert('当前浏览器不支持目录选择，请使用 Edge 或 Chrome');
+    uiAlert('当前浏览器不支持目录选择，请使用 Edge 或 Chrome');
     return;
   }
   // 已有工作目录：恢复权限后直接刷新扫描
@@ -1560,7 +1619,7 @@ async function pickWorkDir() {
     workDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
   } catch (e) {
     if (e && e.name === 'AbortError') return;
-    alert('打开目录失败: ' + e.message);
+    uiAlert('打开目录失败: ' + e.message);
     return;
   }
   await refreshSubCases();
@@ -1579,7 +1638,7 @@ async function refreshSubCases() {
   try {
     await scanSubCaseDir(workDirHandle, '');
   } catch (e) {
-    alert('扫描目录失败: ' + e.message);
+    uiAlert('扫描目录失败: ' + e.message);
   }
   toast(`工作目录「${workDirHandle.name}」找到 ${subCases.length} 个用例`);
   updatePropPanel();
@@ -1629,7 +1688,7 @@ async function openSubCase(sc) {
     closeModal();
     toast(`已打开 ${sc.name}`);
   } catch (e) {
-    alert('打开失败: ' + e.message);
+    uiAlert('打开失败: ' + e.message);
   }
 }
 
@@ -1699,7 +1758,7 @@ async function pickProtoFile() {
   try {
     loadProtoData(JSON.parse(text));
   } catch (e) {
-    alert('协议文件解析失败: ' + e.message);
+    uiAlert('协议文件解析失败: ' + e.message);
     return;
   }
   toast(`已加载 ${Object.keys(protoDefs).length} 个协议`);
@@ -1847,6 +1906,131 @@ function showModal(title, text) {
 function closeModal() { $('modal-container').innerHTML = ''; }
 
 // ============================================================
+//  日志面板：画布下方，可拖拽调高、开关、输出执行信息
+// ============================================================
+function appendLog(msg, autoShow = true) {
+  const panel = $('log-panel');
+  if (autoShow && !panel.classList.contains('show')) panel.classList.add('show');  // 有日志时自动展开
+  const box = $('log-body');
+  const time = new Date().toTimeString().substring(0, 8);
+  box.textContent += `[${time}] ${msg}\n`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function toggleLogPanel() {
+  $('log-panel').classList.toggle('show');
+}
+
+function clearLog() {
+  $('log-body').textContent = '';
+}
+
+// 日志/消息 Tab 切换
+let activeLogTab = 'log';
+function switchLogTab(tab) {
+  activeLogTab = tab;
+  $('log-body').style.display = tab === 'log' ? '' : 'none';
+  $('tab-msg').style.display = tab === 'msg' ? 'flex' : 'none';
+  $('tab-btn-log').classList.toggle('active', tab === 'log');
+  $('tab-btn-msg').classList.toggle('active', tab === 'msg');
+}
+
+function clearActiveTab() {
+  if (activeLogTab === 'msg') {
+    msgList = [];
+    selectedMsgIdx = -1;
+    renderMsgList();
+    showMsgDetail();
+  } else {
+    clearLog();
+  }
+}
+
+// ============================================================
+//  消息 Tab：收发消息列表（左）与内容详情（右），按类型着色
+// ============================================================
+let msgList = [];          // {type:'req'|'res'|'ntf', name, id, content}
+let selectedMsgIdx = -1;
+
+// 追加一条消息（服务器联调后由收发流程调用）；time 为时间戳（秒或毫秒均可）
+function appendMsg(type, name, id, content, time) {
+  msgList.push({ type, name, id, content, time: time || Math.floor(Date.now() / 1000) });
+  selectedMsgIdx = msgList.length - 1;
+  renderMsgList();
+  showMsgDetail();
+}
+
+// 时间戳格式化为 yyyy-MM-dd HH:mm:ss（兼容秒/毫秒时间戳）
+function formatTimestamp(ts) {
+  if (!ts) return '';
+  const ms = Number(ts) < 1e12 ? Number(ts) * 1000 : Number(ts);
+  const d = new Date(ms);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function renderMsgList() {
+  const box = $('msg-list');
+  box.innerHTML = msgList.map((m, i) =>
+    `<div class="msg-item msg-${m.type}${i === selectedMsgIdx ? ' selected' : ''}" onclick="selectMsg(${i})">
+       <span class="msg-name">${escapeHtml(m.name)}</span><span class="msg-id">${m.id}</span>
+     </div>`).join('');
+}
+
+function selectMsg(i) {
+  if (!msgList[i]) return;
+  selectedMsgIdx = i;
+  renderMsgList();
+  showMsgDetail();
+}
+
+function showMsgDetail() {
+  const m = msgList[selectedMsgIdx];
+  if (!m) {
+    $('msg-detail-head').textContent = '';
+    $('msg-detail-pre').textContent = '未选择消息';
+    return;
+  }
+  $('msg-detail-head').textContent =
+    `时间：${formatTimestamp(m.time)} ｜ 类型：${m.type} ｜ 协议：${m.name}（${m.id}）`;
+  $('msg-detail-pre').textContent = typeof m.content === 'string' ? m.content : JSON.stringify(m.content, null, 2);
+}
+
+// 服务器未就绪：预置三条不同类型的测试消息便于验收
+function seedTestMessages() {
+  const now = Math.floor(Date.now() / 1000);
+  appendMsg('req', 'NID_LOGIN_ACCOUNT_LOGIN_REQ', 10001,
+    { platform: 1, device_id: 'device-001', session: 'sess-abc123', openid: 'u1001' }, now - 20);
+  appendMsg('res', 'NID_LOGIN_ACCOUNT_LOGIN_RES', 10002,
+    { error_code: 0, players: [{ player_id: 1001, name: '测试玩家' }], user_id: 1001 }, now - 10);
+  appendMsg('ntf', 'NID_ENTITY_ENTER_SCENE_NTF', 12101,
+    { id: 1001, pos_x: 100, pos_y: 200, pos_z: 0, map_id: 1, scene_id: 100, type: 1, attrs: {} }, now);
+}
+
+// 拖拽日志面板上边缘调整高度
+(function initLogResize() {
+  const handle = $('log-resize');
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const panel = $('log-panel');
+    const startY = e.clientY;
+    const startH = panel.offsetHeight;
+    handle.classList.add('dragging');
+    const onMove = ev => {
+      const h = Math.max(80, Math.min(window.innerHeight * 0.6, startH + (startY - ev.clientY)));
+      panel.style.height = h + 'px';
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+
+// ============================================================
 //  执行面板：拼接 http://地址:端口/url?参数 并发起请求
 // ============================================================
 const execOpts = { addr: '127.0.0.1', port: '10101', openid: '', srvAddr: '127.0.0.1', srvPort: '20013', params: [] };  // 记住上次配置
@@ -1959,14 +2143,18 @@ async function doExecute() {
   // 记住本次配置，下次打开面板自动回填
   execConfigChanged();
   execOpts.params = collectExecParams();
+  appendLog(`执行 ${url}`);
   const wrap = $('exec-result-wrap'), box = $('exec-result');
   wrap.style.display = '';
   box.textContent = '执行中...';
   try {
     const res = await fetch(url);
     const text = await res.text();
+    appendLog(`状态码 ${res.status}`);
+    appendLog(text.length > 800 ? text.substring(0, 800) + ' ...' : text);
     box.textContent = `状态码 ${res.status}\n${text.length > 800 ? text.substring(0, 800) + ' ...' : text}`;
   } catch (e) {
+    appendLog(`请求失败：${e.message}`);
     box.textContent = `请求失败：${e.message}\n（可能是服务未启动或跨域限制，可点击上方链接直接打开）`;
   }
 }
@@ -1976,7 +2164,16 @@ async function doExecute() {
 // ============================================================
 function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeAttr(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); }
+function toast(msg) {
+  appendLog(msg, false);  // 弹出提示同步写一份到日志
+  const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// 弹窗提示同步写一份到日志
+function uiAlert(msg) {
+  appendLog(msg, false);
+  alert(msg);
+}
 
 function clearAll() {
   if (!confirm('确定清空所有节点？')) return;
