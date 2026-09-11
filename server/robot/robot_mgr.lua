@@ -23,7 +23,7 @@ end
 --停止脚本，上报内容
 function RobotMgr:stop_robot()
     for open_id, robot in pairs(self.robot_list) do
-        robot:stop_script()
+        robot:stop_case()
         self.robot_list[open_id] = nil
     end
 end
