@@ -1849,7 +1849,7 @@ function closeModal() { $('modal-container').innerHTML = ''; }
 // ============================================================
 //  执行面板：拼接 http://地址:端口/url?参数 并发起请求
 // ============================================================
-const execOpts = { addr: '127.0.0.1', port: '10101', params: [] };  // 记住上次配置
+const execOpts = { addr: '127.0.0.1', port: '10101', openid: '', srvAddr: '127.0.0.1', srvPort: '20013', params: [] };  // 记住上次配置
 
 function showExecPanel(urlPath) {
   $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
@@ -1858,12 +1858,20 @@ function showExecPanel(urlPath) {
         <button class="close" onclick="closeModal()">×</button></div>
       <div class="modal-body">
         <div class="io-row">
-          <div class="field" style="flex:1"><label>地址</label>
-            <input type="text" id="exec-addr" value="${escapeAttr(execOpts.addr)}" oninput="execAddrChanged()"></div>
-          <div class="field" style="width:110px"><label>端口</label>
-            <input type="text" id="exec-port" value="${escapeAttr(execOpts.port)}" oninput="execAddrChanged()"></div>
-          <div class="field" style="width:120px"><label>URL</label>
+          <div class="field" style="flex:1"><label>机器人地址</label>
+            <input type="text" id="exec-addr" value="${escapeAttr(execOpts.addr)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="width:110px"><label>机器人端口</label>
+            <input type="text" id="exec-port" value="${escapeAttr(execOpts.port)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="flex:1"><label>url</label>
             <input type="text" id="exec-url" value="${escapeAttr(urlPath)}" oninput="updateExecPreview()"></div>
+        </div>
+        <div class="io-row">
+          <div class="field" style="flex:1"><label>服务器地址</label>
+            <input type="text" id="exec-srv-addr" value="${escapeAttr(execOpts.srvAddr)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="width:110px"><label>服务器端口</label>
+            <input type="text" id="exec-srv-port" value="${escapeAttr(execOpts.srvPort)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="flex:1"><label>openid</label>
+            <input type="text" id="exec-openid" value="${escapeAttr(execOpts.openid)}" oninput="execConfigChanged()"></div>
         </div>
         <div class="field"><label>输入参数列表</label>
           <div id="exec-params"></div>
@@ -1902,10 +1910,13 @@ function execParamChanged() {
   updateExecPreview();
 }
 
-// 地址/端口变更时实时保存到内存
-function execAddrChanged() {
+// 固定配置（机器人地址/端口、openid、服务器地址/端口）变更时实时保存到内存
+function execConfigChanged() {
   execOpts.addr = $('exec-addr').value.trim();
   execOpts.port = $('exec-port').value.trim();
+  execOpts.openid = $('exec-openid').value.trim();
+  execOpts.srvAddr = $('exec-srv-addr').value.trim();
+  execOpts.srvPort = $('exec-srv-port').value.trim();
   updateExecPreview();
 }
 
@@ -1922,10 +1933,18 @@ function buildExecUrl() {
   const addr = $('exec-addr').value.trim() || '127.0.0.1';
   const port = $('exec-port').value.trim() || '10101';
   const urlPath = $('exec-url').value.trim().replace(/^\/+/, '');
-  const query = collectExecParams()
-    .map(p => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
-    .join('&');
-  return `http://${addr}:${port}/${urlPath}${query ? '?' + query : ''}`;
+  const query = [];
+  collectExecParams().forEach(p => {
+    query.push(`${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`);
+  });
+  // openid 与服务器地址/端口追加到完整 URL 后面
+  const openid = $('exec-openid').value.trim();
+  const srvAddr = $('exec-srv-addr').value.trim();
+  const srvPort = $('exec-srv-port').value.trim();
+  if (openid) query.push(`openid=${encodeURIComponent(openid)}`);
+  if (srvAddr) query.push(`addr=${encodeURIComponent(srvAddr)}`);
+  if (srvPort) query.push(`port=${encodeURIComponent(srvPort)}`);
+  return `http://${addr}:${port}/${urlPath}${query.length ? '?' + query.join('&') : ''}`;
 }
 
 function updateExecPreview() {
@@ -1938,8 +1957,7 @@ function updateExecPreview() {
 async function doExecute() {
   const url = buildExecUrl();
   // 记住本次配置，下次打开面板自动回填
-  execOpts.addr = $('exec-addr').value.trim();
-  execOpts.port = $('exec-port').value.trim();
+  execConfigChanged();
   execOpts.params = collectExecParams();
   const wrap = $('exec-result-wrap'), box = $('exec-result');
   wrap.style.display = '';
