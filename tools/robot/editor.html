@@ -230,16 +230,8 @@ body.connecting .node{border-color:#2a6f97}
 //  节点类型定义
 // ============================================================
 const NODE_TYPES = {
-  SOCK: {
-    label: "Socket连接", color: "#4caf50",
-    outputs: [{id:"next",label:"Next"}],
-    fields: [
-      {key:"ip",   label:"IP地址",  render:"input"},
-      {key:"port", label:"端口",    render:"input"},
-    ]
-  },
   REQ: {
-    label: "协议请求", color: "#2196f3", exec: true,
+    label: "REQ节点", color: "#2196f3", exec: true,
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"cmd_id",  label:"协议",     render:"proto-select"},
@@ -247,8 +239,25 @@ const NODE_TYPES = {
       {key:"outputs", label:"输出参数", render:"kv"},
     ]
   },
+  NTF: {
+    label: "NTF节点", color: "#9c27b0",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmd_id",  label:"协议",       render:"proto-select"},
+      {key:"cond",    label:"条件(Lua)",  render:"textarea"},
+      {key:"outputs", label:"输出参数",   render:"kv"},
+    ]
+  },
+  SOCK: {
+    label: "SOCK节点", color: "#4caf50",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"ip",   label:"IP地址",  render:"input"},
+      {key:"port", label:"端口",    render:"input"},
+    ]
+  },
   HTTP: {
-    label: "HTTP请求", color: "#7e57c2", exec: true,
+    label: "HTTP节点", color: "#7e57c2", exec: true,
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"url",     label:"请求地址",     render:"text"},
@@ -259,59 +268,50 @@ const NODE_TYPES = {
       {key:"outputs", label:"响应输出映射", render:"kv"},
     ]
   },
-  NTF: {
-    label: "等待通知", color: "#9c27b0",
-    outputs: [{id:"next",label:"Next"}],
-    fields: [
-      {key:"cmd_id",  label:"协议",       render:"proto-select"},
-      {key:"cond",    label:"条件(Lua)",  render:"textarea"},
-      {key:"outputs", label:"输出参数",   render:"kv"},
-    ]
-  },
-  GM: {
-    label: "GM命令", color: "#ff5722", exec: true,
-    outputs: [{id:"next",label:"Next"}],
-    fields: [
-      {key:"cmds", label:"命令列表", render:"list"},
-      {key:"time", label:"延迟(ms)", render:"number"},
-    ]
-  },
-  COND: {
-    label: "条件分支", color: "#ff9800",
-    outputs: [{id:"success",label:"成功"},{id:"failed",label:"失败"}],
-    fields: [
-      {key:"cond", label:"条件表达式(Lua)", render:"textarea"},
-    ]
-  },
-  CASE: {
-    label: "子用例", color: "#00bcd4",
-    outputs: [{id:"next",label:"Next"}],
-    fields: [
-      {key:"case",    label:"用例名称", render:"case-select"},
-      {key:"in_args", label:"输入参数", render:"kv-raw"},
-    ]
-  },
   WAIT: {
-    label: "等待", color: "#607d8b",
+    label: "WAIT节点", color: "#607d8b",
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"time", label:"等待(ms)",   render:"number"},
       {key:"cond", label:"条件(Lua)",  render:"textarea"},
     ]
   },
+  COND: {
+    label: "COND节点", color: "#ff9800",
+    outputs: [{id:"success",label:"成功"},{id:"failed",label:"失败"}],
+    fields: [
+      {key:"cond", label:"条件表达式(Lua)", render:"textarea"},
+    ]
+  },
+  SWITCH: {
+    label: "SWITCH节点", color: "#795548",
+    outputs: "dynamic",
+    fields: [
+      {key:"inputs", label:"输入参数",   render:"kv"},
+    ]
+  },
   SCRIPT: {
-    label: "脚本", color: "#e91e63", exec: true,
+    label: "SCRIPT节点", color: "#e91e63", exec: true,
     outputs: [{id:"next",label:"Next"}],
     fields: [
       {key:"script",  label:"Lua脚本",   render:"textarea"},
       {key:"outputs", label:"输出参数",  render:"kv"},
     ]
   },
-  SWITCH: {
-    label: "开关分支", color: "#795548",
-    outputs: "dynamic",
+  CASE: {
+    label: "CASE节点", color: "#00bcd4",
+    outputs: [{id:"next",label:"Next"}],
     fields: [
-      {key:"inputs", label:"输入参数",   render:"kv"},
+      {key:"case",    label:"用例名称", render:"case-select"},
+      {key:"in_args", label:"输入参数", render:"kv-raw"},
+    ]
+  },
+  GM: {
+    label: "GM节点", color: "#ff5722", exec: true,
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmds", label:"命令列表", render:"list"},
+      {key:"time", label:"延迟(ms)", render:"number"},
     ]
   },
 };
