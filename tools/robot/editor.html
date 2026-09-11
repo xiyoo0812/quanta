@@ -37,7 +37,20 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #log-header .log-clear:hover{color:#fff}
 #log-body{flex:1;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.6;padding:4px 10px;color:#ccc;white-space:pre-wrap;word-break:break-all}
 /* 消息 Tab：左列表右详情 */
-#tab-msg{display:none;flex:1;overflow:hidden}
+#tab-msg{display:none;flex-direction:column;flex:1;overflow:hidden}
+#msg-body-row{display:flex;flex:1;overflow:hidden;min-height:0}
+#msg-filter-combo{position:relative;padding:4px 8px;border-bottom:1px solid #2a2a2c;flex-shrink:0}
+.mf-row{display:flex;gap:6px;align-items:center}
+.mf-row .mf-input{flex:1;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit}
+.mf-row .mf-input:focus{outline:none;border-color:#007acc}
+.mf-count{color:#888;font-size:11px;flex-shrink:0;white-space:nowrap}
+#msg-filter-dd{display:none;position:fixed;z-index:1500;max-height:240px;overflow-y:auto;background:#1e1e1e;border:1px solid #007acc;border-radius:3px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#msg-filter-dd.open{display:block}
+.mf-item{display:flex;align-items:center;gap:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:#ccc}
+.mf-item:hover{background:#0e639c;color:#fff}
+.mf-item input{flex-shrink:0;margin:0}
+.mf-item .mf-id{color:#666;margin-left:auto}
+.mf-item:hover .mf-id{color:#aad}
 #msg-list{width:345px;overflow-y:auto;border-right:1px solid #333;flex-shrink:0}
 .msg-item{display:flex;justify-content:space-between;gap:6px;padding:4px 10px;cursor:pointer;font-size:11px;border-left:2px solid transparent}
 .msg-item:hover{background:#252526}
@@ -63,7 +76,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 
 /* 画布 */
 #canvas-wrap{flex:1;position:relative;overflow:auto;background:#1e1e1e;min-height:0}
+/* 全局统一细灰滚动条（所有下拉框/面板自动继承；画布在下方单独覆盖为悬停显示） */
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-thumb{background:#4a4a4e;border-radius:4px}
+*::-webkit-scrollbar-thumb:hover{background:#5a5a5e}
+*::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}
+
 /* 画布滚动条：平时隐藏，悬停画布时显示 */
+#canvas-wrap{scrollbar-width:thin;scrollbar-color:transparent transparent}
+#canvas-wrap:hover{scrollbar-color:#4a4a4e transparent}
 #canvas-wrap::-webkit-scrollbar{width:8px;height:8px}
 #canvas-wrap::-webkit-scrollbar-thumb{background:transparent;border-radius:4px}
 #canvas-wrap:hover::-webkit-scrollbar-thumb{background:#4a4a4e}
@@ -263,8 +284,16 @@ body.connecting .node{border-color:#2a6f97}
       </div>
       <div id="log-body" class="tab-page"></div>
       <div id="tab-msg" class="tab-page" style="display:none">
-        <div id="msg-list"></div>
-        <div id="msg-detail"><div id="msg-detail-head"></div><pre id="msg-detail-pre">未选择消息</pre></div>
+        <div id="msg-filter-combo">
+          <div class="mf-row">
+            <input type="text" id="mf-input" class="mf-input" placeholder="协议过滤（输入可筛选）" onfocus="msgFilterOpen()" oninput="msgFilterOpen()">
+            <span class="mf-count" id="mf-count"></span>
+          </div>
+        </div>
+        <div id="msg-body-row">
+          <div id="msg-list"></div>
+          <div id="msg-detail"><div id="msg-detail-head"></div><pre id="msg-detail-pre">未选择消息</pre></div>
+        </div>
       </div>
     </div>
   </div>
@@ -277,6 +306,9 @@ body.connecting .node{border-color:#2a6f97}
     <div id="prop-content" style="display:none"></div>
   </div>
 </div>
+
+<!-- 协议过滤下拉（挂载在 body 顶层，避免被父级裁切/遮挡） -->
+<div id="msg-filter-dd"><div id="msg-filter-list"></div></div>
 
 <!-- 模态框容器 -->
 <div id="modal-container"></div>
@@ -1918,6 +1950,7 @@ function appendLog(msg, autoShow = true) {
 }
 
 function toggleLogPanel() {
+  closeMsgFilterDD();
   $('log-panel').classList.toggle('show');
 }
 
@@ -1928,11 +1961,13 @@ function clearLog() {
 // 日志/消息 Tab 切换
 let activeLogTab = 'log';
 function switchLogTab(tab) {
+  closeMsgFilterDD();
   activeLogTab = tab;
   $('log-body').style.display = tab === 'log' ? '' : 'none';
   $('tab-msg').style.display = tab === 'msg' ? 'flex' : 'none';
   $('tab-btn-log').classList.toggle('active', tab === 'log');
   $('tab-btn-msg').classList.toggle('active', tab === 'msg');
+  if (tab === 'msg') renderMsgFilter();
 }
 
 function clearActiveTab() {
@@ -1949,8 +1984,85 @@ function clearActiveTab() {
 // ============================================================
 //  消息 Tab：收发消息列表（左）与内容详情（右），按类型着色
 // ============================================================
-let msgList = [];          // {type:'req'|'res'|'ntf', name, id, content}
+let msgList = [];          // {type:'req'|'res'|'ntf', name, id, content, time}
 let selectedMsgIdx = -1;
+let msgProtoFilter = new Set();   // 勾选的协议名集合（空 = 显示全部），仅存内存
+
+// 按协议过滤后的可见消息（保留原始索引供选中）
+function getVisibleMsgs() {
+  const items = msgList.map((m, i) => ({ m, i }));
+  return msgProtoFilter.size ? items.filter(x => msgProtoFilter.has(x.m.name)) : items;
+}
+
+function renderMsgList() {
+  const box = $('msg-list');
+  const items = getVisibleMsgs();
+  box.innerHTML = items.length
+    ? items.map(({ m, i }) =>
+        `<div class="msg-item msg-${m.type}${i === selectedMsgIdx ? ' selected' : ''}" onclick="selectMsg(${i})">
+           <span class="msg-name">${escapeHtml(m.name)}</span><span class="msg-id">${m.id}</span>
+         </div>`).join('')
+    : `<div class="combo-empty">${msgList.length ? '当前筛选下无消息' : '暂无消息'}</div>`;
+  updateMfCount();
+}
+
+function updateMfCount() {
+  const el = $('mf-count');
+  if (el) el.textContent = msgProtoFilter.size ? `已选 ${msgProtoFilter.size}` : '';
+}
+
+// 协议过滤：聚焦/输入时在输入框旁展开下拉（挂 body 层，按输入框位置动态定位）
+function msgFilterOpen() {
+  renderMsgFilter();
+  const dd = $('msg-filter-dd');
+  const rect = $('mf-input').getBoundingClientRect();
+  dd.style.left = rect.left + 'px';
+  dd.style.width = Math.max(rect.width, 280) + 'px';
+  // 默认向上展开；上方空间不足时改为向下
+  if (rect.top > 260) {
+    dd.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    dd.style.top = 'auto';
+  } else {
+    dd.style.top = rect.bottom + 4 + 'px';
+    dd.style.bottom = 'auto';
+  }
+  dd.classList.add('open');
+}
+
+function closeMsgFilterDD() {
+  const dd = $('msg-filter-dd');
+  if (dd) dd.classList.remove('open');
+}
+
+function renderMsgFilter() {
+  const box = $('msg-filter-list');
+  const kw = ($('mf-input').value || '').trim().toLowerCase();
+  const protos = Object.values(protoDefs).sort((a, b) => (a.msg_id || 0) - (b.msg_id || 0));
+  const matched = protos.filter(p => !kw || p.name.toLowerCase().includes(kw));
+  box.innerHTML = !protos.length
+    ? `<div class="combo-empty">未载入协议，请点击工具栏「载入协议」</div>`
+    : (matched.length
+        ? matched.map(p =>
+            `<label class="mf-item" data-name="${escapeAttr(p.name)}">
+               <input type="checkbox" ${msgProtoFilter.has(p.name) ? 'checked' : ''} onchange="toggleMsgProtoFilter('${escapeAttr(p.name)}', this.checked)">
+               <span>${escapeHtml(p.name)}</span><span class="mf-id">${p.msg_id || ''}</span>
+             </label>`).join('')
+        : `<div class="combo-empty">无匹配协议</div>`);
+}
+
+function toggleMsgProtoFilter(name, checked) {
+  if (checked) msgProtoFilter.add(name); else msgProtoFilter.delete(name);
+  updateMfCount();
+  renderMsgList();
+}
+
+// 点击下拉与输入框之外时收起协议过滤
+document.addEventListener('click', e => {
+  const dd = $('msg-filter-dd');
+  if (!dd || !dd.classList.contains('open')) return;
+  const t = e.target;
+  if (!dd.contains(t) && !(t.closest && t.closest('#msg-filter-combo'))) closeMsgFilterDD();
+});
 
 // 追加一条消息（服务器联调后由收发流程调用）；time 为时间戳（秒或毫秒均可）
 function appendMsg(type, name, id, content, time) {
@@ -1967,14 +2079,6 @@ function formatTimestamp(ts) {
   const d = new Date(ms);
   const p = n => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-
-function renderMsgList() {
-  const box = $('msg-list');
-  box.innerHTML = msgList.map((m, i) =>
-    `<div class="msg-item msg-${m.type}${i === selectedMsgIdx ? ' selected' : ''}" onclick="selectMsg(${i})">
-       <span class="msg-name">${escapeHtml(m.name)}</span><span class="msg-id">${m.id}</span>
-     </div>`).join('');
 }
 
 function selectMsg(i) {
