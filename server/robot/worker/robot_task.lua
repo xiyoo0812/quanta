@@ -1,4 +1,4 @@
---robot_agent.lua
+--robot_task.lua
 
 local mceil         = math.ceil
 local log_err       = logger.err
@@ -11,28 +11,27 @@ local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local THREAD_ROBOT  = environ.number("QUANTA_THREAD_ROBOT", 2)
-local ROBOT_ENTRY   = environ.get("QUANTA_ROBOT_ENTRY")
 
 local SECOND_MS     = quanta.enum("PeriodTime", "SECOND_MS")
 local SECOND_3_MS   = quanta.enum("PeriodTime", "SECOND_3_MS")
 
-local RobotAgent    = singleton()
+local RobotTask    = singleton()
 
-function RobotAgent:__init()
+function RobotTask:__init()
     -- 准备开启
     thread_mgr:success_call(SECOND_MS, function()
         return self:load_task()
     end, SECOND_MS)
 end
 
-function RobotAgent:startup(conf, task_id, task_conf)
+function RobotTask:startup(conf, task_id, task_conf)
     local all_count = task_conf.count
     local start_open_id = task_conf.start_open_id
     local worker_num = mceil(all_count / THREAD_ROBOT)
     for i = 1, worker_num do
         --启动机器人线程
         local name = sformat("robot_%s", i)
-        scheduler:startup(name, ROBOT_ENTRY)
+        scheduler:startup(name, "robot.worker.robot")
         --发布任务
         event_mgr:fire_second(function()
             local num = all_count >= THREAD_ROBOT and THREAD_ROBOT or all_count
@@ -54,19 +53,19 @@ function RobotAgent:startup(conf, task_id, task_conf)
     end)
 end
 
-function RobotAgent:load_task()
+function RobotTask:load_task()
     local task_id = environ.get("QUANTA_TASK_ID")
     local conf = import(sformat("robot/tasks/%s.lua", task_id))
     if not conf then
-        log_err("[RobotAgent][load_task] task {} config not exist", task_id)
+        log_err("[RobotTask][load_task] task {} config not exist", task_id)
         signal.quit()
         return false
     end
-    log_debug("[RobotAgent][load_task] conf: {}", conf)
+    log_debug("[RobotTask][load_task] conf: {}", conf)
     local child_id = quanta.index
     local task_conf = conf.tasks[child_id]
     if not task_conf then
-        log_err("[RobotAgent][load_task] task {} task config not exist", task_id)
+        log_err("[RobotTask][load_task] task {} task config not exist", task_id)
         signal.quit()
         return false
     end
@@ -74,6 +73,6 @@ function RobotAgent:load_task()
     return true
 end
 
-quanta.robot_agent = RobotAgent()
+quanta.robot_task = RobotTask()
 
-return RobotAgent
+return RobotTask

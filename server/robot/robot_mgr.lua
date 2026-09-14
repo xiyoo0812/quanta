@@ -9,22 +9,22 @@ local Robot         = import("robot/robot.lua")
 
 local RobotMgr = singleton()
 local prop = property(RobotMgr)
-prop:reader("robot_list", {})   --robot_list
+prop:reader("robots", {})   --robots
 
 function RobotMgr:__init()
 end
 
 function RobotMgr:update()
-    for _, robot in pairs(self.robot_list) do
+    for _, robot in pairs(self.robots) do
         thread_mgr:fork(robot.update, nil, robot)
     end
 end
 
 --停止脚本，上报内容
 function RobotMgr:stop_robot()
-    for open_id, robot in pairs(self.robot_list) do
+    for open_id, robot in pairs(self.robots) do
         robot:stop_case()
-        self.robot_list[open_id] = nil
+        self.robots[open_id] = nil
     end
 end
 
@@ -35,26 +35,25 @@ function RobotMgr:create_robot(ip, port, open_id)
     robot:set_ip(ip)
     robot:set_port(port)
     robot:set_open_id(open_id)
-    self.robot_list[open_id] = robot
+    self.robots[open_id] = robot
     return robot
 end
 
 function RobotMgr:get_robot(open_id)
-    return self.robot_list[open_id]
+    return self.robots[open_id]
 end
 
 function RobotMgr:destory_robot(open_id)
-    local robot = self.robot_list[open_id]
+    local robot = self.robots[open_id]
     if robot then
-        robot:logout_server()
-        self.robot_list[open_id] = nil
+        self.robots[open_id] = nil
         return { code = 0, msg = "success" }
     end
     return { code = -1, msg = "robot not exist" }
 end
 
 function RobotMgr:get_index_robot(index)
-    return self.robot_list[index]
+    return self.robots[index]
 end
 
 quanta.robot_mgr = RobotMgr()
