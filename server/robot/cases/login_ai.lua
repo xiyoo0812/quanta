@@ -2,7 +2,6 @@
 return {
     name = "login_ai",
     root = 1,
-    rewind = 1,
     nodes = {
         [1] = {
             type = "CASE",

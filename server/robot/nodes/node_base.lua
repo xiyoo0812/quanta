@@ -14,7 +14,7 @@ prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor
 prop:reader("after", nil)       --after
 prop:reader("before ", nil)     --before
-prop:reader("success", nil)     --success
+prop:reader("successed", nil)   --successed
 prop:reader("running", false)   --running
 
 function NodeBase:__init(case)
@@ -129,7 +129,7 @@ end
 function NodeBase:update()
     if self.running then
         if self:on_update() then
-            self.success = true
+            self.successed = true
             self:run_script(self.after)
             self:on_stop()
             self:go_next()
@@ -147,7 +147,7 @@ end
 
 function NodeBase:failed(error)
     self.error = error
-    self.success = false
+    self.successed = false
     self.case:failed()
 end
 

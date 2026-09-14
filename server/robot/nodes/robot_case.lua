@@ -23,7 +23,7 @@ prop:reader("root", nil)        --root
 prop:reader("actor", nil)       --actor
 prop:reader("error", nil)       --error
 prop:reader("current", nil)     --current
-prop:reader("success", nil)     --success
+prop:reader("successed", nil)   --successed
 prop:reader("childs", {})       --childs
 prop:accessor("mount", nil)     --mount
 prop:accessor("parent", nil)    --parent
@@ -71,7 +71,7 @@ end
 
 --目标完成
 function RobotCase:finish()
-    self.success = true
+    self.successed = true
     self.current = self.root
     if self.parent then
         self.actor:run_case(self.parent)
@@ -82,7 +82,7 @@ end
 --目标失败
 function RobotCase:failed(err)
     self.error = err
-    self.success = false
+    self.successed = false
     self.current = self.root
     if self.parent then
         self.parent:failed(err)
@@ -95,7 +95,7 @@ function RobotCase:update()
     if self.mount then
         self.mount:update()
     end
-    if self.success ~= nil then
+    if self.successed ~= nil then
         return
     end
     if not self.current then

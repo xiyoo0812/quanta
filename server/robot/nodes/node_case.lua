@@ -29,11 +29,11 @@ end
 
 function NodeCase:on_update()
     if self.child then
-        local success = self.child:get_success()
-        if success == false then
+        local successed = self.child:get_successed()
+        if successed == false then
             self:failed(self.child.error)
         end
-        return success ~= nil
+        return successed ~= nil
     end
     return true
 end
