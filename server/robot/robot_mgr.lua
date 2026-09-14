@@ -3,8 +3,6 @@ import("kernel/protobuf_mgr.lua")
 
 local log_debug     = logger.debug
 
-local thread_mgr    = quanta.get("thread_mgr")
-
 local Robot         = import("robot/robot.lua")
 
 local RobotMgr = singleton()

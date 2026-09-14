@@ -37,11 +37,15 @@ function RobotCase:load(file)
     if not cconf then
         return false
     end
-    for id, conf in pairs(cconf.nodes) do
+    return self:load_data(cconf)
+end
+
+function RobotCase:load_data(data)
+    for id, conf in pairs(data.nodes) do
         self:create_node(id, conf)
     end
-    self.root = cconf.root
-    self.current = cconf.root
+    self.root = data.root
+    self.current = data.root
     return true
 end
 

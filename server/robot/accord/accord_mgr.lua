@@ -70,10 +70,11 @@ end
 function AccordMgr:on_case(url, body, params)
     log_debug("[AccordMgr][on_case] params:{}", params)
     local robot = self:load_robot(params, true)
-    local ok, res = robot:run_case(body)
-    --执行登陆
-    local ok, res = robot:login_server()
-    return { code = ok and 0 or -1, msg = res }
+    local case = robot:create_case_by_data(body)
+    if case then
+        robot:run_case(case)
+    end
+    return { code = 0, msg = "success" }
 end
 
 -- 停止用例

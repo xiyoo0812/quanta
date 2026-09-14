@@ -7,13 +7,11 @@ local log_debug     = logger.debug
 local qfailed       = quanta.failed
 local sformat       = string.format
 local guid_string   = codec.guid_string
-local make_functer  = quanta.make_functer
 
 local Queue         = import("container/queue.lua")
 local RobotCase     = import("robot/robot_case.lua")
 local TcpClient     = import("network/tcp_client.lua")
 
-local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
@@ -72,6 +70,14 @@ end
 
 function Robot:run_case(case)
     self.next_case = case
+end
+
+function Robot:create_case_by_data(data)
+    local case = RobotCase(self)
+    if case:load_data(data) then
+        return case
+    end
+    log_err("[Robot][create_case] load case {} failed!", data)
 end
 
 function Robot:create_case(file)
