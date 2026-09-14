@@ -60,8 +60,8 @@ end
 function AccordMgr:on_node(url, body, params)
     local robot = self:load_robot(params, false)
     if robot then
-        local ok, res = robot:run_node(body)
-        return { code = ok and 0 or -1, msg = res }
+        local node = robot:mount_node(body)
+        return { code = node and 0 or -1, msg = node and "success" or "failed" }
     end
     return { code = -1, msg = "robot not exist" }
 end

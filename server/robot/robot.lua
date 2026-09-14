@@ -72,6 +72,12 @@ function Robot:run_case(case)
     self.next_case = case
 end
 
+function Robot:mount_node(data)
+    if self.cur_case then
+        return self.cur_case:mount_node(data)
+    end
+end
+
 function Robot:create_case_by_data(data)
     local case = RobotCase(self)
     if case:load_data(data) then

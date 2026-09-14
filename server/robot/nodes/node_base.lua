@@ -12,7 +12,7 @@ prop:reader("case", nil)        --case
 prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor
 prop:reader("after", nil)       --after
-prop:reader("before ", nil)     --before
+prop:reader("before", nil)      --before
 prop:reader("successed", nil)   --successed
 prop:reader("running", false)   --running
 prop:reader("result", true)     --result

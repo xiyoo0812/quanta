@@ -22,10 +22,10 @@ local prop = property(RobotCase)
 prop:reader("root", nil)        --root
 prop:reader("actor", nil)       --actor
 prop:reader("error", nil)       --error
+prop:reader("mount", nil)     --mount
 prop:reader("current", nil)     --current
 prop:reader("successed", nil)   --successed
 prop:reader("childs", {})       --childs
-prop:accessor("mount", nil)     --mount
 prop:accessor("parent", nil)    --parent
 
 function RobotCase:__init(actor)
@@ -47,6 +47,21 @@ function RobotCase:load_data(data)
     self.root = data.root
     self.current = data.root
     return true
+end
+
+function RobotCase:mount_node(conf)
+    local Node = NodeSwitch[conf.type]
+    if not Node then
+        log_err("[RobotCase][mount_node] node {} not exist", conf)
+        return
+    end
+    local node = Node(self)
+    if not node:load(conf) then
+        log_err("[RobotCase][mount_node] node {} load failed", conf)
+        return
+    end
+    self.mount = node
+    return node
 end
 
 --沉睡ms

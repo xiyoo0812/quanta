@@ -28,7 +28,7 @@ end
 
 function NodeSwitch:on_start()
     local role = self.actor
-    local skey = self:read_input("key")
+    local skey = self:read_input(self.inputs.key)
     if skey == nil then
         log_warn("[NodeSwitch][on_start] robot:{} switch key null", role.open_id)
         self:failed("switch null")
