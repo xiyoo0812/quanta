@@ -20,10 +20,12 @@ local NodeSwitch = {
 local RobotCase = class()
 local prop = property(RobotCase)
 prop:reader("root", nil)        --root
-prop:reader("rewind", nil)      --rewind
 prop:reader("actor", nil)       --actor
+prop:reader("error", nil)       --error
 prop:reader("current", nil)     --current
+prop:reader("success", nil)     --success
 prop:reader("childs", {})       --childs
+prop:accessor("mount", nil)     --mount
 prop:accessor("parent", nil)    --parent
 
 function RobotCase:__init(actor)
@@ -40,7 +42,6 @@ function RobotCase:load(file)
     end
     self.root = cconf.root
     self.current = cconf.root
-    self.rewind = cconf.rewind or cconf.root
     return true
 end
 
@@ -70,7 +71,8 @@ end
 
 --目标完成
 function RobotCase:finish()
-    self.current = self.rewind
+    self.success = true
+    self.current = self.root
     if self.parent then
         self.actor:run_case(self.parent)
         return
@@ -79,15 +81,23 @@ end
 
 --目标失败
 function RobotCase:failed(err)
-    self.current = self.rewind
+    self.error = err
+    self.success = false
+    self.current = self.root
     if self.parent then
-        self.parent:failed()
+        self.parent:failed(err)
         return
     end
 end
 
 --更新
 function RobotCase:update()
+    if self.mount then
+        self.mount:update()
+    end
+    if self.success ~= nil then
+        return
+    end
     if not self.current then
         self:finish()
         return
@@ -97,7 +107,7 @@ function RobotCase:update()
         self:finish()
         return
     end
-    node:action()
+    node:update()
 end
 
 return RobotCase

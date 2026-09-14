@@ -14,12 +14,6 @@ prop:reader("robots", {})   --robots
 function RobotMgr:__init()
 end
 
-function RobotMgr:update()
-    for _, robot in pairs(self.robots) do
-        thread_mgr:fork(robot.update, nil, robot)
-    end
-end
-
 --停止脚本，上报内容
 function RobotMgr:stop_robot()
     for open_id, robot in pairs(self.robots) do
@@ -31,10 +25,7 @@ end
 -- setup
 function RobotMgr:create_robot(ip, port, open_id)
     log_debug("[RobotMgr][create_robot]: {}:{} {}", ip, port, open_id)
-    local robot = Robot()
-    robot:set_ip(ip)
-    robot:set_port(port)
-    robot:set_open_id(open_id)
+    local robot = Robot(ip, port, open_id)
     self.robots[open_id] = robot
     return robot
 end

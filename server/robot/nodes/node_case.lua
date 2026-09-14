@@ -21,9 +21,19 @@ function NodeCase:on_load(conf)
     return true
 end
 
-function NodeCase:on_action()
+function NodeCase:on_start()
     if self.child then
         self.actor:run_case(self.child)
+    end
+end
+
+function NodeCase:on_update()
+    if self.child then
+        local success = self.child:get_success()
+        if success == false then
+            self:failed(self.child.error)
+        end
+        return success ~= nil
     end
     return true
 end

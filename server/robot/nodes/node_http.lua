@@ -26,7 +26,7 @@ function NodeHttp:on_load(conf)
     return true
 end
 
-function NodeHttp:on_action()
+function NodeHttp:on_update()
     if self.url then
         if self.method == "GET" then
             self.querys = self:read_inputs(self.inputs)
@@ -36,12 +36,12 @@ function NodeHttp:on_action()
         local role = self.actor
         local ok, status, res = http_client:send_request(self.url, self.timeout, self.querys, self.headers, self.method, self.body)
         if not ok or status >= 300 then
-            log_warn("[NodeHttp][on_action] robot:{} call {} failed: status={}, res={}", role.open_id, self.url, status, res)
+            log_warn("[NodeHttp][on_update] robot:{} call {} failed: status={}, res={}", role.open_id, self.url, status, res)
             event_mgr:notify_trigger("on_error_message", self.url, role.open_id, res)
             self:failed(res)
             return false
         end
-        log_debug("[NodeHttp][on_action] robot:{} call {}=>{} success", role.open_id, self.url, res)
+        log_debug("[NodeHttp][on_update] robot:{} call {}=>{} success", role.open_id, self.url, res)
         self:write_outputs(self.outputs, res)
     end
     return true

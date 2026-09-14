@@ -28,11 +28,11 @@ function NodeCond:go_next()
     end
 end
 
-function NodeCond:on_action()
+function NodeCond:on_update()
     local role = self.actor
     local cond = self:call_script(self.cond)
     if cond == nil then
-        log_warn("[NodeCond][on_action] robot:{} cond {} id null", role.open_id, self.cond)
+        log_warn("[NodeCond][on_update] robot:{} cond {} id null", role.open_id, self.cond)
         self:failed("cond error")
         return false
     end

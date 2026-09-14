@@ -14,29 +14,32 @@ local TcpClient     = import("network/tcp_client.lua")
 local RobotCase     = import("robot/nodes/robot_case.lua")
 
 local event_mgr     = quanta.get("event_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local Robot = class()
 local prop = property(Robot)
-prop:accessor("ip", nil)            --ip
-prop:accessor("port", nil)          --port
-prop:accessor("open_id", nil)       --open_id
-prop:reader("rate", 0)              --rate
-prop:reader("runtime", 0)           --runtime
-prop:reader("case", nil)            --case
+prop:reader("ip", nil)              --ip
+prop:reader("port", nil)            --port
+prop:reader("open_id", nil)         --open_id
+prop:reader("hertz", 0)             --hertz
 prop:reader("client", nil)          --client
 prop:reader("user_id", nil)         --user_id
+prop:reader("cur_case", nil)        --cur_case
+prop:reader("next_case", nil)       --next_case
 prop:reader("messages", nil)        --收到的消息回包
 prop:reader("player_id", nil)       --player_id
 prop:reader("device_id", nil)       --device_id
-prop:reader("upfunctor", nil)       --upfunctor
+prop:reader("running", false)       --running
 prop:reader("variables", {})        --variables
 prop:reader("login_success", false)
 prop:reader("access_token", "123456")
 
-function Robot:__init()
+function Robot:__init(ip, port, open_id)
+    self.ip = ip
+    self.port = port
+    self.open_id = open_id
     self.device_id = guid_string()
-    self.upfunctor = make_functer("on_update")
 end
 
 function Robot:connect(ip, port, block)
@@ -64,50 +67,55 @@ function Robot:bind_message_queue()
 end
 
 function Robot:check_case(case)
-    return self.case == case
+    return self.cur_case == case
 end
 
 function Robot:run_case(case)
-    self.case = case
-    event_mgr:fire_frame(function()
-        self:update(true)
-    end)
+    self.next_case = case
 end
 
 function Robot:create_case(file)
     local case = RobotCase(self)
-    if not case:load(file) then
-        log_err("[Robot][create_case] load case {} failed!", file)
-        return
+    if case:load(file) then
+        return case
     end
-    return case
+    log_err("[Robot][create_case] load case {} failed!", file)
 end
 
-function Robot:load_case(file, rate)
+function Robot:load_case(file, hertz)
     log_debug("[Robot][load_case] robot (%s) ready action!", self.open_id)
     local case = self:create_case(file)
     if case then
-        self.rate = rate
         self:run_case(case)
     end
+    self.hertz = hertz
+    if not self.running then
+        self.running = true
+        thread_mgr:fork(function()
+            while self.running do
+               self:on_update()
+            end
+        end)
+    end
+end
+
+function Robot:stop()
+    self.running = false
 end
 
 function Robot:stop_case()
-    self.case = nil
+    self.cur_case = nil
 end
 
-function Robot:update(force)
-    if self.case then
-        self.upfunctor:run(self, force)
+function Robot:on_update()
+    if self.next_case then
+        self.cur_case = self.next_case
+        self.next_case = nil
     end
-end
-
-function Robot:on_update(force)
-    local now_ms = quanta.now_ms
-    if force or now_ms - self.runtime > self.rate then
-        self.runtime = quanta.now_ms
-        self.case:update()
+    if self.cur_case then
+        self.cur_case:update()
     end
+    thread_mgr:sleep(self.hertz)
 end
 
 function Robot:push_message(cmd_id, msg)

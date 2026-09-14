@@ -9,10 +9,13 @@ local thread_mgr    = quanta.get("thread_mgr")
 local NodeBase = class()
 local prop = property(NodeBase)
 prop:reader("case", nil)        --case
-prop:reader("next", nil)        --next
+prop:reader("case", nil)        --case
+prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor
-prop:reader("before ", nil)     --before
 prop:reader("after", nil)       --after
+prop:reader("before ", nil)     --before
+prop:reader("success", nil)     --success
+prop:reader("running", false)   --running
 
 function NodeBase:__init(case)
     self.case = case
@@ -123,29 +126,43 @@ function NodeBase:sleep(ms)
 end
 
 --执行
-function NodeBase:action()
-    self:run_script(self.before)
-    if not self:on_action() then
+function NodeBase:update()
+    if self.running then
+        if self:on_update() then
+            self.success = true
+            self:run_script(self.after)
+            self:on_stop()
+            self:go_next()
+        end
         return
     end
-    self:run_script(self.after)
-    self:go_next()
+    self.running = true
+    self:on_start()
+    self:run_script(self.before)
 end
 
 function NodeBase:go_next()
     self.case:run_next(self.next)
 end
 
-function NodeBase:failed()
+function NodeBase:failed(error)
+    self.error = error
+    self.success = false
     self.case:failed()
 end
 
-function NodeBase:on_action()
+function NodeBase:on_update()
     return true
 end
 
 function NodeBase:on_load(conf)
     return true
+end
+
+function NodeBase:on_start()
+end
+
+function NodeBase:on_stop()
 end
 
 return NodeBase
