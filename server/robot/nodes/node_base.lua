@@ -9,13 +9,13 @@ local thread_mgr    = quanta.get("thread_mgr")
 local NodeBase = class()
 local prop = property(NodeBase)
 prop:reader("case", nil)        --case
-prop:reader("case", nil)        --case
 prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor
 prop:reader("after", nil)       --after
 prop:reader("before ", nil)     --before
 prop:reader("successed", nil)   --successed
 prop:reader("running", false)   --running
+prop:reader("result", true)     --result
 
 function NodeBase:__init(case)
     self.case = case
@@ -31,6 +31,11 @@ function NodeBase:load(conf)
     self.after = conf.after
     self.before = conf.before
     return self:on_load(conf)
+end
+
+-- 获取状态
+function NodeBase:get_status()
+    return { running = self.running, successed = self.successed, error = self.error }
 end
 
 --写入输出
@@ -127,18 +132,17 @@ end
 
 --执行
 function NodeBase:update()
-    if self.running then
-        if self:on_update() then
-            self.successed = true
-            self:run_script(self.after)
-            self:on_stop()
-            self:go_next()
-        end
-        return
+    if not self.running then
+        self.running = true
+        self:on_start()
+        self:run_script(self.before)
     end
-    self.running = true
-    self:on_start()
-    self:run_script(self.before)
+    if self:on_update() then
+        self.successed = true
+        self:run_script(self.after)
+        self:on_stop()
+        self:go_next()
+    end
 end
 
 function NodeBase:go_next()
@@ -152,7 +156,7 @@ function NodeBase:failed(error)
 end
 
 function NodeBase:on_update()
-    return true
+    return self.result
 end
 
 function NodeBase:on_load(conf)

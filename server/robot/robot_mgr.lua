@@ -43,10 +43,6 @@ function RobotMgr:destory_robot(open_id)
     return { code = -1, msg = "robot not exist" }
 end
 
-function RobotMgr:get_index_robot(index)
-    return self.robots[index]
-end
-
 quanta.robot_mgr = RobotMgr()
 
 return RobotMgr

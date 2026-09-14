@@ -18,6 +18,7 @@ function AccordMgr:__init()
     server:register_post("/case", "on_case", self)
     server:register_post("/node", "on_node", self)
     server:register_post("/stop", "on_stop", self)
+    server:register_post("/status", "on_status", self)
     server:register_post("/message", "on_message", self)
     service.modify_host(server:get_port())
     self.http_server = server
@@ -41,6 +42,16 @@ function AccordMgr:on_message(url, body, params)
     local robot = robot_mgr:get_robot(params.open_id)
     if robot then
         return { code = 0, msg = robot:get_messages() }
+    end
+    return { code = -1, msg = "robot not exist" }
+end
+
+-- 拉取状态
+function AccordMgr:on_status(url, body, params)
+    -- log_debug("[AccordMgr][on_status] open_id: {}", params.open_id)
+    local robot = robot_mgr:get_robot(params.open_id)
+    if robot then
+        return { code = 0, msg = robot:get_status() }
     end
     return { code = -1, msg = "robot not exist" }
 end

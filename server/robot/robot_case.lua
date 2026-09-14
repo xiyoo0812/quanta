@@ -60,6 +60,15 @@ function RobotCase:create_node(id, conf)
     self.childs[id] = node
 end
 
+-- 获取状态
+function RobotCase:get_status()
+    local res = { successed = self.successed, error = self.error, nodes = {} }
+    for id, node in pairs(self.childs) do
+        res.nodes[id] = node:get_status()
+    end
+    return res
+end
+
 function RobotCase:run_next(child)
     self.current = child
     if self.actor:check_case(self) then

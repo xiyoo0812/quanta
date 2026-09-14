@@ -10,8 +10,8 @@ local guid_string   = codec.guid_string
 local make_functer  = quanta.make_functer
 
 local Queue         = import("container/queue.lua")
+local RobotCase     = import("robot/robot_case.lua")
 local TcpClient     = import("network/tcp_client.lua")
-local RobotCase     = import("robot/nodes/robot_case.lua")
 
 local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
@@ -97,6 +97,15 @@ function Robot:load_case(file, hertz)
             end
         end)
     end
+end
+
+-- 获取状态
+function Robot:get_status()
+    local res = { running = self.running }
+    if self.cur_case then
+        res.case = self.cur_case:get_status()
+    end
+    return res
 end
 
 function Robot:stop()
