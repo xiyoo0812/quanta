@@ -420,7 +420,6 @@ let state = {
   selected: null,     // 选中的节点id
   selectedConn: null, // 选中的连线index
   root: null,
-  rewind: null,
   nextId: 1,
 };
 
@@ -945,7 +944,6 @@ function deleteNode(id) {
   delete state.nodes[id];
   state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
   if (state.root === id) state.root = Object.keys(state.nodes)[0] ? parseInt(Object.keys(state.nodes)[0]) : null;
-  if (state.rewind === id) state.rewind = null;
   if (state.selected === id) state.selected = null;
   renderAll();
   updatePropPanel();
@@ -955,11 +953,10 @@ function showContextMenu(e, id) {
   // 简易菜单：用prompt模拟
   const action = prompt(
     `节点 #${id} (${NODE_TYPES[state.nodes[id].type].label})\n\n` +
-    `输入数字选择操作:\n1. 设为根节点\n2. 设为回退节点\n3. 删除节点`
+    `输入数字选择操作:\n1. 设为根节点\n2. 删除节点`
   );
   if (action === '1') { state.root = id; renderAll(); toast('已设为根节点'); }
-  else if (action === '2') { state.rewind = id; renderAll(); toast('已设为回退节点'); }
-  else if (action === '3') { deleteNode(id); }
+  else if (action === '2') { deleteNode(id); }
 }
 
 // ============================================================
@@ -1005,7 +1002,6 @@ function updatePropPanel() {
   // 操作按钮
   html += `<div class="btn-row">
     <button onclick="state.root=${id};renderAll()">设为根节点</button>
-    <button onclick="state.rewind=${id};toast('已设为回退节点')">设为回退</button>
   </div>`;
   html += `<div class="btn-row">
     <button class="danger" onclick="deleteNode(${id})">删除节点</button>
@@ -1386,8 +1382,7 @@ function updateTargetKey(id, i, val) {
 //  导入/导出
 // ============================================================
 function buildExportData() {
-  const result = { name: state.caseName || "untitled", root: state.root };
-  if (state.rewind != null) result.rewind = state.rewind;
+  const result = { name: state.caseName || "case1", root: state.root };
   const nodes = {};
   for (const [idStr, node] of Object.entries(state.nodes)) {
     const id = parseInt(idStr);
@@ -1424,7 +1419,7 @@ function exportModal() {
 }
 
 function safeFileName() {
-  return (state.caseName || 'untitled').replace(/[\\/:*?"<>|]/g, '_');
+  return (state.caseName || "case1").replace(/[\\/:*?"<>|]/g, '_');
 }
 
 function downloadText(filename, text) {
@@ -1484,9 +1479,8 @@ function buildEditorData() {
   return {
     editor: "quanta-robot-node-editor",
     version: 1,
-    name: state.caseName || "untitled",
+    name: state.caseName || "case1",
     root: state.root,
-    rewind: state.rewind,
     nextId: state.nextId,
     nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, n]) => [id, {
       type: n.type,
@@ -1552,7 +1546,6 @@ function applyEditorData(data) {
   state.caseName = data.name || 'case1';
   $('case-name').value = state.caseName;
   state.root = data.root ?? null;
-  state.rewind = data.rewind ?? null;
   state.nextId = data.nextId || 1;
   state.nodes = {};
   state.connections = [];
@@ -1580,7 +1573,6 @@ function applyCaseData(data) {
   state.caseName = data.name || "case1";
   $('case-name').value = state.caseName;
   state.root = data.root;
-  state.rewind = data.rewind || data.root;
   state.nodes = {};
   state.connections = [];
   state.nextId = 1;
@@ -2281,7 +2273,7 @@ function uiAlert(msg) {
 
 function clearAll() {
   if (!confirm('确定清空所有节点？')) return;
-  state.nodes = {}; state.connections = []; state.root = null; state.rewind = null; state.selected = null; state.nextId = 1;
+  state.nodes = {}; state.connections = []; state.root = null; state.selected = null; state.nextId = 1;
   renderAll(); updatePropPanel();
 }
 
