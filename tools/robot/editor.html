@@ -256,6 +256,7 @@ body.connecting .node{border-color:#2a6f97}
   <span id="workdir-label" class="workdir-label">未设置</span>
   <div class="sep"></div>
   <button onclick="showExecPanel('case')">执行</button>
+  <button class="gray" id="exec-stop" onclick="stopExecute()" style="display:none">停止</button>
   <button onclick="exportModal()">导出</button>
 </div>
 
@@ -410,7 +411,7 @@ const NODE_TYPES = {
   },
 };
 
-const TYPE_OPTIONS = ["attr","var","lua","const"];
+const TYPE_OPTIONS = ["attr","var","lua","string","number"];
 // 原地编辑的渲染类型（直接显示在属性面板中，不走编辑弹窗）
 const IN_PLACE_RENDERS = ['proto-select', 'number', 'case-select', 'method-select', 'text', 'input'];
 
@@ -1040,7 +1041,7 @@ function renderField(f, val, nodeId) {
             <span class="kv2-tag">${k}</span>
             <select onchange="setInputType(${nodeId},'${k}',this.value)" title="取值方式">${typeOpts(v.type)}</select>
           </div>
-          <input class="kv-val" type="text" placeholder="取值（attr=属性名 / const=直接值 / lua=表达式 / var=变量名）" value="${escapeAttr(v.value||'')}" onchange="setInputValue(${nodeId},'${k}',this.value)">
+          <input class="kv-val" type="text" placeholder="取值（attr=属性名 / var=变量名 / lua=表达式 / string=字符串 / number=数字）" value="${escapeAttr(v.value||'')}" onchange="setInputValue(${nodeId},'${k}',this.value)">
         </div></div>`;
     }
     case 'kv':
@@ -1059,7 +1060,7 @@ function renderField(f, val, nodeId) {
       keys.forEach((key, i) => {
         const v = obj[key];
         const hint = protoHint && protoHint[key] ? `（${escapeAttr(protoHint[key])}）` : '';
-        const placeholder = isRaw ? '参数值' : (hint ? '取值' + hint : '取值（attr=属性名 / var=变量名 / lua=表达式 / const=常量）');
+        const placeholder = isRaw ? '参数值' : (hint ? '取值' + hint : '取值（attr=属性名 / var=变量名 / lua=表达式 / string=字符串 / number=数字）');
         html += `<div class="kv2">
           <div class="kv2-row1">
             <input class="kv-key" type="text" placeholder="参数名" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}',${i},this.value)">
@@ -1873,6 +1874,17 @@ function jsonToLua(obj, indent) {
   indent = indent || 0;
   const pad = '    '.repeat(indent);
   const pad2 = '    '.repeat(indent + 1);
+  // 输入/输出定义 {type, value}：number 类型的值导出为数字字面量，其余导出为字符串
+  if (!Array.isArray(obj) && typeof obj === 'object') {
+    const ik = Object.keys(obj);
+    if (ik.length === 2 && ik.includes('type') && ik.includes('value') && typeof obj.type === 'string') {
+      if (obj.type === 'number') {
+        const num = parseFloat(obj.value);
+        return '{ type = "number", value = ' + (isNaN(num) ? 0 : num) + ' }';
+      }
+      return '{ type = "' + obj.type + '", value = ' + jsonToLua(obj.value, indent) + ' }';
+    }
+  }
   if (Array.isArray(obj)) {
     if (obj.length === 0) return '{}';
     const lines = obj.map(v => pad2 + jsonToLua(v, indent + 1) + ',');
@@ -2233,22 +2245,23 @@ async function doExecute() {
   execConfigChanged();
   execOpts.params = collectExecParams();
   appendLog(`执行 ${url}`);
-  // 组装请求体：case = 整个用例导出的 Lua 串；node = 单节点配置的 Lua 串
+  // 组装请求体：case = 整个用例导出；node = 单节点配置（JSON，服务端自动解码为表）
   let body = null;
   if (execMode === 'node') {
     const conf = exportNode(execNodeId);
     if (!conf) { uiAlert('节点不存在或已被删除'); return; }
-    body = jsonToLua(conf);
+    body = JSON.stringify(conf);
   } else {
     execNodeState = {};
+    loggedExecErrors = new Set();
     refreshExecBadge();
-    body = jsonToLua(buildExportData());
+    body = JSON.stringify(buildExportData());
   }
   const wrap = $('exec-result-wrap'), box = $('exec-result');
   wrap.style.display = '';
   box.textContent = '执行中...';
   try {
-    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body });
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
     const text = await res.text();
     appendLog(`状态码 ${res.status}`);
     appendLog(text.length > 800 ? text.substring(0, 800) + ' ...' : text);
@@ -2275,11 +2288,14 @@ async function doExecute() {
 let execPollTimer = null;
 let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'
 let lastExecLog = '';
+let loggedExecErrors = new Set();  // 已输出过失败的节点（状态全量返回，按此去重）
 
 function startExecPolling() {
   stopExecPolling();
   appendLog('开始轮询执行状态...', false);
   execPollTimer = setInterval(pollExecStatus, 1000);
+  const stopBtn = $('exec-stop');
+  if (stopBtn) stopBtn.style.display = '';
   pollExecStatus();
 }
 
@@ -2288,6 +2304,8 @@ function stopExecPolling() {
     clearInterval(execPollTimer);
     execPollTimer = null;
   }
+  const stopBtn = $('exec-stop');
+  if (stopBtn) stopBtn.style.display = 'none';
 }
 
 async function pollExecStatus() {
@@ -2304,10 +2322,18 @@ async function pollExecStatus() {
       return;
     }
     applyExecStatus(data);
-    // 摘要（变化时才写日志）
+    // 摘要（变化时才写日志）+ 输出失败节点（状态为全量返回，同一失败只输出一次）
     const nodes = (data.msg && data.msg.case && data.msg.case.nodes) || {};
     const counts = { running: 0, ok: 0, err: 0 };
-    for (const s of Object.values(nodes)) {
+    for (const [id, s] of Object.entries(nodes)) {
+      if (s.error !== null && s.error !== undefined) {
+        const errText = typeof s.error === 'object' ? JSON.stringify(s.error) : String(s.error);
+        const key = id + ':' + errText;
+        if (!loggedExecErrors.has(key)) {
+          loggedExecErrors.add(key);
+          appendLog(`节点 #${id} 执行失败：${errText}`, false);
+        }
+      }
       if (s.error) counts.err++;
       else if (s.successed) counts.ok++;
       else if (s.running) counts.running++;
@@ -2367,6 +2393,30 @@ function toast(msg) {
 function uiAlert(msg) {
   appendLog(msg, false);
   alert(msg);
+}
+
+// 停止执行：通知服务器销毁机器人，并复位画布状态
+async function stopExecute() {
+  if (!execPollTimer) {
+    toast('当前没有正在执行的用例');
+    return;
+  }
+  const addr = execOpts.addr || '127.0.0.1';
+  const port = execOpts.port || '10101';
+  const openId = execOpts.openid || '';
+  const url = `http://${addr}:${port}/stop?open_id=${encodeURIComponent(openId)}`;
+  appendLog(`停止执行 ${url}`, false);
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ open_id: openId }) });
+    const data = await res.json();
+    appendLog(`停止结果：${data.msg || 'ok'}`, false);
+  } catch (e) {
+    appendLog(`停止请求失败：${e.message}`);
+  }
+  stopExecPolling();
+  execNodeState = {};
+  refreshExecBadge();
+  toast('已停止执行');
 }
 
 function clearAll() {

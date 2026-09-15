@@ -2,7 +2,6 @@
 import("robot/robot_mgr.lua")
 
 local log_debug     = logger.debug
-local unserialize   = string.unserialize
 
 local HttpServer    = import("network/http_server.lua")
 
@@ -61,6 +60,7 @@ end
 
 -- 执行节点
 function AccordMgr:on_node(url, body, params)
+    log_debug("[AccordMgr][on_node] params:{}, data:{}", params, body)
     local robot = self:load_robot(params)
     if robot then
         local node = robot:mount_node(body)
@@ -70,11 +70,10 @@ function AccordMgr:on_node(url, body, params)
 end
 
 -- 执行用例
-function AccordMgr:on_case(url, body, params, header)
-    local data = unserialize(body)
-    log_debug("[AccordMgr][on_case] params:{}, data:{}", params, data)
+function AccordMgr:on_case(url, body, params)
+    log_debug("[AccordMgr][on_case] params:{}, data:{}", params, body)
     local robot = self:load_robot(params, true)
-    local case = robot:create_case_by_data(data)
+    local case = robot:create_case_by_data(body)
     if case then
         robot:startup(case)
     end

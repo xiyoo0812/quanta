@@ -32,11 +32,11 @@
             "value": "open_id"
           },
           "session": {
-            "type": "const",
+            "type": "string",
             "value": "123456"
           },
           "platform": {
-            "type": "const",
+            "type": "number",
             "value": "1"
           },
           "device_id": {
@@ -116,7 +116,7 @@
             "value": "user_id"
           },
           "name": {
-            "type": "const",
+            "type": "string",
             "value": "test_001"
           }
         },

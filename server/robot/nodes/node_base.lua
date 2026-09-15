@@ -62,6 +62,9 @@ function NodeBase:read_input(input)
     if input.type == "attr" then
         return role[input.value]
     end
+    if input.type == "number" then
+        return tonumber(input.value)
+    end
     if input.type == "lua" then
         return self:call_script(input.value)
     end
