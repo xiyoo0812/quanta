@@ -99,6 +99,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 .node{position:absolute;min-width:155px;background:#2d2d30;border:1px solid #55555a;border-radius:6px;overflow:visible;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
 .node:hover{border-color:#6a6a6e}
 .node.selected{border-color:#007acc;box-shadow:0 0 0 1px #007acc,0 2px 10px rgba(0,0,0,.35)}
+/* 执行状态徽标 */
+.node.exec-running{border-color:#e3b341;box-shadow:0 0 0 1px #e3b341,0 2px 10px rgba(0,0,0,.35)}
+.node.exec-ok{border-color:#4caf50;box-shadow:0 0 0 1px #4caf50,0 2px 10px rgba(0,0,0,.35)}
+.node.exec-err{border-color:#e2574c;box-shadow:0 0 0 1px #e2574c,0 2px 10px rgba(0,0,0,.35)}
 .node-head{padding:6px 10px;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;cursor:move;white-space:nowrap;border-radius:5px 5px 0 0}
 .node-head .nicon{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .node-head .nid{margin-left:auto;background:rgba(255,255,255,.15);padding:0 6px;border-radius:8px;font-size:10px;font-weight:400}
@@ -468,7 +472,6 @@ function init() {
   };
 
   updateWorkDirLabel();
-  autoLoadProto();
   seedTestMessages();
 }
 
@@ -519,7 +522,9 @@ function renderNodes() {
     const id = parseInt(idStr);
     const def = NODE_TYPES[node.type];
     const el = document.createElement('div');
-    el.className = 'node' + (state.selected === id ? ' selected' : '');
+    let cls = 'node' + (state.selected === id ? ' selected' : '');
+    if (execNodeState[id]) cls += ' exec-' + execNodeState[id];   // 执行状态徽标
+    el.className = cls;
     el.style.left = node.x + 'px';
     el.style.top = node.y + 'px';
     el.dataset.id = id;
@@ -571,7 +576,7 @@ function renderNodes() {
     const execBtn = el.querySelector('.exec-btn');
     if (execBtn) {
       execBtn.onmousedown = e => e.stopPropagation();   // 阻止触发节点拖拽
-      execBtn.onclick = e => { e.stopPropagation(); showExecPanel('node'); };
+      execBtn.onclick = e => { e.stopPropagation(); showExecPanel('node', id); };
     }
     el.onmousedown = e => {
       if (e.target.closest('.port-dot')) return;
@@ -1381,33 +1386,38 @@ function updateTargetKey(id, i, val) {
 // ============================================================
 //  导入/导出
 // ============================================================
+// 导出单个节点配置（含连线目标）
+function exportNode(id) {
+  const node = state.nodes[id];
+  if (!node) return null;
+  const n = { type: node.type };
+  // 复制data中的字段
+  for (const [k, v] of Object.entries(node.data)) {
+    if (k === '_targetKeys') continue;
+    // 深拷贝
+    n[k] = JSON.parse(JSON.stringify(v));
+  }
+  // 设置连接
+  const conns = state.connections.filter(c => c.from === id);
+  for (const c of conns) {
+    if (c.port === 'next') n.next = c.to;
+    else if (c.port === 'success') { n.result = n.result || {}; n.result.success = c.to; }
+    else if (c.port === 'failed') { n.result = n.result || {}; n.result.failed = c.to; }
+    else if (c.port.startsWith('target_')) {
+      const idx = parseInt(c.port.split('_')[1]);
+      const key = node.data._targetKeys?.[idx] || String(idx + 1);
+      n.targets = n.targets || [];
+      n.targets.push([key, c.to]);
+    }
+  }
+  return n;
+}
+
 function buildExportData() {
   const result = { name: state.caseName || "case1", root: state.root };
   const nodes = {};
   for (const [idStr, node] of Object.entries(state.nodes)) {
-    const id = parseInt(idStr);
-    const n = { type: node.type };
-    // 复制data中的字段
-    for (const [k, v] of Object.entries(node.data)) {
-      if (k === '_targetKeys') continue;
-      // 深拷贝
-      n[k] = JSON.parse(JSON.stringify(v));
-    }
-    // 设置连接
-    const conns = state.connections.filter(c => c.from === id);
-    let hasResult = false;
-    for (const c of conns) {
-      if (c.port === 'next') n.next = c.to;
-      else if (c.port === 'success') { n.result = n.result || {}; n.result.success = c.to; hasResult = true; }
-      else if (c.port === 'failed') { n.result = n.result || {}; n.result.failed = c.to; hasResult = true; }
-      else if (c.port.startsWith('target_')) {
-        const idx = parseInt(c.port.split('_')[1]);
-        const key = node.data._targetKeys?.[idx] || String(idx + 1);
-        n.targets = n.targets || [];
-        n.targets.push([key, c.to]);
-      }
-    }
-    nodes[id] = n;
+    nodes[parseInt(idStr)] = exportNode(parseInt(idStr));
   }
   result.nodes = nodes;
   return result;
@@ -1431,20 +1441,8 @@ function downloadText(filename, text) {
   URL.revokeObjectURL(a.href);
 }
 
-// 保存文本：已有工作目录时静默写入（不弹对话框）；否则弹系统保存对话框；再不行直接下载
+// 保存文本：弹系统保存对话框选择位置；不支持时直接下载
 async function saveTextToFolder(suggestedName, text, mime) {
-  // 已有工作目录：直接写入
-  if (await ensureWorkDirWritable()) {
-    try {
-      const fh = await workDirHandle.getFileHandle(suggestedName, { create: true });
-      const w = await fh.createWritable();
-      await w.write(text);
-      await w.close();
-      toast(`已保存 ${suggestedName} 到工作目录`);
-      return;
-    } catch (e) { /* 写入异常 → 走弹窗流程 */ }
-  }
-
   if (window.showSaveFilePicker) {
     try {
       const ext = '.' + suggestedName.split('.').pop();
@@ -1467,7 +1465,7 @@ async function saveTextToFolder(suggestedName, text, mime) {
   toast(`已下载 ${suggestedName}`);
 }
 
-// 用用例名保存导出文件（可选择文件夹）
+// 导出文件：每次弹出保存对话框选择位置
 function downloadExport() {
   saveTextToFolder(`${safeFileName()}.lua`, $('modal-text').value, 'text/plain');
 }
@@ -1807,15 +1805,6 @@ function pickFileViaInput() {
   });
 }
 
-// 启动时尝试读取相邻的 proto/proto.json（本地 file:// 打开时静默失败，可用工具栏手动载入）
-async function autoLoadProto() {
-  try {
-    const res = await fetch('proto/proto.json', { cache: 'no-store' });
-    if (!res.ok) return;
-    loadProtoData(await res.json());
-    updatePropPanel();
-  } catch (e) { /* 忽略 */ }
-}
 
 // 选中协议：记录名称；REQ 依据协议 fields 自动生成输入参数
 function applyProtoSelection(nodeId, key, name, nodeType, fromProto) {
@@ -2129,9 +2118,13 @@ function seedTestMessages() {
 // ============================================================
 //  执行面板：拼接 http://地址:端口/url?参数 并发起请求
 // ============================================================
-const execOpts = { addr: '127.0.0.1', port: '10101', openid: '', srvAddr: '127.0.0.1', srvPort: '20013', params: [] };  // 记住上次配置
+const execOpts = { addr: '127.0.0.1', port: '10401', openid: '10001', srvAddr: '127.0.0.1', srvPort: '20013', params: [] };  // 记住上次配置
+let execMode = 'case';     // 'case' | 'node'
+let execNodeId = null;     // 节点模式下待执行的节点 id
 
-function showExecPanel(urlPath) {
+function showExecPanel(urlPath, nodeId) {
+  execMode = urlPath;
+  execNodeId = nodeId !== undefined ? nodeId : null;
   $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
     <div class="modal exec-modal" onclick="event.stopPropagation()">
       <div class="modal-head"><h3>执行（${urlPath === 'node' ? '运行节点' : '运行用例'}）</h3>
@@ -2221,7 +2214,7 @@ function buildExecUrl() {
   const openid = $('exec-openid').value.trim();
   const srvAddr = $('exec-srv-addr').value.trim();
   const srvPort = $('exec-srv-port').value.trim();
-  if (openid) query.push(`openid=${encodeURIComponent(openid)}`);
+  if (openid) query.push(`open_id=${encodeURIComponent(openid)}`);
   if (srvAddr) query.push(`addr=${encodeURIComponent(srvAddr)}`);
   if (srvPort) query.push(`port=${encodeURIComponent(srvPort)}`);
   return `http://${addr}:${port}/${urlPath}${query.length ? '?' + query.join('&') : ''}`;
@@ -2240,18 +2233,123 @@ async function doExecute() {
   execConfigChanged();
   execOpts.params = collectExecParams();
   appendLog(`执行 ${url}`);
+  // 组装请求体：case = 整个用例导出的 Lua 串；node = 单节点配置的 Lua 串
+  let body = null;
+  if (execMode === 'node') {
+    const conf = exportNode(execNodeId);
+    if (!conf) { uiAlert('节点不存在或已被删除'); return; }
+    body = jsonToLua(conf);
+  } else {
+    execNodeState = {};
+    refreshExecBadge();
+    body = jsonToLua(buildExportData());
+  }
   const wrap = $('exec-result-wrap'), box = $('exec-result');
   wrap.style.display = '';
   box.textContent = '执行中...';
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body });
     const text = await res.text();
     appendLog(`状态码 ${res.status}`);
     appendLog(text.length > 800 ? text.substring(0, 800) + ' ...' : text);
     box.textContent = `状态码 ${res.status}\n${text.length > 800 ? text.substring(0, 800) + ' ...' : text}`;
+    // 用例模式：提交成功后进入轮询，绘制执行状态
+    if (execMode !== 'node') {
+      let data = null;
+      try { data = JSON.parse(text); } catch (e) {}
+      if (data && data.code === 0) {
+        applyExecStatus(data);
+        startExecPolling();
+        closeModal();
+      }
+    }
   } catch (e) {
     appendLog(`请求失败：${e.message}`);
     box.textContent = `请求失败：${e.message}\n（可能是服务未启动或跨域限制，可点击上方链接直接打开）`;
+  }
+}
+
+// ============================================================
+//  执行状态轮询：每秒拉取 /status 并在画布上绘制节点状态
+// ============================================================
+let execPollTimer = null;
+let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'
+let lastExecLog = '';
+
+function startExecPolling() {
+  stopExecPolling();
+  appendLog('开始轮询执行状态...', false);
+  execPollTimer = setInterval(pollExecStatus, 1000);
+  pollExecStatus();
+}
+
+function stopExecPolling() {
+  if (execPollTimer) {
+    clearInterval(execPollTimer);
+    execPollTimer = null;
+  }
+}
+
+async function pollExecStatus() {
+  const addr = execOpts.addr || '127.0.0.1';
+  const port = execOpts.port || '10101';
+  const openId = execOpts.openid || '';
+  const url = `http://${addr}:${port}/status?open_id=${encodeURIComponent(openId)}`;
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    const data = await res.json();
+    if (data.code !== 0) {
+      appendLog(`状态轮询：${data.msg || 'robot not exist'}`, false);
+      stopExecPolling();
+      return;
+    }
+    applyExecStatus(data);
+    // 摘要（变化时才写日志）
+    const nodes = (data.msg && data.msg.case && data.msg.case.nodes) || {};
+    const counts = { running: 0, ok: 0, err: 0 };
+    for (const s of Object.values(nodes)) {
+      if (s.error) counts.err++;
+      else if (s.successed) counts.ok++;
+      else if (s.running) counts.running++;
+    }
+    const text = `执行状态：运行 ${counts.running} ｜ 成功 ${counts.ok} ｜ 失败 ${counts.err}`;
+    if (text !== lastExecLog) {
+      lastExecLog = text;
+      appendLog(text, false);
+    }
+    // 用例结束判定
+    const caseSt = (data.msg && data.msg.case) || {};
+    if (caseSt.successed === true) {
+      appendLog('用例执行完成', false);
+      stopExecPolling();
+    } else if (caseSt.successed === false) {
+      appendLog(`用例执行失败：${caseSt.error || '未知错误'}`, false);
+      stopExecPolling();
+    }
+  } catch (e) {
+    appendLog(`状态轮询失败：${e.message}`, false);
+    stopExecPolling();
+  }
+}
+
+// 状态应用到画布节点
+function applyExecStatus(data) {
+  const msg = data.msg || {};
+  const nodes = (msg.case && msg.case.nodes) || {};
+  execNodeState = {};
+  for (const [id, s] of Object.entries(nodes)) {
+    if (s.error) execNodeState[id] = 'err';
+    else if (s.successed) execNodeState[id] = 'ok';
+    else if (s.running) execNodeState[id] = 'running';
+  }
+  refreshExecBadge();
+}
+
+function refreshExecBadge() {
+  for (const el of canvas.querySelectorAll('.node')) {
+    el.classList.remove('exec-running', 'exec-ok', 'exec-err');
+    const s = execNodeState[el.dataset.id];
+    if (s) el.classList.add('exec-' + s);
   }
 }
 

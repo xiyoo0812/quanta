@@ -30,12 +30,22 @@ prop:reader("jcodec", nil)          --codec
 prop:reader("listener", nil)        --网络连接对象
 prop:reader("clients", {})          --clients
 prop:reader("handlers", {})         --handlers
+prop:reader("cors_headers", nil)    --跨域响应头
 
 function HttpServer:__init()
     self.jcodec = jsoncodec()
-    self.handlers = { GET = {}, POST = {}, PUT = {}, DELETE = {} }
+    self.handlers = { GET = {}, POST = {}, PUT = {}, DELETE = {}, OPTIONS = {} }
     --注册退出
     update_mgr:attach_quit(self)
+end
+
+-- 启用跨域支持：响应与预检请求自动附带 CORS 头
+function HttpServer:enable_cors()
+    self.cors_headers = {
+        ["Access-Control-Allow-Origin"] = "*",
+        ["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS",
+        ["Access-Control-Allow-Headers"] = "Content-Type",
+    }
 end
 
 function HttpServer:on_quit()
@@ -86,7 +96,11 @@ function HttpServer:on_socket_accept(socket, token)
 end
 
 function HttpServer:on_socket_recv(socket, method, url, params, headers, body)
-    --log_debug("[HttpServer][on_socket_recv] recv: {}, {}, {}, {}, {}!", method, url, params, headers, body)
+    --跨域预检请求：直接返回附带 CORS 头的空响应
+    if method == "OPTIONS" and self.cors_headers then
+        self:response(socket, 200, "ok")
+        return
+    end
     local handlers = self.handlers[method]
     if not handlers then
         self:response(socket, 404, "this http method hasn't suppert!")
@@ -157,8 +171,15 @@ function HttpServer:response(socket, status, response, headers)
     if not token or not response then
         return
     end
-    if not headers then
-        headers = { ["Content-Type"] = "application/json" }
+    headers = headers or {}
+    --合并跨域响应头
+    if self.cors_headers then
+        for key, value in pairs(self.cors_headers) do
+            headers[key] = value
+        end
+    end
+    if not headers["Content-Type"] then
+        headers["Content-Type"] = "application/json"
     end
     if type(response) == "string" then
         local html = response:find("<html")

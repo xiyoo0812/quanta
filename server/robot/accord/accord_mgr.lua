@@ -2,6 +2,7 @@
 import("robot/robot_mgr.lua")
 
 local log_debug     = logger.debug
+local unserialize   = string.unserialize
 
 local HttpServer    = import("network/http_server.lua")
 
@@ -15,11 +16,13 @@ function AccordMgr:__init()
     -- 创建HTTP服务器
     local server = HttpServer()
     server:listen(environ.addr("QUANTA_ACCORD_HTTP"))
+    --启用跨域支持（供编辑器跨域调用）
+    server:enable_cors()
     server:register_post("/case", "on_case", self)
     server:register_post("/node", "on_node", self)
     server:register_post("/stop", "on_stop", self)
-    server:register_post("/status", "on_status", self)
-    server:register_post("/message", "on_message", self)
+    server:register_get("/status", "on_status", self)
+    server:register_get("/message", "on_message", self)
     service.modify_host(server:get_port())
     self.http_server = server
 end
@@ -58,7 +61,7 @@ end
 
 -- 执行节点
 function AccordMgr:on_node(url, body, params)
-    local robot = self:load_robot(params, false)
+    local robot = self:load_robot(params)
     if robot then
         local node = robot:mount_node(body)
         return { code = node and 0 or -1, msg = node and "success" or "failed" }
@@ -67,12 +70,13 @@ function AccordMgr:on_node(url, body, params)
 end
 
 -- 执行用例
-function AccordMgr:on_case(url, body, params)
-    log_debug("[AccordMgr][on_case] params:{}", params)
+function AccordMgr:on_case(url, body, params, header)
+    local data = unserialize(body)
+    log_debug("[AccordMgr][on_case] params:{}, data:{}", params, data)
     local robot = self:load_robot(params, true)
-    local case = robot:create_case_by_data(body)
+    local case = robot:create_case_by_data(data)
     if case then
-        robot:run_case(case)
+        robot:startup(case)
     end
     return { code = 0, msg = "success" }
 end

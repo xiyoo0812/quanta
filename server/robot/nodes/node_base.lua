@@ -1,9 +1,9 @@
 --node_base.lua
 local tcopy         = table.copy
 local sformat       = string.format
+local log_err       = logger.err
 local log_warn      = logger.warn
 
-local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local NodeBase = class()
@@ -20,10 +20,6 @@ prop:reader("result", true)     --result
 function NodeBase:__init(case)
     self.case = case
     self.actor = case.actor
-end
-
-function NodeBase:watch(cmd_id)
-    event_mgr:notify_listener("on_watch_message", cmd_id)
 end
 
 function NodeBase:load(conf)
@@ -115,11 +111,13 @@ function NodeBase:exec_script(expr, res)
     local ok, func = pcall(load(expr))
     if not ok then
         log_warn("[NodeBase][exec_script] robot:{} load script {} failed: {}", role.open_id, expr, func)
+        self:failed(func)
         return
     end
     local ok2, value = pcall(func, role, role.variables, res)
     if not ok2 then
         log_warn("[NodeBase][exec_script] robot:{} exec script {} failed: {}", role.open_id, expr, value)
+        self:failed(value)
         return
     end
     return value
@@ -130,17 +128,31 @@ function NodeBase:sleep(ms)
     thread_mgr:sleep(ms)
 end
 
+function NodeBase:start()
+    local ok, res = pcall(self.on_start, self)
+    if not ok then
+        self:failed(res)
+    end
+end
+
+function NodeBase:stop()
+    local ok, res = pcall(self.on_stop, self)
+    if not ok then
+        self:failed(res)
+    end
+end
+
 --执行
 function NodeBase:update()
     if not self.running then
         self.running = true
-        self:on_start()
+        self:start()
         self:run_script(self.before)
     end
     if self:on_update() then
         self.successed = true
         self:run_script(self.after)
-        self:on_stop()
+        self:stop()
         self:go_next()
     end
 end
@@ -152,6 +164,7 @@ end
 function NodeBase:failed(error)
     self.error = error
     self.successed = false
+    log_err("[NodeBase][failed] robot:{} node:{} error: {}", self.actor.open_id, self.case.name, error)
     self.case:failed()
 end
 

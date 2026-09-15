@@ -20,6 +20,7 @@ local NodeSwitch = {
 local RobotCase = class()
 local prop = property(RobotCase)
 prop:reader("root", nil)        --root
+prop:reader("name", nil)        --name
 prop:reader("actor", nil)       --actor
 prop:reader("error", nil)       --error
 prop:reader("mount", nil)     --mount
@@ -44,6 +45,7 @@ function RobotCase:load_data(data)
     for id, conf in pairs(data.nodes) do
         self:create_node(id, conf)
     end
+    self.name = data.name
     self.root = data.root
     self.current = data.root
     return true

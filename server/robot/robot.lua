@@ -1,52 +1,60 @@
 -- robot.lua
-local json          = require("ljson")
-
-local jpretty       = json.pretty
 local log_err       = logger.err
 local log_debug     = logger.debug
 local qfailed       = quanta.failed
+local tinsert       = table.insert
 local sformat       = string.format
+local sname2sid     = service.name2sid
 local guid_string   = codec.guid_string
 
-local Queue         = import("container/queue.lua")
 local RobotCase     = import("robot/robot_case.lua")
 local TcpClient     = import("network/tcp_client.lua")
 
 local thread_mgr    = quanta.get("thread_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
+local RELAY_SELF    = luabus.relay_type.SELF
+local RELAY_SERVICE = luabus.relay_type.SERVICE
+
 local Robot = class()
 local prop = property(Robot)
 prop:reader("ip", nil)              --ip
 prop:reader("port", nil)            --port
 prop:reader("open_id", nil)         --open_id
-prop:reader("hertz", 0)             --hertz
 prop:reader("client", nil)          --client
 prop:reader("user_id", nil)         --user_id
 prop:reader("cur_case", nil)        --cur_case
 prop:reader("next_case", nil)       --next_case
-prop:reader("messages", nil)        --收到的消息回包
 prop:reader("player_id", nil)       --player_id
 prop:reader("device_id", nil)       --device_id
+prop:reader("relay_type", nil)      --relay_type
+prop:reader("hertz", 0)             --hertz
+prop:reader("target_id", 0)         --target_id
 prop:reader("running", false)       --running
+prop:reader("messages", {})         --messages
 prop:reader("variables", {})        --variables
 prop:reader("login_success", false)
-prop:reader("access_token", "123456")
 
 function Robot:__init(ip, port, open_id)
     self.ip = ip
     self.port = port
     self.open_id = open_id
+    self.relay_type = RELAY_SELF
     self.device_id = guid_string()
 end
 
-function Robot:connect(ip, port, block)
+function Robot:connect(ip, port)
     if self.client then
         self.client:close()
     end
     self.login_success = false
-    self.client = TcpClient(self, ip, port)
-    return self.client:connect(block)
+    self.client = TcpClient(ip, port)
+    return self.client:connect()
+end
+
+function Robot:change_service(service)
+    self.relay_type = RELAY_SERVICE
+    self.target_id = sname2sid(service)
 end
 
 --检查错误码
@@ -58,10 +66,6 @@ function Robot:check_callback(ok, res)
         return true
     end
     return false
-end
-
-function Robot:bind_message_queue()
-    self.messages = Queue()
 end
 
 function Robot:check_case(case)
@@ -97,10 +101,14 @@ end
 function Robot:load_case(file, hertz)
     log_debug("[Robot][load_case] robot (%s) ready action!", self.open_id)
     local case = self:create_case(file)
+    self:startup(case, hertz)
+end
+
+function Robot:startup(case, hertz)
     if case then
         self:run_case(case)
     end
-    self.hertz = hertz
+    self.hertz = hertz or 1000
     if not self.running then
         self.running = true
         thread_mgr:fork(function()
@@ -140,23 +148,11 @@ function Robot:on_update()
 end
 
 function Robot:push_message(cmd_id, msg)
-    if self.messages then
-        msg.req_cmd_id = cmd_id
-        msg.res_cmd_id = protobuf_mgr:callback_id(cmd_id)
-        self.messages:push(jpretty(msg))
-    end
-end
-
-function Robot:get_messages()
-    if self.messages then
-        return self.messages:pop()
-    end
+    tinsert(self.messages, {cmd_id = cmd_id, msg = msg })
 end
 
 function Robot:clear_messages()
-    if self.messages then
-        self.messages.clear()
-    end
+    self.messages = {}
 end
 
 function Robot:send_gm(gm)
@@ -170,7 +166,7 @@ function Robot:send(cmdid, data)
         if type(cmdid) == "string" then
             cmdid = protobuf_mgr:msg_id(cmdid)
         end
-        return self.client:send(cmdid, data)
+        return self.client:send(cmdid, data, self.relay_type, self.target_id)
     end
 end
 
@@ -179,7 +175,7 @@ function Robot:call(cmdid, data)
         if type(cmdid) == "string" then
             cmdid = protobuf_mgr:msg_id(cmdid)
         end
-        local ok, resp = self.client:call(cmdid, data)
+        local ok, resp = self.client:call(cmdid, data, self.relay_type, self.target_id)
         if cmdid ~= 1001 then
             if ok and resp then
                 self:push_message(cmdid, resp)

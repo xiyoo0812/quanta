@@ -19,7 +19,6 @@ function NodeReq:on_load(conf)
     self.cmd_id = conf.cmd_id
     self.inputs = conf.inputs
     self.outputs = conf.outputs
-    self:watch(self.cmd_id)
     return true
 end
 
