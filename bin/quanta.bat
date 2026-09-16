@@ -10,3 +10,4 @@ start "center"   quanta.exe config/center.conf   --index=1 --port=1
 start "online"   quanta.exe config/online.conf   --index=1 --port=1
 start "login"    quanta.exe config/login.conf    --index=1 --port=1
 start "lobby"    quanta.exe config/lobby.conf    --index=1 --port=1
+start "accord"   quanta.exe config/accord.conf   --index=1 --port=1

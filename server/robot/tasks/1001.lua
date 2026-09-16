@@ -9,7 +9,7 @@ return {
         [1] = {
             script="login_ai",
             count=1,
-            rate=3000,
+            hertz=3000,
             start_open_id=1000,
         },
     }

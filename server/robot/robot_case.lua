@@ -12,6 +12,8 @@ local NodeSwitch = {
     COND    = import("robot/nodes/node_cond.lua"),
     CASE    = import("robot/nodes/node_case.lua"),
     WAIT    = import("robot/nodes/node_wait.lua"),
+    HTTP    = import("robot/nodes/node_http.lua"),
+    RAND    = import("robot/nodes/node_rand.lua"),
     SCRIPT  = import("robot/nodes/node_script.lua"),
     SWITCH  = import("robot/nodes/node_switch.lua"),
 }
@@ -19,9 +21,12 @@ local NodeSwitch = {
 local RobotCase = class()
 local prop = property(RobotCase)
 prop:reader("root", nil)        --root
-prop:reader("rewind", nil)      --rewind
+prop:reader("name", nil)        --name
 prop:reader("actor", nil)       --actor
+prop:reader("error", nil)       --error
+prop:reader("mount", nil)       --mount
 prop:reader("current", nil)     --current
+prop:reader("successed", nil)   --successed
 prop:reader("childs", {})       --childs
 prop:accessor("parent", nil)    --parent
 
@@ -29,18 +34,43 @@ function RobotCase:__init(actor)
     self.actor = actor
 end
 
+function RobotCase:destroy()
+    for id, node in pairs(self.childs) do
+        node:destroy()
+    end
+end
+
 function RobotCase:load(file)
     local cconf = import(sformat("robot/cases/%s.lua", file))
     if not cconf then
         return false
     end
-    for id, conf in pairs(cconf.nodes) do
+    return self:load_data(cconf)
+end
+
+function RobotCase:load_data(data)
+    for id, conf in pairs(data.nodes) do
         self:create_node(id, conf)
     end
-    self.root = cconf.root
-    self.current = cconf.root
-    self.rewind = cconf.rewind or cconf.root
+    self.name = data.name
+    self.root = data.root
+    self.current = data.root
     return true
+end
+
+function RobotCase:mount_node(conf)
+    local Node = NodeSwitch[conf.type]
+    if not Node then
+        log_err("[RobotCase][mount_node] node {} not exist", conf)
+        return
+    end
+    local node = Node(self, -1)
+    if not node:load(conf) then
+        log_err("[RobotCase][mount_node] node {} load failed", conf)
+        return
+    end
+    self.mount = node
+    return node
 end
 
 --沉睡ms
@@ -50,12 +80,21 @@ function RobotCase:create_node(id, conf)
         log_err("[RobotCase][create_node] node {} not exist", conf)
         return
     end
-    local node = Node(self)
+    local node = Node(self, id)
     if not node:load(conf) then
         log_err("[RobotCase][create_node] node {} load failed", conf)
         return
     end
     self.childs[id] = node
+end
+
+-- 获取状态
+function RobotCase:get_status()
+    local res = { successed = self.successed, error = self.error, nodes = {} }
+    for id, node in pairs(self.childs) do
+        res.nodes[id] = node:get_status()
+    end
+    return res
 end
 
 function RobotCase:run_next(child)
@@ -69,7 +108,8 @@ end
 
 --目标完成
 function RobotCase:finish()
-    self.current = self.rewind
+    self.successed = true
+    self.current = self.root
     if self.parent then
         self.actor:run_case(self.parent)
         return
@@ -78,25 +118,37 @@ end
 
 --目标失败
 function RobotCase:failed(err)
-    self.current = self.rewind
+    self.error = err
+    self.successed = false
+    self.current = self.root
     if self.parent then
-        self.parent:failed()
+        self.parent:failed(err)
         return
     end
 end
 
 --更新
 function RobotCase:update()
-    if not self.current then
-        self:finish()
+    if self.successed == nil then
+        if not self.current then
+            self:finish()
+            return
+        end
+        local node = self.childs[self.current]
+        if not node then
+            self:finish()
+            return
+        end
+        node:update()
         return
     end
-    local node = self.childs[self.current]
-    if not node then
-        self:finish()
-        return
+     if self.mount then
+        if self.mount.successed then
+            self.mount = nil
+            return
+        end
+        self.mount:update()
     end
-    node:action()
 end
 
 return RobotCase

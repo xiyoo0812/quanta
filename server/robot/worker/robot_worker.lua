@@ -48,7 +48,7 @@ end
 function RobotWorker:startup_robot_task(start_open_id, num, ip, port, start_time, conf)
     log_debug("[RobotWorker][startup_robot_task] addr:{}:{} start_time:{}, num:{} conf:{}", ip, port, start_time, num, conf)
     --计算槽位，30ms一个槽位
-    local slot = mceil(conf.rate / SLOT_TIME)
+    local slot = mceil(conf.hertz / SLOT_TIME)
     --计算所有机器人对表时间
     local diff_time = start_time - quanta.now
     local period = 1000 * (qmax(diff_time, 1))
@@ -60,16 +60,12 @@ function RobotWorker:startup_robot_task(start_open_id, num, ip, port, start_time
         local slottime = (open_id_no % slot) * SLOT_TIME
         log_debug("[Robot][startup_robot_task] robot {} dalay {} action!", robot.open_id, slottime)
         timer_mgr:once(period + slottime * i, function()
-            robot:load_case(conf.script, conf.rate)
+            robot:load_case(conf.script, conf.hertz)
         end)
     end
-    --定时器启动
-    timer_mgr:loop(50, function()
-        robot_mgr:update()
-    end)
     --定时器汇报
     timer_mgr:loop(5000, function()
-        self:revicw_task()
+        self:review_task()
     end)
 end
 
@@ -164,7 +160,7 @@ function RobotWorker:on_error_message(cmd_id, open_id, res)
     end
 end
 
-function RobotWorker:revicw_task()
+function RobotWorker:review_task()
     http_client:call_post(ROBOT_ADDR, self.review)
     self.review.errors = nil
     self.review.samples = {}

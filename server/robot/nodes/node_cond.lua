@@ -1,4 +1,5 @@
 --node_cond.lua
+local log_debug = logger.debug
 local log_warn  = logger.warn
 
 local NodeBase  = import("robot/nodes/node_base.lua")
@@ -6,36 +7,36 @@ local NodeBase  = import("robot/nodes/node_base.lua")
 local NodeCond = class(NodeBase)
 local prop = property(NodeCond)
 prop:reader("cond", nil)        --cond
-prop:reader("success", nil)     --success
-prop:reader("failed", nil)      --failed
-prop:reader("result", false)    --result
+prop:reader("success_node", nil)     --success
+prop:reader("failed_node", nil)      --failed
 
 function NodeCond:__init(case)
 end
 
 function NodeCond:on_load(conf)
     self.cond = conf.cond
-    self.failed = conf.result.failed
-    self.success = conf.result.success
+    self.failed_node = conf.result.failed
+    self.success_node = conf.result.success
     return true
 end
 
 function NodeCond:go_next()
     if self.result then
-        self.case:run_next(self.success)
+        self.case:run_next(self.success_node)
     else
-        self.case:run_next(self.failed)
+        self.case:run_next(self.failed_node)
     end
 end
 
-function NodeCond:on_action()
+function NodeCond:on_start()
     local role = self.actor
-    local cond = self:call_script(self.cond)
+    local cond, err = self:call_script(self.cond)
     if cond == nil then
-        log_warn("[NodeCond][on_action] robot:{} cond {} id null", role.open_id, self.cond)
-        self:failed("cond error")
+        log_warn("[NodeCond][on_start] robot:{} cond {} call error: {}", role.open_id, self.cond, err)
+        self:failed("cond call error: " .. err)
         return false
     end
+    log_debug("[NodeCond][on_start] robot:{} cond {} result: {}", role.open_id, self.cond, cond)
     self.result = cond
     return true
 end

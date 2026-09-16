@@ -16,14 +16,13 @@ function NodeGM:on_load(conf)
     return true
 end
 
-function NodeGM:on_action()
+function NodeGM:on_start()
     for _, cmd in pairs(self.cmds or {}) do
-        self.actor:send_gm(cmd)
+        self.actor:send("NID_GM_COMMAND_REQ", { command = cmd })
     end
-    if self.time then
+    if self.time and self.time > 0 then
         self:sleep(self.time)
     end
-    return true
 end
 
 return NodeGM

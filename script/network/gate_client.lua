@@ -2,10 +2,8 @@
 
 local log_err       = logger.err
 local log_info      = logger.info
-local lnext_id      = luakit.next_id
 local sname2sid     = service.name2sid
 
-local FLAG_REQ      = luabus.proto_flag.REQ
 local SERVICE       = luabus.relay_type.SERVICE
 
 local event_mgr     = quanta.get("event_mgr")
@@ -57,12 +55,11 @@ function GateClient:on_socket_error(token, err)
 end
 
 function GateClient:send_lobby(cmd_id, data)
-    return self:output(cmd_id, data, SERVICE, 0, FLAG_REQ, sname2sid("lobby"))
+    return self:send(cmd_id, data, SERVICE, sname2sid("lobby"))
 end
 
 function GateClient:call_lobby(cmd_id, data)
-    local session_id = lnext_id() & 0xffff
-    return self:output(cmd_id, data, SERVICE, session_id, FLAG_REQ, sname2sid("lobby"))
+    return self:call(cmd_id, data, SERVICE, sname2sid("lobby"))
 end
 
 function GateClient:on_verify_code_ntf(session, message, body)

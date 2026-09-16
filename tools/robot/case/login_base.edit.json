@@ -1,0 +1,282 @@
+{
+  "editor": "quanta-robot-node-editor",
+  "version": 1,
+  "name": "login_base",
+  "root": 1,
+  "nextId": 22,
+  "nodes": {
+    "1": {
+      "type": "SOCK",
+      "x": 49,
+      "y": 53,
+      "data": {
+        "ip": {
+          "type": "attr",
+          "value": "ip"
+        },
+        "port": {
+          "type": "attr",
+          "value": "port"
+        },
+        "name": "连接Login"
+      }
+    },
+    "2": {
+      "type": "REQ",
+      "x": 272,
+      "y": 43,
+      "data": {
+        "cmd_id": "NID_LOGIN_ACCOUNT_LOGIN_REQ",
+        "inputs": {
+          "openid": {
+            "type": "attr",
+            "value": "open_id"
+          },
+          "session": {
+            "type": "string",
+            "value": "123456"
+          },
+          "platform": {
+            "type": "number",
+            "value": "1"
+          },
+          "device_id": {
+            "type": "attr",
+            "value": "device_id"
+          }
+        },
+        "outputs": {
+          "players": {
+            "type": "attr",
+            "value": "players"
+          },
+          "user_id": {
+            "type": "attr",
+            "value": "user_id"
+          }
+        },
+        "before": "robot.players = {}",
+        "name": "账号登陆"
+      }
+    },
+    "3": {
+      "type": "COND",
+      "x": 844,
+      "y": 60,
+      "data": {
+        "cond": "#robot.players > 0",
+        "name": "是否创建角色"
+      }
+    },
+    "4": {
+      "type": "REQ",
+      "x": 54,
+      "y": 180,
+      "data": {
+        "cmd_id": "NID_LOGIN_PLAYER_CHOOSE_REQ",
+        "inputs": {
+          "user_id": {
+            "type": "attr",
+            "value": "user_id"
+          },
+          "player_id": {
+            "type": "lua",
+            "value": "robot.players[1].player_id"
+          }
+        },
+        "outputs": {
+          "gate_port": {
+            "type": "attr",
+            "value": "gate_port"
+          },
+          "gate_ip": {
+            "type": "attr",
+            "value": "gate_ip"
+          },
+          "verify_code": {
+            "type": "attr",
+            "value": "verify_code"
+          },
+          "player_id": {
+            "type": "attr",
+            "value": "player_id"
+          },
+          "lobby_id": {
+            "type": "attr",
+            "value": "lobby_id"
+          }
+        },
+        "name": "选择角色"
+      }
+    },
+    "5": {
+      "type": "REQ",
+      "x": 803,
+      "y": 178,
+      "data": {
+        "cmd_id": "NID_LOGIN_PLAYER_CREATE_REQ",
+        "inputs": {
+          "gender": {
+            "type": "number",
+            "value": "1"
+          },
+          "user_id": {
+            "type": "attr",
+            "value": "user_id"
+          },
+          "name": {
+            "type": "string",
+            "value": "test_001"
+          }
+        },
+        "after": "table.insert(robot.players, res.player)",
+        "name": "创建角色"
+      }
+    },
+    "6": {
+      "type": "SOCK",
+      "x": 230,
+      "y": 364,
+      "data": {
+        "ip": {
+          "type": "attr",
+          "value": "gate_ip"
+        },
+        "port": {
+          "type": "attr",
+          "value": "gate_port"
+        },
+        "after": "",
+        "name": "连接Gateway"
+      }
+    },
+    "7": {
+      "type": "REQ",
+      "x": 892,
+      "y": 512,
+      "data": {
+        "cmd_id": "NID_LOGIN_PLAYER_LOGIN_REQ",
+        "inputs": {
+          "open_id": {
+            "type": "attr",
+            "value": "open_id"
+          },
+          "player_id": {
+            "type": "attr",
+            "value": "player_id"
+          }
+        },
+        "name": "角色登陆"
+      }
+    },
+    "8": {
+      "type": "NTF",
+      "x": 512,
+      "y": 512,
+      "data": {
+        "cmd_id": "NID_ENTITY_ENTER_SCENE_NTF",
+        "cond": "",
+        "outputs": {
+          "login_success": {
+            "type": "attr",
+            "value": "true"
+          }
+        },
+        "name": "进入场景"
+      }
+    },
+    "11": {
+      "type": "NTF",
+      "x": 913,
+      "y": 355,
+      "data": {
+        "cmd_id": "NID_GATE_VERIFY_CODE_NTF",
+        "cond": "",
+        "outputs": {
+          "verify_code": {
+            "type": "attr",
+            "value": "verify_code"
+          }
+        },
+        "name": "验证码"
+      }
+    },
+    "12": {
+      "type": "REQ",
+      "x": 465,
+      "y": 355,
+      "data": {
+        "cmd_id": "NID_GATE_BIND_CLIENT_REQ",
+        "inputs": {
+          "client_id": {
+            "type": "attr",
+            "value": "player_id"
+          },
+          "server_id": {
+            "type": "attr",
+            "value": "lobby_id"
+          },
+          "verify_code": {
+            "type": "attr",
+            "value": "verify_code"
+          }
+        },
+        "outputs": {},
+        "after": "robot:change_service(\"lobby\")",
+        "name": "绑定Gateway"
+      }
+    }
+  },
+  "connections": [
+    {
+      "from": 1,
+      "port": "next",
+      "to": 2
+    },
+    {
+      "from": 2,
+      "port": "next",
+      "to": 3
+    },
+    {
+      "from": 3,
+      "port": "success",
+      "to": 4
+    },
+    {
+      "from": 3,
+      "port": "failed",
+      "to": 5
+    },
+    {
+      "from": 4,
+      "port": "next",
+      "to": 6
+    },
+    {
+      "from": 5,
+      "port": "next",
+      "to": 4
+    },
+    {
+      "from": 7,
+      "port": "next",
+      "to": 8
+    },
+    {
+      "from": 6,
+      "port": "next",
+      "to": 12
+    },
+    {
+      "from": 12,
+      "port": "next",
+      "to": 11
+    },
+    {
+      "from": 11,
+      "port": "next",
+      "to": 7
+    }
+  ]
+}

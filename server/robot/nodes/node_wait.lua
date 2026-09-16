@@ -17,12 +17,15 @@ function NodeWait:on_load(conf)
     return true
 end
 
-function NodeWait:on_action()
+function NodeWait:on_start()
     self:sleep(self.time)
+end
+
+function NodeWait:on_update()
     if self.cond then
         local cond = self:call_script(self.cond)
         if cond == nil then
-            log_warn("[NodeWait][on_action] robot:{} cond {} id null", self.actor.open_id, self.cond)
+            log_warn("[NodeWait][on_update] robot:{} cond {} id null", self.actor.open_id, self.cond)
             self:failed("cond error")
             return false
         end

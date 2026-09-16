@@ -1,18 +1,19 @@
-
 return {
-    name = "login_ai",
+    name = "login_test",
     root = 1,
-    rewind = 1,
     nodes = {
         [1] = {
             type = "CASE",
             case = "login_base",
-            next = 2
+            in_args = {},
+            name = "账号登陆",
+            next = 2,
         },
         [2] = {
             type = "WAIT",
-            time = 500,
-            next = 3
+            time = 1000,
+            name = "WAIT1秒",
+            next = 3,
         },
         [3] = {
             type = "REQ",
@@ -20,6 +21,8 @@ return {
             inputs = {
                 player_id = { type = "attr", value = "player_id" },
             },
+            outputs = {},
+            name = "账号登出",
         },
-    }
+    },
 }
