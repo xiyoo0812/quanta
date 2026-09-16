@@ -1,4 +1,3 @@
-
 return {
     name = "login_base",
     root = 1,
@@ -7,84 +6,111 @@ return {
             type = "SOCK",
             ip = { type = "attr", value = "ip" },
             port = { type = "attr", value = "port" },
-            next = 2
+            name = "连接Login",
+            next = 2,
         },
         [2] = {
             type = "REQ",
             cmd_id = "NID_LOGIN_ACCOUNT_LOGIN_REQ",
             inputs = {
                 openid = { type = "attr", value = "open_id" },
-                session = { type = "attr", value = "access_token" },
+                session = { type = "string", value = "123456" },
+                platform = { type = "number", value = 1 },
                 device_id = { type = "attr", value = "device_id" },
-                platform = { type = "lua", value = "1" }
             },
             outputs = {
                 players = { type = "attr", value = "players" },
                 user_id = { type = "attr", value = "user_id" },
             },
-            next = 3
+            before = "robot.players = {}",
+            name = "账号登陆",
+            next = 3,
         },
         [3] = {
             type = "COND",
-            cond = "#robot.players>0",
-            result = { success = 4, failed = 5 }
+            cond = "#robot.players > 0",
+            name = "是否创建角色",
+            result = {
+                success = 4,
+                failed = 5,
+            },
         },
         [4] = {
             type = "REQ",
-            cmd_id = "NID_LOGIN_PALYER_CHOOSE_REQ",
+            cmd_id = "NID_LOGIN_PLAYER_CHOOSE_REQ",
             inputs = {
                 user_id = { type = "attr", value = "user_id" },
                 player_id = { type = "lua", value = "robot.players[1].player_id" },
             },
             outputs = {
-                lobby = { type = "attr", value = "lobby" },
-                gate_port = { type = "attr", value = "port" },
-                lobby_token = { type = "attr", value = "token" },
+                gate_port = { type = "attr", value = "gate_port" },
+                gate_ip = { type = "attr", value = "gate_ip" },
+                verify_code = { type = "attr", value = "verify_code" },
                 player_id = { type = "attr", value = "player_id" },
-                gate_ip = { type = "lua", value = "vars.addrs[1]" },
+                lobby_id = { type = "attr", value = "lobby_id" },
             },
-            next = 6
+            name = "选择角色",
+            next = 6,
         },
         [5] = {
             type = "REQ",
-            cmd_id = "NID_LOGIN_PALYER_CREATE_REQ",
+            cmd_id = "NID_LOGIN_PLAYER_CREATE_REQ",
             inputs = {
+                gender = { type = "number", value = 1 },
                 user_id = { type = "attr", value = "user_id" },
-                name = { type = "lua", value = "codec.guid_encode()" },
-                gender = { type = "lua", value = "math.random(1, 2)" },
-                custom = { type = "lua", value = "quanta.protobuf_mgr:encode_byname('ncmd_cs.playermodel', {model=101, color=0, head=0 })" },
+                name = { type = "string", value = "test_001" },
             },
-            script = [[table.insert(robot.players, vars.player)]],
-            next = 4
+            after = "table.insert(robot.players, res.player)",
+            name = "创建角色",
+            next = 4,
         },
         [6] = {
             type = "SOCK",
             ip = { type = "attr", value = "gate_ip" },
             port = { type = "attr", value = "gate_port" },
-            next = 7
+            after = "",
+            name = "连接Gateway",
+            next = 12,
         },
         [7] = {
             type = "REQ",
-            cmd_id = "NID_LOGIN_PALYER_LOGIN_REQ",
+            cmd_id = "NID_LOGIN_PLAYER_LOGIN_REQ",
             inputs = {
-                lobby = { type = "attr", value = "lobby" },
-                token = { type = "attr", value = "lobby_token" },
-                user_id = { type = "attr", value = "user_id" },
                 open_id = { type = "attr", value = "open_id" },
                 player_id = { type = "attr", value = "player_id" },
             },
-            outputs = {
-                lobby_token = { type = "attr", value = "token" },
-            },
-            next = 8
+            name = "角色登陆",
+            next = 8,
         },
         [8] = {
             type = "NTF",
             cmd_id = "NID_ENTITY_ENTER_SCENE_NTF",
-            cond = "res.id==robot.player_id",
             outputs = {
-                login_success = { type = "lua", value = "true" },
+                login_success = { type = "attr", value = "true" },
             },
+            name = "进入场景",
         },
-    }
+        [11] = {
+            type = "NTF",
+            cmd_id = "NID_GATE_VERIFY_CODE_NTF",
+            outputs = {
+                verify_code = { type = "attr", value = "verify_code" },
+            },
+            name = "验证码",
+            next = 7,
+        },
+        [12] = {
+            type = "REQ",
+            cmd_id = "NID_GATE_BIND_CLIENT_REQ",
+            inputs = {
+                client_id = { type = "attr", value = "player_id" },
+                server_id = { type = "attr", value = "lobby_id" },
+                verify_code = { type = "attr", value = "verify_code" },
+            },
+            outputs = {},
+            after = "robot:change_service(\"lobby\")",
+            name = "绑定Gateway",
+            next = 11,
+        },
+    },
 }

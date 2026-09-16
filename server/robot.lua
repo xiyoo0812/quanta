@@ -3,5 +3,5 @@ import("kernel.lua")
 
 quanta.startup(function()
     --初始化robot
-    import("robot/worker/robot_agent.lua")
+    import("robot/worker/robot_task.lua")
 end)

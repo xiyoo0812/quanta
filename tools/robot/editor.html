@@ -1,0 +1,2609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Robot 节点编辑器</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#1e1e1e;color:#ccc}
+
+/* ===== 顶栏 ===== */
+#toolbar{height:48px;background:#252526;display:flex;align-items:center;padding:0 12px;gap:6px;border-bottom:1px solid #3e3e42;flex-shrink:0}
+#toolbar button{background:#0e639c;color:#fff;border:none;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap}
+#toolbar button:hover{background:#1177bb}
+#toolbar button.gray{background:#3e3e42;color:#ccc}
+#toolbar button.gray:hover{background:#4e4e57}
+#toolbar .sep{width:1px;height:24px;background:#464647;margin:0 4px}
+#toolbar label{color:#999;font-size:12px}
+#toolbar input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 8px;font-size:12px;font-family:inherit}
+#toolbar input[type=text]{width:160px}
+
+/* ===== 主体 ===== */
+#main{flex:1;display:flex;overflow:hidden;min-height:0}
+/* 中部编辑区：画布 + 日志纵向排列 */
+#center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ===== 日志面板 ===== */
+#log-panel{display:none;flex-direction:column;height:200px;border-top:1px solid #3e3e42;background:#1b1b1c;flex-shrink:0}
+#log-panel.show{display:flex}
+#log-resize{height:5px;cursor:ns-resize;background:#2d2d30;flex-shrink:0;transition:background .1s}
+#log-resize:hover,#log-resize.dragging{background:#007acc}
+#log-header{display:flex;justify-content:space-between;align-items:center;padding:2px 10px;background:#252526;border-bottom:1px solid #2a2a2c;flex-shrink:0}
+.log-tabs{display:flex;gap:2px}
+.log-tab{background:none;border:none;color:#999;font-size:11px;padding:2px 10px;cursor:pointer;border-radius:3px}
+.log-tab:hover{color:#ccc}
+.log-tab.active{background:#0e639c;color:#fff}
+#log-header .log-clear{background:none;border:none;color:#999;cursor:pointer;font-size:11px}
+#log-header .log-clear:hover{color:#fff}
+#log-body{flex:1;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.6;padding:4px 10px;color:#ccc;white-space:pre-wrap;word-break:break-all}
+/* 消息 Tab：左列表右详情 */
+#tab-msg{display:none;flex-direction:column;flex:1;overflow:hidden}
+#msg-body-row{display:flex;flex:1;overflow:hidden;min-height:0}
+#msg-filter-combo{position:relative;padding:4px 8px;border-bottom:1px solid #2a2a2c;flex-shrink:0}
+.mf-row{display:flex;gap:6px;align-items:center}
+.mf-row .mf-input{flex:1;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit}
+.mf-row .mf-input:focus{outline:none;border-color:#007acc}
+.mf-count{color:#888;font-size:11px;flex-shrink:0;white-space:nowrap}
+#msg-filter-dd{display:none;position:fixed;z-index:1500;max-height:240px;overflow-y:auto;background:#1e1e1e;border:1px solid #007acc;border-radius:3px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+#msg-filter-dd.open{display:block}
+.mf-item{display:flex;align-items:center;gap:6px;padding:3px 8px;cursor:pointer;font-size:11px;color:#ccc}
+.mf-item:hover{background:#0e639c;color:#fff}
+.mf-item input{flex-shrink:0;margin:0}
+.mf-item .mf-id{color:#666;margin-left:auto}
+.mf-item:hover .mf-id{color:#aad}
+#msg-list{width:345px;overflow-y:auto;border-right:1px solid #333;flex-shrink:0}
+.msg-item{display:flex;justify-content:space-between;gap:6px;padding:4px 10px;cursor:pointer;font-size:11px;border-left:2px solid transparent}
+.msg-item:hover{background:#252526}
+.msg-item.selected{background:#2d2d30;border-left-color:#007acc}
+.msg-item .msg-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.msg-item .msg-id{flex-shrink:0}
+.msg-req{color:#569cd6}
+.msg-res{color:#4ec9b0}
+.msg-ntf{color:#f0a020}
+#msg-detail{flex:1;overflow:auto;padding:6px 10px}
+#msg-detail-head{color:#888;font-size:11px;padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid #2a2a2c}
+#msg-detail pre{margin:0;font-family:'Consolas','Courier New',monospace;font-size:11px;color:#ccc;white-space:pre-wrap;word-break:break-all}
+
+/* 左侧节点面板 */
+#palette{width:165px;background:#252526;border-right:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:6px}
+#palette h3{color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin:8px 4px 4px}
+.palette-item{display:flex;align-items:center;gap:8px;padding:7px 8px;margin:2px 0;border-radius:4px;cursor:grab;border:1px solid transparent;transition:background .12s}
+.palette-item:hover{background:#2d2d30;border-color:#464647}
+.palette-item:active{cursor:grabbing}
+.palette-item .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(255,255,255,.2)}
+.palette-item span{color:#ccc;font-size:12px}
+
+/* 画布 */
+#canvas-wrap{flex:1;position:relative;overflow:auto;background:#1e1e1e;min-height:0}
+/* 全局统一细灰滚动条（所有下拉框/面板自动继承；画布在下方单独覆盖为悬停显示） */
+*::-webkit-scrollbar{width:8px;height:8px}
+*::-webkit-scrollbar-thumb{background:#4a4a4e;border-radius:4px}
+*::-webkit-scrollbar-thumb:hover{background:#5a5a5e}
+*::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}
+
+/* 画布滚动条：平时隐藏，悬停画布时显示 */
+#canvas-wrap{scrollbar-width:thin;scrollbar-color:transparent transparent}
+#canvas-wrap:hover{scrollbar-color:#4a4a4e transparent}
+#canvas-wrap::-webkit-scrollbar{width:8px;height:8px}
+#canvas-wrap::-webkit-scrollbar-thumb{background:transparent;border-radius:4px}
+#canvas-wrap:hover::-webkit-scrollbar-thumb{background:#4a4a4e}
+#canvas-wrap::-webkit-scrollbar-thumb:hover{background:#5a5a5e}
+#canvas-wrap::-webkit-scrollbar-corner{background:transparent}
+#canvas-wrap::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,#2a2a2c 1px,transparent 1px);background-size:18px 18px;width:100%;height:100%;pointer-events:none}
+#canvas{position:relative;width:4000px;height:3000px}
+#svg-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#svg-layer path{pointer-events:stroke;cursor:pointer}
+
+/* 节点 */
+.node{position:absolute;min-width:155px;background:#2d2d30;border:1px solid #55555a;border-radius:6px;overflow:visible;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
+.node:hover{border-color:#6a6a6e}
+.node.selected{border-color:#007acc;box-shadow:0 0 0 1px #007acc,0 2px 10px rgba(0,0,0,.35)}
+/* 执行状态徽标 */
+.node.exec-running{border-color:#e3b341;box-shadow:0 0 0 1px #e3b341,0 2px 10px rgba(0,0,0,.35)}
+.node.exec-ok{border-color:#4caf50;box-shadow:0 0 0 1px #4caf50,0 2px 10px rgba(0,0,0,.35)}
+.node.exec-err{border-color:#e2574c;box-shadow:0 0 0 1px #e2574c,0 2px 10px rgba(0,0,0,.35)}
+.exec-badge{margin-left:4px;padding:0 6px;border-radius:8px;font-size:10px;line-height:14px;flex-shrink:0;color:#fff}
+.exec-badge-running{background:#b8860b}
+.exec-badge-ok{background:#3d9142}
+.exec-badge-err{background:#c74a42}
+.node-head{padding:6px 10px;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;cursor:move;white-space:nowrap;border-radius:5px 5px 0 0}
+.node-head .nicon{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.node-head .nid{margin-left:auto;background:rgba(255,255,255,.15);padding:0 6px;border-radius:8px;font-size:10px;font-weight:400}
+.node-head .root-badge{background:#007acc;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600}
+.node-body{padding:4px 0 6px}
+.node-field{padding:2px 14px 2px 10px;color:#888;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+.node-field .k{color:#9cdcfe}
+.node-field .v{color:#ce9178}
+.node-field .empty{color:#555;font-style:italic}
+
+/* 端口圆点（绘制在节点上，位置随连线路由同步） */
+.port-dot{position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid #1e1e1e;z-index:6}
+.port-dot.out{background:#f0a020;cursor:crosshair}
+.port-dot.out:hover{transform:scale(1.35)}
+.port-dot.out.dragging{box-shadow:0 0 0 2px rgba(240,160,32,.45)}
+.port-dot.in{background:#4ec9b0;pointer-events:none}
+.port-dot-label{position:absolute;font-size:9px;color:#ccc;background:rgba(37,37,38,.92);padding:0 3px;border-radius:2px;white-space:nowrap;pointer-events:none;z-index:6;line-height:14px}
+body.connecting .node{border-color:#2a6f97}
+
+/* 用例选择列表（打开用例） */
+.case-list{max-height:400px;overflow-y:auto}
+.case-item{padding:8px 10px;border:1px solid #3e3e42;border-radius:4px;margin-bottom:4px;cursor:pointer;transition:background .12s,border-color .12s}
+.case-item:hover{background:#2d2d30;border-color:#007acc}
+.case-item .case-name{color:#ccc;font-size:13px;display:block}
+.case-item .case-path{color:#666;font-size:10px;display:block;margin-top:2px}
+.workdir-label{color:#888;font-size:11px;margin-left:2px;white-space:nowrap}
+
+/* 节点执行按钮 */
+.exec-btn{background:rgba(255,255,255,.25);color:#fff;border-radius:3px;padding:0 5px;font-size:10px;cursor:pointer;margin-left:2px;line-height:16px}
+.exec-btn:hover{background:#4caf50}
+
+/* 执行面板 */
+.exec-row{display:flex;gap:4px;margin-bottom:4px;min-width:0}
+.exec-row input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit;min-width:0}
+.exec-row .er-key{flex:0 0 35%}
+.exec-row .er-val{flex:1}
+.exec-row .del-btn{width:22px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
+.exec-row .del-btn:hover{background:#a1260d;color:#fff}
+.exec-preview{background:#1e1e1e;border:1px solid #464647;border-radius:3px;padding:6px 8px;font-family:'Consolas','Courier New',monospace;font-size:11px;word-break:break-all}
+.exec-preview a{color:#4ec9b0;text-decoration:none}
+.exec-preview a:hover{text-decoration:underline;color:#5fd6c1}
+.exec-result{background:#1e1e1e;border:1px solid #464647;border-radius:3px;padding:6px 8px;font-family:'Consolas','Courier New',monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:160px;overflow-y:auto;color:#ccc}
+
+/* 协议下拉筛选 */
+:is(#props,.modal) .combo{position:relative}
+:is(#props,.modal) .combo .combo-input{width:100%}
+:is(#props,.modal) .combo-list{position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;background:#1e1e1e;border:1px solid #007acc;border-radius:3px;z-index:50;margin-top:1px;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+:is(#props,.modal) .combo-item{display:flex;justify-content:space-between;gap:6px;padding:4px 8px;cursor:pointer;font-size:11px}
+:is(#props,.modal) .combo-item:hover{background:#0e639c}
+:is(#props,.modal) .combo-item .combo-name{color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(#props,.modal) .combo-item:hover .combo-name{color:#fff}
+:is(#props,.modal) .combo-item .combo-id{color:#666;flex-shrink:0}
+:is(#props,.modal) .combo-item:hover .combo-id{color:#aad}
+.combo-empty{padding:6px 8px;color:#666;font-size:11px}
+/* 弹窗内下拉列表内嵌文档流，不遮挡、不被裁切 */
+.modal .combo-list{position:static;max-height:180px;margin-top:4px}
+
+/* 字段只读展示 + 编辑按钮 */
+#props .field-view{margin-bottom:12px;border:1px solid #3e3e42;border-radius:4px;background:#1b1b1c;overflow:hidden}
+#props .fv-head{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #2a2a2c}
+#props .fv-head label{color:#9cdcfe;font-size:11px;font-weight:600;margin:0}
+#props .fv-edit{background:#0e639c;color:#fff;border:none;border-radius:3px;padding:2px 12px;cursor:pointer;font-size:11px}
+#props .fv-edit:hover{background:#1177bb}
+#props .fv-body{padding:6px 8px;color:#ccc;font-size:11px;line-height:1.6;word-break:break-all;min-height:14px}
+#props .fv-body.fv-empty{color:#555;font-style:italic}
+#props .fv-body.fv-code{font-family:'Consolas','Courier New',monospace;white-space:pre-wrap;max-height:140px;overflow-y:auto}
+#props .fv-kvrow{display:flex;gap:8px;align-items:baseline}
+#props .fv-kvrow .fv-k{color:#9cdcfe;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;max-width:40%}
+#props .fv-kvrow .fv-t{color:#6a9955;flex-shrink:0}
+#props .fv-kvrow .fv-v{color:#ce9178;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+#props .fv-kvrow .del-btn{width:22px;height:20px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1;align-self:center}
+#props .fv-kvrow .del-btn:hover{background:#a1260d;color:#fff}
+
+/* 连线 */
+.conn-path{fill:none;stroke:#4ec9b0;stroke-width:2;transition:stroke .1s}
+.conn-path.selected{stroke:#007acc;stroke-width:3}
+.conn-temp{fill:none;stroke:#007acc;stroke-width:2;stroke-dasharray:5;pointer-events:none}
+
+/* 右侧属性面板 */
+#props{width:310px;background:#252526;border-left:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:10px}
+#props h2{color:#ccc;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+#props h2 .dot{width:10px;height:10px;border-radius:50%}
+:is(#props,.modal) .field{margin-bottom:12px}
+:is(#props,.modal) .field>label{display:block;color:#9cdcfe;font-size:11px;margin-bottom:3px;font-weight:600}
+:is(#props,.modal) .field input[type=text],:is(#props,.modal) .field input[type=number],:is(#props,.modal) .field textarea,:is(#props,.modal) .field select{
+  width:100%;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit}
+:is(#props,.modal) .field textarea{min-height:55px;height:auto;resize:vertical;font-family:'Consolas','Courier New',monospace;font-size:11px}
+:is(#props,.modal) .field textarea.code-area{min-height:220px}
+:is(#props,.modal) .field input:focus,:is(#props,.modal) .field textarea:focus,:is(#props,.modal) .field select:focus{outline:none;border-color:#007acc}
+:is(#props,.modal) .io-row{display:flex;gap:3px;margin-bottom:3px}
+:is(#props,.modal) .io-row select{width:62px;flex-shrink:0}
+:is(#props,.modal) .io-row input{flex:1;min-width:0}
+/* 参数卡片：上行 名称+类型+删除，下行 取值 */
+:is(#props,.modal) .kv2{border:1px solid #3e3e42;border-radius:3px;padding:4px;margin-bottom:4px;background:#1b1b1c}
+:is(#props,.modal) .kv2-row1{display:flex;gap:3px;margin-bottom:3px}
+:is(#props,.modal) .kv2-row1 .kv-key{flex:1;min-width:0}
+:is(#props,.modal) .kv2-row1 select{width:66px;flex-shrink:0}
+:is(#props,.modal) .kv2-tag{color:#9cdcfe;font-size:11px;font-weight:600;align-self:center;padding:0 2px;flex-shrink:0}
+:is(#props,.modal) .kv2 .kv-val{width:100%;min-height:46px;height:auto;max-height:150px;overflow-y:auto;resize:vertical;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.5}
+:is(#props,.modal) .kv2 .del-btn{width:22px;height:24px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
+:is(#props,.modal) .kv2 .del-btn:hover{background:#a1260d;color:#fff}
+:is(#props,.modal) .kv-empty{color:#555;font-size:11px;margin:2px 0 4px;font-style:italic}
+/* Lua 代码上下文提示 */
+.lua-hint{font-family:'Consolas','Courier New',monospace;font-size:10px;color:#6a9955;background:#141414;border:1px solid #2a2a2c;border-left:2px solid #6a9955;border-radius:3px;padding:3px 6px;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(#props,.modal) .add-btn{background:#37373d;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;margin-top:2px}
+:is(#props,.modal) .add-btn:hover{background:#4e4e57}
+:is(#props,.modal) .target-row{display:flex;gap:4px;margin-bottom:4px;align-items:center;font-size:11px;color:#888;min-width:0}
+:is(#props,.modal) .target-row input{width:50px;flex-shrink:0;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:3px 5px;font-size:11px}
+:is(#props,.modal) .target-row .target-to{color:#4ec9b0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+#props .empty-prop{color:#666;text-align:center;padding:60px 20px;line-height:1.8}
+#props .btn-row{display:flex;gap:6px;margin-top:8px}
+#props .btn-row button{flex:1;padding:5px;border-radius:3px;border:1px solid #464647;background:#3e3e42;color:#ccc;cursor:pointer;font-size:11px}
+#props .btn-row button:hover{background:#4e4e57}
+#props .btn-row button.danger:hover{background:#a1260d;color:#fff}
+
+/* 模态框 */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal{background:#252526;border:1px solid #464647;border-radius:8px;width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.modal.field-modal{width:760px;max-width:94vw;height:min(44vh,400px);max-height:60vh}
+.modal-head{padding:12px 16px;border-bottom:1px solid #3e3e42;display:flex;justify-content:space-between;align-items:center}
+.modal-head h3{color:#ccc;font-size:14px}
+.modal-head .close{background:none;border:none;color:#999;cursor:pointer;font-size:18px}
+.modal-body{padding:12px 16px;overflow-y:auto;overflow-x:hidden;flex:1}
+.modal-body textarea{width:100%;height:340px;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:4px;padding:8px;font-family:'Consolas','Courier New',monospace;font-size:12px;resize:vertical}
+.modal-foot{padding:10px 16px;border-top:1px solid #3e3e42;display:flex;justify-content:flex-end;gap:8px}
+.modal-foot button{padding:6px 16px;border-radius:3px;border:none;cursor:pointer;font-size:12px}
+.modal-foot .primary{background:#0e639c;color:#fff}
+.modal-foot .primary:hover{background:#1177bb}
+.modal-foot .secondary{background:#3e3e42;color:#ccc;border:1px solid #555}
+.modal-foot .secondary:hover{background:#4e4e57}
+
+/* 提示 */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0e639c;color:#fff;padding:8px 20px;border-radius:4px;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div id="toolbar">
+  <label>用例名称</label>
+  <input type="text" id="case-name" value="case1" oninput="state.caseName=this.value">
+  <div class="sep"></div>
+  <button class="gray" onclick="openCaseFile()">打开</button>
+  <button class="gray" onclick="saveEditorFile()">保存</button>
+  <button class="gray" onclick="clearAll()">清空</button>
+  <button class="gray" onclick="toggleLogPanel()">日志</button>
+  <div class="sep"></div>
+  <button class="gray" onclick="pickProtoFile()">载入协议</button>
+  <button class="gray" onclick="pickWorkDir()">工作目录</button>
+  <span id="workdir-label" class="workdir-label">未设置</span>
+  <div class="sep"></div>
+  <button onclick="showExecPanel('case')">执行</button>
+  <button class="gray" id="exec-stop" onclick="stopExecute()" style="display:none">停止</button>
+  <button onclick="exportModal()">导出</button>
+</div>
+
+<!-- 主体 -->
+<div id="main">
+  <!-- 左侧节点面板 -->
+  <div id="palette">
+    <h3>节点类型</h3>
+    <div id="palette-list"></div>
+  </div>
+
+  <!-- 中部编辑区：画布 + 日志 -->
+  <div id="center">
+    <!-- 画布 -->
+    <div id="canvas-wrap">
+      <div id="canvas">
+        <svg id="svg-layer"></svg>
+      </div>
+    </div>
+
+    <!-- 日志面板 -->
+    <div id="log-panel">
+      <div id="log-resize" title="拖拽调整高度"></div>
+      <div id="log-header">
+        <div class="log-tabs">
+          <button class="log-tab active" id="tab-btn-log" onclick="switchLogTab('log')">日志</button>
+          <button class="log-tab" id="tab-btn-msg" onclick="switchLogTab('msg')">消息</button>
+        </div>
+        <button class="log-clear" onclick="clearActiveTab()">清空</button>
+      </div>
+      <div id="log-body"></div>
+      <div id="tab-msg" style="display:none">
+        <div id="msg-filter-combo">
+          <div class="mf-row">
+            <input type="text" id="mf-input" class="mf-input" placeholder="协议过滤（输入可筛选）" onfocus="msgFilterOpen()" oninput="msgFilterOpen()">
+            <span class="mf-count" id="mf-count"></span>
+          </div>
+        </div>
+        <div id="msg-body-row">
+          <div id="msg-list"></div>
+          <div id="msg-detail"><div id="msg-detail-head"></div><pre id="msg-detail-pre">未选择消息</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右侧属性面板 -->
+  <div id="props">
+    <div class="empty-prop" id="prop-empty">
+      点击节点编辑属性<br>右键节点可设为根节点
+    </div>
+    <div id="prop-content" style="display:none"></div>
+  </div>
+</div>
+
+<!-- 协议过滤下拉（挂载在 body 顶层，避免被父级裁切/遮挡） -->
+<div id="msg-filter-dd"><div id="msg-filter-list"></div></div>
+
+<!-- 模态框容器 -->
+<div id="modal-container"></div>
+<!-- 提示 -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+//  节点类型定义
+// ============================================================
+const NODE_TYPES = {
+  REQ: {
+    label: "REQ节点", color: "#2196f3", exec: true,
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmd_id",  label:"协议",     render:"proto-select"},
+      {key:"inputs",  label:"输入参数", render:"kv"},
+      {key:"outputs", label:"输出参数", render:"kv"},
+    ]
+  },
+  NTF: {
+    label: "NTF节点", color: "#9c27b0",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmd_id",  label:"协议",       render:"proto-select"},
+      {key:"cond",    label:"条件(Lua)",  render:"textarea"},
+      {key:"outputs", label:"输出参数",   render:"kv"},
+    ]
+  },
+  SOCK: {
+    label: "SOCK节点", color: "#4caf50",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"ip",   label:"IP地址",  render:"input"},
+      {key:"port", label:"端口",    render:"input"},
+    ]
+  },
+  HTTP: {
+    label: "HTTP节点", color: "#7e57c2", exec: true,
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"url",     label:"请求地址",     render:"text"},
+      {key:"method",  label:"请求方法",     render:"method-select"},
+      {key:"timeout", label:"超时(ms)",     render:"number", def:5000},
+      {key:"headers", label:"请求头",       render:"kv-raw"},
+      {key:"inputs",  label:"请求参数",     render:"kv"},
+      {key:"outputs", label:"响应输出映射", render:"kv"},
+    ]
+  },
+  WAIT: {
+    label: "WAIT节点", color: "#607d8b",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"time", label:"等待(ms)",   render:"number"},
+      {key:"cond", label:"条件(Lua)",  render:"textarea"},
+    ]
+  },
+  COND: {
+    label: "COND节点", color: "#ff9800",
+    outputs: [{id:"success",label:"成功"},{id:"failed",label:"失败"}],
+    fields: [
+      {key:"cond", label:"条件表达式(Lua)", render:"textarea"},
+    ]
+  },
+  SWITCH: {
+    label: "SWITCH节点", color: "#795548",
+    outputs: "dynamic",
+    fields: [
+      {key:"inputs", label:"输入参数",   render:"kv"},
+    ]
+  },
+  RAND: {
+    label: "RAND节点", color: "#3f51b5",
+    outputs: "dynamic",
+    fields: [],
+  },
+  SCRIPT: {
+    label: "SCRIPT节点", color: "#e91e63", exec: true,
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"script",  label:"Lua脚本",   render:"textarea"},
+      {key:"outputs", label:"输出参数",  render:"kv"},
+    ]
+  },
+  CASE: {
+    label: "CASE节点", color: "#00bcd4",
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"case",    label:"用例名称", render:"case-select"},
+      {key:"in_args", label:"输入参数", render:"kv-raw"},
+    ]
+  },
+  GM: {
+    label: "GM节点", color: "#ff5722", exec: true,
+    outputs: [{id:"next",label:"Next"}],
+    fields: [
+      {key:"cmds", label:"命令列表", render:"list"},
+      {key:"time", label:"延迟(ms)", render:"number"},
+    ]
+  },
+};
+
+const TYPE_OPTIONS = ["attr","var","lua","string","number"];
+// 原地编辑的渲染类型（直接显示在属性面板中，不走编辑弹窗）
+const IN_PLACE_RENDERS = ['proto-select', 'number', 'case-select', 'method-select', 'text', 'input'];
+
+// ============================================================
+//  状态管理
+// ============================================================
+let state = {
+  caseName: "case1",
+  nodes: {},          // {id: {type, x, y, data:{...}}}
+  connections: [],    // [{from, port, to}]
+  selected: null,     // 选中的节点id
+  selectedConn: null, // 选中的连线index
+  root: null,
+  nextId: 1,
+};
+
+let drag = null;    // 节点拖拽 {id, offsetX, offsetY}
+let connDrag = null; // 连线拖拽 {fromId, port, x, y}
+
+const $ = id => document.getElementById(id);
+const canvas = $('canvas');
+const svg = $('svg-layer');
+const canvasWrap = $('canvas-wrap');
+
+// ============================================================
+//  初始化
+// ============================================================
+function init() {
+  // 渲染节点面板
+  const palList = $('palette-list');
+  for (const [type, def] of Object.entries(NODE_TYPES)) {
+    const el = document.createElement('div');
+    el.className = 'palette-item';
+    el.innerHTML = `<div class="dot" style="background:${def.color}"></div><span>${def.label}</span>`;
+    el.onmousedown = e => { e.preventDefault(); createNode(type, e); };
+    palList.appendChild(el);
+  }
+
+  // 画布点击空白处取消选中
+  canvas.onmousedown = e => {
+    if (e.target === canvas || e.target === canvasWrap || e.target === svg) {
+      selectNode(null);
+      state.selectedConn = null;
+      renderConnections();
+    }
+  };
+
+  // 键盘删除
+  document.onkeydown = e => {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement === document.body) {
+      if (state.selectedConn !== null) {
+        state.connections.splice(state.selectedConn, 1);
+        state.selectedConn = null;
+        renderAll();
+      } else if (state.selected !== null) {
+        deleteNode(state.selected);
+      }
+    }
+  };
+}
+
+// ============================================================
+//  创建节点
+// ============================================================
+function createNode(type, mouseEvent) {
+  const id = state.nextId++;
+  // 在画布可视区域居中创建，避免被左侧面板遮挡
+  const cnt = Object.keys(state.nodes).length;
+  const x = canvasWrap.scrollLeft + canvasWrap.clientWidth / 2 - 80 + (cnt % 3) * 30;
+  const y = canvasWrap.scrollTop + canvasWrap.clientHeight / 2 - 30 + Math.floor(cnt / 3) * 30;
+  const def = NODE_TYPES[type];
+
+  // 初始化data
+  const data = {};
+  for (const f of def.fields) {
+    if (f.render === 'kv') data[f.key] = {};
+    else if (f.render === 'kv-raw') data[f.key] = {};
+    else if (f.render === 'list') data[f.key] = [];
+    else if (f.render === 'number') data[f.key] = f.def !== undefined ? f.def : 0;
+    else if (f.render === 'input') data[f.key] = {type:"attr", value:""};
+    else if (f.render === 'method-select') data[f.key] = 'GET';
+    else data[f.key] = "";
+  }
+  // 节点名称（可在属性面板修改，画布与日志显示均使用）
+  data.name = type + '节点';
+  // 动态分支节点默认1个分支；SWITCH 分支值类型默认 string
+  if (type === 'SWITCH' || type === 'RAND') {
+    data._targetKeys = ["1"];
+    if (type === 'SWITCH') data._keyType = 'string';
+  }
+
+  state.nodes[id] = {type, x, y, data};
+  if (state.root === null) state.root = id;
+  renderAll();
+  selectNode(id);
+}
+
+// ============================================================
+//  渲染
+// ============================================================
+function renderAll() {
+  renderNodes();
+  renderPorts();
+  renderConnections();
+}
+
+function renderNodes() {
+  // 移除旧节点DOM
+  canvas.querySelectorAll('.node').forEach(n => n.remove());
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    const id = parseInt(idStr);
+    const def = NODE_TYPES[node.type];
+    const el = document.createElement('div');
+    el.className = 'node' + (state.selected === id ? ' selected' : '');
+    el.style.left = node.x + 'px';
+    el.style.top = node.y + 'px';
+    el.dataset.id = id;
+
+    // 头部
+    let headHtml = `<div class="node-head" style="background:${def.color}">
+      <div class="nicon" style="background:rgba(255,255,255,.7)"></div>
+      <span>${escapeHtml(node.data.name || def.label)}</span>
+      ${def.exec ? '<span class="exec-btn" title="执行该节点">▶</span>' : ''}
+      ${state.root === id ? '<span class="root-badge">ROOT</span>' : ''}
+      <span class="nid">#${id}</span>
+    </div>`;
+
+    // 字段预览
+    let bodyHtml = '<div class="node-body">';
+    for (const f of def.fields) {
+      const val = node.data[f.key];
+      let display = '';
+      if (f.render === 'kv' || f.render === 'kv-raw') {
+        const keys = Object.keys(val || {});
+        display = keys.length ? keys.map(k => {
+          if (f.render === 'kv-raw') return k;
+          return k + '←' + (val[k]?.value || '?');
+        }).join(', ') : '';
+      } else if (f.render === 'input') {
+        display = (val?.type || '?') + ': ' + (val?.value || '');
+      } else if (f.render === 'list') {
+        display = (val || []).length + '条命令';
+      } else if (f.render === 'textarea') {
+        display = val ? String(val).substring(0, 30) : '';
+      } else {
+        display = val !== undefined && val !== '' ? String(val) : '';
+      }
+      bodyHtml += `<div class="node-field"><span class="k">${f.label}</span>: <span class="${display?'v':'empty'}">${escapeHtml(display||'未设置')}</span></div>`;
+    }
+    // SWITCH/RAND 分支预览
+    if (node.type === 'SWITCH' || node.type === 'RAND') {
+      const tk = node.data._targetKeys || [];
+      const disp = node.type === 'RAND' ? `${tk.length}个分支` : (tk.length ? tk.join(', ') : '未设置');
+      bodyHtml += `<div class="node-field"><span class="k">分支</span>: <span class="${tk.length?'v':'empty'}">${escapeHtml(disp)}</span></div>`;
+    }
+    bodyHtml += '</div>';
+
+    el.innerHTML = headHtml + bodyHtml;
+    applyExecBadge(el, id);   // 执行状态徽标与边框
+
+    canvas.appendChild(el);
+
+    // 事件（端口圆点由 renderPorts 绘制并绑定）
+    el.querySelector('.node-head').onmousedown = e => startDragNode(e, id);
+    const execBtn = el.querySelector('.exec-btn');
+    if (execBtn) {
+      execBtn.onmousedown = e => e.stopPropagation();   // 阻止触发节点拖拽
+      execBtn.onclick = e => {
+        e.stopPropagation();
+        if (lastExecUrl) {
+          // 已执行过：直接复用上次的url执行该节点（强制 /node 路径，参数不变，不再弹面板）
+          execMode = 'node';
+          execNodeId = id;
+          doExecute(lastExecNodeUrl());
+        } else {
+          showExecPanel('node', id);
+        }
+      };
+    }
+    el.onmousedown = e => {
+      if (e.target.closest('.port-dot')) return;
+      e.stopPropagation();
+      selectNode(id);
+    };
+    el.oncontextmenu = e => { e.preventDefault(); showContextMenu(e, id); };
+  }
+}
+
+// ============================================================
+//  四方向连线路由 + SVG端点绘制
+// ============================================================
+
+function nodeBounds(nodeId) {
+  const node = state.nodes[nodeId];
+  if (!node) return null;
+  const el = canvas.querySelector(`.node[data-id="${nodeId}"]`);
+  const w = el ? el.offsetWidth : 160;
+  const h = el ? el.offsetHeight : 60;
+  return { x: node.x, y: node.y, w, h, cx: node.x + w / 2, cy: node.y + h / 2 };
+}
+
+// 插座中心到边框的外偏移：插座整体绘制在边框之外，不与节点内容重叠
+const PORT_OFF = 8;
+
+function sidePoint(b, side, frac = 0.5) {
+  // frac 0..1 沿边分布位置；返回边框外侧的插座中心坐标
+  switch (side) {
+    case 'right':  return { x: b.x + b.w + PORT_OFF, y: b.y + b.h * frac };
+    case 'left':   return { x: b.x - PORT_OFF,       y: b.y + b.h * frac };
+    case 'bottom': return { x: b.x + b.w * frac,     y: b.y + b.h + PORT_OFF };
+    case 'top':    return { x: b.x + b.w * frac,     y: b.y - PORT_OFF };
+  }
+}
+
+function oppositeSide(side) {
+  return { right: 'left', left: 'right', top: 'bottom', bottom: 'top' }[side];
+}
+
+// ============================================================
+//  端口布局：连线端点与节点圆点共用同一套 side/frac，保证位置同步
+// ============================================================
+// layout[nodeId] = { outs: {portId:{label, pos:{side,frac}|null}}, ins: {[side]:{frac}} }
+function computePortLayout() {
+  const layout = {};
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    const id = parseInt(idStr);
+    const def = NODE_TYPES[node.type];
+    let outPorts = def.outputs;
+    if (node.type === 'SWITCH' || node.type === 'RAND') {
+      outPorts = (node.data._targetKeys || []).map((k, i) => ({id:`target_${i}`, label:String(k)}));
+    }
+    const outs = {};
+    outPorts.forEach(p => { outs[p.id] = { label: p.label, pos: null }; });
+    layout[id] = { outs, ins: {} };
+  }
+
+  // 统计每个节点每条边上的出入方向数量，并记录每个输出端口所在的边
+  const outCnt = {}, inCnt = {}, portSide = {};
+  const sidesArr = state.connections.map(conn => calcConnSides(conn.from, conn.to));
+  state.connections.forEach((conn, i) => {
+    const s = sidesArr[i];
+    if (!s) return;
+    outCnt[conn.from] = outCnt[conn.from] || {};
+    outCnt[conn.from][s.fromSide] = (outCnt[conn.from][s.fromSide] || 0) + 1;
+    inCnt[conn.to] = inCnt[conn.to] || {};
+    inCnt[conn.to][s.toSide] = (inCnt[conn.to][s.toSide] || 0) + 1;
+    portSide[conn.from] = portSide[conn.from] || {};
+    portSide[conn.from][conn.port] = s.fromSide;
+  });
+
+  // 区间内均匀取点
+  function spreadFracs(n, a, b) {
+    if (n <= 1) return [(a + b) / 2];
+    const res = [];
+    for (let i = 0; i < n; i++) res.push(a + (b - a) * i / (n - 1));
+    return res;
+  }
+
+  for (const [idStr, lay] of Object.entries(layout)) {
+    const id = parseInt(idStr);
+    const oc = outCnt[id] || {}, ic = inCnt[id] || {};
+    const ps = portSide[id] || {};
+    // 输出端口按所在边分组；同边有输入时输出让出尾部区间，与输入插座分区隔离
+    const buckets = {};
+    Object.entries(lay.outs).forEach(([portId]) => {
+      const side = ps[portId];
+      if (!side) return;
+      (buckets[side] = buckets[side] || []).push(portId);
+    });
+    for (const [side, portIds] of Object.entries(buckets)) {
+      const zone = ic[side] ? [0.15, 0.6] : [0.2, 0.8];
+      const fracs = spreadFracs(portIds.length, zone[0], zone[1]);
+      portIds.forEach((portId, i) => {
+        lay.outs[portId].pos = { side, frac: fracs[i] };
+      });
+    }
+    // 输入插座：同边多条输入共用一个（输入与输出永远不同位）
+    for (const side of Object.keys(ic)) {
+      lay.ins[side] = { frac: oc[side] ? 0.82 : 0.5 };
+    }
+  }
+  return layout;
+}
+
+// 节点局部坐标系中的插座位置（边框外侧）
+function edgePointLocal(w, h, side, frac) {
+  switch (side) {
+    case 'right':  return { x: w + PORT_OFF, y: h * frac };
+    case 'left':   return { x: -PORT_OFF,    y: h * frac };
+    case 'bottom': return { x: w * frac,     y: h + PORT_OFF };
+    case 'top':    return { x: w * frac,     y: -PORT_OFF };
+  }
+}
+
+// 在节点上绘制端口圆点与文字标签（坐标与连线端点完全一致）
+let portLayoutCache = null;
+
+function renderPorts() {
+  canvas.querySelectorAll('.port-dot,.port-dot-label').forEach(n => n.remove());
+  const layout = computePortLayout();
+  portLayoutCache = layout;
+
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    const id = parseInt(idStr);
+    const el = canvas.querySelector(`.node[data-id="${id}"]`);
+    if (!el) continue;
+    const lay = layout[id];
+    if (!lay) continue;
+
+    // 无连线的输出端口在右侧堆叠，多个时撑起节点最小高度
+    const unconnected = Object.values(lay.outs).filter(o => !o.pos).length;
+    if (unconnected > 1) el.style.minHeight = (30 + unconnected * 22 + 6) + 'px';
+    const w = el.offsetWidth, h = el.offsetHeight;
+
+    let stackIdx = 0;
+    for (const [portId, o] of Object.entries(lay.outs)) {
+      let x, y, side;
+      if (o.pos) {
+        // 有连线：圆点绘制在连线实际出口边（边框外侧）
+        side = o.pos.side;
+        const pt = edgePointLocal(w, h, side, o.pos.frac);
+        x = pt.x; y = pt.y;
+      } else {
+        // 无连线：右侧外堆叠，作为发起连线的拖拽手柄
+        side = 'right';
+        y = 30 + stackIdx * 22; stackIdx++;
+        x = w + PORT_OFF;
+      }
+      const dot = document.createElement('div');
+      dot.className = 'port-dot out';
+      dot.dataset.port = portId;
+      dot.style.left = (x - 5) + 'px';
+      dot.style.top = (y - 5) + 'px';
+      dot.onmousedown = e => { e.stopPropagation(); startConnection(id, portId, e); };
+      el.appendChild(dot);
+
+      // 文字标签：左右边插座的标签贴在边框内侧，上下边插座的标签在圆点旁侧
+      const lbl = document.createElement('div');
+      lbl.className = 'port-dot-label';
+      if (side === 'right')      { lbl.style.right = '9px';          lbl.style.top = (y - 7) + 'px'; }
+      else if (side === 'left')  { lbl.style.left = '9px';           lbl.style.top = (y - 7) + 'px'; }
+      else if (side === 'top')   { lbl.style.left = (x + 9) + 'px';  lbl.style.top = (y - 7) + 'px'; }
+      else                       { lbl.style.left = (x + 9) + 'px';  lbl.style.top = (y - 7) + 'px'; }
+      lbl.textContent = o.label;
+      el.appendChild(lbl);
+    }
+
+    // 输入插座（青色）：同边多条输入共用一个，位于边框外侧，与连线入口重合
+    for (const [side, inp] of Object.entries(lay.ins)) {
+      const pt = edgePointLocal(w, h, side, inp.frac);
+      const dot = document.createElement('div');
+      dot.className = 'port-dot in';
+      dot.style.left = (pt.x - 5) + 'px';
+      dot.style.top = (pt.y - 5) + 'px';
+      el.appendChild(dot);
+    }
+  }
+}
+
+// 计算两节点之间的进出边方向
+function calcConnSides(fromId, toId) {
+  const fb = nodeBounds(fromId);
+  const tb = nodeBounds(toId);
+  if (!fb || !tb) return null;
+  const dx = tb.cx - fb.cx;
+  const dy = tb.cy - fb.cy;
+  let fromSide, toSide;
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    fromSide = dx >= 0 ? 'right' : 'left';
+  } else {
+    fromSide = dy >= 0 ? 'bottom' : 'top';
+  }
+  toSide = oppositeSide(fromSide);
+  return { fromSide, toSide };
+}
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+function renderConnections() {
+  svg.innerHTML = '';
+  svg.setAttribute('width', canvas.offsetWidth);
+  svg.setAttribute('height', canvas.offsetHeight);
+
+  if (!portLayoutCache) portLayoutCache = computePortLayout();
+  const layout = portLayoutCache;
+
+  state.connections.forEach((conn, idx) => {
+    const lo = layout[conn.from] && layout[conn.from].outs[conn.port];
+    if (!lo || !lo.pos) return;
+    const toSide = oppositeSide(lo.pos.side);
+    const li = layout[conn.to] && layout[conn.to].ins[toSide];
+    if (!li) return;
+    const fb = nodeBounds(conn.from);
+    const tb = nodeBounds(conn.to);
+    if (!fb || !tb) return;
+    // 端点坐标 = 节点上圆点（插座）的坐标（同一套布局结果）
+    const from = sidePoint(fb, lo.pos.side, lo.pos.frac);
+    const to   = sidePoint(tb, toSide, li.frac);
+
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', bezierPathDir(from.x, from.y, to.x, to.y, lo.pos.side, toSide));
+    path.setAttribute('class', 'conn-path' + (state.selectedConn === idx ? ' selected' : ''));
+    path.onclick = e => {
+      e.stopPropagation();
+      selectNode(null);          // 取消节点选中
+      state.selectedConn = idx;  // 标记连线选中
+      renderConnections();
+    };
+    svg.appendChild(path);
+  });
+
+  // 临时连线（从起点圆点出发，跟随鼠标）
+  if (connDrag) {
+    const dx = connDrag.x - connDrag.from.x;
+    const dy = connDrag.y - connDrag.from.y;
+    const toSide = Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? 'left' : 'right') : (dy >= 0 ? 'top' : 'bottom');
+    const path = document.createElementNS(SVGNS, 'path');
+    path.setAttribute('d', bezierPathDir(connDrag.from.x, connDrag.from.y, connDrag.x, connDrag.y, connDrag.fromSide, toSide));
+    path.setAttribute('class', 'conn-temp');
+    svg.appendChild(path);
+  }
+}
+
+// 带方向的贝塞尔曲线：控制点沿出口/入口边方向延伸
+function bezierPathDir(x1, y1, x2, y2, fromSide, toSide) {
+  const dist = Math.max(40, Math.hypot(x2 - x1, y2 - y1) * 0.4);
+  const cp1 = ctrlOffset(x1, y1, fromSide, dist);
+  const cp2 = ctrlOffset(x2, y2, toSide, dist);
+  return `M ${x1} ${y1} C ${cp1.x} ${cp1.y}, ${cp2.x} ${cp2.y}, ${x2} ${y2}`;
+}
+
+function ctrlOffset(x, y, side, d) {
+  switch (side) {
+    case 'right':  return { x: x + d, y };
+    case 'left':   return { x: x - d, y };
+    case 'bottom': return { x, y: y + d };
+    case 'top':    return { x, y: y - d };
+  }
+}
+
+// ============================================================
+//  拖拽节点
+// ============================================================
+function startDragNode(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectNode(id);
+  const node = state.nodes[id];
+  const rect = canvas.getBoundingClientRect();
+  drag = {
+    id,
+    offsetX: e.clientX - rect.left - canvasWrap.scrollLeft - node.x,
+    offsetY: e.clientY - rect.top - canvasWrap.scrollTop - node.y,
+  };
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+}
+
+function onDragMove(e) {
+  if (drag) {
+    const rect = canvas.getBoundingClientRect();
+    state.nodes[drag.id].x = e.clientX - rect.left - canvasWrap.scrollLeft - drag.offsetX;
+    state.nodes[drag.id].y = e.clientY - rect.top - canvasWrap.scrollTop - drag.offsetY;
+    const el = canvas.querySelector(`.node[data-id="${drag.id}"]`);
+    if (el) { el.style.left = state.nodes[drag.id].x + 'px'; el.style.top = state.nodes[drag.id].y + 'px'; }
+    // 节点移动后路由方向可能改变，圆点与连线一起刷新
+    renderPorts();
+    renderConnections();
+  }
+  if (connDrag) {
+    const rect = canvas.getBoundingClientRect();
+    connDrag.x = e.clientX - rect.left + canvasWrap.scrollLeft;
+    connDrag.y = e.clientY - rect.top + canvasWrap.scrollTop;
+    renderConnections();
+  }
+}
+
+function onDragEnd(e) {
+  drag = null;
+  if (connDrag) {
+    // 落在目标节点任意位置即可建立连线
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const nodeEl = el ? el.closest('.node') : null;
+    const toId = nodeEl ? parseInt(nodeEl.dataset.id) : null;
+    if (toId && toId !== connDrag.fromId) {
+      // 同一输出端口只保留一条连线
+      state.connections = state.connections.filter(c =>
+        !(c.from === connDrag.fromId && c.port === connDrag.port)
+      );
+      state.connections.push({ from: connDrag.fromId, port: connDrag.port, to: toId });
+    }
+    connDrag = null;
+    document.body.classList.remove('connecting');
+    renderAll();
+  }
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragEnd);
+}
+
+// ============================================================
+//  连线
+// ============================================================
+function startConnection(fromId, port, e) {
+  e.preventDefault();
+  e.stopPropagation();
+  // 起点 = 该端口圆点当前位置（与节点上绘制的圆点同步）
+  const lay = computePortLayout()[fromId];
+  const lo = lay ? lay.outs[port] : null;
+  const b = nodeBounds(fromId);
+  let from, fromSide;
+  if (lo && lo.pos) {
+    fromSide = lo.pos.side;
+    from = sidePoint(b, lo.pos.side, lo.pos.frac);
+  } else {
+    // 无连线端口：与 renderPorts 的右侧外堆叠位置保持一致
+    fromSide = 'right';
+    let stackIdx = 0;
+    for (const [pid, o] of Object.entries(lay ? lay.outs : {})) {
+      if (pid === port) break;
+      if (!o.pos) stackIdx++;
+    }
+    from = { x: b.x + b.w + PORT_OFF, y: b.y + 30 + stackIdx * 22 };
+  }
+  const rect = canvas.getBoundingClientRect();
+  connDrag = {
+    fromId, port, from, fromSide,
+    x: e.clientX - rect.left + canvasWrap.scrollLeft,
+    y: e.clientY - rect.top + canvasWrap.scrollTop,
+  };
+  document.body.classList.add('connecting');
+  const dotEl = canvas.querySelector(`.node[data-id="${fromId}"] .port-dot[data-port="${port}"]`);
+  if (dotEl) dotEl.classList.add('dragging');
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+}
+
+// ============================================================
+//  选中 / 删除
+// ============================================================
+function selectNode(id) {
+  state.selected = id;
+  state.selectedConn = null;
+  renderAll();
+  updatePropPanel();
+}
+
+function deleteNode(id) {
+  delete state.nodes[id];
+  state.connections = state.connections.filter(c => c.from !== id && c.to !== id);
+  if (state.root === id) state.root = Object.keys(state.nodes)[0] ? parseInt(Object.keys(state.nodes)[0]) : null;
+  if (state.selected === id) state.selected = null;
+  renderAll();
+  updatePropPanel();
+}
+
+function showContextMenu(e, id) {
+  // 简易菜单：用prompt模拟
+  const action = prompt(
+    `节点 #${id} (${NODE_TYPES[state.nodes[id].type].label})\n\n` +
+    `输入数字选择操作:\n1. 设为根节点\n2. 删除节点`
+  );
+  if (action === '1') { state.root = id; renderAll(); toast('已设为根节点'); }
+  else if (action === '2') { deleteNode(id); }
+}
+
+// ============================================================
+//  属性面板
+// ============================================================
+let propPanelGen = 0;   // 面板渲染代数：面板重建后，旧渲染的失焦回调全部作废
+let fieldEditorCtx = null;  // 当前打开的字段编辑弹窗 {nodeId, key, snapshot}
+
+function updatePropPanel() {
+  propPanelGen++;
+  const empty = $('prop-empty');
+  const content = $('prop-content');
+  if (state.selected === null || !state.nodes[state.selected]) {
+    empty.style.display = '';
+    content.style.display = 'none';
+    if (fieldEditorCtx) { fieldEditorCtx = null; closeModal(); }
+    return;
+  }
+  empty.style.display = 'none';
+  content.style.display = '';
+  const id = state.selected;
+  const node = state.nodes[id];
+  const def = NODE_TYPES[node.type];
+
+  let html = `<h2><div class="dot" style="background:${def.color}"></div>${escapeHtml(node.data.name || def.label)} <span style="color:#666">#${id}</span></h2>`;
+
+  // 节点名称：原地编辑
+  html += `<div class="field"><label>节点名称</label>
+    <input type="text" value="${escapeAttr(node.data.name || '')}" placeholder="${node.type}节点" onchange="setNodeName(${id}, this.value)"></div>`;
+
+  // 各字段：简单字段（协议/子用例下拉、时间、请求方法、地址等）原地编辑，其余只读展示 + 编辑按钮
+  for (const f of def.fields) {
+    html += IN_PLACE_RENDERS.includes(f.render)
+      ? renderField(f, node.data[f.key], id)
+      : renderFieldView(f, node.data[f.key], id);
+  }
+
+  // SWITCH 分支：只读展示 + 编辑按钮（RAND 同样使用分支编辑）
+  if (node.type === 'SWITCH' || node.type === 'RAND') {
+    html += renderFieldView({key:'_branches', label:'分支', render:'switch-edit'}, node.data._targetKeys, id);
+  }
+
+  // 高级脚本：只读展示 + 编辑按钮
+  html += renderFieldView({key:'before', label:'前置脚本(Lua)', render:'textarea'}, node.data.before || '', id);
+  html += renderFieldView({key:'after',  label:'后置脚本(Lua)', render:'textarea'}, node.data.after || '', id);
+
+  // 操作按钮
+  html += `<div class="btn-row">
+    <button onclick="state.root=${id};renderAll()">设为根节点</button>
+  </div>`;
+  html += `<div class="btn-row">
+    <button class="danger" onclick="deleteNode(${id})">删除节点</button>
+  </div>`;
+
+  content.innerHTML = html;
+
+  // 字段编辑弹窗打开中：同步刷新弹窗内容
+  if (fieldEditorCtx) renderFieldEditor();
+}
+
+function renderField(f, val, nodeId) {
+  const k = f.key;
+  switch (f.render) {
+    case 'text':
+      return `<div class="field"><label>${f.label}</label>
+        <input type="text" value="${escapeAttr(val||'')}" onchange="setField(${nodeId},'${k}',this.value)"></div>`;
+    case 'number':
+      // 普通文本输入框（无上下加减箭头），失焦时解析为数字
+      return `<div class="field"><label>${f.label}</label>
+        <input type="text" value="${val||0}" onchange="setField(${nodeId},'${k}',parseInt(this.value)||0)"></div>`;
+    case 'textarea':
+      return `<div class="field"><label>${f.label}</label>
+        <div class="lua-hint">function(robot, vars, res) 内执行 — robot=机器人对象，vars=黑板数据，res=协议返回值</div>
+        <textarea class="code-area" onchange="setField(${nodeId},'${k}',this.value)">${escapeHtml(val||'')}</textarea></div>`;
+    case 'input': {
+      // 单行编辑：名称 + 取值方式 + 取值输入（如 SOCK 的 ip/port）
+      const v = val || {};
+      const isLua = v.type === 'lua';
+      return `<div class="field"><label>${f.label}</label>
+        <div class="io-row">
+          <span class="kv2-tag">${k}</span>
+          <select onchange="setInputType(${nodeId},'${k}',this.value)" title="取值方式">${typeOpts(v.type)}</select>
+          <input type="text" placeholder="${isLua ? 'lua 表达式' : '取值'}" value="${escapeAttr(v.value||'')}" onchange="setInputValue(${nodeId},'${k}',this.value)">
+        </div>
+        ${isLua ? '<div class="lua-hint">lua 表达式 · 上下文 robot / vars / res</div>' : ''}
+      </div>`;
+    }
+    case 'kv':
+    case 'kv-raw': {
+      const obj = val || {};
+      const keys = Object.keys(obj);
+      const isRaw = f.render === 'kv-raw';
+      // REQ 输入参数：显示协议字段的类型提示
+      let protoHint = null;
+      if (f.render === 'kv') {
+        const node = state.nodes[nodeId];
+        const p = node && node.data.cmd_id ? protoDefs[node.data.cmd_id] : null;
+        if (p) protoHint = p.fields;
+      }
+      let html = `<div class="field"><label>${f.label}</label>`;
+      keys.forEach((key, i) => {
+        const v = obj[key];
+        const hint = protoHint && protoHint[key] ? `（${escapeAttr(protoHint[key])}）` : '';
+        const placeholder = isRaw ? '参数值' : (hint ? '取值' + hint : '取值（attr=属性名 / var=变量名 / lua=表达式 / string=字符串 / number=数字）');
+        html += `<div class="kv2">
+          <div class="kv2-row1">
+            <input class="kv-key" type="text" placeholder="参数名" value="${escapeAttr(key)}" onchange="renameKvKey(${nodeId},'${k}',${i},this.value)">
+            ${isRaw ? '' : `<select onchange="setKvType(${nodeId},'${k}',${i},this.value)" title="取值方式">${typeOpts(v?.type)}</select>`}
+            <button class="del-btn" onclick="delKvKey(${nodeId},'${k}',${i})" title="删除参数">×</button>
+          </div>
+          ${!isRaw && v?.type === 'lua' ? '<div class="lua-hint">lua 表达式 · 上下文 robot / vars / res</div>' : ''}
+          <textarea class="kv-val" placeholder="${placeholder}" onchange="${isRaw ? `setKvRawValue(${nodeId},'${k}',${i},this.value)` : `setKvValue(${nodeId},'${k}',${i},this.value)`}">${escapeHtml(isRaw ? v : (v?.value || ''))}</textarea>
+        </div>`;
+      });
+      if (!keys.length) html += `<div class="kv-empty">暂无参数，点击下方按钮添加</div>`;
+      html += `<button class="add-btn" onclick="addKvKey(${nodeId},'${k}','${f.render}')">+ 添加参数</button></div>`;
+      return html;
+    }
+    case 'case-select': {
+      // 子用例下拉：从已加载的子用例目录中选择，排除自身（防止自递归）
+      const current = val || '';
+      const opts = [];
+      opts.push(`<option value="" ${current ? '' : 'selected'} disabled>${subCases.length ? '请选择子用例' : '未加载子用例目录'}</option>`);
+      subCases.forEach(sc => {
+        if (sc.name === state.caseName) return;
+        opts.push(`<option value="${escapeAttr(sc.name)}" ${sc.name === current ? 'selected' : ''}>${escapeHtml(sc.name)}（${escapeHtml(sc.path)}）</option>`);
+      });
+      // 当前值不在已加载列表中时保留显示（如尚未加载目录或来自导入数据）
+      if (current && !subCases.some(sc => sc.name === current)) {
+        opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未在已加载目录中）</option>`);
+      }
+      return `<div class="field"><label>${f.label}</label>
+        <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
+    }
+    case 'proto-select': {
+      // 协议下拉筛选：按节点类型取对应 type 的协议（REQ→req，NTF→ntf）
+      const node = state.nodes[nodeId];
+      const wantType = (node && node.type === 'NTF') ? 'ntf' : 'req';
+      const entries = Object.values(protoDefs)
+        .filter(p => p.type === wantType)
+        .sort((a, b) => (a.msg_id || 0) - (b.msg_id || 0));
+      const current = val || '';
+      const gen = propPanelGen;  // 失焦回调绑定当前渲染代数
+      let items = entries.map(p =>
+        `<div class="combo-item" data-v="${escapeAttr(p.name)}" onmousedown="event.preventDefault();pickProto(${nodeId},'${k}','${escapeAttr(p.name)}')">
+           <span class="combo-name">${escapeHtml(p.name)}</span><span class="combo-id">${p.msg_id || ''}</span>
+         </div>`).join('');
+      if (!entries.length) {
+        // 未载入协议：与子用例下拉一致，直接提示（保留已有值显示）
+        const opts = [`<option value="" ${current ? '' : 'selected'} disabled>未载入协议，请点击工具栏「载入协议」</option>`];
+        if (current) opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未载入协议）</option>`);
+        return `<div class="field"><label>${f.label}</label>
+          <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
+      }
+      return `<div class="field"><label>${f.label}</label>
+        <div class="combo">
+          <input type="text" class="combo-input" value="${escapeAttr(current)}" placeholder="输入筛选，或点击选择" oninput="protoComboFilter(this)" onfocus="protoComboShow(this)" onblur="protoComboBlur(this,${nodeId},'${k}',${gen})">
+          <div class="combo-list" style="display:none">${items}</div>
+        </div></div>`;
+    }
+    case 'method-select': {
+      // HTTP 请求方法下拉（GET 走 query，其余走 body）
+      const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
+      const current = val || 'GET';
+      const opts = methods.map(m => `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`);
+      if (!methods.includes(current)) opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}</option>`);
+      return `<div class="field"><label>${f.label}</label>
+        <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
+    }
+    case 'switch-edit': {
+      // SWITCH/RAND 分支编辑：SWITCH 的 key 可改并带值类型；目标节点在画布上拖拽连线建立
+      const node = state.nodes[nodeId];
+      const isRand = node.type === 'RAND';
+      const tk = (node.data._targetKeys) || [];
+      let html = '';
+      if (!isRand) {
+        const kt = node.data._keyType === 'number' ? 'number' : 'string';
+        html += `<div class="field"><label>分支值类型</label>
+          <select onchange="setBranchType(${nodeId},this.value)">
+            <option value="string" ${kt === 'string' ? 'selected' : ''}>string</option>
+            <option value="number" ${kt === 'number' ? 'selected' : ''}>number</option>
+          </select></div>`;
+      }
+      html += `<div class="field"><label>分支（${isRand ? '随机目标节点' : 'key → 目标节点'}）</label>`;
+      tk.forEach((bkey, i) => {
+        const toStr = connTargetStr(nodeId, i) || '未连接';
+        html += `<div class="target-row">
+          <span>分支${i+1}</span>
+          ${isRand ? '' : `<input type="text" value="${escapeAttr(bkey)}" onchange="updateTargetKey(${nodeId},${i},this.value)">`}
+          <span class="target-to">${toStr}</span>
+          <button class="del-btn" onclick="removeTarget(${nodeId},${i})">×</button>
+        </div>`;
+      });
+      if (!tk.length) html += `<div class="kv-empty">暂无分支，点击下方按钮添加</div>`;
+      html += `<button class="add-btn" onclick="addTarget(${nodeId})">+ 添加分支</button></div>`;
+      return html;
+    }
+    case 'list': {
+      const arr = val || [];
+      let html = `<div class="field"><label>${f.label}</label>`;
+      arr.forEach((item, i) => {
+        html += `<div class="io-row">
+          <input type="text" value="${escapeAttr(item)}" onchange="setListItem(${nodeId},'${k}',${i},this.value)">
+          <button class="del-btn" onclick="delListItem(${nodeId},'${k}',${i})">×</button>
+        </div>`;
+      });
+      html += `<button class="add-btn" onclick="addListItem(${nodeId},'${k}')">+ 添加</button></div>`;
+      return html;
+    }
+  }
+  return '';
+}
+
+function typeOpts(selected) {
+  return TYPE_OPTIONS.map(t => `<option value="${t}" ${t===selected?'selected':''}>${t}</option>`).join('');
+}
+
+// ============================================================
+//  属性面板：字段只读展示 + 编辑弹窗（确定后回显，取消还原）
+// ============================================================
+
+// 分支连线目标描述：#id (节点名)；未连线返回 null
+function connTargetStr(nodeId, i) {
+  const conn = state.connections.find(c => c.from === nodeId && c.port === `target_${i}`);
+  if (!conn) return null;
+  const tn = state.nodes[conn.to];
+  return `#${conn.to}${tn ? ' (' + (tn.data.name || tn.type + '节点') + ')' : ''}`;
+}
+
+// 字段只读展示内容
+function fieldDisplayHtml(f, val, nodeId) {
+  const node = state.nodes[nodeId];
+  const isBlank = v => v === undefined || v === null || v === '';
+  switch (f.render) {
+    case 'text':
+    case 'number':
+    case 'case-select':
+      return { text: isBlank(val) ? '' : String(val) };
+    case 'proto-select': {
+      if (isBlank(val)) return { text: '' };
+      const p = protoDefs[val];
+      return { text: p ? `${val}（${p.msg_id}）` : val };
+    }
+    case 'textarea':
+      return { text: isBlank(val) ? '' : String(val), code: true };
+    case 'input':
+      return { text: isBlank(val?.value) ? '' : `${val.type}: ${val.value}` };
+    case 'kv':
+    case 'kv-raw': {
+      const keys = Object.keys(val || {});
+      if (!keys.length) return { text: '' };
+      let hint = null;
+      if (f.render === 'kv' && node && node.data.cmd_id && protoDefs[node.data.cmd_id]) {
+        hint = protoDefs[node.data.cmd_id].fields;
+      }
+      const rows = keys.map(k => {
+        const v = val[k];
+        if (f.render === 'kv-raw') {
+          return `<div class="fv-kvrow"><span class="fv-k">${escapeHtml(k)}</span><span class="fv-v">${isBlank(v) ? '未填' : escapeHtml(String(v))}</span></div>`;
+        }
+        const t = v?.type || '?';
+        const ht = hint && hint[k] ? '/' + hint[k] : '';
+        return `<div class="fv-kvrow"><span class="fv-k">${escapeHtml(k)}</span><span class="fv-t">${t}${escapeHtml(ht)}</span><span class="fv-v">${isBlank(v?.value) ? '未填' : escapeHtml(v.value)}</span></div>`;
+      });
+      return { html: `<div class="fv-kvs">${rows.join('')}</div>` };
+    }
+    case 'list': {
+      const arr = val || [];
+      if (!arr.length) return { text: '' };
+      return { html: arr.map(c => `<div class="fv-kvrow"><span class="fv-v">${isBlank(c) ? '未填' : escapeHtml(c)}</span></div>`).join('') };
+    }
+    case 'switch-edit': {
+      const tk = (node && node.data._targetKeys) || [];
+      const isRand = node && node.type === 'RAND';
+      if (!tk.length && isRand) return { text: '' };
+      const rows = [];
+      if (!isRand && node) {
+        const kt = node.data._keyType === 'number' ? 'number' : 'string';
+        rows.push(`<div class="fv-kvrow"><span class="fv-k">值类型</span><span class="fv-v">${kt}</span></div>`);
+      }
+      tk.forEach((bkey, i) => {
+        const to = connTargetStr(nodeId, i) || '未连接';
+        const klabel = isRand ? `分支${i + 1}` : escapeHtml(String(bkey));
+        rows.push(`<div class="fv-kvrow"><span class="fv-k">${klabel}</span><span class="fv-v">${escapeHtml(to)}</span>
+          <button class="del-btn" title="删除该分支" onclick="removeTarget(${nodeId},${i})">×</button></div>`);
+      });
+      if (!rows.length) return { text: '' };
+      return { html: `<div class="fv-kvs">${rows.join('')}</div>` };
+    }
+  }
+  return { text: isBlank(val) ? '' : String(val) };
+}
+
+// 字段只读展示块：标题 + 编辑按钮 + 内容
+function renderFieldView(f, val, nodeId) {
+  const d = fieldDisplayHtml(f, val, nodeId);
+  const body = d.html ? d.html : escapeHtml(d.text || '');
+  const cls = 'fv-body' + (d.code ? ' fv-code' : '') + (!body ? ' fv-empty' : '');
+  return `<div class="field-view">
+    <div class="fv-head"><label>${f.label}</label>
+      <button class="fv-edit" onclick="openFieldEditor(${nodeId},'${f.key}')">编辑</button>
+    </div>
+    <div class="${cls}">${body || '未设置'}</div>
+  </div>`;
+}
+
+// 根据字段key取编辑器定义（含特殊字段）
+function getFieldDef(node, key) {
+  const def = NODE_TYPES[node.type];
+  const f = def.fields.find(ff => ff.key === key);
+  if (f) return f;
+  if (key === '_branches') return { key, label: '分支', render: 'switch-edit' };
+  if (key === 'before') return { key, label: '前置脚本(Lua)', render: 'textarea' };
+  if (key === 'after') return { key, label: '后置脚本(Lua)', render: 'textarea' };
+  return { key, label: key, render: 'text' };
+}
+
+// 打开字段编辑弹窗（快照当前节点数据，供取消还原）；原地编辑类型的字段不走弹窗
+function openFieldEditor(nodeId, key) {
+  const node = state.nodes[nodeId];
+  if (!node) return;
+  const f = getFieldDef(node, key);
+  if (IN_PLACE_RENDERS.includes(f.render)) return;
+  fieldEditorCtx = { nodeId, key, snapshot: JSON.stringify(node.data) };
+  renderFieldEditor();
+}
+
+// 渲染字段编辑弹窗（复用 renderField 的编辑控件）
+function renderFieldEditor() {
+  if (!fieldEditorCtx) return;
+  const { nodeId, key } = fieldEditorCtx;
+  const node = state.nodes[nodeId];
+  if (!node) { fieldEditorCtx = null; closeModal(); return; }
+  const f = getFieldDef(node, key);
+  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal field-modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>编辑 · ${f.label} <span style="color:#666">#${nodeId}</span></h3>
+        <button class="close" onclick="cancelFieldEditor()" title="取消（还原修改）">×</button></div>
+      <div class="modal-body">${renderField(f, node.data[f.key], nodeId)}</div>
+      <div class="modal-foot">
+        <button class="primary" onclick="confirmFieldEditor()">确定</button>
+        <button class="secondary" onclick="cancelFieldEditor()">取消</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// 确定：关闭弹窗并回显（修改已实时生效）
+function confirmFieldEditor() {
+  fieldEditorCtx = null;
+  closeModal();
+  renderAll();
+  updatePropPanel();
+}
+
+// 取消：还原打开弹窗时的数据快照
+function cancelFieldEditor() {
+  if (fieldEditorCtx) {
+    const node = state.nodes[fieldEditorCtx.nodeId];
+    if (node) node.data = JSON.parse(fieldEditorCtx.snapshot);
+  }
+  fieldEditorCtx = null;
+  closeModal();
+  renderAll();
+  updatePropPanel();
+}
+
+// 属性修改函数
+function setField(id, key, val) { state.nodes[id].data[key] = val; renderAll(); }
+
+// 修改节点名称（画布与日志显示均使用；置空恢复默认）
+function setNodeName(id, val) {
+  const node = state.nodes[id];
+  if (!node) return;
+  node.data.name = String(val || '').trim() || (node.type + '节点');
+  delete lastExecNodeLog[id];   // 名称变更后允许该节点重新输出一次状态日志
+  renderNodes();
+  updatePropPanel();
+}
+function setInputType(id, key, type) {
+  if (!state.nodes[id].data[key]) state.nodes[id].data[key] = {};
+  state.nodes[id].data[key].type = type;
+  renderAll();
+}
+function setInputValue(id, key, val) {
+  if (!state.nodes[id].data[key]) state.nodes[id].data[key] = {type:'attr'};
+  state.nodes[id].data[key].value = val;
+  renderAll();
+}
+// 按索引定位参数名（避免 DOM 相邻引用与特殊字符转义问题）
+function kvKeyAt(id, field, idx) {
+  const obj = state.nodes[id].data[field] || {};
+  return Object.keys(obj)[idx];
+}
+function addKvKey(id, field, renderType) {
+  const obj = state.nodes[id].data[field] || {};
+  let n = 1, nk = `param${n}`;
+  while (obj[nk]) { n++; nk = `param${n}`; }
+  obj[nk] = renderType === 'kv-raw' ? '' : {type:'attr', value:''};
+  state.nodes[id].data[field] = obj;
+  updatePropPanel(); renderAll();
+}
+function renameKvKey(id, field, idx, newName) {
+  const obj = state.nodes[id].data[field]; if (!obj) return;
+  const oldKey = kvKeyAt(id, field, idx);
+  if (!oldKey || !newName || oldKey === newName) return;
+  if (obj[newName] !== undefined) { toast('参数名已存在'); updatePropPanel(); return; }
+  obj[newName] = obj[oldKey]; delete obj[oldKey];
+  updatePropPanel(); renderAll();
+}
+function setKvType(id, field, idx, type) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  const item = state.nodes[id].data[field][key];
+  if (item && typeof item === 'object') { item.type = type; renderAll(); }
+}
+function setKvValue(id, field, idx, val) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  const item = state.nodes[id].data[field][key];
+  if (item && typeof item === 'object') { item.value = val; renderAll(); }
+}
+function setKvRawValue(id, field, idx, val) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  state.nodes[id].data[field][key] = val;
+  renderAll();
+}
+function delKvKey(id, field, idx) {
+  const key = kvKeyAt(id, field, idx); if (!key) return;
+  delete state.nodes[id].data[field][key];
+  updatePropPanel(); renderAll();
+}
+function addListItem(id, key) {
+  (state.nodes[id].data[key] = state.nodes[id].data[key] || []).push("");
+  updatePropPanel(); renderAll();
+}
+function setListItem(id, key, i, val) {
+  state.nodes[id].data[key][i] = val;
+  renderAll();
+}
+function delListItem(id, key, i) {
+  state.nodes[id].data[key].splice(i, 1);
+  updatePropPanel(); renderAll();
+}
+function addTarget(id) {
+  (state.nodes[id].data._targetKeys = state.nodes[id].data._targetKeys || []).push(String((state.nodes[id].data._targetKeys.length||0)+1));
+  updatePropPanel(); renderAll();
+}
+function removeTarget(id, i) {
+  state.nodes[id].data._targetKeys.splice(i, 1);
+  // 移除对应连线，并重新映射target_N
+  state.connections = state.connections.filter(c => !(c.from === id && c.port === `target_${i}`));
+  // 重映射后续端口名
+  state.connections.forEach(c => {
+    if (c.from === id && c.port.startsWith('target_')) {
+      const idx = parseInt(c.port.split('_')[1]);
+      if (idx > i) c.port = `target_${idx - 1}`;
+    }
+  });
+  updatePropPanel(); renderAll();
+}
+function updateTargetKey(id, i, val) {
+  state.nodes[id].data._targetKeys[i] = val;
+  renderAll();
+}
+// 设置 SWITCH 分支值类型（string/number，决定导出 targets 键类型）
+function setBranchType(id, val) {
+  state.nodes[id].data._keyType = val;
+  updatePropPanel(); renderAll();
+}
+
+// ============================================================
+//  导入/导出
+// ============================================================
+// 导出单个节点配置（含连线目标）
+function exportNode(id) {
+  const node = state.nodes[id];
+  if (!node) return null;
+  const n = { type: node.type };
+  // 复制data中的字段
+  for (const [k, v] of Object.entries(node.data)) {
+    if (k.startsWith('_')) continue;   // 跳过内部字段（_targetKeys/_keyType等）
+    // cond 未配置不导出（Lua 中空串为真值，会导致运行时按已配置条件执行而失败）
+    if (k === 'cond' && (v === undefined || String(v).trim() === '')) continue;
+    // 深拷贝
+    n[k] = JSON.parse(JSON.stringify(v));
+  }
+  // 设置连接
+  const conns = state.connections.filter(c => c.from === id);
+  for (const c of conns) {
+    if (c.port === 'next') n.next = c.to;
+    else if (c.port === 'success') { n.result = n.result || {}; n.result.success = c.to; }
+    else if (c.port === 'failed') { n.result = n.result || {}; n.result.failed = c.to; }
+    else if (c.port.startsWith('target_')) {
+      const idx = parseInt(c.port.split('_')[1]);
+      n.targets = n.targets || [];
+      if (node.type === 'RAND') {
+        n.targets.push(c.to);   // RAND：平铺目标节点数组
+      } else {
+        const bkey = node.data._targetKeys?.[idx] || String(idx + 1);
+        // 分支值类型：number 导出数字键（Lua 中数字键与字符串键是不同的表键）
+        let tkey = node.data._keyType === 'number' ? Number(bkey) : String(bkey);
+        if (typeof tkey === 'number' && Number.isNaN(tkey)) tkey = String(bkey);
+        n.targets.push([tkey, c.to]);
+      }
+    }
+  }
+  return n;
+}
+
+function buildExportData() {
+  const result = { name: state.caseName || "case1", root: state.root };
+  const nodes = {};
+  for (const [idStr, node] of Object.entries(state.nodes)) {
+    nodes[parseInt(idStr)] = exportNode(parseInt(idStr));
+  }
+  result.nodes = nodes;
+  return result;
+}
+
+function exportModal() {
+  const data = buildExportData();
+  showModal('导出 Lua', 'return ' + jsonToLua(data));
+}
+
+function safeFileName() {
+  return (state.caseName || "case1").replace(/[\\/:*?"<>|]/g, '_');
+}
+
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// 保存文本：弹系统保存对话框选择位置；不支持时直接下载
+async function saveTextToFolder(suggestedName, text, mime) {
+  if (window.showSaveFilePicker) {
+    try {
+      const ext = '.' + suggestedName.split('.').pop();
+      const desc = ext === '.json' ? 'JSON 文件' : (ext === '.lua' ? 'Lua 文件' : '文件');
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: desc, accept: { [mime]: [ext] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      toast(`已保存 ${handle.name}`);
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // 用户取消
+      // 其他异常（权限/环境不支持）回退为直接下载
+    }
+  }
+  downloadText(suggestedName, text);
+  toast(`已下载 ${suggestedName}`);
+}
+
+// 导出文件：每次弹出保存对话框选择位置
+function downloadExport() {
+  saveTextToFolder(`${safeFileName()}.lua`, $('modal-text').value, 'text/plain');
+}
+
+// ============================================================
+//  编辑器存档：保存/加载节点位置与内容，可再次编辑
+// ============================================================
+function buildEditorData() {
+  return {
+    editor: "quanta-robot-node-editor",
+    version: 1,
+    name: state.caseName || "case1",
+    root: state.root,
+    nextId: state.nextId,
+    nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, n]) => [id, {
+      type: n.type,
+      x: Math.round(n.x),
+      y: Math.round(n.y),
+      data: JSON.parse(JSON.stringify(n.data)),
+    }])),
+    connections: state.connections.map(c => ({ from: c.from, port: c.port, to: c.to })),
+  };
+}
+
+// 保存存档：已有工作目录时静默写入（不弹对话框），无则选目录并设为工作路径
+async function saveEditorFile() {
+  const name = safeFileName();
+  const fname = `${name}.edit.json`;
+  const text = JSON.stringify(buildEditorData(), null, 2);
+
+  // 已有工作目录：直接写入
+  if (await ensureWorkDirWritable()) {
+    try {
+      const fh = await workDirHandle.getFileHandle(fname, { create: true });
+      const w = await fh.createWritable();
+      await w.write(text);
+      await w.close();
+      upsertSubCase(name, fname, fh);
+      toast(`已保存 ${fname} 到工作目录`);
+      return;
+    } catch (e) { /* 写入异常 → 走选目录流程 */ }
+  }
+
+  // 无工作目录：选择目录并设为工作路径
+  if (window.showDirectoryPicker) {
+    let dir = null;
+    try {
+      dir = await window.showDirectoryPicker({ mode: 'readwrite' });
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+    if (dir) {
+      workDirHandle = dir;
+      try {
+        const fh = await dir.getFileHandle(fname, { create: true });
+        const w = await fh.createWritable();
+        await w.write(text);
+        await w.close();
+        subCases = [];
+        await scanSubCaseDir(dir, '');
+        updatePropPanel();
+        toast(`已保存 ${fname}，工作目录已设置`);
+      } catch (e) {
+        uiAlert('保存失败: ' + e.message);
+      }
+      return;
+    }
+  }
+
+  // 浏览器不支持 → 回退为普通保存对话框
+  saveTextToFolder(fname, text, 'application/json');
+}
+
+function applyEditorData(data) {
+  if (!data || !data.nodes) throw new Error('不是有效的编辑器存档文件');
+  state.caseName = data.name || 'case1';
+  $('case-name').value = state.caseName;
+  state.root = data.root ?? null;
+  state.nextId = data.nextId || 1;
+  state.nodes = {};
+  state.connections = [];
+  state.selected = null;
+  state.selectedConn = null;
+  for (const [id, n] of Object.entries(data.nodes)) {
+    if (!NODE_TYPES[n.type]) throw new Error(`未知节点类型: ${n.type}`);
+    state.nodes[parseInt(id)] = {
+      type: n.type,
+      x: n.x || 0,
+      y: n.y || 0,
+      data: JSON.parse(JSON.stringify(n.data || {})),
+    };
+    const nd = state.nodes[parseInt(id)].data;
+    nd.name = nd.name || (n.type + '节点');
+  }
+  state.connections = (data.connections || []).map(c => ({ from: c.from, port: c.port, to: c.to }));
+  if (state.root == null || !state.nodes[state.root]) {
+    state.root = Object.keys(state.nodes).length ? parseInt(Object.keys(state.nodes)[0]) : null;
+  }
+  renderAll();
+  updatePropPanel();
+}
+
+// 应用导出格式的用例数据（示例加载等内部使用）
+function applyCaseData(data) {
+  state.caseName = data.name || "case1";
+  $('case-name').value = state.caseName;
+  state.root = data.root;
+  state.nodes = {};
+  state.connections = [];
+  state.nextId = 1;
+
+  for (const [idStr, conf] of Object.entries(data.nodes)) {
+    const id = parseInt(idStr);
+    if (id >= state.nextId) state.nextId = id + 1;
+    const type = conf.type;
+    const nodeData = {};
+    const def = NODE_TYPES[type];
+    for (const f of def.fields) {
+      if (conf[f.key] !== undefined) nodeData[f.key] = JSON.parse(JSON.stringify(conf[f.key]));
+    }
+    if (type === 'SWITCH') {
+      nodeData._targetKeys = (conf.targets || []).map(t => t[0]);
+      nodeData._keyType = (conf.targets || []).some(t => typeof t[0] === 'number') ? 'number' : 'string';
+    }
+    if (type === 'RAND') {
+      nodeData._targetKeys = (conf.targets || []).map((t, i) => String(i + 1));
+    }
+    nodeData.name = conf.name || (type + '节点');
+    // 自动布局
+    const count = Object.keys(state.nodes).length;
+    const x = 80 + (count % 5) * 210;
+    const y = 60 + Math.floor(count / 5) * 160;
+    state.nodes[id] = {type, x, y, data: nodeData};
+
+    // 解析连接
+    if (conf.next != null) state.connections.push({from: id, port: 'next', to: conf.next});
+    if (conf.result) {
+      if (conf.result.success != null) state.connections.push({from: id, port: 'success', to: conf.result.success});
+      if (conf.result.failed != null) state.connections.push({from: id, port: 'failed', to: conf.result.failed});
+    }
+    if (conf.targets) {
+      conf.targets.forEach((t, i) => {
+        state.connections.push({from: id, port: `target_${i}`, to: type === 'RAND' ? t : t[1]});
+      });
+    }
+  }
+  state.selected = null;
+  state.selectedConn = null;
+  renderAll();
+  updatePropPanel();
+}
+
+// ============================================================
+//  工作目录：用例存档的默认保存位置，也是子用例列表的来源
+// ============================================================
+let workDirHandle = null;   // 工作目录句柄（仅存内存，刷新页面后需重新选择）
+let subCases = [];          // {name, path, handle}
+
+// 确保工作目录有读写权限（浏览器可能在会话恢复后回收权限）
+async function ensureWorkDirWritable() {
+  if (!workDirHandle || workDirHandle.kind !== 'directory') return false;
+  if (await workDirHandle.queryPermission({ mode: 'readwrite' }) === 'granted') return true;
+  return await workDirHandle.requestPermission({ mode: 'readwrite' }) === 'granted';
+}
+
+// 设置工作目录；已有工作目录时只刷新其下的用例列表，不再弹选择框
+async function pickWorkDir() {
+  if (!window.showDirectoryPicker) {
+    uiAlert('当前浏览器不支持目录选择，请使用 Edge 或 Chrome');
+    return;
+  }
+  // 已有工作目录：恢复权限后直接刷新扫描
+  if (workDirHandle && workDirHandle.kind === 'directory') {
+    if (await ensureWorkDirWritable()) {
+      await refreshSubCases();
+      return;
+    }
+    // 权限无法恢复 → 继续走重新选择
+  }
+  try {
+    workDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;
+    uiAlert('打开目录失败: ' + e.message);
+    return;
+  }
+  await refreshSubCases();
+}
+
+// 工具栏显示当前工作目录名
+function updateWorkDirLabel() {
+  const el = $('workdir-label');
+  if (el) el.textContent = workDirHandle ? `当前: ${workDirHandle.name}` : '未设置';
+}
+
+async function refreshSubCases() {
+  if (!workDirHandle) return;
+  subCases = [];
+  try {
+    await scanSubCaseDir(workDirHandle, '');
+  } catch (e) {
+    uiAlert('扫描目录失败: ' + e.message);
+  }
+  toast(`工作目录「${workDirHandle.name}」找到 ${subCases.length} 个用例`);
+  updatePropPanel();
+  updateWorkDirLabel();
+}
+
+async function scanSubCaseDir(dirHandle, prefix) {
+  for await (const [name, handle] of dirHandle.entries()) {
+    if (handle.kind === 'directory') {
+      await scanSubCaseDir(handle, prefix + name + '/');
+    } else if (name.endsWith('.edit.json')) {
+      // 优先使用存档内的用例名，其次文件名；同名去重
+      let caseName = name.replace(/\.edit\.json$/, '');
+      try {
+        const data = JSON.parse(await (await handle.getFile()).text());
+        if (data.name) caseName = data.name;
+      } catch (err) { /* 文件损坏时退回文件名 */ }
+      if (!subCases.some(sc => sc.name === caseName)) {
+        subCases.push({ name: caseName, path: prefix + name, handle });
+      }
+    }
+  }
+}
+
+// 打开：无工作目录时先选目录（其路径即为工作路径），再从目录存档列表中点选打开
+async function openCaseFile() {
+  if (!workDirHandle) {
+    await pickWorkDir();
+    if (!workDirHandle) return; // 用户取消
+  }
+  if (!subCases.length) await refreshSubCases();
+  if (!subCases.length) { toast('工作目录下没有 edit.json 存档'); return; }
+  if (subCases.length === 1) { await openSubCase(subCases[0]); return; }
+  showSubCasePicker();
+}
+
+async function openSubCase(sc) {
+  try {
+    const data = JSON.parse(await (await sc.handle.getFile()).text());
+    if (Array.isArray(data.connections)) {
+      applyEditorData(data);   // 编辑器存档（含节点位置）
+    } else if (data.nodes) {
+      applyCaseData(data);     // 导出格式（自动布局）
+    } else {
+      throw new Error('无法识别的文件格式');
+    }
+    closeModal();
+    toast(`已打开 ${sc.name}`);
+  } catch (e) {
+    uiAlert('打开失败: ' + e.message);
+  }
+}
+
+// 用例选择列表（工作目录下有多个存档时弹出）
+function showSubCasePicker() {
+  const items = subCases.map((sc, i) =>
+    `<div class="case-item" onclick="pickSubCase(${i})">
+       <span class="case-name">${escapeHtml(sc.name)}</span>
+       <span class="case-path">${escapeHtml(sc.path)}</span>
+     </div>`).join('');
+  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>打开用例（${subCases.length}）</h3><button class="close" onclick="closeModal()">×</button></div>
+      <div class="modal-body"><div class="case-list">${items}</div></div>
+    </div>
+  </div>`;
+  $('modal-bg').onclick = closeModal;
+}
+
+function pickSubCase(i) { openSubCase(subCases[i]); }
+
+// 保存后把存档加入/更新到用例列表（CASE 节点下拉框立即可选）
+function upsertSubCase(name, path, handle) {
+  const i = subCases.findIndex(sc => sc.name === name);
+  const entry = { name, path, handle };
+  if (i >= 0) subCases[i] = entry; else subCases.push(entry);
+  updatePropPanel();
+}
+
+// ============================================================
+//  协议定义：载入 proto.json，供 REQ/NTF 节点筛选选择
+// ============================================================
+let protoDefs = {};        // { 协议名: {msg_id, type, name, fields:{字段:类型}} }
+let protoByMsgId = {};     // { msg_id: 协议定义 }（消息列表按 cmd_id 反查协议名/类型）
+
+// 解析协议数据（格式与 proto.json 一致）
+function loadProtoData(obj) {
+  protoDefs = {};
+  protoByMsgId = {};
+  for (const [key, item] of Object.entries(obj || {})) {
+    if (!item || typeof item !== 'object') continue;
+    protoDefs[key] = {
+      msg_id: item.msg_id || 0,
+      type: item.type || '',
+      name: item.name || key,
+      fields: (item.fields && typeof item.fields === 'object') ? item.fields : {},
+    };
+    if (item.msg_id) protoByMsgId[item.msg_id] = protoDefs[key];
+  }
+}
+
+// 工具栏：选择协议文件载入
+async function pickProtoFile() {
+  let text = null;
+  if (window.showOpenFilePicker) {
+    try {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'JSON 文件', accept: { 'application/json': ['.json'] } }],
+      });
+      text = await (await handle.getFile()).text();
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+      text = null; // 环境不支持 → 回退普通文件选择框
+    }
+  }
+  if (text === null) {
+    text = await pickFileViaInput();
+    if (text === null) return;
+  }
+  try {
+    loadProtoData(JSON.parse(text));
+  } catch (e) {
+    uiAlert('协议文件解析失败: ' + e.message);
+    return;
+  }
+  toast(`已加载 ${Object.keys(protoDefs).length} 个协议`);
+  renderMsgList(); showMsgDetail();   // 已收到的消息立即补全协议名/类型
+  updatePropPanel();
+}
+
+// 普通文件选择框回退（无 File System Access API 的浏览器）
+function pickFileViaInput() {
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsText(file);
+    };
+    input.click();
+  });
+}
+
+
+// 选中协议：记录名称；REQ 依据协议 fields 自动生成输入参数
+function applyProtoSelection(nodeId, key, name, nodeType, fromProto) {
+  const node = state.nodes[nodeId];
+  if (!node) return;
+  node.data[key] = name;
+  if (nodeType === 'REQ' && fromProto) {
+    const p = protoDefs[name];
+    const inputs = {};
+    for (const fname of Object.keys((p && p.fields) || {})) {
+      inputs[fname] = { type: 'attr', value: '' };
+    }
+    node.data.inputs = inputs;
+  }
+  renderNodes();
+  updatePropPanel();
+}
+
+function pickProto(nodeId, key, name) {
+  const nodeType = state.nodes[nodeId] ? state.nodes[nodeId].type : '';
+  applyProtoSelection(nodeId, key, name, nodeType, true);
+}
+
+// 协议下拉：展开与输入筛选
+function protoComboShow(input) {
+  const list = input.parentElement.querySelector('.combo-list');
+  if (list) list.style.display = '';
+}
+
+function protoComboFilter(input) {
+  const list = input.parentElement.querySelector('.combo-list');
+  if (!list) return;
+  list.style.display = '';
+  const kw = input.value.trim().toLowerCase();
+  list.querySelectorAll('.combo-item').forEach(item => {
+    const v = (item.dataset.v || '').toLowerCase();
+    item.style.display = (!kw || v.includes(kw)) ? '' : 'none';
+  });
+}
+
+// 失焦：收起列表；与协议名精确匹配（忽略大小写）时按选择处理，否则按自由文本保存
+// 面板重建（如已选中其他协议）后，旧渲染的失焦回调作废，避免旧值把新选择重置回去
+function protoComboBlur(input, nodeId, key, gen) {
+  setTimeout(() => {
+    if (gen !== undefined && gen !== propPanelGen) return;
+    const list = input.parentElement && input.parentElement.querySelector('.combo-list');
+    if (list) list.style.display = 'none';
+    const v = input.value.trim();
+    if (!v) return;
+    const node = state.nodes[nodeId];
+    if (!node) return;
+    const nodeType = node.type;
+    const wantType = nodeType === 'NTF' ? 'ntf' : 'req';
+    const lv = v.toLowerCase();
+    let p = null;
+    for (const cand of Object.values(protoDefs)) {
+      if (cand.type === wantType && cand.name.toLowerCase() === lv) { p = cand; break; }
+    }
+    if (node.data[key] === (p ? p.name : v)) return;
+    applyProtoSelection(nodeId, key, p ? p.name : v, nodeType, !!p);
+  }, 200);
+}
+
+// JSON转Lua表
+function jsonToLua(obj, indent) {
+  indent = indent || 0;
+  const pad = '    '.repeat(indent);
+  const pad2 = '    '.repeat(indent + 1);
+  // 输入/输出定义 {type, value}：number 类型的值导出为数字字面量，其余导出为字符串
+  if (!Array.isArray(obj) && typeof obj === 'object') {
+    const ik = Object.keys(obj);
+    if (ik.length === 2 && ik.includes('type') && ik.includes('value') && typeof obj.type === 'string') {
+      if (obj.type === 'number') {
+        const num = parseFloat(obj.value);
+        return '{ type = "number", value = ' + (isNaN(num) ? 0 : num) + ' }';
+      }
+      return '{ type = "' + obj.type + '", value = ' + jsonToLua(obj.value, indent) + ' }';
+    }
+  }
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '{}';
+    // 简单数组（元素全为标量，或全为标量对）导出为单行，如 targets = { {1, 2}, {"3", 4} }
+    const isScalar = v => v === null || ['string', 'number', 'boolean'].includes(typeof v);
+    const simple = obj.every(isScalar) || obj.every(v => Array.isArray(v) && v.every(isScalar));
+    if (simple) return '{' + obj.map(v => jsonToLua(v, indent)).join(', ') + '}';
+    const lines = obj.map(v => pad2 + jsonToLua(v, indent + 1) + ',');
+    return '{\n' + lines.join('\n') + '\n' + pad + '}';
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return '{}';
+    const lines = keys.map(k => {
+      const key = /^\d+$/.test(k) ? `[${k}]` : k;
+      return pad2 + key + ' = ' + jsonToLua(obj[k], indent + 1) + ',';
+    });
+    return '{\n' + lines.join('\n') + '\n' + pad + '}';
+  }
+  if (typeof obj === 'string') {
+    if (obj.includes('\n')) return '[[' + obj + ']]';
+    return '"' + obj.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"';
+  }
+  if (typeof obj === 'boolean') return obj ? 'true' : 'false';
+  if (obj === null || obj === undefined) return 'nil';
+  return String(obj);
+}
+
+// ============================================================
+//  模态框
+// ============================================================
+function showModal(title, text) {
+  const c = $('modal-container');
+  c.innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>${title}</h3><button class="close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <textarea id="modal-text">${escapeHtml(text)}</textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="primary" onclick="downloadExport()">保存文件</button>
+        <button class="secondary" onclick="closeModal()">关闭</button>
+      </div>
+    </div>
+  </div>`;
+  $('modal-bg').onclick = closeModal;
+}
+
+function closeModal() { $('modal-container').innerHTML = ''; }
+
+// ============================================================
+//  日志面板：画布下方，可拖拽调高、开关、输出执行信息
+// ============================================================
+function appendLog(msg, autoShow = true) {
+  const panel = $('log-panel');
+  if (autoShow && !panel.classList.contains('show')) panel.classList.add('show');  // 有日志时自动展开
+  const box = $('log-body');
+  const time = new Date().toTimeString().substring(0, 8);
+  box.textContent += `[${time}] ${msg}\n`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function toggleLogPanel() {
+  closeMsgFilterDD();
+  $('log-panel').classList.toggle('show');
+}
+
+function clearLog() {
+  $('log-body').textContent = '';
+}
+
+// 日志/消息 Tab 切换
+let activeLogTab = 'log';
+function switchLogTab(tab) {
+  closeMsgFilterDD();
+  activeLogTab = tab;
+  $('log-body').style.display = tab === 'log' ? '' : 'none';
+  $('tab-msg').style.display = tab === 'msg' ? 'flex' : 'none';
+  $('tab-btn-log').classList.toggle('active', tab === 'log');
+  $('tab-btn-msg').classList.toggle('active', tab === 'msg');
+  if (tab === 'msg') renderMsgFilter();
+}
+
+function clearActiveTab() {
+  if (activeLogTab === 'msg') {
+    msgList = [];
+    selectedMsgIdx = -1;
+    renderMsgList();
+    showMsgDetail();
+  } else {
+    clearLog();
+  }
+}
+
+// ============================================================
+//  消息 Tab：收发消息列表（左）与内容详情（右），按类型着色
+// ============================================================
+let msgList = [];          // {id, content, time}（协议名/类型渲染时动态反查）
+let selectedMsgIdx = -1;
+let msgProtoHinted = false;   // 协议未载入的提示只输出一次
+let msgProtoFilter = new Set();   // 勾选的协议名集合（空 = 显示全部），仅存内存
+
+// 按协议过滤后的可见消息（保留原始索引供选中；协议名渲染时动态反查）
+function getVisibleMsgs() {
+  const items = msgList.map((m, i) => ({ m, i, meta: msgMeta(m) }));
+  return msgProtoFilter.size ? items.filter(x => msgProtoFilter.has(x.meta.name)) : items;
+}
+
+// 消息协议信息：渲染时按 cmd_id 动态反查协议名与类型（req/res/ntf），
+// 协议文件后载入时，已收到的消息也能立即补全名字与颜色
+function msgMeta(m) {
+  const p = protoByMsgId[m.id];
+  return { name: p ? p.name : String(m.id), type: (p && p.type) || 'ntf' };
+}
+
+function renderMsgList() {
+  const box = $('msg-list');
+  const items = getVisibleMsgs();
+  box.innerHTML = items.length
+    ? items.map(({ m, i, meta }) =>
+        `<div class="msg-item msg-${meta.type}${i === selectedMsgIdx ? ' selected' : ''}" onclick="selectMsg(${i})">
+           <span class="msg-name">${escapeHtml(meta.name)}</span><span class="msg-id">${m.id}</span>
+         </div>`).join('')
+    : `<div class="combo-empty">${msgList.length ? '当前筛选下无消息' : '暂无消息'}</div>`;
+  updateMfCount();
+}
+
+function updateMfCount() {
+  const el = $('mf-count');
+  if (el) el.textContent = msgProtoFilter.size ? `已选 ${msgProtoFilter.size}` : '';
+}
+
+// 协议过滤：聚焦/输入时在输入框旁展开下拉（挂 body 层，按输入框位置动态定位）
+function msgFilterOpen() {
+  renderMsgFilter();
+  const dd = $('msg-filter-dd');
+  const rect = $('mf-input').getBoundingClientRect();
+  dd.style.left = rect.left + 'px';
+  dd.style.width = Math.max(rect.width, 280) + 'px';
+  // 默认向上展开；上方空间不足时改为向下
+  if (rect.top > 260) {
+    dd.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+    dd.style.top = 'auto';
+  } else {
+    dd.style.top = rect.bottom + 4 + 'px';
+    dd.style.bottom = 'auto';
+  }
+  dd.classList.add('open');
+}
+
+function closeMsgFilterDD() {
+  const dd = $('msg-filter-dd');
+  if (dd) dd.classList.remove('open');
+}
+
+function renderMsgFilter() {
+  const box = $('msg-filter-list');
+  const kw = ($('mf-input').value || '').trim().toLowerCase();
+  const protos = Object.values(protoDefs).sort((a, b) => (a.msg_id || 0) - (b.msg_id || 0));
+  const matched = protos.filter(p => !kw || p.name.toLowerCase().includes(kw));
+  box.innerHTML = !protos.length
+    ? `<div class="combo-empty">未载入协议，请点击工具栏「载入协议」</div>`
+    : (matched.length
+        ? matched.map(p =>
+            `<label class="mf-item" data-name="${escapeAttr(p.name)}">
+               <input type="checkbox" ${msgProtoFilter.has(p.name) ? 'checked' : ''} onchange="toggleMsgProtoFilter('${escapeAttr(p.name)}', this.checked)">
+               <span>${escapeHtml(p.name)}</span><span class="mf-id">${p.msg_id || ''}</span>
+             </label>`).join('')
+        : `<div class="combo-empty">无匹配协议</div>`);
+}
+
+function toggleMsgProtoFilter(name, checked) {
+  if (checked) msgProtoFilter.add(name); else msgProtoFilter.delete(name);
+  updateMfCount();
+  renderMsgList();
+}
+
+// 点击下拉与输入框之外时收起协议过滤
+document.addEventListener('click', e => {
+  const dd = $('msg-filter-dd');
+  if (!dd || !dd.classList.contains('open')) return;
+  const t = e.target;
+  if (!dd.contains(t) && !(t.closest && t.closest('#msg-filter-combo'))) closeMsgFilterDD();
+});
+
+// 批量追加消息（执行轮询增量显示）；超过上限时丢弃最旧的
+const MSG_CAP = 500;
+function appendMsgs(items) {
+  if (!items || !items.length) return;
+  for (const it of items) msgList.push(it);
+  if (msgList.length > MSG_CAP) msgList = msgList.slice(-MSG_CAP);
+  selectedMsgIdx = msgList.length - 1;
+  renderMsgList();
+  showMsgDetail();
+}
+
+// 时间戳格式化为 yyyy-MM-dd HH:mm:ss（兼容秒/毫秒时间戳）
+function formatTimestamp(ts) {
+  if (!ts) return '';
+  const ms = Number(ts) < 1e12 ? Number(ts) * 1000 : Number(ts);
+  const d = new Date(ms);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function selectMsg(i) {
+  if (!msgList[i]) return;
+  selectedMsgIdx = i;
+  renderMsgList();
+  showMsgDetail();
+}
+
+function showMsgDetail() {
+  const m = msgList[selectedMsgIdx];
+  if (!m) {
+    $('msg-detail-head').textContent = '';
+    $('msg-detail-pre').textContent = '未选择消息';
+    return;
+  }
+  const meta = msgMeta(m);
+  $('msg-detail-head').textContent =
+    `时间：${formatTimestamp(m.time)} ｜ 类型：${meta.type} ｜ 协议：${meta.name}（${m.id}）`;
+  $('msg-detail-pre').textContent = typeof m.content === 'string' ? m.content : JSON.stringify(m.content, null, 2);
+}
+
+// 拖拽日志面板上边缘调整高度
+(function initLogResize() {
+  const handle = $('log-resize');
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const panel = $('log-panel');
+    const startY = e.clientY;
+    const startH = panel.offsetHeight;
+    handle.classList.add('dragging');
+    const onMove = ev => {
+      const h = Math.max(80, Math.min(window.innerHeight * 0.6, startH + (startY - ev.clientY)));
+      panel.style.height = h + 'px';
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
+
+// ============================================================
+//  执行面板：拼接 http://地址:端口/url?参数 并发起请求
+// ============================================================
+const EXEC_PORT = '10401';   // accord HTTP 服务默认端口
+const execOpts = { addr: '127.0.0.1', port: EXEC_PORT, openid: '10001', srvAddr: '127.0.0.1', srvPort: '20013', params: [] };  // 记住上次配置
+let execMode = 'case';     // 'case' | 'node'
+let execNodeId = null;     // 节点模式下待执行的节点 id
+let lastExecUrl = null;    // 上次执行的完整url（节点▶直执行复用，强制换成/node路径）
+
+// 上次执行url换成 /node 路径（保留查询参数），供节点▶直执行
+function lastExecNodeUrl() {
+  const q = lastExecUrl.indexOf('?');
+  const m = lastExecUrl.match(/^https?:\/\/[^\/]+/);
+  const origin = m ? m[0] : lastExecUrl.slice(0, q < 0 ? undefined : q);
+  return origin + '/node' + (q >= 0 ? lastExecUrl.slice(q) : '');
+}
+
+function showExecPanel(urlPath, nodeId) {
+  execMode = urlPath;
+  execNodeId = nodeId !== undefined ? nodeId : null;
+  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>执行（${urlPath === 'node' ? '运行节点' : '运行用例'}）</h3>
+        <button class="close" onclick="closeModal()">×</button></div>
+      <div class="modal-body">
+        <div class="io-row">
+          <div class="field" style="flex:1"><label>机器人地址</label>
+            <input type="text" id="exec-addr" value="${escapeAttr(execOpts.addr)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="width:110px"><label>机器人端口</label>
+            <input type="text" id="exec-port" value="${escapeAttr(execOpts.port)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="flex:1"><label>url</label>
+            <input type="text" id="exec-url" value="${escapeAttr(urlPath)}" oninput="updateExecPreview()"></div>
+        </div>
+        <div class="io-row">
+          <div class="field" style="flex:1"><label>服务器地址</label>
+            <input type="text" id="exec-srv-addr" value="${escapeAttr(execOpts.srvAddr)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="width:110px"><label>服务器端口</label>
+            <input type="text" id="exec-srv-port" value="${escapeAttr(execOpts.srvPort)}" oninput="execConfigChanged()"></div>
+          <div class="field" style="flex:1"><label>openid</label>
+            <input type="text" id="exec-openid" value="${escapeAttr(execOpts.openid)}" oninput="execConfigChanged()"></div>
+        </div>
+        <div class="field"><label>输入参数列表</label>
+          <div id="exec-params"></div>
+          <button class="add-btn" onclick="addExecParam()">+ 添加参数</button>
+        </div>
+        <div class="field"><label>完整请求</label>
+          <div class="exec-preview" id="exec-preview"></div>
+        </div>
+        <div class="field" id="exec-result-wrap" style="display:none"><label>执行结果</label>
+          <div class="exec-result" id="exec-result"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="primary" onclick="doExecute()">执行</button>
+        <button class="secondary" onclick="closeModal()">取消</button>
+      </div>
+    </div>
+  </div>`;
+  execOpts.params.forEach(p => addExecParam(p.key, p.value));
+  updateExecPreview();
+}
+
+function addExecParam(key, value) {
+  const row = document.createElement('div');
+  row.className = 'exec-row';
+  row.innerHTML = `<input class="er-key" placeholder="参数名" value="${escapeAttr(key || '')}" oninput="execParamChanged()">
+    <input class="er-val" placeholder="参数值" value="${escapeAttr(value || '')}" oninput="execParamChanged()">
+    <button class="del-btn" onclick="this.parentElement.remove();execParamChanged()" title="删除">×</button>`;
+  $('exec-params').appendChild(row);
+  execParamChanged();
+}
+
+// 参数变更时实时保存到内存（无需点击执行，重新打开面板即回填）
+function execParamChanged() {
+  execOpts.params = collectExecParams();
+  updateExecPreview();
+}
+
+// 固定配置（机器人地址/端口、openid、服务器地址/端口）变更时实时保存到内存
+function execConfigChanged() {
+  execOpts.addr = $('exec-addr').value.trim();
+  execOpts.port = $('exec-port').value.trim();
+  execOpts.openid = $('exec-openid').value.trim();
+  execOpts.srvAddr = $('exec-srv-addr').value.trim();
+  execOpts.srvPort = $('exec-srv-port').value.trim();
+  updateExecPreview();
+}
+
+function collectExecParams() {
+  const rows = [];
+  document.querySelectorAll('#exec-params .exec-row').forEach(row => {
+    const key = row.querySelector('.er-key').value.trim();
+    if (key) rows.push({ key, value: row.querySelector('.er-val').value });
+  });
+  return rows;
+}
+
+function buildExecUrl() {
+  const addr = $('exec-addr').value.trim() || '127.0.0.1';
+  const port = $('exec-port').value.trim() || EXEC_PORT;
+  const urlPath = $('exec-url').value.trim().replace(/^\/+/, '');
+  const query = [];
+  collectExecParams().forEach(p => {
+    query.push(`${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`);
+  });
+  // openid 与服务器地址/端口追加到完整 URL 后面
+  const openid = $('exec-openid').value.trim();
+  const srvAddr = $('exec-srv-addr').value.trim();
+  const srvPort = $('exec-srv-port').value.trim();
+  if (openid) query.push(`open_id=${encodeURIComponent(openid)}`);
+  if (srvAddr) query.push(`addr=${encodeURIComponent(srvAddr)}`);
+  if (srvPort) query.push(`port=${encodeURIComponent(srvPort)}`);
+  return `http://${addr}:${port}/${urlPath}${query.length ? '?' + query.join('&') : ''}`;
+}
+
+function updateStopBtn() {
+  const btn = $('exec-stop');
+  if (btn) btn.style.display = execActive ? '' : 'none';
+}
+
+function updateExecPreview() {
+  const url = buildExecUrl();
+  $('exec-preview').innerHTML = url
+    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`
+    : '';
+}
+
+async function doExecute(urlOverride) {
+  const url = urlOverride || buildExecUrl();
+  lastExecUrl = url;   // 记住本次url，供节点▶直执行复用
+  // 记住本次配置，下次打开面板自动回填（直执行时面板未打开，跳过DOM读取，execOpts 已是最新）
+  if (!urlOverride) {
+    execConfigChanged();
+    execOpts.params = collectExecParams();
+  }
+  appendLog(`执行 ${url}`);
+  // 组装请求体：case = 整个用例导出；node = 单节点配置（JSON，服务端自动解码为表）
+  let body = null;
+  if (execMode === 'node') {
+    const conf = exportNode(execNodeId);
+    if (!conf) { uiAlert('节点不存在或已被删除'); return; }
+    body = JSON.stringify(conf);
+  } else {
+    execNodeState = {};
+    lastExecNodeLog = {};
+    lastExecLog = '';
+    execCaseDone = null;
+    execNoRobot = false;
+    execPollErr = false;
+    refreshExecBadge();
+    body = JSON.stringify(buildExportData());
+  }
+  const wrap = $('exec-result-wrap'), box = $('exec-result');
+  if (box) {   // 直执行时面板未打开，结果仅写日志
+    wrap.style.display = '';
+    box.textContent = '执行中...';
+  }
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+    const text = await res.text();
+    const respText = text.length > 800 ? text.substring(0, 800) + ' ...' : text;
+    appendLog(`状态码 ${res.status} ｜ 返回 ${respText}`);
+    if (box) box.textContent = `状态码 ${res.status}\n${respText}`;
+    // 用例模式：提交成功后进入轮询，绘制执行状态
+    if (execMode !== 'node') {
+      let data = null;
+      try { data = JSON.parse(text); } catch (e) {}
+      if (data && data.code === 0) {
+        execActive = true;      // 机器人已创建（出错时服务端也不会清理，停止按钮保持可用）
+        updateStopBtn();
+        applyExecStatus(data);
+        startExecPolling();
+        closeModal();
+      }
+    }
+  } catch (e) {
+    appendLog(`请求失败：${e.message}`);
+    if (box) box.textContent = `请求失败：${e.message}\n（可能是服务未启动或跨域限制，可点击上方链接直接打开）`;
+  }
+}
+
+// ============================================================
+//  执行状态轮询：每秒拉取 /status 并在画布上绘制节点状态
+// ============================================================
+let execPollTimer = null;
+let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'
+let lastExecLog = '';
+let lastExecNodeLog = {};     // nodeId -> 上次输出的状态（状态全量返回，仅变化时输出）
+let execActive = false;       // 机器人是否已在服务器创建（控制停止按钮显隐）
+let execCaseDone = null;      // null=运行中/未知 true=完成 false=失败（结束提示只输出一次）
+let execNoRobot = false;      // robot not exist 提示去重
+let execPollErr = false;      // 轮询请求失败提示去重
+
+function startExecPolling() {
+  stopExecPolling();
+  appendLog('开始轮询执行状态...', false);
+  execPollTimer = setInterval(pollExecStatus, 1000);
+  pollExecStatus();
+}
+
+function stopExecPolling() {
+  if (execPollTimer) {
+    clearInterval(execPollTimer);
+    execPollTimer = null;
+  }
+}
+
+async function pollExecStatus() {
+  const addr = execOpts.addr || '127.0.0.1';
+  const port = execOpts.port || EXEC_PORT;
+  const openId = execOpts.openid || '';
+  const url = `http://${addr}:${port}/status?open_id=${encodeURIComponent(openId)}`;
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    const data = await res.json();
+    if (data.code !== 0) {
+      // 不自动停止轮询（robot 可能重新创建），仅状态变化时提示一次
+      if (!execNoRobot) {
+        execNoRobot = true;
+        appendLog(`状态轮询：${data.msg || 'robot not exist'}`, false);
+      }
+      return;
+    }
+    execNoRobot = false;
+    execPollErr = false;
+    applyExecStatus(data);
+    pollExecMessages();   // 与状态轮询同频（每秒），服务端返回即增量，失败静默
+    // 摘要（变化时才写日志）
+    const nodes = (data.msg && data.msg.case && data.msg.case.nodes) || {};
+    const counts = { running: 0, ok: 0, err: 0 };
+    // 每个节点状态变化时输出执行结果（含节点名；状态为全量返回，仅变化时输出）
+    for (const [id, s] of Object.entries(nodes)) {
+      const statusText = s.error ? '失败' : (s.successed ? '成功' : (s.running ? '运行中' : '等待'));
+      if (lastExecNodeLog[id] !== statusText) {
+        lastExecNodeLog[id] = statusText;
+        const node = state.nodes[id];
+        const name = node ? (node.data.name || (node.type + '节点')) : '未知节点';
+        const errText = s.error ? (typeof s.error === 'object' ? JSON.stringify(s.error) : String(s.error)) : '';
+        appendLog(`节点 #${id} (${name}) ${statusText}${errText ? '：' + errText : ''}`, false);
+      }
+      if (s.error) counts.err++;
+      else if (s.successed) counts.ok++;
+      else if (s.running) counts.running++;
+    }
+    const text = `执行状态：运行 ${counts.running} ｜ 成功 ${counts.ok} ｜ 失败 ${counts.err}`;
+    if (text !== lastExecLog) {
+      lastExecLog = text;
+      appendLog(text, false);
+    }
+    // 用例结束判定：提示一次，不自动停止轮询（由用户点击「停止」结束）
+    const caseSt = (data.msg && data.msg.case) || {};
+    if (caseSt.successed === true) {
+      if (execCaseDone !== true) {
+        execCaseDone = true;
+        appendLog('用例执行完成（轮询中，点击停止结束）', false);
+      }
+    } else if (caseSt.successed === false) {
+      if (execCaseDone !== false) {
+        execCaseDone = false;
+        appendLog(`用例执行失败：${caseSt.error || '未知错误'}（轮询中，点击停止结束）`, false);
+      }
+    } else {
+      execCaseDone = null;   // 用例重新运行时允许再次提示
+    }
+  } catch (e) {
+    // 请求失败不停止轮询，下一秒自动重试，仅失败开始时提示一次
+    if (!execPollErr) {
+      execPollErr = true;
+      appendLog(`状态轮询失败：${e.message}`, false);
+    }
+  }
+}
+
+// 拉取执行消息：GET /message（服务端 fetch_messages 排空式返回，拿到即增量）
+async function pollExecMessages() {
+  const addr = execOpts.addr || '127.0.0.1';
+  const port = execOpts.port || EXEC_PORT;
+  const openId = execOpts.openid || '';
+  const url = `http://${addr}:${port}/message?open_id=${encodeURIComponent(openId)}`;
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    const data = await res.json();
+    if (data.code !== 0 || !Array.isArray(data.msg) || !data.msg.length) return;
+    if (!Object.keys(protoDefs).length && !msgProtoHinted) {
+      msgProtoHinted = true;
+      appendLog('提示：未载入协议文件，消息列表无法解析协议名与类型；点击工具栏「载入协议」后自动补全', false);
+    }
+    // 只存原始 cmd_id/data/time，协议名与类型在渲染时动态反查（协议后载入也能补全）
+    appendMsgs(data.msg.map(m => ({ id: m.cmd_id, content: m.data, time: m.time })));
+  } catch (e) { /* 消息拉取失败不打断执行轮询，下一秒自动重试 */ }
+}
+
+// 状态应用到画布节点
+function applyExecStatus(data) {
+  const msg = data.msg || {};
+  const nodes = (msg.case && msg.case.nodes) || {};
+  execNodeState = {};
+  for (const [id, s] of Object.entries(nodes)) {
+    if (s.error) execNodeState[id] = 'err';
+    else if (s.successed) execNodeState[id] = 'ok';
+    else if (s.running) execNodeState[id] = 'running';
+  }
+  refreshExecBadge();
+}
+
+const EXEC_STATUS_TEXT = { running: '运行中', ok: '成功', err: '失败' };
+
+// 应用节点执行状态徽标与边框（renderNodes 重建与轮询刷新共用）
+function applyExecBadge(el, id) {
+  el.classList.remove('exec-running', 'exec-ok', 'exec-err');
+  const old = el.querySelector('.exec-badge');
+  if (old) old.remove();
+  const s = execNodeState[id];
+  if (!s) return;
+  el.classList.add('exec-' + s);
+  const head = el.querySelector('.node-head');
+  if (head) {
+    const badge = document.createElement('span');
+    badge.className = 'exec-badge exec-badge-' + s;
+    badge.textContent = EXEC_STATUS_TEXT[s];
+    head.appendChild(badge);
+  }
+}
+
+function refreshExecBadge() {
+  for (const el of canvas.querySelectorAll('.node')) {
+    applyExecBadge(el, el.dataset.id);
+  }
+}
+
+// ============================================================
+//  辅助
+// ============================================================
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeAttr(s) { return escapeHtml(s).replace(/"/g,'&quot;'); }
+function toast(msg) {
+  appendLog(msg, false);  // 弹出提示同步写一份到日志
+  const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// 弹窗提示同步写一份到日志
+function uiAlert(msg) {
+  appendLog(msg, false);
+  alert(msg);
+}
+
+// 停止执行：通知服务器销毁机器人，并复位画布状态
+async function stopExecute() {
+  if (!execActive) {
+    toast('当前没有正在执行的用例');
+    return;
+  }
+  const addr = execOpts.addr || '127.0.0.1';
+  const port = execOpts.port || EXEC_PORT;
+  const openId = execOpts.openid || '';
+  const url = `http://${addr}:${port}/stop?open_id=${encodeURIComponent(openId)}`;
+  appendLog(`停止执行 ${url}`, false);
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ open_id: openId }) });
+    const data = await res.json();
+    appendLog(`停止结果：${data.msg || 'ok'}`, false);
+  } catch (e) {
+    appendLog(`停止请求失败：${e.message}`);
+  }
+  execActive = false;
+  stopExecPolling();
+  execNodeState = {};
+  execCaseDone = null;
+  execNoRobot = false;
+  execPollErr = false;
+  lastExecUrl = null;   // 停止后清空执行状态：节点▶不再直执行，重新弹面板配置
+  refreshExecBadge();
+  updateStopBtn();
+  toast('已停止执行');
+}
+
+function clearAll() {
+  if (!confirm('确定清空所有节点？')) return;
+  state.nodes = {}; state.connections = []; state.root = null; state.selected = null; state.nextId = 1;
+  renderAll(); updatePropPanel();
+}
+
+// 启动
+init();
+</script>
+</body>
+</html>

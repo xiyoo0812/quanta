@@ -76,14 +76,14 @@ namespace lcodec {
 
         codec_base* get_content_type_codec(string_view content) {
             if (content.empty()) return nullptr;
-            if (auto it = m_codecs.find(content.data()); it != m_codecs.end()) {
+            if (auto it = m_codecs.find(content); it != m_codecs.end()) {
                 return it->second;
             }
             return nullptr;
         }
     protected:
         codec_base* m_encoding = nullptr;
-        map<string, codec_base*> m_codecs;
+        map<string, codec_base*, std::less<>> m_codecs;
     };
 
     class httpcodec : public http_codec_base {

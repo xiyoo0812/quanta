@@ -23,6 +23,8 @@ function LobbyServlet:__init()
     protobuf_mgr:register(self, "NID_LOGIN_PLAYER_LOGIN_REQ", "on_player_login_req")
     protobuf_mgr:register(self, "NID_LOGIN_PLAYER_LOGOUT_REQ", "on_player_logout_req")
     protobuf_mgr:register(self, "NID_LOGIN_PLAYER_RELOAD_REQ", "on_player_reload_req")
+    -- gm命令
+    protobuf_mgr:register(self, "NID_GM_COMMAND_REQ", "on_gm_command_req")
 end
 
 function LobbyServlet:on_attr_synchronous(entity, entity_id, attrs, battrs)
@@ -45,6 +47,12 @@ function LobbyServlet:on_player_offline_ntf(session, message, body, response)
         log_warn("[LobbyServlet][on_player_offline_ntf] player({}) offline", player_id)
         player:offline()
     end
+end
+
+-- gm命令
+function LobbyServlet:on_gm_command_req(session, message, body, response)
+    log_debug("[LobbyServlet][on_gm_command_req] gm command req body({}) !", body)
+    return FRAME_SUCCESS
 end
 
 function LobbyServlet:on_player_login_req(session, message, body, response)
