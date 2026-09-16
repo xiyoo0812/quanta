@@ -1,0 +1,332 @@
+{
+    "NID_LOGIN_RANDOM_NAME_RES": {
+        "msg_id": 10006,
+        "type": "res",
+        "name": "NID_LOGIN_RANDOM_NAME_RES",
+        "fields": {
+            "name": "string",
+            "error_code": "uint32"
+        }
+    },
+    "NID_GATE_BIND_SERVER_RES": {
+        "msg_id": 2004,
+        "type": "res",
+        "name": "NID_GATE_BIND_SERVER_RES",
+        "fields": {
+            "error_code": "uint32"
+        }
+    },
+    "NID_LOGIN_PLAYER_CHOOSE_RES": {
+        "msg_id": 10010,
+        "type": "res",
+        "name": "NID_LOGIN_PLAYER_CHOOSE_RES",
+        "fields": {
+            "lobby_id": "uint32",
+            "gate_ip": "string",
+            "verify_code": "uint32",
+            "error_code": "uint32",
+            "gate_port": "uint32",
+            "player_id": "uint64"
+        }
+    },
+    "NID_GATE_KICK_CLIENT_RES": {
+        "msg_id": 2008,
+        "type": "res",
+        "name": "NID_GATE_KICK_CLIENT_RES",
+        "fields": {
+            "error_code": "uint32"
+        }
+    },
+    "NID_LOGIN_PLAYER_DELETE_RES": {
+        "msg_id": 10012,
+        "type": "res",
+        "name": "NID_LOGIN_PLAYER_DELETE_RES",
+        "fields": {
+            "error_code": "uint32"
+        }
+    },
+    "NID_HEARTBEAT_REQ": {
+        "msg_id": 1001,
+        "type": "req",
+        "name": "NID_HEARTBEAT_REQ",
+        "fields": {
+            "time": "uint64",
+            "serial": "uint32"
+        }
+    },
+    "NID_LOGIN_ACCOUNT_RELOAD_RES": {
+        "msg_id": 10004,
+        "type": "res",
+        "name": "NID_LOGIN_ACCOUNT_RELOAD_RES",
+        "fields": {
+            "error_code": "uint32",
+            "players": "message",
+            "user_id": "uint64"
+        }
+    },
+    "NID_LOGIN_PLAYER_LOGIN_REQ": {
+        "msg_id": 10013,
+        "type": "req",
+        "name": "NID_LOGIN_PLAYER_LOGIN_REQ",
+        "fields": {
+            "open_id": "string",
+            "player_id": "uint64"
+        }
+    },
+    "NID_ENTITY_ENTER_SCENE_NTF": {
+        "msg_id": 12101,
+        "type": "ntf",
+        "name": "NID_ENTITY_ENTER_SCENE_NTF",
+        "fields": {
+            "id": "uint64",
+            "pos_x": "int32/sint32",
+            "type": "enum",
+            "attrs": "message",
+            "map_id": "uint32",
+            "scene_id": "uint64",
+            "dir_y": "int32/sint32",
+            "pos_z": "int32/sint32",
+            "pos_y": "int32/sint32"
+        }
+    },
+    "NID_GATE_VERIFY_CODE_NTF": {
+        "msg_id": 2010,
+        "type": "ntf",
+        "name": "NID_GATE_VERIFY_CODE_NTF",
+        "fields": {
+            "verify_code": "uint32"
+        }
+    },
+    "NID_GATE_LOST_CLIENT_NTF": {
+        "msg_id": 2011,
+        "type": "ntf",
+        "name": "NID_GATE_LOST_CLIENT_NTF",
+        "fields": {
+            "player_id": "uint32"
+        }
+    },
+    "NID_GATE_BIND_SERVICE_REQ": {
+        "msg_id": 2005,
+        "type": "req",
+        "name": "NID_GATE_BIND_SERVICE_REQ",
+        "fields": {
+            "client_id": "uint32",
+            "server_id": "uint32",
+            "token": "uint32"
+        }
+    },
+    "NID_LOGIN_PLAYER_RELOAD_REQ": {
+        "msg_id": 10017,
+        "type": "req",
+        "name": "NID_LOGIN_PLAYER_RELOAD_REQ",
+        "fields": {
+            "open_id": "string",
+            "player_id": "uint64",
+            "lobby": "uint32",
+            "token": "uint32"
+        }
+    },
+    "NID_GM_COMMAND_REQ": {
+        "msg_id": 1003,
+        "type": "req",
+        "name": "NID_GM_COMMAND_REQ",
+        "fields": {
+            "command": "string"
+        }
+    },
+    "NID_GATE_KICK_CLIENT_NTF": {
+        "msg_id": 2009,
+        "type": "ntf",
+        "name": "NID_GATE_KICK_CLIENT_NTF",
+        "fields": {
+            "reason": "enum"
+        }
+    },
+    "NID_GATE_BIND_CLIENT_RES": {
+        "msg_id": 2002,
+        "type": "res",
+        "name": "NID_GATE_BIND_CLIENT_RES",
+        "fields": {
+            "error_code": "uint32"
+        }
+    },
+    "NID_ENTITY_LEAVE_SCENE_NTF": {
+        "msg_id": 12102,
+        "type": "ntf",
+        "name": "NID_ENTITY_LEAVE_SCENE_NTF",
+        "fields": {
+            "scene_id": "uint64",
+            "id": "uint64"
+        }
+    },
+    "NID_GATE_BIND_CLIENT_REQ": {
+        "msg_id": 2001,
+        "type": "req",
+        "name": "NID_GATE_BIND_CLIENT_REQ",
+        "fields": {
+            "client_id": "uint32",
+            "server_id": "uint32",
+            "verify_code": "uint32"
+        }
+    },
+    "NID_GM_COMMAND_RES": {
+        "msg_id": 1004,
+        "type": "res",
+        "name": "NID_GM_COMMAND_RES",
+        "fields": {
+            "error_msg": "string",
+            "error_code": "uint32"
+        }
+    },
+    "NID_GATE_KICK_CLIENT_REQ": {
+        "msg_id": 2007,
+        "type": "req",
+        "name": "NID_GATE_KICK_CLIENT_REQ",
+        "fields": {
+            "player_id": "uint32"
+        }
+    },
+    "NID_HEARTBEAT_RES": {
+        "msg_id": 1002,
+        "type": "res",
+        "name": "NID_HEARTBEAT_RES",
+        "fields": {
+            "error_code": "uint32",
+            "time": "uint64",
+            "serial": "uint32"
+        }
+    },
+    "NID_LOGIN_PLAYER_LOGIN_RES": {
+        "msg_id": 10014,
+        "type": "res",
+        "name": "NID_LOGIN_PLAYER_LOGIN_RES",
+        "fields": {
+            "error_code": "uint32"
+        }
+    },
+    "NID_LOGIN_PLAYER_LOGOUT_REQ": {
+        "msg_id": 10015,
+        "type": "req",
+        "name": "NID_LOGIN_PLAYER_LOGOUT_REQ",
+        "fields": {
+            "player_id": "uint64"
+        }
+    },
+    "NID_LOGIN_PLAYER_CHOOSE_REQ": {
+        "msg_id": 10009,
+        "type": "req",
+        "name": "NID_LOGIN_PLAYER_CHOOSE_REQ",
+        "fields": {
+            "user_id": "uint64",
+            "player_id": "uint64"
+        }
+    },
+    "NID_GATE_BIND_SERVER_REQ": {
+        "msg_id": 2003,
+        "type": "req",
+        "name": "NID_GATE_BIND_SERVER_REQ",
+        "fields": {
+            "server_id": "uint32"
+        }
+    },
+    "NID_LOGIN_PLAYER_CREATE_RES": {
+        "msg_id": 10008,
+        "type": "res",
+        "name": "NID_LOGIN_PLAYER_CREATE_RES",
+        "fields": {
+            "error_code": "uint32",
+            "player": "message"
+        }
+    },
+    "NID_LOGIN_PLAYER_RELOAD_RES": {
+        "msg_id": 10018,
+        "type": "res",
+        "name": "NID_LOGIN_PLAYER_RELOAD_RES",
+        "fields": {
+            "error_code": "uint32",
+            "token": "uint32"
+        }
+    },
+    "NID_LOGIN_RANDOM_NAME_REQ": {
+        "msg_id": 10005,
+        "type": "req",
+        "name": "NID_LOGIN_RANDOM_NAME_REQ",
+        "fields": {}
+    },
+    "NID_LOGIN_PLAYER_DELETE_REQ": {
+        "msg_id": 10011,
+        "type": "req",
+        "name": "NID_LOGIN_PLAYER_DELETE_REQ",
+        "fields": {
+            "user_id": "uint64",
+            "player_id": "uint64"
+        }
+    },
+    "NID_LOGIN_PLAYER_CREATE_REQ": {
+        "msg_id": 10007,
+        "type": "req",
+        "name": "NID_LOGIN_PLAYER_CREATE_REQ",
+        "fields": {
+            "facade": "message",
+            "gender": "uint32",
+            "user_id": "uint64",
+            "name": "string"
+        }
+    },
+    "NID_LOGIN_ACCOUNT_RELOAD_REQ": {
+        "msg_id": 10003,
+        "type": "req",
+        "name": "NID_LOGIN_ACCOUNT_RELOAD_REQ",
+        "fields": {
+            "session": "string",
+            "device_id": "string",
+            "openid": "string"
+        }
+    },
+    "NID_LOGIN_PLAYER_LOGOUT_RES": {
+        "msg_id": 10016,
+        "type": "res",
+        "name": "NID_LOGIN_PLAYER_LOGOUT_RES",
+        "fields": {
+            "error_code": "uint32"
+        }
+    },
+    "NID_ENTITY_ATTR_UPDATE_NTF": {
+        "msg_id": 12103,
+        "type": "ntf",
+        "name": "NID_ENTITY_ATTR_UPDATE_NTF",
+        "fields": {
+            "attrs": "message",
+            "id": "uint64"
+        }
+    },
+    "NID_LOGIN_ACCOUNT_LOGIN_RES": {
+        "msg_id": 10002,
+        "type": "res",
+        "name": "NID_LOGIN_ACCOUNT_LOGIN_RES",
+        "fields": {
+            "error_code": "uint32",
+            "players": "message",
+            "user_id": "uint64"
+        }
+    },
+    "NID_GATE_BIND_SERVICE_RES": {
+        "msg_id": 2006,
+        "type": "res",
+        "name": "NID_GATE_BIND_SERVICE_RES",
+        "fields": {
+            "error_code": "uint32"
+        }
+    },
+    "NID_LOGIN_ACCOUNT_LOGIN_REQ": {
+        "msg_id": 10001,
+        "type": "req",
+        "name": "NID_LOGIN_ACCOUNT_LOGIN_REQ",
+        "fields": {
+            "platform": "enum",
+            "device_id": "string",
+            "session": "string",
+            "openid": "string"
+        }
+    }
+}

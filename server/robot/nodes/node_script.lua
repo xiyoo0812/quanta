@@ -16,10 +16,9 @@ function NodeScript:on_load(conf)
     return true
 end
 
-function NodeScript:on_action()
+function NodeScript:on_start()
     self:write_outputs(self.outputs)
     self:run_script(self.script)
-    return true
 end
 
 return NodeScript

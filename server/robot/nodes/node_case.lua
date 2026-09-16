@@ -1,5 +1,6 @@
 --node_case.lua
 local tcopy     = table.copy
+local sformat   = string.format
 
 local NodeBase  = import("robot/nodes/node_base.lua")
 
@@ -15,15 +16,26 @@ function NodeCase:on_load(conf)
     if not ccase then
         return false
     end
+    self.name = sformat("%s-%s:%s", conf.name, self.id, ccase.name)
     tcopy(conf.in_args, self.actor.variables)
     ccase:set_parent(self.case)
     self.child = ccase
     return true
 end
 
-function NodeCase:on_action()
+function NodeCase:on_start()
     if self.child then
         self.actor:run_case(self.child)
+    end
+end
+
+function NodeCase:on_update()
+    if self.child then
+        local successed = self.child:get_successed()
+        if successed == false then
+            self:failed(self.child.error)
+        end
+        return successed ~= nil
     end
     return true
 end
