@@ -26,17 +26,17 @@ function NodeSwitch:go_next()
     end
 end
 
-function NodeSwitch:on_action()
+function NodeSwitch:on_start()
     local role = self.actor
-    local skey = self:read_input("key")
+    local skey = self:read_input(self.inputs.key)
     if skey == nil then
-        log_warn("[NodeSwitch][on_action] robot:{} switch key null", role.open_id)
-        self:failed("switch null")
+        log_warn("[NodeSwitch][on_start] robot:{} switch {} key read failed", role.open_id, self.name)
+        self:failed("switch key read failed")
         return false
     end
     local branch = self.targets[skey]
     if not branch then
-        log_warn("[NodeSwitch][on_action] robot:{} switch key {} not valid", role.open_id, skey)
+        log_warn("[NodeSwitch][on_start] robot:{} switch {} key {} not valid", role.open_id, self.name, skey)
         self:failed("switch not valid")
         return false
     end

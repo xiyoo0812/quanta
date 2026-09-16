@@ -1,67 +1,90 @@
 --node_base.lua
 local tcopy         = table.copy
 local sformat       = string.format
+local log_err       = logger.err
+local log_info      = logger.info
 local log_warn      = logger.warn
 
-local event_mgr     = quanta.get("event_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
 
 local NodeBase = class()
 local prop = property(NodeBase)
+prop:reader("id", nil)          --id
 prop:reader("case", nil)        --case
-prop:reader("next", nil)        --next
+prop:reader("name", nil)        --name
+prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor
-prop:reader("before ", nil)     --before
 prop:reader("after", nil)       --after
+prop:reader("before", nil)      --before
+prop:reader("successed", nil)   --successed
+prop:reader("running", false)   --running
+prop:reader("result", true)     --result
 
-function NodeBase:__init(case)
+function NodeBase:__init(case, id)
+    self.id = id
     self.case = case
     self.actor = case.actor
 end
 
-function NodeBase:watch(cmd_id)
-    event_mgr:notify_listener("on_watch_message", cmd_id)
+function NodeBase:destroy()
 end
 
 function NodeBase:load(conf)
     self.next = conf.next
     self.after = conf.after
     self.before = conf.before
+    self.name = sformat("%s-%s", conf.name, self.id)
     return self:on_load(conf)
+end
+
+-- 获取状态
+function NodeBase:get_status()
+    return { running = self.running, successed = self.successed, error = self.error }
 end
 
 --写入输出
 function NodeBase:write_output(name, output, res)
     local role = self.actor
+    local outval = output.value
     if output.type == "attr" then
-        role[name] = res[output.value]
+        if res[outval] then
+            role[name] = res[outval]
+        end
         return true
     end
     if output.type == "var" then
-        role.variables[name] = res[output.value]
+        if res[outval] then
+            role.variables[name] = res[outval]
+        end
         return true
     end
     if output.type == "lua" then
-        role[name] = self:call_script(output.value, res)
+        role[name] = self:call_script(outval, res)
         return true
     end
-    role[name] = output.value
+    if outval ~= nil then
+        role[name] = outval
+    end
     return true
 end
 
 --读取输入
 function NodeBase:read_input(input)
     local role = self.actor
+    local intval = input.value
     if input.type == "var" then
-        return role.variables[input.value]
+        return role.variables[intval]
     end
     if input.type == "attr" then
-        return role[input.value]
+        return role[intval]
+    end
+    if input.type == "number" then
+        return tonumber(intval)
     end
     if input.type == "lua" then
-        return self:call_script(input.value)
+        return self:call_script(intval)
     end
-    return input.value
+    return intval
 end
 
 --批量输入
@@ -70,8 +93,8 @@ function NodeBase:read_inputs(inputs)
     for name, input in pairs(inputs or {}) do
         local value = self:read_input(input)
         if value == nil then
-            log_warn("[NodeBase][read_inputs] name:{} avalue {} failed: {}", name, input.value, value)
-            return
+            log_warn("[NodeBase][read_inputs] node:{} name:{} value {} failed: {}", self.name, name, input.value, value)
+            return nil, sformat("collect inputs %s failed!", name)
         end
         values[name] = value
     end
@@ -107,11 +130,13 @@ function NodeBase:exec_script(expr, res)
     local ok, func = pcall(load(expr))
     if not ok then
         log_warn("[NodeBase][exec_script] robot:{} load script {} failed: {}", role.open_id, expr, func)
+        self:failed(func)
         return
     end
     local ok2, value = pcall(func, role, role.variables, res)
     if not ok2 then
         log_warn("[NodeBase][exec_script] robot:{} exec script {} failed: {}", role.open_id, expr, value)
+        self:failed(value)
         return
     end
     return value
@@ -122,30 +147,65 @@ function NodeBase:sleep(ms)
     thread_mgr:sleep(ms)
 end
 
---执行
-function NodeBase:action()
+function NodeBase:start()
+    self.running = true
     self:run_script(self.before)
-    if not self:on_action() then
+    local ok, res = pcall(self.on_start, self)
+    if not ok then
+        self:failed(res)
+        return false
+    end
+    return true
+end
+
+function NodeBase:stop()
+    self.successed = true
+    local ok, res = pcall(self.on_stop, self)
+    if not ok then
+        self:failed(res)
         return
     end
     self:run_script(self.after)
+    log_info("[NodeBase][stop] robot:{} node:{} run success!", self.actor.open_id, self.name)
     self:go_next()
+end
+
+--执行
+function NodeBase:update()
+    if not self.running then
+        if not self:start() then
+            return
+        end
+    end
+    if self:on_update() then
+        self:stop()
+    end
 end
 
 function NodeBase:go_next()
     self.case:run_next(self.next)
 end
 
-function NodeBase:failed()
+function NodeBase:failed(error)
+    self.error = error
+    self.result = false
+    self.successed = false
+    log_err("[NodeBase][failed] robot:{} node:{} error: {}", self.actor.open_id, self.name, error)
     self.case:failed()
 end
 
-function NodeBase:on_action()
-    return true
+function NodeBase:on_update()
+    return self.result
 end
 
 function NodeBase:on_load(conf)
     return true
+end
+
+function NodeBase:on_start()
+end
+
+function NodeBase:on_stop()
 end
 
 return NodeBase

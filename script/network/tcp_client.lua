@@ -188,9 +188,10 @@ function TcpClient:close()
 end
 
 function TcpClient:output(cmd_id, data, type, session_id, flag, target_id)
-    local ok = self.socket.call_client(cmd_id, flag, type, session_id, target_id, data)
+    local func = self.socket.call_client
+    local ok, res = pcall(func, cmd_id, flag, type, session_id, target_id, data)
     if not ok then
-        return false
+        return false, res
     end
     if not session_id or session_id <= 0 then
         return true
@@ -199,14 +200,14 @@ function TcpClient:output(cmd_id, data, type, session_id, flag, target_id)
 end
 
 -- 发送数据
-function TcpClient:send(cmd_id, data, type)
-    return self:output(cmd_id, data, type or RELAY_SELF, 0, FLAG_REQ, 0)
+function TcpClient:send(cmd_id, data, type, target_id)
+    return self:output(cmd_id, data, type or RELAY_SELF, 0, FLAG_REQ, target_id or 0)
 end
 
 -- 发起远程命令
-function TcpClient:call(cmd_id, data, type)
+function TcpClient:call(cmd_id, data, type, target_id)
     local session_id = lnext_id() & 0xffff
-    return self:output(cmd_id, data, type or RELAY_SELF, session_id, FLAG_REQ, 0)
+    return self:output(cmd_id, data, type or RELAY_SELF, session_id, FLAG_REQ, target_id or 0)
 end
 
 -- 等待NTF命令或者非RPC命令
