@@ -2,14 +2,17 @@
 import("robot/robot_mgr.lua")
 
 local log_debug     = logger.debug
+local sformat       = string.format
 
 local HttpServer    = import("network/http_server.lua")
 
-local robot_mgr     = quanta.get("robot_mgr")
+local scheduler     = quanta.get("scheduler")
+local event_mgr     = quanta.get("event_mgr")
 
 local AccordMgr = singleton()
 local prop = property(AccordMgr)
 prop:reader("http_server", nil)
+prop:reader("workers", {})
 
 function AccordMgr:__init()
     -- 创建HTTP服务器
@@ -26,13 +29,16 @@ function AccordMgr:__init()
     self.http_server = server
 end
 
-function AccordMgr:load_robot(params, create)
-    local robot = robot_mgr:get_robot(params.open_id)
-    if robot then
-        return robot
+function AccordMgr:load_worker(open_id, create)
+    local thread_name = self.workers[open_id]
+    if thread_name then
+        return thread_name
     end
     if create then
-        return robot_mgr:create_robot(params.addr, params.port, params.open_id)
+        thread_name = sformat("robot_worker_%s", open_id)
+        scheduler:startup(thread_name, "robot.worker.robot")
+        self.workers[open_id] = thread_name
+        return thread_name
     end
 end
 
@@ -40,50 +46,75 @@ end
 ----------------------------------------------------------------------
 -- 拉取日志
 function AccordMgr:on_message(url, body, params)
-    -- log_debug("[AccordMgr][on_message] open_id: {}", params.open_id)
-    local robot = robot_mgr:get_robot(params.open_id)
-    if robot then
-        return { code = 0, msg = robot:fetch_messages() }
+    local open_id = params.open_id
+    local thread_name = self:load_worker(open_id, false)
+    if thread_name then
+        local ok, messages = scheduler:call(thread_name, "fetch_robot_messages", open_id)
+        if ok then
+            return { code = 0, msg = messages }
+        end
+        return { code = -1, msg = "fetch robot messages failed" }
     end
-    return { code = -1, msg = "robot not exist" }
+    return { code = -1, msg = "robot worker not exist" }
 end
 
 -- 拉取状态
 function AccordMgr:on_status(url, body, params)
-    -- log_debug("[AccordMgr][on_status] open_id: {}", params.open_id)
-    local robot = robot_mgr:get_robot(params.open_id)
-    if robot then
-        return { code = 0, msg = robot:get_status() }
+    local open_id = params.open_id
+    local thread_name = self:load_worker(open_id, false)
+    if thread_name then
+        local ok, status = scheduler:call(thread_name, "fetch_robot_status", open_id)
+        if ok then
+            return { code = 0, msg = status }
+        end
+        return { code = -1, msg = "fetch robot status failed" }
     end
-    return { code = -1, msg = "robot not exist" }
+    return { code = -1, msg = "robot worker not exist" }
 end
 
 -- 执行节点
 function AccordMgr:on_node(url, body, params)
     log_debug("[AccordMgr][on_node] params:{}, data:{}", params, body)
-    local robot = self:load_robot(params)
-    if robot then
-        local node = robot:mount_node(body)
-        return { code = node and 0 or -1, msg = node and "success" or "failed" }
+    local open_id = params.open_id
+    local thread_name = self:load_worker(open_id, false)
+    if thread_name then
+        local ok, res = scheduler:call(thread_name, "run_robot_node", open_id, body)
+        if ok then
+            return { code = res and 0 or -1, msg = res and "success" or "failed" }
+        end
+        return { code = -1, msg = res }
     end
-    return { code = -1, msg = "robot not exist" }
+    return { code = -1, msg = "robot worker not exist" }
 end
 
 -- 执行用例
 function AccordMgr:on_case(url, body, params)
     log_debug("[AccordMgr][on_case] params:{}, data:{}", params, body)
-    local robot = self:load_robot(params, true)
-    local case = robot:create_case_by_data(body)
-    if case then
-        robot:startup(case)
+    local open_id, addr, port = params.open_id, params.addr, params.port
+    local thread_name = self:load_worker(open_id, true)
+    if thread_name then
+        local ok, res = scheduler:call(thread_name, "run_robot_case", open_id, addr, port, body)
+        if ok then
+            return { code = res and 0 or -1, msg = res and "success" or "failed" }
+        end
+        return { code = -1, msg = res }
     end
-    return { code = 0, msg = "success" }
+    return { code = -1, msg = "robot worker not exist" }
 end
 
 -- 停止用例
 function AccordMgr:on_stop(url, body, params)
     log_debug("[AccordMgr][on_stop] body:{}", body)
-    return robot_mgr:destory_robot(body.open_id)
+    local open_id = params.open_id
+    local thread_name = self:load_worker(open_id, false)
+    if thread_name then
+        scheduler:call(thread_name, "stop_robot_task")
+        event_mgr:fire_frame(function()
+            self.workers[open_id] = nil
+            scheduler:stop(thread_name)
+        end)
+    end
+    return { code = -1, msg = "success" }
 end
 
 quanta.accord_mgr = AccordMgr()

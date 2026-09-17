@@ -1,19 +1,15 @@
 --robot_worker.lua
 import("robot/robot_mgr.lua")
 
-local mceil         = math.ceil
 local qmax          = qmath.max
 local tinsert       = table.insert
 local sformat       = string.format
 local log_debug     = logger.debug
 local lnow          = timer.now
-local ltime         = timer.time
-local lclock_ms     = timer.clock_ms
 
 local timer_mgr     = quanta.get("timer_mgr")
 local robot_mgr     = quanta.get("robot_mgr")
 local event_mgr     = quanta.get("event_mgr")
-local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local http_client   = quanta.http_client()
 
@@ -29,13 +25,15 @@ prop:reader("watch_cmds", {})
 
 function RobotWorker:__init()
     --task监听
-    event_mgr:add_listener(self, "stop_robot_task")
+    event_mgr:add_listener(self, "run_robot_case")
+    event_mgr:add_listener(self, "run_robot_node")
+    event_mgr:add_listener(self, "fetch_robot_status")
+    event_mgr:add_listener(self, "fetch_robot_messages")
     event_mgr:add_listener(self, "startup_robot_task")
-    event_mgr:add_listener(self, "on_watch_message")
+    event_mgr:add_listener(self, "stop_robot_task")
     --协议hook
     event_mgr:add_listener(self, "on_recv_message")
     event_mgr:add_listener(self, "on_error_message")
-    event_mgr:register_hook(self, "on_ccmd_send", "on_message_hook")
     --初始化参数
     self.review.samples = {}
     self.review.child = quanta.title
@@ -44,23 +42,21 @@ function RobotWorker:__init()
 end
 
 -- 启动机器人任务
--- rate: 单个机器人活动速率：多少毫秒发一次消息
-function RobotWorker:startup_robot_task(start_open_id, num, ip, port, start_time, conf)
-    log_debug("[RobotWorker][startup_robot_task] addr:{}:{} start_time:{}, num:{} conf:{}", ip, port, start_time, num, conf)
-    --计算槽位，30ms一个槽位
-    local slot = mceil(conf.hertz / SLOT_TIME)
+-- hertz: 单个机器人活动速率：多少毫秒发一次消息
+function RobotWorker:startup_robot_task(open_id, id, num, ip, port, time, case, hertz)
+    log_debug("[RobotWorker][startup_robot_task] addr:{}:{} id:{} num:{} case:{} hertz:{}", ip, port, id, num, case, hertz)
     --计算所有机器人对表时间
-    local diff_time = start_time - quanta.now
-    local period = 1000 * (qmax(diff_time, 1))
+    local diff_time = time - quanta.now
+    local period = 1000 * (qmax(diff_time, 0))
     for i = 1, num do
-        local open_id_no = start_open_id + i
-        local open_id = sformat("test_%d", open_id_no)
-        local robot = robot_mgr:create_robot(ip, port, open_id)
+        local open_id_no = id + i
+        local real_open_id = sformat("%s_%d", open_id, open_id_no)
+        local robot = robot_mgr:create_robot(ip, port, real_open_id, true)
         --计算机器人启动延时
-        local slottime = (open_id_no % slot) * SLOT_TIME
+        local slottime = i * SLOT_TIME
         log_debug("[Robot][startup_robot_task] robot {} dalay {} action!", robot.open_id, slottime)
-        timer_mgr:once(period + slottime * i, function()
-            robot:load_case(conf.script, conf.hertz)
+        timer_mgr:once(period + slottime, function()
+            robot:load_case(case, hertz)
         end)
     end
     --定时器汇报
@@ -69,25 +65,52 @@ function RobotWorker:startup_robot_task(start_open_id, num, ip, port, start_time
     end)
 end
 
+-- 运行机器人用例
+function RobotWorker:run_robot_case(open_id, addr, port, body)
+    log_debug("[RobotWorker][run_robot_case] addr:{}:{} open_id:{}", addr, port, open_id)
+    local robot = robot_mgr:get_robot(open_id)
+    if not robot then
+        robot = robot_mgr:create_robot(addr, port, open_id)
+    end
+    local case = robot:create_case_by_data(body)
+    if case then
+        robot:startup(case)
+    end
+    return true
+end
+
+-- 运行机器人用例节点
+function RobotWorker:run_robot_node(open_id, body)
+    log_debug("[RobotWorker][run_robot_node] open_id:{}", open_id)
+    local robot = robot_mgr:get_robot(open_id)
+    if robot then
+        robot:mount_node(body)
+        return true
+    end
+    return false
+end
+
+-- 获取机器人状态
+function RobotWorker:fetch_robot_status(open_id)
+    local robot = robot_mgr:get_robot(open_id)
+    if robot then
+        return robot:get_status()
+    end
+    return nil
+end
+
+-- 获取机器人消息
+function RobotWorker:fetch_robot_messages(open_id)
+    local robot = robot_mgr:get_robot(open_id)
+    if robot then
+        return robot:fetch_messages()
+    end
+end
+
 --停止机器人
 function RobotWorker:stop_robot_task()
     log_debug("[RobotWorker][stop_robot_task]")
-    robot_mgr:stop_robot()
-end
-
---观察消息
-function RobotWorker:on_watch_message(cmd_name)
-    local cmd_id = protobuf_mgr:msg_id(cmd_name)
-    log_debug("[RobotWorker][on_watch_message] watch cmd {}-{}", cmd_id, cmd_name)
-    self.watch_cmds[cmd_id] = true
-end
-
---send hook
-function RobotWorker:on_ccmd_send(hook, cmd_id)
-    local now_ms, btime = ltime()
-    hook:register(function()
-        self:review_command(cmd_id, now_ms, lclock_ms() - btime)
-    end)
+    robot_mgr:destory()
 end
 
 --发送汇报

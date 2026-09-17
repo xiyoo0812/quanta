@@ -30,12 +30,14 @@ prop:reader("relay_type", nil)      --relay_type
 prop:reader("hertz", 0)             --hertz
 prop:reader("target_id", 0)         --target_id
 prop:reader("running", false)       --running
+prop:reader("press", false)         --press
 prop:reader("messages", {})         --messages
 prop:reader("variables", {})        --variables
 
-function Robot:__init(ip, port, open_id)
+function Robot:__init(ip, port, open_id, press)
     self.ip = ip
     self.port = port
+    self.press = press
     self.open_id = open_id
     self.relay_type = RELAY_SELF
     self.device_id = guid_string()
@@ -160,7 +162,7 @@ function Robot:on_recv_tcp_message(message)
 end
 
 function Robot:push_message(cmd_id, data)
-    if cmd_id ~= 1001 and cmd_id ~= 1002 then
+    if (not self.press) and cmd_id ~= 1001 and cmd_id ~= 1002 then
         tinsert(self.messages, {cmd_id = cmd_id, data = data, time = otime() })
     end
 end

@@ -12,18 +12,10 @@ prop:reader("robots", {})   --robots
 function RobotMgr:__init()
 end
 
---停止脚本，上报内容
-function RobotMgr:stop_robot()
-    for open_id, robot in pairs(self.robots) do
-        robot:stop_case()
-        self.robots[open_id] = nil
-    end
-end
-
 -- setup
-function RobotMgr:create_robot(ip, port, open_id)
+function RobotMgr:create_robot(ip, port, open_id, press)
     log_debug("[RobotMgr][create_robot]: {}:{} {}", ip, port, open_id)
-    local robot = Robot(ip, port, open_id)
+    local robot = Robot(ip, port, open_id, press)
     self.robots[open_id] = robot
     return robot
 end
@@ -40,6 +32,14 @@ function RobotMgr:destory_robot(open_id)
         return { code = 0, msg = "success" }
     end
     return { code = -1, msg = "robot not exist" }
+end
+
+--停止脚本，上报内容
+function RobotMgr:destory()
+    for open_id, robot in pairs(self.robots) do
+        robot:destroy()
+    end
+    self.robots = {}
 end
 
 quanta.robot_mgr = RobotMgr()
