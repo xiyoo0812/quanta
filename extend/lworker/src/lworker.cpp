@@ -15,7 +15,7 @@ namespace lworker {
             schedulor.setup(L, ns);
             return 0;
         });
-        llworker.set_function("startup", [](lua_State* L, vstring name, vstring conf) {
+        llworker.set_function("thread_up", [](lua_State* L, vstring name, vstring conf) {
             environ_map args = lua_to_native<environ_map>(L, 3);
             return schedulor.startup(name, args, conf);
         });

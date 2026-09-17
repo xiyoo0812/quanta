@@ -49,6 +49,7 @@ namespace lworker {
     class ischeduler {
     public:
         virtual int broadcast(lua_State* L) = 0;
+        virtual bool startup(vstring name, environ_map& args, vstring conf) = 0;
         virtual int call(lua_State* L, vstring name, uint8_t* data, size_t data_len) = 0;
     };
 
@@ -165,6 +166,10 @@ namespace lworker {
                 size_t data_len;
                 uint8_t* data = m_codec.encode(L, 2, &data_len);
                 return m_schedulor->call(L, name, data, data_len);
+            });
+            quanta.set_function("thread_up", [&](lua_State* L, vstring name, vstring conf) {
+                environ_map args = lua_to_native<environ_map>(L, 3);
+                return m_schedulor->startup(name, args, conf);
             });
             quanta.set_function("broadcast", [&](lua_State* L) {
                 return m_schedulor->broadcast(L);

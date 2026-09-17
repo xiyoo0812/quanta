@@ -11,6 +11,7 @@ local wbroadcast    = worker.broadcast
 local wupdate       = worker.update
 local wcall         = worker.call
 
+local THREAD_NAME   = quanta.thread
 local FLAG_REQ      = luabus.proto_flag.REQ
 local FLAG_RES      = luabus.proto_flag.RES
 
@@ -29,6 +30,10 @@ function Scheduler:__init()
     event_mgr:add_trigger(self, "on_reload")
     --启动
     worker.setup("quanta")
+end
+
+function Scheduler:thread_name()
+    return THREAD_NAME
 end
 
 function Scheduler:on_reload()
@@ -50,7 +55,7 @@ function Scheduler:startup(name, entry, params, conf)
         args.entry = entry
         args.discover = "0"
     end
-    local ok, wok_oe = pcall(worker.startup, name, conf, args)
+    local ok, wok_oe = pcall(worker.thread_up, name, conf, args)
     if not ok then
         log_err("[Scheduler][startup] startup thread {} failed: {}", name, wok_oe)
     end
@@ -67,7 +72,7 @@ end
 --访问其他线程任务
 function Scheduler:broadcast(rpc, ...)
     local trace_id, span_id = extract_trace()
-    wbroadcast("", 0, FLAG_REQ, trace_id, span_id, "master", rpc, ...)
+    wbroadcast(0, FLAG_REQ, trace_id, span_id, "master", rpc, ...)
 end
 
 --访问其他线程任务
