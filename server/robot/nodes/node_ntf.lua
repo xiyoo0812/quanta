@@ -3,7 +3,6 @@ local log_warn      = logger.warn
 local log_debug     = logger.debug
 local sformat       = string.format
 
-local event_mgr     = quanta.get("event_mgr")
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
 local NodeBase      = import("robot/nodes/node_base.lua")
@@ -28,16 +27,13 @@ function NodeNtf:on_load(conf)
 end
 
 function NodeNtf:on_start()
-    local cmd_name = self.cmd_id
-    if cmd_name then
-        if type(cmd_name) == "number" then
-            cmd_name = protobuf_mgr:msg_name(cmd_name)
-        end
-        NodeNtf[cmd_name] = function(obj, session, message, body)
-            obj:write_outputs(obj.outputs, body)
-        end
-        event_mgr:add_pb_listener(self, cmd_name, cmd_name)
+    local cmd_id = self.cmd_id
+    if type(cmd_id) == "string" then
+        cmd_id = protobuf_mgr:msg_id(cmd_id)
     end
+    self.actor:register_hook(cmd_id, function(body)
+        self:write_outputs(self.outputs, body)
+    end)
 end
 
 function NodeNtf:on_update()

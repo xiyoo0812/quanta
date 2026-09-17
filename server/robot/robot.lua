@@ -33,6 +33,7 @@ prop:reader("running", false)       --running
 prop:reader("press", false)         --press
 prop:reader("messages", {})         --messages
 prop:reader("variables", {})        --variables
+prop:reader("msghooks", {})         --msghooks
 
 function Robot:__init(ip, port, open_id, press)
     self.ip = ip
@@ -157,7 +158,15 @@ function Robot:on_update()
     thread_mgr:sleep(self.hertz)
 end
 
+function Robot:register_hook(cmd_id, hook)
+    self.msghooks[cmd_id] = hook
+end
+
 function Robot:on_recv_tcp_message(message)
+    local hook = self.msghooks[message.cmd_id]
+    if hook then
+        hook(message.request)
+    end
     self:push_message(message.cmd_id, message.request)
 end
 
