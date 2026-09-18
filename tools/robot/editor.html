@@ -35,7 +35,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 .log-tab.active{background:#0e639c;color:#fff}
 #log-header .log-clear{background:none;border:none;color:#999;cursor:pointer;font-size:11px}
 #log-header .log-clear:hover{color:#fff}
-#log-body{flex:1;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.6;padding:4px 10px;color:#ccc;white-space:pre-wrap;word-break:break-all}
+#log-body{flex:1;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.6;padding:4px 10px;color:#ccc}
+#log-body .log-line{white-space:pre-wrap;word-break:break-all}
+.log-running{color:#e3b341}
+.log-ok{color:#4caf50}
+.log-err{color:#e2574c}
 /* 消息 Tab：左列表右详情 */
 #tab-msg{display:none;flex-direction:column;flex:1;overflow:hidden}
 #msg-body-row{display:flex;flex:1;overflow:hidden;min-height:0}
@@ -1358,7 +1362,6 @@ function setNodeName(id, val) {
   const node = state.nodes[id];
   if (!node) return;
   node.data.name = String(val || '').trim() || (node.type + '节点');
-  delete lastExecNodeLog[id];   // 名称变更后允许该节点重新输出一次状态日志
   renderNodes();
   updatePropPanel();
 }
@@ -2025,12 +2028,16 @@ function closeModal() { $('modal-container').innerHTML = ''; }
 // ============================================================
 //  日志面板：画布下方，可拖拽调高、开关、输出执行信息
 // ============================================================
-function appendLog(msg, autoShow = true) {
+function appendLog(msg, autoShow = true, cls = '') {
   const panel = $('log-panel');
   if (autoShow && !panel.classList.contains('show')) panel.classList.add('show');  // 有日志时自动展开
   const box = $('log-body');
   const time = new Date().toTimeString().substring(0, 8);
-  box.textContent += `[${time}] ${msg}\n`;
+  const line = document.createElement('div');
+  line.className = 'log-line' + (cls ? ' ' + cls : '');
+  line.textContent = `[${time}] ${msg}`;
+  box.appendChild(line);
+  while (box.childElementCount > 500) box.removeChild(box.firstChild);   // 限制历史行数
   box.scrollTop = box.scrollHeight;
 }
 
@@ -2364,9 +2371,6 @@ async function doExecute(urlOverride) {
     body = JSON.stringify(conf);
   } else {
     execNodeState = {};
-    lastExecNodeLog = {};
-    lastExecLog = '';
-    execCaseDone = null;
     execNoRobot = false;
     execPollErr = false;
     refreshExecBadge();
@@ -2390,7 +2394,6 @@ async function doExecute(urlOverride) {
       if (data && data.code === 0) {
         execActive = true;      // 机器人已创建（出错时服务端也不会清理，停止按钮保持可用）
         updateStopBtn();
-        applyExecStatus(data);
         startExecPolling();
         closeModal();
       }
@@ -2405,11 +2408,8 @@ async function doExecute(urlOverride) {
 //  执行状态轮询：每秒拉取 /status 并在画布上绘制节点状态
 // ============================================================
 let execPollTimer = null;
-let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'
-let lastExecLog = '';
-let lastExecNodeLog = {};     // nodeId -> 上次输出的状态（状态全量返回，仅变化时输出）
-let execActive = false;       // 机器人是否已在服务器创建（控制停止按钮显隐）
-let execCaseDone = null;      // null=运行中/未知 true=完成 false=失败（结束提示只输出一次）
+let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'（状态事件累积）
+let execActive = false;       // 机器人是否已在服务器创建（控制停止按钮显隐)
 let execNoRobot = false;      // robot not exist 提示去重
 let execPollErr = false;      // 轮询请求失败提示去重
 
@@ -2445,45 +2445,25 @@ async function pollExecStatus() {
     }
     execNoRobot = false;
     execPollErr = false;
-    applyExecStatus(data);
     pollExecMessages();   // 与状态轮询同频（每秒），服务端返回即增量，失败静默
-    // 摘要（变化时才写日志）
-    const nodes = (data.msg && data.msg.case && data.msg.case.nodes) || {};
-    const counts = { running: 0, ok: 0, err: 0 };
-    // 每个节点状态变化时输出执行结果（含节点名；状态为全量返回，仅变化时输出）
-    for (const [id, s] of Object.entries(nodes)) {
-      const statusText = s.error ? '失败' : (s.successed ? '成功' : (s.running ? '运行中' : '等待'));
-      if (lastExecNodeLog[id] !== statusText) {
-        lastExecNodeLog[id] = statusText;
-        const node = state.nodes[id];
-        const name = node ? (node.data.name || (node.type + '节点')) : '未知节点';
-        const errText = s.error ? (typeof s.error === 'object' ? JSON.stringify(s.error) : String(s.error)) : '';
-        appendLog(`节点 #${id} (${name}) ${statusText}${errText ? '：' + errText : ''}`, false);
+    // 服务端增量返回状态事件 [{case, node, id, state}]，排空式取走即新，无需去重
+    const events = Array.isArray(data.msg) ? data.msg : [];
+    if (!events.length) return;
+    // 每条事件即一次状态变化：按状态着色写日志（节点名由服务端下发）
+    const ownEvents = [];
+    for (const ev of events) {
+      const mapped = EXEC_STATE_MAP[ev.state];
+      const st = mapped || ev.state;
+      const text = EXEC_STATUS_TEXT[st] || ev.state;
+      const cls = mapped ? 'log-' + mapped : '';
+      if (ev.case && ev.case !== state.caseName) {
+        appendLog(`[子用例 ${ev.case}] 节点 #${ev.id} (${ev.node || '未知节点'}) ${text}`, false, cls);
+      } else {
+        ownEvents.push(ev);
+        appendLog(`节点 #${ev.id} (${ev.node || '未知节点'}) ${text}`, false, cls);
       }
-      if (s.error) counts.err++;
-      else if (s.successed) counts.ok++;
-      else if (s.running) counts.running++;
     }
-    const text = `执行状态：运行 ${counts.running} ｜ 成功 ${counts.ok} ｜ 失败 ${counts.err}`;
-    if (text !== lastExecLog) {
-      lastExecLog = text;
-      appendLog(text, false);
-    }
-    // 用例结束判定：提示一次，不自动停止轮询（由用户点击「停止」结束）
-    const caseSt = (data.msg && data.msg.case) || {};
-    if (caseSt.successed === true) {
-      if (execCaseDone !== true) {
-        execCaseDone = true;
-        appendLog('用例执行完成（轮询中，点击停止结束）', false);
-      }
-    } else if (caseSt.successed === false) {
-      if (execCaseDone !== false) {
-        execCaseDone = false;
-        appendLog(`用例执行失败：${caseSt.error || '未知错误'}（轮询中，点击停止结束）`, false);
-      }
-    } else {
-      execCaseDone = null;   // 用例重新运行时允许再次提示
-    }
+    applyExecStatus(ownEvents);
   } catch (e) {
     // 请求失败不停止轮询，下一秒自动重试，仅失败开始时提示一次
     if (!execPollErr) {
@@ -2512,15 +2492,14 @@ async function pollExecMessages() {
   } catch (e) { /* 消息拉取失败不打断执行轮询，下一秒自动重试 */ }
 }
 
-// 状态应用到画布节点
-function applyExecStatus(data) {
-  const msg = data.msg || {};
-  const nodes = (msg.case && msg.case.nodes) || {};
-  execNodeState = {};
-  for (const [id, s] of Object.entries(nodes)) {
-    if (s.error) execNodeState[id] = 'err';
-    else if (s.successed) execNodeState[id] = 'ok';
-    else if (s.running) execNodeState[id] = 'running';
+// 服务端状态事件 → 编辑器徽标状态映射
+const EXEC_STATE_MAP = { running: 'running', success: 'ok', failed: 'err' };
+
+// 状态事件应用到画布节点（服务端增量事件，按节点累积最新状态）
+function applyExecStatus(events) {
+  for (const ev of events) {
+    const st = EXEC_STATE_MAP[ev.state];
+    if (st) execNodeState[ev.id] = st;
   }
   refreshExecBadge();
 }
@@ -2587,7 +2566,6 @@ async function stopExecute() {
   execActive = false;
   stopExecPolling();
   execNodeState = {};
-  execCaseDone = null;
   execNoRobot = false;
   execPollErr = false;
   lastExecUrl = null;   // 停止后清空执行状态：节点▶不再直执行，重新弹面板配置

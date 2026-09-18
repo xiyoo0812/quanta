@@ -32,7 +32,7 @@ function NodeHttp:on_start()
         local role = self.actor
         local values, err = self:read_inputs(self.inputs)
         if not values then
-            log_warn("[NodeHttp][on_start] robot:{}  call {} collect inputs {} failed!", role.open_id, self.url, self.inputs)
+            log_warn("[NodeHttp][on_start] robot:{} run node:{}'s call collect inputs {} failed!", role.open_id, self.name, self.url, self.inputs)
             self:failed(err)
             return
         end
@@ -43,12 +43,12 @@ function NodeHttp:on_start()
         end
         local ok, status, res = http_client:send_request(self.url, self.timeout, self.querys, self.headers, self.method, self.body)
         if not ok or status >= 300 then
-            log_warn("[NodeHttp][on_start] robot:{} call {} failed: status={}, res={}", role.open_id, self.url, status, res)
+            log_warn("[NodeHttp][on_start] robot:{} run node:{}'s call {} failed: status={}, res={}", role.open_id, self.name, self.url, status, res)
             event_mgr:notify_trigger("on_error_message", self.url, role.open_id, res)
             self:failed(res)
             return
         end
-        log_debug("[NodeHttp][on_start] robot:{} call {}=>{} success", role.open_id, self.url, res)
+        log_debug("[NodeHttp][on_start] robot:{} run node:{}'s call {}=>{} success", role.open_id, self.name, self.url, res)
         self:write_outputs(self.outputs, res)
     end
 end

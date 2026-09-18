@@ -27,7 +27,8 @@ function RobotWorker:__init()
     --task监听
     event_mgr:add_listener(self, "run_robot_case")
     event_mgr:add_listener(self, "run_robot_node")
-    event_mgr:add_listener(self, "fetch_robot_status")
+    event_mgr:add_listener(self, "stop_robot_case")
+    event_mgr:add_listener(self, "fetch_robot_states")
     event_mgr:add_listener(self, "fetch_robot_messages")
     event_mgr:add_listener(self, "startup_robot_task")
     event_mgr:add_listener(self, "stop_robot_task")
@@ -91,10 +92,10 @@ function RobotWorker:run_robot_node(open_id, body)
 end
 
 -- 获取机器人状态
-function RobotWorker:fetch_robot_status(open_id)
+function RobotWorker:fetch_robot_states(open_id)
     local robot = robot_mgr:get_robot(open_id)
     if robot then
-        return robot:get_status()
+        return robot:fetch_states()
     end
     return nil
 end
@@ -105,6 +106,12 @@ function RobotWorker:fetch_robot_messages(open_id)
     if robot then
         return robot:fetch_messages()
     end
+end
+
+-- 停止机器人用例
+function RobotWorker:stop_robot_case(open_id)
+    log_debug("[RobotWorker][stop_robot_case] open_id:{}", open_id)
+    robot_mgr:destory_robot(open_id)
 end
 
 --停止机器人

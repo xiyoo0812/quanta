@@ -78,12 +78,12 @@ function LobbyServlet:on_player_login_req(session, message, body, response)
 end
 
 function LobbyServlet:on_player_logout_req(player, message, body, response, player_id)
-    log_debug("[LobbyServlet][rpc_player_logout] player({}) logout req!", player_id)
+    log_debug("[LobbyServlet][on_player_logout_req] player({}) logout req!", player_id)
     if not player then
         return message:callback_code(PLAYER_NOT_EXIST)
     end
     player_mgr:remove_entity(player, player_id)
-    log_info("[LobbyServlet][rpc_player_logout] player({}) logout success!", player_id)
+    log_info("[LobbyServlet][on_player_logout_req] player({}) logout success!", player_id)
     return FRAME_SUCCESS
 end
 
@@ -98,7 +98,7 @@ function LobbyServlet:on_player_reload_req(player, message, body, response, play
     end
     player:relive()
     event_mgr:notify_trigger("on_reload_success", player_id, player)
-    log_debug("[LobbyServlet][rpc_player_reload] player({}) reload success!", player_id)
+    log_debug("[LobbyServlet][on_player_reload_req] player({}) reload success!", player_id)
 end
 
 quanta.lobby_servlet = LobbyServlet()

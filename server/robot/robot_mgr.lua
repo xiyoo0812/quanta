@@ -29,9 +29,7 @@ function RobotMgr:destory_robot(open_id)
     if robot then
         robot:destroy()
         self.robots[open_id] = nil
-        return { code = 0, msg = "success" }
     end
-    return { code = -1, msg = "robot not exist" }
 end
 
 --停止脚本，上报内容

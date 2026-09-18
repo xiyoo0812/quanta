@@ -7,7 +7,7 @@ return {
     start_time=1703572200,
     tasks = {
         [1] = {
-            script="login_ai",
+            script="login_test",
             count=1,
             hertz=3000,
             start_open_id=1000,

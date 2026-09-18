@@ -2,8 +2,6 @@
 local log_err   = logger.err
 local sformat   = string.format
 
-local event_mgr = quanta.get("event_mgr")
-
 local NodeSwitch = {
     GM      = import("robot/nodes/node_gm.lua"),
     REQ     = import("robot/nodes/node_req.lua"),
@@ -49,12 +47,12 @@ function RobotCase:load(file)
 end
 
 function RobotCase:load_data(data)
-    for id, conf in pairs(data.nodes) do
-        self:create_node(id, conf)
-    end
     self.name = data.name
     self.root = data.root
     self.current = data.root
+    for id, conf in pairs(data.nodes) do
+        self:create_node(id, conf)
+    end
     return true
 end
 
@@ -88,22 +86,8 @@ function RobotCase:create_node(id, conf)
     self.childs[id] = node
 end
 
--- 获取状态
-function RobotCase:get_status()
-    local res = { successed = self.successed, error = self.error, nodes = {} }
-    for id, node in pairs(self.childs) do
-        res.nodes[id] = node:get_status()
-    end
-    return res
-end
-
 function RobotCase:run_next(child)
     self.current = child
-    if self.actor:check_case(self) then
-        event_mgr:fire_frame(function()
-            self:update()
-        end)
-    end
 end
 
 --目标完成
@@ -142,7 +126,7 @@ function RobotCase:update()
         node:update()
         return
     end
-     if self.mount then
+    if self.mount then
         if self.mount.successed then
             self.mount = nil
             return

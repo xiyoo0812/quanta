@@ -1,7 +1,6 @@
 --node_ntf.lua
 local log_warn      = logger.warn
 local log_debug     = logger.debug
-local sformat       = string.format
 
 local protobuf_mgr  = quanta.get("protobuf_mgr")
 
@@ -22,7 +21,6 @@ function NodeNtf:on_load(conf)
     self.cond = conf.cond
     self.cmd_id = conf.cmd_id
     self.outputs = conf.outputs
-    self.name = sformat("%s-%s:%s", conf.name, self.id, conf.cmd_id)
     return true
 end
 
@@ -46,14 +44,14 @@ function NodeNtf:on_update()
         end
         local cond = self:call_script(self.cond, res)
         if cond == nil then
-            log_warn("[NodeNtf][on_update] robot:{} cond {} id null", role.open_id, self.cond)
+            log_warn("[NodeNtf][on_update] robot:{} run node:{}'s cond {} id null", role.open_id, self.name, self.cond)
             self:failed("cond error")
             return false
         end
         if not cond then
             return false
         end
-        log_debug("[NodeNtf][on_update] robot:{} wait {} success", role.open_id, self.cmd_id)
+        log_debug("[NodeNtf][on_update] robot:{} run node:{}'s wait {} success", role.open_id, self.name, self.cmd_id)
     end
     return true
 end

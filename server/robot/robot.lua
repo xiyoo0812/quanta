@@ -31,6 +31,7 @@ prop:reader("hertz", 0)             --hertz
 prop:reader("target_id", 0)         --target_id
 prop:reader("running", false)       --running
 prop:reader("press", false)         --press
+prop:reader("states", {})           --states
 prop:reader("messages", {})         --messages
 prop:reader("variables", {})        --variables
 prop:reader("msghooks", {})         --msghooks
@@ -71,10 +72,6 @@ function Robot:check_callback(ok, res)
         return true
     end
     return false
-end
-
-function Robot:check_case(case)
-    return self.cur_case == case
 end
 
 function Robot:run_case(case)
@@ -124,15 +121,6 @@ function Robot:startup(case, hertz)
     end
 end
 
--- 获取状态
-function Robot:get_status()
-    local res = { running = self.running }
-    if self.cur_case then
-        res.case = self.cur_case:get_status()
-    end
-    return res
-end
-
 function Robot:destroy()
     if self.client then
         self.client:close()
@@ -176,10 +164,22 @@ function Robot:push_message(cmd_id, data)
     end
 end
 
+function Robot:push_state(node, state)
+    if not self.press then
+        tinsert(self.states, {case = node.case.name, node = node.name, id = node.id, state = state })
+    end
+end
+
 function Robot:fetch_messages()
     local message = self.messages
     self.messages = {}
     return message
+end
+
+function Robot:fetch_states()
+    local states = self.states
+    self.states = {}
+    return states
 end
 
 function Robot:send(cmdid, data)

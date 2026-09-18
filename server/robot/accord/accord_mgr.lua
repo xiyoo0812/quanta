@@ -63,7 +63,7 @@ function AccordMgr:on_status(url, body, params)
     local open_id = params.open_id
     local thread_name = self:load_worker(open_id, false)
     if thread_name then
-        local ok, status = scheduler:call(thread_name, "fetch_robot_status", open_id)
+        local ok, status = scheduler:call(thread_name, "fetch_robot_states", open_id)
         if ok then
             return { code = 0, msg = status }
         end
@@ -108,7 +108,7 @@ function AccordMgr:on_stop(url, body, params)
     local open_id = params.open_id
     local thread_name = self:load_worker(open_id, false)
     if thread_name then
-        scheduler:call(thread_name, "stop_robot_task")
+        scheduler:call(thread_name, "stop_robot_case", open_id)
         event_mgr:fire_frame(function()
             self.workers[open_id] = nil
             scheduler:stop(thread_name)
