@@ -65,8 +65,9 @@ namespace luakit {
                 lua_checkstack(L, 1024);
                 lua_table luakit = new_table("luakit");
                 luakit.set_function("luacodec", lua_codec);
-                luakit.set_function("next_id", [&]() { return ++m_serial32; });
-                luakit.set_function("next_id64", [&]() { return ++m_serial64; });
+                luakit.set_function("next_id", [&]() { return next_id<uint32_t>(); });
+                luakit.set_function("next_id64", [&]() { return next_id<uint64_t>(); });
+                luakit.set_function("next_id16", [&]() { return next_id<uint16_t>(); });
                 luakit.set_function("decode", [&](lua_State* L) { return decode(L); });
                 luakit.set_function("encode", [&](lua_State* L) { return encode(L, get_buff()); });
             }
@@ -83,6 +84,15 @@ namespace luakit {
             lua_guard g(m_L);
             lua_getglobal(m_L, name);
             return lua_to_native<T>(m_L, -1);
+        }
+
+        template<std::unsigned_integral T>
+        uint64_t next_id() {
+            constexpr uint64_t mask = static_cast<uint64_t>((std::numeric_limits<T>::max)());
+            auto t = (++m_serial64) & mask;
+            if (t != 0) return t;
+            ++m_serial64;
+            return 1;
         }
 
         template <typename F>
@@ -267,7 +277,6 @@ namespace luakit {
 
     protected:
         lua_State* m_L = nullptr;
-        uint32_t m_serial32 = 0;
         uint64_t m_serial64 = 0;
     };
 

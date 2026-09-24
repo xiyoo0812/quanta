@@ -6,6 +6,8 @@ local qfailed       = quanta.failed
 local tinsert       = table.insert
 local sname2sid     = service.name2sid
 local guid_string   = codec.guid_string
+local add_monitor   = logger.add_monitor
+local del_monitor   = logger.remove_monitor
 
 local RobotCase     = import("robot/robot_case.lua")
 local TcpClient     = import("network/tcp_client.lua")
@@ -31,10 +33,11 @@ prop:reader("hertz", 0)             --hertz
 prop:reader("target_id", 0)         --target_id
 prop:reader("running", false)       --running
 prop:reader("press", false)         --press
-prop:reader("states", {})           --states
-prop:reader("messages", {})         --messages
 prop:reader("variables", {})        --variables
+prop:reader("messages", {})         --messages
 prop:reader("msghooks", {})         --msghooks
+prop:reader("states", {})           --states
+prop:reader("logs", {})             --logs
 
 function Robot:__init(ip, port, open_id, press)
     self.ip = ip
@@ -113,6 +116,7 @@ function Robot:startup(case, hertz)
     self.hertz = hertz or 1000
     if not self.running then
         self.running = true
+        add_monitor(self)
         thread_mgr:fork(function()
             while self.running do
                self:on_update()
@@ -128,6 +132,9 @@ function Robot:destroy()
     if self.cur_case then
         self.cur_case:destroy()
     end
+    log_debug("Robot destroy: {}", self.open_id)
+    del_monitor(self)
+    self.msghooks = {}
     self.running = false
 end
 
@@ -158,6 +165,10 @@ function Robot:on_recv_tcp_message(message)
     self:push_message(message.cmd_id, message.request)
 end
 
+function Robot:collect_log(msg, lvl)
+    self:push_log(msg, lvl)
+end
+
 function Robot:push_message(cmd_id, data)
     if (not self.press) and cmd_id ~= 1001 and cmd_id ~= 1002 then
         tinsert(self.messages, {cmd_id = cmd_id, data = data, time = otime() })
@@ -170,10 +181,16 @@ function Robot:push_state(node, state)
     end
 end
 
+function Robot:push_log(log, lvl)
+    if not self.press then
+        tinsert(self.logs, {log = log, time = otime(), lvl = lvl })
+    end
+end
+
 function Robot:fetch_messages()
-    local message = self.messages
+    local messages = self.messages
     self.messages = {}
-    return message
+    return messages
 end
 
 function Robot:fetch_states()
@@ -182,11 +199,18 @@ function Robot:fetch_states()
     return states
 end
 
+function Robot:fetch_logs()
+    local logs = self.logs
+    self.logs = {}
+    return logs
+end
+
 function Robot:send(cmdid, data)
     if self.client then
         if type(cmdid) == "string" then
             cmdid = protobuf_mgr:msg_id(cmdid)
         end
+        self:push_message(cmdid, data)
         return self.client:send(cmdid, data, self.relay_type, self.target_id)
     end
 end

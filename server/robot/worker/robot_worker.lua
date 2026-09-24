@@ -28,6 +28,7 @@ function RobotWorker:__init()
     event_mgr:add_listener(self, "run_robot_case")
     event_mgr:add_listener(self, "run_robot_node")
     event_mgr:add_listener(self, "stop_robot_case")
+    event_mgr:add_listener(self, "fetch_robot_logs")
     event_mgr:add_listener(self, "fetch_robot_states")
     event_mgr:add_listener(self, "fetch_robot_messages")
     event_mgr:add_listener(self, "startup_robot_task")
@@ -105,6 +106,14 @@ function RobotWorker:fetch_robot_messages(open_id)
     local robot = robot_mgr:get_robot(open_id)
     if robot then
         return robot:fetch_messages()
+    end
+end
+
+-- 获取机器人消息日志
+function RobotWorker:fetch_robot_logs(open_id)
+    local robot = robot_mgr:get_robot(open_id)
+    if robot then
+        return robot:fetch_logs()
     end
 end
 

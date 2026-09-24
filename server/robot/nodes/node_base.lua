@@ -11,6 +11,7 @@ local NodeBase = class()
 local prop = property(NodeBase)
 prop:reader("id", nil)          --id
 prop:reader("case", nil)        --case
+prop:reader("next", nil)        --next
 prop:reader("name", nil)        --name
 prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor

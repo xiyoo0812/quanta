@@ -46,17 +46,21 @@ function logger.daemon(daemon)
 end
 
 function logger.add_monitor(monitor, level)
-    local lvl = level or LOG_LEVEL.FATAL
-    if not MONITORS[lvl] then
-        MONITORS[lvl] = {[monitor] = true}
-        return
+    local lvlmin, lvlmax = LOG_LEVEL.DEBUG, LOG_LEVEL.FATAL
+    if level then
+        lvlmin, lvlmax = level, level
     end
-    MONITORS[lvl][monitor] = true
+    for lvl = lvlmin, lvlmax do
+        if not MONITORS[lvl] then
+            MONITORS[lvl] = {[monitor] = true}
+        else
+            MONITORS[lvl][monitor] = true
+        end
+    end
 end
 
-function logger.remove_monitor(monitor, level)
-    local lvl = level or LOG_LEVEL.FATAL
-    if MONITORS[lvl] then
+function logger.remove_monitor(monitor)
+    for lvl = LOG_LEVEL.DEBUG, LOG_LEVEL.FATAL do
         MONITORS[lvl][monitor] = nil
         if not next(MONITORS[lvl]) then
             MONITORS[lvl] = nil

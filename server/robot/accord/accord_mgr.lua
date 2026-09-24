@@ -23,6 +23,7 @@ function AccordMgr:__init()
     server:register_post("/case", "on_case", self)
     server:register_post("/node", "on_node", self)
     server:register_post("/stop", "on_stop", self)
+    server:register_get("/logs", "on_logs", self)
     server:register_get("/status", "on_status", self)
     server:register_get("/message", "on_message", self)
     service.modify_host(server:get_port())
@@ -47,13 +48,27 @@ end
 -- 拉取日志
 function AccordMgr:on_message(url, body, params)
     local open_id = params.open_id
-    local thread_name = self:load_worker(open_id, false)
+    local thread_name = self:load_worker(open_id)
     if thread_name then
         local ok, messages = scheduler:call(thread_name, "fetch_robot_messages", open_id)
         if ok then
             return { code = 0, msg = messages }
         end
         return { code = -1, msg = "fetch robot messages failed" }
+    end
+    return { code = -1, msg = "robot worker not exist" }
+end
+
+-- 拉取日志
+function AccordMgr:on_logs(url, body, params)
+    local open_id = params.open_id
+    local thread_name = self:load_worker(open_id)
+    if thread_name then
+        local ok, logs = scheduler:call(thread_name, "fetch_robot_logs", open_id)
+        if ok then
+            return { code = 0, msg = logs }
+        end
+        return { code = -1, msg = "fetch robot logs failed" }
     end
     return { code = -1, msg = "robot worker not exist" }
 end

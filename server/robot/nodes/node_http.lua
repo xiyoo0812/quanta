@@ -21,6 +21,7 @@ end
 function NodeHttp:on_load(conf)
     self.url = conf.url
     self.method = conf.method
+    self.inputs = conf.inputs
     self.headers = conf.headers
     self.outputs = conf.outputs
     self.timeout = conf.timeout or 5000

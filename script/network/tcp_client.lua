@@ -2,7 +2,7 @@
 
 local log_err           = logger.err
 local log_warn          = logger.warn
-local lnext_id          = luakit.next_id
+local lnext_id          = luakit.next_id16
 local make_timer        = quanta.make_timer
 local make_functer      = quanta.make_functer
 

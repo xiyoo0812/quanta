@@ -40,6 +40,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 .log-running{color:#e3b341}
 .log-ok{color:#4caf50}
 .log-err{color:#e2574c}
+/* 远程日志 Tab：服务端机器人运行日志（/logs 接口） */
+#tab-rlog{display:none;flex:1;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.6;padding:4px 10px;color:#ccc}
+#tab-rlog .log-line{white-space:pre-wrap;word-break:break-all}
+#tab-rlog .rlog-hint{color:#666;font-style:italic}
+.rlog-info{color:#fff}
+.rlog-debug{color:#569cd6}
+.rlog-dump{color:#4ec9b0}
+.rlog-warn{color:#e3b341}
+.rlog-err{color:#e2574c}
+.rlog-fatal{color:#ff4d4d;font-weight:600}
 /* 消息 Tab：左列表右详情 */
 #tab-msg{display:none;flex-direction:column;flex:1;overflow:hidden}
 #msg-body-row{display:flex;flex:1;overflow:hidden;min-height:0}
@@ -291,6 +301,7 @@ body.connecting .node{border-color:#2a6f97}
         <div class="log-tabs">
           <button class="log-tab active" id="tab-btn-log" onclick="switchLogTab('log')">日志</button>
           <button class="log-tab" id="tab-btn-msg" onclick="switchLogTab('msg')">消息</button>
+          <button class="log-tab" id="tab-btn-rlog" onclick="switchLogTab('rlog')">远程日志</button>
         </div>
         <button class="log-clear" onclick="clearActiveTab()">清空</button>
       </div>
@@ -307,6 +318,8 @@ body.connecting .node{border-color:#2a6f97}
           <div id="msg-detail"><div id="msg-detail-head"></div><pre id="msg-detail-pre">未选择消息</pre></div>
         </div>
       </div>
+      <!-- 远程日志 Tab：展示服务器端机器人运行日志 -->
+      <div id="tab-rlog" style="display:none"></div>
     </div>
   </div>
 
@@ -2050,15 +2063,18 @@ function clearLog() {
   $('log-body').textContent = '';
 }
 
-// 日志/消息 Tab 切换
+// 日志/消息/远程日志 Tab 切换
 let activeLogTab = 'log';
 function switchLogTab(tab) {
   closeMsgFilterDD();
   activeLogTab = tab;
   $('log-body').style.display = tab === 'log' ? '' : 'none';
   $('tab-msg').style.display = tab === 'msg' ? 'flex' : 'none';
+  // tab-rlog 是平铺日志行容器：必须用 block，flex 会让每行日志变成竖排窄条
+  $('tab-rlog').style.display = tab === 'rlog' ? 'block' : 'none';
   $('tab-btn-log').classList.toggle('active', tab === 'log');
   $('tab-btn-msg').classList.toggle('active', tab === 'msg');
+  $('tab-btn-rlog').classList.toggle('active', tab === 'rlog');
   if (tab === 'msg') renderMsgFilter();
 }
 
@@ -2068,6 +2084,8 @@ function clearActiveTab() {
     selectedMsgIdx = -1;
     renderMsgList();
     showMsgDetail();
+  } else if (activeLogTab === 'rlog') {
+    clearRemoteLog();
   } else {
     clearLog();
   }
@@ -2446,6 +2464,7 @@ async function pollExecStatus() {
     execNoRobot = false;
     execPollErr = false;
     pollExecMessages();   // 与状态轮询同频（每秒），服务端返回即增量，失败静默
+    pollRemoteLogs();     // 远程日志与消息同频拉取，服务端排空式返回即增量，失败仅提示一次
     // 服务端增量返回状态事件 [{case, node, id, state}]，排空式取走即新，无需去重
     const events = Array.isArray(data.msg) ? data.msg : [];
     if (!events.length) return;
@@ -2490,6 +2509,88 @@ async function pollExecMessages() {
     // 只存原始 cmd_id/data/time，协议名与类型在渲染时动态反查（协议后载入也能补全）
     appendMsgs(data.msg.map(m => ({ id: m.cmd_id, content: m.data, time: m.time })));
   } catch (e) { /* 消息拉取失败不打断执行轮询，下一秒自动重试 */ }
+}
+
+// ============================================================
+//  远程日志 Tab：轮询 /logs 展示服务器端机器人运行日志
+//  服务端 fetch_robot_logs 排空式返回 [{log, time, lvl}]，拿到即增量
+//  轮询有两条触发链路：执行状态轮询（后台持续累积）+ Tab 激活独立轮询
+// ============================================================
+function clearRemoteLog() {
+  $('tab-rlog').textContent = '';
+}
+
+// 远程日志等级 → 显示样式：info 白、debug 蓝、dump 青、warn 黄、err 红、fatal 亮红加粗，未知等级用默认色
+const RLOG_LVL_CLASS = {
+  info: 'rlog-info', debug: 'rlog-debug', dump: 'rlog-dump',
+  warn: 'rlog-warn', warning: 'rlog-warn',
+  err: 'rlog-err', error: 'rlog-err',
+  fatal: 'rlog-fatal', critical: 'rlog-fatal',
+};
+
+// 追加单行远程日志（time/lvl 可选，用于提示类文案）
+function appendRemoteLine(text, cls, time, lvl) {
+  const panel = $('log-panel');
+  if (!panel.classList.contains('show')) panel.classList.add('show');   // 有新日志时自动展开面板
+  const box = $('tab-rlog');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (cls ? ' ' + cls : '');
+  const head = time !== undefined
+    ? `[${formatTimestamp(time)}] [${String(lvl || 'info').toUpperCase().padEnd(5)}] `
+    : '';
+  line.textContent = head + text;
+  box.appendChild(line);
+  while (box.childElementCount > 1000) box.removeChild(box.firstChild);   // 限制历史行数
+  if (activeLogTab === 'rlog') box.scrollTop = box.scrollHeight;   // 仅当前 Tab 可见时自动滚动
+}
+
+function appendRemoteLogs(items) {
+  if (!items || !items.length) return;
+  for (const it of items) {
+    const lvl = String(it.lvl || 'info').toLowerCase();
+    const text = typeof it.log === 'string' ? it.log : JSON.stringify(it.log);
+    appendRemoteLine(text, RLOG_LVL_CLASS[lvl], it.time, lvl);
+  }
+}
+
+let rlogPollErr = false;      // 远程日志拉取失败提示去重
+let rlogNoRobot = false;      // robot 不存在提示去重
+let rlogFetching = false;     // 请求进行中标记（防止上一请求未返回时重复发起）
+
+// 拉取远程日志：GET /logs，参数与 /message 一致（open_id）
+// 与消息轮询同生命周期：由执行状态轮询每秒驱动，停止执行后不再拉取
+async function pollRemoteLogs() {
+  if (rlogFetching) return;
+  rlogFetching = true;
+  const addr = execOpts.addr || '127.0.0.1';
+  const port = execOpts.port || EXEC_PORT;
+  const openId = execOpts.openid || '';
+  const url = `http://${addr}:${port}/logs?open_id=${encodeURIComponent(openId)}`;
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    const data = await res.json();
+    if (data.code !== 0) {
+      // robot 不存在（未执行或已停止）：在远程日志区给一次性提示
+      if (!rlogNoRobot) {
+        rlogNoRobot = true;
+        appendRemoteLine('robot 不存在或已停止，暂无远程日志（执行用例后自动拉取）', 'rlog-hint');
+      }
+      rlogPollErr = false;
+      return;
+    }
+    rlogNoRobot = false;
+    rlogPollErr = false;
+    appendRemoteLogs(data.msg);
+  } catch (e) {
+    rlogNoRobot = false;
+    // 拉取失败不打断轮询，下一秒自动重试，仅失败开始时提示一次
+    if (!rlogPollErr) {
+      rlogPollErr = true;
+      appendLog(`远程日志拉取失败：${e.message}`, false);
+    }
+  } finally {
+    rlogFetching = false;
+  }
 }
 
 // 服务端状态事件 → 编辑器徽标状态映射

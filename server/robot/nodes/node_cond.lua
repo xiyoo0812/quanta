@@ -20,14 +20,6 @@ function NodeCond:on_load(conf)
     return true
 end
 
-function NodeCond:go_next()
-    if self.result then
-        self.case:run_next(self.success_node)
-    else
-        self.case:run_next(self.failed_node)
-    end
-end
-
 function NodeCond:on_start()
     local role = self.actor
     local cond, err = self:call_script(self.cond)
@@ -37,7 +29,7 @@ function NodeCond:on_start()
         return false
     end
     log_debug("[NodeCond][on_start] robot:{} run node:{}'s cond {} result: {}", role.open_id, self.name, self.cond, cond)
-    self.result = cond
+    self.next = cond and self.success_node or self.failed_node
     return true
 end
 
