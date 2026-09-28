@@ -2183,7 +2183,7 @@ document.addEventListener('click', e => {
 });
 
 // 批量追加消息（执行轮询增量显示）；超过上限时丢弃最旧的
-const MSG_CAP = 500;
+const MSG_CAP = 1000;
 function appendMsgs(items) {
   if (!items || !items.length) return;
   for (const it of items) msgList.push(it);
@@ -2390,7 +2390,6 @@ async function doExecute(urlOverride) {
   } else {
     execNodeState = {};
     execNoRobot = false;
-    execPollErr = false;
     refreshExecBadge();
     body = JSON.stringify(buildExportData());
   }
@@ -2429,7 +2428,6 @@ let execPollTimer = null;
 let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'（状态事件累积）
 let execActive = false;       // 机器人是否已在服务器创建（控制停止按钮显隐)
 let execNoRobot = false;      // robot not exist 提示去重
-let execPollErr = false;      // 轮询请求失败提示去重
 
 function startExecPolling() {
   stopExecPolling();
@@ -2462,7 +2460,6 @@ async function pollExecStatus() {
       return;
     }
     execNoRobot = false;
-    execPollErr = false;
     pollExecMessages();   // 与状态轮询同频（每秒），服务端返回即增量，失败静默
     pollRemoteLogs();     // 远程日志与消息同频拉取，服务端排空式返回即增量，失败仅提示一次
     // 服务端增量返回状态事件 [{case, node, id, state}]，排空式取走即新，无需去重
@@ -2485,10 +2482,6 @@ async function pollExecStatus() {
     applyExecStatus(ownEvents);
   } catch (e) {
     // 请求失败不停止轮询，下一秒自动重试，仅失败开始时提示一次
-    if (!execPollErr) {
-      execPollErr = true;
-      appendLog(`状态轮询失败：${e.message}`, false);
-    }
   }
 }
 
@@ -2553,15 +2546,9 @@ function appendRemoteLogs(items) {
   }
 }
 
-let rlogPollErr = false;      // 远程日志拉取失败提示去重
-let rlogNoRobot = false;      // robot 不存在提示去重
-let rlogFetching = false;     // 请求进行中标记（防止上一请求未返回时重复发起）
-
 // 拉取远程日志：GET /logs，参数与 /message 一致（open_id）
 // 与消息轮询同生命周期：由执行状态轮询每秒驱动，停止执行后不再拉取
 async function pollRemoteLogs() {
-  if (rlogFetching) return;
-  rlogFetching = true;
   const addr = execOpts.addr || '127.0.0.1';
   const port = execOpts.port || EXEC_PORT;
   const openId = execOpts.openid || '';
@@ -2569,28 +2556,9 @@ async function pollRemoteLogs() {
   try {
     const res = await fetch(url, { method: 'GET' });
     const data = await res.json();
-    if (data.code !== 0) {
-      // robot 不存在（未执行或已停止）：在远程日志区给一次性提示
-      if (!rlogNoRobot) {
-        rlogNoRobot = true;
-        appendRemoteLine('robot 不存在或已停止，暂无远程日志（执行用例后自动拉取）', 'rlog-hint');
-      }
-      rlogPollErr = false;
-      return;
-    }
-    rlogNoRobot = false;
-    rlogPollErr = false;
+    if (data.code !== 0) { return; }
     appendRemoteLogs(data.msg);
-  } catch (e) {
-    rlogNoRobot = false;
-    // 拉取失败不打断轮询，下一秒自动重试，仅失败开始时提示一次
-    if (!rlogPollErr) {
-      rlogPollErr = true;
-      appendLog(`远程日志拉取失败：${e.message}`, false);
-    }
-  } finally {
-    rlogFetching = false;
-  }
+  } catch (e) { /* 日志拉取失败不打断执行轮询，下一秒自动重试 */ }
 }
 
 // 服务端状态事件 → 编辑器徽标状态映射
@@ -2668,7 +2636,6 @@ async function stopExecute() {
   stopExecPolling();
   execNodeState = {};
   execNoRobot = false;
-  execPollErr = false;
   lastExecUrl = null;   // 停止后清空执行状态：节点▶不再直执行，重新弹面板配置
   refreshExecBadge();
   updateStopBtn();

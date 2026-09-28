@@ -125,7 +125,7 @@ namespace lworker {
             }
         }
 
-        void stop(vstring name) {
+        void shutdown(vstring name) {
             std::unique_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it != m_worker_map.end()) {
                 it->second->stop();

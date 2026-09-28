@@ -48,6 +48,7 @@ namespace lworker {
 
     class ischeduler {
     public:
+        virtual void shutdown(vstring name) = 0;
         virtual int broadcast(lua_State* L) = 0;
         virtual bool startup(vstring name, environ_map& args, vstring conf) = 0;
         virtual int call(lua_State* L, vstring name, uint8_t* data, size_t data_len) = 0;
@@ -159,9 +160,10 @@ namespace lworker {
             quanta.set("tid", m_thread.native_handle());
             quanta.set("platform", m_platform);
             quanta.set_function("stop", [&]() { m_running = false; });
-            quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("getenv", [&](cpchar key) { return get_env(key); });
+            quanta.set_function("update", [&](uint64_t clock_ms) { update(clock_ms); });
             quanta.set_function("setenv", [&](cpchar key, cpchar value) { return set_env(key, value, 1); });
+            quanta.set_function("thread_down", [&](vstring name) { m_schedulor->shutdown(name); });
             quanta.set_function("call", [&](lua_State* L, vstring name) {
                 size_t data_len;
                 uint8_t* data = m_codec.encode(L, 2, &data_len);

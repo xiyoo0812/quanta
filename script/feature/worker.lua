@@ -53,6 +53,14 @@ function Worker:stop()
     update_mgr:quit()
 end
 
+--线程结束
+function Worker:shutdown(name)
+    local ok, err = pcall(quanta.thread_down, name)
+    if not ok then
+        log_err("[Worker][shutdown] shutdown thread {} failed: {}", name, err)
+    end
+end
+
 function Worker:startup(name, entry, params, conf)
     local args = params or {}
     if not conf then

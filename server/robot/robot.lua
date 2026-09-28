@@ -221,7 +221,9 @@ function Robot:call(cmdid, data)
             cmdid = protobuf_mgr:msg_id(cmdid)
         end
         self:push_message(cmdid, data)
-        return self.client:call(cmdid, data, self.relay_type, self.target_id)
+        local ok, res = self.client:call(cmdid, data, self.relay_type, self.target_id)
+        self:push_message(protobuf_mgr:callback_id(cmdid), res)
+        return ok, res
     end
     return false
 end
