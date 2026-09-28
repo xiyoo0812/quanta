@@ -55,6 +55,7 @@ end
 
 --结束具名线程
 function Worker:shutdown(name)
+    log_info("[Worker][shutdown] shutdown worker {}!", name)
     local ok, err = pcall(quanta.thread_down, name)
     if not ok then
         log_err("[Worker][shutdown] shutdown thread {} failed: {}", name, err)
@@ -71,6 +72,7 @@ function Worker:startup(name, entry, params, conf)
     if not ok then
         log_err("[Worker][startup] startup thread {} failed: {}", name, wok_oe)
     end
+    log_info("[Worker][startup] startup worker {}!", name)
     return wok_oe
 end
 
