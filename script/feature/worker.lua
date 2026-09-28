@@ -47,13 +47,13 @@ function Worker:on_frame(clock_ms)
     wupdate(clock_ms)
 end
 
---线程结束
+--结束本线程
 function Worker:stop()
     log_info("[quanta][stop] worker {} exit!", THREAD_NAME)
     update_mgr:quit()
 end
 
---线程结束
+--结束具名线程
 function Worker:shutdown(name)
     local ok, err = pcall(quanta.thread_down, name)
     if not ok then

@@ -33,7 +33,7 @@ namespace lworker {
             return nullptr;
         }
 
-        bool startup(vstring name, environ_map& envs, vstring conf) {
+        bool thread_up(vstring name, environ_map& envs, vstring conf) {
             std::unique_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it == m_worker_map.end()) {
                 auto workor = std::make_shared<worker>(this, name, m_namespace, m_platform);
@@ -125,7 +125,7 @@ namespace lworker {
             }
         }
 
-        void shutdown(vstring name) {
+        void thread_down(vstring name) {
             std::unique_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it != m_worker_map.end()) {
                 it->second->stop();

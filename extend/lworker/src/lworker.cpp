@@ -9,7 +9,7 @@ namespace lworker {
         luakit::kit_state kit_state(L, true);
         auto llworker = kit_state.new_table("worker");
         llworker.set_function("shutdown", []() { schedulor.shutdown(); });
-        llworker.set_function("thread_down", [](vstring name) { schedulor.shutdown(name); });
+        llworker.set_function("thread_down", [](vstring name) { schedulor.thread_down(name); });
         llworker.set_function("update", [&](uint64_t clock_ms) { schedulor.update(clock_ms); });
         llworker.set_function("broadcast", [&](lua_State* L) { return schedulor.broadcast(L); });
         llworker.set_function("setup", [](lua_State* L, vstring ns) {
@@ -18,7 +18,7 @@ namespace lworker {
         });
         llworker.set_function("thread_up", [](lua_State* L, vstring name, vstring conf) {
             environ_map args = lua_to_native<environ_map>(L, 3);
-            return schedulor.startup(name, args, conf);
+            return schedulor.thread_up(name, args, conf);
         });
         llworker.set_function("call", [](lua_State* L, vstring name) {
             size_t data_len;
