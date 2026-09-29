@@ -1574,6 +1574,15 @@ function buildEditorData() {
     name: state.caseName || "case1",
     root: state.root,
     nextId: state.nextId,
+    // 执行面板配置（地址/openid/服务器地址/输入参数），不含完整请求 url
+    exec: {
+      addr: execOpts.addr,
+      port: execOpts.port,
+      openid: execOpts.openid,
+      srvAddr: execOpts.srvAddr,
+      srvPort: execOpts.srvPort,
+      params: JSON.parse(JSON.stringify(execOpts.params || [])),
+    },
     nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, n]) => [id, {
       type: n.type,
       x: Math.round(n.x),
@@ -1637,6 +1646,16 @@ function applyEditorData(data) {
   if (!data || !data.nodes) throw new Error('不是有效的编辑器存档文件');
   state.caseName = data.name || 'case1';
   $('case-name').value = state.caseName;
+  // 恢复执行面板配置（地址/openid/服务器地址/输入参数）
+  if (data.exec) {
+    const ex = data.exec;
+    if (ex.addr !== undefined) execOpts.addr = ex.addr;
+    if (ex.port !== undefined) execOpts.port = ex.port;
+    if (ex.openid !== undefined) execOpts.openid = ex.openid;
+    if (ex.srvAddr !== undefined) execOpts.srvAddr = ex.srvAddr;
+    if (ex.srvPort !== undefined) execOpts.srvPort = ex.srvPort;
+    execOpts.params = Array.isArray(ex.params) ? JSON.parse(JSON.stringify(ex.params)) : [];
+  }
   state.root = data.root ?? null;
   state.nextId = data.nextId || 1;
   state.nodes = {};
