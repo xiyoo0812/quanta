@@ -1517,6 +1517,11 @@ function buildExportData() {
   return result;
 }
 
+// 执行导出：直接用标准导出（子CASE参数缓存由服务端运行子用例存档时自然生效）
+function buildExecExportData() {
+  return buildExportData();
+}
+
 function exportModal() {
   const data = buildExportData();
   showModal('导出 Lua', 'return ' + jsonToLua(data));
@@ -1735,7 +1740,7 @@ function applyCaseData(data) {
 //  工作目录：用例存档的默认保存位置，也是子用例列表的来源
 // ============================================================
 let workDirHandle = null;   // 工作目录句柄（仅存内存，刷新页面后需重新选择）
-let subCases = [];          // {name, path, handle}
+let subCases = [];          // {name, path, handle, exec:{addr,port,openid,srvAddr,srvPort,params}}（exec 为该子用例存档内的执行配置缓存）
 
 // 确保工作目录有读写权限（浏览器可能在会话恢复后回收权限）
 async function ensureWorkDirWritable() {
@@ -1792,14 +1797,16 @@ async function scanSubCaseDir(dirHandle, prefix) {
     if (handle.kind === 'directory') {
       await scanSubCaseDir(handle, prefix + name + '/');
     } else if (name.endsWith('.edit.json')) {
-      // 优先使用存档内的用例名，其次文件名；同名去重
+      // 优先使用存档内的用例名，其次文件名；同名去重；同时缓存存档内的执行配置
       let caseName = name.replace(/\.edit\.json$/, '');
+      let exec = null;
       try {
         const data = JSON.parse(await (await handle.getFile()).text());
         if (data.name) caseName = data.name;
+        if (data.exec && typeof data.exec === 'object') exec = data.exec;
       } catch (err) { /* 文件损坏时退回文件名 */ }
       if (!subCases.some(sc => sc.name === caseName)) {
-        subCases.push({ name: caseName, path: prefix + name, handle });
+        subCases.push({ name: caseName, path: prefix + name, handle, exec });
       }
     }
   }
@@ -1852,10 +1859,10 @@ function showSubCasePicker() {
 
 function pickSubCase(i) { openSubCase(subCases[i]); }
 
-// 保存后把存档加入/更新到用例列表（CASE 节点下拉框立即可选）
+// 保存后把存档加入/更新到用例列表（CASE 节点下拉框立即可选），并同步缓存其执行配置
 function upsertSubCase(name, path, handle) {
   const i = subCases.findIndex(sc => sc.name === name);
-  const entry = { name, path, handle };
+  const entry = { name, path, handle, exec: JSON.parse(JSON.stringify(execOpts)) };
   if (i >= 0) subCases[i] = entry; else subCases.push(entry);
   updatePropPanel();
 }
@@ -2306,6 +2313,9 @@ function showExecPanel(urlPath, nodeId) {
           <div id="exec-params"></div>
           <button class="add-btn" onclick="addExecParam()">+ 添加参数</button>
         </div>
+        <div class="field" id="exec-subcases-wrap"><label>子CASE参数（key 为 子用例名.参数名，只读；value 可修改，仅本次执行生效）</label>
+          <div id="exec-subcase-params"></div>
+        </div>
         <div class="field"><label>完整请求</label>
           <div class="exec-preview" id="exec-preview"></div>
         </div>
@@ -2320,7 +2330,61 @@ function showExecPanel(urlPath, nodeId) {
     </div>
   </div>`;
   execOpts.params.forEach(p => addExecParam(p.key, p.value));
+  renderSubCaseParams();
   updateExecPreview();
+}
+
+// ============================================================
+//  子CASE参数：展示画布上 CASE 节点所引用子用例的「执行面板参数」
+//  （来自子用例 .edit.json 存档缓存的 exec 配置，即保存时的
+//  地址/openid/服务器地址/输入参数）。key 显示为 子用例名.参数名，
+//  key 只读；value 可改，仅更新内存缓存，不写回子用例存档
+// ============================================================
+// 收集 CASE 节点引用的子用例的执行参数：[{caseName, key, value}]
+function collectSubCaseParams() {
+  // CASE 节点引用的子用例名集合
+  const caseNames = new Set();
+  for (const node of Object.values(state.nodes)) {
+    if (node.type !== 'CASE' || !node.data.case) continue;
+    caseNames.add(node.data.case);
+  }
+  const rows = [];
+  for (const sc of subCases) {
+    if (!caseNames.has(sc.name) || !sc.exec || !Array.isArray(sc.exec.params)) continue;
+    for (const p of sc.exec.params) {
+      if (!p.key) continue;
+      rows.push({ caseName: sc.name, key: p.key, value: p.value });
+    }
+  }
+  return rows;
+}
+
+// 修改子CASE执行参数：只更新内存中的 subCases 缓存（刷新后随重新扫描恢复存档值）
+function subCaseParamChanged(caseName, key, value) {
+  const sc = subCases.find(s => s.name === caseName);
+  if (!sc || !sc.exec || !Array.isArray(sc.exec.params)) return;
+  const p = sc.exec.params.find(p => p.key === key);
+  if (p) p.value = value;
+}
+
+function renderSubCaseParams() {
+  const box = $('exec-subcase-params');
+  if (!box) return;
+  const rows = collectSubCaseParams();
+  const wrap = $('exec-subcases-wrap');
+  if (!rows.length) {
+    wrap.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  wrap.style.display = '';
+  box.innerHTML = rows.map(({ caseName, key, value }) => {
+    const displayKey = `${caseName}.${key}`;
+    return `<div class="exec-row">
+      <input class="er-key" value="${escapeAttr(displayKey)}" readonly title="子CASE参数名（只读）" style="color:#888;background:#252526">
+      <input class="er-val" value="${escapeAttr(value)}" oninput="subCaseParamChanged('${escapeAttr(caseName)}','${escapeAttr(key)}',this.value)">
+    </div>`;
+  }).join('');
 }
 
 function addExecParam(key, value) {
@@ -2358,12 +2422,22 @@ function collectExecParams() {
   return rows;
 }
 
+// 合并父子 case 的参数：父（当前执行面板输入参数）优先，子 case 按收集顺序后者覆盖前者，同名 key 只保留一个
+function mergeExecParams() {
+  const merged = {};   // key -> value
+  // 子 case 参数先放入（按收集顺序，重复 key 后者覆盖前者）
+  collectSubCaseParams().forEach(p => { merged[p.key] = p.value; });
+  // 父参数后放入，覆盖同名子参数
+  collectExecParams().forEach(p => { merged[p.key] = p.value; });
+  return Object.entries(merged).map(([key, value]) => ({ key, value }));
+}
+
 function buildExecUrl() {
   const addr = $('exec-addr').value.trim() || '127.0.0.1';
   const port = $('exec-port').value.trim() || EXEC_PORT;
   const urlPath = $('exec-url').value.trim().replace(/^\/+/, '');
   const query = [];
-  collectExecParams().forEach(p => {
+  mergeExecParams().forEach(p => {
     query.push(`${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`);
   });
   // openid 与服务器地址/端口追加到完整 URL 后面
@@ -2407,7 +2481,7 @@ async function doExecute(urlOverride) {
     execNodeState = {};
     execNoRobot = false;
     refreshExecBadge();
-    body = JSON.stringify(buildExportData());
+    body = JSON.stringify(buildExecExportData());
   }
   const wrap = $('exec-result-wrap'), box = $('exec-result');
   if (box) {   // 直执行时面板未打开，结果仅写日志
