@@ -13,9 +13,9 @@ function RobotMgr:__init()
 end
 
 -- setup
-function RobotMgr:create_robot(ip, port, open_id, press)
-    log_debug("[RobotMgr][create_robot]: {}:{} {}", ip, port, open_id)
-    local robot = Robot(ip, port, open_id, press)
+function RobotMgr:create_robot(open_id, params, press)
+    log_debug("[RobotMgr][create_robot]: {}:{}", open_id, params)
+    local robot = Robot(params, press)
     self.robots[open_id] = robot
     return robot
 end

@@ -105,10 +105,10 @@ end
 -- 执行用例
 function AccordMgr:on_case(url, body, params)
     log_debug("[AccordMgr][on_case] params:{}, data:{}", params, body)
-    local open_id, addr, port = params.open_id, params.addr, params.port
+    local open_id = params.open_id
     local thread_name = self:load_worker(open_id, true)
     if thread_name then
-        local ok, res = scheduler:call(thread_name, "run_robot_case", open_id, addr, port, body)
+        local ok, res = scheduler:call(thread_name, "run_robot_case", open_id, params, body)
         if ok then
             return { code = res and 0 or -1, msg = res and "success" or "failed" }
         end

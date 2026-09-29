@@ -39,13 +39,15 @@ prop:reader("msghooks", {})         --msghooks
 prop:reader("states", {})           --states
 prop:reader("logs", {})             --logs
 
-function Robot:__init(ip, port, open_id, press)
-    self.ip = ip
-    self.port = port
+function Robot:__init(open_id, params, press)
     self.press = press
     self.open_id = open_id
     self.relay_type = RELAY_SELF
     self.device_id = guid_string()
+    --将params中的参数赋值给self
+    for par_key, par_val in pairs(params) do
+        self.variables[par_key] = par_val
+    end
     event_mgr:add_trigger(self, "on_recv_tcp_message")
 end
 

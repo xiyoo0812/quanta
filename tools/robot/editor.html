@@ -2078,17 +2078,14 @@ function switchLogTab(tab) {
   if (tab === 'msg') renderMsgFilter();
 }
 
+// 清空：日志/消息/远程日志三个模块一起清
 function clearActiveTab() {
-  if (activeLogTab === 'msg') {
-    msgList = [];
-    selectedMsgIdx = -1;
-    renderMsgList();
-    showMsgDetail();
-  } else if (activeLogTab === 'rlog') {
-    clearRemoteLog();
-  } else {
-    clearLog();
-  }
+  clearLog();
+  msgList = [];
+  selectedMsgIdx = -1;
+  renderMsgList();
+  showMsgDetail();
+  clearRemoteLog();
 }
 
 // ============================================================

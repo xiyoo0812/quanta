@@ -52,8 +52,9 @@ function RobotWorker:startup_robot_task(open_id, id, num, ip, port, time, case, 
     local period = 1000 * (qmax(diff_time, 0))
     for i = 1, num do
         local open_id_no = id + i
+        local params = { addr = ip, port = port }
         local real_open_id = sformat("%s_%d", open_id, open_id_no)
-        local robot = robot_mgr:create_robot(ip, port, real_open_id, true)
+        local robot = robot_mgr:create_robot(real_open_id, params, true)
         --计算机器人启动延时
         local slottime = i * SLOT_TIME
         log_debug("[Robot][startup_robot_task] robot {} dalay {} action!", robot.open_id, slottime)
@@ -68,11 +69,11 @@ function RobotWorker:startup_robot_task(open_id, id, num, ip, port, time, case, 
 end
 
 -- 运行机器人用例
-function RobotWorker:run_robot_case(open_id, addr, port, body)
-    log_debug("[RobotWorker][run_robot_case] addr:{}:{} open_id:{}", addr, port, open_id)
+function RobotWorker:run_robot_case(open_id, params, body)
+    log_debug("[RobotWorker][run_robot_case] open_id:{}, params:{}", open_id, params)
     local robot = robot_mgr:get_robot(open_id)
     if not robot then
-        robot = robot_mgr:create_robot(addr, port, open_id)
+        robot = robot_mgr:create_robot(open_id, params)
     end
     local case = robot:create_case_by_data(body)
     if case then
