@@ -1,11 +1,14 @@
 -- robot.lua
 local otime         = os.time
+local lformat       = log.format
 local log_err       = logger.err
 local log_debug     = logger.debug
 local qfailed       = quanta.failed
 local tinsert       = table.insert
 local sname2sid     = service.name2sid
 local guid_string   = codec.guid_string
+local add_monitor   = logger.add_monitor
+local del_monitor   = logger.remove_monitor
 
 local RobotCase     = import("robot/robot_case.lua")
 local TcpClient     = import("network/tcp_client.lua")
@@ -19,8 +22,6 @@ local RELAY_SERVICE = luabus.relay_type.SERVICE
 
 local Robot = class()
 local prop = property(Robot)
-prop:reader("ip", nil)              --ip
-prop:reader("port", nil)            --port
 prop:reader("open_id", nil)         --open_id
 prop:reader("client", nil)          --client
 prop:reader("cur_case", nil)        --cur_case
@@ -30,15 +31,26 @@ prop:reader("relay_type", nil)      --relay_type
 prop:reader("hertz", 0)             --hertz
 prop:reader("target_id", 0)         --target_id
 prop:reader("running", false)       --running
-prop:reader("messages", {})         --messages
+prop:reader("press", false)         --press
 prop:reader("variables", {})        --variables
+prop:reader("messages", {})         --messages
+prop:reader("msghooks", {})         --msghooks
+prop:reader("states", {})           --states
+prop:reader("logs", {})             --logs
 
-function Robot:__init(ip, port, open_id)
-    self.ip = ip
-    self.port = port
+function Robot:__init(open_id, params, press)
+    self.press = press
     self.open_id = open_id
     self.relay_type = RELAY_SELF
     self.device_id = guid_string()
+    --将params中的参数赋值给variables
+    for _, param in pairs(params) do
+        if param.type == "number" then
+            self.variables[param.key] = tonumber(param.value)
+        else
+            self.variables[param.key] = param.value
+        end
+    end
     event_mgr:add_trigger(self, "on_recv_tcp_message")
 end
 
@@ -70,10 +82,6 @@ function Robot:check_callback(ok, res)
     return false
 end
 
-function Robot:check_case(case)
-    return self.cur_case == case
-end
-
 function Robot:run_case(case)
     self.next_case = case
 end
@@ -92,12 +100,12 @@ function Robot:create_case_by_data(data)
     log_err("[Robot][create_case] load case {} failed!", data)
 end
 
-function Robot:create_case(file)
+function Robot:create_case(name)
     local case = RobotCase(self)
-    if case:load(file) then
+    if case:load(name) then
         return case
     end
-    log_err("[Robot][create_case] load case {} failed!", file)
+    log_err("[Robot][create_case] load case {} failed!", name)
 end
 
 function Robot:load_case(file, hertz)
@@ -113,21 +121,13 @@ function Robot:startup(case, hertz)
     self.hertz = hertz or 1000
     if not self.running then
         self.running = true
+        add_monitor(self)
         thread_mgr:fork(function()
             while self.running do
                self:on_update()
             end
         end)
     end
-end
-
--- 获取状态
-function Robot:get_status()
-    local res = { running = self.running }
-    if self.cur_case then
-        res.case = self.cur_case:get_status()
-    end
-    return res
 end
 
 function Robot:destroy()
@@ -137,6 +137,9 @@ function Robot:destroy()
     if self.cur_case then
         self.cur_case:destroy()
     end
+    log_debug("Robot destroy: {}", self.open_id)
+    del_monitor(self)
+    self.msghooks = {}
     self.running = false
 end
 
@@ -155,20 +158,64 @@ function Robot:on_update()
     thread_mgr:sleep(self.hertz)
 end
 
+function Robot:assert(condition, error, ...)
+    assert(condition, lformat(error, ...))
+end
+
+function Robot:error(error, ...)
+    assert(false, lformat(error, ...))
+end
+
+function Robot:register_hook(cmd_id, hook)
+    self.msghooks[cmd_id] = hook
+end
+
 function Robot:on_recv_tcp_message(message)
+    local hook = self.msghooks[message.cmd_id]
+    if hook then
+        hook(message.request)
+    end
     self:push_message(message.cmd_id, message.request)
 end
 
+function Robot:collect_log(msg, lvl)
+    self:push_log(msg, lvl)
+end
+
 function Robot:push_message(cmd_id, data)
-    if cmd_id ~= 1001 and cmd_id ~= 1002 then
+    if (not self.press) and cmd_id ~= 1001 and cmd_id ~= 1002 then
         tinsert(self.messages, {cmd_id = cmd_id, data = data, time = otime() })
     end
 end
 
+function Robot:push_state(node, state, err)
+    if not self.press then
+        tinsert(self.states, {case = node.case.name, node = node.name, id = node.id, state = state, err = err })
+    end
+end
+
+function Robot:push_log(log, lvl)
+    if not self.press then
+        tinsert(self.logs, {log = log, time = otime(), lvl = lvl })
+    end
+end
+
 function Robot:fetch_messages()
-    local message = self.messages
+    local messages = self.messages
     self.messages = {}
-    return message
+    return messages
+end
+
+function Robot:fetch_states()
+    local states = self.states
+    self.states = {}
+    return states
+end
+
+function Robot:fetch_logs()
+    local logs = self.logs
+    self.logs = {}
+    return logs
 end
 
 function Robot:send(cmdid, data)
@@ -176,6 +223,7 @@ function Robot:send(cmdid, data)
         if type(cmdid) == "string" then
             cmdid = protobuf_mgr:msg_id(cmdid)
         end
+        self:push_message(cmdid, data)
         return self.client:send(cmdid, data, self.relay_type, self.target_id)
     end
 end

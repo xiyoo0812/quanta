@@ -72,3 +72,4 @@ bin/config
 *.elf
 *.xml
 *.pb
+.workbuddy/

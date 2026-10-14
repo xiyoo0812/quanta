@@ -1,5 +1,6 @@
 --node_base.lua
 local tcopy         = table.copy
+local lformat       = log.format
 local sformat       = string.format
 local log_err       = logger.err
 local log_info      = logger.info
@@ -11,11 +12,13 @@ local NodeBase = class()
 local prop = property(NodeBase)
 prop:reader("id", nil)          --id
 prop:reader("case", nil)        --case
+prop:reader("next", nil)        --next
 prop:reader("name", nil)        --name
 prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor
 prop:reader("after", nil)       --after
 prop:reader("before", nil)      --before
+prop:reader("open_id", nil)     --open_id
 prop:reader("successed", nil)   --successed
 prop:reader("running", false)   --running
 prop:reader("result", true)     --result
@@ -24,6 +27,7 @@ function NodeBase:__init(case, id)
     self.id = id
     self.case = case
     self.actor = case.actor
+    self.open_id = self.actor.open_id
 end
 
 function NodeBase:destroy()
@@ -33,13 +37,8 @@ function NodeBase:load(conf)
     self.next = conf.next
     self.after = conf.after
     self.before = conf.before
-    self.name = sformat("%s-%s", conf.name, self.id)
+    self.name = sformat("%s:%s-%s", self.case.name, conf.name, self.id)
     return self:on_load(conf)
-end
-
--- 获取状态
-function NodeBase:get_status()
-    return { running = self.running, successed = self.successed, error = self.error }
 end
 
 --写入输出
@@ -59,11 +58,11 @@ function NodeBase:write_output(name, output, res)
         return true
     end
     if output.type == "lua" then
-        role[name] = self:call_script(outval, res)
+        role.variables[name] = self:call_script(outval, res)
         return true
     end
     if outval ~= nil then
-        role[name] = outval
+        role.variables[name] = outval
     end
     return true
 end
@@ -93,7 +92,7 @@ function NodeBase:read_inputs(inputs)
     for name, input in pairs(inputs or {}) do
         local value = self:read_input(input)
         if value == nil then
-            log_warn("[NodeBase][read_inputs] node:{} name:{} value {} failed: {}", self.name, name, input.value, value)
+            log_warn("[NodeBase][read_inputs] robot:{} run node=> {} name:{} value {} failed: {}", self.open_id, self.name, name, input.value, value)
             return nil, sformat("collect inputs %s failed!", name)
         end
         values[name] = value
@@ -129,13 +128,13 @@ function NodeBase:exec_script(expr, res)
     local role = self.actor
     local ok, func = pcall(load(expr))
     if not ok then
-        log_warn("[NodeBase][exec_script] robot:{} load script {} failed: {}", role.open_id, expr, func)
+        log_warn("[NodeBase][exec_script] robot:{} run node=> {} load script {} failed: {}", self.open_id, self.name, expr, func)
         self:failed(func)
         return
     end
     local ok2, value = pcall(func, role, role.variables, res)
     if not ok2 then
-        log_warn("[NodeBase][exec_script] robot:{} exec script {} failed: {}", role.open_id, expr, value)
+        log_warn("[NodeBase][exec_script] robot:{} run node=> {} exec script {} failed: {}", self.open_id, self.name, expr, value)
         self:failed(value)
         return
     end
@@ -150,6 +149,8 @@ end
 function NodeBase:start()
     self.running = true
     self:run_script(self.before)
+    self.actor:push_state(self, "running")
+    log_info("[NodeBase][start] robot:{} run node=> {} begin!", self.open_id, self.name)
     local ok, res = pcall(self.on_start, self)
     if not ok then
         self:failed(res)
@@ -165,8 +166,9 @@ function NodeBase:stop()
         self:failed(res)
         return
     end
+    self.actor:push_state(self, "success")
     self:run_script(self.after)
-    log_info("[NodeBase][stop] robot:{} node:{} run success!", self.actor.open_id, self.name)
+    log_info("[NodeBase][stop] robot:{} run node=> {} success!", self.open_id, self.name)
     self:go_next()
 end
 
@@ -186,11 +188,13 @@ function NodeBase:go_next()
     self.case:run_next(self.next)
 end
 
-function NodeBase:failed(error)
-    self.error = error
+function NodeBase:failed(fmt, ...)
+    local err = lformat(fmt, ...)
+    self.error = err
     self.result = false
     self.successed = false
-    log_err("[NodeBase][failed] robot:{} node:{} error: {}", self.actor.open_id, self.name, error)
+    log_err("[NodeBase][failed] robot:{} run node=> {} failed: {}", self.open_id, self.name, err)
+    self.actor:push_state(self, "failed", err)
     self.case:failed()
 end
 

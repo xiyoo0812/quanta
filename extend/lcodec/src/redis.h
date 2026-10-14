@@ -59,7 +59,7 @@ namespace lcodec {
         void parse_redis_string(lua_State* L, string_view line, string_view& buf, bool rootable = false) {
             if (int64_t length = atoll(line.data()); length >= 0) {
                 string_view nline;
-                if (!read_line(buf, nline))
+                if (!read_string(buf, nline, length))
                     throw length_error("redis text not full");
                 if (nline.starts_with("{")) {
                     m_jcodec->decode(L, (uint8_t*)nline.data(), nline.size());
@@ -139,6 +139,14 @@ namespace lcodec {
                 return true;
             }
             return false;
+        }
+
+        bool read_string(string_view& buf, string_view& line, size_t length) {
+            if (buf.size() < length + CRLF_LEN) return false;
+            if (buf.compare(length, CRLF_LEN, RDS_CRLF) != 0) return false;
+            line = buf.substr(0, length);
+            buf.remove_prefix(length + CRLF_LEN);
+            return true;
         }
 
         void number_encode(double value) {

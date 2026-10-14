@@ -33,7 +33,7 @@ namespace lworker {
             return nullptr;
         }
 
-        bool startup(vstring name, environ_map& envs, vstring conf) {
+        bool thread_up(vstring name, environ_map& envs, vstring conf) {
             std::unique_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it == m_worker_map.end()) {
                 auto workor = std::make_shared<worker>(this, name, m_namespace, m_platform);
@@ -52,8 +52,11 @@ namespace lworker {
             size_t data_len;
             uint8_t* data = m_codec.encode(L, 1, &data_len);
             if (data) {
+                auto tname = lua_to_native<vstring>(L, 5);
+                if (tname != "master") call(L, data, data_len);
                 std::shared_lock lock(m_mutex);
-                for (auto& [_, worker] : m_worker_map) {
+                for (auto& [name, worker] : m_worker_map) {
+                    if (name == tname) continue;
                     worker->call(L, data, data_len);
                 }
             }
@@ -122,7 +125,7 @@ namespace lworker {
             }
         }
 
-        void stop(vstring name) {
+        void thread_down(vstring name) {
             std::unique_lock lock(m_mutex);
             if (auto it = m_worker_map.find(name); it != m_worker_map.end()) {
                 it->second->stop();
