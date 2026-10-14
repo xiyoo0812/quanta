@@ -7,7 +7,6 @@ local NodeBase  = import("robot/nodes/node_base.lua")
 local NodeRand = class(NodeBase)
 local prop = property(NodeRand)
 prop:reader("targets", nil)     --targets
-prop:reader("branch", nil)      --branch
 
 function NodeRand:__init(case)
 end
@@ -15,12 +14,6 @@ end
 function NodeRand:on_load(conf)
     self.targets = conf.targets or {}
     return true
-end
-
-function NodeRand:go_next()
-    if self.branch then
-        self.case:run_next(self.branch)
-    end
 end
 
 function NodeRand:on_start()
@@ -31,7 +24,7 @@ function NodeRand:on_start()
         self:failed("rand targets is empty")
         return false
     end
-    self.branch = targets[mrandom(#targets)]
+    self.next = targets[mrandom(#targets)]
     return true
 end
 

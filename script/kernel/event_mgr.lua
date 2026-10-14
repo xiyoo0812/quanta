@@ -1,11 +1,6 @@
 --event_mgr.lua
-local xpcall        = xpcall
-local log_warn      = logger.warn
-local log_fatal     = logger.fatal
-local qtweak        = qtable.weak
 local tinsert       = table.insert
 local tunpack       = table.unpack
-local dtraceback    = debug.traceback
 
 local thread_mgr    = quanta.get("thread_mgr")
 
@@ -63,31 +58,6 @@ function EventMgr:on_second()
     for obj, events in pairs(nhandlers) do
         for event, args in pairs(events) do
             thread_mgr:fork(obj.notify_event, nil, event, obj, tunpack(args))
-        end
-    end
-end
-
-function EventMgr:register_hook(listener, name, handler)
-    if self.hooks[name] then
-        log_warn("[EventMgr][register_hook] hook({}) repeat!", name)
-        return
-    end
-    local func_name = handler or name
-    local callback_func = listener[func_name]
-    if not callback_func or type(callback_func) ~= "function" then
-        log_warn("[EventMgr][register_hook] hook({}) handler not define!", name)
-        return
-    end
-    self.hooks[name] = qtweak({ [listener] = func_name })
-end
-
-function EventMgr:execute_hook(name, ...)
-    local hooker_map = self.hooks[name] or {}
-    for hooker, func_name in pairs(hooker_map) do
-        local callback_func = hooker[func_name]
-        local ok, ret = xpcall(callback_func, dtraceback, hooker, ...)
-        if not ok then
-            log_fatal("[EventMgr][notify_trigger] xpcall [{}:{}] failed: {}!", hooker:source(), func_name, ret)
         end
     end
 end

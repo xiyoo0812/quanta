@@ -2,9 +2,9 @@
 
 local log_err           = logger.err
 local log_warn          = logger.warn
-local lnext_id          = luakit.next_id
 local kcp_update        = kcp.update
 local kcp_connect       = kcp.connect
+local lnext_id          = luakit.next_id16
 
 local FLAG_REQ          = luabus.proto_flag.REQ
 local FLAG_BAD          = luabus.proto_flag.BAD
@@ -154,7 +154,7 @@ end
 
 -- 发起远程命令
 function KcpClient:call(cmd_id, data, type)
-    local session_id = lnext_id() & 0xffff
+    local session_id = lnext_id()
     return self:output(cmd_id, data, type or 0, session_id, FLAG_REQ, 0)
 end
 
