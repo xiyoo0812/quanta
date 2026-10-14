@@ -1,5 +1,6 @@
 -- robot.lua
 local otime         = os.time
+local lformat       = log.format
 local log_err       = logger.err
 local log_debug     = logger.debug
 local qfailed       = quanta.failed
@@ -21,8 +22,6 @@ local RELAY_SERVICE = luabus.relay_type.SERVICE
 
 local Robot = class()
 local prop = property(Robot)
-prop:reader("ip", nil)              --ip
-prop:reader("port", nil)            --port
 prop:reader("open_id", nil)         --open_id
 prop:reader("client", nil)          --client
 prop:reader("cur_case", nil)        --cur_case
@@ -39,13 +38,19 @@ prop:reader("msghooks", {})         --msghooks
 prop:reader("states", {})           --states
 prop:reader("logs", {})             --logs
 
-function Robot:__init(ip, port, open_id, press)
-    self.ip = ip
-    self.port = port
+function Robot:__init(open_id, params, press)
     self.press = press
     self.open_id = open_id
     self.relay_type = RELAY_SELF
     self.device_id = guid_string()
+    --将params中的参数赋值给variables
+    for _, param in pairs(params) do
+        if param.type == "number" then
+            self.variables[param.key] = tonumber(param.value)
+        else
+            self.variables[param.key] = param.value
+        end
+    end
     event_mgr:add_trigger(self, "on_recv_tcp_message")
 end
 
@@ -95,12 +100,12 @@ function Robot:create_case_by_data(data)
     log_err("[Robot][create_case] load case {} failed!", data)
 end
 
-function Robot:create_case(file)
+function Robot:create_case(name)
     local case = RobotCase(self)
-    if case:load(file) then
+    if case:load(name) then
         return case
     end
-    log_err("[Robot][create_case] load case {} failed!", file)
+    log_err("[Robot][create_case] load case {} failed!", name)
 end
 
 function Robot:load_case(file, hertz)
@@ -153,6 +158,14 @@ function Robot:on_update()
     thread_mgr:sleep(self.hertz)
 end
 
+function Robot:assert(condition, error, ...)
+    assert(condition, lformat(error, ...))
+end
+
+function Robot:error(error, ...)
+    assert(false, lformat(error, ...))
+end
+
 function Robot:register_hook(cmd_id, hook)
     self.msghooks[cmd_id] = hook
 end
@@ -175,9 +188,9 @@ function Robot:push_message(cmd_id, data)
     end
 end
 
-function Robot:push_state(node, state)
+function Robot:push_state(node, state, err)
     if not self.press then
-        tinsert(self.states, {case = node.case.name, node = node.name, id = node.id, state = state })
+        tinsert(self.states, {case = node.case.name, node = node.name, id = node.id, state = state, err = err })
     end
 end
 

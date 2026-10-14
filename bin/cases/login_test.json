@@ -1,0 +1,65 @@
+{
+  "editor": "quanta-robot-node-editor",
+  "version": 2,
+  "name": "login_test",
+  "group": "login",
+  "root": 1,
+  "nextId": 4,
+  "exec": {
+    "params": [
+      {
+        "key": "open_id",
+        "type": "string",
+        "value": "10001",
+        "locked": true
+      },
+      {
+        "key": "addr",
+        "type": "string",
+        "value": "127.0.0.1:20013"
+      }
+    ]
+  },
+  "nodes": {
+    "1": {
+      "type": "CASE",
+      "case": "login_base",
+      "in_args": {},
+      "name": "账号登陆",
+      "next": 2
+    },
+    "2": {
+      "type": "WAIT",
+      "time": 1000,
+      "name": "WAIT1秒",
+      "next": 3
+    },
+    "3": {
+      "type": "REQ",
+      "cmd_id": "NID_LOGIN_PLAYER_LOGOUT_REQ",
+      "inputs": {
+        "player_id": {
+          "type": "attr",
+          "value": "player_id"
+        }
+      },
+      "outputs": {},
+      "name": "账号登出",
+      "exec": true
+    }
+  },
+  "nodeedits": {
+    "1": {
+      "x": 131,
+      "y": 195
+    },
+    "2": {
+      "x": 407,
+      "y": 195
+    },
+    "3": {
+      "x": 663,
+      "y": 185
+    }
+  }
+}

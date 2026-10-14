@@ -47,10 +47,19 @@ function Worker:on_frame(clock_ms)
     wupdate(clock_ms)
 end
 
---线程结束
+--结束本线程
 function Worker:stop()
     log_info("[quanta][stop] worker {} exit!", THREAD_NAME)
     update_mgr:quit()
+end
+
+--结束具名线程
+function Worker:shutdown(name)
+    log_info("[Worker][shutdown] shutdown worker {}!", name)
+    local ok, err = pcall(quanta.thread_down, name)
+    if not ok then
+        log_err("[Worker][shutdown] shutdown thread {} failed: {}", name, err)
+    end
 end
 
 function Worker:startup(name, entry, params, conf)
@@ -63,6 +72,7 @@ function Worker:startup(name, entry, params, conf)
     if not ok then
         log_err("[Worker][startup] startup thread {} failed: {}", name, wok_oe)
     end
+    log_info("[Worker][startup] startup worker {}!", name)
     return wok_oe
 end
 

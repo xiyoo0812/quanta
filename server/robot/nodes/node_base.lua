@@ -1,5 +1,6 @@
 --node_base.lua
 local tcopy         = table.copy
+local lformat       = log.format
 local sformat       = string.format
 local log_err       = logger.err
 local log_info      = logger.info
@@ -57,11 +58,11 @@ function NodeBase:write_output(name, output, res)
         return true
     end
     if output.type == "lua" then
-        role[name] = self:call_script(outval, res)
+        role.variables[name] = self:call_script(outval, res)
         return true
     end
     if outval ~= nil then
-        role[name] = outval
+        role.variables[name] = outval
     end
     return true
 end
@@ -187,12 +188,13 @@ function NodeBase:go_next()
     self.case:run_next(self.next)
 end
 
-function NodeBase:failed(error)
-    self.error = error
+function NodeBase:failed(fmt, ...)
+    local err = lformat(fmt, ...)
+    self.error = err
     self.result = false
     self.successed = false
-    log_err("[NodeBase][failed] robot:{} run node=> {} failed: {}", self.open_id, self.name, error)
-    self.actor:push_state(self, "failed")
+    log_err("[NodeBase][failed] robot:{} run node=> {} failed: {}", self.open_id, self.name, err)
+    self.actor:push_state(self, "failed", err)
     self.case:failed()
 end
 

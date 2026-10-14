@@ -62,10 +62,10 @@ function Scheduler:startup(name, entry, params, conf)
     return wok_oe
 end
 
-function Scheduler:stop(name)
-    local ok, err = pcall(worker.stop, name)
+function Scheduler:shutdown(name)
+    local ok, err = pcall(worker.thread_down, name)
     if not ok then
-        log_err("[Scheduler][stop] stop thread {} failed: {}", name, err)
+        log_err("[Scheduler][shutdown] shutdown thread {} failed: {}", name, err)
     end
 end
 

@@ -116,7 +116,7 @@ function GateServer:on_bind_client_req(session, message, body, response)
     self.clients[client_id] = session
     socket_mgr.map_client(client_id, session.token)
     socket_mgr.map_server(client_id, server_id, server.token)
-    log_info("[GateServer][on_bind_client_req] client({}) bind!", client_id)
+    log_info("[GateServer][on_bind_client_req] client({}) bind server({}) bind!", client_id, server_id)
 end
 
 function GateServer:on_bind_server_req(session, message, body, response)

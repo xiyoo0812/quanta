@@ -13,10 +13,17 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #toolbar button:hover{background:#1177bb}
 #toolbar button.gray{background:#3e3e42;color:#ccc}
 #toolbar button.gray:hover{background:#4e4e57}
+#toolbar button.run{background:#2ea043;color:#fff;font-weight:600}
+#toolbar button.run:hover{background:#3fb950}
+#toolbar button.stop{background:#d29922;color:#fff;font-weight:600}
+#toolbar button.stop:hover{background:#e3b341}
+#toolbar button.del{background:#c93c37;color:#fff;font-weight:600}
+#toolbar button.del:hover{background:#e2574c}
 #toolbar .sep{width:1px;height:24px;background:#464647;margin:0 4px}
 #toolbar label{color:#999;font-size:12px}
 #toolbar input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 8px;font-size:12px;font-family:inherit}
 #toolbar input[type=text]{width:160px}
+#toolbar select{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 6px;font-size:12px;font-family:inherit;cursor:pointer}
 
 /* ===== 主体 ===== */
 #main{flex:1;display:flex;overflow:hidden;min-height:0}
@@ -109,7 +116,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #svg-layer path{pointer-events:stroke;cursor:pointer}
 
 /* 节点 */
-.node{position:absolute;min-width:155px;background:#2d2d30;border:1px solid #55555a;border-radius:6px;overflow:visible;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
+.node{position:absolute;min-width:155px;max-width:280px;background:#2d2d30;border:1px solid #55555a;border-radius:6px;overflow:visible;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
 .node:hover{border-color:#6a6a6e}
 .node.selected{border-color:#007acc;box-shadow:0 0 0 1px #007acc,0 2px 10px rgba(0,0,0,.35)}
 /* 执行状态徽标 */
@@ -120,15 +127,22 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 .exec-badge-running{background:#b8860b}
 .exec-badge-ok{background:#3d9142}
 .exec-badge-err{background:#c74a42}
-.node-head{padding:6px 10px;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;cursor:move;white-space:nowrap;border-radius:5px 5px 0 0}
+.node-head{padding:6px 10px;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;gap:6px;cursor:move;white-space:nowrap;overflow:hidden;border-radius:5px 5px 0 0}
 .node-head .nicon{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.node-head .nid{margin-left:auto;background:rgba(255,255,255,.15);padding:0 6px;border-radius:8px;font-size:10px;font-weight:400}
-.node-head .root-badge{background:#007acc;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600}
+.node-head>span{overflow:hidden;text-overflow:ellipsis}
+.node-head .nid{margin-left:auto;background:rgba(255,255,255,.15);padding:0 6px;border-radius:8px;font-size:10px;font-weight:400;flex-shrink:0}
+.node-head .root-badge{background:#007acc;padding:0 5px;border-radius:8px;font-size:9px;font-weight:600;flex-shrink:0}
 .node-body{padding:4px 0 6px}
-.node-field{padding:2px 14px 2px 10px;color:#888;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+.node-field{padding:2px 14px 2px 10px;color:#888;font-size:10px;line-height:1.5;word-break:break-all;overflow-wrap:anywhere;white-space:normal}
 .node-field .k{color:#9cdcfe}
 .node-field .v{color:#ce9178}
 .node-field .empty{color:#555;font-style:italic}
+/* 执行失败错误行：节点内容区底部红色小字，超长截断；悬停显示自定义 tooltip（大号红字）。
+   注意截断 overflow 放在内层 .err-text 上——tooltip 是 err-line 的子元素，外层不能 overflow:hidden 否则 tooltip 被裁 */
+.exec-err-line{margin:2px 14px 2px 10px;padding:2px 6px;background:rgba(226,87,76,.15);border-left:2px solid #e2574c;color:#e2574c;font-size:10px;line-height:1.4;cursor:help;position:relative}
+.exec-err-line .err-text{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.exec-err-line .err-tip{display:none;position:absolute;bottom:calc(100% + 4px);left:0;z-index:50;max-width:480px;white-space:normal;word-break:break-all;background:#2d1010;border:1px solid #e2574c;color:#e2574c;font-size:13px;line-height:1.6;padding:6px 10px;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.5);pointer-events:none;text-align:left}
+.exec-err-line:hover .err-tip{display:block}
 
 /* 端口圆点（绘制在节点上，位置随连线路由同步） */
 .port-dot{position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid #1e1e1e;z-index:6}
@@ -141,20 +155,26 @@ body.connecting .node{border-color:#2a6f97}
 
 /* 用例选择列表（打开用例） */
 .case-list{max-height:400px;overflow-y:auto}
-.case-item{padding:8px 10px;border:1px solid #3e3e42;border-radius:4px;margin-bottom:4px;cursor:pointer;transition:background .12s,border-color .12s}
+.case-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #3e3e42;border-radius:4px;margin-bottom:4px;cursor:pointer;transition:background .12s,border-color .12s}
 .case-item:hover{background:#2d2d30;border-color:#007acc}
-.case-item .case-name{color:#ccc;font-size:13px;display:block}
-.case-item .case-path{color:#666;font-size:10px;display:block;margin-top:2px}
-.workdir-label{color:#888;font-size:11px;margin-left:2px;white-space:nowrap}
+.case-item .case-name{color:#ccc;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.case-item .case-group-tag{color:#666;font-size:10px;margin-left:6px;border:1px solid #3e3e42;border-radius:8px;padding:0 6px}
+.case-item .del-btn{width:22px;height:22px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
+.case-item .del-btn:hover{background:#a1260d;color:#fff}
+/* 打开对话框分组筛选行 */
+.picker-group-row{display:flex;align-items:center;gap:6px;padding:6px 16px 10px;font-size:12px;color:#888;border-bottom:1px solid #2a2a2c;margin-bottom:6px}
+.picker-group-row select{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 6px;font-size:12px;font-family:inherit;cursor:pointer}
 
-/* 节点执行按钮 */
-.exec-btn{background:rgba(255,255,255,.25);color:#fff;border-radius:3px;padding:0 5px;font-size:10px;cursor:pointer;margin-left:2px;line-height:16px}
-.exec-btn:hover{background:#4caf50}
+/* 节点执行按钮：日常浅灰（不可点击），用例运行中（execActive）变绿色可点击 */
+.exec-btn{background:#5a5a5e;color:#d0d0d0;border-radius:3px;padding:0 5px;font-size:10px;cursor:not-allowed;margin-left:2px;line-height:16px;transition:background .12s,color .12s}
+.node .exec-btn.active{background:#4caf50;color:#fff;cursor:pointer}
+.node .exec-btn.active:hover{background:#5cc96a}
 
 /* 执行面板 */
 .exec-row{display:flex;gap:4px;margin-bottom:4px;min-width:0}
 .exec-row input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit;min-width:0}
-.exec-row .er-key{flex:0 0 35%}
+.exec-row select{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 4px;font-size:12px;font-family:inherit;cursor:pointer;flex:0 0 76px}
+.exec-row .er-key{flex:0 0 32%}
 .exec-row .er-val{flex:1}
 .exec-row .del-btn{width:22px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
 .exec-row .del-btn:hover{background:#a1260d;color:#fff}
@@ -227,8 +247,14 @@ body.connecting .node{border-color:#2a6f97}
 :is(#props,.modal) .add-btn{background:#37373d;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;margin-top:2px}
 :is(#props,.modal) .add-btn:hover{background:#4e4e57}
 :is(#props,.modal) .target-row{display:flex;gap:4px;margin-bottom:4px;align-items:center;font-size:11px;color:#888;min-width:0}
-:is(#props,.modal) .target-row input{width:50px;flex-shrink:0;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:3px 5px;font-size:11px}
+/* 覆盖 .field input[type=text] 的 width:100%（.field .target-row 提升优先级），分支行输入框等宽弹性 */
+:is(#props,.modal) .field .target-row input{width:auto;flex:1;min-width:60px;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:3px 5px;font-size:11px}
+:is(#props,.modal) .field .target-row .del-btn{width:22px;height:20px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
+:is(#props,.modal) .field .target-row .del-btn:hover{background:#a1260d;color:#fff}
+:is(#props,.modal) .target-row>span{flex-shrink:0;white-space:nowrap}
 :is(#props,.modal) .target-row .target-to{color:#4ec9b0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+/* SWITCH 分支编辑：分支条目（key+备注+删除同行） */
+:is(#props,.modal) .branch-item{border:1px solid #3e3e42;border-radius:3px;padding:4px;margin-bottom:4px;background:#1b1b1c}
 #props .empty-prop{color:#666;text-align:center;padding:60px 20px;line-height:1.8}
 #props .btn-row{display:flex;gap:6px;margin-top:8px}
 #props .btn-row button{flex:1;padding:5px;border-radius:3px;border:1px solid #464647;background:#3e3e42;color:#ccc;cursor:pointer;font-size:11px}
@@ -243,13 +269,14 @@ body.connecting .node{border-color:#2a6f97}
 .modal-head h3{color:#ccc;font-size:14px}
 .modal-head .close{background:none;border:none;color:#999;cursor:pointer;font-size:18px}
 .modal-body{padding:12px 16px;overflow-y:auto;overflow-x:hidden;flex:1}
-.modal-body textarea{width:100%;height:340px;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:4px;padding:8px;font-family:'Consolas','Courier New',monospace;font-size:12px;resize:vertical}
 .modal-foot{padding:10px 16px;border-top:1px solid #3e3e42;display:flex;justify-content:flex-end;gap:8px}
 .modal-foot button{padding:6px 16px;border-radius:3px;border:none;cursor:pointer;font-size:12px}
 .modal-foot .primary{background:#0e639c;color:#fff}
 .modal-foot .primary:hover{background:#1177bb}
 .modal-foot .secondary{background:#3e3e42;color:#ccc;border:1px solid #555}
 .modal-foot .secondary:hover{background:#4e4e57}
+.modal-foot .danger{background:#a1260d;color:#fff}
+.modal-foot .danger:hover{background:#c74a42}
 
 /* 提示 */
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0e639c;color:#fff;padding:8px 20px;border-radius:4px;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none}
@@ -260,21 +287,24 @@ body.connecting .node{border-color:#2a6f97}
 
 <!-- 顶栏 -->
 <div id="toolbar">
+  <label>用例分组</label>
+  <select id="case-group" onchange="setCaseGroup(this.value)"></select>
+  <button class="gray" onclick="addGroup()">新增分组</button>
+  <div class="sep"></div>
   <label>用例名称</label>
   <input type="text" id="case-name" value="case1" oninput="state.caseName=this.value">
   <div class="sep"></div>
   <button class="gray" onclick="openCaseFile()">打开</button>
   <button class="gray" onclick="saveEditorFile()">保存</button>
-  <button class="gray" onclick="clearAll()">清空</button>
+  <button class="gray" onclick="newCase()">新建</button>
+  <button class="gray" onclick="refreshAll()">刷新</button>
+  <button class="del" onclick="deleteCase()">删除</button>
+  <div class="sep"></div>
   <button class="gray" onclick="toggleLogPanel()">日志</button>
   <div class="sep"></div>
-  <button class="gray" onclick="pickProtoFile()">载入协议</button>
-  <button class="gray" onclick="pickWorkDir()">工作目录</button>
-  <span id="workdir-label" class="workdir-label">未设置</span>
-  <div class="sep"></div>
-  <button onclick="showExecPanel('case')">执行</button>
-  <button class="gray" id="exec-stop" onclick="stopExecute()" style="display:none">停止</button>
-  <button onclick="exportModal()">导出</button>
+  <button onclick="showExecPanel('case')">设置</button>
+  <button class="run" id="exec-run" onclick="doExecute()">运行</button>
+  <button class="stop" id="exec-stop" onclick="stopExecute()" style="display:none">停止</button>
 </div>
 
 <!-- 主体 -->
@@ -367,8 +397,7 @@ const NODE_TYPES = {
     label: "SOCK节点", color: "#4caf50",
     outputs: [{id:"next",label:"Next"}],
     fields: [
-      {key:"ip",   label:"IP地址",  render:"input"},
-      {key:"port", label:"端口",    render:"input"},
+      {key:"addr", label:"服务器地址", render:"input"},
     ]
   },
   HTTP: {
@@ -402,7 +431,7 @@ const NODE_TYPES = {
     label: "SWITCH节点", color: "#795548",
     outputs: "dynamic",
     fields: [
-      {key:"inputs", label:"输入参数",   render:"kv"},
+      {key:"key",  label:"分支键(key)", render:"input"},
     ]
   },
   RAND: {
@@ -445,6 +474,7 @@ const IN_PLACE_RENDERS = ['proto-select', 'number', 'case-select', 'method-selec
 // ============================================================
 let state = {
   caseName: "case1",
+  caseGroup: "default",   // 用例分组（保存进存档，下拉选项从所有用例的分组属性收集）
   nodes: {},          // {id: {type, x, y, data:{...}}}
   connections: [],    // [{from, port, to}]
   selected: null,     // 选中的节点id
@@ -522,6 +552,9 @@ function createNode(type, mouseEvent) {
   }
   // 节点名称（可在属性面板修改，画布与日志显示均使用）
   data.name = type + '节点';
+  // 节点执行开关（是否显示▶执行按钮/可重复执行）：未配置默认 false（不可执行），
+  // 属性面板可改；画布/属性面板统一用 nodeExecState 取值
+  data.exec = false;
   // 动态分支节点默认1个分支；SWITCH 分支值类型默认 string
   if (type === 'SWITCH' || type === 'RAND') {
     data._targetKeys = ["1"];
@@ -559,7 +592,7 @@ function renderNodes() {
     let headHtml = `<div class="node-head" style="background:${def.color}">
       <div class="nicon" style="background:rgba(255,255,255,.7)"></div>
       <span>${escapeHtml(node.data.name || def.label)}</span>
-      ${def.exec ? '<span class="exec-btn" title="执行该节点">▶</span>' : ''}
+      ${node.data.exec ? `<span class="exec-btn${execActive ? ' active' : ''}" title="${execActive ? '执行该节点' : '用例未在运行中，不可执行'}">▶</span>` : ''}
       ${state.root === id ? '<span class="root-badge">ROOT</span>' : ''}
       <span class="nid">#${id}</span>
     </div>`;
@@ -606,8 +639,9 @@ function renderNodes() {
       execBtn.onmousedown = e => e.stopPropagation();   // 阻止触发节点拖拽
       execBtn.onclick = e => {
         e.stopPropagation();
-        if (lastExecUrl) {
-          // 已执行过：直接复用上次的url执行该节点（强制 /node 路径，参数不变，不再弹面板）
+        if (!execActive) { toast('用例未在运行中，请先运行用例'); return; }   // 日常灰色不可执行
+        if (lastExecPath) {
+          // 已执行过：直接复用上次的路径执行该节点（强制 /node，参数不变，不再弹面板）
           execMode = 'node';
           execNodeId = id;
           doExecute(lastExecNodeUrl());
@@ -619,9 +653,11 @@ function renderNodes() {
     el.onmousedown = e => {
       if (e.target.closest('.port-dot')) return;
       e.stopPropagation();
+      const isFirst = state.selected !== id;
       selectNode(id);
+      // CASE 节点双击检测（内容区路径；title 区点击走 startDragNode，在函数内检测）
+      detectCaseDblClick(id, isFirst);
     };
-    el.oncontextmenu = e => { e.preventDefault(); showContextMenu(e, id); };
   }
 }
 
@@ -883,7 +919,10 @@ function ctrlOffset(x, y, side, d) {
 function startDragNode(e, id) {
   e.preventDefault();
   e.stopPropagation();
+  const isFirst = state.selected !== id;
   selectNode(id);
+  // CASE 节点双击检测（title 区路径）：拖拽只在小位移后才算开始，双击不受影响
+  detectCaseDblClick(id, isFirst);
   const node = state.nodes[id];
   const rect = canvas.getBoundingClientRect();
   drag = {
@@ -976,6 +1015,23 @@ function startConnection(fromId, port, e) {
 // ============================================================
 //  选中 / 删除
 // ============================================================
+// CASE 节点双击检测：按节点 id 记录点击时间
+function detectCaseDblClick(id, isFirst) {
+  const node = state.nodes[id];
+  if (!node || node.type !== 'CASE' || !node.data.case) return;
+  const now = Date.now();
+  const key = 'n' + id;
+  if (!isFirst && dblClickTracker[key] && now - dblClickTracker[key] < 400) {
+    dblClickTracker[key] = 0;
+    const sc = subCases.find(s => s.name === node.data.case);
+    if (sc) {
+      openSubCase(sc);
+    }
+  } else {
+    dblClickTracker[key] = now;
+  }
+}
+
 function selectNode(id) {
   state.selected = id;
   state.selectedConn = null;
@@ -990,16 +1046,6 @@ function deleteNode(id) {
   if (state.selected === id) state.selected = null;
   renderAll();
   updatePropPanel();
-}
-
-function showContextMenu(e, id) {
-  // 简易菜单：用prompt模拟
-  const action = prompt(
-    `节点 #${id} (${NODE_TYPES[state.nodes[id].type].label})\n\n` +
-    `输入数字选择操作:\n1. 设为根节点\n2. 删除节点`
-  );
-  if (action === '1') { state.root = id; renderAll(); toast('已设为根节点'); }
-  else if (action === '2') { deleteNode(id); }
 }
 
 // ============================================================
@@ -1029,6 +1075,14 @@ function updatePropPanel() {
   // 节点名称：原地编辑
   html += `<div class="field"><label>节点名称</label>
     <input type="text" value="${escapeAttr(node.data.name || '')}" placeholder="${node.type}节点" onchange="setNodeName(${id}, this.value)"></div>`;
+
+  // 节点执行开关：统一默认 false（未配置 = 不可执行），配置后随存档持久化
+  const execOn = !!node.data.exec;
+  html += `<div class="field"><label>可重复执行（显示执行按钮）</label>
+    <select onchange="setNodeExec(${id}, this.value === '1')">
+      <option value="1" ${execOn ? 'selected' : ''}>是</option>
+      <option value="0" ${!execOn ? 'selected' : ''}>否</option>
+    </select></div>`;
 
   // 各字段：简单字段（协议/子用例下拉、时间、请求方法、地址等）原地编辑，其余只读展示 + 编辑按钮
   for (const f of def.fields) {
@@ -1119,17 +1173,18 @@ function renderField(f, val, nodeId) {
       return html;
     }
     case 'case-select': {
-      // 子用例下拉：从已加载的子用例目录中选择，排除自身（防止自递归）
+      // 子用例下拉：从服务器用例缓存中选择，排除自身（防止自递归）
       const current = val || '';
       const opts = [];
-      opts.push(`<option value="" ${current ? '' : 'selected'} disabled>${subCases.length ? '请选择子用例' : '未加载子用例目录'}</option>`);
+      opts.push(`<option value="" ${current ? '' : 'selected'} disabled>${subCases.length ? '请选择子用例' : '未加载子用例'}</option>`);
       subCases.forEach(sc => {
         if (sc.name === state.caseName) return;
-        opts.push(`<option value="${escapeAttr(sc.name)}" ${sc.name === current ? 'selected' : ''}>${escapeHtml(sc.name)}（${escapeHtml(sc.path)}）</option>`);
+        const groupTag = sc.group && sc.group !== 'default' ? `［${sc.group}］` : '';
+        opts.push(`<option value="${escapeAttr(sc.name)}" ${sc.name === current ? 'selected' : ''}>${escapeHtml(sc.name)}${groupTag}</option>`);
       });
-      // 当前值不在已加载列表中时保留显示（如尚未加载目录或来自导入数据）
+      // 当前值不在已加载列表中时保留显示（如来自导入数据）
       if (current && !subCases.some(sc => sc.name === current)) {
-        opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未在已加载目录中）</option>`);
+        opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未在用例列表中）</option>`);
       }
       return `<div class="field"><label>${f.label}</label>
         <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
@@ -1149,7 +1204,7 @@ function renderField(f, val, nodeId) {
          </div>`).join('');
       if (!entries.length) {
         // 未载入协议：与子用例下拉一致，直接提示（保留已有值显示）
-        const opts = [`<option value="" ${current ? '' : 'selected'} disabled>未载入协议，请点击工具栏「载入协议」</option>`];
+        const opts = [`<option value="" ${current ? '' : 'selected'} disabled>未载入协议</option>`];
         if (current) opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未载入协议）</option>`);
         return `<div class="field"><label>${f.label}</label>
           <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
@@ -1170,27 +1225,26 @@ function renderField(f, val, nodeId) {
         <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
     }
     case 'switch-edit': {
-      // SWITCH/RAND 分支编辑：SWITCH 的 key 可改并带值类型；目标节点在画布上拖拽连线建立
+      // SWITCH 分支编辑：分支值类型 + key + 备注 + 删除；RAND 不走该编辑框（属性面板直接 + 添加）
       const node = state.nodes[nodeId];
-      const isRand = node.type === 'RAND';
       const tk = (node.data._targetKeys) || [];
-      let html = '';
-      if (!isRand) {
-        const kt = node.data._keyType === 'number' ? 'number' : 'string';
-        html += `<div class="field"><label>分支值类型</label>
+      const notes = (node.data._branchNotes) || [];
+      const kt = node.data._keyType === 'number' ? 'number' : 'string';
+      let html = `<div class="field"><label>分支值类型</label>
           <select onchange="setBranchType(${nodeId},this.value)">
             <option value="string" ${kt === 'string' ? 'selected' : ''}>string</option>
             <option value="number" ${kt === 'number' ? 'selected' : ''}>number</option>
           </select></div>`;
-      }
-      html += `<div class="field"><label>分支（${isRand ? '随机目标节点' : 'key → 目标节点'}）</label>`;
+      html += `<div class="field"><label>分支（key → 目标节点）</label>`;
       tk.forEach((bkey, i) => {
-        const toStr = connTargetStr(nodeId, i) || '未连接';
-        html += `<div class="target-row">
-          <span>分支${i+1}</span>
-          ${isRand ? '' : `<input type="text" value="${escapeAttr(bkey)}" onchange="updateTargetKey(${nodeId},${i},this.value)">`}
-          <span class="target-to">${toStr}</span>
-          <button class="del-btn" onclick="removeTarget(${nodeId},${i})">×</button>
+        // 每个分支一行：key 编辑框 + 备注输入框（等宽） + 删除按钮；连接信息不在弹窗中显示
+        html += `<div class="branch-item">
+          <div class="target-row">
+            <span>分支${i+1}</span>
+            <input type="text" value="${escapeAttr(bkey)}" onchange="updateTargetKey(${nodeId},${i},this.value)" title="分支键">
+            <input type="text" class="branch-note" placeholder="备注" value="${escapeAttr(notes[i] || '')}" onchange="updateBranchNote(${nodeId},${i},this.value)" title="备注">
+            <button class="del-btn" title="删除该分支" onclick="removeTarget(${nodeId},${i})">×</button>
+          </div>
         </div>`;
       });
       if (!tk.length) html += `<div class="kv-empty">暂无分支，点击下方按钮添加</div>`;
@@ -1298,10 +1352,14 @@ function renderFieldView(f, val, nodeId) {
   const d = fieldDisplayHtml(f, val, nodeId);
   const body = d.html ? d.html : escapeHtml(d.text || '');
   const cls = 'fv-body' + (d.code ? ' fv-code' : '') + (!body ? ' fv-empty' : '');
+  // RAND 分支：不走编辑弹窗，头部按钮直接为「+ 添加分支」（每行的删除按钮在行内）
+  const node = state.nodes[nodeId];
+  const isRandBranch = f.key === '_branches' && node && node.type === 'RAND';
+  const headBtn = isRandBranch
+    ? `<button class="fv-edit" onclick="addTarget(${nodeId})">+ 添加</button>`
+    : `<button class="fv-edit" onclick="openFieldEditor(${nodeId},'${f.key}')">编辑</button>`;
   return `<div class="field-view">
-    <div class="fv-head"><label>${f.label}</label>
-      <button class="fv-edit" onclick="openFieldEditor(${nodeId},'${f.key}')">编辑</button>
-    </div>
+    <div class="fv-head"><label>${f.label}</label>${headBtn}</div>
     <div class="${cls}">${body || '未设置'}</div>
   </div>`;
 }
@@ -1334,17 +1392,14 @@ function renderFieldEditor() {
   const node = state.nodes[nodeId];
   if (!node) { fieldEditorCtx = null; closeModal(); return; }
   const f = getFieldDef(node, key);
-  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
-    <div class="modal field-modal" onclick="event.stopPropagation()">
-      <div class="modal-head"><h3>编辑 · ${f.label} <span style="color:#666">#${nodeId}</span></h3>
-        <button class="close" onclick="cancelFieldEditor()" title="取消（还原修改）">×</button></div>
-      <div class="modal-body">${renderField(f, node.data[f.key], nodeId)}</div>
-      <div class="modal-foot">
-        <button class="primary" onclick="confirmFieldEditor()">确定</button>
-        <button class="secondary" onclick="cancelFieldEditor()">取消</button>
-      </div>
-    </div>
-  </div>`;
+  showModalFrame({
+    title: `编辑 · ${f.label} <span style="color:#666">#${nodeId}</span>`,
+    body: renderField(f, node.data[f.key], nodeId),
+    foot: `<button class="primary" onclick="confirmFieldEditor()">确定</button>
+           <button class="secondary" onclick="cancelFieldEditor()">取消</button>`,
+    modalClass: 'field-modal',
+    onClose: cancelFieldEditor,   // 点遮罩/× 等同取消（还原快照）
+  });
 }
 
 // 确定：关闭弹窗并回显（修改已实时生效）
@@ -1375,6 +1430,15 @@ function setNodeName(id, val) {
   const node = state.nodes[id];
   if (!node) return;
   node.data.name = String(val || '').trim() || (node.type + '节点');
+  renderNodes();
+  updatePropPanel();
+}
+
+// 修改节点执行开关（是否显示▶按钮，可单节点重复执行）
+function setNodeExec(id, on) {
+  const node = state.nodes[id];
+  if (!node) return;
+  node.data.exec = !!on;
   renderNodes();
   updatePropPanel();
 }
@@ -1446,21 +1510,32 @@ function addTarget(id) {
   updatePropPanel(); renderAll();
 }
 function removeTarget(id, i) {
-  state.nodes[id].data._targetKeys.splice(i, 1);
-  // 移除对应连线，并重新映射target_N
-  state.connections = state.connections.filter(c => !(c.from === id && c.port === `target_${i}`));
-  // 重映射后续端口名
-  state.connections.forEach(c => {
-    if (c.from === id && c.port.startsWith('target_')) {
-      const idx = parseInt(c.port.split('_')[1]);
-      if (idx > i) c.port = `target_${idx - 1}`;
+  uiConfirm(`确定删除分支${i+1}？`, () => {
+    state.nodes[id].data._targetKeys.splice(i, 1);
+    // 同步移除分支备注并重排索引
+    if (Array.isArray(state.nodes[id].data._branchNotes)) {
+      state.nodes[id].data._branchNotes.splice(i, 1);
     }
-  });
-  updatePropPanel(); renderAll();
+    // 移除对应连线，并重新映射target_N
+    state.connections = state.connections.filter(c => !(c.from === id && c.port === `target_${i}`));
+    // 重映射后续端口名
+    state.connections.forEach(c => {
+      if (c.from === id && c.port.startsWith('target_')) {
+        const idx = parseInt(c.port.split('_')[1]);
+        if (idx > i) c.port = `target_${idx - 1}`;
+      }
+    });
+    updatePropPanel(); renderAll();
+  }, '删除确认', '删除');
 }
 function updateTargetKey(id, i, val) {
   state.nodes[id].data._targetKeys[i] = val;
   renderAll();
+}
+// 分支备注：仅编辑器存档使用（不参与运行时导出），随 buildEditorData 持久化
+function updateBranchNote(id, i, val) {
+  const notes = (state.nodes[id].data._branchNotes = state.nodes[id].data._branchNotes || []);
+  notes[i] = val;
 }
 // 设置 SWITCH 分支值类型（string/number，决定导出 targets 键类型）
 function setBranchType(id, val) {
@@ -1490,19 +1565,23 @@ function exportNode(id) {
     if (c.port === 'next') n.next = c.to;
     else if (c.port === 'success') { n.result = n.result || {}; n.result.success = c.to; }
     else if (c.port === 'failed') { n.result = n.result || {}; n.result.failed = c.to; }
-    else if (c.port.startsWith('target_')) {
-      const idx = parseInt(c.port.split('_')[1]);
+    else if (c.port.startsWith('target_') && node.type === 'RAND') {
       n.targets = n.targets || [];
-      if (node.type === 'RAND') {
-        n.targets.push(c.to);   // RAND：平铺目标节点数组
-      } else {
-        const bkey = node.data._targetKeys?.[idx] || String(idx + 1);
-        // 分支值类型：number 导出数字键（Lua 中数字键与字符串键是不同的表键）
-        let tkey = node.data._keyType === 'number' ? Number(bkey) : String(bkey);
-        if (typeof tkey === 'number' && Number.isNaN(tkey)) tkey = String(bkey);
-        n.targets.push([tkey, c.to]);
-      }
+      n.targets.push(c.to);   // RAND：平铺目标节点数组
     }
+  }
+  // SWITCH：targets 只导出已连接分支，按分支位置顺序排列；
+  // 未连接分支的 keys/备注仅存于 nodeedits（编辑数据），运行时不生成
+  if (node.type === 'SWITCH') {
+    const tk = node.data._targetKeys || [];
+    tk.forEach((bkey, idx) => {
+      const conn = state.connections.find(c => c.from === id && c.port === `target_${idx}`);
+      if (!conn) return;   // 未连接：运行时不生成，编辑数据在 nodeedits
+      let tkey = node.data._keyType === 'number' ? Number(bkey) : String(bkey);
+      if (typeof tkey === 'number' && Number.isNaN(tkey)) tkey = String(bkey);
+      n.targets = n.targets || [];
+      n.targets.push([tkey, conn.to]);
+    });
   }
   return n;
 }
@@ -1517,147 +1596,90 @@ function buildExportData() {
   return result;
 }
 
-function exportModal() {
-  const data = buildExportData();
-  showModal('导出 Lua', 'return ' + jsonToLua(data));
-}
-
-function safeFileName() {
-  return (state.caseName || "case1").replace(/[\\/:*?"<>|]/g, '_');
-}
-
-function downloadText(filename, text) {
-  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-// 保存文本：弹系统保存对话框选择位置；不支持时直接下载
-async function saveTextToFolder(suggestedName, text, mime) {
-  if (window.showSaveFilePicker) {
-    try {
-      const ext = '.' + suggestedName.split('.').pop();
-      const desc = ext === '.json' ? 'JSON 文件' : (ext === '.lua' ? 'Lua 文件' : '文件');
-      const handle = await window.showSaveFilePicker({
-        suggestedName,
-        types: [{ description: desc, accept: { [mime]: [ext] } }],
-      });
-      const writable = await handle.createWritable();
-      await writable.write(text);
-      await writable.close();
-      toast(`已保存 ${handle.name}`);
-      return;
-    } catch (e) {
-      if (e && e.name === 'AbortError') return; // 用户取消
-      // 其他异常（权限/环境不支持）回退为直接下载
-    }
-  }
-  downloadText(suggestedName, text);
-  toast(`已下载 ${suggestedName}`);
-}
-
-// 导出文件：每次弹出保存对话框选择位置
-function downloadExport() {
-  saveTextToFolder(`${safeFileName()}.lua`, $('modal-text').value, 'text/plain');
+// 执行导出：直接用标准导出（子CASE参数缓存由服务端运行子用例存档时自然生效）
+function buildExecExportData() {
+  return buildExportData();
 }
 
 // ============================================================
-//  编辑器存档：保存/加载节点位置与内容，可再次编辑
+//  编辑器存档：nodes 为运行时格式（与 server/robot/cases/*.lua 一致，
+//  连线信息已折叠进节点的 next/result/targets，无需单独的 connections）；
+//  nodeedits 为编辑器附加数据（节点坐标、分支备注等），可再次编辑
 // ============================================================
 function buildEditorData() {
+  // 编辑器附加数据（与运行时无关，仅还原画布用）
+  const edits = {};
+  for (const [id, n] of Object.entries(state.nodes)) {
+    const e = { x: Math.round(n.x), y: Math.round(n.y) };
+    // SWITCH 分支备注/值类型等内部字段随编辑数据保存
+    for (const [k, v] of Object.entries(n.data)) {
+      if (k.startsWith('_')) e[k] = JSON.parse(JSON.stringify(v));
+    }
+    edits[id] = e;
+  }
   return {
     editor: "quanta-robot-node-editor",
-    version: 1,
+    version: 2,
     name: state.caseName || "case1",
+    group: state.caseGroup || "default",
     root: state.root,
     nextId: state.nextId,
-    nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, n]) => [id, {
-      type: n.type,
-      x: Math.round(n.x),
-      y: Math.round(n.y),
-      data: JSON.parse(JSON.stringify(n.data)),
-    }])),
-    connections: state.connections.map(c => ({ from: c.from, port: c.port, to: c.to })),
+    // 执行面板配置（参数列表：{key, type, value}），不含完整请求 url
+    exec: {
+      params: JSON.parse(JSON.stringify(execOpts.params || [])),
+    },
+    // 运行时节点配置（与 lua 导出格式一致）
+    nodes: buildExportData().nodes,
+    // 编辑器附加数据（坐标/分支备注等）
+    nodeedits: edits,
   };
 }
 
-// 保存存档：已有工作目录时静默写入（不弹对话框），无则选目录并设为工作路径
-async function saveEditorFile() {
-  const name = safeFileName();
-  const fname = `${name}.edit.json`;
-  const text = JSON.stringify(buildEditorData(), null, 2);
-
-  // 已有工作目录：直接写入
-  if (await ensureWorkDirWritable()) {
-    try {
-      const fh = await workDirHandle.getFileHandle(fname, { create: true });
-      const w = await fh.createWritable();
-      await w.write(text);
-      await w.close();
-      upsertSubCase(name, fname, fh);
-      toast(`已保存 ${fname} 到工作目录`);
-      return;
-    } catch (e) { /* 写入异常 → 走选目录流程 */ }
-  }
-
-  // 无工作目录：选择目录并设为工作路径
-  if (window.showDirectoryPicker) {
-    let dir = null;
-    try {
-      dir = await window.showDirectoryPicker({ mode: 'readwrite' });
-    } catch (e) {
-      if (e && e.name === 'AbortError') return;
-    }
-    if (dir) {
-      workDirHandle = dir;
-      try {
-        const fh = await dir.getFileHandle(fname, { create: true });
-        const w = await fh.createWritable();
-        await w.write(text);
-        await w.close();
-        subCases = [];
-        await scanSubCaseDir(dir, '');
-        updatePropPanel();
-        toast(`已保存 ${fname}，工作目录已设置`);
-      } catch (e) {
-        uiAlert('保存失败: ' + e.message);
-      }
-      return;
-    }
-  }
-
-  // 浏览器不支持 → 回退为普通保存对话框
-  saveTextToFolder(fname, text, 'application/json');
-}
-
-function applyEditorData(data) {
+// 应用编辑器存档（v2 运行时格式）：nodes 走 applyCaseData 还原连线与节点，
+// 再叠加 nodeedits（坐标/分支备注等编辑器数据）
+function applyEditorData(data, skipExec) {
   if (!data || !data.nodes) throw new Error('不是有效的编辑器存档文件');
-  state.caseName = data.name || 'case1';
-  $('case-name').value = state.caseName;
-  state.root = data.root ?? null;
-  state.nextId = data.nextId || 1;
-  state.nodes = {};
-  state.connections = [];
-  state.selected = null;
-  state.selectedConn = null;
-  for (const [id, n] of Object.entries(data.nodes)) {
-    if (!NODE_TYPES[n.type]) throw new Error(`未知节点类型: ${n.type}`);
-    state.nodes[parseInt(id)] = {
-      type: n.type,
-      x: n.x || 0,
-      y: n.y || 0,
-      data: JSON.parse(JSON.stringify(n.data || {})),
-    };
-    const nd = state.nodes[parseInt(id)].data;
-    nd.name = nd.name || (n.type + '节点');
+  // 恢复执行面板配置（参数列表）：normalize 保证 open_id 在首位且不可删除；无参数时用默认
+  if (data.exec && !skipExec) {
+    execOpts.params = Array.isArray(data.exec.params) && data.exec.params.length
+      ? normalizeExecParams(data.exec.params)
+      : defaultExecParams();
   }
-  state.connections = (data.connections || []).map(c => ({ from: c.from, port: c.port, to: c.to }));
-  if (state.root == null || !state.nodes[state.root]) {
-    state.root = Object.keys(state.nodes).length ? parseInt(Object.keys(state.nodes)[0]) : null;
+  applyCaseData(data);   // 运行时格式还原（含连线解析）
+  state.nextId = data.nextId || state.nextId;
+  // 叠加编辑器附加数据（坐标/分支备注/值类型等）
+  const edits = data.nodeedits || {};
+  for (const [id, e] of Object.entries(edits)) {
+    const node = state.nodes[parseInt(id)];
+    if (!node) continue;
+    node.x = e.x || node.x;
+    node.y = e.y || node.y;
+    for (const [k, v] of Object.entries(e)) {
+      if (k === 'x' || k === 'y') continue;
+      node.data[k] = JSON.parse(JSON.stringify(v));
+    }
   }
+  // SWITCH 连线重对齐：nodeedits 恢复全部分支后，_targetKeys 可能比 applyCaseData
+  // 解析出的长（targets 运行时只含已连接分支），连线需按分支键重新匹配端口
+  for (const [nodeId, node] of Object.entries(state.nodes)) {
+    if (node.type !== 'SWITCH' || !Array.isArray(node.data._targetKeys)) continue;
+    const nid = parseInt(nodeId);
+    // 建立旧端口索引 → 分支键 的映射（applyCaseData 按 targets 顺序给了 target_i）
+    const keyByPort = {};
+    let connIdx = 0;
+    for (const t of (data.nodes[nodeId]?.targets || [])) {
+      if (t[1] != null) { keyByPort[`target_${connIdx}`] = String(t[0]); connIdx++; }
+    }
+    // 重映射连线端口：按分支键在完整 _targetKeys 中的位置
+    for (const c of state.connections) {
+      if (c.from !== nid || !c.port.startsWith('target_')) continue;
+      const bkey = keyByPort[c.port];
+      if (bkey === undefined) continue;
+      const newIdx = node.data._targetKeys.indexOf(bkey);
+      if (newIdx >= 0 && c.port !== `target_${newIdx}`) c.port = `target_${newIdx}`;
+    }
+  }
+  // applyCaseData 内部已用自动布局渲染过，坐标/备注/连线修正后必须重渲染才能生效
   renderAll();
   updatePropPanel();
 }
@@ -1666,6 +1688,7 @@ function applyEditorData(data) {
 function applyCaseData(data) {
   state.caseName = data.name || "case1";
   $('case-name').value = state.caseName;
+  state.caseGroup = data.group || 'default';
   state.root = data.root;
   state.nodes = {};
   state.connections = [];
@@ -1679,6 +1702,13 @@ function applyCaseData(data) {
     const def = NODE_TYPES[type];
     for (const f of def.fields) {
       if (conf[f.key] !== undefined) nodeData[f.key] = JSON.parse(JSON.stringify(conf[f.key]));
+    }
+    // 保留字段定义之外的运行时字段（before/after 等由 node_base.lua on_load 读取，
+    // 不在 NODE_TYPES 中，若丢弃会在下次保存时永久丢失）
+    for (const [k, v] of Object.entries(conf)) {
+      if (k === 'type' || k === 'name' || k in nodeData) continue;   // name 单独处理
+      if (k === 'next' || k === 'result' || k === 'targets') continue;   // 连线字段已单独解析
+      nodeData[k] = JSON.parse(JSON.stringify(v));
     }
     if (type === 'SWITCH') {
       nodeData._targetKeys = (conf.targets || []).map(t => t[0]);
@@ -1701,8 +1731,12 @@ function applyCaseData(data) {
       if (conf.result.failed != null) state.connections.push({from: id, port: 'failed', to: conf.result.failed});
     }
     if (conf.targets) {
+      // SWITCH：targets 含未连接分支（target 为 null），按分支位置对齐端口 target_i；
+      // RAND：平铺数组按位置对齐
       conf.targets.forEach((t, i) => {
-        state.connections.push({from: id, port: `target_${i}`, to: type === 'RAND' ? t : t[1]});
+        const to = type === 'RAND' ? t : t[1];
+        if (to == null) return;   // 未连接的分支：端口存在但无连线
+        state.connections.push({from: id, port: `target_${i}`, to});
       });
     }
   }
@@ -1713,101 +1747,306 @@ function applyCaseData(data) {
 }
 
 // ============================================================
-//  工作目录：用例存档的默认保存位置，也是子用例列表的来源
+//  服务器用例存取：从 accord httpsvr 拉取/推送/删除
+//  GET  /cases          → {code, msg:{名字: json字符串}}
+//  GET  /protos         → {code, msg:{协议名: {msg_id,name,fields,type}}}
+//  POST /cases?name=x   → body 为用例 json 字符串
+//  DELETE /cases?name=x
 // ============================================================
-let workDirHandle = null;   // 工作目录句柄（仅存内存，刷新页面后需重新选择）
-let subCases = [];          // {name, path, handle}
+let subCases = [];   // {name, content, exec} 服务器用例缓存（exec 为存档内的执行配置）
+const accordApi = path => path;
 
-// 确保工作目录有读写权限（浏览器可能在会话恢复后回收权限）
-async function ensureWorkDirWritable() {
-  if (!workDirHandle || workDirHandle.kind !== 'directory') return false;
-  if (await workDirHandle.queryPermission({ mode: 'readwrite' }) === 'granted') return true;
-  return await workDirHandle.requestPermission({ mode: 'readwrite' }) === 'granted';
+async function apiGet(path) {
+  const res = await fetch(path, { method: 'GET' });
+  return res.json();
 }
 
-// 设置工作目录；已有工作目录时只刷新其下的用例列表，不再弹选择框
-async function pickWorkDir() {
-  if (!window.showDirectoryPicker) {
-    uiAlert('当前浏览器不支持目录选择，请使用 Edge 或 Chrome');
+// 启动时拉取用例列表与协议定义（数据格式与本地打开一致：编辑器存档/导出格式均可）
+async function initFromServer() {
+  await refreshCases(true);
+  await refreshProtos(true);
+}
+
+// 拉取用例列表：更新 subCases 缓存与 CASE 节点下拉（startup=true 时不弹错误框）
+async function refreshCases(startup) {
+  try {
+    const r = await apiGet('/cases');
+    if (r.code === 0 && r.msg) {
+      subCases = Object.entries(r.msg).map(([name, content]) => {
+        let exec = null, group = null, data = null;
+        try {
+          data = typeof content === 'string' ? JSON.parse(content) : content;
+          if (data && data.exec && typeof data.exec === 'object') exec = data.exec;
+          if (data && data.group) group = data.group;
+        } catch (e) { /* json 解析失败当作纯文本存档 */ }
+        return { name, content, exec, group: group || 'default' };
+      });
+      renderGroupOptions();
+      if (startup) toast(`已从服务器加载 ${subCases.length} 个用例`);
+      updatePropPanel();
+      return true;
+    }
+    const msg = `拉取用例失败：${r.msg || '未知错误'}`;
+    startup ? appendLog(msg, false) : uiAlert(msg);
+  } catch (e) {
+    const msg = `拉取用例失败：${e.message}`;
+    startup ? appendLog(msg, false) : uiAlert(msg);
+  }
+  return false;
+}
+
+// 拉取协议定义：更新 protoDefs 缓存与消息列表/属性面板的协议解析
+async function refreshProtos(startup) {
+  try {
+    const r = await apiGet('/protos');
+    if (r.code === 0 && r.msg) {
+      loadProtoData(r.msg);
+      toast(`已从服务器加载 ${Object.keys(protoDefs).length} 个协议`);
+      renderMsgList(); showMsgDetail();   // 已收到的消息立即补全协议名/类型
+      updatePropPanel();
+      return true;
+    }
+    const msg = `拉取协议失败：${r.msg || '未知错误'}`;
+    startup ? appendLog(msg, false) : uiAlert(msg);
+  } catch (e) {
+    const msg = `拉取协议失败：${e.message}`;
+    startup ? appendLog(msg, false) : uiAlert(msg);
+  }
+  return false;
+}
+
+// 新建：名字改为 case1 并清空画布（不询问服务器）
+function newCase() {
+  uiConfirm('新建用例将清空当前画布，确定？', () => {
+    state.caseName = 'case1';
+    $('case-name').value = state.caseName;
+    state.nodes = {}; state.connections = []; state.root = null;
+    state.selected = null; state.selectedConn = null; state.nextId = 1;
+    execOpts.params = [];
+    renderAll(); updatePropPanel();
+    toast(`已新建 ${state.caseName}`);
+  }, '新建用例');
+}
+
+// ============================================================
+//  用例分组：下拉选项从所有用例存档的 group 属性收集，无分组时补 default
+// ============================================================
+// 收集所有用例的分组（含当前编辑中的分组），去重排序；空则补 default
+function collectGroups() {
+  const groups = new Set();
+  for (const sc of subCases) {
+    if (sc.group) groups.add(sc.group);
+  }
+  groups.add(state.caseGroup || 'default');
+  if (!groups.size) groups.add('default');
+  return [...groups].sort();
+}
+
+// 渲染分组下拉框（保持当前选中值）
+function renderGroupOptions() {
+  const sel = $('case-group');
+  if (!sel) return;
+  const groups = collectGroups();
+  // 当前选中值不在列表中（如手动改了不存在的分组）时补入
+  if (!groups.includes(state.caseGroup)) groups.push(state.caseGroup);
+  sel.innerHTML = groups.map(g => `<option value="${escapeAttr(g)}" ${g === state.caseGroup ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('');
+}
+
+// 分组下拉与 state 同步（打开用例后调用，让主页下拉跟随用例的分组）
+function syncCaseGroupSelect() {
+  const sel = $('case-group');
+  if (sel && sel.value !== state.caseGroup) renderGroupOptions();
+}
+
+// 切换分组：仅影响当前编辑上下文，随下次保存写进存档
+function setCaseGroup(val) {
+  state.caseGroup = val || 'default';
+}
+
+// 新增分组：模态对话框输入名字，成功后选中该分组
+function addGroup() {
+  showModalFrame({
+    title: '新增分组',
+    body: `<div class="field"><label>分组名称</label>
+             <input type="text" id="new-group-name" placeholder="输入分组名称" style="width:100%"></div>`,
+    foot: `<button class="primary" onclick="confirmAddGroup()">确定</button>
+           <button class="secondary" onclick="closeModal()">取消</button>`,
+    width: '420px',
+  });
+  const input = $('new-group-name');
+  input.focus();
+  input.onkeydown = e => { if (e.key === 'Enter') confirmAddGroup(); };
+}
+
+function confirmAddGroup() {
+  const g = ($('new-group-name').value || '').trim();
+  if (!g) { uiAlert('分组名称不能为空'); return; }
+  closeModal();
+  state.caseGroup = g;
+  renderGroupOptions();
+  toast(`分组「${g}」已创建，保存用例后生效`);
+}
+
+// 保存：POST /cases?name=名字，body 为用例 json 字符串；名字重复时需确认覆盖；无节点不保存
+async function saveEditorFile() {
+  if (!Object.keys(state.nodes).length) { toast('画布为空，无需保存'); return; }
+  const name = (state.caseName || 'case1').trim();
+  if (!name) { uiAlert('用例名称不能为空'); return; }
+  const exists = subCases.some(sc => sc.name === name);
+  if (exists) {
+    uiConfirm(`用例「${name}」已存在，确定覆盖保存？`, () => doSaveEditorFile(name, true), '覆盖确认', '覆盖保存');
     return;
   }
-  // 已有工作目录：恢复权限后直接刷新扫描
-  if (workDirHandle && workDirHandle.kind === 'directory') {
-    if (await ensureWorkDirWritable()) {
-      await refreshSubCases();
-      return;
-    }
-    // 权限无法恢复 → 继续走重新选择
-  }
+  doSaveEditorFile(name, false);
+}
+
+// 覆盖确认后执行保存
+async function doSaveEditorFile(name, exists) {
+  const body = JSON.stringify(buildEditorData(), null, 2);   // 格式化缩进，便于服务端文件直接阅读
   try {
-    workDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    const res = await fetch(accordApi(`/cases?name=${encodeURIComponent(name)}`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body,
+    });
+    const r = await res.json();
+    if (r.code !== 0) { uiAlert('保存失败: ' + (r.msg || '未知错误')); return; }
+    // 保存成功后同步本地缓存（否则下次保存 exists 判断不到，不会弹覆盖确认）
+    const i = subCases.findIndex(sc => sc.name === name);
+    const entry = { name, content: body, exec: { params: JSON.parse(JSON.stringify(execOpts.params || [])) }, group: state.caseGroup || 'default' };
+    if (i >= 0) subCases[i] = entry; else subCases.push(entry);
+    renderGroupOptions();
+    toast(`已保存 ${name}${exists ? '（覆盖）' : ''}`);
+    updatePropPanel();
   } catch (e) {
-    if (e && e.name === 'AbortError') return;
-    uiAlert('打开目录失败: ' + e.message);
-    return;
+    uiAlert('保存失败: ' + e.message);
   }
-  await refreshSubCases();
 }
 
-// 工具栏显示当前工作目录名
-function updateWorkDirLabel() {
-  const el = $('workdir-label');
-  if (el) el.textContent = workDirHandle ? `当前: ${workDirHandle.name}` : '未设置';
+// 二次确认框（覆盖层样式，叠加在当前弹窗之上，不破坏底层对话框）：uiConfirm(msg, onOk[, title, okText])
+function uiConfirm(msg, onOk, title = '确认', okText = '确定') {
+  // 移除旧的确认层
+  document.getElementById('ui-confirm-layer')?.remove();
+  const layer = document.createElement('div');
+  layer.id = 'ui-confirm-layer';
+  layer.className = 'modal-bg';
+  layer.style.zIndex = 1500;   // 高于普通弹窗(1000)
+  layer.innerHTML = `<div class="modal" style="width:420px" onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>${escapeHtml(title)}</h3><button class="close" onclick="this.closest('#ui-confirm-layer').remove()">×</button></div>
+      <div class="modal-body" style="color:#ccc;font-size:13px;line-height:1.8">${escapeHtml(msg)}</div>
+      <div class="modal-foot">
+        <button class="primary">${escapeHtml(okText)}</button>
+        <button class="secondary" onclick="this.closest('#ui-confirm-layer').remove()">取消</button>
+      </div>
+    </div>`;
+  layer.querySelector('.primary').onclick = () => { layer.remove(); if (onOk) onOk(); };
+  // 点遮罩不关闭确认框（只能通过按钮关闭）
+  layer.onclick = null;
+  document.body.appendChild(layer);
 }
 
-async function refreshSubCases() {
-  if (!workDirHandle) return;
-  subCases = [];
+// 删除用例：closeAfter=删除成功后关闭调试面板；nameOverride=指定用例名（打开对话框逐条删除用）
+async function deleteCase(closeAfter, nameOverride) {
+  const name = (nameOverride || state.caseName || 'case1').trim();
+  if (!name) { uiAlert('用例名称不能为空'); return; }
+  if (!subCases.some(sc => sc.name === name)) { uiAlert(`用例「${name}」在服务器上不存在`); return; }
+  uiConfirm(`确定删除服务器上的用例「${name}」？此操作不可恢复。`, () => doDeleteCase(closeAfter, name), '删除确认', '删除');
+}
+
+// 二次确认后执行删除
+async function doDeleteCase(closeAfter, name) {
   try {
-    await scanSubCaseDir(workDirHandle, '');
-  } catch (e) {
-    uiAlert('扫描目录失败: ' + e.message);
-  }
-  toast(`工作目录「${workDirHandle.name}」找到 ${subCases.length} 个用例`);
-  updatePropPanel();
-  updateWorkDirLabel();
-}
-
-async function scanSubCaseDir(dirHandle, prefix) {
-  for await (const [name, handle] of dirHandle.entries()) {
-    if (handle.kind === 'directory') {
-      await scanSubCaseDir(handle, prefix + name + '/');
-    } else if (name.endsWith('.edit.json')) {
-      // 优先使用存档内的用例名，其次文件名；同名去重
-      let caseName = name.replace(/\.edit\.json$/, '');
-      try {
-        const data = JSON.parse(await (await handle.getFile()).text());
-        if (data.name) caseName = data.name;
-      } catch (err) { /* 文件损坏时退回文件名 */ }
-      if (!subCases.some(sc => sc.name === caseName)) {
-        subCases.push({ name: caseName, path: prefix + name, handle });
-      }
+    const res = await fetch(accordApi(`/cases?name=${encodeURIComponent(name)}`), { method: 'DELETE' });
+    const r = await res.json();
+    if (r.code !== 0) { uiAlert('删除失败: ' + (r.msg || '未知错误')); return; }
+    subCases = subCases.filter(sc => sc.name !== name);
+    toast(`已删除 ${name}`);
+    renderGroupOptions();   // 删除后分组列表可能变化
+    // 顶栏删除的是当前打开的用例：清空画布
+    if (closeAfter) {
+      state.nodes = {}; state.connections = []; state.root = null;
+      state.selected = null; state.selectedConn = null; state.nextId = 1;
+      renderAll();
     }
+    updatePropPanel();
+    // 刷新打开对话框（若开着），保持分组过滤视图最新
+    const pickerOpen = $('modal-bg') && document.querySelector('.picker-group-row');
+    if (pickerOpen) renderSubCasePicker();
+  } catch (e) {
+    uiAlert('删除失败: ' + e.message);
   }
 }
 
-// 打开：无工作目录时先选目录（其路径即为工作路径），再从目录存档列表中点选打开
+// 打开：先刷新服务器用例列表，再弹出选择（单个直接打开）
 async function openCaseFile() {
-  if (!workDirHandle) {
-    await pickWorkDir();
-    if (!workDirHandle) return; // 用户取消
-  }
-  if (!subCases.length) await refreshSubCases();
-  if (!subCases.length) { toast('工作目录下没有 edit.json 存档'); return; }
+  await refreshCases();
+  if (!subCases.length) { toast('服务器上没有用例'); return; }
   if (subCases.length === 1) { await openSubCase(subCases[0]); return; }
   showSubCasePicker();
 }
 
+// 刷新：重拉 /cases 和 /protos，更新用例缓存、协议缓存与画布/面板显示
+// （不影响当前画布上正在编辑的内容，只更新下拉列表/协议解析等引用数据）
+async function refreshAll() {
+  const okC = await refreshCases();
+  const okP = await refreshProtos();
+  renderMsgList(); showMsgDetail();   // 协议变化后消息列表同步补全
+  renderAll(); updatePropPanel();
+  toast(okC || okP ? '刷新完成' : '刷新失败：服务器无响应');
+}
+
+// 用例选择列表（按分组过滤展示，每个用例带删除按钮）
+let casePickerGroup = '';   // 打开对话框当前选中的分组（空 = 全部分组）
+
+function showSubCasePicker() {
+  const groups = collectGroups();
+  if (casePickerGroup && !groups.includes(casePickerGroup)) casePickerGroup = '';
+  renderSubCasePicker();
+}
+
+function setPickerGroup(g) {
+  casePickerGroup = g || '';
+  renderSubCasePicker();
+}
+
+function renderSubCasePicker() {
+  const groups = collectGroups();
+  // 顶部插入「全部分组」选项；空值 = 显示所有用例
+  const opts = [`<option value="" ${!casePickerGroup ? 'selected' : ''}>全部分组</option>`]
+    .concat(groups.map(g => `<option value="${escapeAttr(g)}" ${g === casePickerGroup ? 'selected' : ''}>${escapeHtml(g)}</option>`));
+  const visible = casePickerGroup
+    ? subCases.map((sc, i) => ({ sc, i })).filter(({ sc }) => (sc.group || 'default') === casePickerGroup)
+    : subCases.map((sc, i) => ({ sc, i }));
+  const items = visible.map(({ sc, i }) =>
+    `<div class="case-item" onclick="pickSubCase(${i})">
+       <span class="case-name">${escapeHtml(sc.name)}<span class="case-group-tag">${escapeHtml(sc.group || 'default')}</span></span>
+       <button class="del-btn" title="删除该用例" onclick="event.stopPropagation();deleteCase(null,'${escapeAttr(sc.name)}')">×</button>
+     </div>`).join('');
+  showModalFrame({
+    title: `打开用例（${visible.length}）`,
+    body: `<div class="picker-group-row">
+             <label>分组</label>
+             <select onchange="setPickerGroup(this.value)">${opts.join('')}</select>
+           </div>
+           <div class="case-list">${items || '<div class="kv-empty">该分组下暂无用例</div>'}</div>`,
+  });
+}
+
+function pickSubCase(i) { openSubCase(subCases[i]); }
+
+// 从服务器用例列表打开（供 CASE 节点下拉与后续打开功能使用的数据已缓存在 subCases）
 async function openSubCase(sc) {
   try {
-    const data = JSON.parse(await (await sc.handle.getFile()).text());
-    if (Array.isArray(data.connections)) {
-      applyEditorData(data);   // 编辑器存档（含节点位置）
+    const content = typeof sc.content === 'string' ? sc.content : JSON.stringify(sc.content);
+    const data = JSON.parse(content);
+    if (data.editor === 'quanta-robot-node-editor') {
+      applyEditorData(data);   // v2 编辑器存档（运行时格式 + nodeedits）
     } else if (data.nodes) {
-      applyCaseData(data);     // 导出格式（自动布局）
+      applyCaseData(data);     // 纯运行时/导出格式（自动布局）
     } else {
-      throw new Error('无法识别的文件格式');
+      throw new Error('无法识别的用例格式');
     }
+    syncCaseGroupSelect();   // 主页分组下拉跟随用例的分组
     closeModal();
     toast(`已打开 ${sc.name}`);
   } catch (e) {
@@ -1815,34 +2054,8 @@ async function openSubCase(sc) {
   }
 }
 
-// 用例选择列表（工作目录下有多个存档时弹出）
-function showSubCasePicker() {
-  const items = subCases.map((sc, i) =>
-    `<div class="case-item" onclick="pickSubCase(${i})">
-       <span class="case-name">${escapeHtml(sc.name)}</span>
-       <span class="case-path">${escapeHtml(sc.path)}</span>
-     </div>`).join('');
-  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
-    <div class="modal" onclick="event.stopPropagation()">
-      <div class="modal-head"><h3>打开用例（${subCases.length}）</h3><button class="close" onclick="closeModal()">×</button></div>
-      <div class="modal-body"><div class="case-list">${items}</div></div>
-    </div>
-  </div>`;
-  $('modal-bg').onclick = closeModal;
-}
-
-function pickSubCase(i) { openSubCase(subCases[i]); }
-
-// 保存后把存档加入/更新到用例列表（CASE 节点下拉框立即可选）
-function upsertSubCase(name, path, handle) {
-  const i = subCases.findIndex(sc => sc.name === name);
-  const entry = { name, path, handle };
-  if (i >= 0) subCases[i] = entry; else subCases.push(entry);
-  updatePropPanel();
-}
-
 // ============================================================
-//  协议定义：载入 proto.json，供 REQ/NTF 节点筛选选择
+//  协议定义：启动时从服务器 /protos 拉取，供 REQ/NTF 节点筛选选择
 // ============================================================
 let protoDefs = {};        // { 协议名: {msg_id, type, name, fields:{字段:类型}} }
 let protoByMsgId = {};     // { msg_id: 协议定义 }（消息列表按 cmd_id 反查协议名/类型）
@@ -1862,54 +2075,6 @@ function loadProtoData(obj) {
     if (item.msg_id) protoByMsgId[item.msg_id] = protoDefs[key];
   }
 }
-
-// 工具栏：选择协议文件载入
-async function pickProtoFile() {
-  let text = null;
-  if (window.showOpenFilePicker) {
-    try {
-      const [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'JSON 文件', accept: { 'application/json': ['.json'] } }],
-      });
-      text = await (await handle.getFile()).text();
-    } catch (e) {
-      if (e && e.name === 'AbortError') return;
-      text = null; // 环境不支持 → 回退普通文件选择框
-    }
-  }
-  if (text === null) {
-    text = await pickFileViaInput();
-    if (text === null) return;
-  }
-  try {
-    loadProtoData(JSON.parse(text));
-  } catch (e) {
-    uiAlert('协议文件解析失败: ' + e.message);
-    return;
-  }
-  toast(`已加载 ${Object.keys(protoDefs).length} 个协议`);
-  renderMsgList(); showMsgDetail();   // 已收到的消息立即补全协议名/类型
-  updatePropPanel();
-}
-
-// 普通文件选择框回退（无 File System Access API 的浏览器）
-function pickFileViaInput() {
-  return new Promise(resolve => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,application/json';
-    input.onchange = () => {
-      const file = input.files && input.files[0];
-      if (!file) return resolve(null);
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => resolve(null);
-      reader.readAsText(file);
-    };
-    input.click();
-  });
-}
-
 
 // 选中协议：记录名称；REQ 依据协议 fields 自动生成输入参数
 function applyProtoSelection(nodeId, key, name, nodeType, fromProto) {
@@ -1973,70 +2138,48 @@ function protoComboBlur(input, nodeId, key, gen) {
   }, 200);
 }
 
-// JSON转Lua表
-function jsonToLua(obj, indent) {
-  indent = indent || 0;
-  const pad = '    '.repeat(indent);
-  const pad2 = '    '.repeat(indent + 1);
-  // 输入/输出定义 {type, value}：number 类型的值导出为数字字面量，其余导出为字符串
-  if (!Array.isArray(obj) && typeof obj === 'object') {
-    const ik = Object.keys(obj);
-    if (ik.length === 2 && ik.includes('type') && ik.includes('value') && typeof obj.type === 'string') {
-      if (obj.type === 'number') {
-        const num = parseFloat(obj.value);
-        return '{ type = "number", value = ' + (isNaN(num) ? 0 : num) + ' }';
-      }
-      return '{ type = "' + obj.type + '", value = ' + jsonToLua(obj.value, indent) + ' }';
-    }
-  }
-  if (Array.isArray(obj)) {
-    if (obj.length === 0) return '{}';
-    // 简单数组（元素全为标量，或全为标量对）导出为单行，如 targets = { {1, 2}, {"3", 4} }
-    const isScalar = v => v === null || ['string', 'number', 'boolean'].includes(typeof v);
-    const simple = obj.every(isScalar) || obj.every(v => Array.isArray(v) && v.every(isScalar));
-    if (simple) return '{' + obj.map(v => jsonToLua(v, indent)).join(', ') + '}';
-    const lines = obj.map(v => pad2 + jsonToLua(v, indent + 1) + ',');
-    return '{\n' + lines.join('\n') + '\n' + pad + '}';
-  }
-  if (typeof obj === 'object' && obj !== null) {
-    const keys = Object.keys(obj);
-    if (keys.length === 0) return '{}';
-    const lines = keys.map(k => {
-      const key = /^\d+$/.test(k) ? `[${k}]` : k;
-      return pad2 + key + ' = ' + jsonToLua(obj[k], indent + 1) + ',';
-    });
-    return '{\n' + lines.join('\n') + '\n' + pad + '}';
-  }
-  if (typeof obj === 'string') {
-    if (obj.includes('\n')) return '[[' + obj + ']]';
-    return '"' + obj.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"';
-  }
-  if (typeof obj === 'boolean') return obj ? 'true' : 'false';
-  if (obj === null || obj === undefined) return 'nil';
-  return String(obj);
+function closeModal() {
+  $('modal-container').innerHTML = '';
+  document.removeEventListener('keydown', escCloseModal);   // ESC 监听随弹窗关闭移除
+  delete window.closeModalAndCleanup;
 }
 
 // ============================================================
-//  模态框
+//  弹窗骨架复用：所有弹窗共用 modal-bg > modal > head/body/foot 结构
+//  showModalFrame({ title, body, foot, width, modalClass, onClose })
+//  body/foot 为已渲染好的 HTML 片段；foot 缺省为「取消」按钮
+//  返回 true 表示 modal-container 已接管；onClose 在关闭时回调（如还原快照）
 // ============================================================
-function showModal(title, text) {
-  const c = $('modal-container');
-  c.innerHTML = `<div class="modal-bg" id="modal-bg">
-    <div class="modal" onclick="event.stopPropagation()">
-      <div class="modal-head"><h3>${title}</h3><button class="close" onclick="closeModal()">×</button></div>
-      <div class="modal-body">
-        <textarea id="modal-text">${escapeHtml(text)}</textarea>
-      </div>
-      <div class="modal-foot">
-        <button class="primary" onclick="downloadExport()">保存文件</button>
-        <button class="secondary" onclick="closeModal()">关闭</button>
-      </div>
+function showModalFrame({ title, body, foot, width, modalClass = '', onClose }) {
+  const closeCall = onClose ? 'closeModalAndCleanup()' : 'closeModal()';
+  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
+    <div class="modal ${modalClass}" ${width ? `style="width:${width}"` : ''} onclick="event.stopPropagation()">
+      <div class="modal-head"><h3>${title}</h3><button class="close" onclick="${closeCall}" title="关闭${onClose ? '（还原未保存修改）' : ''}">×</button></div>
+      <div class="modal-body">${body}</div>
+      ${foot ? `<div class="modal-foot">${foot}</div>` : ''}
     </div>
   </div>`;
-  $('modal-bg').onclick = closeModal;
+  // 点遮罩不关闭对话框（只能通过 × 或按钮关闭）；onClose 回调挂到全局供 × 按钮触发
+  if (onClose) window.closeModalAndCleanup = () => { closeModal(); onClose(); };
+  // ESC 关闭对话框（路径与 × 相同，含快照还原）
+  document.addEventListener('keydown', escCloseModal);
 }
 
-function closeModal() { $('modal-container').innerHTML = ''; }
+// ESC 关闭当前弹窗：确认层优先，其次骨架弹窗（走 × 的同路径，含快照还原）
+function escCloseModal(e) {
+  if (e.key !== 'Escape') return;
+  const layer = document.getElementById('ui-confirm-layer');
+  if (layer) { layer.remove(); return; }
+  if (!$('modal-container').innerHTML) return;
+  const cleanup = window.closeModalAndCleanup;
+  if (cleanup) {
+    cleanup();                       // 含 closeModal + onClose（如还原字段编辑快照）
+  } else {
+    closeModal();
+  }
+  document.removeEventListener('keydown', escCloseModal);
+  delete window.closeModalAndCleanup;
+}
 
 // ============================================================
 //  日志面板：画布下方，可拖拽调高、开关、输出执行信息
@@ -2078,17 +2221,14 @@ function switchLogTab(tab) {
   if (tab === 'msg') renderMsgFilter();
 }
 
+// 清空：日志/消息/远程日志三个模块一起清
 function clearActiveTab() {
-  if (activeLogTab === 'msg') {
-    msgList = [];
-    selectedMsgIdx = -1;
-    renderMsgList();
-    showMsgDetail();
-  } else if (activeLogTab === 'rlog') {
-    clearRemoteLog();
-  } else {
-    clearLog();
-  }
+  clearLog();
+  msgList = [];
+  selectedMsgIdx = -1;
+  renderMsgList();
+  showMsgDetail();
+  clearRemoteLog();
 }
 
 // ============================================================
@@ -2158,7 +2298,7 @@ function renderMsgFilter() {
   const protos = Object.values(protoDefs).sort((a, b) => (a.msg_id || 0) - (b.msg_id || 0));
   const matched = protos.filter(p => !kw || p.name.toLowerCase().includes(kw));
   box.innerHTML = !protos.length
-    ? `<div class="combo-empty">未载入协议，请点击工具栏「载入协议」</div>`
+    ? `<div class="combo-empty">未载入协议</div>`
     : (matched.length
         ? matched.map(p =>
             `<label class="mf-item" data-name="${escapeAttr(p.name)}">
@@ -2183,7 +2323,7 @@ document.addEventListener('click', e => {
 });
 
 // 批量追加消息（执行轮询增量显示）；超过上限时丢弃最旧的
-const MSG_CAP = 500;
+const MSG_CAP = 1000;
 function appendMsgs(items) {
   if (!items || !items.length) return;
   for (const it of items) msgList.push(it);
@@ -2246,73 +2386,135 @@ function showMsgDetail() {
 })();
 
 // ============================================================
-//  执行面板：拼接 http://地址:端口/url?参数 并发起请求
+//  执行面板：同源请求 /case、/node；轮询 /status、/message、/logs
+//  参数带类型（string/number/boolean），完整请求仅 open_id，
+//  执行时全部参数以 [{key, type, value}] 数组打包进 body 的 params 字段下发
 // ============================================================
-const EXEC_PORT = '10401';   // accord HTTP 服务默认端口
-const execOpts = { addr: '127.0.0.1', port: EXEC_PORT, openid: '10001', srvAddr: '127.0.0.1', srvPort: '20013', params: [] };  // 记住上次配置
+// 默认参数：open_id（固定参数不可删除）在首位，addr（服务器地址 ip:port）其次，类型均为 string
+function defaultExecParams() {
+  return [
+    { key: 'open_id', type: 'string', value: '10001', locked: true },
+    { key: 'addr', type: 'string', value: '127.0.0.1:20013' },
+  ];
+}
+
+// 参数列表规范化：open_id 永远在第一位且不可删除（locked 标记不随存档持久化，读档后重建），
+// 过滤掉编辑过程中产生的无名参数
+function normalizeExecParams(params) {
+  const list = (Array.isArray(params) ? params : []).filter(p => p && p.key);
+  const openid = list.find(p => p.key === 'open_id');
+  const rest = list.filter(p => p.key !== 'open_id');
+  return [
+    { key: 'open_id', type: 'string', value: openid ? openid.value : '10001', locked: true },
+    ...rest.map(p => ({ key: p.key, type: p.type || 'string', value: p.value })),
+  ];
+}
+
+const execOpts = { openid: '10001', params: defaultExecParams() };  // 记住上次配置（openid 为旧配置兼容字段，实际 open_id 走 params）
+const EXEC_PARAM_TYPES = ['string', 'number', 'boolean'];   // 参数类型选项
 let execMode = 'case';     // 'case' | 'node'
 let execNodeId = null;     // 节点模式下待执行的节点 id
-let lastExecUrl = null;    // 上次执行的完整url（节点▶直执行复用，强制换成/node路径）
+let lastExecPath = null;   // 上次执行的请求路径（节点▶直执行复用，强制换成/node路径）
+const dblClickTracker = {};   // CASE 节点双击检测：{ 'n<id>': 上次 mousedown 时间戳 }
 
-// 上次执行url换成 /node 路径（保留查询参数），供节点▶直执行
+// 上次执行路径换成 /node（保留查询参数），供节点▶直执行
 function lastExecNodeUrl() {
-  const q = lastExecUrl.indexOf('?');
-  const m = lastExecUrl.match(/^https?:\/\/[^\/]+/);
-  const origin = m ? m[0] : lastExecUrl.slice(0, q < 0 ? undefined : q);
-  return origin + '/node' + (q >= 0 ? lastExecUrl.slice(q) : '');
+  const q = lastExecPath.indexOf('?');
+  return '/node' + (q >= 0 ? lastExecPath.slice(q) : '');
 }
 
 function showExecPanel(urlPath, nodeId) {
   execMode = urlPath;
   execNodeId = nodeId !== undefined ? nodeId : null;
-  $('modal-container').innerHTML = `<div class="modal-bg" id="modal-bg">
-    <div class="modal" onclick="event.stopPropagation()">
-      <div class="modal-head"><h3>执行（${urlPath === 'node' ? '运行节点' : '运行用例'}）</h3>
-        <button class="close" onclick="closeModal()">×</button></div>
-      <div class="modal-body">
-        <div class="io-row">
-          <div class="field" style="flex:1"><label>机器人地址</label>
-            <input type="text" id="exec-addr" value="${escapeAttr(execOpts.addr)}" oninput="execConfigChanged()"></div>
-          <div class="field" style="width:110px"><label>机器人端口</label>
-            <input type="text" id="exec-port" value="${escapeAttr(execOpts.port)}" oninput="execConfigChanged()"></div>
-          <div class="field" style="flex:1"><label>url</label>
-            <input type="text" id="exec-url" value="${escapeAttr(urlPath)}" oninput="updateExecPreview()"></div>
-        </div>
-        <div class="io-row">
-          <div class="field" style="flex:1"><label>服务器地址</label>
-            <input type="text" id="exec-srv-addr" value="${escapeAttr(execOpts.srvAddr)}" oninput="execConfigChanged()"></div>
-          <div class="field" style="width:110px"><label>服务器端口</label>
-            <input type="text" id="exec-srv-port" value="${escapeAttr(execOpts.srvPort)}" oninput="execConfigChanged()"></div>
-          <div class="field" style="flex:1"><label>openid</label>
-            <input type="text" id="exec-openid" value="${escapeAttr(execOpts.openid)}" oninput="execConfigChanged()"></div>
-        </div>
-        <div class="field"><label>输入参数列表</label>
+  // 老配置迁移：无参数时初始化默认参数；有参数时规范化（open_id 首位且不可删除）
+  execOpts.params = (Array.isArray(execOpts.params) && execOpts.params.length)
+    ? normalizeExecParams(execOpts.params)
+    : defaultExecParams();
+  showModalFrame({
+    title: `设置（${urlPath === 'node' ? '运行节点' : '运行用例'}）`,
+    body: `
+        <div class="field"><label>输入参数列表（类型决定下发值格式：string 原样 / number 转数字 / boolean 转真假）</label>
           <div id="exec-params"></div>
           <button class="add-btn" onclick="addExecParam()">+ 添加参数</button>
+        </div>
+        <div class="field" id="exec-subcases-wrap"><label>子CASE参数（key 为 子用例名.参数名，只读；仅可修改值）</label>
+          <div id="exec-subcase-params"></div>
         </div>
         <div class="field"><label>完整请求</label>
           <div class="exec-preview" id="exec-preview"></div>
         </div>
         <div class="field" id="exec-result-wrap" style="display:none"><label>执行结果</label>
           <div class="exec-result" id="exec-result"></div>
-        </div>
-      </div>
-      <div class="modal-foot">
-        <button class="primary" onclick="doExecute()">执行</button>
-        <button class="secondary" onclick="closeModal()">取消</button>
-      </div>
-    </div>
-  </div>`;
-  execOpts.params.forEach(p => addExecParam(p.key, p.value));
+        </div>`,
+    foot: `<button class="primary" onclick="doExecute()">运行</button>
+           <button class="secondary" onclick="saveEditorFile()">保存</button>
+           <button class="secondary" onclick="closeModal()">取消</button>`,
+  });
+  execOpts.params.forEach(p => addExecParam(p.key, p.type, p.value, p.locked));
+  renderSubCaseParams();
   updateExecPreview();
 }
 
-function addExecParam(key, value) {
+// ============================================================
+//  子CASE参数：展示画布上 CASE 节点所引用子用例的「执行面板参数」
+//  key 与类型只读（子用例定义），仅可修改值；仅更新内存缓存，不写回子用例存档
+// ============================================================
+// 收集 CASE 节点引用的子用例的执行参数：[{caseName, key, type, value}]
+// open_id 与 addr 为通用参数（父参数区已有），不在子CASE参数区重复展示
+function collectSubCaseParams() {
+  // CASE 节点引用的子用例名集合
+  const caseNames = new Set();
+  for (const node of Object.values(state.nodes)) {
+    if (node.type !== 'CASE' || !node.data.case) continue;
+    caseNames.add(node.data.case);
+  }
+  const rows = [];
+  for (const sc of subCases) {
+    if (!caseNames.has(sc.name) || !sc.exec || !Array.isArray(sc.exec.params)) continue;
+    for (const p of sc.exec.params) {
+      if (!p.key || p.key === 'open_id' || p.key === 'addr') continue;
+      rows.push({ caseName: sc.name, key: p.key, type: p.type || 'string', value: p.value });
+    }
+  }
+  return rows;
+}
+
+// 修改子CASE执行参数：只更新内存中的 subCases 缓存（刷新后随重新扫描恢复存档值）
+function subCaseParamChanged(caseName, key, value) {
+  const sc = subCases.find(s => s.name === caseName);
+  if (!sc || !sc.exec || !Array.isArray(sc.exec.params)) return;
+  const p = sc.exec.params.find(p => p.key === key);
+  if (p) p.value = value;
+}
+
+function renderSubCaseParams() {
+  const box = $('exec-subcase-params');
+  if (!box) return;
+  const rows = collectSubCaseParams();
+  const wrap = $('exec-subcases-wrap');
+  if (!rows.length) {
+    wrap.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  wrap.style.display = '';
+  box.innerHTML = rows.map(({ caseName, key, type, value }) => {
+    const displayKey = `${caseName}.${key}`;
+    return `<div class="exec-row">
+      <input class="er-key" value="${escapeAttr(displayKey)}" readonly title="子CASE参数名（只读）" style="color:#888;background:#252526">
+      <select class="er-type" disabled title="类型（子CASE定义，不可修改）">${EXEC_PARAM_TYPES.map(t => `<option ${t === type ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <input class="er-val" value="${escapeAttr(value)}" oninput="subCaseParamChanged('${escapeAttr(caseName)}','${escapeAttr(key)}',this.value)">
+    </div>`;
+  }).join('');
+}
+
+function addExecParam(key, type, value, locked) {
   const row = document.createElement('div');
   row.className = 'exec-row';
-  row.innerHTML = `<input class="er-key" placeholder="参数名" value="${escapeAttr(key || '')}" oninput="execParamChanged()">
+  row.innerHTML = `<input class="er-key" placeholder="参数名" value="${escapeAttr(key || '')}" ${locked ? 'readonly title="固定参数，不可删除" style="color:#888;background:#252526"' : ''} oninput="execParamChanged()">
+    <select class="er-type" onchange="execParamChanged()">${EXEC_PARAM_TYPES.map(t => `<option ${t === (type || 'string') ? 'selected' : ''}>${t}</option>`).join('')}</select>
     <input class="er-val" placeholder="参数值" value="${escapeAttr(value || '')}" oninput="execParamChanged()">
-    <button class="del-btn" onclick="this.parentElement.remove();execParamChanged()" title="删除">×</button>`;
+    ${locked ? '' : `<button class="del-btn" onclick="this.parentElement.remove();execParamChanged()" title="删除">×</button>`}`;
   $('exec-params').appendChild(row);
   execParamChanged();
 }
@@ -2323,41 +2525,61 @@ function execParamChanged() {
   updateExecPreview();
 }
 
-// 固定配置（机器人地址/端口、openid、服务器地址/端口）变更时实时保存到内存
-function execConfigChanged() {
-  execOpts.addr = $('exec-addr').value.trim();
-  execOpts.port = $('exec-port').value.trim();
-  execOpts.openid = $('exec-openid').value.trim();
-  execOpts.srvAddr = $('exec-srv-addr').value.trim();
-  execOpts.srvPort = $('exec-srv-port').value.trim();
-  updateExecPreview();
-}
-
 function collectExecParams() {
   const rows = [];
   document.querySelectorAll('#exec-params .exec-row').forEach(row => {
     const key = row.querySelector('.er-key').value.trim();
-    if (key) rows.push({ key, value: row.querySelector('.er-val').value });
+    if (key) rows.push({ key, type: row.querySelector('.er-type').value, value: row.querySelector('.er-val').value });
   });
   return rows;
 }
 
-function buildExecUrl() {
-  const addr = $('exec-addr').value.trim() || '127.0.0.1';
-  const port = $('exec-port').value.trim() || EXEC_PORT;
-  const urlPath = $('exec-url').value.trim().replace(/^\/+/, '');
-  const query = [];
-  collectExecParams().forEach(p => {
-    query.push(`${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`);
+// 合并父子 case 的参数：父（当前执行面板输入参数）优先，子 case 按收集顺序后者覆盖前者，同名 key 只保留一个
+// 按类型转换参数值：string 原样、number 转数字（失败回退字符串）、boolean 转真假
+function castParamValue(type, value) {
+  const v = String(value);
+  if (type === 'number') {
+    const num = parseFloat(v);
+    return Number.isNaN(num) ? v : num;
+  }
+  if (type === 'boolean') {
+    const lv = v.trim().toLowerCase();
+    if (['true', '1', 'yes', 'on'].includes(lv)) return true;
+    if (['false', '0', 'no', 'off', ''].includes(lv)) return false;
+    return v;
+  }
+  return v;   // string 原样
+}
+
+// 合并父子 case 的参数：父（当前执行面板输入参数）优先，子 case 按收集顺序后者覆盖前者，同名 key 只保留一个
+// 返回 [{key, type, value}]（保留类型）。父参数读 execOpts.params（内存），
+// 面板未打开（顶栏直运行/节点▶直执行）时 DOM 不存在，从 DOM 读会拿到空导致 args 丢参
+function mergeExecParams() {
+  const merged = {};   // key -> {key, type, value}
+  // 子 case 参数先放入（按收集顺序，重复 key 后者覆盖前者）
+  collectSubCaseParams().forEach(p => { merged[p.key] = { key: p.key, type: p.type || 'string', value: p.value }; });
+  // 父参数后放入，覆盖同名子参数（含类型）
+  (execOpts.params || []).forEach(p => {
+    if (!p.key) return;
+    merged[p.key] = { key: p.key, type: p.type || 'string', value: p.value };
   });
-  // openid 与服务器地址/端口追加到完整 URL 后面
-  const openid = $('exec-openid').value.trim();
-  const srvAddr = $('exec-srv-addr').value.trim();
-  const srvPort = $('exec-srv-port').value.trim();
-  if (openid) query.push(`open_id=${encodeURIComponent(openid)}`);
-  if (srvAddr) query.push(`addr=${encodeURIComponent(srvAddr)}`);
-  if (srvPort) query.push(`port=${encodeURIComponent(srvPort)}`);
-  return `http://${addr}:${port}/${urlPath}${query.length ? '?' + query.join('&') : ''}`;
+  return Object.values(merged);
+}
+
+// 请求路径：同源（/case 或 /node），完整请求仅带 open_id 查询参数（其余参数走 body 的 args）
+function buildExecUrl() {
+  const urlPath = execMode === 'node' ? 'node' : 'case';
+  const query = [];
+  // open_id 从参数列表读取（面板打开时读 DOM，未开时读内存）
+  const panelOpen = !!document.querySelector('#exec-params .er-key');
+  let openId = '';
+  const collect = panelOpen ? collectExecParams() : (execOpts.params || []);
+  for (const p of collect) {
+    if (p.key === 'open_id') { openId = p.value; break; }
+  }
+  if (!openId && execOpts.openid) openId = execOpts.openid;   // 兼容：参数列表无 open_id 时用旧配置
+  if (openId) query.push(`open_id=${encodeURIComponent(openId)}`);
+  return `/${urlPath}${query.length ? '?' + query.join('&') : ''}`;
 }
 
 function updateStopBtn() {
@@ -2372,16 +2594,21 @@ function updateExecPreview() {
     : '';
 }
 
+// 执行参数打包：父子 case 参数合并后，以 [{key, type, value}] 数组格式放进 body 的 params 字段
+function buildExecArgs() {
+  return mergeExecParams().map(p => ({ key: p.key, type: p.type || 'string', value: p.value }));
+}
+
 async function doExecute(urlOverride) {
   const url = urlOverride || buildExecUrl();
-  lastExecUrl = url;   // 记住本次url，供节点▶直执行复用
-  // 记住本次配置，下次打开面板自动回填（直执行时面板未打开，跳过DOM读取，execOpts 已是最新）
-  if (!urlOverride) {
-    execConfigChanged();
+  lastExecPath = url;   // 记住本次请求路径，供节点▶直执行复用
+  // 记住本次配置：面板打开时从 DOM 回读，面板未打开时跳过（execOpts 已是最新）
+  const panelOpen = !!document.querySelector('#exec-params .er-key');
+  if (!urlOverride && panelOpen) {
     execOpts.params = collectExecParams();
   }
   appendLog(`执行 ${url}`);
-  // 组装请求体：case = 整个用例导出；node = 单节点配置（JSON，服务端自动解码为表）
+  // 组装请求体：case = 用例导出 + args（全部参数按类型转换）；node = 单节点配置
   let body = null;
   if (execMode === 'node') {
     const conf = exportNode(execNodeId);
@@ -2390,9 +2617,15 @@ async function doExecute(urlOverride) {
   } else {
     execNodeState = {};
     execNoRobot = false;
-    execPollErr = false;
     refreshExecBadge();
-    body = JSON.stringify(buildExportData());
+    // 调试开始：记录根用例并快照画布（进入子用例/停止后返回时还原）
+    execRootCase = state.caseName;
+    execRootSnapshot = buildEditorData();
+    caseViewCurrent = state.caseName;
+    execNodeStateByCase = { [state.caseName]: {} };
+    const data = buildExecExportData();
+    data.params = buildExecArgs();   // 所有定义参数打包到 params（[{key, type, value}] 数组格式）
+    body = JSON.stringify(data);
   }
   const wrap = $('exec-result-wrap'), box = $('exec-result');
   if (box) {   // 直执行时面板未打开，结果仅写日志
@@ -2412,6 +2645,7 @@ async function doExecute(urlOverride) {
       if (data && data.code === 0) {
         execActive = true;      // 机器人已创建（出错时服务端也不会清理，停止按钮保持可用）
         updateStopBtn();
+        renderNodes();          // 节点▶按钮从灰色切换为可点击绿色
         startExecPolling();
         closeModal();
       }
@@ -2426,10 +2660,14 @@ async function doExecute(urlOverride) {
 //  执行状态轮询：每秒拉取 /status 并在画布上绘制节点状态
 // ============================================================
 let execPollTimer = null;
-let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'（状态事件累积）
+let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'（当前画布用例的状态事件累积）
 let execActive = false;       // 机器人是否已在服务器创建（控制停止按钮显隐)
 let execNoRobot = false;      // robot not exist 提示去重
-let execPollErr = false;      // 轮询请求失败提示去重
+let execRootCase = null;      // 正在调试的根用例名（执行开始时的画布用例）
+let execRootSnapshot = null;  // 调试开始时的根用例画布快照（进入子用例/停止后返回时还原）
+let caseViewCurrent = null;   // 画布当前显示的用例名（调试进入子用例时与根用例名不同）
+let execNodeStateByCase = {}; // 调试期间节点状态按用例名分桶：{ caseName: {nodeId: state} }
+const caseViewCache = {};     // 调试期间子用例画布缓存 { caseName: editorData }
 
 function startExecPolling() {
   stopExecPolling();
@@ -2445,11 +2683,15 @@ function stopExecPolling() {
   }
 }
 
+// 从参数列表读取 open_id 值（execOpts.params 中的 open_id 参数；兼容旧配置 openid 字段）
+function getOpenId() {
+  const p = (execOpts.params || []).find(p => p.key === 'open_id');
+  return (p ? String(p.value) : '') || execOpts.openid || '';
+}
+
 async function pollExecStatus() {
-  const addr = execOpts.addr || '127.0.0.1';
-  const port = execOpts.port || EXEC_PORT;
-  const openId = execOpts.openid || '';
-  const url = `http://${addr}:${port}/status?open_id=${encodeURIComponent(openId)}`;
+  const openId = getOpenId();
+  const url = `/status?open_id=${encodeURIComponent(openId)}`;
   try {
     const res = await fetch(url, { method: 'GET' });
     const data = await res.json();
@@ -2462,49 +2704,44 @@ async function pollExecStatus() {
       return;
     }
     execNoRobot = false;
-    execPollErr = false;
     pollExecMessages();   // 与状态轮询同频（每秒），服务端返回即增量，失败静默
     pollRemoteLogs();     // 远程日志与消息同频拉取，服务端排空式返回即增量，失败仅提示一次
     // 服务端增量返回状态事件 [{case, node, id, state}]，排空式取走即新，无需去重
     const events = Array.isArray(data.msg) ? data.msg : [];
     if (!events.length) return;
-    // 每条事件即一次状态变化：按状态着色写日志（节点名由服务端下发）
+    // 每条事件即一次状态变化：按状态着色写日志（节点名由服务端下发）；failed 事件带 err 字段（错误信息）
     const ownEvents = [];
     for (const ev of events) {
       const mapped = EXEC_STATE_MAP[ev.state];
       const st = mapped || ev.state;
       const text = EXEC_STATUS_TEXT[st] || ev.state;
       const cls = mapped ? 'log-' + mapped : '';
-      if (ev.case && ev.case !== state.caseName) {
-        appendLog(`[子用例 ${ev.case}] 节点 #${ev.id} (${ev.node || '未知节点'}) ${text}`, false, cls);
+      const evCase = ev.case || state.caseName;
+      const errSuffix = ev.err ? `\n    └ 错误: ${ev.err}` : '';
+      if (evCase !== state.caseName) {
+        appendLog(`[子用例 ${evCase}] 节点 #${ev.id} (${ev.node || '未知节点'}) ${text}${errSuffix}`, false, cls);
       } else {
-        ownEvents.push(ev);
-        appendLog(`节点 #${ev.id} (${ev.node || '未知节点'}) ${text}`, false, cls);
+        appendLog(`节点 #${ev.id} (${ev.node || '未知节点'}) ${text}${errSuffix}`, false, cls);
       }
+      ownEvents.push(ev);
     }
     applyExecStatus(ownEvents);
   } catch (e) {
     // 请求失败不停止轮询，下一秒自动重试，仅失败开始时提示一次
-    if (!execPollErr) {
-      execPollErr = true;
-      appendLog(`状态轮询失败：${e.message}`, false);
-    }
   }
 }
 
 // 拉取执行消息：GET /message（服务端 fetch_messages 排空式返回，拿到即增量）
 async function pollExecMessages() {
-  const addr = execOpts.addr || '127.0.0.1';
-  const port = execOpts.port || EXEC_PORT;
-  const openId = execOpts.openid || '';
-  const url = `http://${addr}:${port}/message?open_id=${encodeURIComponent(openId)}`;
+  const openId = getOpenId();
+  const url = `/message?open_id=${encodeURIComponent(openId)}`;
   try {
     const res = await fetch(url, { method: 'GET' });
     const data = await res.json();
     if (data.code !== 0 || !Array.isArray(data.msg) || !data.msg.length) return;
     if (!Object.keys(protoDefs).length && !msgProtoHinted) {
       msgProtoHinted = true;
-      appendLog('提示：未载入协议文件，消息列表无法解析协议名与类型；点击工具栏「载入协议」后自动补全', false);
+      appendLog('提示：未载入协议，消息列表无法解析协议名与类型', false);
     }
     // 只存原始 cmd_id/data/time，协议名与类型在渲染时动态反查（协议后载入也能补全）
     appendMsgs(data.msg.map(m => ({ id: m.cmd_id, content: m.data, time: m.time })));
@@ -2553,67 +2790,99 @@ function appendRemoteLogs(items) {
   }
 }
 
-let rlogPollErr = false;      // 远程日志拉取失败提示去重
-let rlogNoRobot = false;      // robot 不存在提示去重
-let rlogFetching = false;     // 请求进行中标记（防止上一请求未返回时重复发起）
-
 // 拉取远程日志：GET /logs，参数与 /message 一致（open_id）
 // 与消息轮询同生命周期：由执行状态轮询每秒驱动，停止执行后不再拉取
 async function pollRemoteLogs() {
-  if (rlogFetching) return;
-  rlogFetching = true;
-  const addr = execOpts.addr || '127.0.0.1';
-  const port = execOpts.port || EXEC_PORT;
-  const openId = execOpts.openid || '';
-  const url = `http://${addr}:${port}/logs?open_id=${encodeURIComponent(openId)}`;
+  const openId = getOpenId();
+  const url = `/logs?open_id=${encodeURIComponent(openId)}`;
   try {
     const res = await fetch(url, { method: 'GET' });
     const data = await res.json();
-    if (data.code !== 0) {
-      // robot 不存在（未执行或已停止）：在远程日志区给一次性提示
-      if (!rlogNoRobot) {
-        rlogNoRobot = true;
-        appendRemoteLine('robot 不存在或已停止，暂无远程日志（执行用例后自动拉取）', 'rlog-hint');
-      }
-      rlogPollErr = false;
-      return;
-    }
-    rlogNoRobot = false;
-    rlogPollErr = false;
+    if (data.code !== 0) { return; }
     appendRemoteLogs(data.msg);
-  } catch (e) {
-    rlogNoRobot = false;
-    // 拉取失败不打断轮询，下一秒自动重试，仅失败开始时提示一次
-    if (!rlogPollErr) {
-      rlogPollErr = true;
-      appendLog(`远程日志拉取失败：${e.message}`, false);
-    }
-  } finally {
-    rlogFetching = false;
-  }
+  } catch (e) { /* 日志拉取失败不打断执行轮询，下一秒自动重试 */ }
 }
 
 // 服务端状态事件 → 编辑器徽标状态映射
 const EXEC_STATE_MAP = { running: 'running', success: 'ok', failed: 'err' };
 
-// 状态事件应用到画布节点（服务端增量事件，按节点累积最新状态）
+// 状态事件应用到画布节点（服务端增量事件，按节点累积最新状态）。
+// 事件带 case 名（子用例节点带子用例名，根用例节点 case 为空）：
+// 调试期间按用例分桶记录状态，画布跟随最新有事件的用例切换展示
 function applyExecStatus(events) {
+  if (!execRootCase) {   // 无调试上下文（理论不会发生），按旧行为处理
+    for (const ev of events) {
+      const st = EXEC_STATE_MAP[ev.state];
+      if (st) execNodeState[ev.id] = st === 'err' && ev.err ? { st, err: ev.err } : st;
+    }
+    refreshExecBadge();
+    return;
+  }
+  let latestCase = null;
   for (const ev of events) {
     const st = EXEC_STATE_MAP[ev.state];
-    if (st) execNodeState[ev.id] = st;
+    if (!st) continue;
+    const evCase = ev.case || execRootCase;
+    if (!execNodeStateByCase[evCase]) execNodeStateByCase[evCase] = {};
+    // failed 事件带 err：与状态一起存（节点恢复 running 时清掉旧 err）
+    execNodeStateByCase[evCase][ev.id] = st === 'err' && ev.err ? { st, err: ev.err } : st;
+    latestCase = evCase;
   }
+  // 事件来自画布以外的用例：切换画布到该用例
+  if (latestCase && latestCase !== caseViewCurrent) {
+    switchCaseView(latestCase);
+  } else if (latestCase === execRootCase && caseViewCurrent !== execRootCase) {
+    // 最新事件回到根用例：还原根用例画布
+    switchCaseView(execRootCase, true);
+  }
+  // execNodeState 必须与当前用例的分桶是同一个对象（引用），
+  // 否则本轮写入只进了分桶，refreshExecBadge 读的是旧拷贝，徽标不更新
+  if (!execNodeStateByCase[caseViewCurrent]) execNodeStateByCase[caseViewCurrent] = {};
+  execNodeState = execNodeStateByCase[caseViewCurrent];
+  refreshExecBadge();
+}
+
+// 切换画布显示的用例：target=目标用例名；isRoot=true 时从快照还原根用例
+function switchCaseView(target, isRoot) {
+  // 调试期间：离开子用例时保存其画布（还原时保持执行状态叠加后的样子）
+  if (caseViewCurrent && caseViewCurrent !== execRootCase && caseViewCurrent !== target) {
+    caseViewCache[caseViewCurrent] = JSON.parse(JSON.stringify(buildEditorData()));
+  }
+  caseViewCurrent = target;
+  // 调试视图切换：skipExec=true，不还原子用例/根用例存档的 exec 配置（保持当前调试参数）
+  if (isRoot && execRootSnapshot) {
+    applyEditorData(JSON.parse(JSON.stringify(execRootSnapshot)), true);
+  } else if (caseViewCache[target]) {
+    applyEditorData(JSON.parse(JSON.stringify(caseViewCache[target])), true);
+  } else {
+    // 子用例首次进入：从服务器缓存加载
+    const sc = subCases.find(s => s.name === target);
+    if (!sc) { toast(`子用例「${target}」不在已加载列表中`); return; }
+    const content = typeof sc.content === 'string' ? sc.content : JSON.stringify(sc.content);
+    const data = JSON.parse(content);
+    if (data.editor === 'quanta-robot-node-editor') applyEditorData(data, true);
+    else if (data.nodes) applyCaseData(data);
+  }
+  // 应用该用例已累积的节点状态（引用分桶，后续事件直接写入同一对象）
+  if (!execNodeStateByCase[target]) execNodeStateByCase[target] = {};
+  execNodeState = execNodeStateByCase[target];
   refreshExecBadge();
 }
 
 const EXEC_STATUS_TEXT = { running: '运行中', ok: '成功', err: '失败' };
 
 // 应用节点执行状态徽标与边框（renderNodes 重建与轮询刷新共用）
+// execNodeState[id] 为状态字符串，failed 事件带 err 时为 { st: 'err', err: 错误信息 }
 function applyExecBadge(el, id) {
   el.classList.remove('exec-running', 'exec-ok', 'exec-err');
   const old = el.querySelector('.exec-badge');
   if (old) old.remove();
-  const s = execNodeState[id];
-  if (!s) return;
+  const oldErr = el.querySelector('.exec-err-line');
+  if (oldErr) oldErr.remove();
+  const raw = execNodeState[id];
+  if (!raw) return;
+  const s = typeof raw === 'object' ? raw.st : raw;
+  const err = typeof raw === 'object' ? raw.err : null;
   el.classList.add('exec-' + s);
   const head = el.querySelector('.node-head');
   if (head) {
@@ -2621,6 +2890,23 @@ function applyExecBadge(el, id) {
     badge.className = 'exec-badge exec-badge-' + s;
     badge.textContent = EXEC_STATUS_TEXT[s];
     head.appendChild(badge);
+  }
+  // 失败且带错误信息：错误内容直接显示在节点内容区（红色小字，悬停弹出自定义大号红字 tooltip）
+  if (err) {
+    const body = el.querySelector('.node-body');
+    if (body) {
+      const line = document.createElement('div');
+      line.className = 'exec-err-line';
+      const text = document.createElement('span');
+      text.className = 'err-text';
+      text.textContent = err;
+      const tip = document.createElement('div');
+      tip.className = 'err-tip';
+      tip.textContent = err;
+      line.appendChild(text);
+      line.appendChild(tip);
+      body.appendChild(line);
+    }
   }
 }
 
@@ -2652,10 +2938,8 @@ async function stopExecute() {
     toast('当前没有正在执行的用例');
     return;
   }
-  const addr = execOpts.addr || '127.0.0.1';
-  const port = execOpts.port || EXEC_PORT;
-  const openId = execOpts.openid || '';
-  const url = `http://${addr}:${port}/stop?open_id=${encodeURIComponent(openId)}`;
+  const openId = getOpenId();
+  const url = `/stop?open_id=${encodeURIComponent(openId)}`;
   appendLog(`停止执行 ${url}`, false);
   try {
     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ open_id: openId }) });
@@ -2668,21 +2952,25 @@ async function stopExecute() {
   stopExecPolling();
   execNodeState = {};
   execNoRobot = false;
-  execPollErr = false;
-  lastExecUrl = null;   // 停止后清空执行状态：节点▶不再直执行，重新弹面板配置
-  refreshExecBadge();
+  lastExecPath = null;   // 停止后清空执行状态：节点▶不再直执行，重新弹面板配置
+  // 停止后回到根用例画布（调试期间若进入了子用例）
+  if (execRootCase && caseViewCurrent !== execRootCase && execRootSnapshot) {
+    caseViewCurrent = execRootCase;
+    applyEditorData(JSON.parse(JSON.stringify(execRootSnapshot)));
+  }
+  execRootCase = null;
+  execRootSnapshot = null;
+  execNodeStateByCase = {};
+  for (const k of Object.keys(caseViewCache)) delete caseViewCache[k];
+  renderNodes();   // 节点▶按钮从可点击绿色切回灰色
   updateStopBtn();
   toast('已停止执行');
 }
 
-function clearAll() {
-  if (!confirm('确定清空所有节点？')) return;
-  state.nodes = {}; state.connections = []; state.root = null; state.selected = null; state.nextId = 1;
-  renderAll(); updatePropPanel();
-}
-
 // 启动
 init();
+renderGroupOptions();
+initFromServer();
 </script>
 </body>
 </html>
