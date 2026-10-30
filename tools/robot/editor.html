@@ -303,8 +303,7 @@ body.connecting .node{border-color:#2a6f97}
   <button class="gray" onclick="toggleLogPanel()">日志</button>
   <div class="sep"></div>
   <button onclick="showExecPanel('case')">设置</button>
-  <button class="run" id="exec-run" onclick="doExecute()">运行</button>
-  <button class="stop" id="exec-stop" onclick="stopExecute()" style="display:none">停止</button>
+  <button class="run" id="exec-run" onclick="execRunOrStop()">运行</button>
 </div>
 
 <!-- 主体 -->
@@ -1624,9 +1623,11 @@ function buildEditorData() {
     group: state.caseGroup || "default",
     root: state.root,
     nextId: state.nextId,
-    // 执行面板配置（参数列表：{key, type, value}），不含完整请求 url
+    // 执行面板配置（参数列表 + 运行频率 + 调试开关），不含完整请求 url
     exec: {
       params: JSON.parse(JSON.stringify(execOpts.params || [])),
+      interval: execOpts.interval,
+      debug: execOpts.debug,
     },
     // 运行时节点配置（与 lua 导出格式一致）
     nodes: buildExportData().nodes,
@@ -1639,11 +1640,13 @@ function buildEditorData() {
 // 再叠加 nodeedits（坐标/分支备注等编辑器数据）
 function applyEditorData(data, skipExec) {
   if (!data || !data.nodes) throw new Error('不是有效的编辑器存档文件');
-  // 恢复执行面板配置（参数列表）：normalize 保证 open_id 在首位且不可删除；无参数时用默认
+  // 恢复执行面板配置（参数列表 + 运行频率 + 调试开关）：normalize 保证 open_id 在首位且不可删除；无参数时用默认
   if (data.exec && !skipExec) {
     execOpts.params = Array.isArray(data.exec.params) && data.exec.params.length
       ? normalizeExecParams(data.exec.params)
       : defaultExecParams();
+    execOpts.interval = Number.isInteger(data.exec.interval) && data.exec.interval > 0 ? data.exec.interval : 1000;
+    execOpts.debug = data.exec.debug !== undefined ? !!data.exec.debug : true;
   }
   applyCaseData(data);   // 运行时格式还原（含连线解析）
   state.nextId = data.nextId || state.nextId;
@@ -1913,11 +1916,12 @@ async function doSaveEditorFile(name, exists) {
     if (r.code !== 0) { uiAlert('保存失败: ' + (r.msg || '未知错误')); return; }
     // 保存成功后同步本地缓存（否则下次保存 exists 判断不到，不会弹覆盖确认）
     const i = subCases.findIndex(sc => sc.name === name);
-    const entry = { name, content: body, exec: { params: JSON.parse(JSON.stringify(execOpts.params || [])) }, group: state.caseGroup || 'default' };
+    const entry = { name, content: body, exec: { params: JSON.parse(JSON.stringify(execOpts.params || [])), interval: execOpts.interval, debug: execOpts.debug }, group: state.caseGroup || 'default' };
     if (i >= 0) subCases[i] = entry; else subCases.push(entry);
     renderGroupOptions();
     toast(`已保存 ${name}${exists ? '（覆盖）' : ''}`);
     updatePropPanel();
+    closeModal();
   } catch (e) {
     uiAlert('保存失败: ' + e.message);
   }
@@ -2410,7 +2414,7 @@ function normalizeExecParams(params) {
   ];
 }
 
-const execOpts = { openid: '10001', params: defaultExecParams() };  // 记住上次配置（openid 为旧配置兼容字段，实际 open_id 走 params）
+const execOpts = { openid: '10001', params: defaultExecParams(), interval: 1000, debug: true };  // 记住上次配置（openid 为旧配置兼容字段；interval=运行频率ms；debug=子case是否跳转）
 const EXEC_PARAM_TYPES = ['string', 'number', 'boolean'];   // 参数类型选项
 let execMode = 'case';     // 'case' | 'node'
 let execNodeId = null;     // 节点模式下待执行的节点 id
@@ -2431,8 +2435,18 @@ function showExecPanel(urlPath, nodeId) {
     ? normalizeExecParams(execOpts.params)
     : defaultExecParams();
   showModalFrame({
-    title: `设置（${urlPath === 'node' ? '运行节点' : '运行用例'}）`,
+    title: `设置`,
     body: `
+        <div class="io-row">
+          <div class="field" style="flex:0 0 140px"><label>运行频率(ms)</label>
+            <input type="text" id="exec-interval" value="${escapeAttr(execOpts.interval)}" oninput="execOptionChanged()"></div>
+          <div class="field" style="flex:1;display:flex;align-items:flex-end;padding-bottom:5px">
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:400">
+              <input type="checkbox" id="exec-debug" ${execOpts.debug ? 'checked' : ''} onchange="execOptionChanged()" style="width:auto;margin:0">
+              <span>调试模式（调试画布随用例跳转，子用例按设置频率执行，否则用例加快执行）</span>
+            </label>
+          </div>
+        </div>
         <div class="field"><label>输入参数列表（类型决定下发值格式：string 原样 / number 转数字 / boolean 转真假）</label>
           <div id="exec-params"></div>
           <button class="add-btn" onclick="addExecParam()">+ 添加参数</button>
@@ -2525,6 +2539,14 @@ function execParamChanged() {
   updateExecPreview();
 }
 
+// 运行频率/调试开关变更（面板内实时保存）
+function execOptionChanged() {
+  const itv = parseInt($('exec-interval').value);
+  execOpts.interval = Number.isNaN(itv) || itv <= 0 ? 1000 : itv;
+  execOpts.debug = $('exec-debug').checked;
+  updateExecPreview();
+}
+
 function collectExecParams() {
   const rows = [];
   document.querySelectorAll('#exec-params .exec-row').forEach(row => {
@@ -2566,7 +2588,7 @@ function mergeExecParams() {
   return Object.values(merged);
 }
 
-// 请求路径：同源（/case 或 /node），完整请求仅带 open_id 查询参数（其余参数走 body 的 args）
+// 请求路径：同源（/case 或 /node），查询串带 open_id、运行频率 interval、调试开关 debug
 function buildExecUrl() {
   const urlPath = execMode === 'node' ? 'node' : 'case';
   const query = [];
@@ -2579,12 +2601,26 @@ function buildExecUrl() {
   }
   if (!openId && execOpts.openid) openId = execOpts.openid;   // 兼容：参数列表无 open_id 时用旧配置
   if (openId) query.push(`open_id=${encodeURIComponent(openId)}`);
+  if (execOpts.interval) query.push(`interval=${encodeURIComponent(execOpts.interval)}`);
+  query.push(`debug=${execOpts.debug ? '1' : '0'}`);
   return `/${urlPath}${query.length ? '?' + query.join('&') : ''}`;
 }
 
-function updateStopBtn() {
-  const btn = $('exec-stop');
-  if (btn) btn.style.display = execActive ? '' : 'none';
+// 运行/停止合一按钮：未运行时点运行，运行中变红色停止，点击即停止
+function updateRunBtn() {
+  const btn = $('exec-run');
+  if (!btn) return;
+  btn.textContent = execActive ? '停止' : '运行';
+  btn.className = execActive ? 'stop' : 'run';
+  btn.title = execActive ? '停止运行' : '运行当前用例';
+}
+
+function execRunOrStop() {
+  if (execActive) {
+    stopExecute();
+  } else {
+    doExecute();
+  }
 }
 
 function updateExecPreview() {
@@ -2644,7 +2680,7 @@ async function doExecute(urlOverride) {
       try { data = JSON.parse(text); } catch (e) {}
       if (data && data.code === 0) {
         execActive = true;      // 机器人已创建（出错时服务端也不会清理，停止按钮保持可用）
-        updateStopBtn();
+        updateRunBtn();
         renderNodes();          // 节点▶按钮从灰色切换为可点击绿色
         startExecPolling();
         closeModal();
@@ -2828,12 +2864,14 @@ function applyExecStatus(events) {
     execNodeStateByCase[evCase][ev.id] = st === 'err' && ev.err ? { st, err: ev.err } : st;
     latestCase = evCase;
   }
-  // 事件来自画布以外的用例：切换画布到该用例
-  if (latestCase && latestCase !== caseViewCurrent) {
-    switchCaseView(latestCase);
-  } else if (latestCase === execRootCase && caseViewCurrent !== execRootCase) {
-    // 最新事件回到根用例：还原根用例画布
-    switchCaseView(execRootCase, true);
+  // 事件来自画布以外的用例：仅调试模式（execOpts.debug）切换画布跟随，否则留在当前用例
+  if (execOpts.debug) {
+    if (latestCase && latestCase !== caseViewCurrent) {
+      switchCaseView(latestCase);
+    } else if (latestCase === execRootCase && caseViewCurrent !== execRootCase) {
+      // 最新事件回到根用例：还原根用例画布
+      switchCaseView(execRootCase, true);
+    }
   }
   // execNodeState 必须与当前用例的分桶是同一个对象（引用），
   // 否则本轮写入只进了分桶，refreshExecBadge 读的是旧拷贝，徽标不更新
@@ -2963,7 +3001,7 @@ async function stopExecute() {
   execNodeStateByCase = {};
   for (const k of Object.keys(caseViewCache)) delete caseViewCache[k];
   renderNodes();   // 节点▶按钮从可点击绿色切回灰色
-  updateStopBtn();
+  updateRunBtn();
   toast('已停止执行');
 }
 

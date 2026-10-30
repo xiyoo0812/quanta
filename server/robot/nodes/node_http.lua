@@ -46,7 +46,7 @@ function NodeHttp:on_start()
         if not ok or status >= 300 then
             log_warn("[NodeHttp][on_start] robot:{} run node:{}'s call {} failed: status={}, res={}", role.open_id, self.name, self.url, status, res)
             event_mgr:notify_trigger("on_error_message", self.url, role.open_id, res)
-            self:failed(res)
+            self:failed("http call failed {}", res)
             return
         end
         log_debug("[NodeHttp][on_start] robot:{} run node:{}'s call {}=>{} success", role.open_id, self.name, self.url, res)

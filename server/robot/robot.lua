@@ -22,16 +22,17 @@ local RELAY_SERVICE = luabus.relay_type.SERVICE
 
 local Robot = class()
 local prop = property(Robot)
-prop:reader("open_id", nil)         --open_id
 prop:reader("client", nil)          --client
+prop:reader("open_id", nil)         --open_id
 prop:reader("cur_case", nil)        --cur_case
 prop:reader("next_case", nil)       --next_case
 prop:reader("device_id", nil)       --device_id
 prop:reader("relay_type", nil)      --relay_type
-prop:reader("hertz", 0)             --hertz
+prop:reader("interval", 1000)       --interval
 prop:reader("target_id", 0)         --target_id
 prop:reader("running", false)       --running
 prop:reader("press", false)         --press
+prop:reader("debug", false)         --debug
 prop:reader("variables", {})        --variables
 prop:reader("messages", {})         --messages
 prop:reader("msghooks", {})         --msghooks
@@ -108,17 +109,12 @@ function Robot:create_case(name)
     log_err("[Robot][create_case] load case {} failed!", name)
 end
 
-function Robot:load_case(file, hertz)
-    log_debug("[Robot][load_case] robot (%s) ready action!", self.open_id)
-    local case = self:create_case(file)
-    self:startup(case, hertz)
-end
-
-function Robot:startup(case, hertz)
+function Robot:startup(case, interval, debug)
     if case then
         self:run_case(case)
     end
-    self.hertz = hertz or 1000
+    self.debug = debug or false
+    self.interval = interval or 1000
     if not self.running then
         self.running = true
         add_monitor(self)
@@ -152,10 +148,15 @@ function Robot:on_update()
         self.cur_case = self.next_case
         self.next_case = nil
     end
+    local interval = self.interval
     if self.cur_case then
         self.cur_case:update()
+        if (not self.debug) and self.cur_case.parent then
+            --非调试模型加速子case执行
+            interval = 100
+        end
     end
-    thread_mgr:sleep(self.hertz)
+    thread_mgr:sleep(interval)
 end
 
 function Robot:assert(condition, error, ...)

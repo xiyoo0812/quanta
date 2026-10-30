@@ -25,8 +25,8 @@ function NodeWait:on_update()
     if self.cond then
         local cond = self:call_script(self.cond)
         if cond == nil then
-            log_warn("[NodeWait][on_update] robot:{} run node:{}'s cond {} id null", self.open_id, self.name, self.cond)
-            self:failed("cond error")
+            log_warn("[NodeWait][on_update] robot:{} run node:{}'s cond {} is nil", self.open_id, self.name, self.cond)
+            self:failed("cond conf is nil")
             return false
         end
         if not cond then

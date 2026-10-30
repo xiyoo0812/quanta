@@ -1,6 +1,5 @@
 #define LUA_LIB
 
-#include <list>
 #include "lua_kit.h"
 
 #define TIME_NEAR_SHIFT     8
@@ -13,32 +12,68 @@
 namespace ltimer {
 
     struct timer_node {
-        size_t expire;
-        uint64_t timer_id;
+        size_t expire = 0;
+        size_t period = 0;
+        size_t timer_id = 0;
+        int64_t times = 0;
+        bool invalid = false;
     };
 
-    using timer_list = std::list<timer_node>;
-    using integer_vector = std::vector<uint64_t>;
+    using integer_vector = std::vector<size_t>;
+    using timer_node_spr = std::shared_ptr<timer_node>;
+    using sched_map = std::unordered_map<size_t, timer_node_spr>;
+    using timer_vector = std::vector<timer_node_spr>;
 
     class lua_timer {
     public:
+        void remove(size_t timer_id);
         integer_vector update(size_t elapse);
-        void insert(uint64_t timer_id, size_t escape);
+        void change(size_t timer_id, size_t period);
+        void insert(size_t timer_id, size_t escape, size_t period, int64_t times);
 
     protected:
         void shift();
-        void add_node(timer_node& node);
-        void execute(integer_vector& timers);
+        void add_node(timer_node_spr node);
+        void execute(integer_vector& result);
         void move_list(uint32_t level, uint32_t idx);
 
     protected:
         size_t time = 0;
-        timer_list nears[TIME_NEAR];
-        timer_list t[4][TIME_LEVEL];
+        sched_map handles;
+        timer_vector nears[TIME_NEAR];
+        timer_vector t[4][TIME_LEVEL];
     };
 
-    void lua_timer::add_node(timer_node& node) {
-        size_t expire = node.expire;
+    void lua_timer::change(size_t timer_id, size_t period) {
+        if (auto it = handles.find(timer_id); it != handles.end()) {
+            auto old = it->second;
+            if (old->times >= 0) return;
+            old->invalid = true;
+            handles.erase(it);
+            auto node = std::make_shared<timer_node>(time + period, period, timer_id, -1);
+            handles.emplace(timer_id, node);
+            add_node(node);
+        }
+    }
+
+    void lua_timer::insert(size_t timer_id, size_t escape, size_t period, int64_t times) {
+        remove(timer_id);
+        auto node = std::make_shared<timer_node>(time + escape, period, timer_id, times);
+        if (times != 1 && times != 0) {
+            handles.emplace(timer_id, node);
+        }
+        add_node(node);
+    }
+
+    void lua_timer::remove(size_t timer_id) {
+        if (auto it = handles.find(timer_id); it != handles.end()) {
+            it->second->invalid = true;
+            handles.erase(it);
+        }
+    }
+
+    void lua_timer::add_node(timer_node_spr node) {
+        size_t expire = node->expire;
         if ((expire | TIME_NEAR_MASK) == (time | TIME_NEAR_MASK)) {
             nears[expire & TIME_NEAR_MASK].push_back(node);
             return;
@@ -54,13 +89,8 @@ namespace ltimer {
         t[i][((expire >> (TIME_NEAR_SHIFT + i * TIME_LEVEL_SHIFT)) & TIME_LEVEL_MASK)].push_back(node);
     }
 
-    void lua_timer::insert(uint64_t timer_id, size_t escape) {
-        timer_node node{ time + escape, timer_id };
-        add_node(node);
-    }
-
     void lua_timer::move_list(uint32_t level, uint32_t idx) {
-        timer_list& list = t[level][idx];
+        timer_vector& list = t[level][idx];
         for (auto node : list) {
             add_node(node);
         }
@@ -87,31 +117,49 @@ namespace ltimer {
         }
     }
 
-    void lua_timer::execute(integer_vector& timers) {
+    void lua_timer::execute(integer_vector& result) {
         uint32_t idx = time & TIME_NEAR_MASK;
-        for (auto node : nears[idx]) {
-            timers.push_back(node.timer_id);
+        timer_vector expired;
+        expired.swap(nears[idx]);
+        for (auto node : expired) {
+            if (node->invalid) continue;
+            if (node->times > 0) node->times--;
+            result.push_back(node->timer_id);
+            result.push_back(node->times == 0 ? 0 : 1);
+            if (node->times != 0) {
+                node->expire += node->period;
+                add_node(node);
+            } else {
+                remove(node->timer_id);
+            }
         }
-        nears[idx].clear();
     }
 
     integer_vector lua_timer::update(size_t elapse) {
-        integer_vector timers;
-        execute(timers);
+        integer_vector result;
         for (size_t i = 0; i < elapse; i++) {
+            execute(result);
             shift();
-            execute(timers);
         }
-        return timers;
+        return result;
     }
 
     thread_local lua_timer thread_timer;
-    static void timer_insert(uint64_t timer_id, size_t escape) {
-        thread_timer.insert(timer_id, escape);
+
+    static void timer_insert(size_t timer_id, size_t escape, size_t period, int64_t times) {
+        thread_timer.insert(timer_id, escape, period, times == 0 ? 1 : times);
     }
 
     static integer_vector timer_update(size_t elapse) {
         return thread_timer.update(elapse);
+    }
+
+    static void timer_remove(size_t timer_id) {
+        thread_timer.remove(timer_id);
+    }
+
+    static void timer_change(size_t timer_id, size_t period) {
+        thread_timer.change(timer_id, period);
     }
 
     static int timer_time(lua_State* L) {
@@ -124,13 +172,15 @@ namespace ltimer {
         luatimer.set_function("time", timer_time);
         luatimer.set_function("insert", timer_insert);
         luatimer.set_function("update", timer_update);
+        luatimer.set_function("remove", timer_remove);
+        luatimer.set_function("change", timer_change);
         luatimer.set_function("now", []() { return luakit::now(); });
         luatimer.set_function("clock", []() { return luakit::steady(); });
         luatimer.set_function("now_ms", []() { return luakit::now_ms(); });
         luatimer.set_function("now_ns", []() { return luakit::now_ns(); });
         luatimer.set_function("now_cs", []() { return luakit::now_cs(); });
         luatimer.set_function("clock_ms", []() { return luakit::steady_ms(); });
-        luatimer.set_function("sleep", [](uint64_t ms) { return luakit::sleep(ms); });
+        luatimer.set_function("sleep", [](size_t ms) { return luakit::sleep(ms); });
         return luatimer;
     }
 }

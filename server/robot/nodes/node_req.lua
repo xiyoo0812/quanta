@@ -36,7 +36,7 @@ function NodeReq:on_start()
         if role:check_callback(ok, res) then
             log_warn("[NodeReq][on_start] robot:{} run node:{}'s {} failed: ok={}, res={}", role.open_id, self.name, self.cmd_id, ok, res)
             event_mgr:notify_trigger("on_error_message", self.cmd_id, role.open_id, res)
-            self:failed(res)
+            self:failed("call {} failed {}", self.cmd_id, res)
             return
         end
         log_debug("[NodeReq][on_start] robot:{} run node:{}'s {}=>{} success", role.open_id, self.name, self.cmd_id, res)

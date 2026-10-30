@@ -10,15 +10,16 @@
       {
         "key": "open_id",
         "type": "string",
-        "value": "10001",
-        "locked": true
+        "value": "10001"
       },
       {
         "key": "addr",
         "type": "string",
         "value": "127.0.0.1:20013"
       }
-    ]
+    ],
+    "interval": 1000,
+    "debug": false
   },
   "nodes": {
     "1": {
@@ -44,8 +45,8 @@
         }
       },
       "outputs": {},
-      "name": "账号登出",
-      "exec": true
+      "exec": true,
+      "name": "账号登出"
     }
   },
   "nodeedits": {

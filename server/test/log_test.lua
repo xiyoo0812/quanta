@@ -27,7 +27,7 @@ for _, cycle in ipairs(params2) do
     log_dump("logger_test: cycle {} use time {} ms!", cycle, time)
 end
 
-local count = 100000
+local count = 10000
 local sformat = string.format
 local t1 = timer.clock_ms()
 for i = 1, count do
@@ -37,7 +37,7 @@ for i = 1, count do
     end
 end
 local t2 = timer.clock_ms() - t1
-log_debug("tt22:{}", t2)
+log_debug("sformat use time:{}", t2)
 
 
 local lformat = log.format
@@ -49,7 +49,7 @@ for i = 1, count do
     end
 end
 local t4 = timer.clock_ms() - t3
-log_debug("tt42:{}", t4)
+log_debug("lformat use time:{}", t4)
 
 log_info("logger test end")
 

@@ -114,13 +114,14 @@ namespace logger {
             "MONITOR", LOG_FLAG_MONITOR
         );
         lualog.set_function("print", [](lua_State* L) {
+            cpchar vfmt = lua_to_native<cpchar>(L, 6);
+            if (!vfmt) luaL_error(L, "log print arg fmt is not string!");
             log_level lvl = (log_level)lua_tointeger(L, 1);
             if (s_agent->is_filter(lvl)) return 0;
             size_t flag = lua_tointeger(L, 2);
             cpchar tag = lua_to_native<cpchar>(L, 3);
             cpchar trace_id = lua_to_native<cpchar>(L, 4);
             cpchar feature = lua_to_native<cpchar>(L, 5);
-            cpchar vfmt = lua_to_native<cpchar>(L, 6);
             int arg_num = lua_gettop(L) - 6;
             switch (arg_num) {
             case 0: return zformat(L, lvl, tag, trace_id, feature, flag, string(vfmt));
@@ -140,6 +141,7 @@ namespace logger {
         });
         lualog.set_function("format", [](lua_State* L) {
             cpchar vfmt = lua_to_native<cpchar>(L, 1);
+            if (!vfmt) luaL_error(L, "log format arg fmt is not string!");
             int arg_num = lua_gettop(L) - 1;
             switch (arg_num) {
             case 0: lua_pushstring(L, vfmt); return 1;

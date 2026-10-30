@@ -112,7 +112,7 @@ function RobotCase:failed(err)
     self.successed = false
     self.current = self.root
     if self.parent then
-        self.parent:failed(err)
+        self.actor:run_case(self.parent)
         return
     end
 end
@@ -130,7 +130,6 @@ function RobotCase:update()
             return
         end
         node:update()
-        return
     end
     if self.mount then
         if self.mount.successed then

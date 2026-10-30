@@ -34,6 +34,7 @@ function NodeCase:on_update()
         local successed = self.child:get_successed()
         if successed == false then
             self:failed(self.child.error)
+            return false
         end
         return successed ~= nil
     end
