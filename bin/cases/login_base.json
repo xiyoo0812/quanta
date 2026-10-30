@@ -10,15 +10,16 @@
       {
         "key": "open_id",
         "type": "string",
-        "value": "10001",
-        "locked": true
+        "value": "10001"
       },
       {
         "key": "addr",
         "type": "string",
         "value": "127.0.0.1:20013"
       }
-    ]
+    ],
+    "interval": 1000,
+    "debug": true
   },
   "nodes": {
     "1": {
@@ -62,8 +63,8 @@
         }
       },
       "before": "robot.players = {}",
-      "name": "账号登陆",
       "exec": false,
+      "name": "账号登陆",
       "next": 3
     },
     "3": {

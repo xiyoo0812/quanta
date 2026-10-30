@@ -14,7 +14,6 @@ prop:reader("id", nil)          --id
 prop:reader("case", nil)        --case
 prop:reader("next", nil)        --next
 prop:reader("name", nil)        --name
-prop:reader("error", nil)       --error
 prop:reader("actor", nil)       --actor
 prop:reader("after", nil)       --after
 prop:reader("before", nil)      --before
@@ -189,13 +188,12 @@ function NodeBase:go_next()
 end
 
 function NodeBase:failed(fmt, ...)
-    local err = lformat(fmt, ...)
-    self.error = err
     self.result = false
     self.successed = false
+    local err = lformat(fmt, ...)
     log_err("[NodeBase][failed] robot:{} run node=> {} failed: {}", self.open_id, self.name, err)
     self.actor:push_state(self, "failed", err)
-    self.case:failed()
+    self.case:failed(err)
 end
 
 function NodeBase:on_update()

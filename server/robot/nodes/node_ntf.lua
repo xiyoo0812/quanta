@@ -39,13 +39,13 @@ function NodeNtf:on_update()
         local role = self.actor
         local ok, res = role:wait(self.cmd_id, CALL_TIMEOUT)
         if not ok then
-            self:failed(res)
+            self:failed("wait {} failed {}", self.cmd_id, res)
             return false
         end
         local cond = self:call_script(self.cond, res)
         if cond == nil then
-            log_warn("[NodeNtf][on_update] robot:{} run node:{}'s cond {} id null", role.open_id, self.name, self.cond)
-            self:failed("cond error")
+            log_warn("[NodeNtf][on_update] robot:{} run node:{}'s cond {} is nil", role.open_id, self.name, self.cond)
+            self:failed("cond conf is nil")
             return false
         end
         if not cond then

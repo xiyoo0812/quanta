@@ -2,10 +2,11 @@
 import("robot/robot_mgr.lua")
 
 local qmax          = qmath.max
+local lnow          = timer.now
 local tinsert       = table.insert
 local sformat       = string.format
 local log_debug     = logger.debug
-local lnow          = timer.now
+local log_err       = logger.error
 
 local timer_mgr     = quanta.get("timer_mgr")
 local robot_mgr     = quanta.get("robot_mgr")
@@ -46,22 +47,28 @@ function RobotWorker:__init()
 end
 
 -- 启动机器人任务
--- hertz: 单个机器人活动速率：多少毫秒发一次消息
-function RobotWorker:startup_robot_task(open_id, id, num, ip, port, time, case, hertz)
-    log_debug("[RobotWorker][startup_robot_task] addr:{}:{} id:{} num:{} case:{} hertz:{}", ip, port, id, num, case, hertz)
+-- interval: 单个机器人活动速率：多少毫秒发一次消息
+function RobotWorker:startup_robot_task(open_id, id, num, addr, time, case_name, interval)
+    log_debug("[RobotWorker][startup_robot_task] addr:{} id:{} num:{} case_name:{} interval:{}", addr, id, num, case_name, interval)
     --计算所有机器人对表时间
     local diff_time = time - quanta.now
     local period = 1000 * (qmax(diff_time, 0))
     for i = 1, num do
         local open_id_no = id + i
-        local params = { addr = ip, port = port }
+        local params = {{ key = "addr", value = addr, type = "string" }}
         local real_open_id = sformat("%s_%d", open_id, open_id_no)
         local robot = robot_mgr:create_robot(real_open_id, params, true)
         --计算机器人启动延时
         local slottime = i * SLOT_TIME
-        log_debug("[Robot][startup_robot_task] robot {} dalay {} action!", robot.open_id, slottime)
+        log_debug("[Robot][startup_robot_task] robot {} dalay {} action!", real_open_id, slottime)
         timer_mgr:once(period + slottime, function()
-            robot:load_case(case, hertz)
+            local case = robot:create_case(case_name)
+            if not case then
+                log_err("[RobotWorker][startup_robot_task] robot:{} create case {} failed!", real_open_id, case_name)
+                robot_mgr:destory_robot(real_open_id)
+                return
+            end
+            robot:startup(case, interval, false)
         end)
     end
     --定时器汇报
@@ -71,7 +78,7 @@ function RobotWorker:startup_robot_task(open_id, id, num, ip, port, time, case, 
 end
 
 -- 运行机器人用例
-function RobotWorker:run_robot_case(open_id, params, body)
+function RobotWorker:run_robot_case(open_id, params, body, interval, debug)
     log_debug("[RobotWorker][run_robot_case] open_id:{}, params:{}", open_id, params)
     local robot = robot_mgr:get_robot(open_id)
     if not robot then
@@ -79,7 +86,7 @@ function RobotWorker:run_robot_case(open_id, params, body)
     end
     local case = robot:create_case_by_data(body)
     if case then
-        robot:startup(case)
+        robot:startup(case, interval, debug)
     end
     return true
 end

@@ -22,10 +22,10 @@ end
 
 function NodeCond:on_start()
     local role = self.actor
-    local cond, err = self:call_script(self.cond)
+    local cond = self:call_script(self.cond)
     if cond == nil then
-        log_warn("[NodeCond][on_start] robot:{} run node:{}'s cond {} call error: {}", role.open_id, self.name, self.cond, err)
-        self:failed("cond call error: " .. err)
+        log_warn("[NodeCond][on_start] robot:{} run node:{}'s cond {} is nil", role.open_id, self.name, self.cond)
+        self:failed("cond conf is nil")
         return false
     end
     log_debug("[NodeCond][on_start] robot:{} run node:{}'s cond {} result: {}", role.open_id, self.name, self.cond, cond)
