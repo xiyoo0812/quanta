@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include <set>
 #include <span>
 #include <mutex>
 #include <regex>

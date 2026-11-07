@@ -63,7 +63,9 @@ if quanta.index == 2 then
     end
     local function test1()
         log_debug("===============test1-1")
-        local co = coroutine.create(test2)
+        local co = coroutine.create(function()
+            test2()
+        end)
         coroutine.resume(co)
         log_debug("===============test1-2")
         test(2)
@@ -80,4 +82,37 @@ if quanta.index == 2 then
     log_debug("prof-> {}", timer.now_cs() - t1)
 end
 
+if quanta.index == 3 then
+    local function assert_test(n)
+        local t = assert(n > 100, "boom")   --必抛错
+        --local t = guid_new(5, 512)
+        return t
+    end
+
+    local function busy_work(n)
+        local s = 0
+        for i = 1, 100 do s = s + i end
+        return s
+    end
+
+    local function error_in_pcall(n)
+        busy_work(n)
+        assert_test(n)    --这里抛错，帧不会正常返回
+    end
+
+    local function outer_pcall(n)
+       -- error_in_pcall(n)
+        return pcall(error_in_pcall, n)
+    end
+
+    local t1 = timer.now_cs()
+    local REPEAT = 1000
+    for i = 1, REPEAT do
+        outer_pcall(i)
+    end
+    log_debug("prof-> {}", timer.now_cs() - t1)
+
+end
+
+quanta.flamedump("profile.svg", false)
 quanta.perfdump(50)

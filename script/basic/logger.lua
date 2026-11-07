@@ -95,21 +95,24 @@ local function logger_output(flag, feature, lvl, lvl_name, fmt, ...)
 end
 
 local LOG_OPTIONS = {
-    [LOG_LEVEL.INFO]    = { "info",  LOG_FLAG.NULL, "print" },
-    [LOG_LEVEL.WARN]    = { "warn",  LOG_FLAG.FORMAT, "warn" },
-    [LOG_LEVEL.ERROR]   = { "err",   LOG_FLAG.FORMAT, "error" },
-    [LOG_LEVEL.FATAL]   = { "fatal", LOG_FLAG.FORMAT, "fatal" },
-    [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT, "trace" },
-    [LOG_LEVEL.DUMP]    = { "dump",  LOG_FLAG.FORMAT | LOG_FLAG.PRETTY, "dump" },
+    [LOG_LEVEL.INFO]    = { "info",  LOG_FLAG.NULL, "print", "raw_print" },
+    [LOG_LEVEL.WARN]    = { "warn",  LOG_FLAG.FORMAT, "warn", "raw_warn" },
+    [LOG_LEVEL.ERROR]   = { "err",   LOG_FLAG.FORMAT, "error", "raw_error" },
+    [LOG_LEVEL.FATAL]   = { "fatal", LOG_FLAG.FORMAT, "fatal", "raw_fatal" },
+    [LOG_LEVEL.DEBUG]   = { "debug", LOG_FLAG.FORMAT, "trace", "raw_trace" },
+    [LOG_LEVEL.DUMP]    = { "dump",  LOG_FLAG.FORMAT | LOG_FLAG.PRETTY, "dump", "raw_dump" },
 }
 
 for lvl, conf in pairs(LOG_OPTIONS) do
-    local lvl_name, flag, sysfunc = tunpack(conf)
+    local lvl_name, flag, sysfunc, rawfunc = tunpack(conf)
     logger[lvl_name] = function(fmt, ...)
         logger_output(flag, "", lvl, lvl_name, fmt, ...)
     end
     if sysfunc then
         --替换系统函数
+        if rawfunc then
+            _G[rawfunc] = _G[sysfunc]
+        end
         _G[sysfunc] = logger[lvl_name]
     end
 end

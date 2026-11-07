@@ -328,8 +328,8 @@ namespace luakcp {
     };
     
     thread_local kcp_mgr kmgr;
-    luakit::lua_table open_luakcp(lua_State* L) {
-        luakit::kit_state kit_state(L);
+    int open_luakcp(lua_State* L) {
+        kit_state kit_state(L);
         kit_state.new_class<kcp_socket>(
             "ip", &kcp_socket::m_ip,
             "port", &kcp_socket::m_port,
@@ -340,18 +340,17 @@ namespace luakcp {
             "set_timeout", &kcp_socket::set_timeout
         );
         kmgr.setup(L);
-        auto lkcp = kit_state.new_table("kcp");
+        auto lkcp = kit_state.new_table();
         lkcp.set_function("connect", [](const char* ip, int port) { return kmgr.connect(ip, port); });
         lkcp.set_function("listen", [](const char* ip, int port) { return kmgr.listen(ip, port); });
         lkcp.set_function("close", [](uint32_t token) { return kmgr.close(token); });
         lkcp.set_function("update", [](int32_t now) { return kmgr.update(now); });
-        return lkcp;
+        return kit_state.register_lib("kcp", lkcp);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_luakcp(lua_State* L) {
-        auto lkcp = luakcp::open_luakcp(L);
-        return lkcp.push_stack();
+        return luakcp::open_luakcp(L);
     }
 }

@@ -45,10 +45,10 @@ namespace lbson {
         return codec;
     }
 
-    luakit::lua_table open_lbson(lua_State* L) {
+    int open_lbson(lua_State* L) {
         luakit::kit_state kit_state(L);
         tbson.set_buff(&lbbuf);
-        auto llbson = kit_state.new_table("bson");
+        auto llbson = kit_state.new_table();
         llbson.set_function("mongocodec", mongo_codec);
         llbson.set_function("objectid", objectid);
         llbson.set_function("encode", encode);
@@ -77,14 +77,13 @@ namespace lbson {
             "BSON_MINKEY", BSON_MINKEY,
             "BSON_MAXKEY", BSON_MAXKEY
         );
-        return llbson;
+        return kit_state.register_lib("bson", llbson);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_lbson(lua_State* L) {
         lbson::init_static_bson();
-        auto lluabus = lbson::open_lbson(L);
-        return lluabus.push_stack();
+        return lbson::open_lbson(L);
     }
 }

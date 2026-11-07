@@ -269,32 +269,32 @@ namespace luatls {
         return 0;
     }
 
-    luakit::lua_table open_ltls(lua_State* L) {
+    int open_ltls(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto luassl = kit_state.new_table("tls");
-        luassl.set_function("md5", lmd5);
-        luassl.set_function("crc8", lcrc8);
-        luassl.set_function("crc64", lcrc64);
-        luassl.set_function("crc32", lcrc32);
-        luassl.set_function("crc16", lcrc16);
-        luassl.set_function("crc8_msb", lcrc8_msb);
-        luassl.set_function("sha1", lsha1);
-        luassl.set_function("sha256", lsha256);
-        luassl.set_function("sha512", lsha512);
-        luassl.set_function("hmac_sha1", lhmac_sha1);
-        luassl.set_function("hmac_sha256", lhmac_sha256);
-        luassl.set_function("hmac_sha512", lhmac_sha512);
-        luassl.set_function("pbkdf2_sha1", pbkdf2_sha1);
-        luassl.set_function("pbkdf2_sha256", pbkdf2_sha256);
-        luassl.set_function("b64_encode", lbase64_encode);
-        luassl.set_function("b64_decode", lbase64_decode);
-        luassl.set_function("xxtea_encode", lxxtea_encode);
-        luassl.set_function("xxtea_decode", lxxtea_decode);
-        luassl.set_function("init_cert", init_cert);
-        luassl.set_function("init_cas", init_cas);
-        luassl.set_function("tlscodec", tls_codec);
-        luassl.set_function("rsa_key", lrsa_key);
-        luassl.set_function("clean", lclean);
+        auto luatls = kit_state.new_table();
+        luatls.set_function("md5", lmd5);
+        luatls.set_function("crc8", lcrc8);
+        luatls.set_function("crc64", lcrc64);
+        luatls.set_function("crc32", lcrc32);
+        luatls.set_function("crc16", lcrc16);
+        luatls.set_function("crc8_msb", lcrc8_msb);
+        luatls.set_function("sha1", lsha1);
+        luatls.set_function("sha256", lsha256);
+        luatls.set_function("sha512", lsha512);
+        luatls.set_function("hmac_sha1", lhmac_sha1);
+        luatls.set_function("hmac_sha256", lhmac_sha256);
+        luatls.set_function("hmac_sha512", lhmac_sha512);
+        luatls.set_function("pbkdf2_sha1", pbkdf2_sha1);
+        luatls.set_function("pbkdf2_sha256", pbkdf2_sha256);
+        luatls.set_function("b64_encode", lbase64_encode);
+        luatls.set_function("b64_decode", lbase64_decode);
+        luatls.set_function("xxtea_encode", lxxtea_encode);
+        luatls.set_function("xxtea_decode", lxxtea_decode);
+        luatls.set_function("init_cert", init_cert);
+        luatls.set_function("init_cas", init_cas);
+        luatls.set_function("tlscodec", tls_codec);
+        luatls.set_function("rsa_key", lrsa_key);
+        luatls.set_function("clean", lclean);
         
         kit_state.new_class<lua_rsa_key>(
             "set_pubkey", &lua_rsa_key::set_pubkey,
@@ -308,15 +308,14 @@ namespace luatls {
             "isfinish", &tlscodec::isfinish,
             "set_codec", &tlscodec::set_codec
         );
-        return luassl;
+        return kit_state.register_lib("tls", luatls);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_luatls(lua_State* L) {
         luatls::init_mbedtls_globals();
-        auto luatls = luatls::open_ltls(L);
-        return luatls.push_stack();
+        return luatls::open_ltls(L);
     }
 }
 

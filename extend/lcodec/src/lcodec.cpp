@@ -147,9 +147,9 @@ namespace lcodec {
         return 1;
     }
 
-    luakit::lua_table open_lcodec(lua_State* L) {
+    int open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto llcodec = kit_state.new_table("codec");
+        auto llcodec = kit_state.new_table();
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_hex", guid_hex);
         llcodec.set_function("guid_tohex", guid_tohex);
@@ -235,7 +235,7 @@ namespace lcodec {
             "loadbin", &bitset::loadbin,
             "tostring", &bitset::tostring
         );
-        return llcodec;
+        return kit_state.register_lib("codec", llcodec);
     }
 }
 
@@ -243,7 +243,6 @@ extern "C" {
     LUALIB_API int luaopen_lcodec(lua_State* L) {
         lcodec::init_huffman_tree();
         lcodec::init_static_headers(lcodec::get_buff());
-        auto llcodec = lcodec::open_lcodec(L);
-        return llcodec.push_stack();
+        return lcodec::open_lcodec(L);
     }
 }

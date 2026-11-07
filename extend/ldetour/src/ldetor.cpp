@@ -13,7 +13,7 @@ namespace ldetour {
         return mesh;
     }
 
-    luakit::lua_table open_ldetour(lua_State* L) {
+    int open_ldetour(lua_State* L) {
         luakit::kit_state kit_state(L);
         kit_state.new_class<nav_query>(
             "raycast", &nav_query::raycast,
@@ -28,15 +28,14 @@ namespace ldetour {
             "create_query", &nav_mesh::create_query,
             "get_max_tiles", &nav_mesh::get_max_tiles
             );
-        auto ldetour = kit_state.new_table("detour");
+        auto ldetour = kit_state.new_table();
         ldetour.set_function("create_mesh", create_mesh);
-        return ldetour;
+        return kit_state.register_lib("detour", ldetour);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_ldetour(lua_State* L) {
-        auto ldetour = ldetour::open_ldetour(L);
-        return ldetour.push_stack();
+        return ldetour::open_ldetour(L);
     }
 }

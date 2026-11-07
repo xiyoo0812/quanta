@@ -10,9 +10,9 @@ namespace lsqlite {
         return new sqlite_driver();
     }
 
-    luakit::lua_table open_lsqlite(lua_State* L) {
-        luakit::kit_state kit_state(L);
-        auto sqlite = kit_state.new_table("sqlite");
+    int open_lsqlite(lua_State* L) {
+        kit_state kit_state(L);
+        auto sqlite = kit_state.new_table();
         sqlite.set_function("create", create_driver);
         kit_state.new_class<sqlite_stmt>(
             "sql", &sqlite_stmt::sql,
@@ -65,13 +65,12 @@ namespace lsqlite {
             "SQLITE_RANGE", SQLITE_RANGE,
             "SQLITE_NOTADB", SQLITE_NOTADB
         );
-        return sqlite;
+        return kit_state.register_lib("sqlite", sqlite);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_lsqlite(lua_State* L) {
-        auto sqlite = lsqlite::open_lsqlite(L);
-        return sqlite.push_stack();
+        return lsqlite::open_lsqlite(L);
     }
 }

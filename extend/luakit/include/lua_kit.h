@@ -11,16 +11,24 @@
 #include "lua_extend.h"
 
 namespace luakit {
-    inline thread_local luabuf lbuf;
+
+    const char LIBRARY_HOOKERS[] = "__library_hookers__";
+    const char LIBRARY_LOADEDS[] = "__library_loadeds__";
+
+    inline thread_local luabuf t_lbuf;
     inline luabuf* get_buff() {
-        return &lbuf;
+        return &t_lbuf;
     }
 
     inline codec_base* lua_codec() {
         luacodec* codec = new luacodec();
-        codec->set_buff(&lbuf);
+        codec->set_buff(&t_lbuf);
         return codec;
     }
+
+    struct lib_hooker {
+        virtual void on_lib_load(lua_State* L, cpchar lib) = 0;
+    };
 
     class kit_state;
     void luakit_extendlibs(kit_state* kit);
@@ -63,13 +71,16 @@ namespace luakit {
                 );
                 luakit_extendlibs(this);
                 lua_checkstack(L, 1024);
-                lua_table luakit = new_table("luakit");
+                new_table(LIBRARY_HOOKERS);
+                new_table(LIBRARY_LOADEDS);
+                lua_table luakit = new_table();
                 luakit.set_function("luacodec", lua_codec);
                 luakit.set_function("next_id", [&]() { return next_id<uint32_t>(); });
                 luakit.set_function("next_id64", [&]() { return next_id<uint64_t>(); });
                 luakit.set_function("next_id16", [&]() { return next_id<uint16_t>(); });
                 luakit.set_function("decode", [&](lua_State* L) { return decode(L); });
                 luakit.set_function("encode", [&](lua_State* L) { return encode(L, get_buff()); });
+                register_lib("luakit", luakit);
             }
         }
 
@@ -84,6 +95,30 @@ namespace luakit {
             lua_guard g(m_L);
             lua_getglobal(m_L, name);
             return lua_to_native<T>(m_L, -1);
+        }
+
+        void add_library_hooker(lib_hooker* hooker) {
+            auto hookers = get<std::vector<void*>>(LIBRARY_HOOKERS);
+            auto librarys = get<std::set<sstring>>(LIBRARY_LOADEDS);
+            hookers.push_back(hooker);
+            for (auto& lib : librarys) {
+                hooker->on_lib_load(m_L, lib.c_str());
+            }
+            set(LIBRARY_HOOKERS, hookers);
+        }
+
+        int register_lib(sstring lib, lua_table& table) {
+            auto hookers = get<std::vector<void*>>(LIBRARY_HOOKERS);
+            auto librarys = get<std::set<sstring>>(LIBRARY_LOADEDS);
+            librarys.insert(lib);
+            for (auto hooker : hookers) {
+                ((lib_hooker*)hooker)->on_lib_load(m_L, lib.c_str());
+            }
+            set(LIBRARY_LOADEDS, librarys);
+            table.push_stack();
+            lua_pushvalue(m_L, -1);
+            lua_setglobal(m_L, lib.data());
+            return 1;
         }
 
         template<std::unsigned_integral T>
