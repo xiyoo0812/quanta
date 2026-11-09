@@ -177,20 +177,19 @@ namespace luaxml {
         return 1;
     }
 
-    lua_table open_luaxml(lua_State* L) {
+    int open_luaxml(lua_State* L) {
         kit_state kit_state(L);
-        lua_table lxml = kit_state.new_table("xml");
+        lua_table lxml = kit_state.new_table();
         lxml.set_function("decode", decode_xml);
         lxml.set_function("encode", encode_xml);
         lxml.set_function("open", open_xml);
         lxml.set_function("save", save_xml);
-        return lxml;
+        return kit_state.register_lib("xml", lxml);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_luaxml(lua_State* L) {
-        auto lxml = luaxml::open_luaxml(L);
-        return lxml.push_stack();
+        return luaxml::open_luaxml(L);
     }
 }

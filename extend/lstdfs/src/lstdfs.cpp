@@ -244,10 +244,10 @@ namespace lstdfs {
         }
     }
 
-    lua_table open_lstdfs(lua_State* L) {
+    int open_lstdfs(lua_State* L) {
         kit_state kit_state(L);
         kit_state.new_class<file_info>("name", &file_info::name, "type", &file_info::type);
-        auto lstdfs = kit_state.new_table("stdfs");
+        auto lstdfs = kit_state.new_table();
         lstdfs.new_enum("copy_options",
             "none", copy_options::none,
             "recursive", copy_options::recursive,
@@ -293,13 +293,12 @@ namespace lstdfs {
         lstdfs.set_function("remove_filename", lstdfs_remove_filename);
         lstdfs.set_function("replace_filename", lstdfs_replace_filename);
         lstdfs.set_function("replace_extension", lstdfs_replace_extension);
-        return lstdfs;
+        return kit_state.register_lib("stdfs", lstdfs);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_lstdfs(lua_State* L) {
-        auto lstdfs = lstdfs::open_lstdfs(L);
-        return lstdfs.push_stack();
+        return lstdfs::open_lstdfs(L);
     }
 }

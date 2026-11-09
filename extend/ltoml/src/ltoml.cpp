@@ -184,20 +184,19 @@ namespace ltoml {
         return 1;
     }
 
-    lua_table open_ltoml(lua_State* L) {
+    int open_ltoml(lua_State* L) {
         kit_state kit_state(L);
-        lua_table toml = kit_state.new_table("toml");
+        lua_table toml = kit_state.new_table();
         toml.set_function("decode", decode_toml);
         toml.set_function("encode", encode_toml);
         toml.set_function("open", open_toml);
         toml.set_function("save", save_toml);
-        return toml;
+        return kit_state.register_lib("toml", toml);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_ltoml(lua_State* L) {
-        auto yaml = ltoml::open_ltoml(L);
-        return yaml.push_stack();
+        return ltoml::open_ltoml(L);
     }
 }

@@ -6,7 +6,6 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:#1e1e1e;color:#ccc}
-
 /* ===== 顶栏 ===== */
 #toolbar{height:48px;background:#252526;display:flex;align-items:center;padding:0 12px;gap:6px;border-bottom:1px solid #3e3e42;flex-shrink:0}
 #toolbar button{background:#0e639c;color:#fff;border:none;padding:5px 14px;border-radius:3px;cursor:pointer;font-size:12px;white-space:nowrap}
@@ -21,15 +20,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #toolbar button.del:hover{background:#e2574c}
 #toolbar .sep{width:1px;height:24px;background:#464647;margin:0 4px}
 #toolbar label{color:#999;font-size:12px}
+#toolbar .zoom-group{display:flex;align-items:center;gap:4px}
+#toolbar .zoom-group button{padding:5px 9px;min-width:30px;font-weight:600}
+#toolbar #zoom-rate{color:#9cdcfe;font-size:12px;min-width:44px;text-align:center;user-select:none;font-variant-numeric:tabular-nums}
+#toolbar button:disabled{background:#2b2b2c;color:#5a5a5e;cursor:not-allowed}
+#toolbar button:disabled:hover{background:#2b2b2c}
 #toolbar input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 8px;font-size:12px;font-family:inherit}
 #toolbar input[type=text]{width:160px}
 #toolbar select{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 6px;font-size:12px;font-family:inherit;cursor:pointer}
-
 /* ===== 主体 ===== */
 #main{flex:1;display:flex;overflow:hidden;min-height:0}
 /* 中部编辑区：画布 + 日志纵向排列 */
 #center{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-
 /* ===== 日志面板 ===== */
 #log-panel{display:none;flex-direction:column;height:200px;border-top:1px solid #3e3e42;background:#1b1b1c;flex-shrink:0}
 #log-panel.show{display:flex}
@@ -50,7 +52,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 /* 远程日志 Tab：服务端机器人运行日志（/logs 接口） */
 #tab-rlog{display:none;flex:1;overflow-y:auto;font-family:'Consolas','Courier New',monospace;font-size:11px;line-height:1.6;padding:4px 10px;color:#ccc}
 #tab-rlog .log-line{white-space:pre-wrap;word-break:break-all}
-#tab-rlog .rlog-hint{color:#666;font-style:italic}
 .rlog-info{color:#fff}
 .rlog-debug{color:#569cd6}
 .rlog-dump{color:#4ec9b0}
@@ -84,7 +85,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #msg-detail{flex:1;overflow:auto;padding:6px 10px}
 #msg-detail-head{color:#888;font-size:11px;padding-bottom:4px;margin-bottom:4px;border-bottom:1px solid #2a2a2c}
 #msg-detail pre{margin:0;font-family:'Consolas','Courier New',monospace;font-size:11px;color:#ccc;white-space:pre-wrap;word-break:break-all}
-
 /* 左侧节点面板 */
 #palette{width:165px;background:#252526;border-right:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:6px}
 #palette h3{color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin:8px 4px 4px}
@@ -93,7 +93,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 .palette-item:active{cursor:grabbing}
 .palette-item .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;border:1px solid rgba(255,255,255,.2)}
 .palette-item span{color:#ccc;font-size:12px}
-
 /* 画布 */
 #canvas-wrap{flex:1;position:relative;overflow:auto;background:#1e1e1e;min-height:0}
 /* 全局统一细灰滚动条（所有下拉框/面板自动继承；画布在下方单独覆盖为悬停显示） */
@@ -101,7 +100,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 *::-webkit-scrollbar-thumb{background:#4a4a4e;border-radius:4px}
 *::-webkit-scrollbar-thumb:hover{background:#5a5a5e}
 *::-webkit-scrollbar-track,*::-webkit-scrollbar-corner{background:transparent}
-
 /* 画布滚动条：平时隐藏，悬停画布时显示 */
 #canvas-wrap{scrollbar-width:thin;scrollbar-color:transparent transparent}
 #canvas-wrap:hover{scrollbar-color:#4a4a4e transparent}
@@ -112,13 +110,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 #canvas-wrap::-webkit-scrollbar-corner{background:transparent}
 #canvas-wrap::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,#2a2a2c 1px,transparent 1px);background-size:18px 18px;width:100%;height:100%;pointer-events:none}
 #canvas{position:relative;width:4000px;height:3000px}
-#svg-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+#svg-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:5}
 #svg-layer path{pointer-events:stroke;cursor:pointer}
-
-/* 节点 */
-.node{position:absolute;min-width:155px;max-width:280px;background:#2d2d30;border:1px solid #55555a;border-radius:6px;overflow:visible;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s}
-.node:hover{border-color:#6a6a6e}
-.node.selected{border-color:#007acc;box-shadow:0 0 0 1px #007acc,0 2px 10px rgba(0,0,0,.35)}
+.node{position:absolute;min-width:155px;max-width:280px;background:#2d2d30;border:1px solid #55555a;border-radius:6px;overflow:visible;box-shadow:0 2px 10px rgba(0,0,0,.35);user-select:none;transition:border-color .1s;z-index:1}
+.node:hover{border-color:#6a6a6e;z-index:4}
+.node.selected{border-color:#007acc;box-shadow:0 0 0 1px #007acc,0 2px 10px rgba(0,0,0,.35);z-index:2}
 /* 执行状态徽标 */
 .node.exec-running{border-color:#e3b341;box-shadow:0 0 0 1px #e3b341,0 2px 10px rgba(0,0,0,.35)}
 .node.exec-ok{border-color:#4caf50;box-shadow:0 0 0 1px #4caf50,0 2px 10px rgba(0,0,0,.35)}
@@ -137,22 +133,17 @@ body{font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;dis
 .node-field .k{color:#9cdcfe}
 .node-field .v{color:#ce9178}
 .node-field .empty{color:#555;font-style:italic}
-/* 执行失败错误行：节点内容区底部红色小字，超长截断；悬停显示自定义 tooltip（大号红字）。
-   注意截断 overflow 放在内层 .err-text 上——tooltip 是 err-line 的子元素，外层不能 overflow:hidden 否则 tooltip 被裁 */
 .exec-err-line{margin:2px 14px 2px 10px;padding:2px 6px;background:rgba(226,87,76,.15);border-left:2px solid #e2574c;color:#e2574c;font-size:10px;line-height:1.4;cursor:help;position:relative}
 .exec-err-line .err-text{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .exec-err-line .err-tip{display:none;position:absolute;bottom:calc(100% + 4px);left:0;z-index:50;max-width:480px;white-space:normal;word-break:break-all;background:#2d1010;border:1px solid #e2574c;color:#e2574c;font-size:13px;line-height:1.6;padding:6px 10px;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.5);pointer-events:none;text-align:left}
 .exec-err-line:hover .err-tip{display:block}
-
-/* 端口圆点（绘制在节点上，位置随连线路由同步） */
-.port-dot{position:absolute;width:10px;height:10px;border-radius:50%;border:2px solid #1e1e1e;z-index:6}
+.port-dot{position:absolute;width:12px;height:12px;box-sizing:border-box;border-radius:50%;border:2px solid #1e1e1e;z-index:6}
 .port-dot.out{background:#f0a020;cursor:crosshair}
 .port-dot.out:hover{transform:scale(1.35)}
 .port-dot.out.dragging{box-shadow:0 0 0 2px rgba(240,160,32,.45)}
 .port-dot.in{background:#4ec9b0;pointer-events:none}
 .port-dot-label{position:absolute;font-size:9px;color:#ccc;background:rgba(37,37,38,.92);padding:0 3px;border-radius:2px;white-space:nowrap;pointer-events:none;z-index:6;line-height:14px}
 body.connecting .node{border-color:#2a6f97}
-
 /* 用例选择列表（打开用例） */
 .case-list{max-height:400px;overflow-y:auto}
 .case-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #3e3e42;border-radius:4px;margin-bottom:4px;cursor:pointer;transition:background .12s,border-color .12s}
@@ -164,12 +155,10 @@ body.connecting .node{border-color:#2a6f97}
 /* 打开对话框分组筛选行 */
 .picker-group-row{display:flex;align-items:center;gap:6px;padding:6px 16px 10px;font-size:12px;color:#888;border-bottom:1px solid #2a2a2c;margin-bottom:6px}
 .picker-group-row select{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 6px;font-size:12px;font-family:inherit;cursor:pointer}
-
 /* 节点执行按钮：日常浅灰（不可点击），用例运行中（execActive）变绿色可点击 */
 .exec-btn{background:#5a5a5e;color:#d0d0d0;border-radius:3px;padding:0 5px;font-size:10px;cursor:not-allowed;margin-left:2px;line-height:16px;transition:background .12s,color .12s}
 .node .exec-btn.active{background:#4caf50;color:#fff;cursor:pointer}
 .node .exec-btn.active:hover{background:#5cc96a}
-
 /* 执行面板 */
 .exec-row{display:flex;gap:4px;margin-bottom:4px;min-width:0}
 .exec-row input{background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:5px 7px;font-size:12px;font-family:inherit;min-width:0}
@@ -182,7 +171,6 @@ body.connecting .node{border-color:#2a6f97}
 .exec-preview a{color:#4ec9b0;text-decoration:none}
 .exec-preview a:hover{text-decoration:underline;color:#5fd6c1}
 .exec-result{background:#1e1e1e;border:1px solid #464647;border-radius:3px;padding:6px 8px;font-family:'Consolas','Courier New',monospace;font-size:11px;white-space:pre-wrap;word-break:break-all;max-height:160px;overflow-y:auto;color:#ccc}
-
 /* 协议下拉筛选 */
 :is(#props,.modal) .combo{position:relative}
 :is(#props,.modal) .combo .combo-input{width:100%}
@@ -196,7 +184,6 @@ body.connecting .node{border-color:#2a6f97}
 .combo-empty{padding:6px 8px;color:#666;font-size:11px}
 /* 弹窗内下拉列表内嵌文档流，不遮挡、不被裁切 */
 .modal .combo-list{position:static;max-height:180px;margin-top:4px}
-
 /* 字段只读展示 + 编辑按钮 */
 #props .field-view{margin-bottom:12px;border:1px solid #3e3e42;border-radius:4px;background:#1b1b1c;overflow:hidden}
 #props .fv-head{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #2a2a2c}
@@ -212,12 +199,10 @@ body.connecting .node{border-color:#2a6f97}
 #props .fv-kvrow .fv-v{color:#ce9178;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
 #props .fv-kvrow .del-btn{width:22px;height:20px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1;align-self:center}
 #props .fv-kvrow .del-btn:hover{background:#a1260d;color:#fff}
-
 /* 连线 */
 .conn-path{fill:none;stroke:#4ec9b0;stroke-width:2;transition:stroke .1s}
 .conn-path.selected{stroke:#007acc;stroke-width:3}
 .conn-temp{fill:none;stroke:#007acc;stroke-width:2;stroke-dasharray:5;pointer-events:none}
-
 /* 右侧属性面板 */
 #props{width:310px;background:#252526;border-left:1px solid #3e3e42;overflow-y:auto;flex-shrink:0;padding:10px}
 #props h2{color:#ccc;font-size:13px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
@@ -247,20 +232,20 @@ body.connecting .node{border-color:#2a6f97}
 :is(#props,.modal) .add-btn{background:#37373d;color:#ccc;border:1px solid #464647;border-radius:3px;padding:4px 10px;cursor:pointer;font-size:11px;margin-top:2px}
 :is(#props,.modal) .add-btn:hover{background:#4e4e57}
 :is(#props,.modal) .target-row{display:flex;gap:4px;margin-bottom:4px;align-items:center;font-size:11px;color:#888;min-width:0}
-/* 覆盖 .field input[type=text] 的 width:100%（.field .target-row 提升优先级），分支行输入框等宽弹性 */
 :is(#props,.modal) .field .target-row input{width:auto;flex:1;min-width:60px;background:#1e1e1e;color:#ccc;border:1px solid #464647;border-radius:3px;padding:3px 5px;font-size:11px}
+:is(#props,.modal) .field .target-row .branch-weight{flex:0 0 76px;min-width:0;text-align:center}
+:is(#props,.modal) .branch-weight::-webkit-inner-spin-button,
+:is(#props,.modal) .branch-weight::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+:is(#props,.modal) .branch-weight{appearance:textfield}
 :is(#props,.modal) .field .target-row .del-btn{width:22px;height:20px;flex-shrink:0;background:#3e3e42;color:#ccc;border:none;border-radius:3px;cursor:pointer;font-size:13px;line-height:1}
 :is(#props,.modal) .field .target-row .del-btn:hover{background:#a1260d;color:#fff}
 :is(#props,.modal) .target-row>span{flex-shrink:0;white-space:nowrap}
-:is(#props,.modal) .target-row .target-to{color:#4ec9b0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
-/* SWITCH 分支编辑：分支条目（key+备注+删除同行） */
 :is(#props,.modal) .branch-item{border:1px solid #3e3e42;border-radius:3px;padding:4px;margin-bottom:4px;background:#1b1b1c}
 #props .empty-prop{color:#666;text-align:center;padding:60px 20px;line-height:1.8}
 #props .btn-row{display:flex;gap:6px;margin-top:8px}
 #props .btn-row button{flex:1;padding:5px;border-radius:3px;border:1px solid #464647;background:#3e3e42;color:#ccc;cursor:pointer;font-size:11px}
 #props .btn-row button:hover{background:#4e4e57}
 #props .btn-row button.danger:hover{background:#a1260d;color:#fff}
-
 /* 模态框 */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:1000}
 .modal{background:#252526;border:1px solid #464647;border-radius:8px;width:620px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,.4)}
@@ -277,14 +262,11 @@ body.connecting .node{border-color:#2a6f97}
 .modal-foot .secondary:hover{background:#4e4e57}
 .modal-foot .danger{background:#a1260d;color:#fff}
 .modal-foot .danger:hover{background:#c74a42}
-
-/* 提示 */
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#0e639c;color:#fff;padding:8px 20px;border-radius:4px;font-size:12px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none}
 #toast.show{opacity:1}
 </style>
 </head>
 <body>
-
 <!-- 顶栏 -->
 <div id="toolbar">
   <label>用例分组</label>
@@ -300,30 +282,28 @@ body.connecting .node{border-color:#2a6f97}
   <button class="gray" onclick="refreshAll()">刷新</button>
   <button class="del" onclick="deleteCase()">删除</button>
   <div class="sep"></div>
+  <div class="zoom-group">
+    <button class="gray" id="zoom-out" onclick="zoomStep(-1)" title="缩小（Ctrl + 鼠标滚轮）">−</button>
+    <button class="gray" id="zoom-reset" onclick="zoomSet(1)" title="恢复 100%">100%</button>
+    <button class="gray" id="zoom-in" onclick="zoomStep(1)" title="放大（Ctrl + 鼠标滚轮）">+</button>
+    <span id="zoom-rate" title="当前缩放率">100%</span>
+  </div>
+  <div class="sep"></div>
   <button class="gray" onclick="toggleLogPanel()">日志</button>
   <div class="sep"></div>
   <button onclick="showExecPanel('case')">设置</button>
   <button class="run" id="exec-run" onclick="execRunOrStop()">运行</button>
 </div>
-
 <!-- 主体 -->
 <div id="main">
-  <!-- 左侧节点面板 -->
   <div id="palette">
     <h3>节点类型</h3>
     <div id="palette-list"></div>
   </div>
-
-  <!-- 中部编辑区：画布 + 日志 -->
   <div id="center">
-    <!-- 画布 -->
     <div id="canvas-wrap">
-      <div id="canvas">
-        <svg id="svg-layer"></svg>
-      </div>
+      <div id="canvas"><svg id="svg-layer"></svg></div>
     </div>
-
-    <!-- 日志面板 -->
     <div id="log-panel">
       <div id="log-resize" title="拖拽调整高度"></div>
       <div id="log-header">
@@ -347,28 +327,17 @@ body.connecting .node{border-color:#2a6f97}
           <div id="msg-detail"><div id="msg-detail-head"></div><pre id="msg-detail-pre">未选择消息</pre></div>
         </div>
       </div>
-      <!-- 远程日志 Tab：展示服务器端机器人运行日志 -->
       <div id="tab-rlog" style="display:none"></div>
     </div>
   </div>
-
-  <!-- 右侧属性面板 -->
   <div id="props">
-    <div class="empty-prop" id="prop-empty">
-      点击节点编辑属性<br>右键节点可设为根节点
-    </div>
+    <div class="empty-prop" id="prop-empty">点击节点编辑属性<br>右键节点可设为根节点</div>
     <div id="prop-content" style="display:none"></div>
   </div>
 </div>
-
-<!-- 协议过滤下拉（挂载在 body 顶层，避免被父级裁切/遮挡） -->
 <div id="msg-filter-dd"><div id="msg-filter-list"></div></div>
-
-<!-- 模态框容器 -->
 <div id="modal-container"></div>
-<!-- 提示 -->
 <div id="toast"></div>
-
 <script>
 // ============================================================
 //  节点类型定义
@@ -465,12 +434,9 @@ const NODE_TYPES = {
 };
 
 const TYPE_OPTIONS = ["attr","var","lua","string","number"];
-// 原地编辑的渲染类型（直接显示在属性面板中，不走编辑弹窗）
 const IN_PLACE_RENDERS = ['proto-select', 'number', 'case-select', 'method-select', 'text', 'input'];
 
-// ============================================================
-//  状态管理
-// ============================================================
+//状态管理
 let state = {
   caseName: "case1",
   caseGroup: "default",   // 用例分组（保存进存档，下拉选项从所有用例的分组属性收集）
@@ -484,8 +450,51 @@ let state = {
 
 let drag = null;    // 节点拖拽 {id, offsetX, offsetY}
 let connDrag = null; // 连线拖拽 {fromId, port, x, y}
-
 const $ = id => document.getElementById(id);
+
+//画布缩放（作用于 #canvas，节点与连线一起缩放）
+const ZOOM_MIN = 0.2, ZOOM_MAX = 5;
+const ZOOM_STEPS = [0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5];
+let zoomLevel = 1;   // 独立于 state，不写进用例存档
+
+function updateZoomUI() {
+  const rate = $('zoom-rate');
+  if (rate) rate.textContent = Math.round(zoomLevel * 100) + '%';
+  const out = $('zoom-out'), inn = $('zoom-in');
+  if (out) out.disabled = zoomLevel <= ZOOM_MIN + 1e-6;
+  if (inn) inn.disabled = zoomLevel >= ZOOM_MAX - 1e-6;
+}
+
+// 应用缩放；anchor 为视口坐标（Ctrl+滚轮时以鼠标为不动点，按钮时用视图中心）
+function zoomSet(z, anchor) {
+  const nz = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
+  if (Math.abs(nz - zoomLevel) < 1e-6) { updateZoomUI(); return; }
+  const r = canvasWrap.getBoundingClientRect();
+  const ax = anchor ? anchor.x - r.left : canvasWrap.clientWidth / 2;
+  const ay = anchor ? anchor.y - r.top : canvasWrap.clientHeight / 2;
+  // 锚点当前对应的画布内部坐标，缩放后仍让它停留在原视口位置
+  const px = (ax + canvasWrap.scrollLeft) / zoomLevel;
+  const py = (ay + canvasWrap.scrollTop) / zoomLevel;
+  zoomLevel = nz;
+  canvas.style.zoom = nz;
+  updateZoomUI();
+  canvasWrap.scrollLeft = Math.max(0, px * nz - ax);
+  canvasWrap.scrollTop = Math.max(0, py * nz - ay);
+}
+
+function zoomStep(dir, anchor) {
+  let idx;
+  if (dir > 0) {
+    idx = ZOOM_STEPS.findIndex(v => v > zoomLevel + 1e-6);
+    if (idx < 0) idx = ZOOM_STEPS.length - 1;
+  } else {
+    idx = 0;
+    for (let i = ZOOM_STEPS.length - 1; i >= 0; i--) {
+      if (ZOOM_STEPS[i] < zoomLevel - 1e-6) { idx = i; break; }
+    }
+  }
+  zoomSet(ZOOM_STEPS[idx], anchor);
+}
 const canvas = $('canvas');
 const svg = $('svg-layer');
 const canvasWrap = $('canvas-wrap');
@@ -494,7 +503,6 @@ const canvasWrap = $('canvas-wrap');
 //  初始化
 // ============================================================
 function init() {
-  // 渲染节点面板
   const palList = $('palette-list');
   for (const [type, def] of Object.entries(NODE_TYPES)) {
     const el = document.createElement('div');
@@ -504,7 +512,6 @@ function init() {
     palList.appendChild(el);
   }
 
-  // 画布点击空白处取消选中
   canvas.onmousedown = e => {
     if (e.target === canvas || e.target === canvasWrap || e.target === svg) {
       selectNode(null);
@@ -513,7 +520,6 @@ function init() {
     }
   };
 
-  // 键盘删除
   document.onkeydown = e => {
     if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement === document.body) {
       if (state.selectedConn !== null) {
@@ -525,6 +531,13 @@ function init() {
       }
     }
   };
+
+  canvasWrap.addEventListener('wheel', e => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    zoomStep(e.deltaY < 0 ? 1 : -1, { x: e.clientX, y: e.clientY });
+  }, { passive: false });
+  updateZoomUI();
 }
 
 // ============================================================
@@ -532,12 +545,10 @@ function init() {
 // ============================================================
 function createNode(type, mouseEvent) {
   const id = state.nextId++;
-  // 在画布可视区域居中创建，避免被左侧面板遮挡
   const cnt = Object.keys(state.nodes).length;
-  const x = canvasWrap.scrollLeft + canvasWrap.clientWidth / 2 - 80 + (cnt % 3) * 30;
-  const y = canvasWrap.scrollTop + canvasWrap.clientHeight / 2 - 30 + Math.floor(cnt / 3) * 30;
+  const x = (canvasWrap.scrollLeft + canvasWrap.clientWidth / 2 - 80 + (cnt % 3) * 30) / zoomLevel;
+  const y = (canvasWrap.scrollTop + canvasWrap.clientHeight / 2 - 30 + Math.floor(cnt / 3) * 30) / zoomLevel;
   const def = NODE_TYPES[type];
-
   // 初始化data
   const data = {};
   for (const f of def.fields) {
@@ -549,17 +560,13 @@ function createNode(type, mouseEvent) {
     else if (f.render === 'method-select') data[f.key] = 'GET';
     else data[f.key] = "";
   }
-  // 节点名称（可在属性面板修改，画布与日志显示均使用）
   data.name = type + '节点';
-  // 节点执行开关（是否显示▶执行按钮/可重复执行）：未配置默认 false（不可执行），
-  // 属性面板可改；画布/属性面板统一用 nodeExecState 取值
   data.exec = false;
-  // 动态分支节点默认1个分支；SWITCH 分支值类型默认 string
   if (type === 'SWITCH' || type === 'RAND') {
     data._targetKeys = ["1"];
     if (type === 'SWITCH') data._keyType = 'string';
+    else data._branchWeights = [1];
   }
-
   state.nodes[id] = {type, x, y, data};
   if (state.root === null) state.root = id;
   renderAll();
@@ -576,7 +583,6 @@ function renderAll() {
 }
 
 function renderNodes() {
-  // 移除旧节点DOM
   canvas.querySelectorAll('.node').forEach(n => n.remove());
   for (const [idStr, node] of Object.entries(state.nodes)) {
     const id = parseInt(idStr);
@@ -586,7 +592,6 @@ function renderNodes() {
     el.style.left = node.x + 'px';
     el.style.top = node.y + 'px';
     el.dataset.id = id;
-
     // 头部
     let headHtml = `<div class="node-head" style="background:${def.color}">
       <div class="nicon" style="background:rgba(255,255,255,.7)"></div>
@@ -595,7 +600,6 @@ function renderNodes() {
       ${state.root === id ? '<span class="root-badge">ROOT</span>' : ''}
       <span class="nid">#${id}</span>
     </div>`;
-
     // 字段预览
     let bodyHtml = '<div class="node-body">';
     for (const f of def.fields) {
@@ -621,17 +625,16 @@ function renderNodes() {
     // SWITCH/RAND 分支预览
     if (node.type === 'SWITCH' || node.type === 'RAND') {
       const tk = node.data._targetKeys || [];
-      const disp = node.type === 'RAND' ? `${tk.length}个分支` : (tk.length ? tk.join(', ') : '未设置');
+      const ws = branchWeights(node);
+      const disp = node.type === 'RAND'
+        ? `${tk.length}个分支 (${ws.join('/')})`
+        : (tk.length ? tk.join(', ') : '未设置');
       bodyHtml += `<div class="node-field"><span class="k">分支</span>: <span class="${tk.length?'v':'empty'}">${escapeHtml(disp)}</span></div>`;
     }
     bodyHtml += '</div>';
-
     el.innerHTML = headHtml + bodyHtml;
     applyExecBadge(el, id);   // 执行状态徽标与边框
-
     canvas.appendChild(el);
-
-    // 事件（端口圆点由 renderPorts 绘制并绑定）
     el.querySelector('.node-head').onmousedown = e => startDragNode(e, id);
     const execBtn = el.querySelector('.exec-btn');
     if (execBtn) {
@@ -640,7 +643,6 @@ function renderNodes() {
         e.stopPropagation();
         if (!execActive) { toast('用例未在运行中，请先运行用例'); return; }   // 日常灰色不可执行
         if (lastExecPath) {
-          // 已执行过：直接复用上次的路径执行该节点（强制 /node，参数不变，不再弹面板）
           execMode = 'node';
           execNodeId = id;
           doExecute(lastExecNodeUrl());
@@ -654,16 +656,12 @@ function renderNodes() {
       e.stopPropagation();
       const isFirst = state.selected !== id;
       selectNode(id);
-      // CASE 节点双击检测（内容区路径；title 区点击走 startDragNode，在函数内检测）
       detectCaseDblClick(id, isFirst);
     };
   }
 }
 
-// ============================================================
-//  四方向连线路由 + SVG端点绘制
-// ============================================================
-
+//四方向连线路由 + SVG端点绘制
 function nodeBounds(nodeId) {
   const node = state.nodes[nodeId];
   if (!node) return null;
@@ -675,12 +673,19 @@ function nodeBounds(nodeId) {
 
 // 插座中心到边框的外偏移：插座整体绘制在边框之外，不与节点内容重叠
 const PORT_OFF = 8;
+const PORT_SIZE = 12;
+const PORT_HEAD = 29;   // 标题栏约 27px + 2px 余量
+const PORT_FOOT = 6;    // 底部留白
+function portY(h, frac) {
+  const top = Math.min(PORT_HEAD, h * 0.5);          // 极矮节点兜底
+  const bottom = Math.max(top + 1, h - PORT_FOOT);
+  return top + (bottom - top) * frac;
+}
 
 function sidePoint(b, side, frac = 0.5) {
-  // frac 0..1 沿边分布位置；返回边框外侧的插座中心坐标
   switch (side) {
-    case 'right':  return { x: b.x + b.w + PORT_OFF, y: b.y + b.h * frac };
-    case 'left':   return { x: b.x - PORT_OFF,       y: b.y + b.h * frac };
+    case 'right':  return { x: b.x + b.w + PORT_OFF, y: b.y + portY(b.h, frac) };
+    case 'left':   return { x: b.x - PORT_OFF,       y: b.y + portY(b.h, frac) };
     case 'bottom': return { x: b.x + b.w * frac,     y: b.y + b.h + PORT_OFF };
     case 'top':    return { x: b.x + b.w * frac,     y: b.y - PORT_OFF };
   }
@@ -690,10 +695,8 @@ function oppositeSide(side) {
   return { right: 'left', left: 'right', top: 'bottom', bottom: 'top' }[side];
 }
 
-// ============================================================
-//  端口布局：连线端点与节点圆点共用同一套 side/frac，保证位置同步
-// ============================================================
-// layout[nodeId] = { outs: {portId:{label, pos:{side,frac}|null}}, ins: {[side]:{frac}} }
+// 端口布局：连线端点与节点圆点共用同一套 side/frac，保证位置同步
+// layout[nodeId] = { outs: {portId:{label, pos:{side,frac,connected}}}, ins: {[side]:{frac}}, maxSlots }
 function computePortLayout() {
   const layout = {};
   for (const [idStr, node] of Object.entries(state.nodes)) {
@@ -701,28 +704,29 @@ function computePortLayout() {
     const def = NODE_TYPES[node.type];
     let outPorts = def.outputs;
     if (node.type === 'SWITCH' || node.type === 'RAND') {
-      outPorts = (node.data._targetKeys || []).map((k, i) => ({id:`target_${i}`, label:String(k)}));
+      const tk = node.data._targetKeys || [];
+      const weights = branchWeights(node);
+      outPorts = tk.map((k, i) => ({
+        id: `target_${i}`,
+        label: node.type === 'RAND' ? `分支${i + 1}(w=${weights[i]})` : String(k),
+      }));
     }
     const outs = {};
     outPorts.forEach(p => { outs[p.id] = { label: p.label, pos: null }; });
     layout[id] = { outs, ins: {} };
   }
-
-  // 统计每个节点每条边上的出入方向数量，并记录每个输出端口所在的边
-  const outCnt = {}, inCnt = {}, portSide = {};
+  // 统计每个节点的输入边，以及每个有连线的输出端口所在的边（输出数量已不再单独统计）
+  const inCnt = {}, portSide = {};
   const sidesArr = state.connections.map(conn => calcConnSides(conn.from, conn.to));
   state.connections.forEach((conn, i) => {
     const s = sidesArr[i];
     if (!s) return;
-    outCnt[conn.from] = outCnt[conn.from] || {};
-    outCnt[conn.from][s.fromSide] = (outCnt[conn.from][s.fromSide] || 0) + 1;
     inCnt[conn.to] = inCnt[conn.to] || {};
     inCnt[conn.to][s.toSide] = (inCnt[conn.to][s.toSide] || 0) + 1;
     portSide[conn.from] = portSide[conn.from] || {};
     portSide[conn.from][conn.port] = s.fromSide;
   });
 
-  // 区间内均匀取点
   function spreadFracs(n, a, b) {
     if (n <= 1) return [(a + b) / 2];
     const res = [];
@@ -732,48 +736,48 @@ function computePortLayout() {
 
   for (const [idStr, lay] of Object.entries(layout)) {
     const id = parseInt(idStr);
-    const oc = outCnt[id] || {}, ic = inCnt[id] || {};
+    const ic = inCnt[id] || {};
     const ps = portSide[id] || {};
-    // 输出端口按所在边分组；同边有输入时输出让出尾部区间，与输入插座分区隔离
     const buckets = {};
-    Object.entries(lay.outs).forEach(([portId]) => {
-      const side = ps[portId];
-      if (!side) return;
+    const insFracs = {};   // 与输出同边的输入插座，记录它分到的 frac
+    let maxSlots = 0;
+    Object.keys(lay.outs).forEach(portId => {
+      const side = ps[portId] || 'right';
       (buckets[side] = buckets[side] || []).push(portId);
     });
     for (const [side, portIds] of Object.entries(buckets)) {
-      const zone = ic[side] ? [0.15, 0.6] : [0.2, 0.8];
-      const fracs = spreadFracs(portIds.length, zone[0], zone[1]);
+      const hasIn = !!ic[side];
+      const slots = portIds.length + (hasIn ? 1 : 0);
+      maxSlots = Math.max(maxSlots, slots);
+      const zone = hasIn ? [0.12, 0.88] : [0.2, 0.8];
+      const fracs = spreadFracs(slots, zone[0], zone[1]);
       portIds.forEach((portId, i) => {
-        lay.outs[portId].pos = { side, frac: fracs[i] };
+        lay.outs[portId].pos = { side, frac: fracs[i], connected: !!ps[portId] };
       });
+      if (hasIn) insFracs[side] = fracs[slots - 1];
     }
-    // 输入插座：同边多条输入共用一个（输入与输出永远不同位）
+    lay.maxSlots = maxSlots;
     for (const side of Object.keys(ic)) {
-      lay.ins[side] = { frac: oc[side] ? 0.82 : 0.5 };
+      lay.ins[side] = { frac: insFracs[side] !== undefined ? insFracs[side] : 0.5 };
     }
   }
   return layout;
 }
 
-// 节点局部坐标系中的插座位置（边框外侧）
 function edgePointLocal(w, h, side, frac) {
   switch (side) {
-    case 'right':  return { x: w + PORT_OFF, y: h * frac };
-    case 'left':   return { x: -PORT_OFF,    y: h * frac };
+    case 'right':  return { x: w + PORT_OFF, y: portY(h, frac) };
+    case 'left':   return { x: -PORT_OFF,    y: portY(h, frac) };
     case 'bottom': return { x: w * frac,     y: h + PORT_OFF };
     case 'top':    return { x: w * frac,     y: -PORT_OFF };
   }
 }
 
-// 在节点上绘制端口圆点与文字标签（坐标与连线端点完全一致）
 let portLayoutCache = null;
-
 function renderPorts() {
   canvas.querySelectorAll('.port-dot,.port-dot-label').forEach(n => n.remove());
   const layout = computePortLayout();
   portLayoutCache = layout;
-
   for (const [idStr, node] of Object.entries(state.nodes)) {
     const id = parseInt(idStr);
     const el = canvas.querySelector(`.node[data-id="${id}"]`);
@@ -781,34 +785,21 @@ function renderPorts() {
     const lay = layout[id];
     if (!lay) continue;
 
-    // 无连线的输出端口在右侧堆叠，多个时撑起节点最小高度
-    const unconnected = Object.values(lay.outs).filter(o => !o.pos).length;
-    if (unconnected > 1) el.style.minHeight = (30 + unconnected * 22 + 6) + 'px';
+    const maxSlots = lay.maxSlots || 0;
+    el.style.minHeight = maxSlots > 1 ? (30 + maxSlots * 26 + 6) + 'px' : '';
     const w = el.offsetWidth, h = el.offsetHeight;
-
-    let stackIdx = 0;
     for (const [portId, o] of Object.entries(lay.outs)) {
-      let x, y, side;
-      if (o.pos) {
-        // 有连线：圆点绘制在连线实际出口边（边框外侧）
-        side = o.pos.side;
-        const pt = edgePointLocal(w, h, side, o.pos.frac);
-        x = pt.x; y = pt.y;
-      } else {
-        // 无连线：右侧外堆叠，作为发起连线的拖拽手柄
-        side = 'right';
-        y = 30 + stackIdx * 22; stackIdx++;
-        x = w + PORT_OFF;
-      }
+      if (!o.pos) continue;
+      const side = o.pos.side;
+      const pt = edgePointLocal(w, h, side, o.pos.frac);
+      const x = pt.x, y = pt.y;
       const dot = document.createElement('div');
       dot.className = 'port-dot out';
       dot.dataset.port = portId;
-      dot.style.left = (x - 5) + 'px';
-      dot.style.top = (y - 5) + 'px';
+      dot.style.left = (x - PORT_SIZE / 2) + 'px';
+      dot.style.top = (y - PORT_SIZE / 2) + 'px';
       dot.onmousedown = e => { e.stopPropagation(); startConnection(id, portId, e); };
       el.appendChild(dot);
-
-      // 文字标签：左右边插座的标签贴在边框内侧，上下边插座的标签在圆点旁侧
       const lbl = document.createElement('div');
       lbl.className = 'port-dot-label';
       if (side === 'right')      { lbl.style.right = '9px';          lbl.style.top = (y - 7) + 'px'; }
@@ -818,20 +809,17 @@ function renderPorts() {
       lbl.textContent = o.label;
       el.appendChild(lbl);
     }
-
-    // 输入插座（青色）：同边多条输入共用一个，位于边框外侧，与连线入口重合
     for (const [side, inp] of Object.entries(lay.ins)) {
       const pt = edgePointLocal(w, h, side, inp.frac);
       const dot = document.createElement('div');
       dot.className = 'port-dot in';
-      dot.style.left = (pt.x - 5) + 'px';
-      dot.style.top = (pt.y - 5) + 'px';
+      dot.style.left = (pt.x - PORT_SIZE / 2) + 'px';
+      dot.style.top = (pt.y - PORT_SIZE / 2) + 'px';
       el.appendChild(dot);
     }
   }
 }
 
-// 计算两节点之间的进出边方向
 function calcConnSides(fromId, toId) {
   const fb = nodeBounds(fromId);
   const tb = nodeBounds(toId);
@@ -849,15 +837,12 @@ function calcConnSides(fromId, toId) {
 }
 
 const SVGNS = 'http://www.w3.org/2000/svg';
-
 function renderConnections() {
   svg.innerHTML = '';
   svg.setAttribute('width', canvas.offsetWidth);
   svg.setAttribute('height', canvas.offsetHeight);
-
   if (!portLayoutCache) portLayoutCache = computePortLayout();
   const layout = portLayoutCache;
-
   state.connections.forEach((conn, idx) => {
     const lo = layout[conn.from] && layout[conn.from].outs[conn.port];
     if (!lo || !lo.pos) return;
@@ -870,20 +855,15 @@ function renderConnections() {
     // 端点坐标 = 节点上圆点（插座）的坐标（同一套布局结果）
     const from = sidePoint(fb, lo.pos.side, lo.pos.frac);
     const to   = sidePoint(tb, toSide, li.frac);
-
     const path = document.createElementNS(SVGNS, 'path');
     path.setAttribute('d', bezierPathDir(from.x, from.y, to.x, to.y, lo.pos.side, toSide));
     path.setAttribute('class', 'conn-path' + (state.selectedConn === idx ? ' selected' : ''));
     path.onclick = e => {
       e.stopPropagation();
-      selectNode(null);          // 取消节点选中
-      state.selectedConn = idx;  // 标记连线选中
-      renderConnections();
+      selectConnection(idx);
     };
     svg.appendChild(path);
   });
-
-  // 临时连线（从起点圆点出发，跟随鼠标）
   if (connDrag) {
     const dx = connDrag.x - connDrag.from.x;
     const dy = connDrag.y - connDrag.from.y;
@@ -912,22 +892,19 @@ function ctrlOffset(x, y, side, d) {
   }
 }
 
-// ============================================================
 //  拖拽节点
-// ============================================================
 function startDragNode(e, id) {
   e.preventDefault();
   e.stopPropagation();
   const isFirst = state.selected !== id;
   selectNode(id);
-  // CASE 节点双击检测（title 区路径）：拖拽只在小位移后才算开始，双击不受影响
   detectCaseDblClick(id, isFirst);
   const node = state.nodes[id];
   const rect = canvas.getBoundingClientRect();
   drag = {
     id,
-    offsetX: e.clientX - rect.left - canvasWrap.scrollLeft - node.x,
-    offsetY: e.clientY - rect.top - canvasWrap.scrollTop - node.y,
+    offsetX: (e.clientX - rect.left - canvasWrap.scrollLeft) / zoomLevel - node.x,
+    offsetY: (e.clientY - rect.top - canvasWrap.scrollTop) / zoomLevel - node.y,
   };
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
@@ -936,18 +913,17 @@ function startDragNode(e, id) {
 function onDragMove(e) {
   if (drag) {
     const rect = canvas.getBoundingClientRect();
-    state.nodes[drag.id].x = e.clientX - rect.left - canvasWrap.scrollLeft - drag.offsetX;
-    state.nodes[drag.id].y = e.clientY - rect.top - canvasWrap.scrollTop - drag.offsetY;
+    state.nodes[drag.id].x = (e.clientX - rect.left - canvasWrap.scrollLeft) / zoomLevel - drag.offsetX;
+    state.nodes[drag.id].y = (e.clientY - rect.top - canvasWrap.scrollTop) / zoomLevel - drag.offsetY;
     const el = canvas.querySelector(`.node[data-id="${drag.id}"]`);
     if (el) { el.style.left = state.nodes[drag.id].x + 'px'; el.style.top = state.nodes[drag.id].y + 'px'; }
-    // 节点移动后路由方向可能改变，圆点与连线一起刷新
     renderPorts();
     renderConnections();
   }
   if (connDrag) {
     const rect = canvas.getBoundingClientRect();
-    connDrag.x = e.clientX - rect.left + canvasWrap.scrollLeft;
-    connDrag.y = e.clientY - rect.top + canvasWrap.scrollTop;
+    connDrag.x = (e.clientX - rect.left) / zoomLevel + canvasWrap.scrollLeft;
+    connDrag.y = (e.clientY - rect.top) / zoomLevel + canvasWrap.scrollTop;
     renderConnections();
   }
 }
@@ -955,54 +931,48 @@ function onDragMove(e) {
 function onDragEnd(e) {
   drag = null;
   if (connDrag) {
-    // 落在目标节点任意位置即可建立连线
+    const moved = Math.hypot(e.clientX - connDrag.startX, e.clientY - connDrag.startY);
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const nodeEl = el ? el.closest('.node') : null;
     const toId = nodeEl ? parseInt(nodeEl.dataset.id) : null;
-    if (toId && toId !== connDrag.fromId) {
-      // 同一输出端口只保留一条连线
+    const fromId = connDrag.fromId, port = connDrag.port;
+    let connected = false;
+    if (toId && toId !== fromId) {
       state.connections = state.connections.filter(c =>
-        !(c.from === connDrag.fromId && c.port === connDrag.port)
+        !(c.from === fromId && c.port === port)
       );
-      state.connections.push({ from: connDrag.fromId, port: connDrag.port, to: toId });
+      state.connections.push({ from: fromId, port, to: toId });
+      connected = true;
     }
     connDrag = null;
     document.body.classList.remove('connecting');
-    renderAll();
+    if (!connected && moved < 5) {
+      selectConnection(state.connections.findIndex(c => c.from === fromId && c.port === port));
+    } else {
+      renderAll();
+    }
   }
   document.removeEventListener('mousemove', onDragMove);
   document.removeEventListener('mouseup', onDragEnd);
 }
 
-// ============================================================
 //  连线
-// ============================================================
 function startConnection(fromId, port, e) {
   e.preventDefault();
   e.stopPropagation();
-  // 起点 = 该端口圆点当前位置（与节点上绘制的圆点同步）
   const lay = computePortLayout()[fromId];
   const lo = lay ? lay.outs[port] : null;
   const b = nodeBounds(fromId);
-  let from, fromSide;
-  if (lo && lo.pos) {
-    fromSide = lo.pos.side;
-    from = sidePoint(b, lo.pos.side, lo.pos.frac);
-  } else {
-    // 无连线端口：与 renderPorts 的右侧外堆叠位置保持一致
-    fromSide = 'right';
-    let stackIdx = 0;
-    for (const [pid, o] of Object.entries(lay ? lay.outs : {})) {
-      if (pid === port) break;
-      if (!o.pos) stackIdx++;
-    }
-    from = { x: b.x + b.w + PORT_OFF, y: b.y + 30 + stackIdx * 22 };
-  }
+  const fromSide = (lo && lo.pos) ? lo.pos.side : 'right';
+  const from = (lo && lo.pos)
+    ? sidePoint(b, lo.pos.side, lo.pos.frac)
+    : { x: b.x + b.w + PORT_OFF, y: b.y + portY(b.h, 0.5) };
   const rect = canvas.getBoundingClientRect();
   connDrag = {
     fromId, port, from, fromSide,
-    x: e.clientX - rect.left + canvasWrap.scrollLeft,
-    y: e.clientY - rect.top + canvasWrap.scrollTop,
+    startX: e.clientX, startY: e.clientY,
+    x: (e.clientX - rect.left) / zoomLevel + canvasWrap.scrollLeft,
+    y: (e.clientY - rect.top) / zoomLevel + canvasWrap.scrollTop,
   };
   document.body.classList.add('connecting');
   const dotEl = canvas.querySelector(`.node[data-id="${fromId}"] .port-dot[data-port="${port}"]`);
@@ -1011,9 +981,7 @@ function startConnection(fromId, port, e) {
   document.addEventListener('mouseup', onDragEnd);
 }
 
-// ============================================================
 //  选中 / 删除
-// ============================================================
 // CASE 节点双击检测：按节点 id 记录点击时间
 function detectCaseDblClick(id, isFirst) {
   const node = state.nodes[id];
@@ -1029,6 +997,13 @@ function detectCaseDblClick(id, isFirst) {
   } else {
     dblClickTracker[key] = now;
   }
+}
+
+function selectConnection(idx) {
+  state.selected = null;
+  state.selectedConn = (idx >= 0 && idx < state.connections.length) ? idx : null;
+  renderAll();
+  updatePropPanel();
 }
 
 function selectNode(id) {
@@ -1047,12 +1022,9 @@ function deleteNode(id) {
   updatePropPanel();
 }
 
-// ============================================================
-//  属性面板
-// ============================================================
+// 属性面板
 let propPanelGen = 0;   // 面板渲染代数：面板重建后，旧渲染的失焦回调全部作废
 let fieldEditorCtx = null;  // 当前打开的字段编辑弹窗 {nodeId, key, snapshot}
-
 function updatePropPanel() {
   propPanelGen++;
   const empty = $('prop-empty');
@@ -1068,13 +1040,10 @@ function updatePropPanel() {
   const id = state.selected;
   const node = state.nodes[id];
   const def = NODE_TYPES[node.type];
-
   let html = `<h2><div class="dot" style="background:${def.color}"></div>${escapeHtml(node.data.name || def.label)} <span style="color:#666">#${id}</span></h2>`;
-
   // 节点名称：原地编辑
   html += `<div class="field"><label>节点名称</label>
     <input type="text" value="${escapeAttr(node.data.name || '')}" placeholder="${node.type}节点" onchange="setNodeName(${id}, this.value)"></div>`;
-
   // 节点执行开关：统一默认 false（未配置 = 不可执行），配置后随存档持久化
   const execOn = !!node.data.exec;
   html += `<div class="field"><label>可重复执行（显示执行按钮）</label>
@@ -1082,34 +1051,20 @@ function updatePropPanel() {
       <option value="1" ${execOn ? 'selected' : ''}>是</option>
       <option value="0" ${!execOn ? 'selected' : ''}>否</option>
     </select></div>`;
-
   // 各字段：简单字段（协议/子用例下拉、时间、请求方法、地址等）原地编辑，其余只读展示 + 编辑按钮
   for (const f of def.fields) {
     html += IN_PLACE_RENDERS.includes(f.render)
       ? renderField(f, node.data[f.key], id)
       : renderFieldView(f, node.data[f.key], id);
   }
-
-  // SWITCH 分支：只读展示 + 编辑按钮（RAND 同样使用分支编辑）
   if (node.type === 'SWITCH' || node.type === 'RAND') {
     html += renderFieldView({key:'_branches', label:'分支', render:'switch-edit'}, node.data._targetKeys, id);
   }
-
-  // 高级脚本：只读展示 + 编辑按钮
   html += renderFieldView({key:'before', label:'前置脚本(Lua)', render:'textarea'}, node.data.before || '', id);
   html += renderFieldView({key:'after',  label:'后置脚本(Lua)', render:'textarea'}, node.data.after || '', id);
-
-  // 操作按钮
-  html += `<div class="btn-row">
-    <button onclick="state.root=${id};renderAll()">设为根节点</button>
-  </div>`;
-  html += `<div class="btn-row">
-    <button class="danger" onclick="deleteNode(${id})">删除节点</button>
-  </div>`;
-
+  html += `<div class="btn-row"><button onclick="state.root=${id};renderAll()">设为根节点</button></div>`;
+  html += `<div class="btn-row"><button class="danger" onclick="deleteNode(${id})">删除节点</button></div>`;
   content.innerHTML = html;
-
-  // 字段编辑弹窗打开中：同步刷新弹窗内容
   if (fieldEditorCtx) renderFieldEditor();
 }
 
@@ -1120,7 +1075,6 @@ function renderField(f, val, nodeId) {
       return `<div class="field"><label>${f.label}</label>
         <input type="text" value="${escapeAttr(val||'')}" onchange="setField(${nodeId},'${k}',this.value)"></div>`;
     case 'number':
-      // 普通文本输入框（无上下加减箭头），失焦时解析为数字
       return `<div class="field"><label>${f.label}</label>
         <input type="text" value="${val||0}" onchange="setField(${nodeId},'${k}',parseInt(this.value)||0)"></div>`;
     case 'textarea':
@@ -1128,7 +1082,6 @@ function renderField(f, val, nodeId) {
         <div class="lua-hint">function(robot, vars, res) 内执行 — robot=机器人对象，vars=黑板数据，res=协议返回值</div>
         <textarea class="code-area" onchange="setField(${nodeId},'${k}',this.value)">${escapeHtml(val||'')}</textarea></div>`;
     case 'input': {
-      // 单行编辑：名称 + 取值方式 + 取值输入（如 SOCK 的 ip/port）
       const v = val || {};
       const isLua = v.type === 'lua';
       return `<div class="field"><label>${f.label}</label>
@@ -1145,7 +1098,6 @@ function renderField(f, val, nodeId) {
       const obj = val || {};
       const keys = Object.keys(obj);
       const isRaw = f.render === 'kv-raw';
-      // REQ 输入参数：显示协议字段的类型提示
       let protoHint = null;
       if (f.render === 'kv') {
         const node = state.nodes[nodeId];
@@ -1172,7 +1124,6 @@ function renderField(f, val, nodeId) {
       return html;
     }
     case 'case-select': {
-      // 子用例下拉：从服务器用例缓存中选择，排除自身（防止自递归）
       const current = val || '';
       const opts = [];
       opts.push(`<option value="" ${current ? '' : 'selected'} disabled>${subCases.length ? '请选择子用例' : '未加载子用例'}</option>`);
@@ -1181,7 +1132,6 @@ function renderField(f, val, nodeId) {
         const groupTag = sc.group && sc.group !== 'default' ? `［${sc.group}］` : '';
         opts.push(`<option value="${escapeAttr(sc.name)}" ${sc.name === current ? 'selected' : ''}>${escapeHtml(sc.name)}${groupTag}</option>`);
       });
-      // 当前值不在已加载列表中时保留显示（如来自导入数据）
       if (current && !subCases.some(sc => sc.name === current)) {
         opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未在用例列表中）</option>`);
       }
@@ -1189,7 +1139,6 @@ function renderField(f, val, nodeId) {
         <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
     }
     case 'proto-select': {
-      // 协议下拉筛选：按节点类型取对应 type 的协议（REQ→req，NTF→ntf）
       const node = state.nodes[nodeId];
       const wantType = (node && node.type === 'NTF') ? 'ntf' : 'req';
       const entries = Object.values(protoDefs)
@@ -1202,7 +1151,6 @@ function renderField(f, val, nodeId) {
            <span class="combo-name">${escapeHtml(p.name)}</span><span class="combo-id">${p.msg_id || ''}</span>
          </div>`).join('');
       if (!entries.length) {
-        // 未载入协议：与子用例下拉一致，直接提示（保留已有值显示）
         const opts = [`<option value="" ${current ? '' : 'selected'} disabled>未载入协议</option>`];
         if (current) opts.push(`<option value="${escapeAttr(current)}" selected>${escapeHtml(current)}（未载入协议）</option>`);
         return `<div class="field"><label>${f.label}</label>
@@ -1215,7 +1163,6 @@ function renderField(f, val, nodeId) {
         </div></div>`;
     }
     case 'method-select': {
-      // HTTP 请求方法下拉（GET 走 query，其余走 body）
       const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
       const current = val || 'GET';
       const opts = methods.map(m => `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`);
@@ -1224,23 +1171,29 @@ function renderField(f, val, nodeId) {
         <select onchange="setField(${nodeId},'${k}',this.value)">${opts.join('')}</select></div>`;
     }
     case 'switch-edit': {
-      // SWITCH 分支编辑：分支值类型 + key + 备注 + 删除；RAND 不走该编辑框（属性面板直接 + 添加）
       const node = state.nodes[nodeId];
-      const tk = (node.data._targetKeys) || [];
-      const notes = (node.data._branchNotes) || [];
-      const kt = node.data._keyType === 'number' ? 'number' : 'string';
-      let html = `<div class="field"><label>分支值类型</label>
-          <select onchange="setBranchType(${nodeId},this.value)">
-            <option value="string" ${kt === 'string' ? 'selected' : ''}>string</option>
-            <option value="number" ${kt === 'number' ? 'selected' : ''}>number</option>
-          </select></div>`;
-      html += `<div class="field"><label>分支（key → 目标节点）</label>`;
+      const isRand = node.type === 'RAND';
+      const tk = node.data._targetKeys || [];
+      const notes = node.data._branchNotes || [];
+      const weights = branchWeights(node);
+      let html = '';
+      if (!isRand) {
+        const kt = node.data._keyType === 'number' ? 'number' : 'string';
+        html += `<div class="field"><label>分支值类型</label>
+            <select onchange="setBranchType(${nodeId},this.value)">
+              <option value="string" ${kt === 'string' ? 'selected' : ''}>string</option>
+              <option value="number" ${kt === 'number' ? 'selected' : ''}>number</option>
+            </select></div>`;
+      }
+      html += `<div class="field"><label>${isRand ? '分支（权重 → 目标节点）' : '分支（key → 目标节点）'}</label>`;
       tk.forEach((bkey, i) => {
-        // 每个分支一行：key 编辑框 + 备注输入框（等宽） + 删除按钮；连接信息不在弹窗中显示
+        const input = isRand
+          ? `<input type="number" min="1" step="1" class="branch-weight" value="${weights[i]}" onchange="updateBranchWeight(${nodeId},${i},this.value)" title="分支权重（正整数，越大越容易被选中）">`
+          : `<input type="text" value="${escapeAttr(bkey)}" onchange="updateTargetKey(${nodeId},${i},this.value)" title="分支键">`;
         html += `<div class="branch-item">
           <div class="target-row">
             <span>分支${i+1}</span>
-            <input type="text" value="${escapeAttr(bkey)}" onchange="updateTargetKey(${nodeId},${i},this.value)" title="分支键">
+            ${input}
             <input type="text" class="branch-note" placeholder="备注" value="${escapeAttr(notes[i] || '')}" onchange="updateBranchNote(${nodeId},${i},this.value)" title="备注">
             <button class="del-btn" title="删除该分支" onclick="removeTarget(${nodeId},${i})">×</button>
           </div>
@@ -1270,10 +1223,7 @@ function typeOpts(selected) {
   return TYPE_OPTIONS.map(t => `<option value="${t}" ${t===selected?'selected':''}>${t}</option>`).join('');
 }
 
-// ============================================================
-//  属性面板：字段只读展示 + 编辑弹窗（确定后回显，取消还原）
-// ============================================================
-
+// 属性面板：字段只读展示 + 编辑弹窗（确定后回显，取消还原）
 // 分支连线目标描述：#id (节点名)；未连线返回 null
 function connTargetStr(nodeId, i) {
   const conn = state.connections.find(c => c.from === nodeId && c.port === `target_${i}`);
@@ -1282,7 +1232,6 @@ function connTargetStr(nodeId, i) {
   return `#${conn.to}${tn ? ' (' + (tn.data.name || tn.type + '节点') + ')' : ''}`;
 }
 
-// 字段只读展示内容
 function fieldDisplayHtml(f, val, nodeId) {
   const node = state.nodes[nodeId];
   const isBlank = v => v === undefined || v === null || v === '';
@@ -1333,9 +1282,10 @@ function fieldDisplayHtml(f, val, nodeId) {
         const kt = node.data._keyType === 'number' ? 'number' : 'string';
         rows.push(`<div class="fv-kvrow"><span class="fv-k">值类型</span><span class="fv-v">${kt}</span></div>`);
       }
+      const weights = node ? branchWeights(node) : [];
       tk.forEach((bkey, i) => {
         const to = connTargetStr(nodeId, i) || '未连接';
-        const klabel = isRand ? `分支${i + 1}` : escapeHtml(String(bkey));
+        const klabel = isRand ? `分支${i + 1} (w=${weights[i]})` : escapeHtml(String(bkey));
         rows.push(`<div class="fv-kvrow"><span class="fv-k">${klabel}</span><span class="fv-v">${escapeHtml(to)}</span>
           <button class="del-btn" title="删除该分支" onclick="removeTarget(${nodeId},${i})">×</button></div>`);
       });
@@ -1346,24 +1296,17 @@ function fieldDisplayHtml(f, val, nodeId) {
   return { text: isBlank(val) ? '' : String(val) };
 }
 
-// 字段只读展示块：标题 + 编辑按钮 + 内容
 function renderFieldView(f, val, nodeId) {
   const d = fieldDisplayHtml(f, val, nodeId);
   const body = d.html ? d.html : escapeHtml(d.text || '');
   const cls = 'fv-body' + (d.code ? ' fv-code' : '') + (!body ? ' fv-empty' : '');
-  // RAND 分支：不走编辑弹窗，头部按钮直接为「+ 添加分支」（每行的删除按钮在行内）
-  const node = state.nodes[nodeId];
-  const isRandBranch = f.key === '_branches' && node && node.type === 'RAND';
-  const headBtn = isRandBranch
-    ? `<button class="fv-edit" onclick="addTarget(${nodeId})">+ 添加</button>`
-    : `<button class="fv-edit" onclick="openFieldEditor(${nodeId},'${f.key}')">编辑</button>`;
+  const headBtn = `<button class="fv-edit" onclick="openFieldEditor(${nodeId},'${f.key}')">编辑</button>`;
   return `<div class="field-view">
     <div class="fv-head"><label>${f.label}</label>${headBtn}</div>
     <div class="${cls}">${body || '未设置'}</div>
   </div>`;
 }
 
-// 根据字段key取编辑器定义（含特殊字段）
 function getFieldDef(node, key) {
   const def = NODE_TYPES[node.type];
   const f = def.fields.find(ff => ff.key === key);
@@ -1374,7 +1317,6 @@ function getFieldDef(node, key) {
   return { key, label: key, render: 'text' };
 }
 
-// 打开字段编辑弹窗（快照当前节点数据，供取消还原）；原地编辑类型的字段不走弹窗
 function openFieldEditor(nodeId, key) {
   const node = state.nodes[nodeId];
   if (!node) return;
@@ -1401,7 +1343,6 @@ function renderFieldEditor() {
   });
 }
 
-// 确定：关闭弹窗并回显（修改已实时生效）
 function confirmFieldEditor() {
   fieldEditorCtx = null;
   closeModal();
@@ -1409,7 +1350,6 @@ function confirmFieldEditor() {
   updatePropPanel();
 }
 
-// 取消：还原打开弹窗时的数据快照
 function cancelFieldEditor() {
   if (fieldEditorCtx) {
     const node = state.nodes[fieldEditorCtx.nodeId];
@@ -1421,10 +1361,7 @@ function cancelFieldEditor() {
   updatePropPanel();
 }
 
-// 属性修改函数
 function setField(id, key, val) { state.nodes[id].data[key] = val; renderAll(); }
-
-// 修改节点名称（画布与日志显示均使用；置空恢复默认）
 function setNodeName(id, val) {
   const node = state.nodes[id];
   if (!node) return;
@@ -1433,7 +1370,6 @@ function setNodeName(id, val) {
   updatePropPanel();
 }
 
-// 修改节点执行开关（是否显示▶按钮，可单节点重复执行）
 function setNodeExec(id, on) {
   const node = state.nodes[id];
   if (!node) return;
@@ -1504,58 +1440,77 @@ function delListItem(id, key, i) {
   state.nodes[id].data[key].splice(i, 1);
   updatePropPanel(); renderAll();
 }
+function branchWeights(node) {
+  const n = (node.data._targetKeys || []).length;
+  const w = node.data._branchWeights || [];
+  return Array.from({ length: n }, (_, i) => {
+    const v = Number(w[i]);
+    return Number.isFinite(v) && v > 0 ? v : 1;
+  });
+}
+function refreshBranchEditor(id) {
+  if (fieldEditorCtx && fieldEditorCtx.nodeId === id && fieldEditorCtx.key === '_branches') {
+    renderFieldEditor();
+  }
+}
 function addTarget(id) {
-  (state.nodes[id].data._targetKeys = state.nodes[id].data._targetKeys || []).push(String((state.nodes[id].data._targetKeys.length||0)+1));
-  updatePropPanel(); renderAll();
+  const node = state.nodes[id], d = node.data;
+  d._targetKeys = d._targetKeys || [];
+  d._targetKeys.push(String(d._targetKeys.length + 1));
+  if (node.type === 'RAND') {
+    d._branchWeights = d._branchWeights || [];
+    d._branchWeights.push(1);
+  }
+  updatePropPanel(); renderAll(); refreshBranchEditor(id);
 }
 function removeTarget(id, i) {
   uiConfirm(`确定删除分支${i+1}？`, () => {
-    state.nodes[id].data._targetKeys.splice(i, 1);
-    // 同步移除分支备注并重排索引
-    if (Array.isArray(state.nodes[id].data._branchNotes)) {
-      state.nodes[id].data._branchNotes.splice(i, 1);
-    }
-    // 移除对应连线，并重新映射target_N
+    const node = state.nodes[id], d = node.data;
+    const isRand = node.type === 'RAND';
+    d._targetKeys.splice(i, 1);
+    if (Array.isArray(d._branchNotes)) d._branchNotes.splice(i, 1);
+    if (isRand && Array.isArray(d._branchWeights)) d._branchWeights.splice(i, 1);
+    // RAND 的分支键只是编号占位：删除后整体重排，保证 slot 编号连续且与属性面板的「分支N」一致
+    if (isRand) d._targetKeys = d._targetKeys.map((_, idx) => String(idx + 1));
     state.connections = state.connections.filter(c => !(c.from === id && c.port === `target_${i}`));
-    // 重映射后续端口名
     state.connections.forEach(c => {
       if (c.from === id && c.port.startsWith('target_')) {
         const idx = parseInt(c.port.split('_')[1]);
         if (idx > i) c.port = `target_${idx - 1}`;
       }
     });
-    updatePropPanel(); renderAll();
+    updatePropPanel(); renderAll(); refreshBranchEditor(id);
   }, '删除确认', '删除');
 }
 function updateTargetKey(id, i, val) {
   state.nodes[id].data._targetKeys[i] = val;
   renderAll();
 }
-// 分支备注：仅编辑器存档使用（不参与运行时导出），随 buildEditorData 持久化
+function updateBranchWeight(id, i, val) {
+  const d = state.nodes[id].data;
+  d._branchWeights = d._branchWeights || [];
+  const w = Number(val);
+  d._branchWeights[i] = Number.isFinite(w) && w > 0 ? w : 1;
+  renderAll(); updatePropPanel();
+}
 function updateBranchNote(id, i, val) {
   const notes = (state.nodes[id].data._branchNotes = state.nodes[id].data._branchNotes || []);
   notes[i] = val;
 }
-// 设置 SWITCH 分支值类型（string/number，决定导出 targets 键类型）
 function setBranchType(id, val) {
   state.nodes[id].data._keyType = val;
   updatePropPanel(); renderAll();
 }
 
-// ============================================================
-//  导入/导出
-// ============================================================
+// 导入/导出
 // 导出单个节点配置（含连线目标）
 function exportNode(id) {
   const node = state.nodes[id];
   if (!node) return null;
   const n = { type: node.type };
-  // 复制data中的字段
   for (const [k, v] of Object.entries(node.data)) {
     if (k.startsWith('_')) continue;   // 跳过内部字段（_targetKeys/_keyType等）
-    // cond 未配置不导出（Lua 中空串为真值，会导致运行时按已配置条件执行而失败）
     if (k === 'cond' && (v === undefined || String(v).trim() === '')) continue;
-    // 深拷贝
     n[k] = JSON.parse(JSON.stringify(v));
   }
   // 设置连接
@@ -1564,13 +1519,7 @@ function exportNode(id) {
     if (c.port === 'next') n.next = c.to;
     else if (c.port === 'success') { n.result = n.result || {}; n.result.success = c.to; }
     else if (c.port === 'failed') { n.result = n.result || {}; n.result.failed = c.to; }
-    else if (c.port.startsWith('target_') && node.type === 'RAND') {
-      n.targets = n.targets || [];
-      n.targets.push(c.to);   // RAND：平铺目标节点数组
-    }
   }
-  // SWITCH：targets 只导出已连接分支，按分支位置顺序排列；
-  // 未连接分支的 keys/备注仅存于 nodeedits（编辑数据），运行时不生成
   if (node.type === 'SWITCH') {
     const tk = node.data._targetKeys || [];
     tk.forEach((bkey, idx) => {
@@ -1581,6 +1530,17 @@ function exportNode(id) {
       n.targets = n.targets || [];
       n.targets.push([tkey, conn.to]);
     });
+  }
+  if (node.type === 'RAND') {
+    const tk = node.data._targetKeys || [];
+    const weights = branchWeights(node);
+    const targets = {};
+    tk.forEach((_, idx) => {
+      const conn = state.connections.find(c => c.from === id && c.port === `target_${idx}`);
+      if (!conn) return;
+      targets[String(conn.to)] = weights[idx];
+    });
+    n.targets = targets;
   }
   return n;
 }
@@ -1595,14 +1555,12 @@ function buildExportData() {
   return result;
 }
 
-// 执行导出：直接用标准导出（子CASE参数缓存由服务端运行子用例存档时自然生效）
 function buildExecExportData() {
   return buildExportData();
 }
 
 // ============================================================
-//  编辑器存档：nodes 为运行时格式（与 server/robot/cases/*.lua 一致，
-//  连线信息已折叠进节点的 next/result/targets，无需单独的 connections）；
+//  编辑器存档：nodes 为运行时格式（与 server/robot/cases/*.lua 一致，无需单独的 connections）；
 //  nodeedits 为编辑器附加数据（节点坐标、分支备注等），可再次编辑
 // ============================================================
 function buildEditorData() {
@@ -1613,6 +1571,13 @@ function buildEditorData() {
     // SWITCH 分支备注/值类型等内部字段随编辑数据保存
     for (const [k, v] of Object.entries(n.data)) {
       if (k.startsWith('_')) e[k] = JSON.parse(JSON.stringify(v));
+    }
+    // RAND：运行时 targets 只含已连接分支（端口索引被压缩），另按分支位置顺序排列目标节点，保证保存→打开后未连接分支的位次也能精确还原
+    if (n.type === 'RAND') {
+      e._branchTargets = (n.data._targetKeys || []).map((_, i) => {
+        const c = state.connections.find(c => c.from === parseInt(id) && c.port === `target_${i}`);
+        return c ? c.to : null;
+      });
     }
     edits[id] = e;
   }
@@ -1631,22 +1596,18 @@ function buildEditorData() {
     },
     // 运行时节点配置（与 lua 导出格式一致）
     nodes: buildExportData().nodes,
-    // 编辑器附加数据（坐标/分支备注等）
     nodeedits: edits,
   };
 }
 
-// 应用编辑器存档（v2 运行时格式）：nodes 走 applyCaseData 还原连线与节点，
-// 再叠加 nodeedits（坐标/分支备注等编辑器数据）
+// 应用编辑器存档（运行时格式）：nodes 走 applyCaseData 还原连线与节点，再叠加 nodeedits（坐标/分支备注等编辑器数据）
 function applyEditorData(data, skipExec) {
   if (!data || !data.nodes) throw new Error('不是有效的编辑器存档文件');
-  // 恢复执行面板配置（参数列表 + 运行频率 + 调试开关）：normalize 保证 open_id 在首位且不可删除；无参数时用默认
+  // 恢复执行面板配置：normalize 重建 locked 标记并保证 open_id 首位
   if (data.exec && !skipExec) {
-    execOpts.params = Array.isArray(data.exec.params) && data.exec.params.length
-      ? normalizeExecParams(data.exec.params)
-      : defaultExecParams();
-    execOpts.interval = Number.isInteger(data.exec.interval) && data.exec.interval > 0 ? data.exec.interval : 1000;
-    execOpts.debug = data.exec.debug !== undefined ? !!data.exec.debug : true;
+    execOpts.params = normalizeExecParams(data.exec.params);
+    execOpts.interval = data.exec.interval;
+    execOpts.debug = !!data.exec.debug;
   }
   applyCaseData(data);   // 运行时格式还原（含连线解析）
   state.nextId = data.nextId || state.nextId;
@@ -1658,12 +1619,11 @@ function applyEditorData(data, skipExec) {
     node.x = e.x || node.x;
     node.y = e.y || node.y;
     for (const [k, v] of Object.entries(e)) {
-      if (k === 'x' || k === 'y') continue;
+      if (k === 'x' || k === 'y' || k === '_branchTargets') continue;
       node.data[k] = JSON.parse(JSON.stringify(v));
     }
   }
-  // SWITCH 连线重对齐：nodeedits 恢复全部分支后，_targetKeys 可能比 applyCaseData
-  // 解析出的长（targets 运行时只含已连接分支），连线需按分支键重新匹配端口
+  // SWITCH 连线重对齐：nodeedits 恢复全部分支后，_targetKeys 可能比 applyCaseData 解析出的长（targets 运行时只含已连接分支），连线需按分支键重新匹配端口
   for (const [nodeId, node] of Object.entries(state.nodes)) {
     if (node.type !== 'SWITCH' || !Array.isArray(node.data._targetKeys)) continue;
     const nid = parseInt(nodeId);
@@ -1682,6 +1642,18 @@ function applyEditorData(data, skipExec) {
       if (newIdx >= 0 && c.port !== `target_${newIdx}`) c.port = `target_${newIdx}`;
     }
   }
+  // RAND 连线重对齐：运行时 targets 只导出已连接分支，applyCaseData 会把
+  // 端口索引压缩；nodeedits._branchTargets 按分支位置记录了目标节点（未连接分支为 null），据此重建连线，端口位次与完整分支列表严格对齐
+  for (const [nodeId, node] of Object.entries(state.nodes)) {
+    if (node.type !== 'RAND') continue;
+    const nid = parseInt(nodeId);
+    const bt = edits[nodeId] && edits[nodeId]._branchTargets;
+    if (!Array.isArray(bt)) continue;
+    state.connections = state.connections.filter(c => c.from !== nid || !c.port.startsWith('target_'));
+    bt.forEach((to, i) => {
+      if (to != null) state.connections.push({from: nid, port: `target_${i}`, to});
+    });
+  }
   // applyCaseData 内部已用自动布局渲染过，坐标/备注/连线修正后必须重渲染才能生效
   renderAll();
   updatePropPanel();
@@ -1696,7 +1668,6 @@ function applyCaseData(data) {
   state.nodes = {};
   state.connections = [];
   state.nextId = 1;
-
   for (const [idStr, conf] of Object.entries(data.nodes)) {
     const id = parseInt(idStr);
     if (id >= state.nextId) state.nextId = id + 1;
@@ -1706,8 +1677,7 @@ function applyCaseData(data) {
     for (const f of def.fields) {
       if (conf[f.key] !== undefined) nodeData[f.key] = JSON.parse(JSON.stringify(conf[f.key]));
     }
-    // 保留字段定义之外的运行时字段（before/after 等由 node_base.lua on_load 读取，
-    // 不在 NODE_TYPES 中，若丢弃会在下次保存时永久丢失）
+    // 保留字段定义之外的运行时字段（before/after 等由 node_base.lua on_load 读取，不在 NODE_TYPES 中，若丢弃会在下次保存时永久丢失）
     for (const [k, v] of Object.entries(conf)) {
       if (k === 'type' || k === 'name' || k in nodeData) continue;   // name 单独处理
       if (k === 'next' || k === 'result' || k === 'targets') continue;   // 连线字段已单独解析
@@ -1718,7 +1688,12 @@ function applyCaseData(data) {
       nodeData._keyType = (conf.targets || []).some(t => typeof t[0] === 'number') ? 'number' : 'string';
     }
     if (type === 'RAND') {
-      nodeData._targetKeys = (conf.targets || []).map((t, i) => String(i + 1));
+      const entries = Object.entries(conf.targets || {});
+      nodeData._targetKeys = entries.map((_, i) => String(i + 1));
+      nodeData._branchWeights = entries.map(([, w]) => {
+        const nw = Number(w);
+        return Number.isFinite(nw) && nw > 0 ? nw : 1;
+      });
     }
     nodeData.name = conf.name || (type + '节点');
     // 自动布局
@@ -1726,7 +1701,6 @@ function applyCaseData(data) {
     const x = 80 + (count % 5) * 210;
     const y = 60 + Math.floor(count / 5) * 160;
     state.nodes[id] = {type, x, y, data: nodeData};
-
     // 解析连接
     if (conf.next != null) state.connections.push({from: id, port: 'next', to: conf.next});
     if (conf.result) {
@@ -1734,13 +1708,20 @@ function applyCaseData(data) {
       if (conf.result.failed != null) state.connections.push({from: id, port: 'failed', to: conf.result.failed});
     }
     if (conf.targets) {
-      // SWITCH：targets 含未连接分支（target 为 null），按分支位置对齐端口 target_i；
-      // RAND：平铺数组按位置对齐
-      conf.targets.forEach((t, i) => {
-        const to = type === 'RAND' ? t : t[1];
-        if (to == null) return;   // 未连接的分支：端口存在但无连线
-        state.connections.push({from: id, port: `target_${i}`, to});
-      });
+      if (type === 'RAND') {
+        // RAND：{[目标节点id]: 权重}，键即跳转目标，按插入顺序对齐 target_i
+        Object.keys(conf.targets).forEach((to, i) => {
+          const tid = Number(to);
+          if (!Number.isNaN(tid)) state.connections.push({from: id, port: `target_${i}`, to: tid});
+        });
+      } else {
+        // SWITCH：targets 为 [[key, target], ...] 数组，未连接分支 target 为 null
+        conf.targets.forEach((t, i) => {
+          const to = t[1];
+          if (to == null) return;   // 未连接的分支：端口存在但无连线
+          state.connections.push({from: id, port: `target_${i}`, to});
+        });
+      }
     }
   }
   state.selected = null;
@@ -1929,7 +1910,6 @@ async function doSaveEditorFile(name, exists) {
 
 // 二次确认框（覆盖层样式，叠加在当前弹窗之上，不破坏底层对话框）：uiConfirm(msg, onOk[, title, okText])
 function uiConfirm(msg, onOk, title = '确认', okText = '确定') {
-  // 移除旧的确认层
   document.getElementById('ui-confirm-layer')?.remove();
   const layer = document.createElement('div');
   layer.id = 'ui-confirm-layer';
@@ -2001,7 +1981,6 @@ async function refreshAll() {
 
 // 用例选择列表（按分组过滤展示，每个用例带删除按钮）
 let casePickerGroup = '';   // 打开对话框当前选中的分组（空 = 全部分组）
-
 function showSubCasePicker() {
   const groups = collectGroups();
   if (casePickerGroup && !groups.includes(casePickerGroup)) casePickerGroup = '';
@@ -2044,7 +2023,7 @@ async function openSubCase(sc) {
     const content = typeof sc.content === 'string' ? sc.content : JSON.stringify(sc.content);
     const data = JSON.parse(content);
     if (data.editor === 'quanta-robot-node-editor') {
-      applyEditorData(data);   // v2 编辑器存档（运行时格式 + nodeedits）
+      applyEditorData(data);   // 编辑器存档（运行时格式 + nodeedits）
     } else if (data.nodes) {
       applyCaseData(data);     // 纯运行时/导出格式（自动布局）
     } else {
@@ -2063,7 +2042,6 @@ async function openSubCase(sc) {
 // ============================================================
 let protoDefs = {};        // { 协议名: {msg_id, type, name, fields:{字段:类型}} }
 let protoByMsgId = {};     // { msg_id: 协议定义 }（消息列表按 cmd_id 反查协议名/类型）
-
 // 解析协议数据（格式与 proto.json 一致）
 function loadProtoData(obj) {
   protoDefs = {};
@@ -2249,8 +2227,7 @@ function getVisibleMsgs() {
   return msgProtoFilter.size ? items.filter(x => msgProtoFilter.has(x.meta.name)) : items;
 }
 
-// 消息协议信息：渲染时按 cmd_id 动态反查协议名与类型（req/res/ntf），
-// 协议文件后载入时，已收到的消息也能立即补全名字与颜色
+// 消息协议信息：渲染时按 cmd_id 动态反查协议名与类型（req/res/ntf），协议文件后载入时，已收到的消息也能立即补全名字与颜色
 function msgMeta(m) {
   const p = protoByMsgId[m.id];
   return { name: p ? p.name : String(m.id), type: (p && p.type) || 'ntf' };
@@ -2337,7 +2314,7 @@ function appendMsgs(items) {
   showMsgDetail();
 }
 
-// 时间戳格式化为 yyyy-MM-dd HH:mm:ss（兼容秒/毫秒时间戳）
+// 时间戳格式化为 yyyy-MM-dd HH:mm:ss（服务端可能下发秒或毫秒）
 function formatTimestamp(ts) {
   if (!ts) return '';
   const ms = Number(ts) < 1e12 ? Number(ts) * 1000 : Number(ts);
@@ -2391,10 +2368,8 @@ function showMsgDetail() {
 
 // ============================================================
 //  执行面板：同源请求 /case、/node；轮询 /status、/message、/logs
-//  参数带类型（string/number/boolean），完整请求仅 open_id，
-//  执行时全部参数以 [{key, type, value}] 数组打包进 body 的 params 字段下发
+//  参数带类型（string/number/boolean），完整请求仅 open_id，执行时全部参数以 [{key, type, value}] 数组打包进 body 的 params 字段下发
 // ============================================================
-// 默认参数：open_id（固定参数不可删除）在首位，addr（服务器地址 ip:port）其次，类型均为 string
 function defaultExecParams() {
   return [
     { key: 'open_id', type: 'string', value: '10001', locked: true },
@@ -2402,8 +2377,7 @@ function defaultExecParams() {
   ];
 }
 
-// 参数列表规范化：open_id 永远在第一位且不可删除（locked 标记不随存档持久化，读档后重建），
-// 过滤掉编辑过程中产生的无名参数
+// 参数列表规范化：open_id 永远在第一位且不可删除（locked 标记不随存档持久化，读档后重建），过滤掉编辑过程中产生的无名参数
 function normalizeExecParams(params) {
   const list = (Array.isArray(params) ? params : []).filter(p => p && p.key);
   const openid = list.find(p => p.key === 'open_id');
@@ -2414,14 +2388,13 @@ function normalizeExecParams(params) {
   ];
 }
 
-const execOpts = { openid: '10001', params: defaultExecParams(), interval: 1000, debug: true };  // 记住上次配置（openid 为旧配置兼容字段；interval=运行频率ms；debug=子case是否跳转）
+const execOpts = { params: defaultExecParams(), interval: 1000, debug: true };  // 记住上次配置（interval=运行频率ms；debug=子case是否跳转）
 const EXEC_PARAM_TYPES = ['string', 'number', 'boolean'];   // 参数类型选项
 let execMode = 'case';     // 'case' | 'node'
 let execNodeId = null;     // 节点模式下待执行的节点 id
 let lastExecPath = null;   // 上次执行的请求路径（节点▶直执行复用，强制换成/node路径）
 const dblClickTracker = {};   // CASE 节点双击检测：{ 'n<id>': 上次 mousedown 时间戳 }
 
-// 上次执行路径换成 /node（保留查询参数），供节点▶直执行
 function lastExecNodeUrl() {
   const q = lastExecPath.indexOf('?');
   return '/node' + (q >= 0 ? lastExecPath.slice(q) : '');
@@ -2430,10 +2403,8 @@ function lastExecNodeUrl() {
 function showExecPanel(urlPath, nodeId) {
   execMode = urlPath;
   execNodeId = nodeId !== undefined ? nodeId : null;
-  // 老配置迁移：无参数时初始化默认参数；有参数时规范化（open_id 首位且不可删除）
-  execOpts.params = (Array.isArray(execOpts.params) && execOpts.params.length)
-    ? normalizeExecParams(execOpts.params)
-    : defaultExecParams();
+  // 每次打开面板重建 locked 标记（不随存档持久化），并保证 open_id 在首位
+  execOpts.params = normalizeExecParams(execOpts.params);
   showModalFrame({
     title: `设置`,
     body: `
@@ -2470,13 +2441,10 @@ function showExecPanel(urlPath, nodeId) {
 }
 
 // ============================================================
-//  子CASE参数：展示画布上 CASE 节点所引用子用例的「执行面板参数」
-//  key 与类型只读（子用例定义），仅可修改值；仅更新内存缓存，不写回子用例存档
+//  子CASE参数：展示画布上 CASE 节点所引用子用例的「执行面板参数」, key 与类型只读（子用例定义），仅可修改值；仅更新内存缓存，不写回子用例存档
 // ============================================================
 // 收集 CASE 节点引用的子用例的执行参数：[{caseName, key, type, value}]
-// open_id 与 addr 为通用参数（父参数区已有），不在子CASE参数区重复展示
 function collectSubCaseParams() {
-  // CASE 节点引用的子用例名集合
   const caseNames = new Set();
   for (const node of Object.values(state.nodes)) {
     if (node.type !== 'CASE' || !node.data.case) continue;
@@ -2533,13 +2501,11 @@ function addExecParam(key, type, value, locked) {
   execParamChanged();
 }
 
-// 参数变更时实时保存到内存（无需点击执行，重新打开面板即回填）
 function execParamChanged() {
   execOpts.params = collectExecParams();
   updateExecPreview();
 }
 
-// 运行频率/调试开关变更（面板内实时保存）
 function execOptionChanged() {
   const itv = parseInt($('exec-interval').value);
   execOpts.interval = Number.isNaN(itv) || itv <= 0 ? 1000 : itv;
@@ -2557,30 +2523,10 @@ function collectExecParams() {
 }
 
 // 合并父子 case 的参数：父（当前执行面板输入参数）优先，子 case 按收集顺序后者覆盖前者，同名 key 只保留一个
-// 按类型转换参数值：string 原样、number 转数字（失败回退字符串）、boolean 转真假
-function castParamValue(type, value) {
-  const v = String(value);
-  if (type === 'number') {
-    const num = parseFloat(v);
-    return Number.isNaN(num) ? v : num;
-  }
-  if (type === 'boolean') {
-    const lv = v.trim().toLowerCase();
-    if (['true', '1', 'yes', 'on'].includes(lv)) return true;
-    if (['false', '0', 'no', 'off', ''].includes(lv)) return false;
-    return v;
-  }
-  return v;   // string 原样
-}
-
-// 合并父子 case 的参数：父（当前执行面板输入参数）优先，子 case 按收集顺序后者覆盖前者，同名 key 只保留一个
 // 返回 [{key, type, value}]（保留类型）。父参数读 execOpts.params（内存），
-// 面板未打开（顶栏直运行/节点▶直执行）时 DOM 不存在，从 DOM 读会拿到空导致 args 丢参
 function mergeExecParams() {
   const merged = {};   // key -> {key, type, value}
-  // 子 case 参数先放入（按收集顺序，重复 key 后者覆盖前者）
   collectSubCaseParams().forEach(p => { merged[p.key] = { key: p.key, type: p.type || 'string', value: p.value }; });
-  // 父参数后放入，覆盖同名子参数（含类型）
   (execOpts.params || []).forEach(p => {
     if (!p.key) return;
     merged[p.key] = { key: p.key, type: p.type || 'string', value: p.value };
@@ -2592,21 +2538,18 @@ function mergeExecParams() {
 function buildExecUrl() {
   const urlPath = execMode === 'node' ? 'node' : 'case';
   const query = [];
-  // open_id 从参数列表读取（面板打开时读 DOM，未开时读内存）
   const panelOpen = !!document.querySelector('#exec-params .er-key');
   let openId = '';
   const collect = panelOpen ? collectExecParams() : (execOpts.params || []);
   for (const p of collect) {
     if (p.key === 'open_id') { openId = p.value; break; }
   }
-  if (!openId && execOpts.openid) openId = execOpts.openid;   // 兼容：参数列表无 open_id 时用旧配置
   if (openId) query.push(`open_id=${encodeURIComponent(openId)}`);
   if (execOpts.interval) query.push(`interval=${encodeURIComponent(execOpts.interval)}`);
   query.push(`debug=${execOpts.debug ? '1' : '0'}`);
   return `/${urlPath}${query.length ? '?' + query.join('&') : ''}`;
 }
 
-// 运行/停止合一按钮：未运行时点运行，运行中变红色停止，点击即停止
 function updateRunBtn() {
   const btn = $('exec-run');
   if (!btn) return;
@@ -2626,8 +2569,7 @@ function execRunOrStop() {
 function updateExecPreview() {
   const url = buildExecUrl();
   $('exec-preview').innerHTML = url
-    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>`
-    : '';
+    ? `<a href="${escapeAttr(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>` : '';
 }
 
 // 执行参数打包：父子 case 参数合并后，以 [{key, type, value}] 数组格式放进 body 的 params 字段
@@ -2638,13 +2580,11 @@ function buildExecArgs() {
 async function doExecute(urlOverride) {
   const url = urlOverride || buildExecUrl();
   lastExecPath = url;   // 记住本次请求路径，供节点▶直执行复用
-  // 记住本次配置：面板打开时从 DOM 回读，面板未打开时跳过（execOpts 已是最新）
   const panelOpen = !!document.querySelector('#exec-params .er-key');
   if (!urlOverride && panelOpen) {
     execOpts.params = collectExecParams();
   }
   appendLog(`执行 ${url}`);
-  // 组装请求体：case = 用例导出 + args（全部参数按类型转换）；node = 单节点配置
   let body = null;
   if (execMode === 'node') {
     const conf = exportNode(execNodeId);
@@ -2674,7 +2614,6 @@ async function doExecute(urlOverride) {
     const respText = text.length > 800 ? text.substring(0, 800) + ' ...' : text;
     appendLog(`状态码 ${res.status} ｜ 返回 ${respText}`);
     if (box) box.textContent = `状态码 ${res.status}\n${respText}`;
-    // 用例模式：提交成功后进入轮询，绘制执行状态
     if (execMode !== 'node') {
       let data = null;
       try { data = JSON.parse(text); } catch (e) {}
@@ -2696,6 +2635,10 @@ async function doExecute(urlOverride) {
 //  执行状态轮询：每秒拉取 /status 并在画布上绘制节点状态
 // ============================================================
 let execPollTimer = null;
+let execPollGeneration = 0;  // 每次启停递增，使旧轮询无法在停止后继续调度
+const execPollControllers = new Set();
+const EXEC_POLL_INTERVAL = 1000;
+const EXEC_REQUEST_TIMEOUT = 12000;  // 略大于服务端 worker RPC 的 10 秒超时
 let execNodeState = {};       // nodeId -> 'running' | 'ok' | 'err'（当前画布用例的状态事件累积）
 let execActive = false;       // 机器人是否已在服务器创建（控制停止按钮显隐)
 let execNoRobot = false;      // robot not exist 提示去重
@@ -2708,31 +2651,52 @@ const caseViewCache = {};     // 调试期间子用例画布缓存 { caseName: e
 function startExecPolling() {
   stopExecPolling();
   appendLog('开始轮询执行状态...', false);
-  execPollTimer = setInterval(pollExecStatus, 1000);
-  pollExecStatus();
+  const generation = execPollGeneration;
+  pollExecLoop(generation);
 }
 
 function stopExecPolling() {
+  execPollGeneration++;
   if (execPollTimer) {
-    clearInterval(execPollTimer);
+    clearTimeout(execPollTimer);
     execPollTimer = null;
+  }
+  for (const controller of execPollControllers) controller.abort();
+  execPollControllers.clear();
+}
+
+// 串行调度：本轮 status/message/logs 全部结束后，才延迟启动下一轮。worker 变慢时不会像 setInterval 那样不断叠加请求并耗尽浏览器连接池。
+async function pollExecLoop(generation) {
+  await pollExecStatus(generation);
+  if (generation !== execPollGeneration) return;
+  execPollTimer = setTimeout(() => pollExecLoop(generation), EXEC_POLL_INTERVAL);
+}
+
+async function pollFetchJson(url) {
+  const controller = new AbortController();
+  execPollControllers.add(controller);
+  const timer = setTimeout(() => controller.abort(), EXEC_REQUEST_TIMEOUT);
+  try {
+    const res = await fetch(url, { method: 'GET', signal: controller.signal });
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+    execPollControllers.delete(controller);
   }
 }
 
-// 从参数列表读取 open_id 值（execOpts.params 中的 open_id 参数；兼容旧配置 openid 字段）
 function getOpenId() {
   const p = (execOpts.params || []).find(p => p.key === 'open_id');
-  return (p ? String(p.value) : '') || execOpts.openid || '';
+  return p ? String(p.value) : '';
 }
 
-async function pollExecStatus() {
+async function pollExecStatus(generation) {
   const openId = getOpenId();
   const url = `/status?open_id=${encodeURIComponent(openId)}`;
   try {
-    const res = await fetch(url, { method: 'GET' });
-    const data = await res.json();
+    const data = await pollFetchJson(url);
+    if (generation !== execPollGeneration) return;
     if (data.code !== 0) {
-      // 不自动停止轮询（robot 可能重新创建），仅状态变化时提示一次
       if (!execNoRobot) {
         execNoRobot = true;
         appendLog(`状态轮询：${data.msg || 'robot not exist'}`, false);
@@ -2740,9 +2704,7 @@ async function pollExecStatus() {
       return;
     }
     execNoRobot = false;
-    pollExecMessages();   // 与状态轮询同频（每秒），服务端返回即增量，失败静默
-    pollRemoteLogs();     // 远程日志与消息同频拉取，服务端排空式返回即增量，失败仅提示一次
-    // 服务端增量返回状态事件 [{case, node, id, state}]，排空式取走即新，无需去重
+    await Promise.allSettled([pollExecMessages(), pollRemoteLogs()]);
     const events = Array.isArray(data.msg) ? data.msg : [];
     if (!events.length) return;
     // 每条事件即一次状态变化：按状态着色写日志（节点名由服务端下发）；failed 事件带 err 字段（错误信息）
@@ -2762,9 +2724,7 @@ async function pollExecStatus() {
       ownEvents.push(ev);
     }
     applyExecStatus(ownEvents);
-  } catch (e) {
-    // 请求失败不停止轮询，下一秒自动重试，仅失败开始时提示一次
-  }
+  } catch (e) { /* 请求失败不停止轮询，下一秒自动重试*/ }
 }
 
 // 拉取执行消息：GET /message（服务端 fetch_messages 排空式返回，拿到即增量）
@@ -2772,33 +2732,26 @@ async function pollExecMessages() {
   const openId = getOpenId();
   const url = `/message?open_id=${encodeURIComponent(openId)}`;
   try {
-    const res = await fetch(url, { method: 'GET' });
-    const data = await res.json();
+    const data = await pollFetchJson(url);
     if (data.code !== 0 || !Array.isArray(data.msg) || !data.msg.length) return;
     if (!Object.keys(protoDefs).length && !msgProtoHinted) {
       msgProtoHinted = true;
       appendLog('提示：未载入协议，消息列表无法解析协议名与类型', false);
     }
-    // 只存原始 cmd_id/data/time，协议名与类型在渲染时动态反查（协议后载入也能补全）
     appendMsgs(data.msg.map(m => ({ id: m.cmd_id, content: m.data, time: m.time })));
   } catch (e) { /* 消息拉取失败不打断执行轮询，下一秒自动重试 */ }
 }
 
 // ============================================================
-//  远程日志 Tab：轮询 /logs 展示服务器端机器人运行日志
-//  服务端 fetch_robot_logs 排空式返回 [{log, time, lvl}]，拿到即增量
-//  轮询有两条触发链路：执行状态轮询（后台持续累积）+ Tab 激活独立轮询
+//  远程日志 Tab：轮询 /logs 展示服务器端机器人运行日志, 服务端 fetch_robot_logs 排空式返回 [{log, time, lvl}]，拿到即增量
 // ============================================================
 function clearRemoteLog() {
   $('tab-rlog').textContent = '';
 }
 
-// 远程日志等级 → 显示样式：info 白、debug 蓝、dump 青、warn 黄、err 红、fatal 亮红加粗，未知等级用默认色
 const RLOG_LVL_CLASS = {
-  info: 'rlog-info', debug: 'rlog-debug', dump: 'rlog-dump',
-  warn: 'rlog-warn', warning: 'rlog-warn',
-  err: 'rlog-err', error: 'rlog-err',
-  fatal: 'rlog-fatal', critical: 'rlog-fatal',
+  info: 'rlog-info', debug: 'rlog-debug', dump: 'rlog-dump', warn: 'rlog-warn', warning: 'rlog-warn',
+  err: 'rlog-err', error: 'rlog-err', fatal: 'rlog-fatal', critical: 'rlog-fatal',
 };
 
 // 追加单行远程日志（time/lvl 可选，用于提示类文案）
@@ -2826,14 +2779,12 @@ function appendRemoteLogs(items) {
   }
 }
 
-// 拉取远程日志：GET /logs，参数与 /message 一致（open_id）
-// 与消息轮询同生命周期：由执行状态轮询每秒驱动，停止执行后不再拉取
+// 拉取远程日志：GET /logs，与消息轮询同生命周期：由执行状态轮询每秒驱动，停止执行后不再拉取
 async function pollRemoteLogs() {
   const openId = getOpenId();
   const url = `/logs?open_id=${encodeURIComponent(openId)}`;
   try {
-    const res = await fetch(url, { method: 'GET' });
-    const data = await res.json();
+    const data = await pollFetchJson(url);
     if (data.code !== 0) { return; }
     appendRemoteLogs(data.msg);
   } catch (e) { /* 日志拉取失败不打断执行轮询，下一秒自动重试 */ }
@@ -2841,9 +2792,7 @@ async function pollRemoteLogs() {
 
 // 服务端状态事件 → 编辑器徽标状态映射
 const EXEC_STATE_MAP = { running: 'running', success: 'ok', failed: 'err' };
-
-// 状态事件应用到画布节点（服务端增量事件，按节点累积最新状态）。
-// 事件带 case 名（子用例节点带子用例名，根用例节点 case 为空）：
+// 状态事件应用到画布节点（服务端增量事件，按节点累积最新状态）。事件带 case 名（子用例节点带子用例名，根用例节点 case 为空）：
 // 调试期间按用例分桶记录状态，画布跟随最新有事件的用例切换展示
 function applyExecStatus(events) {
   if (!execRootCase) {   // 无调试上下文（理论不会发生），按旧行为处理
@@ -2908,9 +2857,7 @@ function switchCaseView(target, isRoot) {
 }
 
 const EXEC_STATUS_TEXT = { running: '运行中', ok: '成功', err: '失败' };
-
-// 应用节点执行状态徽标与边框（renderNodes 重建与轮询刷新共用）
-// execNodeState[id] 为状态字符串，failed 事件带 err 时为 { st: 'err', err: 错误信息 }
+// 应用节点执行状态徽标与边框, execNodeState[id] 为状态字符串，failed 事件带 err 时为 { st: 'err', err: 错误信息 }
 function applyExecBadge(el, id) {
   el.classList.remove('exec-running', 'exec-ok', 'exec-err');
   const old = el.querySelector('.exec-badge');
@@ -2954,9 +2901,6 @@ function refreshExecBadge() {
   }
 }
 
-// ============================================================
-//  辅助
-// ============================================================
 function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function escapeAttr(s) { return escapeHtml(s).replace(/"/g,'&quot;'); }
 function toast(msg) {
@@ -2964,13 +2908,11 @@ function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800);
 }
 
-// 弹窗提示同步写一份到日志
 function uiAlert(msg) {
   appendLog(msg, false);
   alert(msg);
 }
 
-// 停止执行：通知服务器销毁机器人，并复位画布状态
 async function stopExecute() {
   if (!execActive) {
     toast('当前没有正在执行的用例');

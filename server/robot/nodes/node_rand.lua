@@ -1,30 +1,33 @@
 --node_rand.lua
 local log_warn  = logger.warn
-local mrandom   = math.random
 
+local Random    = import("basic/random.lua")
 local NodeBase  = import("robot/nodes/node_base.lua")
 
 local NodeRand = class(NodeBase)
 local prop = property(NodeRand)
-prop:reader("targets", nil)     --targets
+prop:reader("rand", nil)        --rand
 
 function NodeRand:__init(case)
 end
 
 function NodeRand:on_load(conf)
-    self.targets = conf.targets or {}
+    self.rand = Random()
+    for index, weight in pairs(conf.targets or {}) do
+        self.rand:add_wheel(index, weight)
+    end
     return true
 end
 
 function NodeRand:on_start()
     local role = self.actor
-    local targets = self.targets
-    if #targets == 0 then
+    local index = self.rand:rand_wheel()
+    if not index then
         log_warn("[NodeRand][on_start] robot:{} rand {} targets is empty", role.open_id, self.name)
         self:failed("rand targets is empty")
         return false
     end
-    self.next = targets[mrandom(#targets)]
+    self.next = index
     return true
 end
 

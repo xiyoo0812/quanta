@@ -160,9 +160,9 @@ namespace luacsv {
         return excel;
     }
 
-    lua_table open_lcsv(lua_State* L) {
+    int open_lcsv(lua_State* L) {
         kit_state kit_state(L);
-        lua_table csv = kit_state.new_table("csv");
+        lua_table csv = kit_state.new_table();
         csv.set_function("decode", decode_csv);
         csv.set_function("encode", encode_csv);
         csv.set_function("read", read_csv);
@@ -178,13 +178,12 @@ namespace luacsv {
             "open", &csv_file::open_workbook,
             "workbooks", &csv_file::all_workbooks
         );
-        return csv;
+        return kit_state.register_lib("csv", csv);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_luacsv(lua_State* L) {
-        auto yaml = luacsv::open_lcsv(L);
-        return yaml.push_stack();
+        return luacsv::open_lcsv(L);
     }
 }

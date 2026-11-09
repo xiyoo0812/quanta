@@ -166,9 +166,9 @@ namespace ltimer {
         return luakit::variadic_return(L, luakit::now_ms(), luakit::steady_ms());
     }
 
-    luakit::lua_table open_ltimer(lua_State* L) {
+    int open_ltimer(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto luatimer = kit_state.new_table("timer");
+        auto luatimer = kit_state.new_table();
         luatimer.set_function("time", timer_time);
         luatimer.set_function("insert", timer_insert);
         luatimer.set_function("update", timer_update);
@@ -181,13 +181,12 @@ namespace ltimer {
         luatimer.set_function("now_cs", []() { return luakit::now_cs(); });
         luatimer.set_function("clock_ms", []() { return luakit::steady_ms(); });
         luatimer.set_function("sleep", [](size_t ms) { return luakit::sleep(ms); });
-        return luatimer;
+        return kit_state.register_lib("timer", luatimer);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_ltimer(lua_State* L) {
-        auto luatimer = ltimer::open_ltimer(L);
-        return luatimer.push_stack();
+        return ltimer::open_ltimer(L);
     }
 }

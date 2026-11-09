@@ -96,9 +96,9 @@ namespace logger {
         return 0;
     }
 
-    luakit::lua_table open_lualog(lua_State* L) {
+    int open_lualog(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto lualog = kit_state.new_table("log");
+        auto lualog = kit_state.new_table();
         lualog.new_enum("LOG_LEVEL",
             "INFO", LOG_INFO,
             "WARN", LOG_WARN,
@@ -135,7 +135,9 @@ namespace logger {
             case 8: return tformat(L, lvl, tag, trace_id, feature, flag, vfmt, make_index_sequence<8>{});
             case 9: return tformat(L, lvl, tag, trace_id, feature, flag, vfmt, make_index_sequence<9>{});
             case 10: return tformat(L, lvl, tag, trace_id, feature, flag, vfmt, make_index_sequence<10>{});
-            default: luaL_error(L, "print args is more than 10!"); break;
+            case 11: return tformat(L, lvl, tag, trace_id, feature, flag, vfmt, make_index_sequence<11>{});
+            case 12: return tformat(L, lvl, tag, trace_id, feature, flag, vfmt, make_index_sequence<12>{});
+            default: luaL_error(L, "print args is more than 12!"); break;
             }
             return 0;
         });
@@ -155,7 +157,9 @@ namespace logger {
             case 8: return fformat(L, LOG_FLAG_FORMAT, vfmt, make_index_sequence<8>{});
             case 9: return fformat(L, LOG_FLAG_FORMAT, vfmt, make_index_sequence<9>{});
             case 10: return fformat(L, LOG_FLAG_FORMAT, vfmt, make_index_sequence<10>{});
-            default: luaL_error(L, "format args is more than 10!"); break;
+            case 11: return fformat(L, LOG_FLAG_FORMAT, vfmt, make_index_sequence<11>{});
+            case 12: return fformat(L, LOG_FLAG_FORMAT, vfmt, make_index_sequence<12>{});
+            default: luaL_error(L, "format args is more than 12!"); break;
             }
             return 0;
         });
@@ -172,14 +176,13 @@ namespace logger {
         lualog.set_function("add_dest", [](cpchar feature) { return s_logger->add_dest(feature); });
         lualog.set_function("add_file_dest", [](cpchar feature, cpchar fname) { return s_logger->add_file_dest(feature, fname); });
         lualog.set_function("option", [](fspath log_path, cpchar service, cpchar index) { return s_logger->option(log_path, service, index); });
-        return lualog;
+        return kit_state.register_lib("log", lualog);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_lualog(lua_State* L) {
-        auto llog = logger::open_lualog(L);
-        return llog.push_stack();
+        return logger::open_lualog(L);
     }
 
     LUALIB_API void lualog_set_logger(custom_output fn) {
