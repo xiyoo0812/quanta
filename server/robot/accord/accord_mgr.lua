@@ -214,8 +214,10 @@ function AccordMgr:do_case(url, body, params)
     local open_id = params.open_id
     local thread_name = self:load_worker(open_id, true)
     if thread_name then
+        local debug = params.debug == "1"
+        local interval = tonumber(params.interval) or 1000
         local case = { name = body.name, root = body.root, nodes = body.nodes }
-        local ok, res = scheduler:call(thread_name, "run_robot_case", open_id, body.params, case)
+        local ok, res = scheduler:call(thread_name, "run_robot_case", open_id, body.params, case, interval, debug)
         if ok then
             return { code = res and 0 or -1, msg = res and "success" or "failed" }
         end

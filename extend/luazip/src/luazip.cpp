@@ -299,10 +299,10 @@ namespace luazip {
         return 2;
     }
 
-    luakit::lua_table open_luazip(lua_State* L) {
+    int open_luazip(lua_State* L) {
         zcodec.set_buff(&lzbuf);
         luakit::kit_state kit_state(L);
-        luakit::lua_table lzip = kit_state.new_table("zip");
+        luakit::lua_table lzip = kit_state.new_table();
         lzip.set_function("exist", zip_exist);
         lzip.set_function("read", zip_read);
         lzip.set_function("load", load_zip);
@@ -319,13 +319,12 @@ namespace luazip {
         lzip.set_function("snappy_decode", snappy_decode);
         lzip.set_function("deflate_encode", deflate_encode);
         lzip.set_function("deflate_decode", deflate_decode);
-        return lzip;
+        return kit_state.register_lib("zip", lzip);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_luazip(lua_State* L) {
-        auto lzip = luazip::open_luazip(L);
-        return lzip.push_stack();
+        return luazip::open_luazip(L);
     }
 }

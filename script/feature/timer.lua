@@ -26,7 +26,7 @@ end
 
 function Timer:loop(period, cb, ...)
     self:unregister()
-    self.timer_id = timer_mgr:register(0, period, -1, cb, ...)
+    self.timer_id = timer_mgr:register(period, period, -1, cb, ...)
 end
 
 function Timer:register(interval, period, times, cb, ...)
@@ -35,9 +35,8 @@ function Timer:register(interval, period, times, cb, ...)
 end
 
 function Timer:change_period(period)
-    local old_timer_id = self.timer_id
-    if old_timer_id then
-        self.timer_id = timer_mgr:change_period(old_timer_id, period)
+    if self.timer_id then
+        timer_mgr:change_period(self.timer_id, period)
     end
 end
 

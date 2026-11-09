@@ -13,9 +13,9 @@ namespace laoi {
         return new aoi(w, h, grid, aoi_len, offset, dynamic);
     }
 
-    luakit::lua_table open_laoi(lua_State* L) {
+    int open_laoi(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto llaoi = kit_state.new_table("aoi");
+        auto llaoi = kit_state.new_table();
         llaoi.set_function("create_aoi", create_aoi);
         llaoi.set_function("create_object", create_object);
         llaoi.new_enum("aoi_type", "watcher", WATCHER, "marker", MARKER);
@@ -28,14 +28,13 @@ namespace laoi {
             "attach", &aoi::attach,
             "detach", &aoi::detach,
             "add_hotarea", &aoi::add_hotarea
-            );
-        return llaoi;
+        );
+        return kit_state.register_lib("aoi", llaoi);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_laoi(lua_State* L) {
-        auto llaoi = laoi::open_laoi(L);
-        return llaoi.push_stack();
+        return laoi::open_laoi(L);
     }
 }

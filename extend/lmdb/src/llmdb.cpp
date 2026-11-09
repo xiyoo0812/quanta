@@ -12,8 +12,8 @@ namespace llmdb {
         return new mdb_driver(handle);
     }
 
-    luakit::lua_table open_lmdb(lua_State* L) {
-        luakit::kit_state kit_state(L);
+    int open_lmdb(lua_State* L) {
+        kit_state kit_state(L);
         auto lmdb = kit_state.new_table("lmdb");
         lmdb.set_function("create", create_driver);
         kit_state.new_class<mdb_driver>(
@@ -124,13 +124,12 @@ namespace llmdb {
             "MDB_APPENDDUP", MDB_APPENDDUP,
             "MDB_MULTIPLE", MDB_MULTIPLE
         );
-        return lmdb;
+        return kit_state.register_lib("lmdb", lmdb);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_lmdb(lua_State* L) {
-        auto lmdb = llmdb::open_lmdb(L);
-        return lmdb.push_stack();
+        return llmdb::open_lmdb(L);
     }
 }

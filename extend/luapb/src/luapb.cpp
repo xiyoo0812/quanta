@@ -276,9 +276,9 @@ namespace luapb {
         }
     }
 
-    luakit::lua_table open_luapb(lua_State* L) {
+    int open_luapb(lua_State* L) {
         kit_state kit_state(L);
-        lua_table luapb = kit_state.new_table("protobuf");
+        lua_table luapb = kit_state.new_table();
         luapb.set_function("load", load_pb);
         luapb.set_function("enum", pb_enum_id);
         luapb.set_function("enums", pb_enums);
@@ -299,13 +299,12 @@ namespace luapb {
                 pb_cmd_indexs[name] = cmd_id;
             }
         });
-        return luapb;
+        return kit_state.register_lib("protobuf", luapb);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_luapb(lua_State* L) {
-        auto luapb = luapb::open_luapb(L);
-        return luapb.push_stack();
+        return luapb::open_luapb(L);
     }
 }

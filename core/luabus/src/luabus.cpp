@@ -43,10 +43,9 @@ namespace luabus {
         }
         return region;
     }
-
-    luakit::lua_table open_luabus(lua_State* L) {
+    int open_luabus(lua_State* L) {
         luakit::kit_state kit_state(L, true);
-        auto lluabus = kit_state.new_table("luabus");
+        auto lluabus = kit_state.new_table();
         lluabus.set_function("udp", create_udp);
         lluabus.set_function("tcp", create_tcp);
         lluabus.set_function("host", gethostip);
@@ -131,14 +130,13 @@ namespace luabus {
             "forward_master", &lua_socket_node::forward_by_method<FORWARD_MASTER>,
             "forward_broadcast", &lua_socket_node::forward_by_method<FORWARD_BROADCAST>
         );
-        return lluabus;
+        return kit_state.register_lib("luabus", lluabus);
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_luabus(lua_State* L) {
-        auto lluabus = luabus::open_luabus(L);
-        return lluabus.push_stack();
+        return luabus::open_luabus(L);
     }
 }
 
