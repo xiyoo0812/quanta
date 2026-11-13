@@ -33,8 +33,8 @@ function Loki:__init()
         logger.add_monitor(self, LOG_LEVEL.ERROR)
         logger.add_monitor(self, LOG_LEVEL.FATAL)
         --添加协议监听
-        event_mgr:add_trigger(self, "on_recv_tcp_message")
-        event_mgr:add_trigger(self, "on_send_tcp_message")
+        event_mgr:listen_trigger(self, "on_recv_tcp_message")
+        event_mgr:listen_trigger(self, "on_send_tcp_message")
         --启动定时器
         update_mgr:attach_second(self)
         log_debug("[Loki][init] loki url: {}", self.loki_url)

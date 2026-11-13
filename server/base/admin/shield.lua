@@ -10,13 +10,13 @@ prop:accessor("services", {})
 
 function Shield:__init()
     -- 添加过滤
-    event_mgr:add_listener(self, "rpc_add_proto_shield")
+    event_mgr:listen_event(self, "rpc_add_proto_shield")
     -- 删除过滤
-    event_mgr:add_listener(self, "rpc_del_proto_shield")
+    event_mgr:listen_event(self, "rpc_del_proto_shield")
     -- 清理过滤
-    event_mgr:add_listener(self, "rpc_shield_service_proto")
+    event_mgr:listen_event(self, "rpc_shield_service_proto")
     -- 事件监听
-    event_mgr:add_listener(self, "on_proto_filter")
+    event_mgr:listen_event(self, "on_proto_filter")
 end
 
 -- 验证过滤

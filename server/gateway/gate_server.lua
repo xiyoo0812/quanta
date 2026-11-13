@@ -34,12 +34,12 @@ function GateServer:__init()
     local domain = environ.get("QUANTA_DOMAIN_ADDR", luabus.host())
     service.modify_host(nport, domain)
     -- 网络事件监听
-    event_mgr:add_listener(self, "on_socket_accept")
-    event_mgr:add_listener(self, "on_socket_error")
+    event_mgr:listen_event(self, "on_socket_accept")
+    event_mgr:listen_event(self, "on_socket_error")
     -- rpc事件监听
-    event_mgr:add_listener(self, "rpc_forward_client")
-    event_mgr:add_listener(self, "rpc_kickout_client")
-    event_mgr:add_listener(self, "rpc_update_verify_code")
+    event_mgr:listen_event(self, "rpc_forward_client")
+    event_mgr:listen_event(self, "rpc_kickout_client")
+    event_mgr:listen_event(self, "rpc_update_verify_code")
     -- cs协议监听
     protobuf_mgr:register(self, "NID_HEARTBEAT_REQ", "on_heartbeat_req")
     protobuf_mgr:register(self, "NID_GATE_BIND_CLIENT_REQ", "on_bind_client_req")
@@ -85,12 +85,12 @@ end
 --网络协议
 ----------------------------------------------------------------------
 --心跳协议
-function GateServer:on_heartbeat_req(session, message, body, response)
+function GateServer:on_heartbeat_req(message, body, response, session)
     response.time = quanta.now_ms
     response.serial = body.serial + 1
 end
 
-function GateServer:on_bind_client_req(session, message, body, response)
+function GateServer:on_bind_client_req(message, body, response, session)
     log_debug("[GateServer][on_bind_client_req]) body({}))", body)
     local client_id, verify_code = body.client_id, body.verify_code
     local client = self.clients[client_id]
@@ -119,7 +119,7 @@ function GateServer:on_bind_client_req(session, message, body, response)
     log_info("[GateServer][on_bind_client_req] client({}) bind server({}) bind!", client_id, server_id)
 end
 
-function GateServer:on_bind_server_req(session, message, body, response)
+function GateServer:on_bind_server_req(message, body, response, session)
     log_debug("[GateServer][on_bind_server_req]) body({}))", body)
     local server_id = body.server_id
     local server = self.servers[server_id]
@@ -136,7 +136,7 @@ function GateServer:on_bind_server_req(session, message, body, response)
     self.servers[server_id] = session
 end
 
-function GateServer:on_bind_service_req(session, message, body, response)
+function GateServer:on_bind_service_req(message, body, response, session)
     log_debug("[GateServer][on_bind_service_req]) body({}))", body)
     local client_id, server_id = body.client_id, body.server_id
     local client = self.clients[client_id]
@@ -148,7 +148,7 @@ function GateServer:on_bind_service_req(session, message, body, response)
     log_err("[GateServer][on_bind_service_req] not client player({})", client_id)
 end
 
-function GateServer:on_kick_client_req(session, message, body, response)
+function GateServer:on_kick_client_req(message, body, response, session)
     local player_id = body.player_id
     log_debug("[GateServer][on_kick_client_req] player_id({})!", player_id)
     self:kick_client(player_id)
@@ -156,13 +156,13 @@ end
 
 --RPC调用
 ----------------------------------------------------------------------
-function GateServer:rpc_kickout_client(message, player_id)
+function GateServer:rpc_kickout_client(player_id)
     log_debug("[GateServer][rpc_kickout_client] player_id({})!", player_id)
     self:kick_client(player_id)
     return SUCCESS
 end
 
-function GateServer:rpc_forward_client(message, player_id, cmd_id, data)
+function GateServer:rpc_forward_client(player_id, cmd_id, data)
     log_debug("[GateServer][rpc_forward_client] player_id({}) cmd_id({}) data({})!", player_id, cmd_id, data)
     local client = self.clients[player_id]
     if client then
@@ -171,7 +171,7 @@ function GateServer:rpc_forward_client(message, player_id, cmd_id, data)
     return SUCCESS
 end
 
-function GateServer:rpc_update_verify_code(message, user_id, verify_code)
+function GateServer:rpc_update_verify_code(user_id, verify_code)
     log_debug("[GateServer][rpc_update_verify_code] open_id({}) verify_code({})!", user_id, verify_code)
     self.verify_codes[user_id] = { code = verify_code, time = quanta.now + MINUTE_5_S }
     return SUCCESS

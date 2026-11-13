@@ -13,9 +13,9 @@ function WST:listen()
     self.server = WSServer()
     self.server:listen("0.0.0.0", 8191)
 
-    event_mgr:add_listener(self, "on_socket_cmd")
-    event_mgr:add_listener(self, "on_socket_accept")
-    event_mgr:add_listener(self, "on_socket_error", "on_client_error")
+    event_mgr:listen_event(self, "on_socket_cmd")
+    event_mgr:listen_event(self, "on_socket_accept")
+    event_mgr:listen_event(self, "on_socket_error", "on_client_error")
 end
 
 function WST:connect()

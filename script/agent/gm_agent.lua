@@ -1,6 +1,5 @@
 --gm_agent.lua
 
-local tunpack       = table.unpack
 local log_info      = logger.info
 local qsuccess      = quanta.success
 
@@ -21,7 +20,7 @@ prop:accessor("command_list", {})
 
 function GMAgent:__init()
     --注册gm事件分发
-    event_mgr:add_listener(self, "rpc_command_execute")
+    event_mgr:listen_event(self, "rpc_command_execute")
     -- 关注 gm服务 事件
     discover:watch_service(self, "center")
 end
@@ -72,7 +71,7 @@ end
 -- 通知执行GM指令
 function GMAgent:rpc_command_execute(cmd_name, ...)
     log_info("[GMAgent][rpc_command_execute]->cmd_name:{}", cmd_name)
-    local ok, res = tunpack(self:notify_listener(cmd_name, ...))
+    local ok, res = self:notify_event(cmd_name, ...)
     return ok and SUCCESS or LOGIC_FAILED, res
 end
 

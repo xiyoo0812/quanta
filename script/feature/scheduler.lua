@@ -2,7 +2,6 @@
 
 local pcall         = pcall
 local log_err       = logger.err
-local tunpack       = table.unpack
 local lnext_id      = luakit.next_id
 local resume_trace  = quanta.resume_trace
 local extract_trace = quanta.extract_trace
@@ -27,7 +26,7 @@ function Scheduler:__init()
     --事件监听
     update_mgr:attach_quit(self)
     update_mgr:attach_frame(self)
-    event_mgr:add_trigger(self, "on_reload")
+    event_mgr:listen_trigger(self, "on_reload")
     --启动
     worker.setup("quanta")
 end
@@ -93,9 +92,8 @@ end
 
 --事件分发
 local function notify_rpc(session_id, thread_name, rpc, ...)
-    local rpc_datas = event_mgr:notify_listener(rpc, ...)
     if session_id > 0 then
-        wcall(thread_name, session_id, FLAG_RES, 0, 0,tunpack(rpc_datas))
+        wcall(thread_name, session_id, FLAG_RES, 0, 0, event_mgr:notify_event(rpc, ...))
     end
 end
 

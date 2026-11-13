@@ -2,7 +2,6 @@
 
 local log_err           = logger.err
 local log_info          = logger.info
-local log_fatal         = logger.fatal
 local lnext_id          = luakit.next_id
 local hash_code         = codec.hash_code
 local make_timer        = quanta.make_timer
@@ -11,6 +10,7 @@ local resume_trace      = quanta.resume_trace
 local extract_trace     = quanta.extract_trace
 
 local FLAG_REQ          = luabus.proto_flag.REQ
+local FLAG_RES          = luabus.proto_flag.RES
 local FLAG_UNREACH      = luabus.proto_flag.UNREACH
 
 local event_mgr         = quanta.get("event_mgr")
@@ -25,8 +25,6 @@ local SECOND_MS         = quanta.enum("PeriodTime", "SECOND_MS")
 local RPC_TIMEOUT       = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local CONNECT_TIMEOUT   = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local HEARTBEAT_TIME    = quanta.enum("NetwkTime", "HEARTBEAT_TIME")
-
-local Message           = import("feature/message_rpc.lua")
 
 local RpcClient = class()
 local prop = property(RpcClient)
@@ -83,35 +81,31 @@ function RpcClient:on_call_router(rpc, send_len)
     return false
 end
 
-local function relay_rpc_message(router_id, session_id, target_id, service_id, ...)
-    event_mgr:notify_listener("on_relay_message", router_id, session_id, target_id, service_id, ...)
+function RpcClient:relay_message(router_id, session_id, target_id, service_id, ...)
+    event_mgr:notify_event("rpc_relay_message", router_id, session_id, target_id, service_id, ...)
 end
 
 --rpc事件
-function RpcClient:dispatch_rpc_message(socket, recv_len, session_id, flag, source, rpc, ...)
+function RpcClient:dispatch_message(socket, recv_len, session_id, flag, source, rpc, ...)
     -- 事件统计
     event_mgr:notify_trigger("on_recv_rpc_message", rpc, recv_len)
-    if rpc == "on_heartbeat" then
-        return
-    end
-    if flag == FLAG_UNREACH then
-        log_err("[RpcClient][dispatch_rpc_message] rpc {} is unreachable in router!", rpc)
-        if session_id > 0 then
-            thread_mgr:response(session_id, false, UNREACHABLE, "target is unreachable!")
-        end
-        return
-    end
     -- 事件分发
     if flag & FLAG_REQ == FLAG_REQ then
-        local message<close> = Message(socket, session_id, recv_len, source, rpc)
-        local ok, err = pcall(event_mgr.notify_message, event_mgr, rpc, message, ...)
-        if not ok then
-            log_fatal("[RpcClient][dispatch_rpc_message] rpc {} call failed: {}", rpc, err)
-            message:callback(false, "dispatch rpc message field!")
+        if session_id > 0 then
+            socket.callback(rpc, session_id, source, FLAG_RES, event_mgr:notify_event(rpc, ...))
+        else
+            event_mgr:notify_event(rpc, ...)
         end
         return
     end
-    thread_mgr:response(session_id, ...)
+    if session_id > 0 then
+        if flag ~= FLAG_UNREACH then
+            thread_mgr:response(session_id, ...)
+            return
+        end
+        thread_mgr:response(session_id, false, UNREACHABLE, "target is unreachable!")
+        log_err("[RpcClient][dispatch_message] rpc {} is unreachable in router!", rpc)
+    end
 end
 
 --连接服务器
@@ -127,12 +121,11 @@ function RpcClient:connect()
         return false, cerr
     end
     self.socket = socket
-    local token = socket.token
     socket.on_call_rpc = function(recv_len, session_id, flag, trace_id, span_id, ...)
-        thread_mgr:fork(self.dispatch_rpc_message, resume_trace(trace_id, span_id), self, socket, recv_len, session_id, flag, ...)
+        thread_mgr:fork(self.dispatch_message, resume_trace(trace_id, span_id), self, socket, recv_len, session_id, flag, ...)
     end
     socket.on_relay_rpc = function(recv_len, session_id, target_id, service_id, trace_id, span_id, ...)
-        thread_mgr:fork(relay_rpc_message, resume_trace(trace_id, span_id), self.id, session_id, target_id, service_id, ...)
+        thread_mgr:fork(self.relay_message, resume_trace(trace_id, span_id), self, self.id, session_id, target_id, service_id, ...)
     end
     socket.call_rpc = function(rpc, session_id, flag, ...)
         local trace_id, span_id = extract_trace()
@@ -149,7 +142,7 @@ function RpcClient:connect()
         local send_len = socket.forward_target(session_id, target, 0, FLAG_REQ, trace_id, span_id, quanta.id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
-    socket.callback_target = function(rpc, session_id, target, flag, ...)
+    socket.callback = function(rpc, session_id, target, flag, ...)
         local send_len = socket.forward_target(session_id, target, 0, flag, 0, 0, quanta.id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
@@ -176,7 +169,7 @@ function RpcClient:connect()
         if res == "ok" then
             thread_mgr:fork(self.on_socket_connect, nil, self)
         else
-            thread_mgr:fork(self.on_socket_error, nil, self, token, res)
+            thread_mgr:fork(self.on_socket_error, nil, self, socket.token, res)
         end
     end
 end

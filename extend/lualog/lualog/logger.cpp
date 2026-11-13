@@ -41,10 +41,11 @@ namespace logger {
 
     // class log_message_queue
     // --------------------------------------------------------------------------------
-    log_message* log_message_queue::allocate() {
+    log_message* log_message_queue::allocate(log_level lvl) {
         size_t tail = tail_.load(std::memory_order_relaxed);
         size_t head = head_.load(std::memory_order_acquire);
-        if (tail - head >= QUEUE_SIZE) return nullptr;
+        size_t limit = is_high_level(lvl) ? QUEUE_SIZE : QUEUE_SIZE - RESERVED_SLOTS;
+        if (tail - head >= limit) return nullptr;
         return &msgs_[tail % QUEUE_SIZE];
     }
 
@@ -67,16 +68,18 @@ namespace logger {
     bool log_message_queue::full() const {
         size_t tail = tail_.load(std::memory_order_acquire);
         size_t head = head_.load(std::memory_order_relaxed);
-        return (tail - head + 1) % QUEUE_SIZE == tail;
+        return tail - head >= QUEUE_SIZE;
     }
 
-    log_message* log_message_queue::pop() {
+    log_message* log_message_queue::peek() {
         size_t head = head_.load(std::memory_order_relaxed);
         size_t tail = tail_.load(std::memory_order_acquire);
         if (head == tail) return nullptr;
-        log_message* logmsg = &msgs_[head % QUEUE_SIZE];
+        return &msgs_[head % QUEUE_SIZE];
+    }
+
+    void log_message_queue::release() {
         head_.fetch_add(1, std::memory_order_release);
-        return logmsg;
     }
 
     // class log_dest
@@ -311,17 +314,17 @@ namespace logger {
             bool empty = true;
             std::shared_lock lock(mutex_);
             for (auto& agent : agents_) {
-                while (!agent->empty()) {
-                    auto logmsg = agent->get_message();
+                while (auto logmsg = agent->get_message()) {
                     if (log_std_) std_dest_->write(logmsg);
                     if (auto it = dest_features_.find(logmsg->feature()); it != dest_features_.end()) {
                         it->second->write(logmsg);
-                        continue;
+                    } else {
+                        if (auto it = dest_lvls_.find(logmsg->level()); it != dest_lvls_.end()) {
+                            it->second->write(logmsg);
+                        }
+                        main_dest_->write(logmsg);
                     }
-                    if (auto it = dest_lvls_.find(logmsg->level()); it != dest_lvls_.end()) {
-                        it->second->write(logmsg);
-                    }
-                    main_dest_->write(logmsg);
+                    agent->release_message();
                     empty = false;
                 }
             }
@@ -345,11 +348,15 @@ namespace logger {
     }
 
     log_message* log_agent::get_message() {
-        auto message = logmsgque_->pop();
+        auto message = logmsgque_->peek();
         if (message) {
             message->format(time_buf_, last_time_);
         }
         return message;
+    }
+
+    void log_agent::release_message() {
+        logmsgque_->release();
     }
 
     void log_agent::attach(wptr<log_service> service) {
@@ -359,15 +366,19 @@ namespace logger {
         }
     }
 
-    void log_agent::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar trace_id) {
+    bool log_agent::output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar trace_id) {
         if (!is_filter(level)) {
-            auto logmsg_ = logmsgque_->allocate();
+            auto logmsg_ = logmsgque_->allocate(level);
             if (logmsg_){
                 logmsg_->option(level, std::move(msg), tag, feature, trace_id);
                 logmsgque_->commit();
-                service_.lock()->notify_one();
+                if (auto service = service_.lock(); service) {
+                    service->notify_one();
+                }
+                return true;
             }
         }
+        return false;
     }
 
     void log_agent::filter(log_level llv, bool on) {

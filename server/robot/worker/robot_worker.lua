@@ -26,19 +26,19 @@ prop:reader("watch_cmds", {})
 
 function RobotWorker:__init()
     --task监听
-    event_mgr:add_listener(self, "update_case")
-    event_mgr:add_listener(self, "delete_case")
-    event_mgr:add_listener(self, "run_robot_case")
-    event_mgr:add_listener(self, "run_robot_node")
-    event_mgr:add_listener(self, "stop_robot_case")
-    event_mgr:add_listener(self, "fetch_robot_logs")
-    event_mgr:add_listener(self, "fetch_robot_states")
-    event_mgr:add_listener(self, "fetch_robot_messages")
-    event_mgr:add_listener(self, "startup_robot_task")
-    event_mgr:add_listener(self, "stop_robot_task")
+    event_mgr:listen_event(self, "update_case")
+    event_mgr:listen_event(self, "delete_case")
+    event_mgr:listen_event(self, "run_robot_case")
+    event_mgr:listen_event(self, "run_robot_node")
+    event_mgr:listen_event(self, "stop_robot_case")
+    event_mgr:listen_event(self, "fetch_robot_logs")
+    event_mgr:listen_event(self, "fetch_robot_states")
+    event_mgr:listen_event(self, "fetch_robot_messages")
+    event_mgr:listen_event(self, "startup_robot_task")
+    event_mgr:listen_event(self, "stop_robot_task")
     --协议hook
-    event_mgr:add_listener(self, "on_recv_message")
-    event_mgr:add_listener(self, "on_error_message")
+    event_mgr:listen_event(self, "on_recv_message")
+    event_mgr:listen_event(self, "on_error_message")
     --初始化参数
     self.review.samples = {}
     self.review.child = quanta.title

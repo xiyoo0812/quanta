@@ -23,7 +23,7 @@ local INCR              = quanta.enum("PortMode", "INCR")
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_PARAMS      = protobuf_mgr:error_code("FRAME_PARAMS")
 
-local Message           = import("feature/message_pb.lua")
+local Message           = import("feature/message.lua")
 
 -- CS协议会话对象管理器
 local TcpServer = class()
@@ -85,15 +85,14 @@ end
 function TcpServer:dispatch_message(session, cmd_message)
     local message<close> = cmd_message
     -- 前置处理: 协议过滤/统计
-    event_mgr:notify_trigger("on_recv_tcp_message", message)
+    event_mgr:notify_trigger("on_recv_tcp_message", cmd_message)
     -- 参数检测
     if message.flag & FLAG_REQ ~= FLAG_REQ then
         return message:callback_code(FRAME_PARAMS)
     end
     -- 事件分发
-    local cmd_id = message.cmd_id
-    local nok = event_mgr:notify_pb_message(cmd_id, session, message, message.request, message.response)
-    if not nok then
+    local ok = event_mgr:notify_message(message, session)
+    if not ok then
         return message:callback_code(FRAME_FAILED)
     end
 end
@@ -137,7 +136,7 @@ function TcpServer:on_socket_accept(session)
         thread_mgr:fork(self.on_socket_error, nil, self, stoken, err)
     end
     --通知链接成功
-    event_mgr:notify_listener("on_socket_accept", session)
+    event_mgr:notify_event("on_socket_accept", session)
 end
 
 -- 广播数据
@@ -173,7 +172,7 @@ function TcpServer:on_socket_error(token, err)
     log_err("[TcpServer][on_socket_error] session: {} lost, because: {}!", token, err)
     local session = self:remove_session(token)
     if session then
-        event_mgr:notify_listener("on_socket_error", session, token, err)
+        event_mgr:notify_event("on_socket_error", session, token, err)
     end
 end
 

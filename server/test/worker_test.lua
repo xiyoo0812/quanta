@@ -13,8 +13,8 @@ scheduler:startup("wtest1", "worker.wtest")
 local MaterTest = singleton()
 
 function MaterTest:__init()
-    event_mgr:add_listener(self, "test_master_rpc")
-    event_mgr:add_listener(self, "test_worker_bc")
+    event_mgr:listen_event(self, "test_master_rpc")
+    event_mgr:listen_event(self, "test_worker_bc")
 end
 
 function MaterTest:test_master_rpc(work_name, a, b, c, d)

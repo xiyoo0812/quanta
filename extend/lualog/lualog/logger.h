@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include <map>
-#include <set>
 #include <array>
 #include <vector>
 #include <chrono>
@@ -23,13 +22,12 @@ using namespace luakit;
 using namespace std::chrono;
 using namespace std::filesystem;
 
-using fspath    = std::filesystem::path;
-
 template <class T>
 using wptr      = std::weak_ptr<T>;
 template <class T>
 using sptr      = std::shared_ptr<T>;
 
+using fspath    = std::filesystem::path;
 using log_time  = system_clock::time_point;
 
 typedef void (*custom_output)(const char* msg, size_t len, int level);
@@ -38,8 +36,8 @@ namespace logger {
     enum class log_level : uint8_t {
         LOG_DEBUG = 1,
         LOG_INFO,
-        LOG_WARN,
         LOG_DUMP,
+        LOG_WARN,
         LOG_ERROR,
         LOG_FATAL,
     };
@@ -51,11 +49,16 @@ namespace logger {
     }; //rolling_type
     using enum rolling_type;
 
-    const size_t QUEUE_SIZE = 2048;
-    const size_t MAX_LINE   = 100000;
+    const size_t RESERVED_SLOTS = 512;
+    const size_t QUEUE_SIZE     = 5120;
+    const size_t MAX_LINE       = 100000;
 
-    constexpr auto level_names = std::array{"UNKNW", "DEBUG", "INFO", "WARN", "DUMP", "ERROR", "FATAL"};
-    constexpr auto level_colors = std::array{"\x1b[90m", "\x1b[37m", "\x1b[32m", "\x1b[33m", "\x1b[36m", "\x1b[31m", "\x1b[97;41m"};
+    inline bool is_high_level(log_level lvl) {
+        return (int)lvl >= (int)LOG_WARN;
+    }
+
+    constexpr auto level_names = std::array{"UNKNW", "DEBUG", "INFO", "DUMP", "WARN", "ERROR", "FATAL"};
+    constexpr auto level_colors = std::array{"\x1b[90m", "\x1b[37m", "\x1b[32m", "\x1b[36m", "\x1b[33m", "\x1b[31m", "\x1b[97;41m"};
 
     class log_message {
     public:
@@ -69,15 +72,15 @@ namespace logger {
         log_time    time_;
         sstring     trace_id_, feature_, tag_;
         log_level   level_ = LOG_DEBUG;
-        char*       large_ = nullptr;
         sstring     msg_;
     }; // class log_message
 
     class log_message_queue {
     public:
-        log_message* pop();
-        log_message* allocate();
         void commit();
+        void release();
+        log_message* peek();
+        log_message* allocate(log_level lvl);
         size_t size() const;
         bool empty() const;
         bool full() const;
@@ -159,9 +162,10 @@ namespace logger {
         void filter(log_level lv, bool on);
         void attach(wptr<log_service> service);
         bool is_filter(log_level lv) { return 0 == (filter_bits_ & (1 << ((int)lv - 1))); }
-        void output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar trace_id);
+        bool output(log_level level, sstring&& msg, cpchar tag, cpchar feature, cpchar trace_id);
         bool empty() const { return logmsgque_->empty(); }
         log_message* get_message();
+        void release_message();
 
     protected:
         char time_buf_[32] = {0};

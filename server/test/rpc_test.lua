@@ -12,7 +12,7 @@ function RpcTest:__init()
 end
 
 function RpcTest:setup()
-    event_mgr:add_listener(self, "on_echo")
+    event_mgr:listen_event(self, "on_echo")
 
     thread_mgr:fork(function()
         local data = {}

@@ -52,7 +52,7 @@ function Robot:__init(open_id, params, press)
             self.variables[param.key] = param.value
         end
     end
-    event_mgr:add_trigger(self, "on_recv_tcp_message")
+    event_mgr:listen_trigger(self, "on_recv_tcp_message")
 end
 
 function Robot:connect(ip, port)

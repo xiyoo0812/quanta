@@ -21,11 +21,11 @@ function RedisMgr:__init()
     for _, func in ipairs(funcs) do
         --定义函数
         local func_name = "rpc_redis_" .. func
-        RedisMgr[func_name] = function(this, message, ...)
+        RedisMgr[func_name] = function(this, ...)
             return RedisMgr[func](this, ...)
         end
         -- 注册事件
-        event_mgr:add_listener(self, func_name)
+        event_mgr:listen_event(self, func_name)
     end
     --启动DB引擎
     self:setup()
@@ -52,7 +52,7 @@ function RedisMgr:execute(cmd, ...)
     return REDIS_FAILED, "redis db not exist"
 end
 
-function RedisMgr:autoinc_id(message)
+function RedisMgr:autoinc_id()
     local aok, origin_id = self.redis_db:execute("INCR", AUTOINCKEY)
     if not aok then
         return REDIS_FAILED, origin_id

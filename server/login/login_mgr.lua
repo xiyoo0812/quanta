@@ -14,8 +14,8 @@ prop:reader("services", {})
 
 function LoginMgr:__init()
     -- 网络事件监听
-    event_mgr:add_listener(self, "on_socket_error")
-    event_mgr:add_listener(self, "on_socket_accept")
+    event_mgr:listen_event(self, "on_socket_error")
+    event_mgr:listen_event(self, "on_socket_accept")
     -- cs协议监听
     protobuf_mgr:register(self, "NID_HEARTBEAT_REQ", "on_heartbeat_req")
 end
@@ -61,7 +61,7 @@ function LoginMgr:find_server(serv_name, region)
 end
 
 --心跳协议
-function LoginMgr:on_heartbeat_req(session, message, body, response)
+function LoginMgr:on_heartbeat_req(message, body, response, session)
     response.time = quanta.now_ms
     response.serial = body.serial + 1
 end

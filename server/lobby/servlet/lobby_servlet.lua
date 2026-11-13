@@ -17,7 +17,7 @@ local PLAYER_NOT_EXIST  = protobuf_mgr:error_code("LOGIN_PLAYER_NOT_EXIST")
 local LobbyServlet = singleton()
 
 function LobbyServlet:__init()
-    event_mgr:add_trigger(self, "on_attr_synchronous")
+    event_mgr:listen_trigger(self, "on_attr_synchronous")
     -- cs协议监听
     protobuf_mgr:register(self, "NID_GATE_LOST_CLIENT_NTF", "on_player_offline_ntf")
     protobuf_mgr:register(self, "NID_LOGIN_PLAYER_LOGIN_REQ", "on_player_login_req")
@@ -39,7 +39,7 @@ function LobbyServlet:on_attr_synchronous(entity, entity_id, attrs, battrs)
 end
 
 -- 会话需要关闭
-function LobbyServlet:on_player_offline_ntf(session, message, body, response)
+function LobbyServlet:on_player_offline_ntf(message, body, response, session)
     log_warn("[LobbyServlet][on_player_offline_ntf] player({}) offline", body)
     local player_id = body.player_id
     local player = player_mgr:get_entity(player_id)
@@ -50,12 +50,12 @@ function LobbyServlet:on_player_offline_ntf(session, message, body, response)
 end
 
 -- gm命令
-function LobbyServlet:on_gm_command_req(session, message, body, response)
+function LobbyServlet:on_gm_command_req(message, body, response, session)
     log_debug("[LobbyServlet][on_gm_command_req] gm command req body({}) !", body)
     return FRAME_SUCCESS
 end
 
-function LobbyServlet:on_player_login_req(session, message, body, response)
+function LobbyServlet:on_player_login_req(message, body, response, session)
     log_debug("[LobbyServlet][on_player_login_req] login req body({}) !", body)
     local open_id, player_id = body.open_id, body.player_id
     local player = player_mgr:load_player(open_id, player_id)
@@ -77,7 +77,7 @@ function LobbyServlet:on_player_login_req(session, message, body, response)
     log_info("[LobbyServlet][on_player_login_req] player({}) login success!", player_id)
 end
 
-function LobbyServlet:on_player_logout_req(player, message, body, response, player_id)
+function LobbyServlet:on_player_logout_req(message, body, response, player, player_id)
     log_debug("[LobbyServlet][on_player_logout_req] player({}) logout req!", player_id)
     if not player then
         return message:callback_code(PLAYER_NOT_EXIST)
@@ -87,7 +87,7 @@ function LobbyServlet:on_player_logout_req(player, message, body, response, play
     return FRAME_SUCCESS
 end
 
-function LobbyServlet:on_player_reload_req(player, message, body, response, player_id)
+function LobbyServlet:on_player_reload_req(message, body, response, player, player_id)
     log_debug("[LobbyServlet][on_player_reload_req] player({}) reload req!", player_id)
     if not player then
         return message:callback_code(PLAYER_NOT_EXIST)
