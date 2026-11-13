@@ -10,8 +10,8 @@ local WorkerTest = class()
 function WorkerTest:__init()
     local scheduler = quanta.get("scheduler")
     local event_mgr = quanta.get("event_mgr")
-    event_mgr:add_listener(self, "test_worker_rpc")
-    event_mgr:add_listener(self, "test_worker_bc")
+    event_mgr:listen_event(self, "test_worker_rpc")
+    event_mgr:listen_event(self, "test_worker_bc")
     -- 启动wtest2线程
     scheduler:startup("wtest2", "worker.wtest")
 end

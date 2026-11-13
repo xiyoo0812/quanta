@@ -11,6 +11,7 @@ local makechan      = quanta.make_channel
 
 local event_mgr     = quanta.get("event_mgr")
 local mongo_mgr     = quanta.get("mongo_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 local config_mgr    = quanta.get("config_mgr")
 local update_mgr    = quanta.get("update_mgr")
 local router_mgr    = quanta.get("router_mgr")
@@ -36,12 +37,12 @@ prop:reader("save_documents", {})   -- save documents
 
 function CacheMgr:__init()
     -- 监听rpc事件
-    event_mgr:add_listener(self, "rpc_cache_load")
-    event_mgr:add_listener(self, "rpc_cache_copy")
-    event_mgr:add_listener(self, "rpc_cache_flush")
-    event_mgr:add_listener(self, "rpc_cache_update")
-    event_mgr:add_listener(self, "rpc_cache_delete")
-    event_mgr:add_listener(self, "rpc_cache_load_notify")
+    event_mgr:listen_event(self, "rpc_cache_load")
+    event_mgr:listen_event(self, "rpc_cache_copy")
+    event_mgr:listen_event(self, "rpc_cache_flush")
+    event_mgr:listen_event(self, "rpc_cache_update")
+    event_mgr:listen_event(self, "rpc_cache_delete")
+    event_mgr:listen_event(self, "rpc_cache_load_notify")
     --定时器
     update_mgr:attach_frame(self)
     update_mgr:attach_second(self)
@@ -155,8 +156,8 @@ function CacheMgr:load_group(coll_name, primary_id)
 end
 
 --加载文档
-function CacheMgr:load_document(message, coll_name, primary_id)
-    message:lock(primary_id, true)
+function CacheMgr:load_document(coll_name, primary_id)
+    local _<close> = thread_mgr:lock(primary_id, true)
     local doc = self:find_document(coll_name, primary_id)
     if not doc then
         local code, group = self:load_group(coll_name, primary_id)
@@ -169,8 +170,8 @@ function CacheMgr:load_document(message, coll_name, primary_id)
     end
 end
 
-function CacheMgr:rpc_cache_load(message, primary_id, coll_name)
-    local code, doc, from_mem = self:load_document(message, coll_name, primary_id)
+function CacheMgr:rpc_cache_load(primary_id, coll_name)
+    local code, doc, from_mem = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
@@ -188,8 +189,8 @@ function CacheMgr:rpc_cache_load_notify(primary_id, coll_name)
 end
 
 --更新缓存
-function CacheMgr:rpc_cache_flush(message, primary_id, coll_name, wholes)
-    local code, doc = self:load_document(message, coll_name, primary_id)
+function CacheMgr:rpc_cache_flush(primary_id, coll_name, wholes)
+    local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_flush] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
@@ -200,8 +201,8 @@ function CacheMgr:rpc_cache_flush(message, primary_id, coll_name, wholes)
 end
 
 --更新缓存
-function CacheMgr:rpc_cache_update(message, primary_id, coll_name, increases)
-    local code, doc = self:load_document(message, coll_name, primary_id)
+function CacheMgr:rpc_cache_update(primary_id, coll_name, increases)
+    local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_update] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
@@ -212,8 +213,8 @@ function CacheMgr:rpc_cache_update(message, primary_id, coll_name, increases)
 end
 
 --删除缓存，通常由运维指令执行
-function CacheMgr:rpc_cache_delete(message, primary_id, coll_name)
-    local code, doc = self:load_document(message, coll_name, primary_id)
+function CacheMgr:rpc_cache_delete(primary_id, coll_name)
+    local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_delete] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
         return code
@@ -229,9 +230,9 @@ function CacheMgr:rpc_cache_delete(message, primary_id, coll_name)
 end
 
 --复制缓存
-function CacheMgr:rpc_cache_copy(message, to_id, src_id, coll_name)
+function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
     log_debug("[CacheMgr][rpc_cache_copy] coll_name={}, src_id={}, to_id={}", coll_name, src_id, to_id)
-    local src_code, src_doc, from_mem = self:load_document(message, coll_name, src_id)
+    local src_code, src_doc, from_mem = self:load_document(coll_name, src_id)
     if qfailed(src_code) then
         log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name={}, src_id={}", coll_name, src_id)
         return src_code
@@ -243,7 +244,7 @@ function CacheMgr:rpc_cache_copy(message, to_id, src_id, coll_name)
         end
         return SUCCESS
     end
-    local to_code, doc = self:load_document(message, coll_name, to_id)
+    local to_code, doc = self:load_document(coll_name, to_id)
     if qfailed(to_code) then
         log_err("[CacheMgr][rpc_cache_copy] load_document failed! coll_name={}, to_id={}", coll_name, to_id)
         if not from_mem then

@@ -15,11 +15,11 @@ function PgsqlMgr:__init()
     for _, func in ipairs(funcs) do
         --定义函数
         local func_name = "rpc_pgsql_" .. func
-        PgsqlMgr[func_name] = function(this, message, ...)
+        PgsqlMgr[func_name] = function(this, ...)
             return PgsqlMgr[func](this, ...)
         end
         -- 注册事件
-        event_mgr:add_listener(self, func_name)
+        event_mgr:listen_event(self, func_name)
     end
     --启动DB引擎
     self:setup()

@@ -4,7 +4,6 @@ local log_err               = logger.err
 local log_info              = logger.info
 local log_debug             = logger.debug
 local qfailed               = quanta.failed
-local tunpack               = table.unpack
 local guid_encode           = codec.guid_encode
 
 local login_dao             = quanta.get("login_dao")
@@ -35,7 +34,7 @@ function LoginServlet:__init()
     protobuf_mgr:register(self, "NID_LOGIN_ACCOUNT_LOGIN_REQ", "on_account_login_req")
     protobuf_mgr:register(self, "NID_LOGIN_ACCOUNT_RELOAD_REQ", "on_account_reload_req")
     --添加事件监听
-    event_mgr:add_listener(self, "on_safe_text")
+    event_mgr:listen_event(self, "on_safe_text")
 end
 
 --屏蔽词库校验
@@ -44,13 +43,12 @@ function LoginServlet:on_safe_text(user_id, text)
 end
 
 --账号登陆
-function LoginServlet:on_account_login_req(session, message, body, response)
+function LoginServlet:on_account_login_req(message, body, response, session)
     local open_id, access_token, platform, channel = body.openid, body.session, body.platform, body.package_channel
     log_debug("[LoginServlet][on_account_login_req] open_id({}) token({}) body:{} login req!", open_id, access_token, body)
     if session.account then
         return message:callback_code(ACCOUNT_OFFLINE)
     end
-    local account_params = {}
     local device_id = body.device_id
     --加载账号信息
     local account = login_dao:load_account(open_id)
@@ -58,11 +56,12 @@ function LoginServlet:on_account_login_req(session, message, body, response)
         log_err("[LoginServlet][on_account_login_req] load account failed! open_id: {} token:{}", open_id, access_token)
         return message:callback_code(FRAME_FAILED)
     end
+    local acc_params = {}
+    local newbee = account:is_newbee()
     if platform ~= PLATFORM_PASSWORD then
         --登录验证
         body.ip = session.ip
-        local result = event_mgr:notify_listener("on_platform_login", platform, open_id, access_token, body, account_params, account:is_newbee())
-        local ok, code, sdk_open_id, sdk_device_id = tunpack(result)
+        local ok, code, sdk_open_id, sdk_device_id = event_mgr:notify_event("on_platform_login", platform, open_id, access_token, body, acc_params, newbee)
         local login_failed, login_code = qfailed(code, ok)
         if login_failed then
             log_err("[LoginServlet][on_account_login_req] verify failed! open_id: {} token:{} code:{}", open_id, access_token, login_code)
@@ -73,13 +72,13 @@ function LoginServlet:on_account_login_req(session, message, body, response)
         device_id = sdk_device_id
     end
     --创建账号
-    if account:is_newbee() then
-        if not account:create(access_token, device_id, account_params, channel) then
+    if newbee then
+        if not account:create(access_token, device_id, acc_params, channel) then
             log_err("[LoginServlet][on_account_login_req] open_id({}) create account failed!", open_id)
             return message:callback_code(FRAME_FAILED)
         end
         session.account = account
-        event_mgr:notify_listener("on_account_create", account, device_id, session.ip, account_params.lang, account_params.dev_plat)
+        event_mgr:notify_event("on_account_create", account, device_id, session.ip, acc_params.lang, acc_params.dev_plat)
         log_info("[LoginServlet][on_account_login_req] newbee success! open_id: {}", open_id)
         account:pack2client(response)
         return
@@ -92,14 +91,14 @@ function LoginServlet:on_account_login_req(session, message, body, response)
     session.account = account
     account:save_token(access_token)
     account:save_device_id(device_id)
-    account:update_params(account_params)
-    event_mgr:notify_listener("on_account_login", account:get_user_id(), open_id, device_id, session.ip, account_params.lang, account_params.dev_plat)
+    account:update_params(acc_params)
+    event_mgr:notify_event("on_account_login", account:get_user_id(), open_id, device_id, session.ip, acc_params.lang, acc_params.dev_plat)
     account:pack2client(response)
-    log_info("[LoginServlet][on_account_login_req] success! open_id: {}, response: {}", open_id, response)
+    log_debug("[LoginServlet][on_account_login_req] success! open_id: {}, response: {}", open_id, response)
 end
 
 --创建角色
-function LoginServlet:on_player_create_req(session, message, body, response)
+function LoginServlet:on_player_create_req(message, body, response, session)
     local user_id, name = body.user_id, body.name
     log_debug("[LoginServlet][on_player_create_req] user({}) body({}) create player req11113!", user_id, body)
     local account = session.account
@@ -124,13 +123,13 @@ function LoginServlet:on_player_create_req(session, message, body, response)
     end
     log_info("[LoginServlet][on_player_create_req] user_id({}) create player {} success!", user_id, name)
     local pla_data = { facade = body.facade, player_id = player_id, name = name, gender = body.gender }
-    event_mgr:notify_listener("on_player_create", user_id, player_id, pla_data)
+    event_mgr:notify_event("on_player_create", user_id, player_id, pla_data)
     account:add_player(player_id, pla_data)
     response.player = pla_data
 end
 
 --选择角色
-function LoginServlet:on_player_choose_req(session, message, body, response)
+function LoginServlet:on_player_choose_req(message, body, response, session)
     local user_id, player_id = body.user_id, body.player_id
     log_debug("[LoginServlet][on_player_choose_req] user_id({}) player_id({}) choose req!", user_id, player_id)
     local account = session.account
@@ -154,7 +153,7 @@ function LoginServlet:on_player_choose_req(session, message, body, response)
 end
 
 --删除角色
-function LoginServlet:on_player_delete_req(session, message, body, response)
+function LoginServlet:on_player_delete_req(message, body, response, session)
     local user_id, player_id = body.user_id, body.player_id
     log_debug("[LoginServlet][on_player_delete_req] user_id({}) player_id({}) delete req!", user_id, player_id)
     local account = session.account
@@ -170,7 +169,7 @@ function LoginServlet:on_player_delete_req(session, message, body, response)
 end
 
 --账号重登
-function LoginServlet:on_account_reload_req(session, message, body, response)
+function LoginServlet:on_account_reload_req(message, body, response, session)
     local open_id, token, device_id = body.openid, body.session, body.device_id
     log_debug("[LoginServlet][on_account_reload_req] openid({}) token({}) device_id({}) reload req!", open_id, token, device_id)
     if session.account then
@@ -198,7 +197,7 @@ function LoginServlet:on_account_reload_req(session, message, body, response)
 end
 
 --随机名字
-function LoginServlet:on_random_name_req(session, message, body, response)
+function LoginServlet:on_random_name_req(message, body, response, session)
     response.name = guid_encode()
     log_debug("[LoginServlet][on_random_name_req] response: {}!", response)
 end

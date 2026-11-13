@@ -29,7 +29,7 @@ prop:reader("allow_reload", false)
 function ProtobufMgr:__init()
     self:load_protos()
     --监听热更新
-    event_mgr:add_trigger(self, "on_reload")
+    event_mgr:listen_trigger(self, "on_reload")
 end
 
 --返回回调id
@@ -201,7 +201,7 @@ function ProtobufMgr:register(doer, pb_name, callback)
         log_warn("[ProtobufMgr][register] proto_name: [{}] can't find!", pb_name)
         return
     end
-    event_mgr:add_pb_listener(doer, proto.id, callback)
+    event_mgr:listen_message(doer, proto.id, callback)
 end
 
 -- 重新加载

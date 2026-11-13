@@ -19,7 +19,7 @@ prop:reader("relay_attrs", {})
 --委托回调
 function AttributeRelay:__init()
     --注册rpc
-    event_mgr:add_listener(self, "rpc_attr_writeback")
+    event_mgr:listen_event(self, "rpc_attr_writeback")
 end
 
 --打开共享属性

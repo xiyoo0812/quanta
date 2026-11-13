@@ -5,13 +5,13 @@ local signalquit        = signal.quit
 local log_err           = logger.err
 local log_warn          = logger.warn
 local log_info          = logger.info
-local log_fatal         = logger.fatal
 local qxpcall           = quanta.xpcall
 local lnext_id          = luakit.next_id
 local derive_port       = luabus.derive_port
 local resume_trace      = quanta.resume_trace
 
 local FLAG_REQ          = luabus.proto_flag.REQ
+local FLAG_RES          = luabus.proto_flag.RES
 
 local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
@@ -23,8 +23,6 @@ local RPCLINK_TIMEOUT   = quanta.enum("NetwkTime", "RPCLINK_TIMEOUT")
 local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local INDUCE            = quanta.enum("PortMode", "INDUCE")
 local INCR              = quanta.enum("PortMode", "INCR")
-
-local Message           = import("feature/message_rpc.lua")
 
 local RpcServer = singleton()
 
@@ -59,8 +57,8 @@ function RpcServer:__init(holder, ip, port, induce)
     self.listener = listener
     self.ip, self.port = ip, port
     log_info("[RpcServer][setup] now listen {}:{} success!", ip, port)
-    event_mgr:add_listener(self, "rpc_heartbeat")
-    event_mgr:add_listener(self, "rpc_register")
+    event_mgr:listen_event(self, "rpc_heartbeat")
+    event_mgr:listen_event(self, "rpc_register")
     --注册退出
     update_mgr:attach_quit(self)
 end
@@ -75,18 +73,15 @@ function RpcServer:on_quit()
 end
 
 --rpc事件
-function RpcServer:dispatch_rpc_message(client, recv_len, session_id, flag, source, rpc, ...)
+function RpcServer:dispatch_message(client, recv_len, session_id, flag, source, rpc, ...)
     -- 事件统计
     event_mgr:notify_trigger("on_recv_rpc_message", rpc, recv_len)
     -- 事件分发
-    if client.id or rpc == "rpc_register" then
-        if flag & FLAG_REQ == FLAG_REQ then
-            local message<close> = Message(client, session_id, recv_len, source, rpc)
-            local ok, err = pcall(event_mgr.notify_message, event_mgr, rpc, message, ...)
-            if not ok then
-                log_fatal("[RpcServer][dispatch_rpc_message] rpc {} call failed: {}", rpc, err)
-                message:callback(false, "dispatch rpc message field!")
-            end
+    if flag & FLAG_REQ == FLAG_REQ then
+        if session_id > 0 then
+            client.callback(rpc, session_id, source, FLAG_RES, event_mgr:notify_event(rpc, client, ...))
+        else
+            event_mgr:notify_event(rpc, client, ...)
         end
     end
 end
@@ -113,12 +108,12 @@ function RpcServer:on_socket_accept(client)
         local send_len = client.forward_self(session_id, 0, 0, flag, 0, 0, 0, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
-    client.callback_target = function(rpc, session_id, target, flag, ...)
+    client.callback = function(rpc, session_id, target, flag, ...)
         local send_len = client.forward_self(session_id, target, 0, flag, 0, 0, quanta.id, rpc, ...)
         return self:on_call_router(rpc, send_len)
     end
     client.on_call_rpc = function(recv_len, session_id, flag, trace_id, span_id, ...)
-        thread_mgr:fork(self.dispatch_rpc_message, resume_trace(trace_id, span_id), self, client, recv_len, session_id, flag, ...)
+        thread_mgr:fork(self.dispatch_message, resume_trace(trace_id, span_id), self, client, recv_len, session_id, flag, ...)
     end
     client.on_error = function(ctoken, err)
         thread_mgr:fork(self.on_socket_error, nil, self, ctoken, err)
@@ -214,11 +209,10 @@ end
 --rpc回执
 -----------------------------------------------------------------------------
 --服务器心跳协议
-function RpcServer:rpc_heartbeat(message, node)
+function RpcServer:rpc_heartbeat()
 end
 
-function RpcServer:rpc_register(message, node)
-    local client = message.session
+function RpcServer:rpc_register(client, node)
     if not client.id then
         -- 检查错误注册
         if node.cluster ~= quanta.cluster then

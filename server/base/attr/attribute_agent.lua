@@ -15,7 +15,7 @@ local AttributeAgent = singleton()
 --委托回调
 function AttributeAgent:__init()
     --注册rpc
-    event_mgr:add_listener(self, "rpc_attr_relay")
+    event_mgr:listen_event(self, "rpc_attr_relay")
 end
 
 --属性加载

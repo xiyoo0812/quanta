@@ -25,9 +25,9 @@ prop:reader("http_server", nil)
 
 function GM_Mgr:__init()
     --监听事件
-    event_mgr:add_listener(self, "rpc_register_command")
-    event_mgr:add_listener(self, "rpc_execute_command")
-    event_mgr:add_listener(self, "rpc_execute_packet")
+    event_mgr:listen_event(self, "rpc_register_command")
+    event_mgr:listen_event(self, "rpc_execute_command")
+    event_mgr:listen_event(self, "rpc_execute_packet")
     --端口解析
     local ip, port = environ.addr("QUANTA_GM_HTTP")
     --创建HTTP服务器
@@ -87,7 +87,7 @@ end
 --rpc请求
 ---------------------------------------------------------------------
 --注册GM
-function GM_Mgr:rpc_register_command(message, command_list, service_id)
+function GM_Mgr:rpc_register_command(command_list, service_id)
     --同服务只执行一次
     if service_id and self.services[service_id] then
         return
@@ -102,14 +102,14 @@ function GM_Mgr:rpc_register_command(message, command_list, service_id)
 end
 
 --执行gm, command：string
-function GM_Mgr:rpc_execute_command(message, command)
+function GM_Mgr:rpc_execute_command(command)
     log_debug("[GM_Mgr][rpc_execute_command] command: {}", command)
     local res = self:exec_command(command)
     return SUCCESS, res
 end
 
 --执行gm, packet: table
-function GM_Mgr:rpc_execute_packet(message, packet)
+function GM_Mgr:rpc_execute_packet(packet)
     log_debug("[GM_Mgr][rpc_execute_packet] packet: {}", packet)
     local res = self:exec_packet(packet)
     return SUCCESS, res
@@ -162,8 +162,7 @@ end
 
 --参数分发预处理
 function GM_Mgr:dispatch_pre_command(fmtargs)
-    local result = event_mgr:notify_listener("on_center_command", fmtargs.name, fmtargs.args)
-    local status_ok, args = tunpack(result)
+    local status_ok, args = event_mgr:notify_event("on_center_command", fmtargs.name, fmtargs.args)
     --无额外处理
     if not status_ok then
         return self:dispatch_command(fmtargs.args, fmtargs.type, fmtargs.service)
@@ -193,7 +192,7 @@ end
 
 --local command
 function GM_Mgr:exec_local_cmd(service_id, cmd_name, ...)
-    local ok, res = tunpack(event_mgr:notify_listener(cmd_name, ...))
+    local ok, res = event_mgr:notify_event(cmd_name, ...)
     if not ok then
         return { code = 1, msg = res }
     end

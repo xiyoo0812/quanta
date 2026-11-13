@@ -64,11 +64,11 @@ namespace logger {
     int zformat(lua_State* L, log_level lvl, cpchar tag, cpchar trace_id, cpchar feature, size_t flag, sstring&& msg) {
         if ((flag & LOG_FLAG_MONITOR) == LOG_FLAG_MONITOR) {
             lua_pushlstring(L, msg.c_str(), msg.size());
-            s_agent->output(lvl, std::move(msg), tag, feature, trace_id);
-            return 1;
+        } else {
+            lua_pushnil(L);
         }
-        s_agent->output(lvl, std::move(msg), tag, feature, trace_id);
-        return 0;
+        lua_pushboolean(L, s_agent->output(lvl, std::move(msg), tag, feature, trace_id));
+        return 2;
     }
 
     template<size_t... integers>

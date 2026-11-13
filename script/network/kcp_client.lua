@@ -14,7 +14,7 @@ local event_mgr         = quanta.get("event_mgr")
 local update_mgr        = quanta.get("update_mgr")
 local thread_mgr        = quanta.get("thread_mgr")
 
-local Message           = import("feature/message_pb.lua")
+local Message           = import("feature/message.lua")
 
 local UNREACHABLE       = quanta.enum("KernCode", "UNREACHABLE")
 local PARAM_ERROR       = quanta.enum("KernCode", "PARAM_ERROR")
@@ -53,10 +53,10 @@ function KcpClient:dispatch_wait(cmd_id, body)
     end
 end
 
-function KcpClient:dispatch_pb_message(socket, message, cmd_id, session_id)
+function KcpClient:dispatch_message(socket, message, cmd_id, session_id)
     if session_id == 0 then
         -- 事件分发
-        event_mgr:notify_pb_message(cmd_id, socket, message, message.request)
+        event_mgr:notify_message(message, socket)
     else
         --异步回调
         thread_mgr:response(session_id, true, message.request)
@@ -76,7 +76,7 @@ function KcpClient:dispatch_message(socket, message, cmd_id, session_id, flag)
         return
     end
     -- 事件分发
-    self:dispatch_pb_message(socket, message, cmd_id, session_id)
+    self:dispatch_message(socket, message, cmd_id, session_id)
     self:dispatch_wait(cmd_id, message.request)
 end
 

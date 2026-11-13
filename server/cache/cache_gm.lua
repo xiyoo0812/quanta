@@ -83,7 +83,7 @@ function CacheGM:register()
     gm_agent:insert_command(cmd_list)
     -- 初始化监听事件
     for _, cmd in ipairs(cmd_list) do
-        gm_agent:add_listener(self, cmd.name)
+        gm_agent:listen_event(self, cmd.name)
     end
 end
 
