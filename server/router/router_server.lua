@@ -23,8 +23,8 @@ function RouterServer:__init()
     --设置目标路由失败后的转发服务
     socket_mgr:set_relay_service(name2sid("online"))
     --注册事件
-    event_mgr:add_listener(self, "rpc_service_clean")
-    event_mgr:add_listener(self, "rpc_service_online")
+    event_mgr:listen_event(self, "rpc_service_clean")
+    event_mgr:listen_event(self, "rpc_service_online")
 end
 
 --其他服务器节点关闭
@@ -50,16 +50,16 @@ function RouterServer:on_client_register(client, node, client_id)
 end
 
 --服务清理
-function RouterServer:rpc_service_clean(message, player_id)
+function RouterServer:rpc_service_clean(client, player_id)
     log_info("[RouterServer][rpc_service_clean]: {} clean service", player_id)
     socket_mgr.map_client(player_id, 0)
 end
 
 --服务上线
-function RouterServer:rpc_service_online(message, player_id, services)
+function RouterServer:rpc_service_online(client, player_id, services)
     log_info("[RouterServer][rpc_service_online]: {} online: {}", player_id, services)
     for serv_name, serv_id in pairs(services) do
-        socket_mgr.map_server(player_id, serv_id, message.client.token)
+        socket_mgr.map_server(player_id, serv_id, client.token)
     end
 end
 

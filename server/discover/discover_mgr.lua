@@ -40,7 +40,7 @@ end
 
 function DiscoverMgr:load_discover()
     --监听事件
-    event_mgr:add_listener(self, "rpc_watch_service")
+    event_mgr:listen_event(self, "rpc_watch_service")
     --梳理服务
     for _, service_name in pairs(service.services()) do
         self.watcher_list[service_name] = {}
@@ -94,8 +94,7 @@ function DiscoverMgr:on_client_error(client, token, err)
     end
 end
 
-function DiscoverMgr:rpc_watch_service(message, serv_name)
-    local client = message.session
+function DiscoverMgr:rpc_watch_service(client, serv_name)
     log_info("[DiscoverMgr][rpc_watch_service] node:{}, watch:{}", client.name, serv_name)
     local watchers = self.watcher_list[serv_name]
     if not watchers then

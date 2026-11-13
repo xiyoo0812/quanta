@@ -27,7 +27,7 @@ local RPC_CALL_TIMEOUT  = quanta.enum("NetwkTime", "RPC_CALL_TIMEOUT")
 local UNREACHABLE       = quanta.enum("KernCode", "UNREACHABLE")
 local PARAM_ERROR       = quanta.enum("KernCode", "PARAM_ERROR")
 
-local Message           = import("feature/message_pb.lua")
+local Message           = import("feature/message.lua")
 
 local TcpClient = class()
 local prop = property(TcpClient)
@@ -84,10 +84,10 @@ function TcpClient:dispatch_wait(cmd_id, body)
     end
 end
 
-function TcpClient:dispatch_pb_message(socket, message, cmd_id, session_id)
+function TcpClient:on_dispatch_message(socket, message, cmd_id, session_id)
     if session_id == 0 then
         -- 事件分发
-        event_mgr:notify_pb_message(cmd_id, socket, message, message.request)
+        event_mgr:notify_message(message, socket)
     else
         --异步回调
         thread_mgr:response(session_id, true, message.request)
@@ -107,7 +107,7 @@ function TcpClient:dispatch_message(socket, message, cmd_id, session_id, flag)
         return
     end
     -- 事件分发
-    self:dispatch_pb_message(socket, message, cmd_id, session_id)
+    self:on_dispatch_message(socket, message, cmd_id, session_id)
     self:dispatch_wait(cmd_id, message.request)
 end
 
@@ -148,6 +148,7 @@ function TcpClient:connect()
     end
     socket.on_call_pb = function(recv_len, session_id, target_id, cmd_id, flag, body, err)
         if body then
+            -- 事件分发
             local message = Message(socket, session_id, recv_len, body, cmd_id, flag, target_id)
             thread_mgr:fork(self.dispatch_message, nil, self, socket, message, cmd_id, session_id, flag)
             return

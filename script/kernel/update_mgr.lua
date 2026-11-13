@@ -51,6 +51,11 @@ function UpdateMgr:update_second(clock_ms)
 end
 
 function UpdateMgr:update(now_ms, clock_ms, master)
+    self:update_impl(now_ms, clock_ms, master)
+    thread_mgr:drain_pending()
+end
+
+function UpdateMgr:update_impl(now_ms, clock_ms, master)
     --业务更新
     quanta.frame_ms = clock_ms - quanta.clock_ms
     quanta.clock_ms = clock_ms

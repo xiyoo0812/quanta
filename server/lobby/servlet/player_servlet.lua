@@ -3,24 +3,26 @@
 local log_info          = logger.info
 
 local event_mgr         = quanta.get("event_mgr")
+local thread_mgr        = quanta.get("thread_mgr")
 local player_mgr        = quanta.get("player_mgr")
 
 local PlayerServlet = singleton()
 function PlayerServlet:__init()
     --注册消息
-    event_mgr:add_trigger(self, "on_login_success")
-    event_mgr:add_trigger(self, "on_logout_success")
-    event_mgr:add_trigger(self, "on_reload_success")
-    event_mgr:add_trigger(self, "on_kickout_success")
+    event_mgr:listen_trigger(self, "on_login_success")
+    event_mgr:listen_trigger(self, "on_logout_success")
+    event_mgr:listen_trigger(self, "on_reload_success")
+    event_mgr:listen_trigger(self, "on_kickout_success")
     -- rpc监听
-    event_mgr:add_listener(self, "rpc_reliable_event")
+    event_mgr:listen_event(self, "rpc_reliable_event")
 end
 
 --rpc
 ------------------------------------------------
 --可靠事件分发
-function PlayerServlet:rpc_reliable_event(message, player_id)
-    if message:lock(player_id) then
+function PlayerServlet:rpc_reliable_event(player_id)
+    local lock<close> = thread_mgr:lock(player_id)
+    if lock then
         local player = player_mgr:get_entity(player_id)
         if player then
             event_mgr:publish_frame(player, "load_reliable_events")

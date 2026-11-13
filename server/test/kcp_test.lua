@@ -16,8 +16,8 @@ function KcpTest:listen()
     self.server = KcpServer()
     self.server:listen("0.0.0.0", 8282)
 
-    event_mgr:add_listener(self, "on_socket_accept")
-    event_mgr:add_listener(self, "on_socket_error")
+    event_mgr:listen_event(self, "on_socket_accept")
+    event_mgr:listen_event(self, "on_socket_error")
     protobuf_mgr:register(self, "NID_HEARTBEAT_REQ", "on_heartbeat_req")
 end
 

@@ -55,7 +55,7 @@ timer_mgr:once(time, function()
                 return 55
             end
         }
-        event_mgr:add_listener(quanta.testobj, "rpc_trace_test")
+        event_mgr:listen_event(quanta.testobj, "rpc_trace_test")
     end
 end)
 

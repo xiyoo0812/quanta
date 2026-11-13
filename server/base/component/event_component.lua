@@ -37,13 +37,13 @@ function EventComponent:unwatch_event(watcher, event)
     end
 end
 
---发布事件
-function EventComponent:notify_event(event, ...)
+--触发事件
+function EventComponent:trigger_event(event, ...)
     local watcher_map = tcopy(self.events[event] or {})
     for functor, watcher in pairs(watcher_map) do
         local ok, ret = functor:pcall(watcher, ...)
         if not ok then
-            log_fatal("[EventComponent][notify_event] xpcall [{}:{}] failed: {}!", watcher:source(), functor.name, ret)
+            log_fatal("[EventComponent][trigger_event] xpcall [{}:{}] failed: {}!", watcher:source(), functor.name, ret)
         end
     end
 end

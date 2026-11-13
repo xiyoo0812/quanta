@@ -1,8 +1,7 @@
 #pragma once
-
+#include <list>
 #include <chrono>
 #include <fstream>
-#include <sstream>
 #include <unordered_set>
 
 #include "lua_kit.h"
@@ -15,9 +14,141 @@ namespace lprofile {
     
     static thread_local bool t_profilable = false;
 
+    static constexpr int flame_min_dist = 90;    //相邻不同名帧的最小色差阈值
     static constexpr uint64_t flame_suspend_key = (std::numeric_limits<uint64_t>::max)();
     static constexpr size_t flame_max_nodes = 50000;
-    static constexpr int flame_min_dist = 90;    //相邻不同名帧的最小色差阈值
+    static constexpr cpchar FMT_TIP       = "{} | total {} ms | self {} ms | {}% | {} calls | {}:{}";
+    static constexpr cpchar FMT_FRAME     =
+        "<g class=\"frame\" data-id=\"{}\" data-anc=\"{}\" data-row=\"{}\" "
+        "data-x=\"{}\" data-w=\"{}\" data-fill=\"{}\" data-name=\"{}\">"
+        "<title>{}</title>"
+        "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" rx=\"2\" ry=\"2\" fill=\"{}\"/>"
+        "<text x=\"{}\" y=\"{}\">{}</text></g>\n";
+
+    static constexpr cpchar SVG_OPEN    = "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\">\n<title>lprofile flamegraph</title>\n";
+    static constexpr cpchar SVG_DEFS    = "<defs><linearGradient id=\"fg-bg\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"5%\" stop-color=\"#eeeeee\"/><stop offset=\"95%\" stop-color=\"#eeeeb0\"/></linearGradient></defs>\n";
+    static constexpr cpchar SVG_BG      = "{}<rect x=\"0\" y=\"0\" width=\"{}\" height=\"{}\" fill=\"url(#fg-bg)\"/>\n{}";
+    static constexpr cpchar SVG_STYLE   = "<style>text{font:11px monospace;fill:#000000;pointer-events:none}rect{stroke:#ffffff;stroke-width:0.5}g.frame{cursor:pointer}g.frame:hover rect{stroke:#333333;stroke-width:1}g.frame:hover text{font-weight:bold}#fg-unzoom{cursor:pointer;pointer-events:auto}</style>\n";
+    static constexpr cpchar SVG_H1      = "<text x=\"{}\" y=\"22\" text-anchor=\"middle\" style=\"font-size:15px;font-family:Verdana,sans-serif\">Flame Graph</text>\n";
+    static constexpr cpchar SVG_UNZOOM  = "<text id=\"fg-unzoom\" x=\"{}\" y=\"22\" opacity=\"0.25\">Reset Zoom</text>\n";
+    static constexpr cpchar SVG_INFO    = "<text id=\"fg-info\" x=\"{}\" y=\"22\" text-anchor=\"end\">total {} ms | nodes {} | {} | click a frame to zoom</text>\n";
+    static constexpr cpchar SVG_DETAILS = "<text id=\"fg-details\" x=\"{}\" y=\"{}\">hover a frame for details</text>\n";
+    static constexpr cpchar SVG_SCRIPT  = "<script type=\"text/javascript\"><![CDATA[{}\n]]></script>\n</svg>\n";
+
+    static constexpr cpchar const flame_svg_js = R"FGJS(
+(function(){
+  var W = 1200.0, PAD = 20, CW = W - 2 * PAD, zoomed = null;
+  var frames = Array.prototype.slice.call(document.querySelectorAll('g.frame'));
+  var info = document.getElementById('fg-info');
+  var details = document.getElementById('fg-details');
+  var unzoomBtn = document.getElementById('fg-unzoom');
+  var base = info ? info.textContent : '';
+  var idle = details ? details.textContent : '';
+  if (!frames.length) return;
+  //官方 update_text 思路：用 SVG 的 getSubStringLength 按真实像素测量，
+  //二分找最长可容纳前缀，末尾补 ".."。zoom 后格子变宽会自动显示更多文字。
+  function measurable(g) {
+    var t = g.querySelector('text');
+    if (!t || !t.getSubStringLength) return false;
+    //窄帧的 text 初始为空，空文本上 getSubStringLength 会返回 0，
+    //会被误判成"布局未完成"。临时填一个字符再测，测完还原。
+    var old = t.textContent;
+    t.textContent = g.getAttribute('data-name') || 'x';
+    var ok = false;
+    try { ok = t.getSubStringLength(0, 1) > 0; } catch (e) { ok = false; }
+    t.textContent = old;
+    return ok;
+  }
+  function update_text(g) {
+    if (!measurable(g)) return;
+    var r = g.querySelector('rect'), t = g.querySelector('text');
+    var name = g.getAttribute('data-name') || '';
+    var w = parseFloat(r.getAttribute('width')) - 6;
+    t.textContent = name;
+    if (w < 3 * 11 * 0.59) { t.textContent = ''; return; }
+    if (t.getSubStringLength(0, name.length) <= w) return;
+    var lo = 0, hi = name.length;
+    while (lo < hi) {
+      var mid = Math.floor((lo + hi + 1) / 2);
+      if (t.getSubStringLength(0, mid) <= w) lo = mid; else hi = mid - 1;
+    }
+    t.textContent = lo < 2 ? '' : name.substring(0, lo - 2) + '..';
+  }
+  function init_texts() {
+    frames.forEach(function(g) { update_text(g); });
+  }
+  function place(g, x, w, fill) {
+    var r = g.querySelector('rect'), t = g.querySelector('text');
+    r.setAttribute('x', x);
+    r.setAttribute('width', w);
+    if (fill) r.setAttribute('fill', fill);
+    if (t) t.setAttribute('x', x + 3);
+    update_text(g);
+  }
+  function reset() {
+    frames.forEach(function(g) {
+      g.style.display = '';
+      g.removeAttribute('opacity');
+      place(g, parseFloat(g.getAttribute('data-x')), parseFloat(g.getAttribute('data-w')),
+            g.getAttribute('data-fill'));
+    });
+    zoomed = null;
+    if (info) info.textContent = base;
+    if (details) details.textContent = idle;
+    if (unzoomBtn) unzoomBtn.setAttribute('opacity', '0.25');
+  }
+  function zoom(g) {
+    var id = g.getAttribute('data-id');
+    var tx = parseFloat(g.getAttribute('data-x'));
+    var tw = parseFloat(g.getAttribute('data-w')) || 1;
+    var anc = (g.getAttribute('data-anc') || '').split(',');
+    var f = CW / tw;
+    frames.forEach(function(o) {
+      var oid = o.getAttribute('data-id');
+      var oanc = (o.getAttribute('data-anc') || '').split(',');
+      var below = anc.indexOf(oid) >= 0;
+      var inside = (oid === id) || (oanc.indexOf(id) >= 0);
+      if (!below && !inside) { o.style.display = 'none'; return; }
+      o.style.display = '';
+      if (below) {
+        o.setAttribute('opacity', '0.5');
+        place(o, PAD, CW, '#9aa0a6');
+      } else {
+        o.removeAttribute('opacity');
+        var ox = parseFloat(o.getAttribute('data-x'));
+        var ow = parseFloat(o.getAttribute('data-w'));
+        place(o, PAD + (ox - tx) * f, ow * f, o.getAttribute('data-fill'));
+      }
+    });
+    zoomed = id;
+    if (info) info.textContent = 'zoom: ' + g.getAttribute('data-name')
+      + ' | click the background or Reset Zoom';
+    if (unzoomBtn) unzoomBtn.setAttribute('opacity', '1');
+  }
+  init_texts();
+  if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('load', init_texts);
+  }
+  document.documentElement.addEventListener('click', function(e) {
+    if (e.target && e.target.getAttribute && e.target.getAttribute('id') === 'fg-unzoom') {
+      reset(); return;
+    }
+    var g = (e.target && e.target.closest) ? e.target.closest('g.frame') : null;
+    if (!g) { reset(); return; }
+    if (zoomed === g.getAttribute('data-id')) reset(); else zoom(g);
+  });
+  document.documentElement.addEventListener('mouseover', function(e) {
+    var g = (e.target && e.target.closest) ? e.target.closest('g.frame') : null;
+    if (!g || !details) return;
+    var tip = g.querySelector('title');
+    details.textContent = tip ? tip.textContent : (g.getAttribute('data-name') || '');
+  });
+  document.documentElement.addEventListener('mouseout', function(e) {
+    var g = (e.target && e.target.closest) ? e.target.closest('g.frame') : null;
+    if (g && details) details.textContent = idle;
+  });
+})();
+)FGJS";;
 
     struct flame_node {
         string name;                  //显示名（拷贝，避免 VM 字符串被 GC 后悬垂）
@@ -239,35 +370,18 @@ namespace lprofile {
             uint32_t rows = flame_row(m_flame_root, 0, max_row);
             double canvas_h = top_h + pad + (rows + 1) * row_h + pad + bot_h;
 
-            std::ostringstream svg;
-            svg << "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" "
-                << "width=\"" << canvas_w << "\" height=\"" << canvas_h << "\" "
-                << "viewBox=\"0 0 " << canvas_w << " " << canvas_h << "\">\n";
-            svg << "<title>lprofile flamegraph</title>\n";
-            svg << "<defs><linearGradient id=\"fg-bg\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">"
-                << "<stop offset=\"5%\" stop-color=\"#eeeeee\"/>"
-                << "<stop offset=\"95%\" stop-color=\"#eeeeb0\"/>"
-                << "</linearGradient></defs>\n";
-            svg << "<rect x=\"0\" y=\"0\" width=\"" << canvas_w << "\" height=\"" << canvas_h << "\" fill=\"url(#fg-bg)\"/>\n";
-            svg << "<style>text{font:11px monospace;fill:#000000;pointer-events:none}"
-                << "rect{stroke:#ffffff;stroke-width:0.5}"
-                << "g.frame{cursor:pointer}"
-                << "g.frame:hover rect{stroke:#333333;stroke-width:1}"
-                << "g.frame:hover text{font-weight:bold}"
-                << "#fg-unzoom{cursor:pointer;pointer-events:auto}</style>\n";
-            svg << "<text x=\"" << canvas_w / 2 << "\" y=\"22\" text-anchor=\"middle\" "
-                << "style=\"font-size:15px;font-family:Verdana,sans-serif\">Flame Graph</text>\n";
-            svg << "<text id=\"fg-unzoom\" x=\"" << margin_x << "\" y=\"22\" opacity=\"0.25\">Reset Zoom</text>\n";
-            svg << "<text id=\"fg-info\" x=\"" << canvas_w - margin_x << "\" y=\"22\" text-anchor=\"end\">total "
-                << flame_num(double(all) / 1000.0) << " ms | nodes " << m_flame_nodes
-                << " | " << (include_suspend ? "wall-clock (incl. suspend)" : "cpu-only (suspend excluded)")
-                << " | click a frame to zoom</text>\n";
+            string svg;
             uint32_t next_id = 0;
+            svg += std::format(SVG_OPEN, canvas_w, canvas_h, canvas_w, canvas_h);
+            svg += std::format(SVG_BG, SVG_DEFS, canvas_w, canvas_h, SVG_STYLE);
+            svg += std::format(SVG_H1, canvas_w / 2);
+            svg += std::format(SVG_UNZOOM, margin_x);
+            svg += std::format(SVG_INFO, canvas_w - margin_x, flame_num(double(all) / 1000.0), m_flame_nodes,
+                    include_suspend ? "wall-clock (incl. suspend)" : "cpu-only (suspend excluded)");
             flame_emit(m_flame_root, svg, scale, 0, margin_x, pad, row_h, max_row, double(all), rows, top_h, next_id, "", "");
-            svg << "<text id=\"fg-details\" x=\"" << margin_x << "\" y=\"" << (canvas_h - 10) << "\">hover a frame for details</text>\n";
-            svg << "<script type=\"text/javascript\"><![CDATA[\n" << flame_js() << "\n]]></script>\n";
-            svg << "</svg>\n";
-            file << svg.str();
+            svg += std::format(SVG_DETAILS, margin_x, canvas_h - 10);
+            svg += std::format(SVG_SCRIPT, flame_svg_js);
+            file << svg;
             file.close();
             return true;
         }
@@ -337,7 +451,7 @@ namespace lprofile {
             return m_watch_files.contains(node.source);
         }
 
-        static string flame_escape(const string& s) {
+        string flame_escape(const string& s) {
             string out;
             out.reserve(s.size() + 8);
             for (char c : s) {
@@ -353,27 +467,18 @@ namespace lprofile {
             return out;
         }
 
-        static string flame_num(double v) {
-            char buf[32] = {};
-            snprintf(buf, sizeof(buf), "%.2f", v);
-            return buf;
+        string flame_num(double v) {
+            return std::format("{:.2f}", v);
         }
 
-        static uint32_t flame_mix(uint32_t h) {
+        uint32_t flame_mix(uint32_t h) {
             h ^= h >> 16; h *= 0x85ebca6bu;
             h ^= h >> 13; h *= 0xc2b2ae35u;
             h ^= h >> 16;
             return h;
         }
         
-        static int flame_dist(const string& a, const string& b) {
-            int ar = 0, ag = 0, ab = 0, br = 0, bg = 0, bb = 0;
-            if (sscanf(a.c_str(), "rgb(%d,%d,%d)", &ar, &ag, &ab) != 3) return 9999;
-            if (sscanf(b.c_str(), "rgb(%d,%d,%d)", &br, &bg, &bb) != 3) return 9999;
-            return abs(ag - bg) + 2 * abs(ar - br) + abs(ab - bb);
-        }
-        
-        static string flame_color(flame_node& node, uint32_t salt = 0) {
+        string flame_color(flame_node& node, uint32_t salt = 0) {
             uint32_t h = 2166136261u;
             for (unsigned char c : node.name) {
                 h ^= c;
@@ -384,132 +489,10 @@ namespace lprofile {
             double v1 = double(h & 0xff) / 255.0;
             double v2 = double((h >> 8) & 0xff) / 255.0;
             double v3 = double((h >> 16) & 0xff) / 255.0;
-            int r = 205 + int(50 * v3);
-            int g = int(230 * v1);
-            int b = int(55 * v2);
-            char buf[48] = {};
-            snprintf(buf, sizeof(buf), "rgb(%d,%d,%d)", r, g, b);
-            return buf;
+            return std::format("rgb({},{},{})", 205 + int(50 * v3), int(230 * v1), int(55 * v2));
         }
 
-        static cpchar flame_js() {
-            return R"FGJS(
-(function(){
-  var W = 1200.0, PAD = 20, CW = W - 2 * PAD, zoomed = null;
-  var frames = Array.prototype.slice.call(document.querySelectorAll('g.frame'));
-  var info = document.getElementById('fg-info');
-  var details = document.getElementById('fg-details');
-  var unzoomBtn = document.getElementById('fg-unzoom');
-  var base = info ? info.textContent : '';
-  var idle = details ? details.textContent : '';
-  if (!frames.length) return;
-  //官方 update_text 思路：用 SVG 的 getSubStringLength 按真实像素测量，
-  //二分找最长可容纳前缀，末尾补 ".."。zoom 后格子变宽会自动显示更多文字。
-  function measurable(g) {
-    var t = g.querySelector('text');
-    if (!t || !t.getSubStringLength) return false;
-    //窄帧的 text 初始为空，空文本上 getSubStringLength 会返回 0，
-    //会被误判成"布局未完成"。临时填一个字符再测，测完还原。
-    var old = t.textContent;
-    t.textContent = g.getAttribute('data-name') || 'x';
-    var ok = false;
-    try { ok = t.getSubStringLength(0, 1) > 0; } catch (e) { ok = false; }
-    t.textContent = old;
-    return ok;
-  }
-  function update_text(g) {
-    if (!measurable(g)) return;
-    var r = g.querySelector('rect'), t = g.querySelector('text');
-    var name = g.getAttribute('data-name') || '';
-    var w = parseFloat(r.getAttribute('width')) - 6;
-    t.textContent = name;
-    if (w < 3 * 11 * 0.59) { t.textContent = ''; return; }
-    if (t.getSubStringLength(0, name.length) <= w) return;
-    var lo = 0, hi = name.length;
-    while (lo < hi) {
-      var mid = Math.floor((lo + hi + 1) / 2);
-      if (t.getSubStringLength(0, mid) <= w) lo = mid; else hi = mid - 1;
-    }
-    t.textContent = lo < 2 ? '' : name.substring(0, lo - 2) + '..';
-  }
-  function init_texts() {
-    frames.forEach(function(g) { update_text(g); });
-  }
-  function place(g, x, w, fill) {
-    var r = g.querySelector('rect'), t = g.querySelector('text');
-    r.setAttribute('x', x);
-    r.setAttribute('width', w);
-    if (fill) r.setAttribute('fill', fill);
-    if (t) t.setAttribute('x', x + 3);
-    update_text(g);
-  }
-  function reset() {
-    frames.forEach(function(g) {
-      g.style.display = '';
-      g.removeAttribute('opacity');
-      place(g, parseFloat(g.getAttribute('data-x')), parseFloat(g.getAttribute('data-w')),
-            g.getAttribute('data-fill'));
-    });
-    zoomed = null;
-    if (info) info.textContent = base;
-    if (details) details.textContent = idle;
-    if (unzoomBtn) unzoomBtn.setAttribute('opacity', '0.25');
-  }
-  function zoom(g) {
-    var id = g.getAttribute('data-id');
-    var tx = parseFloat(g.getAttribute('data-x'));
-    var tw = parseFloat(g.getAttribute('data-w')) || 1;
-    var anc = (g.getAttribute('data-anc') || '').split(',');
-    var f = CW / tw;
-    frames.forEach(function(o) {
-      var oid = o.getAttribute('data-id');
-      var oanc = (o.getAttribute('data-anc') || '').split(',');
-      var below = anc.indexOf(oid) >= 0;
-      var inside = (oid === id) || (oanc.indexOf(id) >= 0);
-      if (!below && !inside) { o.style.display = 'none'; return; }
-      o.style.display = '';
-      if (below) {
-        o.setAttribute('opacity', '0.5');
-        place(o, PAD, CW, '#9aa0a6');
-      } else {
-        o.removeAttribute('opacity');
-        var ox = parseFloat(o.getAttribute('data-x'));
-        var ow = parseFloat(o.getAttribute('data-w'));
-        place(o, PAD + (ox - tx) * f, ow * f, o.getAttribute('data-fill'));
-      }
-    });
-    zoomed = id;
-    if (info) info.textContent = 'zoom: ' + g.getAttribute('data-name')
-      + ' | click the background or Reset Zoom';
-    if (unzoomBtn) unzoomBtn.setAttribute('opacity', '1');
-  }
-  init_texts();
-  if (typeof window !== 'undefined' && window.addEventListener) {
-    window.addEventListener('load', init_texts);
-  }
-  document.documentElement.addEventListener('click', function(e) {
-    if (e.target && e.target.getAttribute && e.target.getAttribute('id') === 'fg-unzoom') {
-      reset(); return;
-    }
-    var g = (e.target && e.target.closest) ? e.target.closest('g.frame') : null;
-    if (!g) { reset(); return; }
-    if (zoomed === g.getAttribute('data-id')) reset(); else zoom(g);
-  });
-  document.documentElement.addEventListener('mouseover', function(e) {
-    var g = (e.target && e.target.closest) ? e.target.closest('g.frame') : null;
-    if (!g || !details) return;
-    var tip = g.querySelector('title');
-    details.textContent = tip ? tip.textContent : (g.getAttribute('data-name') || '');
-  });
-  document.documentElement.addEventListener('mouseout', function(e) {
-    var g = (e.target && e.target.closest) ? e.target.closest('g.frame') : null;
-    if (g && details) details.textContent = idle;
-  });
-})();
-)FGJS";
-        }
-
-        static size_t flame_trunc(const string& s, size_t n) {
+        size_t flame_trunc(const string& s, size_t n) {
             if (s.size() <= n) return s.size();
             while (n > 0 && (static_cast<unsigned char>(s[n]) & 0xC0) == 0x80) n--;
             return n;
@@ -548,19 +531,13 @@ namespace lprofile {
             return s;
         }
 
-        void flame_emit(flame_node& node, std::ostringstream& svg, double scale,
-                        uint32_t row, double x0, double pad, double row_h,
-                        uint32_t cap, double all, uint32_t rows, double top_h,
-                        uint32_t& next_id, const string& anc,
-                        const string& parent_color) {
+        void flame_emit(flame_node& node, string& svg, double scale, uint32_t row, double x0, double pad, double row_h, uint32_t cap,
+                    double all, uint32_t rows, double top_h, uint32_t& next_id, const string& anc, const string& parent_color) {
             if (row > cap) return;
             bool is_root = &node == &m_flame_root;
             bool hidden = !is_root && flame_filter(node);
-            double w = is_root ? double(all) * scale
-                               : (hidden ? flame_span(node, scale)
-                                         : double(flame_width_time(node)) * scale);
+            double w = is_root ? double(all) * scale : (hidden ? flame_span(node, scale) : double(flame_width_time(node)) * scale);
             if (w < 0.05) return;
-
             string fill = node.color.empty() ? flame_color(node) : node.color;
             string child_parent_color = hidden ? parent_color : fill;
             string child_anc = anc;
@@ -578,24 +555,11 @@ namespace lprofile {
                 }
                 uint64_t wtime = flame_width_time(node);
                 double pct = all > 0 ? double(wtime) * 100.0 / all : 0.0;
-                string tip = node.name + " | total " + flame_num(double(wtime) / 1000.0)
-                    + " ms | self " + flame_num(double(node.self_time) / 1000.0)
-                    + " ms | " + flame_num(pct) + "% | " + std::to_string(node.call_count)
-                    + " calls | " + node.source + ":" + std::to_string(node.line);
-                svg << "<g class=\"frame\" data-id=\"" << my_id
-                    << "\" data-anc=\"" << flame_escape(anc) 
-                    << "\" data-row=\"" << row
-                    << "\" data-x=\"" << flame_num(x0)
-                    << "\" data-w=\"" << flame_num(w)
-                    << "\" data-fill=\"" << fill
-                    << "\" data-name=\"" << flame_escape(node.name)
-                    << "\"><title>" << flame_escape(tip) << "</title>"
-                    << "<rect x=\"" << flame_num(x0) << "\" y=\"" << flame_num(y)
-                    << "\" width=\"" << flame_num(w) << "\" height=\"" << flame_num(row_h - 1)
-                    << "\" rx=\"2\" ry=\"2\" fill=\"" << fill << "\"/>";
-                svg << "<text x=\"" << flame_num(x0 + 3) << "\" y=\"" << flame_num(y + row_h * 0.7)
-                    << "\">" << flame_escape(label) << "</text>";
-                svg << "</g>\n";
+                string tip = std::format(FMT_TIP, node.name, flame_num(double(wtime) / 1000.0),
+                    flame_num(double(node.self_time) / 1000.0), flame_num(pct), node.call_count, node.source, node.line);
+                svg += std::format(FMT_FRAME, my_id, flame_escape(anc), row, flame_num(x0), flame_num(w), fill,
+                    flame_escape(node.name), flame_escape(tip), flame_num(x0), flame_num(y), flame_num(w), 
+                    flame_num(row_h - 1), fill, flame_num(x0 + 3), flame_num(y + row_h * 0.7), flame_escape(label));
             }
             std::vector<flame_node*> kids;
             kids.reserve(node.children.size());
@@ -604,18 +568,10 @@ namespace lprofile {
                 if (a->total_time != b->total_time) return a->total_time > b->total_time;
                 return a->name < b->name;
             });
-            string prev_color = parent_color.empty()
-                ? (node.color.empty() ? flame_color(node) : node.color)
-                : parent_color;
+            string prev_color = parent_color.empty() ? (node.color.empty() ? flame_color(node) : node.color) : parent_color;
             string prev_name = node.name;
             for (auto* kid : kids) {
                 string c = flame_color(*kid);
-                if (kid->name != prev_name && !prev_color.empty() && flame_dist(c, prev_color) < flame_min_dist) {
-                    for (uint32_t s = 1; s <= 12; ++s) {
-                        string alt = flame_color(*kid, s);
-                        if (flame_dist(alt, prev_color) >= flame_min_dist) { c = alt; break; }
-                    }
-                }
                 kid->color = c;
                 prev_color = c;
                 prev_name = kid->name;

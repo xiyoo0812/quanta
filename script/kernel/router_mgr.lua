@@ -5,7 +5,6 @@ local log_err           = logger.err
 local log_info          = logger.info
 local log_debug         = logger.debug
 local tsort             = table.sort
-local tunpack           = table.unpack
 local sformat           = string.format
 local lnext_id          = luakit.next_id
 local qsuccess          = quanta.success
@@ -29,7 +28,7 @@ function RouterMgr:__init()
     --router接口
     self:build_service()
     --监听服务退出
-    event_mgr:add_listener(self, "rpc_service_kickout")
+    event_mgr:listen_event(self, "rpc_service_kickout")
     --监听路由信息
     if discover and environ.status("QUANTA_ROUTER") then
         discover:watch_service(self, "router")
@@ -172,8 +171,7 @@ end
 --发送给指定目标
 function RouterMgr:call_target(target, rpc, ...)
     if target == quanta.id then
-        local res = event_mgr:notify_listener(rpc, ...)
-        return tunpack(res)
+        return event_mgr:notify_event(rpc, ...)
     end
     local session_id = lnext_id()
     return self:forward_target(self:hash_router(target), "call_target", rpc, session_id, target, ...)
@@ -182,8 +180,7 @@ end
 --发送给指定目标
 function RouterMgr:call_target_hash(target, hash_key, rpc, ...)
     if target == quanta.id then
-        local res = event_mgr:notify_listener(rpc, ...)
-        return tunpack(res)
+        return event_mgr:notify_event(rpc, ...)
     end
     local session_id = lnext_id()
     return self:forward_target(self:hash_router(hash_key), "call_target", rpc, session_id, target, ...)
@@ -192,7 +189,7 @@ end
 --发送给指定目标
 function RouterMgr:send_target(target, rpc, ...)
     if target == quanta.id then
-        event_mgr:notify_listener(rpc, ...)
+        event_mgr:notify_event(rpc, ...)
         return true
     end
     return self:forward_target(self:hash_router(target), "call_target", rpc, 0, target, ...)
@@ -201,7 +198,7 @@ end
 --发送给指定目标
 function RouterMgr:send_target_hash(target, hash_key, rpc, ...)
     if target == quanta.id then
-        event_mgr:notify_listener(rpc, ...)
+        event_mgr:notify_event(rpc, ...)
         return true
     end
     return self:forward_target(self:hash_router(hash_key), "call_target", rpc, 0, target, ...)

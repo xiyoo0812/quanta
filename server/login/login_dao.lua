@@ -2,7 +2,6 @@
 import("agent/mongo_proxy.lua")
 
 local log_err       = logger.err
-local tunpack       = table.unpack
 local qfailed       = quanta.failed
 local makechan      = quanta.make_channel
 
@@ -62,8 +61,7 @@ function LoginDao:check_player(user_id, name)
     --检查名称合法性
     local channel = makechan("check_name")
     channel:push(function()
-        local check_res = event_mgr:notify_listener("on_safe_text", user_id, name)
-        local check_ok, code, result_name = tunpack(check_res)
+        local check_ok, code, result_name = event_mgr:notify_event("on_safe_text", user_id, name)
         if qfailed(code, check_ok) then
             log_err("[LoginDao][check_player] user_id:{} ok:{} code:{} result_name:{}", user_id, check_ok, code, result_name)
         end

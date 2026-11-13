@@ -93,13 +93,13 @@ function WSServer:on_socket_accept(session)
         thread_mgr:fork(self.on_socket_error, nil, self, stoken, err)
     end
     --通知链接成功
-    event_mgr:notify_listener("on_socket_accept", session)
+    event_mgr:notify_event("on_socket_accept", session)
 end
 
 function WSServer:on_socket_error(token, err)
     local session = self:remove_session(token)
     if session then
-        event_mgr:notify_listener("on_socket_error", session, token, err)
+        event_mgr:notify_event("on_socket_error", session, token, err)
     end
 end
 
@@ -121,7 +121,7 @@ function WSServer:on_wss_recv(socket, token, opcode, message)
         return
     end
     if opcode <= 0x02 then
-        event_mgr:notify_listener("on_socket_cmd", socket, message)
+        event_mgr:notify_event("on_socket_cmd", socket, message)
     end
 end
 

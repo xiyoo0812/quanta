@@ -20,7 +20,7 @@ local INCR              = quanta.enum("PortMode", "INCR")
 local FRAME_FAILED      = protobuf_mgr:error_code("FRAME_FAILED")
 local FRAME_PARAMS      = protobuf_mgr:error_code("FRAME_PARAMS")
 
-local Message           = import("feature/message_pb.lua")
+local Message           = import("feature/message.lua")
 
 -- CS协议会话对象管理器
 local KcpServer = class()
@@ -92,8 +92,7 @@ function KcpServer:dispatch_message(session, cmd_message)
         return message:callback_code(FRAME_PARAMS)
     end
     -- 事件分发
-    local cmd_id = message.cmd_id
-    local nok = event_mgr:notify_pb_message(cmd_id, session, message, message.request, message.response)
+    local nok = event_mgr:notify_message(message, session)
     if not nok then
         return message:callback_code(FRAME_FAILED)
     end
@@ -138,7 +137,7 @@ function KcpServer:on_socket_accept(session)
         thread_mgr:fork(self.on_socket_error, nil, self, stoken, err)
     end
     --通知链接成功
-    event_mgr:notify_listener("on_socket_accept", session)
+    event_mgr:notify_event("on_socket_accept", session)
 end
 
 -- 广播数据
@@ -181,7 +180,7 @@ function KcpServer:on_socket_error(token, err)
     log_err("[KcpServer][on_socket_error] session: {} lost, because: {}!", token, err)
     local session = self:remove_session(token)
     if session then
-        event_mgr:notify_listener("on_socket_error", session, token, err)
+        event_mgr:notify_event("on_socket_error", session, token, err)
     end
 end
 

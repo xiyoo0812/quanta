@@ -31,7 +31,7 @@ function SyncLock:unlock()
     if self.count > 0 then
         self.count = self.count - 1
         if self.count == 0 then
-            thread_mgr:unlock(self.key)
+            thread_mgr:unlock(self.key, self.co)
         end
     end
 end
