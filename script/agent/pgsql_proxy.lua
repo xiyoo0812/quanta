@@ -7,6 +7,14 @@ local router_mgr    = quanta.get("router_mgr")
 
 local PARAM_ERROR   = quanta.enum("KernCode", "PARAM_ERROR")
 
+--PG 的 on conflict 需要显式冲突目标(主键或唯一索引列), 允许传字符串或数组
+local function as_key_list(keys)
+    if type(keys) == "string" then
+        return { keys }
+    end
+    return keys or {}
+end
+
 local PgsqlAgent = singleton()
 
 function PgsqlAgent:__init()
@@ -67,25 +75,54 @@ function PgsqlAgent:insert(table_name, columns)
 end
 
 -- 重复插入(存在则更新，不存在则插入)
-function PgsqlAgent:insert_or_update(table_name, columns)
+-- conflict_keys: 冲突目标, 主键或唯一索引列, 如 "id" 或 {"id","platform_id"}
+function PgsqlAgent:insert_or_update(table_name, columns, conflict_keys)
     if not next(columns) then
         return false, PARAM_ERROR
     end
-    local sql = sformat("insert into %s %s on duplicate key update %s", table_name, self:format_insert_sql(columns), self:format_update_sql(columns))
+    local keys = as_key_list(conflict_keys)
+    if #keys == 0 then
+        return false, PARAM_ERROR
+    end
+    local ignores, updates = {}, {}
+    for _, key in ipairs(keys) do
+        ignores[key] = true
+    end
+    for key in pairs(columns) do
+        if not ignores[key] then
+            updates[#updates + 1] = sformat("%s=excluded.%s", key, key)
+        end
+    end
+    --只有冲突列时退化为 do nothing, 否则按 excluded 更新非冲突列
+    local action = "do nothing"
+    if #updates > 0 then
+        action = sformat("do update set %s", tconcat(updates, ","))
+    end
+    local sql = sformat("insert into %s %s on conflict (%s) %s",
+            table_name, self:format_insert_sql(columns), tconcat(keys, ","), action)
     return self:query(sql)
 end
 
--- 替换
-function PgsqlAgent:replace(table_name, columns)
+-- 替换(PG 无 replace into, 用 on conflict 全列覆盖模拟)
+function PgsqlAgent:replace(table_name, columns, conflict_keys)
     if not next(columns) then
         return false, PARAM_ERROR
     end
-    local sql = sformat("replace into %s %s", table_name, self:format_insert_sql(columns))
+    local keys = as_key_list(conflict_keys)
+    if #keys == 0 then
+        return false, PARAM_ERROR
+    end
+    local updates = {}
+    for key in pairs(columns) do
+        updates[#updates + 1] = sformat("%s=excluded.%s", key, key)
+    end
+    local sql = sformat("insert into %s %s on conflict (%s) do update set %s",
+            table_name, self:format_insert_sql(columns), tconcat(keys, ","), tconcat(updates, ","))
     return self:query(sql)
 end
 
--- 查询
-function PgsqlAgent:query(table_name, conditions, fields)
+-- 条件查询
+function PgsqlAgent:select(table_name, conditions, fields)
     local query_sql = "*"
     if fields and #fields > 0 then
         query_sql = self:format_query_sql(fields)
@@ -119,18 +156,18 @@ end
 --发送数据库请求
 function PgsqlAgent:query(sql, primary_id)
     local key = primary_id or mrandom()
-    return router_mgr:call_mongo_hash(key, "rpc_pgsql_query", key, sql)
+    return router_mgr:call_pgsql_hash(key, "rpc_pgsql_query", key, sql)
 end
 
 --发送数据库请求
 function PgsqlAgent:prepare(stmt, sql)
-    return router_mgr:call_mongo_master("rpc_pgsql_prepare", stmt, sql)
+    return router_mgr:call_pgsql_master("rpc_pgsql_prepare", stmt, sql)
 end
 
 --发送数据库请求
 function PgsqlAgent:execute(primary_id, stmt, ...)
     local key = primary_id or mrandom()
-    return router_mgr:call_mongo_hash(key, "rpc_pgsql_execute", key, stmt, ...)
+    return router_mgr:call_pgsql_hash(key, "rpc_pgsql_execute", key, stmt, ...)
 end
 
 ------------------------------------------------------------------

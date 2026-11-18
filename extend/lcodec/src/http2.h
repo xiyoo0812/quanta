@@ -89,6 +89,7 @@ namespace lcodec {
         virtual ~h2_stream() {}
         virtual bool is_complete() = 0;
         virtual void push_packet(lua_State* L) = 0;
+        virtual bool has_packet() { return false; }
         virtual uint32_t encode_data_frame(lua_State* L, luabuf* buf, int index) { return 0; }
         virtual h2_frame_header* encode_header_frame(lua_State* L, h2_dynamic& sender, luabuf* buf, int* index) = 0;
         virtual bool decode_frame(lua_State* L, h2_frame_header* header, slice* slice, h2_dynamic* dynamic = nullptr) = 0;
@@ -111,20 +112,26 @@ namespace lcodec {
             h2fh->stream.id = 0;
             switch (type) {
             case H2_PING:
-                h2fh->settings.ack = lua_toboolean(L, (*index)++);
-                buf->write(lua_tointeger(L, *index));
+                h2fh->ping.ack = (uint8_t)lua_toboolean(L, (*index)++);
+                buf->swap_write<uint64_t>((uint64_t)lua_tointeger(L, (*index)++));
                 break;
             case H2_GOAWAY:
-                buf->write<uint32_t>(lua_tointeger(L, (*index)++));
-                buf->write<uint32_t>(lua_tointeger(L, (*index)++));
+                buf->swap_write<uint32_t>((uint32_t)lua_tointeger(L, (*index)++));
+                buf->swap_write<uint32_t>((uint32_t)lua_tointeger(L, (*index)++));
                 buf->write(luaL_optstring(L, *index, ""));
                 break;
+            case H2_RST_STREAM:
+                h2fh->stream.id = byteswap((uint32_t)lua_tointeger(L, (*index)++));
+                buf->swap_write<uint32_t>((uint32_t)lua_tointeger(L, (*index)++));
+                break;
             case H2_SETTINGS:
-                if (lua_istable(L, *index)) {
+                if (lua_isboolean(L, *index)) {
+                    h2fh->settings.ack = (uint8_t)lua_toboolean(L, (*index)++);
+                } else if (lua_istable(L, *index)) {
                     lua_pushnil(L);
                     while (lua_next(L, -2)) {
-                        buf->write<uint16_t>(lua_tointeger(L, -2));
-                        buf->write<uint32_t>(lua_tointeger(L, -1));
+                        buf->swap_write<uint16_t>((uint16_t)lua_tointeger(L, -2));
+                        buf->swap_write<uint32_t>((uint32_t)lua_tointeger(L, -1));
                         lua_pop(L, 1);
                     }
                 }
@@ -136,21 +143,30 @@ namespace lcodec {
         }
 
         virtual bool decode_frame(lua_State* L, h2_frame_header* header, slice* slice, h2_dynamic* dynamic = nullptr) {
+            frame_type = header->head.type;
             switch (header->head.type) {
-            case H2_PING:
-                timestamp = slice->swap_read<uint64_t>(); break;
             case H2_WINDOW_UPDATE:
                 win_size = slice->swap_read<int32_t>(); break;
-            case H2_SETTINGS:
-                setting_ack = header->settings.ack;
-                for (int i = 0; i < slice->size() / 6; ++i) {
-                    settings.emplace(slice->swap_read<uint16_t>() , slice->swap_read<uint32_t>());
+            case H2_PING: {
+                    timestamp = slice->swap_read<uint64_t>();
+                    ping_ack = header->ping.ack;
                 }
                 break;
-            case H2_GOAWAY:
-                goaway_id = slice->swap_read<uint32_t>();
-                goaway_code = slice->swap_read<uint32_t>();
-                goaway_msg = slice->contents();
+            case H2_SETTINGS: {
+                    size_t count = slice->size() / 6;
+                    setting_ack = header->settings.ack;
+                    for (size_t i = 0; i < count; ++i) {
+                        uint16_t key = slice->swap_read<uint16_t>();
+                        uint32_t value = slice->swap_read<uint32_t>();
+                        settings.emplace(key, value);
+                    }
+                }
+                break;
+            case H2_GOAWAY: {
+                    goaway_id = slice->swap_read<uint32_t>();
+                    goaway_code = slice->swap_read<uint32_t>();
+                    goaway_msg = slice->contents();
+                }
                 break;
             default: throw lua_exception("invalid h2 header type"); break;
             }
@@ -176,7 +192,13 @@ namespace lcodec {
             lua_seti(L, -2, index++);
             lua_pushstring(L, goaway_msg.c_str());
             lua_seti(L, -2, index++);
+            lua_pushboolean(L, ping_ack);
+            lua_seti(L, -2, index++);
+            lua_pushinteger(L, (int)frame_type);
+            lua_seti(L, -2, index++);
             settings.clear();
+            setting_ack = false;
+            ping_ack = false;
             timestamp = 0;
             win_size = 0;
         }
@@ -187,6 +209,8 @@ namespace lcodec {
         uint32_t goaway_code = 0;
         uint64_t timestamp = 0;
         bool setting_ack = false;
+        bool ping_ack = false;
+        h2_frame_type frame_type = H2_MAX;
         map<uint16_t, uint32_t> settings = {};
     };
 
@@ -429,9 +453,12 @@ namespace lcodec {
     protected:
         virtual void decode_body(lua_State* L, int index) {
             if (auto codec = find_codec(hcodec, recv_headers, CONTENTT); codec) {
+                slice slice((uint8_t*)body.c_str(), body.size());
+                codec->set_slice(&slice);
+                int plen = codec->load_packet(body.size());
                 lua_pushstring(L, output_type.c_str());
                 codec->decode(L, (uint8_t*)body.c_str(), body.size());
-                body.erase(0, codec->get_packet_len());
+                body.erase(0, plen);
                 lua_seti(L, -2, index);
             }
         }
@@ -443,6 +470,15 @@ namespace lcodec {
             slice slice((uint8_t*)body.c_str(), body.size());
             codec->set_slice(&slice);
             return codec->load_packet(body.size());
+        }
+
+        virtual bool has_packet() {
+            if (body.empty()) return false;
+            auto codec = find_codec(hcodec, recv_headers, CONTENTT);
+            if (!codec) return false;
+            slice slice((uint8_t*)body.c_str(), body.size());
+            codec->set_slice(&slice);
+            return codec->load_packet(body.size()) > 0;
         }
 
     protected:
@@ -527,8 +563,10 @@ namespace lcodec {
             int top = lua_gettop(L);
             lua_createtable(L, 0, 8);
             for (auto& [stream_id, stream] : completes) {
-                stream->push_packet(L);
-                lua_seti(L, -2, index++);
+                do {
+                    stream->push_packet(L);
+                    lua_seti(L, -2, index++);
+                } while (stream->has_packet());
                 if (stream->is_complete()) {
                     streams.erase(stream_id);
                     delete stream;

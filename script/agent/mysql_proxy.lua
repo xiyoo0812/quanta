@@ -84,8 +84,8 @@ function MysqlProxy:replace(table_name, columns)
     return self:query(sql)
 end
 
--- 查询
-function MysqlProxy:query(table_name, conditions, fields)
+-- 条件查询
+function MysqlProxy:select(table_name, conditions, fields)
     local query_sql = "*"
     if fields and #fields > 0 then
         query_sql = self:format_query_sql(fields)
@@ -119,18 +119,18 @@ end
 --发送数据库请求
 function MysqlProxy:query(sql, primary_id)
     local key = primary_id or mrandom()
-    return router_mgr:call_mongo_hash(key, "rpc_pgsql_query", key, sql)
+    return router_mgr:call_mysql_hash(key, "rpc_mysql_query", key, sql)
 end
 
 --发送数据库请求
 function MysqlProxy:prepare(stmt, sql)
-    return router_mgr:call_mongo_master("rpc_pgsql_prepare", stmt, sql)
+    return router_mgr:call_mysql_master("rpc_mysql_prepare", stmt, sql)
 end
 
 --发送数据库请求
 function MysqlProxy:execute(primary_id, stmt, ...)
     local key = primary_id or mrandom()
-    return router_mgr:call_mongo_hash(key, "rpc_pgsql_execute", key, stmt, ...)
+    return router_mgr:call_mysql_hash(key, "rpc_mysql_execute", key, stmt, ...)
 end
 
 ------------------------------------------------------------------

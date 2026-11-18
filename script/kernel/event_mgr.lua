@@ -35,7 +35,7 @@ function EventMgr:on_frame()
     self.fnotify_map = {}
     for obj, events in pairs(nhandlers) do
         for event, args in pairs(events) do
-            thread_mgr:fork(obj.notify_event, nil, event, obj, tunpack(args))
+            thread_mgr:fork(obj.trigger_event, nil, event, obj, tunpack(args))
         end
     end
 end

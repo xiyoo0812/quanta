@@ -65,7 +65,7 @@ function MsgComponent:on_load_reliable_events()
     local events = msg_queue:list_message(self.id)
     if events then
         for _, event in ipairs(events) do
-            self:notify_event(event.event, tunpack(event.args))
+            self:trigger_event(event.event, tunpack(event.args))
         end
         msg_queue:delete_message(self.id, events)
     end

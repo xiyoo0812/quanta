@@ -33,9 +33,14 @@ function HttpClient:__init(version)
     self.jcodec = jsoncodec()
     self.version = version or HTTP_1_1
     update_mgr:attach_quit(self)
+    update_mgr:attach_minute(self)
     self.content_codecs = {
         ["application/json"] = self.jcodec,
     }
+end
+
+function HttpClient:on_minute()
+    self.domains = {}
 end
 
 function HttpClient:on_quit()

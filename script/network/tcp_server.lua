@@ -85,7 +85,7 @@ end
 function TcpServer:dispatch_message(session, cmd_message)
     local message<close> = cmd_message
     -- 前置处理: 协议过滤/统计
-    event_mgr:notify_trigger("on_recv_tcp_message", cmd_message)
+    event_mgr:notify_trigger("on_recv_tcp_message", message)
     -- 参数检测
     if message.flag & FLAG_REQ ~= FLAG_REQ then
         return message:callback_code(FRAME_PARAMS)

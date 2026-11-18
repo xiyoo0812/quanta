@@ -53,7 +53,7 @@ function KcpClient:dispatch_wait(cmd_id, body)
     end
 end
 
-function KcpClient:dispatch_message(socket, message, cmd_id, session_id)
+function KcpClient:on_dispatch_message(socket, message, cmd_id, session_id)
     if session_id == 0 then
         -- 事件分发
         event_mgr:notify_message(message, socket)
@@ -76,7 +76,7 @@ function KcpClient:dispatch_message(socket, message, cmd_id, session_id, flag)
         return
     end
     -- 事件分发
-    self:dispatch_message(socket, message, cmd_id, session_id)
+    self:on_dispatch_message(socket, message, cmd_id, session_id)
     self:dispatch_wait(cmd_id, message.request)
 end
 
@@ -137,9 +137,10 @@ function KcpClient:close()
 end
 
 function KcpClient:output(cmd_id, data, type, session_id, flag, target_id)
-    local ok = self.socket.call_client(cmd_id, flag, type, session_id, target_id, data)
+    local func = self.socket.call_client
+    local ok, res = pcall(func, cmd_id, flag, type, session_id, target_id, data)
     if not ok then
-        return false
+        return false, res
     end
     if not session_id or session_id <= 0 then
         return true

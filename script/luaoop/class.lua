@@ -111,7 +111,16 @@ local function object_address(obj)
     return obj.__addr
 end
 
+local function class_static_call(class)
+    local static_func = rawget(class.__vtbl, "__static")
+    if static_func then
+        rawset(class.__vtbl, "__static", nil)
+        static_func()
+    end
+end
+
 local function mt_class_new(class, ...)
+    class_static_call(class)
     if rawget(class, "__singleton") then
         local obj = rawget(class, "__inst")
         if obj then
@@ -140,8 +149,6 @@ local function mt_class_newindex(class, field, value)
         if ssub(field, 1, 2) ~= "__" and not _G.HOTFIXING then
             warn(sformat("the class %s: %s has repeat defined.", class.__name, field))
         end
-    elseif field == "__init_static" then
-        value()
     end
     class.__vtbl[field] = value
 end

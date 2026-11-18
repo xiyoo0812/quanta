@@ -6,9 +6,6 @@ SOLUTION = "quanta"
 --lmake目录
 LMAKE_DIR = "tools/lmake"
 
---开启优化
---OPTIMIZE = true
-
 --MSVC_VERSION = 18
 --MSVC_TOOLSET = 145
 --MSVC_FMT_SLNX = false

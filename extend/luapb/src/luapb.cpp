@@ -27,13 +27,8 @@ namespace luapb {
         uint8_t     crc8;       // crc8
     };
     struct grpc_header {
-        union {
-            uint32_t head;
-            struct {
-                uint32_t compose : 8;  //是否压缩
-                uint32_t length : 24;  //长度24bit(1M)
-            };
-        };
+        uint8_t  compose;  //是否压缩
+        uint32_t length;   //长度4字节(网络字节序, 上限4G)
     };
     #pragma pack()
 
