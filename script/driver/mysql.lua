@@ -88,8 +88,7 @@ end
 
 function MysqlDB:on_hour()
     for _, sock in pairs(self.alives) do
-        self.executer = sock
-        self:request(COM_PING, "mysql ping")
+        self:request_on(sock, COM_PING, "mysql ping")
     end
 end
 
@@ -185,14 +184,19 @@ function MysqlDB:on_socket_recv(socket, session_id, ...)
     end
 end
 
-function MysqlDB:request(cmd, quote, ...)
-    if self.executer then
-        local session_id = lnext_id()
-        if self.executer:send_data(cmd, session_id, ...) then
-            return thread_mgr:yield(session_id, quote, DBCALL_TO)
-        end
+function MysqlDB:request_on(sock, cmd, quote, ...)
+    if not sock then
+        return false, "db not connected"
+    end
+    local session_id = lnext_id()
+    if sock:send_data(cmd, session_id, ...) then
+        return thread_mgr:yield(session_id, quote, DBCALL_TO)
     end
     return false, "send request failed"
+end
+
+function MysqlDB:request(cmd, quote, ...)
+    return self:request_on(self.executer, cmd, quote, ...)
 end
 
 function MysqlDB:query(query)
@@ -205,11 +209,12 @@ function MysqlDB:prepare(name, sql)
     return true
 end
 
-function MysqlDB:prepare_check(name)
-    if not self.executer then
+function MysqlDB:prepare_check(name, sock)
+    sock = sock or self.executer
+    if not sock then
         return false, "db not connected"
     end
-    local stmt_id = self.executer.stmts[name]
+    local stmt_id = sock.stmts[name]
     if stmt_id then
         return true, stmt_id
     end
@@ -217,21 +222,22 @@ function MysqlDB:prepare_check(name)
     if not query then
         return false, "prepare statement not found"
     end
-    local ok, stmtid_or_err = self:request(COM_STMT_PREPARE, "mysql prepare", query)
+    local ok, stmtid_or_err = self:request_on(sock, COM_STMT_PREPARE, "mysql prepare", query)
     if not ok then
         return false, stmtid_or_err
     end
-    self.executer.stmts[name] = stmtid_or_err
+    sock.stmts[name] = stmtid_or_err
     return true, stmtid_or_err
 end
 
 --执行预处理语句
 function MysqlDB:execute(name, ...)
-    local ok, stmt_id = self:prepare_check(name)
+    local sock = self.executer
+    local ok, stmt_id = self:prepare_check(name, sock)
     if not ok then
-        return false, "prepare statement not found"
+        return false, stmt_id
     end
-    return self:request(COM_STMT_EXECUTE, "mysql execute", stmt_id, ...)
+    return self:request_on(sock, COM_STMT_EXECUTE, "mysql execute", stmt_id, ...)
 end
 
 local escape_map = {

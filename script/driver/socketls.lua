@@ -14,8 +14,6 @@ local thread_mgr    = quanta.get("thread_mgr")
 local TIMEOUT       = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local HTTP_TIMEOUT  = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
-
-
 local Socketls = class(Socket)
 local prop = property(Socketls)
 prop:reader("tls_handshake", false) --handshake
@@ -27,7 +25,12 @@ prop:accessor("tls_enable", true)   --tls_enable
 function Socketls:__init(host, ip, port)
 end
 
-function Socketls:__init_static()
+function Socketls:close()
+    self.tls_handshake = false
+    Socket.close(self)
+end
+
+function Socketls:__static()
     tls.init_cas("./data/cacert.pem")
 end
 
@@ -42,6 +45,10 @@ end
 
 function Socketls:set_content_codec(content, codec)
     content_codec(self.tls_codec or self.codec, content, codec)
+end
+
+function Socketls:is_ready()
+    return self.tls_handshake
 end
 
 function Socketls:on_tls_handshake(codec)
@@ -80,6 +87,11 @@ function Socketls:on_socket_connected()
     return self:on_tls_handshaked()
 end
 
+function Socketls:on_socket_error(token, err)
+    self.tls_handshake = false
+    Socket.on_socket_error(self, token, err)
+end
+
 function Socketls:on_socket_recv(...)
     if self.tls_handshake then
         return self:on_http_recv(...)
@@ -92,7 +104,7 @@ function Socketls:on_http_recv(session_id, status, headers, body)
 end
 
 function Socketls:send_packet(url, ...)
-    if self.alive then
+    if self.tls_handshake then
         local session_id = lnext_id()
         local send_len = self.session.call_text(session_id, url, ...)
         if send_len <= 0 then
@@ -100,7 +112,7 @@ function Socketls:send_packet(url, ...)
         end
         return thread_mgr:yield(session_id, url, HTTP_TIMEOUT)
     end
-    return false, "socket not alive"
+    return false, "socket not handshake"
 end
 
 return Socketls

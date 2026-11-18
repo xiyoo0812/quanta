@@ -22,8 +22,8 @@ local _redis_subscribe_replys = {
         end
     end,
     pmessage = function(self, pattern, channel, data)
-        if self.callbacks[channel] then
-            self.callbacks[channel](channel, data)
+        if self.callbacks[pattern] then
+            self.callbacks[pattern](channel, data)
         end
     end,
     subscribe = function(self, channel, status)
@@ -49,26 +49,26 @@ prop:reader("psubscribes", {})
 
 function PSRedis:__init(conf)
     self.subscrible = true
-    self:setup_command()
 end
 
-function PSRedis:setup_command()
+function PSRedis:__static()
     for cmd, param in pairs(subscribe_commands) do
         PSRedis[cmd] = function(this, callback, channel)
-            if self.callbacks[channel] then
+            if this.callbacks[channel] then
                 return true
             end
-            self.callbacks[channel] = callback
-            if self.executer then
-                return this:commit(self.executer, param, channel)
+            this.callbacks[channel] = callback
+            if this.executer then
+                return this:commit(this.executer, param.cmd, channel)
             end
             return false, "db not connected"
         end
     end
     for cmd, param in pairs(unsubscribe_commands) do
         PSRedis[cmd] = function(this, channel)
-            if self.executer then
-                return this:commit(self.executer, param, channel)
+            this.callbacks[channel] = nil
+            if this.executer then
+                return this:commit(this.executer, param.cmd, channel)
             end
             return false, "db not connected"
         end
@@ -94,7 +94,7 @@ function PSRedis:on_socket_alive(sock)
         self:commit(sock, "subscribe", channel)
     end
     for channel in pairs(self.psubscribes) do
-        self:commit(sock, "psubscribes", channel)
+        self:commit(sock, "psubscribe", channel)
     end
 end
 

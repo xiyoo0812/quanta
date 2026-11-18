@@ -1,6 +1,8 @@
 --ltemplate.lua
 local ipairs        = ipairs
 local iopen         = io.open
+local oremove       = os.remove
+local orename       = os.rename
 local tconcat       = table.concat
 local ssub          = string.sub
 local sfind         = string.find
@@ -65,6 +67,15 @@ end
 local function compile_chunks(chunks)
     local buffers = {}
     push_token(buffers, "local _b, _b_i = {}, 0 \n")
+    --输出值统一转成字符串，nil/false 视为空，避免出现表洞导致整篇渲染失败
+    push_token(buffers, "local function _tostr(v)\n",
+        "    if v == nil or v == false then return \"\" end\n",
+        "    local tv = type(v)\n",
+        "    if tv == \"table\" or tv == \"function\" or tv == \"userdata\" or tv == \"thread\" then\n",
+        "        error(\"template value is a \" .. tv .. \", cannot output\")\n",
+        "    end\n",
+        "    return tostring(v)\n",
+        "end\n")
     for _, chunk in ipairs(chunks) do
         local tpe = chunk[1]
         if "string" == tpe then
@@ -72,7 +83,7 @@ local function compile_chunks(chunks)
         elseif "code" == tpe then
             push_token(buffers, chunk[2], "\n")
         elseif "equal" == tpe then
-            push_token(buffers, "_b_i = _b_i + 1\n", "_b[_b_i] = ",  chunk[2], "\n")
+            push_token(buffers, "_b_i = _b_i + 1\n", "_b[_b_i] = _tostr(",  chunk[2], ")\n")
         end
     end
     push_token(buffers, "return _b")
@@ -133,7 +144,8 @@ local function parse(content)
 end
 
 local function load_chunk(chunk_code, env)
-    local fn, err = load(chunk_code, env.name, "bt", env)
+    --chunkname用模板文件名，报错时才能定位到具体模板
+    local fn, err = load(chunk_code, env.NAME or "template", "bt", env)
     if not fn then
         return nil, parse_error(chunk_code, err)
     end
@@ -164,6 +176,16 @@ local function render(content, env)
     return nil, chunk
 end
 
+--替换目标文件，windows下os.rename不允许覆盖已存在文件
+local function replace_file(src_file, dst_file)
+    local ok = orename(src_file, dst_file)
+    if ok then
+        return true
+    end
+    oremove(dst_file)
+    return orename(src_file, dst_file)
+end
+
 --根据配置导出文件模板
 --tpl_f: 文件模板
 --tpl_out_f: 输出文件
@@ -181,22 +203,28 @@ local function render_file(tpl_f, tpl_out_f, tpl_env)
     tpl_env.NAME = tpl_f
     local content = template_file:read("*all")
     template_file:close()
-    local out_file = iopen(tpl_out_f, "w")
+    local tmp_out_f = tpl_out_f .. ".tmp"
+    local out_file = iopen(tmp_out_f, "w")
     if not out_file then
-        error(sformat("open template out file %s failed!", tpl_out_f))
+        error(sformat("open template out file %s failed!", tmp_out_f))
         return
     end
-    local ok, template, chunk = pcall(render, content, tpl_env)
+    local ok, template = pcall(render, content, tpl_env)
     if not ok or not template then
-        if chunk then
-            out_file:write(chunk)
-        end
         out_file:close()
-        error(sformat("render template file %s to %s failed: %s!", tpl_f, tpl_out_f, template))
+        oremove(tmp_out_f)
+        local reason = ok and "render output is nil, see message above" or tostring(template)
+        error(sformat("render template file %s to %s failed: %s!", tpl_f, tpl_out_f, reason))
         return
     end
     out_file:write(template)
     out_file:close()
+    local renamed, rerr = replace_file(tmp_out_f, tpl_out_f)
+    if not renamed then
+        oremove(tmp_out_f)
+        error(sformat("replace template out file %s failed: %s!", tpl_out_f, rerr))
+        return
+    end
     print(sformat("render template file %s to %s success!", tpl_f, tpl_out_f))
 end
 

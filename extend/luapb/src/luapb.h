@@ -289,9 +289,9 @@ namespace luapb{
         virtual void push_default(lua_State* L, int index) {
             if constexpr (is_pointer_v<T>) return;
             lua_rawgeti(L, LUA_REGISTRYINDEX, name_ref);
-            if constexpr (is_integral_v<T>) lua_pushinteger(L, 0);
+            if constexpr (is_same_v<T, bool>) lua_pushboolean(L, false);
+            else if constexpr (is_integral_v<T>) lua_pushinteger(L, 0);
             else if constexpr (is_floating_point_v<T>) lua_pushnumber(L, 0);
-            else if constexpr (is_same_v<T, bool>) lua_pushboolean(L, false);
             else if constexpr (is_same_v<T, string_view>) lua_pushstring(L, "");
             lua_settable(L, -3);
         }

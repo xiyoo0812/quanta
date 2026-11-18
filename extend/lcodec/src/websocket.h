@@ -12,6 +12,7 @@ namespace lcodec {
             uint8_t payloadlen = (*payload) & 0x7f;
             if (payloadlen < 0x7e) {
                 m_packet_len = masklen + payloadlen + sizeof(uint16_t);
+                if (m_packet_len > m_slice->size()) return 0;
                 return m_packet_len;
             }
             size_t ext_len = (payloadlen == 0x7f) ? 8 : 2;

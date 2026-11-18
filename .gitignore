@@ -73,3 +73,11 @@ bin/config
 *.xml
 *.pb
 .workbuddy/
+
+# lmake build output
+bin/develop/
+bin/release/
+bin/x-nix/
+library/develop/
+library/release/
+library/x-nix/

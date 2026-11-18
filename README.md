@@ -16,6 +16,7 @@
 - linux：安装mgcc13以上，在项目根目录，执行make all。
 - macos: 安装clang15以上，在项目根目录，执行make all。
 - android: 安装termux和clang，在项目根目录，执行make all。
+- 编译产物按环境分目录存放：windows为`bin/develop`（develop配置）和`bin/release`（release配置，开启O2优化），linux/macos/android统一为`bin/x-nix`。执行setup脚本时会自动把对应环境的二进制复制到`bin`根目录。
 
 # 工程
 - 本项目使用[lmake](https://github.com/xiyoo0812/lmake.git)管理
@@ -25,7 +26,7 @@
 --工程名
 SOLUTION = "quanta"
 --lmake目录
-LMAKE_DIR = "extend/lmake"
+LMAKE_DIR = "tools/lmake"
 ```
 - 子项目配置*.lmake
 - 执行以下指令自动生成项目文件(makefile/vcxproj)
@@ -42,20 +43,19 @@ LMAKE_DIR = "extend/lmake"
 
 # 体验引擎
 - 配置
-在bin/config目录下，仿造quanta.conf生成配置实例，然后在bin目录执行setup.bat/setup.sh，会自动生成项目配置
+在`bin/environ`目录下，仿造quanta.conf生成配置实例，然后在bin目录执行setup脚本：它会先把对应环境的二进制复制到`bin`根目录，再生成`bin/config`下的项目配置。
 ```shell
-#linux
-#需要加参数配置文件名
-setup.sh quanta
-#windows
+# linux/mac/android: 默认从 bin/x-nix 复制二进制，参数为配置实例名
+./setup.sh quanta
+# windows: 依次提示输入环境名和配置实例名
 setup.bat
-#然后输入配置文件名
-#>>quanta
+#>> please input your env (develop/release): develop
+#>> please input your conf name: quanta
 ```
 - 执行
 可以bin下的quanta.bat/quanta.sh, test.bat/test.sh体验
 ```shell
-#linux
+#linux/mac/android
 quanta.sh
 #windows
 quanta.bat

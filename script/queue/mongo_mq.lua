@@ -62,13 +62,13 @@ function MongoMQ:send_message(target_id, event, args, ttl)
         --设置过期ttl字段
         doc.ttl = bdate(quanta.now + ttl)
     end
-    local ok = mongo_proxy:insert({ self.coll_name, doc }, target_id)
-    if not ok then
-        log_err("[MongoMQ][send_message] send message failed: {}, {}", target_id, args)
-        return ok
+    local ok, code = mongo_proxy:insert({ self.coll_name, doc }, target_id)
+    if qsuccess(code, ok) then
+        log_debug("[MongoMQ][send_message] send message succeed: {}, {}", target_id, args)
+        return true
     end
-    log_debug("[MongoMQ][send_message] send message succeed: {}, {}", target_id, args)
-    return ok
+    log_err("[MongoMQ][send_message] send message failed: {}, {}", target_id, args)
+    return false
 end
 
 return MongoMQ

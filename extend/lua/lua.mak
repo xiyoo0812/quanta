@@ -84,14 +84,18 @@ endif
 #临时文件目录
 INT_DIR = $(SOLUTION_DIR)temp/$(PROJECT_NAME)
 
+#输出目录（linux/macos/android 等类 unix 平台统一放到 bin/x-nix 与 library/x-nix）
+BIN_DIR = $(SOLUTION_DIR)bin/x-nix
+LIB_DIR = $(SOLUTION_DIR)library/x-nix
+
 
 #目标定义
-TARGET_DIR = $(SOLUTION_DIR)bin
+TARGET_DIR = $(BIN_DIR)
 TARGET_EXECUTE = $(TARGET_DIR)/$(TARGET_NAME)
 
 #link添加.so目录
-LDFLAGS += -L$(SOLUTION_DIR)bin
-LDFLAGS += -L$(SOLUTION_DIR)library
+LDFLAGS += -L$(BIN_DIR)
+LDFLAGS += -L$(LIB_DIR)
 
 #自动生成目标
 SOURCES =
@@ -126,7 +130,8 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
-	mkdir -p $(SOLUTION_DIR)library
+	mkdir -p $(BIN_DIR)
+	mkdir -p $(LIB_DIR)
 	mkdir -p $(INT_DIR)/lua
 
 #后编译

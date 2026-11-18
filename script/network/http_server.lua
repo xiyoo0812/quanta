@@ -177,12 +177,14 @@ function HttpServer:response(socket, status, response, headers)
     if self.cors_headers then
         tcopy(self.cors_headers, headers)
     end
+    if type(response) == "string" then
+        if not headers["Content-Type"] then
+            local html = response:find("<html")
+            headers["Content-Type"] = html and "text/html" or "text/plain"
+        end
+    end
     if not headers["Content-Type"] then
         headers["Content-Type"] = "application/json"
-    end
-    if type(response) == "string" then
-        local html = response:find("<html")
-        headers["Content-Type"] = html and "text/html" or "text/plain"
     end
     socket:send_data(status, headers, response)
     --下一帧关闭

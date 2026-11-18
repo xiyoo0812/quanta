@@ -62,7 +62,7 @@ function GateClient:call_lobby(cmd_id, data)
     return self:call(cmd_id, data, SERVICE, sname2sid("lobby"))
 end
 
-function GateClient:on_verify_code_ntf(session, message, body)
+function GateClient:on_verify_code_ntf(message, body, res)
     self.verify_code = body.verify_code
 end
 

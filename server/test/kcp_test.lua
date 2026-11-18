@@ -38,7 +38,7 @@ function KcpTest:on_socket_error(token, err)
     log_debug("[KcpTest][on_socket_error] session: {} lost, because: {}!", token, err)
 end
 
-function KcpTest:on_heartbeat_req(session, message, body, response)
+function KcpTest:on_heartbeat_req(message, body, response, session)
     log_debug("[KcpTest][on_heartbeat_req] {} heartbeat req: {}", session.token, body)
     response.time = quanta.now_ms
     response.serial = body.serial + 1
