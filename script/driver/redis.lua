@@ -44,10 +44,11 @@ local function _tomap(value)
 end
 
 local function _toboolean(value)
-    if value == 1 or value == 'true' or value == 'TRUE' then
-        return true
+    local number = tonumber(value)
+    if number then
+        return number ~= 0
     end
-    return false
+    return value == 'true' or value == 'TRUE'
 end
 
 local function _toscan(value)
@@ -103,6 +104,7 @@ prop:reader("alives", {})           --alives
 prop:reader("slots", {})            --slots
 prop:reader("subscrible", false)
 prop:reader("cluster", false)       --cluster
+prop:reader("refreshing", false)    --拓扑刷新中(防并发重入)
 
 function RedisDB:__init(conf)
     self.passwd = conf.passwd
@@ -134,6 +136,10 @@ function RedisDB:setup(conf)
     self.timer:register(FAST_MS, SECOND_MS, -1, function()
         self.rcfunctor:run(self)
     end)
+end
+
+function RedisDB:on_minute()
+    self:check_clusters()
 end
 
 function RedisDB:setup_pool(hosts)
@@ -176,6 +182,7 @@ function RedisDB:set_options(opts)
     if opts.cluster then
         log_debug("[RedisDB][set_options] cluster status open")
         self.cluster = true
+        update_mgr:attach_minute(self)
     end
 end
 
@@ -190,28 +197,33 @@ function RedisDB:on_hour()
 end
 
 function RedisDB:check_clusters()
-    if self.cluster then
-        local _, socket = next(self.alives)
-        if not socket then
-            return
+    if not self.cluster or self.refreshing then
+        return
+    end
+    local _, socket = next(self.alives)
+    if not socket then
+        return
+    end
+    self.refreshing = true
+    local ok, res = self:commit(socket, "cluster", "slots")
+    self.refreshing = false
+    if not ok then
+        log_err("[RedisDB][check_clusters] load cluster slots failed! because: {}", res)
+        return
+    end
+    self.slots = {}
+    self.clusters = {}
+    for i, info in pairs(res) do
+        for j = 3, #info do
+            self.slots[info[j][2]] = i
         end
-        local ok, res = self:commit(socket, "cluster", "slots")
-        if not ok then
-            log_err("[RedisDB][check_clusters] load cluster slots failed! because: {}", res)
-            return
-        end
-        for i, info in pairs(res) do
-            for j = 3, #info do
-                self.slots[info[j][2]] = i
-            end
-            self.clusters[i] = { min = info[1], max = info[2], alives = {} }
-        end
-        for _, sock in pairs(self.alives) do
-            local index = self.slots[sock.port] or 0
-            local cluster = self.clusters[index]
-            if cluster then
-                tinsert(cluster.alives, sock)
-            end
+        self.clusters[i] = { min = info[1], max = info[2], alives = {} }
+    end
+    for _, sock in pairs(self.alives) do
+        local index = self.slots[sock.port] or 0
+        local cluster = self.clusters[index]
+        if cluster then
+            tinsert(cluster.alives, sock)
         end
     end
 end
@@ -319,12 +331,33 @@ function RedisDB:direct_send(sock, cmd, ...)
     sock:send_data(0, cmd, ...)
 end
 
+function RedisDB:handle_redirect(cmd, key, res, ...)
+    if not self.cluster or type(res) ~= "string" then
+        return false
+    end
+    if res:match("^MOVED ") then
+        self:check_clusters()
+        local sock = self:choose_node(key)
+        if sock then
+            return true, self:commit(sock, cmd, key, ...)
+        end
+    end
+    return false
+end
+
 function RedisDB:execute(cmd, key, ...)
     local sock = self:choose_node(key)
     if not sock then
         return false, "db not connected"
     end
-    return self:commit(sock, cmd, key, ...)
+    local ok, res = self:commit(sock, cmd, key, ...)
+    if not ok then
+        local handled, nok, nres = self:handle_redirect(cmd, key, res, ...)
+        if handled then
+            return nok, nres
+        end
+    end
+    return ok, res
 end
 
 return RedisDB

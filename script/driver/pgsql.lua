@@ -99,8 +99,7 @@ end
 
 function PgsqlDB:on_hour()
     for _, sock in pairs(self.alives) do
-        self.executer = sock
-        self:request(REQUEST_CMD.QUERY, "pgsql ping", "select 1\0")
+        self:request_on(sock, REQUEST_CMD.QUERY, "pgsql ping", "select 1\0")
     end
 end
 
@@ -264,22 +263,34 @@ function PgsqlDB:auth_request(socket, cmd, quote, ...)
     return false, "send request failed"
 end
 
-function PgsqlDB:request(cmd, quote, ...)
-    if self.executer then
-        local session_id = lnext_id()
-        if self.executer:send_data(cmd, session_id, ...) then
-            return thread_mgr:yield(session_id, quote, DBCALL_TO)
-        end
+function PgsqlDB:request_on(sock, cmd, quote, ...)
+    if not sock then
+        return false, "db not connected"
+    end
+    local session_id = lnext_id()
+    if sock:send_data(cmd, session_id, ...) then
+        return thread_mgr:yield(session_id, quote, DBCALL_TO)
     end
     return false, "send request failed"
+end
+
+function PgsqlDB:request(cmd, quote, ...)
+    return self:request_on(self.executer, cmd, quote, ...)
 end
 
 function PgsqlDB:query(query)
     return self:request(REQUEST_CMD.QUERY, "pgsql query", query .. '\0')
 end
 
+function PgsqlDB:send_on(sock, cmd, ...)
+    if not sock then
+        return false
+    end
+    return sock:send_data(cmd, 0, ...)
+end
+
 function PgsqlDB:send(cmd, ...)
-    self.executer:send_data(cmd, 0, ...)
+    return self:send_on(self.executer, cmd, ...)
 end
 
 -- 注册预处理语句
@@ -288,41 +299,44 @@ function PgsqlDB:prepare(name, sql)
     return true
 end
 
-function PgsqlDB:prepare_check(name)
-    if not self.executer then
+function PgsqlDB:prepare_check(name, sock)
+    sock = sock or self.executer
+    if not sock then
         return false, "db not connected"
     end
-    if self.executer.stmts[name] then
+    if sock.stmts[name] then
         return true
     end
     local query = self.stmt_querys[name]
     if not query then
         return false, "prepare statement not found"
     end
-    self:send(REQUEST_CMD.PARSE, query)
-    local ok, res_err = self:request(REQUEST_CMD.SYNC, "pgsql prepare")
+    self:send_on(sock, REQUEST_CMD.PARSE, query)
+    local ok, res_err = self:request_on(sock, REQUEST_CMD.SYNC, "pgsql prepare")
     if not ok then
         return false, res_err
     end
-    self.executer.stmts[name] = true
+    sock.stmts[name] = true
     return true
 end
 
 --执行预处理语句
 function PgsqlDB:execute(name, ...args)
-    if not self:prepare_check(name) then
-        return false, "prepare statement not found"
+    local sock = self.executer
+    local ok, res_err = self:prepare_check(name, sock)
+    if not ok then
+        return false, res_err
     end
     local argfmt = ""
-    for _, val in pairs(args) do
+    for _, val in ipairs(args) do
         local arg = tostring(val)
         argfmt = argfmt .. spack(">i", #arg) .. arg
     end
     local bquery = sformat("%s\0%s\0%s%s%s%s", name, name, ZERO_BIT2, spack(">h", #args), argfmt, ZERO_BIT2)
-    self:send(REQUEST_CMD.BIND, bquery)
-    self:send(REQUEST_CMD.DISCRIBE, 'S' .. name .. '\0')
-    self:send(REQUEST_CMD.EXECUTE, sformat("%s\0%s", name, ZERO_BIT4))
-    return self:request(REQUEST_CMD.SYNC, "pgsql execute")
+    self:send_on(sock, REQUEST_CMD.BIND, bquery)
+    self:send_on(sock, REQUEST_CMD.DISCRIBE, 'S' .. name .. '\0')
+    self:send_on(sock, REQUEST_CMD.EXECUTE, sformat("%s\0%s", name, ZERO_BIT4))
+    return self:request_on(sock, REQUEST_CMD.SYNC, "pgsql execute")
 end
 
 local escape_map = {

@@ -47,6 +47,14 @@ function SocketH2:__init(host, ip, port)
     self.alpn_protos = schar(#alpn_proto) .. alpn_proto
 end
 
+function SocketH2:close()
+    self.stream_id = 1
+    self.streams = {}
+    self.settings = {}
+    self.h2_handshake = false
+    Socketls.close(self)
+end
+
 function SocketH2:options(protocol, tls_enable)
     self.tls_enable = tls_enable
     self.protocol = protocol
@@ -76,6 +84,10 @@ function SocketH2:on_tls_handshaked()
     return true
 end
 
+function SocketH2:is_ready()
+    return self.h2_handshake
+end
+
 function SocketH2:on_h2_handshake(streams)
     for _, stream in ipairs(streams) do
         self:on_h2_ctrl_frame(stream)
@@ -85,6 +97,14 @@ function SocketH2:on_h2_handshake(streams)
         local codec = self.tls_codec or self.codec
         codec.h2_handshaked()
     end
+end
+
+function SocketH2:on_socket_error(token, err)
+    self.stream_id = 1
+    self.streams = {}
+    self.settings = {}
+    self.h2_handshake = false
+    Socketls.on_socket_error(self, token, err)
 end
 
 function SocketH2:on_socket_recv(...)
@@ -108,10 +128,10 @@ function SocketH2:on_streams_recv(streams)
                 if code > 0 then
                     thread_mgr:response(session_id, false, code, ERROR[code])
                 else
-                    thread_mgr:response(session_id, true, status, body, headers)
+                    thread_mgr:response(session_id, true, status, body, headers, stream_id)
                 end
             else
-                self.host:on_socket_recv(self, tunpack(stream, 2))
+                self.host:on_socket_recv(self, stream_id, tunpack(stream, 2))
             end
         else
             self:on_h2_ctrl_frame(stream)
@@ -121,41 +141,54 @@ end
 
 --控制帧
 function SocketH2:on_h2_ctrl_frame(stream)
-    local ack, settings, winsize, timestamp, goaway_id, code, err =  tunpack(stream, 2)
-    if goaway_id > 0 then
+    local ack, settings, winsize, timestamp, goaway_id, code, err, ping_ack, frame_type = tunpack(stream, 2)
+    if frame_type == H2_FRAME.GOAWAY then
         log_debug("[SocketH2][GOAWAY] client({}) last_id({}), error({}:{})!", self.token, goaway_id, code, err)
-        self.host:on_socket_error(self, "http2 goaway")
+        self.host:on_socket_error(self, self.token, "http2 goaway")
         self:close()
         return
     end
-    if not self.h2_handshake then
-        self.h2_handshake = ack
+    if frame_type == H2_FRAME.SETTINGS then
+        if ack then
+            self.h2_handshake = true
+        else
+            self:send_frame(H2_FRAME.SETTINGS, true)
+        end
+        if next(settings) then
+            log_debug("[SocketH2][SETTINGS] client({}) ack({}), settings({})!", self.token, ack, settings)
+            tcopy(settings, self.settings)
+        end
+        return
     end
-    if next(settings) then
-        log_debug("[SocketH2][SETTINGS] client({}) ack({}), settings({})!", self.token, ack, settings)
-        tcopy(settings, self.settings)
-    end
-    if winsize > 0 then
+    if frame_type == H2_FRAME.WINDOW_UPDATE then
         log_debug("[Http2Client][WINDOW_UPDATE] client({}) winsize({})!", self.token, winsize)
-        self.winsize = winsize
+        self.window_size = winsize
+        return
     end
-    if timestamp > 0 then
-        log_debug("[Http2Client][PING] client({}) timestamp({})!", self.token, timestamp)
+    if frame_type == H2_FRAME.PING then
+        if not ping_ack then
+            --收到未带 ack 的 PING, 必须回 PING ack (RFC 7540 6.7)
+            self:send_frame(H2_FRAME.PING, true, timestamp)
+        end
     end
 end
 
 function SocketH2:ping()
-    self:send_data(0, H2_FRAME.PING, quanta.now_ms)
+    self:send_data(0, H2_FRAME.PING, false, quanta.now_ms)
+end
+
+--重置指定stream(服务端会清掉该stream上的所有watcher), error_code默认CANCEL(8)
+function SocketH2:send_rst_stream(stream_id, code)
+    self:send_frame(H2_FRAME.RST_STREAM, stream_id, code or 8)
 end
 
 --发送控制帧
 function SocketH2:send_frame(frame, ...)
-    log_debug("[SocketH2][send_frame] client(token:{}) frame({})!", self.token, frame)
     self:send_data(0, frame, ...)
 end
 
 function SocketH2:send_packet(url, ...)
-    if self.alive then
+    if self.h2_handshake then
         local stream_id = self.stream_id
         local send_len = self.session.call_text(stream_id, url, ...)
         if send_len <= 0 then
@@ -166,7 +199,7 @@ function SocketH2:send_packet(url, ...)
         self.stream_id = stream_id + 2
         return thread_mgr:yield(session_id, url, HTTP_TIMEOUT)
     end
-    return false, "socket not alive"
+    return false, "socket not handshake"
 end
 
 return SocketH2

@@ -44,5 +44,5 @@ quanta.startup(function()
     import("test/kcp_test.lua")
     import("test/luakit_test.lua")
     ]]
-    import("test/lock_test.lua")
+    import("test/etcd_test.lua")
 end)

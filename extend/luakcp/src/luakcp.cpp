@@ -76,6 +76,7 @@ namespace luakcp {
 
         void __gc() {}
         void close() {
+            if (m_status == LINK_CLOSED) return;
             m_status = LINK_CLOSED;
             m_token = 0;
         }
@@ -169,26 +170,31 @@ namespace luakcp {
         }
 
         void udp_recv(uint64_t time) {
-            SOCKADDR_IN addr = {};
-            char* buf = alloc_buff(USHRT_MAX);
-            socklen_t nlen = (socklen_t)sizeof(addr);
-            int recv_len = recvfrom(m_fd, buf, USHRT_MAX, 0, (SOCKADDR*)&addr, &nlen);
-            if (recv_len <= 0) {
-                auto errcode = get_socket_error();
-                if (errcode == WSAEWOULDBLOCK || errcode == 10054) {
+            auto begin = steady_ms();
+            while (true) {
+                SOCKADDR_IN addr = {};
+                char* buf = alloc_buff(USHRT_MAX);
+                socklen_t nlen = (socklen_t)sizeof(addr);
+                int recv_len = recvfrom(m_fd, buf, USHRT_MAX, 0, (SOCKADDR*)&addr, &nlen);
+                if (recv_len <= 0) {
+                    auto errcode = get_socket_error();
+                    if (errcode == WSAEWOULDBLOCK || errcode == 10054) {
+                        return;
+                    }
+                    on_error("udp recvfrom failed!");
                     return;
                 }
-                on_error("udp recvfrom failed!");
-                return;
+                m_livetime = time;
+                auto ip = inet_ntoa(addr.sin_addr);
+                int port = ntohs(addr.sin_port);
+                if (ikcp_input(m_kcp, buf, recv_len) < 0) {
+                    on_error("kcp input failed!");
+                    return;
+                }
+                kcp_recv(time, ip, port);
+                if (m_mgr != nullptr || m_status == LINK_CLOSED)  break;
+                if (steady_ms() - begin > 100) break;
             }
-            m_livetime = time;
-            auto ip = inet_ntoa(addr.sin_addr);
-            int port = ntohs(addr.sin_port);
-            if (ikcp_input(m_kcp, buf, recv_len) < 0) {
-                on_error("kcp input failed!");
-                return;
-            }
-            kcp_recv(time, ip, port);
         }
 
         void kcp_recv(uint64_t time, const char* ip, int port) {
@@ -224,12 +230,17 @@ namespace luakcp {
             m_port = port;
             slice sli((uint8_t*)data, data_len);
             m_codec->set_slice(&sli);
-            m_lvm->object_call(this, "on_call", nullptr, m_codec, std::tie());
+            try {
+                m_lvm->object_call(this, "on_call", nullptr, m_codec, std::tie());
+            } catch (const std::exception& e) {
+                on_error(e.what());
+            }
         }
 
         void on_error(std::string_view err) {
-            m_lvm->object_call(this, "on_error", nullptr, std::tie(), m_token, err);
+            if (m_status == LINK_CLOSED) return;
             m_status = LINK_CLOSED;
+            m_lvm->object_call(this, "on_error", nullptr, std::tie(), m_token, err);
         }
 
     public:

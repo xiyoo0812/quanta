@@ -521,7 +521,7 @@ namespace lcodec {
             return;
         }
         size_t len = 0;
-        data[len++] = static_cast<uint8_t>(mask | val);
+        data[len++] = static_cast<uint8_t>(mask | limit);
         val -= limit;
         while (val >= 0x80) {
             data[len++] = static_cast<uint8_t>((val & 0x7F) | 0x80);
@@ -535,14 +535,14 @@ namespace lcodec {
         size_t len = 0;
         auto head = slice->data(&len);
         if (len == 0) throw length_error("decode_integer buffer length not engugh");
-        uint8_t max = (1 << bits) - 1;
-        uint8_t val = head[0] & max;
+        uint32_t max = (1u << bits) - 1;
+        uint32_t val = head[0] & max;
         if (val < max) {
             slice->erase(1);
             return val;
         }
-        for (int i = 1; i < len; i++) {
-            val |= (head[i] & 0x7f) << (7 * i);
+        for (int i = 1; i < len && i <= 5; i++) {
+            val += (uint32_t)(head[i] & 0x7f) << (7 * (i - 1));
             if ((head[i] & 0x80) == 0) {
                 slice->erase(i + 1);
                 return val;

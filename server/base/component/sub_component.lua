@@ -43,7 +43,7 @@ function SubComponent:on_subscriber(event, guid, ...args)
         self.subscribers[event] = {}
     end
     self.subscribers[event][guid] = args
-    self:notify_event(sformat("on_sub_%s", event), self, ...)
+    self:trigger_event(sformat("on_sub_%s", event), self, ...)
 end
 
 --处理删除跨服订阅

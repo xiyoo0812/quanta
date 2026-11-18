@@ -10,9 +10,6 @@ STDCPP = "c++20"
 --是否生效
 ENABLE = true
 
---是否优化
-OPTIMIZE = false
-
 --忽略的项目group
 IGNORE_GROUP = nil
 
@@ -116,6 +113,14 @@ MSVC_VERSION = 17
 MSVC_TOOLSET = 143
 MSVC_FMT_SLNX = false
 MSVC_VERSION_FULL = "17.4.33103.184"
+
+--Windows编译配置，vcxproj/sln/slnx 三个模板共用
+--OPTIMIZATION: Disabled/MinSpace/MaxSpeed/Full
+--DIR: bin/library 下的输出子目录；DEBUG_INFO: 是否生成调试信息
+SOLUTION_CONFIGS = {
+    { NAME = "Develop", OPTIMIZATION = "Disabled", DIR = "develop", DEBUG_INFO = true },
+    { NAME = "Release", OPTIMIZATION = "MaxSpeed",  DIR = "release", DEBUG_INFO = false },
+}
 
 --递归搜索子目录
 RECURSION = true

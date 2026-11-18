@@ -44,6 +44,10 @@ function Socket:close()
     end
 end
 
+function Socket:is_ready()
+    return self.alive
+end
+
 function Socket:listen(ip, port)
     if self.listener then
         return true

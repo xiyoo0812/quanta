@@ -200,6 +200,10 @@ endif
 #临时文件目录
 INT_DIR = $(SOLUTION_DIR)temp/$(PROJECT_NAME)
 
+#输出目录（linux/macos/android 等类 unix 平台统一放到 bin/x-nix 与 library/x-nix）
+BIN_DIR = $(SOLUTION_DIR){{%= DST_DIR %}}/x-nix
+LIB_DIR = $(SOLUTION_DIR){{%= DST_LIB_DIR %}}/x-nix
+
 {{% if PROJECT_TYPE ~= "exe" then %}}
 #目标文件前缀，定义则.so和.a加lib前缀，否则不加
 {{% if LIB_PREFIX then %}}
@@ -211,12 +215,12 @@ PROJECT_PREFIX =
 
 #目标定义
 {{% if PROJECT_TYPE == "static" then %}}
-TARGET_DIR = $(SOLUTION_DIR){{%= DST_LIB_DIR %}}
+TARGET_DIR = $(LIB_DIR)
 TARGET_STATIC =  $(TARGET_DIR)/$(PROJECT_PREFIX)$(TARGET_NAME).a
 MYCFLAGS += -fPIC
 {{% elseif PROJECT_TYPE == "dynamic" then %}}
 MYCFLAGS += -fPIC
-TARGET_DIR = $(SOLUTION_DIR){{%= DST_DIR %}}
+TARGET_DIR = $(BIN_DIR)
 TARGET_DYNAMIC =  $(TARGET_DIR)/$(PROJECT_PREFIX)$(TARGET_NAME).so
 #soname
 ifeq ($(UNAME_S), Linux)
@@ -227,13 +231,13 @@ ifeq ($(UNAME_S), Darwin)
 LDFLAGS += -Wl,-install_name,$(PROJECT_PREFIX)$(TARGET_NAME).so
 endif
 {{% else %}}
-TARGET_DIR = $(SOLUTION_DIR){{%= DST_DIR %}}
+TARGET_DIR = $(BIN_DIR)
 TARGET_EXECUTE = $(TARGET_DIR)/$(TARGET_NAME)
 {{% end %}}
 
 #link添加.so目录
-LDFLAGS += -L$(SOLUTION_DIR){{%= DST_DIR %}}
-LDFLAGS += -L$(SOLUTION_DIR){{%= DST_LIB_DIR %}}
+LDFLAGS += -L$(BIN_DIR)
+LDFLAGS += -L$(LIB_DIR)
 
 #自动生成目标
 SOURCES =
@@ -299,7 +303,8 @@ clean :
 pre_build:
 	mkdir -p $(INT_DIR)
 	mkdir -p $(TARGET_DIR)
-	mkdir -p $(SOLUTION_DIR){{%= DST_LIB_DIR %}}
+	mkdir -p $(BIN_DIR)
+	mkdir -p $(LIB_DIR)
 {{%
 table.sort(SRC_GROUPS, function(a, b) return a < b end)
 for _, CSRC in ipairs(SRC_GROUPS) do

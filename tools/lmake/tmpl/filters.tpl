@@ -7,7 +7,7 @@
 %}}
   <ItemGroup>
   {{% for _, CINC in pairs(CINCLUDES or {}) do %}}
-    <ClInclude Include="{{%= CINC[1] %}}">
+    <ClInclude Include="{{%= XML_ESCAPE(CINC[1]) %}}">
       {{%
         local FGROUP = CINC[2]
         TEMPS[FGROUP] = true
@@ -18,13 +18,13 @@
           i, j = FGROUP:find("\\", j + 1)
         end
       %}}
-      <Filter>{{%= FGROUP %}}</Filter>
+      <Filter>{{%= XML_ESCAPE(FGROUP) %}}</Filter>
     </ClInclude>
   {{% end %}}
   </ItemGroup>
   <ItemGroup>
   {{% for _, CSRC in pairs(CSOURCES or {}) do %}}
-    <ClCompile Include="{{%= CSRC[1] %}}">
+    <ClCompile Include="{{%= XML_ESCAPE(CSRC[1]) %}}">
       {{%
         local FGROUP = CSRC[2]
         TEMPS[FGROUP] = true
@@ -35,7 +35,7 @@
           i, j = FGROUP:find("\\", j + 1)
         end
       %}}
-      <Filter>{{%= FGROUP %}}</Filter>
+      <Filter>{{%= XML_ESCAPE(FGROUP) %}}</Filter>
     </ClCompile>
   {{% end %}}
   </ItemGroup>
@@ -47,7 +47,7 @@
     table.sort(DIR_GROUPS, function(a, b) return a < b end)
   %}}
   {{% for _, GROUP in pairs(DIR_GROUPS or {}) do %}}
-    <Filter Include="{{%= GROUP %}}">
+    <Filter Include="{{%= XML_ESCAPE(GROUP) %}}">
       <UniqueIdentifier>{{{%= GUID_NEW(GROUP) %}}}</UniqueIdentifier>
     </Filter>
   {{% end %}}

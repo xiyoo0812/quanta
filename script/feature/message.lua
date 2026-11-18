@@ -31,7 +31,7 @@ function Message:__init(session, session_id, len, req, cmd_id, flag, target_id)
 end
 
 function Message:lock(key, waiting)
-    local _<close> = thread_mgr:lock(key, waiting)
+    return thread_mgr:lock(key, waiting)
 end
 
 function Message:callback_code(code)

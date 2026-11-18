@@ -1,7 +1,9 @@
 --grpc_client.lua
+local tonumber      = tonumber
 local log_err       = logger.err
 local log_debug     = logger.debug
 local qsurl         = qstring.url
+local sformat       = string.format
 local make_timer    = quanta.make_timer
 local make_functer  = quanta.make_functer
 local grpccodec     = protobuf.grpccodec
@@ -93,6 +95,10 @@ function GrpcClient:send_packet(path, rpc, datas)
         }
         local ok, status, body, rheaders = self.socket:send_packet(path, rpc.method, headers, datas)
         if ok and status == 200 then
+            local grpc_status = rheaders and tonumber(rheaders["grpc-status"])
+            if grpc_status and grpc_status ~= 0 then
+                return false, rheaders["grpc-message"] or sformat("grpc status: %s", grpc_status), rheaders
+            end
             return true, body
         end
         return false, status, rheaders

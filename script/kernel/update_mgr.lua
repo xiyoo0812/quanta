@@ -164,7 +164,7 @@ function UpdateMgr:quit()
     end)
 end
 
-local function define_functions()
+function UpdateMgr:__static()
     local func_names = {
         fast = 2000, frame = 2000,
         quit = 0, hour = 0, minute = 0, second = 0, second5 = 0, second30 = 0
@@ -177,28 +177,26 @@ local function define_functions()
         --定义属性
         prop:reader(attr_oname, {})
         --定义函数
-        UpdateMgr[attach_name] = function(self, obj)
+        UpdateMgr[attach_name] = function(this, obj)
             local attach_func = obj[attach_fname]
             if not attach_func then
                 log_warn("[UpdateMgr][{}] obj({}) isn't {} method!", attach_name, obj:source(), attach_fname)
                 return
             end
             local functor = make_functer(attach_fname, lock_ms)
-            self[attr_oname][functor] = obj
+            this[attr_oname][functor] = obj
         end
-        UpdateMgr[detach_name] = function(self, obj)
-            terase(self[attr_oname], obj)
+        UpdateMgr[detach_name] = function(this, obj)
+            terase(this[attr_oname], obj)
         end
     end
-    UpdateMgr.weak_handlers = function(self)
+    UpdateMgr.weak_handlers = function(this)
         for name in pairs(func_names) do
             local attr_oname = sformat("%s_objs", name)
-            qtweak(self[attr_oname])
+            qtweak(this[attr_oname])
         end
     end
 end
-
-define_functions()
 
 quanta.update_mgr = UpdateMgr()
 

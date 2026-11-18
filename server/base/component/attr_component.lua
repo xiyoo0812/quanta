@@ -252,7 +252,7 @@ function AttrComponent:notify_attr(attr_id, value, oldval, attr)
         self.sync_attrs[attr_id] = attr
         event_mgr:publish_frame(self, "on_attr_update")
     end
-    self:notify_event(sformat("on_attr_changed_%s", attr_id), attr_id, value, oldval, self)
+    self:trigger_event(sformat("on_attr_changed_%s", attr_id), attr_id, value, oldval, self)
 end
 
 --获取属性

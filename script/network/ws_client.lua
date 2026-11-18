@@ -49,6 +49,7 @@ function WSClient:__init(host)
 end
 
 function WSClient:close()
+    self.timer:unregister()
     if self.session then
         if self.alive then
             self:send_data(0x8, "")
