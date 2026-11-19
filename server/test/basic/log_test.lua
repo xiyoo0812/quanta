@@ -1,9 +1,26 @@
 -- log_test.lua
 
 local sformat   = string.format
+local log_dump  = logger.dump
 
 local TestCase = import("test/case.lua")
 local LogTest = class(TestCase)
+
+--基准辅助: 计时用 timer.clock_ms() 实时值(quanta.clock_ms 是每帧缓存值, 不适合微基准)
+local LOOPS       = 200000   --常规场景迭代次数
+local LOOPS_HEAVY = 50000    --table 序列化较重, 降低次数
+
+local function bench(loops, func)
+    local t = timer.clock_ms()
+    for i = 1, loops do
+        func(i)
+    end
+    return timer.clock_ms() - t
+end
+
+local function perf_ratio(a, b)
+    return b > 0 and sformat("%.2fx", a / b) or "n/a"
+end
 
 --自定义 monitor: 收集 collect_log 调用
 local function make_monitor()
@@ -107,6 +124,35 @@ function LogTest:run()
     local after_remove = mon.count
     logger.info("[LOG_TEST] after remove monitor")
     self:report("monitor removed", mon.count == after_remove, sformat("{}/{}", after_remove, mon.count), "stable")
+
+    ------------------------------------------------------------------
+    --7. 性能基准: log.format (C++ lualog) vs string.format (Lua 标准库)
+    --   以输出对比数据为主, 断言仅保证被测量调用正常执行
+    ------------------------------------------------------------------
+    --预热: 排除首次调用/懒加载开销
+    for i = 1, 1000 do
+        log.format("{}", i)
+        sformat("%s", i)
+    end
+    --7a. 单整数
+    local lms = bench(LOOPS, function(i) return log.format("{}", i) end)
+    local sms = bench(LOOPS, function(i) return sformat("%s", i) end)
+    self:report("perf int both callable", lms >= 0 and sms >= 0,
+        sformat("log=%dms str=%dms", lms, sms), ">=0")
+    log_dump("[PERF][int]   log.format={}ms  string.format={}ms  ratio={}", lms, sms, perf_ratio(lms, sms))
+    --7b. 三参数混合
+    lms = bench(LOOPS, function(i) return log.format("{}/{}/{}", i, "s", 3.5) end)
+    sms = bench(LOOPS, function(i) return sformat("%s/%s/%s", i, "s", 3.5) end)
+    self:report("perf multi both callable", lms >= 0 and sms >= 0,
+        sformat("log=%dms str=%dms", lms, sms), ">=0")
+    log_dump("[PERF][multi] log.format={}ms  string.format={}ms  ratio={}", lms, sms, perf_ratio(lms, sms))
+    --7c. table 序列化(log.format 触发 C++ serialize, string.format 走 tostring)
+    local t = { a = 1, b = "x", c = { 1, 2, 3 } }
+    lms = bench(LOOPS_HEAVY, function() return log.format("{}", t) end)
+    sms = bench(LOOPS_HEAVY, function() return sformat("%s", t) end)
+    self:report("perf table both callable", lms >= 0 and sms >= 0,
+        sformat("log=%dms str=%dms", lms, sms), ">=0")
+    log_dump("[PERF][table] log.format={}ms  string.format={}ms  ratio={}", lms, sms, perf_ratio(lms, sms))
 end
 
 return LogTest

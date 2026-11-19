@@ -1,13 +1,11 @@
 -- timer_test.lua
--- 测试 timer 全局时间函数(now/clock/now_ms/clock_ms/now_cs/time)与定时器调度。
--- 定时器回调在 timer_mgr:on_frame 中按 20ms 精度触发, 用 thread_mgr:sleep 等待并计数验证。
--- 覆盖: 时间函数单调性、timer_mgr.once/loop/register、Timer.once/loop、
---       unregister 取消、change_period 改周期、回调参数(escape_ms, 自定义 arg)。
-local TestCase   = import("test/case.lua")
-local Timer      = import("feature/timer.lua")
+local sformat       = string.format
 
-local timer_mgr  = quanta.get("timer_mgr")
-local thread_mgr = quanta.get("thread_mgr")
+local timer_mgr     = quanta.get("timer_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+
+local Timer         = import("feature/timer.lua")
+local TestCase      = import("test/case.lua")
 
 local TimerTest = class(TestCase)
 
