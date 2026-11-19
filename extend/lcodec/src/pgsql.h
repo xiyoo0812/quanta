@@ -94,8 +94,9 @@ namespace lcodec {
 
     class pgsqlscodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
+            size_t data_len = m_slice->size();
             if (data_len < PGSQL_HEADER_LEN) return 0;
             return data_len;
         }
@@ -117,6 +118,18 @@ namespace lcodec {
         }
 
         virtual size_t decode(lua_State* L) {
+            if (sessions.empty()) {
+                check_idle_cmd_type();
+                throw lua_exception("invalid pgsql data");
+            }
+            int top = lua_gettop(L);
+            while (true) {
+                cmd_type_b cmd_type = check_idle_cmd_type();
+                if (sessions.empty()) {
+                    throw lua_exception("invalid pgsql data");
+                }
+            }
+            cmd_type_b cmd_type = check_idle_cmd_type();
             size_t osize = m_slice->size();
             int top = lua_gettop(L);
             //无等待中的请求: 到达的是空闲/附带包(ReadyForQuery/NOTICE 等), 直接丢弃
@@ -242,6 +255,7 @@ namespace lcodec {
             size_t length = m_slice->swap_read<int32_t>() - sizeof(uint32_t);
             if (uint8_t* data = m_slice->erase(length); data) {
                 m_packet.attach(data, length);
+                m_packet_len += length;
                 return cmd_type;
             }
             throw length_error("pgsql text not full");
@@ -436,17 +450,26 @@ namespace lcodec {
             wait_cmd_type(COMMAND_COMPLETE, cmdtype);
         }
 
-        bool check_idle_cmd_type() {
-            if (m_slice->size() > PGSQL_HEADER_LEN) {
-                auto cmd =  *(cmd_type_b*)m_slice->peek(1);
-                if (cmd == READY_FOR_QUERY || cmd == BIND_COMPLETE
-                    || cmd == PARAMETER_DESCRIPTION || cmd == NO_DATA) {
-                    auto len = byteswap(*(int32_t*)m_slice->peek(sizeof(int32_t), 1));
-                    m_slice->erase(len + 1);
-                    return true;
+        cmd_type_b check_idle_cmd_type() {
+            do {
+                auto cmd = recv_packet();
+                switch (cmd) {
+                    case NOTICE:
+                    case NO_DATA: 
+                    case NOTIFICATION:
+                    case BIND_COMPLETE:
+                    case PARSE_COMPLETE:
+                    case CLOSE_COMPLETE:
+                    case READY_FOR_QUERY:
+                    case PARAMETER_STATUS:
+                    case PARAMETER_DESCRIPTION: {
+                        if (m_slice->empty()) throw range_error("pgsql text not full");
+                        break;
+                    }
+                    default: return cmd;
                 }
-            }
-            return false;
+                return cmd;
+            } while (true);
         }
 
         void wait_cmd_type(cmd_type_b target, cmd_type_b src = NONE) {

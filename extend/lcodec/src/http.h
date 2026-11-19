@@ -88,8 +88,9 @@ namespace lcodec {
 
     class httpcodec : public http_codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
+            size_t data_len = m_slice->size();
             if (!is_packet_complete((char*)m_slice->head(), data_len)) return 0;
             return data_len;
         }

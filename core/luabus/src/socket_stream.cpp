@@ -415,7 +415,7 @@ void socket_stream::dispatch_package() {
         slice* slice = m_recv_buffer->get_slice();
         m_codec->set_slice(slice);
         //解析数据包头长度
-        int32_t package_size = m_codec->load_packet(data_len);
+        int32_t package_size = m_codec->load_packet();
         //当前包头长度解析失败, 关闭连接
         if (package_size < 0){
             on_error("package-length-err");
@@ -428,6 +428,8 @@ void socket_stream::dispatch_package() {
         try {
             m_package_cb(slice);
         } catch(const std::length_error&) {
+            break;
+        } catch(const std::range_error&) {
             m_recv_buffer->pop_size(m_codec->get_packet_len());
             break;
         } catch(const std::exception& e) {

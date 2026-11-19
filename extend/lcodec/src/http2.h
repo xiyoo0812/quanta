@@ -455,7 +455,7 @@ namespace lcodec {
             if (auto codec = find_codec(hcodec, recv_headers, CONTENTT); codec) {
                 slice slice((uint8_t*)body.c_str(), body.size());
                 codec->set_slice(&slice);
-                int plen = codec->load_packet(body.size());
+                int plen = codec->load_packet();
                 lua_pushstring(L, output_type.c_str());
                 codec->decode(L, (uint8_t*)body.c_str(), body.size());
                 body.erase(0, plen);
@@ -469,7 +469,7 @@ namespace lcodec {
             if (!codec) return true;
             slice slice((uint8_t*)body.c_str(), body.size());
             codec->set_slice(&slice);
-            return codec->load_packet(body.size());
+            return codec->load_packet();
         }
 
         virtual bool has_packet() {
@@ -478,7 +478,7 @@ namespace lcodec {
             if (!codec) return false;
             slice slice((uint8_t*)body.c_str(), body.size());
             codec->set_slice(&slice);
-            return codec->load_packet(body.size()) > 0;
+            return codec->load_packet() > 0;
         }
 
     protected:

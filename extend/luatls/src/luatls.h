@@ -253,13 +253,13 @@ namespace luatls {
             m_packet_len = sz - m_slice->size();
             if (!m_inbuf.empty()) {
                 m_hcodec->set_slice(m_inbuf.get_slice());
-                if (m_hcodec->load_packet(m_inbuf.size()) > 0) {
+                if (m_hcodec->load_packet() > 0) {
                     auto argnum = m_hcodec->decode(L);
                     m_inbuf.pop_size(m_hcodec->get_packet_len());
                     return argnum;
                 }
             }
-            throw std::length_error("http text not full");
+            throw std::range_error("http text not full");
         }
 
         int isfinish(lua_State* L) {

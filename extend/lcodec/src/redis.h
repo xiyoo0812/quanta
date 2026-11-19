@@ -9,9 +9,9 @@ namespace lcodec {
 
     class rdscodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
-            return data_len;
+            return m_slice->size();;
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {

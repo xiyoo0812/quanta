@@ -66,7 +66,7 @@ namespace luapb {
 
     class pbcodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
             pb_header* header =(pb_header*)m_slice->peek(sizeof(pb_header));
             if (!header) return 0;
@@ -128,7 +128,7 @@ namespace luapb {
 
     class grpccodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
             grpc_header* header = (grpc_header*)m_slice->peek(sizeof(grpc_header));
             if (!header) return 0;
