@@ -1,18 +1,21 @@
 -- mongo_test.lua
-import("db/mongo_mgr.lua")
+require("lbson")
 
-local bdate      = bson.date
+local bdate         = bson.date
 
-local thread_mgr = quanta.get("thread_mgr")
-local mongo_mgr  = quanta.get("mongo_mgr")
+local mongo_mgr     = quanta.load("mongo_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
 
-local PRIMARY    = 1234567
-local COLL       = "test_mongo"
+local PRIMARY       = 1234567
+local COLL          = "test_mongo"
 
 local TestCase = import("test/case.lua")
 local MongoTest = class(TestCase)
 
 function MongoTest:setup()
+    quanta.setenv("QUANTA_MONGO_URL", self.addr)
+    import("db/mongo_mgr.lua")
+    mongo_mgr = quanta.get("mongo_mgr")
     thread_mgr:sleep(2000)
     mongo_mgr:delete(PRIMARY, COLL, {})
 end

@@ -2,7 +2,7 @@
 
 local log_debug         = logger.debug
 
-local discover          = quanta.load("discover")
+local discover          = quanta.get("discover")
 
 local GatewayMgr = singleton()
 local prop = property(GatewayMgr)

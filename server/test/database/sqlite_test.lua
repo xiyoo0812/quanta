@@ -9,13 +9,11 @@ local TestCase = import("test/case.lua")
 local SqliteTest = class(TestCase)
 
 function SqliteTest:setup()
-    --addr 即数据库文件路径(注册表默认 ./sqlite/test.db)
     self.dbfile = self.addr or "./sqlite/test.db"
-    --sqlite3_open 不会自动建目录, 先确保父目录存在(SQLITE_CANTOPEN=14)
     local parent = stdfs.parent_path(self.dbfile)
     if parent and parent ~= "" then
         stdfs.mkdir(parent)
-        self.dbdir = parent  --teardown 里删除这个临时目录
+        self.dbdir = parent
     end
     self.driver = sqlite.create()
     self.driver.set_codec(jsoncodec())
@@ -24,15 +22,16 @@ function SqliteTest:setup()
 end
 
 function SqliteTest:teardown()
-    if self.driver then
-        pcall(function() self.driver.exec("drop table if exists PLAYER") end)
-        self.driver.close()
-        self.driver = nil
-    end
-    --删除 setup 创建的临时目录(先 close 再删, 避免文件占用)
-    if self.dbdir and stdfs.exists(self.dbdir) then
-        stdfs.remove(self.dbdir, true)
-    end
+    pcall(function()
+        if self.driver then
+            pcall(function() self.driver.exec("drop table if exists PLAYER") end)
+            self.driver.close()
+            self.driver = nil
+        end
+        if self.dbdir and stdfs.exists(self.dbdir) then
+            stdfs.remove(self.dbdir, true)
+        end
+    end)
 end
 
 function SqliteTest:run()
@@ -90,6 +89,7 @@ function SqliteTest:run()
         st_insert.bind(3, 70)
         local ic, ierr2 = st_insert.exec()
         self:report("stmt bind+exec", ic == SQLITE_OK or ic == sqlite.SQLITE_CODE.SQLITE_DONE, ic, ierr2)
+        st_insert.close()
     end
 
     --9. stmt run (带参数快捷执行)
@@ -99,6 +99,7 @@ function SqliteTest:run()
         local sc, item = st_select.run(3)
         self:report("stmt run select (VALUE=Paul3)",
             (sc == SQLITE_OK or sc == sqlite.SQLITE_CODE.SQLITE_DONE) and item[1] and item[1].VALUE == "Paul3", item[1], item)
+        st_select.close()
     end
 
     --10. 事务回滚

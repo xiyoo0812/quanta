@@ -1,8 +1,10 @@
 -- mysql_test.lua
-import("db/mysql_mgr.lua")
+local sformat       = string.format
 
-local thread_mgr = quanta.get("thread_mgr")
-local mysql_mgr  = quanta.get("mysql_mgr")
+local mysql_mgr     = quanta.load("mysql_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+
+local DBNAME        = "quanta_1"      --测试库
 
 local TestCase = import("test/case.lua")
 local MysqlTest = class(TestCase)
@@ -24,7 +26,12 @@ local function scalar(res)
 end
 
 function MysqlTest:setup()
+    quanta.setenv("QUANTA_MYSQL_URL", self.addr)
+    import("db/mysql_mgr.lua")
+    mysql_mgr = quanta.get("mysql_mgr")
     thread_mgr:sleep(2000)      --等连接池就绪
+    exec(sformat("create database if not exists %s", DBNAME))
+    exec(sformat("use %s", DBNAME))
 end
 
 function MysqlTest:teardown()

@@ -1,8 +1,10 @@
 -- clickhouse_test.lua
-import("db/clickhouse_mgr.lua")
+local sformat       = string.format
 
-local thread_mgr = quanta.get("thread_mgr")
-local clickhouse = quanta.get("clickhouse")
+local thread_mgr    = quanta.get("thread_mgr")
+local clickhouse    = quanta.load("clickhouse_mgr")
+
+local DBNAME        = "quanta_1"   --测试库
 
 local TestCase = import("test/case.lua")
 local ClickHouseTest = class(TestCase)
@@ -33,7 +35,12 @@ local function execute(primary_id, stmt, ...)
 end
 
 function ClickHouseTest:setup()
+    quanta.setenv("QUANTA_CLICKHOUSE_URL", self.addr)
+    import("db/clickhouse_mgr.lua")
+    clickhouse = quanta.get("clickhouse")
     thread_mgr:sleep(2000)
+    query(sformat("create database if not exists %s", DBNAME))
+    query(sformat("use %s", DBNAME))
 end
 
 function ClickHouseTest:teardown()
