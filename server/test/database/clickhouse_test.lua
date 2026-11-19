@@ -1,16 +1,10 @@
 -- clickhouse_test.lua
--- 调研结论: clickhouse_mgr 直接 import("driver/mysql.lua") + codec.mysqlcodec,
---           与 MySQL 共用同一套 C 驱动层(Linux 下走 MySQL wire protocol)。
--- 连接串读专用的 QUANTA_CLICKHOUSE_URL(可与 MySQL 并存); mgr 暴露 query/prepare/execute。
--- addr 由注册表传入, 仅作目标标识, 实际连接由 QUANTA_CLICKHOUSE_URL 环境变量决定。
--- 覆盖: DDL/drop-create, insert, count, where, 聚合, group by, order by+limit, prepare/execute
--- 注意: ClickHouse 对 MySQL 二进制 prepared statement 的支持受版本影响, prepare/execute 用例需实测。
-local TestCase   = import("test/case.lua")
 import("db/clickhouse_mgr.lua")
 
 local thread_mgr = quanta.get("thread_mgr")
 local clickhouse = quanta.get("clickhouse")
 
+local TestCase = import("test/case.lua")
 local ClickHouseTest = class(TestCase)
 
 local function query(sql)

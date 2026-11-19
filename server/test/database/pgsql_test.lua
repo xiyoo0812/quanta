@@ -1,12 +1,10 @@
 -- pgsql_test.lua
--- 测试前置: 本地 PostgreSQL, 通过 QUANTA_PGSQL_URL 连接; addr 由注册表传入仅作目标标识
--- 覆盖: DDL/CRUD/upsert(on conflict)/聚合/排序分页/别名/预处理/事务回滚
-local TestCase   = import("test/case.lua")
 import("db/pgsql_mgr.lua")
 
 local thread_mgr = quanta.get("thread_mgr")
 local pgsql_mgr  = quanta.get("pgsql_mgr")
 
+local TestCase = import("test/case.lua")
 local PgsqlTest = class(TestCase)
 
 local function exec(sql)
@@ -90,9 +88,9 @@ function PgsqlTest:run()
     self:report("execute select (value=66666)", ok and tonumber(scalar(res)) == 66666, scalar(res), res)
 
     --10. 事务回滚
-    local before = 0
-    ok, res = exec("select count(*) as count from test_pgsql")
-    before = tonumber(scalar(res)) or 0
+    local before
+    local _, count_res = exec("select count(*) as count from test_pgsql")
+    before = tonumber(scalar(count_res)) or 0
     exec("begin")
     exec("insert into test_pgsql (pid, value) values (77777, 1)")
     ok, res = exec("rollback")

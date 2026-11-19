@@ -40,7 +40,7 @@ local function busy_work(n)
     for i = 1, n do s = s + i end
     local t = {}
     for i = 1, 100 do t[i] = tostring(s + i) end
-    return s
+    return s, t
 end
 
 function ProfileTest:teardown()

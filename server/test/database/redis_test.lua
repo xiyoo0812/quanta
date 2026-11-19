@@ -1,7 +1,4 @@
 -- redis_test.lua
--- 测试前置: 本地启动 redis (RESP3 需 Redis 6+), 日志级别调到 debug 可看协议细节
--- 覆盖: HELLO3/string/hash/set/zset/list/scan/JSON, 以及 RESP3 原生类型
---       (bool/map/double) 的正确解码; 结果由 suite 统一汇总
 import("db/redis_mgr.lua")
 
 local sformat    = string.format
@@ -9,12 +6,9 @@ local sformat    = string.format
 local thread_mgr = quanta.get("thread_mgr")
 local redis_mgr  = quanta.get("redis_mgr")
 
-local TestCase   = import("test/case.lua")
-
+local TestCase = import("test/case.lua")
 local RedisTest = class(TestCase)
 
---准备: 等待连接池就绪并完成 HELLO3 升级. login 由 timer 驱动异步进行, suite 一启动
---就跑 run() 时连接往往还没建立, 否则前面一批用例会全部报 db not connected.
 function RedisTest:setup()
     local deadline = quanta.clock_ms + 10000
     while quanta.clock_ms < deadline do

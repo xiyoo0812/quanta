@@ -26,7 +26,7 @@ quanta.startup(function()
     }
 
     --单模块测试配置
-    local MODULE_TEST_CASE = { name = "sqlite", enable = true }
+    local MODULE_TEST_CASE = { name = "mysql", enable = true }
 
     --测试套件配置
     local TestSuite = import("test/suite.lua")
@@ -56,7 +56,7 @@ quanta.startup(function()
             end
         end
     end
-    
+
     --运行所有用例
     suite:run_all()
 end)

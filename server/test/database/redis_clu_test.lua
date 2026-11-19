@@ -1,11 +1,4 @@
--- redis_cluster_test.lua
--- 测试前置: redis_mgr 走 QUANTA_REDIS_URL; 若连接串带 cluster 选项则启用 cluster 分片。
--- 单机 Redis 下 cluster 拓扑命令会失败, 这类断言仅在 cluster=true 时执行;
--- 其余 CRUD 通过 choose_node(key) 按 crc16 分片选连接, 单机/集群均可正确验证。
--- addr 仅作目标标识, 实际连接由 QUANTA_REDIS_URL 决定。
--- 覆盖: 连接状态、cluster 拓扑、跨 slot 的 string/hash/list/set/zset 读写、
---       hash tag 同槽、批量 mset/mget、incr、expire/ttl、scan 遍历。
-local TestCase   = import("test/case.lua")
+-- redis_clu_test.lua
 import("db/redis_mgr.lua")
 
 local sformat    = string.format
@@ -13,6 +6,7 @@ local sformat    = string.format
 local thread_mgr = quanta.get("thread_mgr")
 local redis_mgr  = quanta.get("redis_mgr")
 
+local TestCase = import("test/case.lua")
 local RedisClusterTest = class(TestCase)
 
 local PREFIX = "rc:"

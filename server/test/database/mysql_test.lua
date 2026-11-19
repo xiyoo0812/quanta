@@ -1,12 +1,10 @@
 -- mysql_test.lua
--- 测试前置: 本地 MySQL, 通过 QUANTA_MYSQL_URL 连接; addr 由注册表传入仅作目标标识
--- 覆盖: DDL/CRUD/replace/聚合/排序分页/别名/预处理/事务回滚
-local TestCase   = import("test/case.lua")
 import("db/mysql_mgr.lua")
 
 local thread_mgr = quanta.get("thread_mgr")
 local mysql_mgr  = quanta.get("mysql_mgr")
 
+local TestCase = import("test/case.lua")
 local MysqlTest = class(TestCase)
 
 local function exec(sql)
@@ -90,9 +88,9 @@ function MysqlTest:run()
     self:report("execute select (value=66666)", ok and tonumber(scalar(res)) == 66666, scalar(res), res)
 
     --10. 事务回滚: begin -> insert -> rollback -> 计数不变
-    local before = 0
-    ok, res = exec("select count(*) as count from test_mysql")
-    before = tonumber(scalar(res)) or 0
+    local before
+    local _, count_res = exec("select count(*) as count from test_mysql")
+    before = tonumber(scalar(count_res)) or 0
     exec("start transaction")
     exec("insert into test_mysql (pid, value) values (77777, 1)")
     ok, res = exec("rollback")

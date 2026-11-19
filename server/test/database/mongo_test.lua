@@ -1,16 +1,16 @@
 -- mongo_test.lua
--- 测试前置: 本地 MongoDB, 通过 QUANTA_MONGO_URL 连接; addr 由注册表传入仅作目标标识
--- 覆盖: count/insert/find/find_one/update/delete/index/bulkwrite/aggregate/find_and_modify/autoinc
-local TestCase   = import("test/case.lua")
 import("db/mongo_mgr.lua")
 
 local bdate      = bson.date
+
 local thread_mgr = quanta.get("thread_mgr")
 local mongo_mgr  = quanta.get("mongo_mgr")
 
-local MongoTest = class(TestCase)
 local PRIMARY    = 1234567
 local COLL       = "test_mongo"
+
+local TestCase = import("test/case.lua")
+local MongoTest = class(TestCase)
 
 function MongoTest:setup()
     thread_mgr:sleep(2000)
@@ -69,7 +69,7 @@ function MongoTest:run()
     --9. aggregate: 按 pid 分组计数
     local acode, ares = mongo_mgr:aggregate(COLL, {
         { ["$group"] = { _id = "$pid", total = { ["$sum"] = 1 } } },
-    })
+    }, { "cursor", {} })
     self:report("aggregate group", acode == 0 and type(ares) == "table", ares, ares)
 
     --10. bulkwrite: 批量 insert + update + delete
