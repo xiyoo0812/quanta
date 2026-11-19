@@ -1,14 +1,11 @@
 -- stdfs_test.lua
--- 测试 stdfs(基于 std::filesystem)的路径解析、文件类型、目录遍历、增删改查、路径拼接等。
--- 所有写操作限定在临时目录下的独立子目录, teardown 清理, 不触碰工程目录。
-local TestCase   = import("test/case.lua")
-
 local sformat    = string.format
-
-local StdfsTest = class(TestCase)
 
 local ROOT       = "quanta_stdfs_test"
 local TMP        = stdfs.temp_dir()
+
+local TestCase = import("test/case.lua")
+local StdfsTest = class(TestCase)
 
 local function temp_path(...)
     local p = stdfs.append(TMP, ROOT)
@@ -58,7 +55,9 @@ function StdfsTest:run()
     ------------------------------------------------------------------
     self:report("append", tostring(stdfs.append("a", "b")):match("b$") ~= nil, stdfs.append("a", "b"), ".../b")
     self:report("concat", stdfs.concat("ab", "cd") == "abcd", stdfs.concat("ab", "cd"), "abcd")
-    self:report("remove_filename", stdfs.remove_filename("a/b/c.txt") == "a/b", stdfs.remove_filename("a/b/c.txt"), "a/b")
+    --C++ std::filesystem::remove_filename() 保留尾部分隔符, 返回 "a/b/"
+    self:report("remove_filename", stdfs.remove_filename("a/b/c.txt") == "a/b/",
+        stdfs.remove_filename("a/b/c.txt"), "a/b/")
     self:report("replace_filename", stdfs.replace_filename("a/b/c.txt", "d.log") == "a/b/d.log",
         stdfs.replace_filename("a/b/c.txt", "d.log"), "a/b/d.log")
     self:report("replace_extension", stdfs.replace_extension("a/b/c.txt", "log") == "a/b/c.log",
@@ -74,7 +73,8 @@ function StdfsTest:run()
     local dirs = stdfs.dir(temp_path())
     local found_x = false
     for _, entry in pairs(dirs or {}) do
-        if entry.name == "x" then found_x = true end
+        --entry.name 是完整路径(entry.path()), 取 filename 才得到目录名
+        if stdfs.filename(entry.name) == "x" then found_x = true end
     end
     self:report("dir lists x", found_x, sformat("found_x={}", tostring(found_x)), "true")
     local rec = stdfs.dir(temp_path(), true)
