@@ -1,8 +1,10 @@
 -- pgsql_test.lua
-import("db/pgsql_mgr.lua")
+local sformat       = string.format
 
-local thread_mgr = quanta.get("thread_mgr")
-local pgsql_mgr  = quanta.get("pgsql_mgr")
+local pgsql_mgr     = quanta.load("pgsql_mgr")
+local thread_mgr    = quanta.get("thread_mgr")
+
+local DBNAME        = "quanta_1"   --测试库: 先连 postgres 建库, 再重连到该库
 
 local TestCase = import("test/case.lua")
 local PgsqlTest = class(TestCase)
@@ -12,17 +14,48 @@ local function exec(sql)
     return code == 0, res
 end
 
-local function scalar(res)
-    local set = type(res) == "table" and res[1]
-    local row = type(set) == "table" and set[1]
-    if type(row) == "table" then
-        for _, v in pairs(row) do
-            return v
-        end
+--安全转数字: 取不到返回 -1(不等于任何期望值, 让断言 FAIL 而非崩溃)
+local function num(v)
+    return tonumber(v) or -1
+end
+
+--取结果集首行首列. 兼容: 纯值 / 行表{列名=值} / {[1]=行表} 三种结构
+local function first_value(t)
+    if type(t) ~= "table" then return t end
+    for _, v in pairs(t) do
+        return v
     end
 end
 
+local function scalar(res)
+    if type(res) ~= "table" then return res end
+    local set = res[1]
+    if type(set) ~= "table" then return set end
+    --set 可能本身就是行表{列名=值}, 也可能 result set{[1]=行表}
+    if set[1] == nil then
+        return first_value(set)
+    end
+    return first_value(set[1])
+end
+
 function PgsqlTest:setup()
+    quanta.setenv("QUANTA_PGSQL_URL", self.addr)
+    import("db/pgsql_mgr.lua")
+    pgsql_mgr = quanta.get("pgsql_mgr")
+    thread_mgr:sleep(2000)
+    --pgsql 不支持 CREATE DATABASE IF NOT EXISTS, 先查 pg_database 再决定是否建
+    local ok_exists, res_exists = exec(sformat("select count(*) as cnt from pg_database where datname = '%s'", DBNAME))
+    if ok_exists and num(scalar(res_exists)) == 0 then
+        exec(sformat("create database %s", DBNAME))
+    end
+    --pgsql 没有 USE 语句, 必须重连: 关掉旧连接, 换成带库名的 URL 重建 manager
+    if pgsql_mgr.pgsql_db then
+        pgsql_mgr.pgsql_db:close()
+    end
+    --addr 末尾已带 /postgres, 需替换成 /quanta_1 而不是追加
+    local base_url = self.addr:match("^(.*)/[^/]+$") or self.addr
+    quanta.setenv("QUANTA_PGSQL_URL", base_url .. "/" .. DBNAME)
+    pgsql_mgr:setup()
     thread_mgr:sleep(2000)
 end
 
@@ -45,7 +78,7 @@ function PgsqlTest:run()
 
     --3. count
     ok, res = exec("select count(*) as count from test_pgsql")
-    self:report("select count (expect 2)", ok and tonumber(scalar(res)) == 2, scalar(res), res)
+    self:report("select count (expect 2)", ok and num(scalar(res)) == 2, scalar(res), res)
 
     --4. select 条件
     ok, res = exec("select * from test_pgsql where pid = 123457")
@@ -56,7 +89,7 @@ function PgsqlTest:run()
     ok, res = exec("update test_pgsql set value = 99 where pid = 123456")
     self:report("update row", ok, res, res)
     ok, res = exec("select value from test_pgsql where pid = 123456")
-    self:report("verify update (value=99)", ok and tonumber(scalar(res)) == 99, scalar(res), res)
+    self:report("verify update (value=99)", ok and num(scalar(res)) == 99, scalar(res), res)
 
     --6. upsert: on conflict do update
     ok, res = exec("insert into test_pgsql (id, pid, value, name) values (1, 123457, 40, 'alice2') " ..
@@ -75,7 +108,7 @@ function PgsqlTest:run()
     ok, res = exec("delete from test_pgsql where pid = 123457")
     self:report("delete row", ok, res, res)
     ok, res = exec("select count(*) as count from test_pgsql")
-    self:report("count after delete (expect 1)", ok and tonumber(scalar(res)) == 1, scalar(res), res)
+    self:report("count after delete (expect 1)", ok and num(scalar(res)) == 1, scalar(res), res)
 
     --9. 预处理语句
     ok, res = pgsql_mgr:prepare("myinsert", "insert into test_pgsql (pid, value) values ($1, $2)")
@@ -85,18 +118,18 @@ function PgsqlTest:run()
     ok, res = pgsql_mgr:prepare("myselect", "select value from test_pgsql where pid = $1")
     self:report("prepare select", ok, res, res)
     ok, res = pgsql_mgr:execute(1, "myselect", 55555)
-    self:report("execute select (value=66666)", ok and tonumber(scalar(res)) == 66666, scalar(res), res)
+    self:report("execute select (value=66666)", ok and num(scalar(res)) == 66666, scalar(res), res)
 
     --10. 事务回滚
     local before
     local _, count_res = exec("select count(*) as count from test_pgsql")
-    before = tonumber(scalar(count_res)) or 0
+    before = num(scalar(count_res))
     exec("begin")
     exec("insert into test_pgsql (pid, value) values (77777, 1)")
     ok, res = exec("rollback")
     self:report("transaction rollback", ok, res, res)
     ok, res = exec("select count(*) as count from test_pgsql")
-    self:report("count unchanged after rollback", ok and tonumber(scalar(res)) == before, scalar(res), res)
+    self:report("count unchanged after rollback", ok and num(scalar(res)) == before, scalar(res), res)
 end
 
 return PgsqlTest

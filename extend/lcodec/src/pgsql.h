@@ -118,26 +118,119 @@ namespace lcodec {
 
         virtual size_t decode(lua_State* L) {
             size_t osize = m_slice->size();
-            if (check_idle_cmd_type()) {
-                m_packet_len = osize - m_slice->size();
-                throw length_error("pgsql empty packet");
-            }
             int top = lua_gettop(L);
+            //无等待中的请求: 到达的是空闲/附带包(ReadyForQuery/NOTICE 等), 直接丢弃
             if (sessions.empty()) {
-                throw lua_exception("invalid pgsql data");
+                if (!skip_async_packet()) {
+                    throw lua_exception("invalid pgsql data");
+                }
+                m_packet_len = osize - m_slice->size();
+                //必须返回一个 session_id=0 占位; 直接 return 0 会让 Lua 侧收到 nil
+                lua_pushinteger(L, 0);
+                return 1;
             }
-            cmd_type_b cmd_type = recv_packet();
-            size_t session_id = sessions.front();
-            lua_pushinteger(L, session_id);
-            lua_pushboolean(L, cmd_type != ERROR);
-            if (cmd_type != AUTH) {
-                command_decode(L, cmd_type);
-            } else {
-                auth_decode(L);
+            //有等待中的请求: PostgreSQL 一个请求返回"多个包"(扩展查询: BindComplete+RowDescription+DataRow..+CommandComplete+ReadyForQuery, 简单查询: Notice+CommandComplete+ReadyForQuery),
+            //必须循环读到终止包(ReadyForQuery/ERROR/AUTH)才消费一次 session, 否则 session 队列与响应包错位导致请求超时。
+            int result_idx = 0;     //栈上结果(结果集表/命令标签), 0 表示无
+            while (true) {
+                if (m_slice->size() < PGSQL_HEADER_LEN) {
+                    m_packet_len = osize - m_slice->size();
+                    throw length_error("pgsql text not full");
+                }
+                cmd_type_b cmd_type = recv_packet();
+                switch (cmd_type) {
+                //中间包: 不构成一次响应, 跳过继续读
+                case NOTICE:
+                case NOTIFICATION:
+                case PARSE_COMPLETE:
+                case BIND_COMPLETE:
+                case CLOSE_COMPLETE:
+                case PARAMETER_DESCRIPTION:
+                case PARAMETER_STATUS:
+                case NO_DATA:
+                    continue;
+                //终止包: 本次请求结束, 消费一个 session 并返回
+                case READY_FOR_QUERY: {
+                    size_t session_id = sessions.front();
+                    sessions.pop_front();
+                    if (result_idx > 0) {
+                        //结果表已先压栈, 需把 session_id/boolean 插到它前面, 保证返回值顺序为 (session_id, ok, result)
+                        lua_pushinteger(L, session_id);
+                        lua_pushboolean(L, true);
+                        lua_insert(L, result_idx);      //bool -> result_idx
+                        lua_insert(L, result_idx);      //session_id -> result_idx
+                    } else {
+                        lua_pushinteger(L, session_id);
+                        lua_pushboolean(L, true);
+                        lua_pushnil(L);
+                    }
+                    m_packet_len = osize - m_slice->size();
+                    return lua_gettop(L) - top;
+                }
+                case ERROR: {
+                    size_t session_id = sessions.front();
+                    sessions.pop_front();
+                    //丢弃可能已解析的部分结果表, 错误时只返回 (session_id, false, errtext)
+                    if (result_idx > 0) lua_remove(L, result_idx);
+                    lua_pushinteger(L, session_id);
+                    lua_pushboolean(L, false);
+                    notice_error_decode(L);
+                    m_packet_len = osize - m_slice->size();
+                    return lua_gettop(L) - top;
+                }
+                case AUTH: {
+                    size_t session_id = sessions.front();
+                    sessions.pop_front();
+                    lua_pushinteger(L, session_id);
+                    lua_pushboolean(L, true);
+                    auth_decode(L);
+                    m_packet_len = osize - m_slice->size();
+                    return lua_gettop(L) - top;
+                }
+                //结果包: 解析后暂存, 继续读到终止包
+                case ROW_DESCRIPTION:
+                    row_description_decode(L);      //内部消费 DataRow... 与 CommandComplete
+                    result_idx = lua_gettop(L);
+                    continue;
+                case COMMAND_COMPLETE:
+                    command_complete_decode(L);
+                    result_idx = lua_gettop(L);
+                    continue;
+                default:
+                    throw lua_exception("unsuppert pgsql packet type");
+                }
             }
-            sessions.pop_front();
-            m_packet_len = osize - m_slice->size();
-            return lua_gettop(L) - top;
+        }
+
+    protected:
+        //sessions 为空时丢弃空闲/附带包, 返回 false 表示遇到无法识别的包
+        bool skip_async_packet() {
+            if (m_slice->size() < PGSQL_HEADER_LEN) {
+                return false;
+            }
+            cmd_type_b cmd = (cmd_type_b)m_slice->swap_read();
+            int32_t length = m_slice->swap_read<int32_t>() - (int32_t)sizeof(uint32_t);
+            if (length < 0) {
+                return false;
+            }
+            if (m_slice->size() < (size_t)length) {
+                return false;
+            }
+            m_slice->erase(length);
+            switch (cmd) {
+            case READY_FOR_QUERY:
+            case NOTICE:
+            case NOTIFICATION:
+            case PARSE_COMPLETE:
+            case BIND_COMPLETE:
+            case CLOSE_COMPLETE:
+            case PARAMETER_DESCRIPTION:
+            case PARAMETER_STATUS:
+            case NO_DATA:
+                return true;
+            default:
+                return false;
+            }
         }
 
     protected:
@@ -160,7 +253,9 @@ namespace lcodec {
             m_buf->write<uchar>((uchar)cmd_type);
             m_buf->swap_write<uint32_t>(data_len + sizeof(uint32_t));
             m_buf->push_data(query, data_len);
-            sessions.push_back(session_id);
+            if (session_id > 0) {
+                sessions.push_back(session_id);
+            }
             return m_buf->data(len);
         }
 
@@ -193,6 +288,11 @@ namespace lcodec {
             case EMPTY_QUERY:
             case CLOSE_COMPLETE:
             case PARSE_COMPLETE:
+            case BIND_COMPLETE:
+            case NO_DATA:
+            case PARAMETER_DESCRIPTION:
+            case PARAMETER_STATUS:
+            case READY_FOR_QUERY:
             case NOTIFICATION:
             case FUNCTION_CALL:
                 break;

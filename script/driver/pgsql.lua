@@ -250,7 +250,7 @@ function PgsqlDB:on_socket_error(sock, token, err)
 end
 
 function PgsqlDB:on_socket_recv(socket, session_id, ...)
-    if session_id > 0 then
+    if session_id and session_id > 0 then
         thread_mgr:response(session_id, ...)
     end
 end

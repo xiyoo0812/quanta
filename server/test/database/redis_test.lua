@@ -1,15 +1,17 @@
 -- redis_test.lua
-import("db/redis_mgr.lua")
-
 local sformat    = string.format
 
+local redis_mgr  = quanta.load("redis_mgr")
 local thread_mgr = quanta.get("thread_mgr")
-local redis_mgr  = quanta.get("redis_mgr")
 
 local TestCase = import("test/case.lua")
 local RedisTest = class(TestCase)
 
 function RedisTest:setup()
+    --先设 URL 再 import: 连接是在 import mgr(__init -> setup)时按环境变量创建的
+    quanta.setenv("QUANTA_REDIS_URL", self.addr)
+    import("db/redis_mgr.lua")
+    redis_mgr = quanta.get("redis_mgr")
     local deadline = quanta.clock_ms + 10000
     while quanta.clock_ms < deadline do
         local rdb = redis_mgr.redis_db

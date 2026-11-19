@@ -8,14 +8,13 @@ quanta.startup(function()
 
     --全量用例注册表(map格式, key=模块名同时作为用例名, value=用例配置)
     local ALL_TEST_CASES = {
-        --database
         etcd        = { enable = true, path = "test/database/etcd_test.lua", addr = "http://127.0.0.1:2379" },
-        redis       = { enable = true, path = "test/database/redis_test.lua", addr = "redis://127.0.0.1:6379" },
-        redis_clu   = { enable = true, path = "test/database/redis_clu_test.lua", addr = "redis://127.0.0.1:6379" },
-        mysql       = { enable = true, path = "test/database/mysql_test.lua", addr = "mysql://127.0.0.1:3306/quanta_test" },
-        pgsql       = { enable = true, path = "test/database/pgsql_test.lua", addr = "pgsql://127.0.0.1:5432/quanta_test" },
-        mongo       = { enable = true, path = "test/database/mongo_test.lua", addr = "mongodb://127.0.0.1:27017/quanta_test" },
-        clickhouse  = { enable = true, path = "test/database/clickhouse_test.lua", addr = "mysql://127.0.0.1:9004/quanta_test" },
+        mysql       = { enable = true, path = "test/database/mysql_test.lua", addr = "mysql://root:123456@127.0.0.1:3306" },
+        redis       = { enable = true, path = "test/database/redis_test.lua", addr = "redis://root:123456@127.0.0.1:6379" },
+        redis_clu   = { enable = true, path = "test/database/redis_clu_test.lua", addr = "redis://root:123456@127.0.0.1:6379" },
+        mongo       = { enable = true, path = "test/database/mongo_test.lua", addr = "mongodb://root:123456@127.0.0.1:27017/quanta_1" },
+        pgsql       = { enable = true, path = "test/database/pgsql_test.lua", addr = "pgsql://postgres:123456@127.0.0.1:5432/postgres" },
+        clickhouse  = { enable = true, path = "test/database/clickhouse_test.lua", addr = "mysql://root:123456@127.0.0.1:9004" },
         sqlite      = { enable = true, path = "test/database/sqlite_test.lua", addr = "./sqlite/test.db" },
         --basic
         log         = { enable = true, path = "test/basic/log_test.lua" },
@@ -26,7 +25,7 @@ quanta.startup(function()
     }
 
     --单模块测试配置
-    local MODULE_TEST_CASE = { name = "mysql", enable = true }
+    local MODULE_TEST_CASE = { name = "pgsql", enable = true }
 
     --测试套件配置
     local TestSuite = import("test/suite.lua")

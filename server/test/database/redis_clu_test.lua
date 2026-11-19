@@ -1,10 +1,8 @@
 -- redis_clu_test.lua
-import("db/redis_mgr.lua")
-
 local sformat    = string.format
 
+local redis_mgr  = quanta.load("redis_mgr")
 local thread_mgr = quanta.get("thread_mgr")
-local redis_mgr  = quanta.get("redis_mgr")
 
 local TestCase = import("test/case.lua")
 local RedisClusterTest = class(TestCase)
@@ -12,6 +10,10 @@ local RedisClusterTest = class(TestCase)
 local PREFIX = "rc:"
 
 function RedisClusterTest:setup()
+    --先设 URL 再 import: 连接是在 import mgr(__init -> setup)时按环境变量创建的
+    quanta.setenv("QUANTA_REDIS_URL", self.addr)
+    import("db/redis_mgr.lua")
+    redis_mgr = quanta.get("redis_mgr")
     thread_mgr:sleep(2000)
 end
 
