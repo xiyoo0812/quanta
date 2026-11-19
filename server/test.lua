@@ -1,48 +1,62 @@
 --test.lua
 import("kernel.lua")
 
+local log_err = logger.err
+
 quanta.startup(function()
     require("ljson")
-    --初始化test
-    --[[
-    import("test/codec_test.lua")
-    import("test/json_test.lua")
-    import("test/socket_test.lua")
-    import("test/mongo_test.lua")
-    import("test/router_test.lua")
-    import("test/protobuf_test.lua")
-    import("test/http_test.lua")
-    import("test/http2_test.lua")
-    import("test/rpc_test.lua")
-    import("test/log_test.lua")
-    import("test/ip_test.lua")
-    import("test/timer_test.lua")
-    import("test/mysql_test.lua")
-    import("test/redis_test.lua")
-    import("test/stdfs_test.lua")
-    import("test/cmdline_test.lua")
-    import("test/ws_test.lua")
-    import("test/trace_test.lua")
-    import("test/clickhouse_test.lua")
-    import("test/udp_test.lua")
-    import("test/tcp_test.lua")
-    import("test/worker_test.lua")
-    import("test/lock_test.lua")
-    import("test/detour_test.lua")
-    import("test/bitset_test.lua")
-    import("test/lmdb_test.lua")
-    import("test/sqlite_test.lua")
-    import("test/tls_test.lua")
-    import("test/zip_test.lua")
-    import("test/toml_test.lua")
-    import("test/csv_test.lua")
-    import("test/smdb_test.lua")
-    import("test/profile_test.lua")
-    import("test/pgsql_test.lua")
-    import("test/xlsx_test.lua")
-    import("test/etcd_test.lua")
-    import("test/kcp_test.lua")
-    import("test/luakit_test.lua")
-    ]]
-    import("test/etcd_test.lua")
+
+    --全量用例注册表(map格式, key=模块名同时作为用例名, value=用例配置)
+    local ALL_TEST_CASES = {
+        --database
+        etcd        = { enable = true, path = "test/database/etcd_test.lua", addr = "http://127.0.0.1:2379" },
+        redis       = { enable = true, path = "test/database/redis_test.lua", addr = "redis://127.0.0.1:6379" },
+        redis_clu   = { enable = true, path = "test/database/redis_clu_test.lua", addr = "redis://127.0.0.1:6379" },
+        mysql       = { enable = true, path = "test/database/mysql_test.lua", addr = "mysql://127.0.0.1:3306/quanta_test" },
+        pgsql       = { enable = true, path = "test/database/pgsql_test.lua", addr = "pgsql://127.0.0.1:5432/quanta_test" },
+        mongo       = { enable = true, path = "test/database/mongo_test.lua", addr = "mongodb://127.0.0.1:27017/quanta_test" },
+        clickhouse  = { enable = true, path = "test/database/clickhouse_test.lua", addr = "mysql://127.0.0.1:9004/quanta_test" },
+        sqlite      = { enable = true, path = "test/database/sqlite_test.lua", addr = "./sqlite/test.db" },
+        --basic
+        log         = { enable = true, path = "test/basic/log_test.lua" },
+        stdfs       = { enable = true, path = "test/basic/stdfs_test.lua" },
+        timer       = { enable = true, path = "test/basic/timer_test.lua" },
+        luakit      = { enable = true, path = "test/basic/luakit_test.lua" },
+        profile     = { enable = true, path = "test/basic/profile_test.lua" },
+    }
+
+    --单模块测试配置
+    local MODULE_TEST_CASE = { name = "luakit", enable = true }
+
+    --测试套件配置
+    local TestSuite = import("test/suite.lua")
+    local suite = TestSuite()
+
+    --辅助函数: 添加用例
+    local function add_case(name, conf)
+        local CASE = import(conf.path)
+        if CASE then
+            suite:add_case(CASE(name, conf.addr))
+        else
+            log_err("[TEST] load case failed: {}", conf.path)
+        end
+    end
+
+    --添加用例
+    if MODULE_TEST_CASE.enable and MODULE_TEST_CASE.name then
+        local name = MODULE_TEST_CASE.name
+        local conf = ALL_TEST_CASES[name]
+        if conf then
+            add_case(name, conf)
+        end
+    else
+        for name, conf in pairs(ALL_TEST_CASES) do
+            if conf.enable then
+                add_case(name, conf)
+            end
+        end
+    end
+    
+    --运行所有用例
+    suite:run_all()
 end)
