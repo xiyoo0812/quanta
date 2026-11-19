@@ -26,7 +26,7 @@ quanta.startup(function()
     }
 
     --单模块测试配置
-    local MODULE_TEST_CASE = { name = "luakit", enable = true }
+    local MODULE_TEST_CASE = { name = "log", enable = true }
 
     --测试套件配置
     local TestSuite = import("test/suite.lua")

@@ -1,9 +1,8 @@
 -- log_test.lua
--- 测试日志模块: log.format 格式化、LOG_LEVEL/LOG_FLAG 枚举、
--- logger 各级别函数可调用、logfeature 专用日志、filter 过滤、monitor 监听回调。
--- logger 输出本身无返回值, 用 pcall 断言"可安全调用"; monitor 用计数器验证回调。
-local TestCase   = import("test/case.lua")
 
+local sformat   = string.format
+
+local TestCase = import("test/case.lua")
 local LogTest = class(TestCase)
 
 --自定义 monitor: 收集 collect_log 调用
@@ -23,7 +22,7 @@ function LogTest:teardown()
         self.monitor = nil
     end
     --恢复日志级别到 info, 避免影响后续用例
-    logger.filter(log.LOG_LEVEL.INFO)
+    logger.filter(log.LOG_LEVEL.DEBUG)
 end
 
 function LogTest:run()
@@ -58,13 +57,14 @@ function LogTest:run()
     ------------------------------------------------------------------
     --3. logger 各级别函数可安全调用(格式化正确时不抛错)
     ------------------------------------------------------------------
-    local levels_to_test = { "debug", "info", "warn", "err", "fatal", "dump", "trace", "print" }
+    --logger 表只注册 LOG_OPTIONS 中的级别(fatal/debug/info/warn/err/dump), 没有 trace/print
+    local levels_to_test = { "debug", "info", "warn", "err", "fatal", "dump" }
     local all_ok, first_err = true, nil
     for _, name in ipairs(levels_to_test) do
         if type(logger[name]) == "function" then
             local ok, err = pcall(logger[name], "[LOG_TEST] level {} ok", name)
-            if not ok then all_ok, first_err = false, tostring(err) end
-        else
+            if not ok and not first_err then all_ok, first_err = false, tostring(err) end
+        elseif not first_err then
             all_ok, first_err = false, "missing logger." .. name
         end
     end

@@ -1,6 +1,5 @@
 --suite.lua
 --测试套件: 编排所有用例, 全部完成后统一输出; 有失败输出 err, 全部成功输出 info
-local log_warn   = logger.info
 local log_err    = logger.err
 local log_debug  = logger.debug
 local log_dump   = logger.dump
