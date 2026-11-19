@@ -1,6 +1,7 @@
 #pragma once
 #include <deque>
 #include <charconv>
+#include <cstdlib>
 
 namespace lcodec {
     inline size_t   CRLF_LEN    = 2;
@@ -25,15 +26,42 @@ namespace lcodec {
             return m_buf->data(len);
         }
 
+        // 返回 4 个值: session_id, succ, res, is_push
+        // RESP3 push 是带外数据，不占 session 队列，session_id 固定为 0
         virtual size_t decode(lua_State* L) {
             int top = lua_gettop(L);
             size_t osize = m_slice->size();
             string_view buf = m_slice->contents();
-            lua_pushinteger(L, m_sessions.empty() ? 0 : m_sessions.front());
-            parse_redis_packet(L, buf);
-            if (!m_sessions.empty()) m_sessions.pop_front();
+            bool is_push = (!buf.empty() && buf[0] == '>');
+            lua_pushinteger(L, is_push ? 0 : (m_sessions.empty() ? 0 : m_sessions.front()));
+            parse_redis_packet(L, buf, is_push);
+            //订阅确认(subscribe/psubscribe/unsubscribe/punsubscribe)虽以 push 承载,
+            //但它是对 SUBSCRIBE 等请求的应答, 必须弹出队首, 否则后续普通应答会
+            //错位取到残留 session_id, 造成真实请求超时 + 晚到响应 unknown session
+            bool sub_ack = is_push && is_subscribe_ack(L);
+            lua_pushboolean(L, is_push);
+            if (!m_sessions.empty() && (!is_push || sub_ack)) m_sessions.pop_front();
             m_packet_len = osize - buf.size();
             return lua_gettop(L) - top;
+        }
+
+        bool is_subscribe_ack(lua_State* L) {
+            if (!lua_istable(L, -1)) return false;
+            lua_geti(L, -1, 1);
+            size_t len = 0;
+            cpchar kind = lua_tolstring(L, -1, &len);
+            bool result = false;
+            if (kind) {
+                static const string_view acks[] = {
+                    string_view("subscribe"), string_view("psubscribe"),
+                    string_view("unsubscribe"), string_view("punsubscribe")
+                };
+                for (const auto& ack : acks) {
+                    if (string_view(kind, len) == ack) { result = true; break; }
+                }
+            }
+            lua_pop(L, 1);
+            return result;
         }
 
         void set_codec(codec_base* codec) {
@@ -41,26 +69,62 @@ namespace lcodec {
         }
 
     protected:
-        void parse_redis_success(lua_State* L, string_view line) {
-            lua_pushboolean(L, true);
-            lua_pushlstring(L, line.data(), line.size());
+        // 解析一个 RESP3 值，恰好压入一个 Lua 值
+        void parse_redis_value(lua_State* L, string_view line, string_view& buf, bool& is_push) {
+            if (line.empty()) throw lua_exception("invalid redis format");
+            switch (line[0]) {
+            case '+': // simple string
+                lua_pushlstring(L, line.data() + 1, line.size() - 1);
+                break;
+            case '-': // simple error（根级 succ=false 表达，值仍按字符串返回）
+                lua_pushlstring(L, line.data() + 1, line.size() - 1);
+                break;
+            case ':': // integer
+                lua_pushinteger(L, atoll(line.data() + 1));
+                break;
+            case '!': // blob error
+            case '$': // blob string
+                parse_redis_blob(L, line.substr(1), buf);
+                break;
+            case '=': // verbatim string: 跳过 "txt:" 4 字节
+                parse_redis_blob(L, line.substr(1), buf, 4);
+                break;
+            case '*': // array
+            case '~': // set
+                parse_redis_array(L, line.substr(1), buf, is_push);
+                break;
+            case '>': // push: 协议规定只出现在根级，标记后按数组解析
+                is_push = true;
+                parse_redis_array(L, line.substr(1), buf, is_push);
+                break;
+            case '%': // map
+            case '|': // attribute: 简化为 map 表
+                parse_redis_map(L, line.substr(1), buf, is_push);
+                break;
+            case '#': // boolean
+                lua_pushboolean(L, line.size() > 1 && (line[1] == 't' || line[1] == 'T'));
+                break;
+            case ',': // double
+                lua_pushnumber(L, atof(line.data() + 1));
+                break;
+            case '(': // big number: 保留字符串，避免精度丢失
+                lua_pushlstring(L, line.data() + 1, line.size() - 1);
+                break;
+            case '_': // null
+                lua_pushnil(L);
+                break;
+            default:
+                throw lua_exception("invalid redis format");
+                break;
+            }
         }
 
-        void parse_redis_error(lua_State* L, string_view line) {
-            lua_pushboolean(L, false);
-            lua_pushlstring(L, line.data(), line.size());
-        }
-
-        void parse_redis_integer(lua_State* L, string_view line, bool rootable = false) {
-            if (rootable) lua_pushboolean(L, true);
-            lua_pushinteger(L, atoll(line.data()));
-        }
-
-        void parse_redis_string(lua_State* L, string_view line, string_view& buf, bool rootable = false) {
+        void parse_redis_blob(lua_State* L, string_view line, string_view& buf, int skip = 0) {
             if (int64_t length = atoll(line.data()); length >= 0) {
                 string_view nline;
                 if (!read_string(buf, nline, length))
                     throw length_error("redis text not full");
+                if (skip > 0 && (int64_t)nline.size() >= skip) nline.remove_prefix(skip);
                 if (nline.starts_with("{")) {
                     m_jcodec->decode(L, (uint8_t*)nline.data(), nline.size());
                 } else {
@@ -69,67 +133,46 @@ namespace lcodec {
             } else {
                 lua_pushnil(L);
             }
-            if (rootable) {
-                lua_pushboolean(L, true);
-                lua_insert(L, -2);
-            }
         }
 
-        void parse_redis_array(lua_State* L, string_view line, string_view& buf, bool rootable = false) {
+        void parse_redis_array(lua_State* L, string_view line, string_view& buf, bool& is_push) {
             if (int64_t length = atoll(line.data()); length >= 0) {
-                lua_createtable(L, 0, 4);
-                for (int i = 1; i <= length; ++i) {
-                    string_view line;
-                    if (!read_line(buf, line)) throw length_error("redis text not full");
-                    switch (line[0]) {
-                    case ':':
-                        parse_redis_integer(L, line.substr(1));
-                        break;
-                    case '$':
-                        parse_redis_string(L, line.substr(1), buf);
-                        break;
-                    case '*':
-                        parse_redis_array(L, line.substr(1), buf);
-                        break;
-                    default:
-                        throw lua_exception("invalid redis format");
-                        break;
-                    }
+                lua_createtable(L, (int)length, 0);
+                for (int64_t i = 1; i <= length; ++i) {
+                    string_view item;
+                    if (!read_line(buf, item)) throw length_error("redis text not full");
+                    parse_redis_value(L, item, buf, is_push);
                     lua_seti(L, -2, i);
                 }
-            }
-            else {
+            } else {
                 lua_pushnil(L);
-            }
-            if (rootable) {
-                lua_pushboolean(L, true);
-                lua_insert(L, -2);
             }
         }
 
-        void parse_redis_packet(lua_State* L, string_view& buf) {
+        void parse_redis_map(lua_State* L, string_view line, string_view& buf, bool& is_push) {
+            if (int64_t length = atoll(line.data()); length >= 0) {
+                lua_createtable(L, 0, (int)length);
+                for (int64_t i = 0; i < length; ++i) {
+                    string_view kline;
+                    if (!read_line(buf, kline)) throw length_error("redis text not full");
+                    parse_redis_value(L, kline, buf, is_push);
+                    string_view vline;
+                    if (!read_line(buf, vline)) throw length_error("redis text not full");
+                    parse_redis_value(L, vline, buf, is_push);
+                    lua_rawset(L, -3);
+                }
+            } else {
+                lua_pushnil(L);
+            }
+        }
+
+        // 根级：压入 succ, value；is_push 由 decode 预判 + 此处确认
+        void parse_redis_packet(lua_State* L, string_view& buf, bool& is_push) {
             string_view line;
             if (!read_line(buf, line)) throw length_error("redis text not full");
-            switch (line[0]) {
-            case '+':
-                parse_redis_success(L, line.substr(1));
-                break;
-            case '-':
-                parse_redis_error(L, line.substr(1));
-                break;
-            case ':':
-                parse_redis_integer(L, line.substr(1), true);
-                break;
-            case '$':
-                parse_redis_string(L, line.substr(1), buf, true);
-                break;
-            case '*':
-                parse_redis_array(L, line.substr(1), buf, true);
-                break;
-            default:
-                throw lua_exception("invalid redis format");
-                break;
-            }
+            if (line.empty()) throw lua_exception("invalid redis format");
+            lua_pushboolean(L, line[0] != '-' && line[0] != '!');
+            parse_redis_value(L, line, buf, is_push);
         }
 
         bool read_line(string_view& buf, string_view& line) {
@@ -178,13 +221,13 @@ namespace lcodec {
             case LUA_TSTRING:
                 string_encode(L, idx);
                 break;
-            case LUA_TBOOLEAN: 
+            case LUA_TBOOLEAN:
                 integer_encode(lua_toboolean(L, idx) ? 1 : 0);
                 break;
             case LUA_TNUMBER:
                 lua_isinteger(L, idx) ? integer_encode(lua_tointeger(L, idx)) : number_encode(lua_tonumber(L, idx));
                 break;
-            case LUA_TTABLE: 
+            case LUA_TTABLE:
                 table_encode(L, idx);
                 break;
             default:
