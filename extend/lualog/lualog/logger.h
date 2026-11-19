@@ -58,7 +58,7 @@ namespace logger {
     }
 
     constexpr auto level_names = std::array{"UNKNW", "DEBUG", "INFO", "DUMP", "WARN", "ERROR", "FATAL"};
-    constexpr auto level_colors = std::array{"\x1b[90m", "\x1b[37m", "\x1b[32m", "\x1b[36m", "\x1b[33m", "\x1b[31m", "\x1b[97;41m"};
+    constexpr auto level_colors = std::array{"\x1b[90m", "\x1b[32m", "\x1b[37m", "\x1b[36m", "\x1b[33m", "\x1b[31m", "\x1b[97;41m"};
 
     class log_message {
     public:
@@ -67,6 +67,7 @@ namespace logger {
         const vstring feature() const { return feature_; }
         void option(log_level lvl, sstring&& msg, cpchar tag, cpchar feature, cpchar trace_id);
         void format(pchar secbuf, seconds& last);
+        void endline() { msg_.push_back('\n'); }
 
     private:
         log_time    time_;
