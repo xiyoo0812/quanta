@@ -523,8 +523,9 @@ namespace lcodec {
     template <typename T>
     class http2codec : public http_codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
+            size_t data_len = m_slice->size();
             size_t offset = 0;
             while (offset < data_len) {
                 auto header = (h2_frame_header*)m_slice->peek(H2_FRAME_LEN, offset);

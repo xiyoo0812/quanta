@@ -499,6 +499,9 @@ namespace luakit {
             m_packet_len = data_len;
             return data_len;
         }
+        virtual int load_packet(bool& ignore) {
+            return load_packet();
+        }
         virtual size_t decode(lua_State* L) {
             return decode_slice(L, m_slice);
         }

@@ -32,6 +32,10 @@ namespace luakit {
             m_head = data;
             m_tail = data + size;
         }
+        
+        inline void resize(size_t size) {
+            m_tail = m_head + size;
+        }
 
         inline uint8_t* peek(size_t peek_len, size_t offset = 0) {
             size_t data_len = m_tail - m_head - offset;
