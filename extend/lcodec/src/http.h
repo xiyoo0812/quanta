@@ -29,33 +29,48 @@ namespace lcodec {
     #define SC_SERVERERROR      500
     #define SC_SERVERBUSY       503
 
+    //单次遍历 header, 同时拿到 header 结束位置 / Content-Length / Transfer-Encoding,
+    //避免原实现对整个 buffer 做三次 strstr(CONTENTL/CHUNKED 只应出现在 header 中)
     bool is_packet_complete(cpchar buffer, size_t buffer_size) {
-        cpchar header_end = strstr(buffer, CRLF2);
-        if (!header_end) {
-            return false;
-        }
-        cpchar body_start = header_end + LCRLF2;
-        size_t body_size = buffer_size - (body_start - buffer);
-        bool is_chunked = strstr(buffer, CHUNKED) != nullptr;
-        if (is_chunked) {
-            if (body_size < LCHUNKEND || memcmp(body_start + body_size - LCRLF2, CRLF2, LCRLF2) != 0) {
-                return false;
+        string_view data(buffer, buffer_size);
+        size_t pos = 0;
+        size_t header_end = string_view::npos;
+        int64_t content_length = -1;
+        bool is_chunked = false;
+        //逐行扫描, 空行(\r\n)即 header 结束
+        while (true) {
+            size_t line_end = data.find(CRLF, pos);
+            if (line_end == string_view::npos) return false;     //header 未收完整
+            if (line_end == pos) {                               //空行: header 结束
+                header_end = line_end;
+                break;
             }
-            cpchar chunk_end = body_start + body_size - LCHUNKEND;
-            while (chunk_end >= body_start) {
-                if (memcmp(chunk_end, CHUNKEND, LCHUNKEND) == 0) {
-                    return true;
+            string_view line = data.substr(pos, line_end - pos);
+            if (line.starts_with(TRANSFER)) {
+                //Transfer-Encoding: chunked
+                size_t val_pos = line.find(':');
+                if (val_pos != string_view::npos) {
+                    string_view val = line.substr(val_pos + 1);
+                    //跳过去掉的空格
+                    while (!val.empty() && val.front() == ' ') val.remove_prefix(1);
+                    if (val.starts_with(CHUNKED)) is_chunked = true;
                 }
-                chunk_end--;
+            } else if (line.starts_with(CONTENTL)) {
+                content_length = atoll(line.data() + LCONTENTL);
             }
-            return false;
+            pos = line_end + LCRLF;
         }
-        size_t content_length = -1;
-        cpchar content_length_pos = strstr(buffer, CONTENTL);
-        if (content_length_pos) {
-            cpchar value_start = content_length_pos + LCONTENTL;
-            content_length = std::atoi(value_start);
-            return body_size >= content_length;
+        //header_end 指向空行的那个 \r\n(即 CRLF2 的后半段), 跳过它即为 body
+        size_t body_off = header_end + LCRLF;
+        cpchar body_start = buffer + body_off;
+        size_t body_size = buffer_size - body_off;
+        if (is_chunked) {
+            //chunked 以 "0\r\n\r\n" 结束, 只需检查尾部
+            return body_size >= LCHUNKEND
+                && memcmp(body_start + body_size - LCHUNKEND, CHUNKEND, LCHUNKEND) == 0;
+        }
+        if (content_length >= 0) {
+            return body_size >= (size_t)content_length;
         }
         return true;
     }

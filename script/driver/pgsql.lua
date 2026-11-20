@@ -46,6 +46,19 @@ local REQUEST_CMD   = codec.pgsql_type_f
 local ZERO_BIT2     = spack(">h", 0)
 local ZERO_BIT4     = spack(">i", 0)
 
+--递归取结果集里第一个标量值(兼容纯值/行表/结果集嵌套)
+local function first_value(value)
+    if type(value) ~= "table" then
+        return value
+    end
+    for _, item in pairs(value) do
+        local val = first_value(item)
+        if val ~= nil then
+            return val
+        end
+    end
+end
+
 local PgsqlDB = class()
 local prop = property(PgsqlDB)
 prop:reader("name", "")         --dbname
@@ -66,9 +79,56 @@ function PgsqlDB:__init(conf)
     self.timer = make_timer()
     --setup
     self:set_options(conf.opts)
-    self:setup_pool(conf.hosts)
+    --有库名时先用临时连接连管理库建库, 成功后再建立连接池; 建库需要网络 yield, 放到协程里
+    if self.name and self.name ~= "" then
+        thread_mgr:fork(function()
+            if self:init_database(conf.hosts) then
+                self:setup_pool(conf.hosts)
+            else
+                log_err("[PgsqlDB][__init] init database {} failed", self.name)
+            end
+        end)
+    else
+        self:setup_pool(conf.hosts)
+    end
     --update
     update_mgr:attach_hour(self)
+end
+
+--用临时连接连管理库(postgres)建库, 成功后关闭临时连接
+function PgsqlDB:init_database(hosts)
+    local _, host = next(hosts)
+    if not host then
+        log_err("[PgsqlDB][init_database] hosts is empty")
+        return false
+    end
+    local database = self.name
+    local socket = Socket(self, host[1], host[2])
+    socket:set_id(-1)               --临时连接用负数 id, 与连接池区分
+    self.name = "postgres"          --连管理库
+    local ok = self:login(socket)
+    if ok then
+        --pg 不支持 create database if not exists, 先查 pg_database 再决定是否建
+        local check = sformat("select count(*) from pg_database where datname = '%s'\0", database)
+        local sok, res = self:request_on(socket, REQUEST_CMD.QUERY, "pgsql check db", check)
+        if not sok then
+            log_err("[PgsqlDB][init_database] check database {} failed: {}", database, res)
+            ok = false
+        elseif tonumber(first_value(res)) == 0 then
+            local create = sformat("create database %s\0", database)
+            local cok, cres = self:request_on(socket, REQUEST_CMD.QUERY, "pgsql create db", create)
+            if not cok then
+                log_err("[PgsqlDB][init_database] create database {} failed: {}", database, cres)
+                ok = cok
+            end
+        end
+    end
+    self.name = database
+    --清理临时连接(login 成功会把它放进 alives)
+    terase(self.alives, socket)
+    self.connections[-1] = nil
+    socket:close()
+    return ok
 end
 
 function PgsqlDB:close()

@@ -55,9 +55,48 @@ function MysqlDB:__init(conf)
     self.timer = make_timer()
     --setup
     self:set_options(conf.opts)
-    self:setup_pool(conf.hosts)
+    --有库名时先用临时连接建库(连空库的管理端), 成功后再建立连接池; 建库需要网络 yield, 放到协程里
+    if self.name and self.name ~= "" then
+        thread_mgr:fork(function()
+            if self:init_database(conf.hosts) then
+                self:setup_pool(conf.hosts)
+            else
+                log_err("[MysqlDB][__init] init database {} failed", self.name)
+            end
+        end)
+    else
+        self:setup_pool(conf.hosts)
+    end
     --update
     update_mgr:attach_hour(self)
+end
+
+--用临时连接连管理端(不指定库)建库, 成功后关闭临时连接
+function MysqlDB:init_database(hosts)
+    local _, host = next(hosts)
+    if not host then
+        log_err("[MysqlDB][init_database] hosts is empty")
+        return false
+    end
+    local database = self.name
+    local socket = Socket(self, host[1], host[2])
+    socket:set_id(-1)               --临时连接用负数 id, 与连接池区分
+    self.name = ""                  --mysql 不指定库时连到管理端
+    local ok = self:login(socket)
+    if ok then
+        local sql = sformat("create database if not exists %s", database)
+        local sok, serr = self:request_on(socket, COM_QUERY, "mysql create db", sql)
+        if not sok then
+            log_err("[MysqlDB][init_database] create database {} failed: {}", database, serr)
+        end
+        ok = sok
+    end
+    self.name = database
+    --清理临时连接(login 成功会把它放进 alives)
+    terase(self.alives, socket)
+    self.connections[-1] = nil
+    socket:close()
+    return ok
 end
 
 function MysqlDB:close()

@@ -1,10 +1,6 @@
 -- pgsql_test.lua
-local sformat       = string.format
-
 local pgsql_mgr     = quanta.load("pgsql_mgr")
 local thread_mgr    = quanta.get("thread_mgr")
-
-local DBNAME        = "quanta_1"   --测试库: 先连 postgres 建库, 再重连到该库
 
 local TestCase = import("test/case.lua")
 local PgsqlTest = class(TestCase)
@@ -42,21 +38,7 @@ function PgsqlTest:setup()
     quanta.setenv("QUANTA_PGSQL_URL", self.addr)
     import("db/pgsql_mgr.lua")
     pgsql_mgr = quanta.get("pgsql_mgr")
-    thread_mgr:sleep(2000)
-    --pgsql 不支持 CREATE DATABASE IF NOT EXISTS, 先查 pg_database 再决定是否建
-    local ok_exists, res_exists = exec(sformat("select count(*) as cnt from pg_database where datname = '%s'", DBNAME))
-    if ok_exists and num(scalar(res_exists)) == 0 then
-        exec(sformat("create database %s", DBNAME))
-    end
-    --pgsql 没有 USE 语句, 必须重连: 关掉旧连接, 换成带库名的 URL 重建 manager
-    if pgsql_mgr.pgsql_db then
-        pgsql_mgr.pgsql_db:close()
-    end
-    --addr 末尾已带 /postgres, 需替换成 /quanta_1 而不是追加
-    local base_url = self.addr:match("^(.*)/[^/]+$") or self.addr
-    quanta.setenv("QUANTA_PGSQL_URL", base_url .. "/" .. DBNAME)
-    pgsql_mgr:setup()
-    thread_mgr:sleep(2000)
+    thread_mgr:sleep(2000)      --等驱动建库并建池就绪
 end
 
 function PgsqlTest:teardown()
