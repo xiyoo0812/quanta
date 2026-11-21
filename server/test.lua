@@ -14,7 +14,7 @@ quanta.startup(function()
         mysql       = { enable = true, path = "test/database/mysql_test.lua", addr = "mysql://root:123456@127.0.0.1:3306/quanta_1" },
         mongo       = { enable = true, path = "test/database/mongo_test.lua", addr = "mongodb://root:123456@127.0.0.1:27017/quanta_1" },
         pgsql       = { enable = true, path = "test/database/pgsql_test.lua", addr = "pgsql://postgres:123456@127.0.0.1:5432/quanta_1" },
-        clickhouse  = { enable = true, path = "test/database/clickhouse_test.lua", addr = "mysql://root:123456@127.0.0.1:9004" },
+        clickhouse  = { enable = false, path = "test/database/clickhouse_test.lua", addr = "mysql://root:123456@127.0.0.1:9004" },
         sqlite      = { enable = true, path = "test/database/sqlite_test.lua", addr = "./sqlite/test.db" },
         --basic
         log         = { enable = true, path = "test/basic/log_test.lua" },
@@ -25,7 +25,7 @@ quanta.startup(function()
     }
 
     --单模块测试配置
-    local MODULE_TEST_CASE = { name = "mysql", enable = true }
+    local MODULE_TEST_CASE = { name = "redis", enable = true }
 
     --测试套件配置
     local TestSuite = import("test/suite.lua")

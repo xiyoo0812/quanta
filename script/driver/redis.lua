@@ -36,7 +36,6 @@ local REDIS_SLOT    = 16384
 
 local function _tomap(value)
     if (type(value) == 'table') then
-        -- resp3 map直接解码为kv表, 无需再按奇偶位折叠
         if value[1] == nil and next(value) ~= nil then
             return value
         end
@@ -50,7 +49,6 @@ local function _tomap(value)
 end
 
 local function _toboolean(value)
-    -- resp3 boolean直接解码为lua boolean; resp2数字/字符串走兼容分支
     if type(value) == 'boolean' then
         return value
     end
@@ -75,12 +73,6 @@ local function _tohscan(value)
     return 0, {}
 end
 
--- RESP3 实测(Redis 8.6.2)后清理:
---   codec 已原生产出 map(kv表)/double(number)/boolean, 三类 convertor 直接删除:
---     zincrby(double), hgetall/config(map), 及原 setnx/exists/... 中的 bool 语义(但仍需 integer->bool, 保留)
---   注意 bool 类命令 RESP3 仍返回 integer(1/0), 不是 boolean, 故 _toboolean 保留
---   注意 incrbyfloat/hincrbyfloat 即使 RESP3 仍返回 blob 字符串, 故 tonumber 保留
---   scan/hscan 返回 array[2]{cursor字符串, flat数组}, 需 _toscan/_tohscan 拆包+折叠, 保留
 local rconvertors = {
     scan            =   _toscan,
     sscan           =   _toscan,
@@ -307,8 +299,6 @@ function RedisDB:login(socket)
             return false
         end
     end
-    --hello3: 强制升级到resp3(map/bool/double原生类型 + push通道); 失败则连接不可用
-    --  (rconvertors 已按 RESP3 精简, RESP2 下结构不匹配, 不再兼容)
     local hok, hres = self:commit(socket, "HELLO", 3)
     if not hok or type(hres) ~= "table" or hres.proto ~= 3 then
         log_err("[RedisDB][login] hello3 db({}:{}:{}) failed: {}", ip, port, id, hres)
@@ -331,8 +321,6 @@ function RedisDB:auth(sock)
 end
 
 function RedisDB:on_socket_alive(socket)
-    --连接建立/重连后, 重新绑定并发出尚未挂到有效连接的订阅
-    --  (订阅意图 callbacks/subscribes 保留到显式退订; sub_socks 断线时清空)
     for channel in pairs(self.subscribes) do
         local csock = self.sub_socks[channel]
         if not csock or not csock:is_ready() then
@@ -368,7 +356,6 @@ function RedisDB:delive(sock)
 end
 
 function RedisDB:on_socket_error(sock, token, err)
-    --连接断开: 仅清连接绑定(保留订阅意图), 重连后由 on_socket_alive 重新选连接发出
     for channel, csock in pairs(self.sub_socks) do
         if csock == sock then
             self.sub_socks[channel] = nil
@@ -380,9 +367,8 @@ end
 
 function RedisDB:on_socket_recv(sock, session_id, succ, res, is_push)
     if is_push then
-        --RESP3 push: 带外数据, 不占session队列也不应答等待协程; 统一走订阅派发
         dispatch_push(self, res)
-        self:on_push(res)
+        self:on_cache(res)
         return
     end
     if session_id > 0 then
@@ -390,12 +376,10 @@ function RedisDB:on_socket_recv(sock, session_id, succ, res, is_push)
     end
 end
 
-function RedisDB:on_push(res)
+function RedisDB:on_cache(res)
     --push 扩展点(如客户端缓存失效), 子类可重写; 订阅消息已由 dispatch_push 处理
 end
 
---按 channel 的 hash 选择连接发送订阅(RESP3 下任意连接均可订阅)
---订阅意图先落地, 若当前无连接则由 on_socket_alive 补发
 function RedisDB:subscribe(callback, channel)
     if self.callbacks[channel] then
         return true
@@ -482,7 +466,6 @@ function RedisDB:handle_redirect(cmd, key, res, ...)
         self:check_clusters()
         local sock = self:choose_node(key)
         if sock then
-            --MOVED 重试同样要保留 convertor 的多返回值
             local redirected = tpack(self:commit(sock, cmd, key, ...))
             return true, tunpack(redirected, 1, redirected.n)
         end
@@ -495,8 +478,6 @@ function RedisDB:execute(cmd, key, ...)
     if not sock then
         return false, "db not connected"
     end
-    --commit 的 convertor 可能返回多值(scan/hscan: cursor, data), 必须整体透传,
-    --否则上层拿到的第二个值之后全部丢失
     local res = tpack(self:commit(sock, cmd, key, ...))
     if not res[1] then
         local redirect = tpack(self:handle_redirect(cmd, key, res[2], ...))

@@ -26,8 +26,6 @@ namespace lcodec {
             return m_buf->data(len);
         }
 
-        // 返回 4 个值: session_id, succ, res, is_push
-        // RESP3 push 是带外数据，不占 session 队列，session_id 固定为 0
         virtual size_t decode(lua_State* L) {
             int top = lua_gettop(L);
             size_t osize = m_slice->size();
@@ -35,9 +33,6 @@ namespace lcodec {
             bool is_push = (!buf.empty() && buf[0] == '>');
             lua_pushinteger(L, is_push ? 0 : (m_sessions.empty() ? 0 : m_sessions.front()));
             parse_redis_packet(L, buf, is_push);
-            //订阅确认(subscribe/psubscribe/unsubscribe/punsubscribe)虽以 push 承载,
-            //但它是对 SUBSCRIBE 等请求的应答, 必须弹出队首, 否则后续普通应答会
-            //错位取到残留 session_id, 造成真实请求超时 + 晚到响应 unknown session
             bool sub_ack = is_push && is_subscribe_ack(L);
             lua_pushboolean(L, is_push);
             if (!m_sessions.empty() && (!is_push || sub_ack)) m_sessions.pop_front();
@@ -69,7 +64,6 @@ namespace lcodec {
         }
 
     protected:
-        // 解析一个 RESP3 值，恰好压入一个 Lua 值
         void parse_redis_value(lua_State* L, string_view line, string_view& buf, bool& is_push) {
             if (line.empty()) throw lua_exception("invalid redis format");
             switch (line[0]) {
@@ -166,7 +160,6 @@ namespace lcodec {
             }
         }
 
-        // 根级：压入 succ, value；is_push 由 decode 预判 + 此处确认
         void parse_redis_packet(lua_State* L, string_view& buf, bool& is_push) {
             string_view line;
             if (!read_line(buf, line)) throw length_error("redis text not full");
