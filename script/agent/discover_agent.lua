@@ -46,6 +46,7 @@ end
 function DiscoverAgent:on_router_connected()
     if not self.startup then
         self.startup = true
+        self.client:call("rpc_router_connected")
         event_mgr:fire_frame("on_service_startup")
     end
 end
@@ -80,30 +81,26 @@ function DiscoverAgent:on_socket_connect(client)
 end
 
 --服务改变
-function DiscoverAgent:rpc_service_ready(service_name, readys)
-    log_info("[DiscoverAgent][rpc_service_ready]: {}'s node readys {}!", service_name, readys)
+function DiscoverAgent:rpc_service_ready(client, service_name, readys)
     local watchers = self.watchers[service_name]
-    for listener in pairs(watchers or {}) do
-        for _, info in pairs(readys) do
-            if listener.on_service_ready then
-                listener:on_service_ready(info.id, service_name, info)
-            end
+    for _, info in pairs(readys) do
+        log_info("[DiscoverAgent][rpc_service_ready]: node {}({}-{}) ready!", info.name, info.id, info.host)
+        for listener in pairs(watchers or {}) do
+            listener:on_service_ready(info.id, service_name, info)
         end
     end
 end
 
-function DiscoverAgent:rpc_service_close(node)
-    log_info("[DiscoverAgent][rpc_service_close]: node: {}!", node)
+function DiscoverAgent:rpc_service_close(client, node)
+    log_info("[DiscoverAgent][rpc_service_close]: node {}({}-{}) close!", node.name, node.id, node.host)
     local watchers = self.watchers[node.service_name]
     for listener in pairs(watchers or {}) do
-        if listener.on_service_close then
-            listener:on_service_close(node.id, node.service_name, node)
-        end
+        listener:on_service_close(node.id, node.service_name, node)
     end
 end
 
 -- 停服
-function DiscoverAgent:rpc_server_shutdown(reason)
+function DiscoverAgent:rpc_server_shutdown(client, reason)
     -- 关闭会话连接
     event_mgr:fire_frame(function()
         log_warn("[DiscoverAgent][rpc_server_shutdown]->service:{}", quanta.name)
@@ -114,11 +111,11 @@ function DiscoverAgent:rpc_server_shutdown(reason)
 end
 
 --执行远程rpc消息
-function DiscoverAgent:rpc_remote_message(rpc, data)
+function DiscoverAgent:rpc_remote_message(client, rpc, data)
     if not rpc then
         return {code = RPC_FAILED, msg = "rpc is nil !"}
     end
-    local ok, code, res = event_mgr:notify_event(rpc, data)
+    local ok, code, res = event_mgr:notify_event(rpc, client, data)
     if qfailed(code, ok) then
         log_err("[DiscoverAgent][rpc_remote_message] web_rpc faild: ok={}, ec={}", ok, code)
         return { code = ok and code or RPC_FAILED, msg = ok and "" or code}
@@ -127,17 +124,17 @@ function DiscoverAgent:rpc_remote_message(rpc, data)
 end
 
 --热更新
-function DiscoverAgent:rpc_service_hotfix()
+function DiscoverAgent:rpc_service_hotfix(client)
     log_debug("[DiscoverAgent][rpc_service_hotfix]")
     shotfix()
 end
 
-function DiscoverAgent:rpc_set_logger_level(level)
+function DiscoverAgent:rpc_set_logger_level(client, level)
     log_debug("[DiscoverAgent][rpc_set_logger_level] level: {}", level)
     log_filter(level)
 end
 
-function DiscoverAgent:rpc_show_snapshot()
+function DiscoverAgent:rpc_show_snapshot(client)
     local snapshots = {}
     snapshots.object = class_review()
     snapshots.memory = collectgarbage("count")

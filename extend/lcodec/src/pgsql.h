@@ -94,10 +94,39 @@ namespace lcodec {
 
     class pgsqlscodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet(bool& ignore) {
             if (!m_slice) return 0;
-            if (data_len < PGSQL_HEADER_LEN) return 0;
-            return data_len;
+            int offset = 0;
+            bool leading = true;
+            size_t total = m_slice->size();
+            while (offset + PGSQL_HEADER_LEN <= total) {
+                cmd_type_b cmd_type = (cmd_type_b) * (uint8_t*)m_slice->peek(1, offset);
+                int32_t length = (int32_t)byteswap(*(int32_t*)m_slice->peek(4, offset + 1));
+                if (length < sizeof(uint32_t)) return -1;
+                int msg_len = 1 + length;
+                if (offset + msg_len > total) break; 
+                if (is_ignore_cmd_type(cmd_type)) {
+                    offset += msg_len;
+                    continue;
+                }
+                if (leading) {
+                    leading = false;
+                    if (offset > 0) {
+                        ignore = true;
+                        return offset;
+                    }
+                }
+                if (is_end_type(cmd_type, offset)) {
+                    ignore = false;
+                    return offset + msg_len;
+                }
+                offset += msg_len;
+            }
+            if (leading && offset > 0) {
+                ignore = true;
+                return offset;
+            }
+            return 0;
         }
 
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
@@ -117,27 +146,36 @@ namespace lcodec {
         }
 
         virtual size_t decode(lua_State* L) {
-            size_t osize = m_slice->size();
-            if (check_idle_cmd_type()) {
-                m_packet_len = osize - m_slice->size();
-                throw length_error("pgsql empty packet");
-            }
-            int top = lua_gettop(L);
             if (sessions.empty()) {
                 throw lua_exception("invalid pgsql data");
             }
-            cmd_type_b cmd_type = recv_packet();
+            int top = lua_gettop(L);
             size_t session_id = sessions.front();
             lua_pushinteger(L, session_id);
-            lua_pushboolean(L, cmd_type != ERROR);
-            if (cmd_type != AUTH) {
-                command_decode(L, cmd_type);
-            } else {
-                auth_decode(L);
-            }
+            lua_pushboolean(L, true);
             sessions.pop_front();
-            m_packet_len = osize - m_slice->size();
-            return lua_gettop(L) - top;
+            do {
+                cmd_type_b cmd_type = recv_packet();
+                switch (cmd_type) {
+                case AUTH: 
+                    return auth_decode(L, top);
+                case ROW_DESCRIPTION:
+                    row_description_decode(L);
+                    break;
+                case ERROR:
+                    lua_settop(L, top + 1);
+                    lua_pushboolean(L, false);
+                    error_decode(L);
+                    break;
+                case COMMAND_COMPLETE:
+                    command_complete_decode(L);
+                    break;
+                case READY_FOR_QUERY:
+                    return lua_gettop(L) - top;
+                default:
+                    throw lua_exception("unsuppert pgsql packet type");
+                }
+            } while (true);
         }
 
     protected:
@@ -148,6 +186,9 @@ namespace lcodec {
             cmd_type_b cmd_type = (cmd_type_b)m_slice->swap_read();
             size_t length = m_slice->swap_read<int32_t>() - sizeof(uint32_t);
             if (uint8_t* data = m_slice->erase(length); data) {
+                m_packet_len += length + PGSQL_HEADER_LEN;
+                if (is_ignore_cmd_type(cmd_type))
+                    return recv_packet();
                 m_packet.attach(data, length);
                 return cmd_type;
             }
@@ -160,7 +201,9 @@ namespace lcodec {
             m_buf->write<uchar>((uchar)cmd_type);
             m_buf->swap_write<uint32_t>(data_len + sizeof(uint32_t));
             m_buf->push_data(query, data_len);
-            sessions.push_back(session_id);
+            if (session_id > 0) {
+                sessions.push_back(session_id);
+            }
             return m_buf->data(len);
         }
 
@@ -188,26 +231,7 @@ namespace lcodec {
             return m_buf->data(len);
         }
 
-        void command_decode(lua_State* L, cmd_type_b cmd) {
-            switch (cmd) {
-            case EMPTY_QUERY:
-            case CLOSE_COMPLETE:
-            case PARSE_COMPLETE:
-            case NOTIFICATION:
-            case FUNCTION_CALL:
-                break;
-            case ERROR:
-            case NOTICE:
-                return notice_error_decode(L);
-            case ROW_DESCRIPTION:
-                return row_description_decode(L);
-            case COMMAND_COMPLETE:
-                return command_complete_decode(L);
-            default: throw lua_exception("unsuppert pgsql packet type");
-            }
-        }
-
-        void auth_decode(lua_State* L) {
+        size_t auth_decode(lua_State* L, int top) {
             //auth type
             auto auth_type = (auth_type_t)m_packet.swap_read<int32_t>();
             //auth args
@@ -225,43 +249,19 @@ namespace lcodec {
             if (auth_type == OK) {
                 auto cmdtype = recv_packet();
                 if (cmdtype == ERROR) {
-                    lua_pop(L, 3);
+                    lua_settop(L, top + 1);
                     lua_pushboolean(L, false);
-                    notice_error_decode(L);
-                    return;
+                    error_decode(L);
+                    return lua_gettop(L) - top;
                 }
-                lua_pushinteger(L, (uint8_t)auth_type);
-                lua_replace(L, -3);
-                lua_createtable(L, 4, 0);
-                while (cmdtype == PARAMETER_STATUS) {
-                    parameter_status_decode(L);
-                    lua_settable(L, -3);
-                    cmdtype = recv_packet();
-                }
-                wait_cmd_type(BACKEND_KEY, cmdtype);
-                backend_key_decode(L);
-                return;
+                wait_cmd_type(READY_FOR_QUERY, cmdtype);
             }
+            lua_pushinteger(L, (uint8_t)auth_type);
+            lua_replace(L, -3);
+            return lua_gettop(L) - top;
         }
 
-        void parameter_status_decode(lua_State* L) {
-            size_t len;
-            //被报告的运行时参数的名字
-            auto name = read_cstring(&m_packet, len);
-            lua_pushlstring(L, name, len);
-            //参数的当前值
-            auto value = read_cstring(&m_packet, len);
-            lua_pushlstring(L, value, len);
-        }
-
-        void backend_key_decode(lua_State* L) {
-            //后端的进程号
-            lua_pushinteger(L, m_packet.swap_read<int32_t>());
-            //此后端的密钥
-            lua_pushinteger(L, m_packet.swap_read<int32_t>());
-        }
-
-        void notice_error_decode(lua_State* L) {
+        void error_decode(lua_State* L) {
             size_t len;
             std::unordered_map<uint8_t, cpchar> values;
             while (true) {
@@ -269,13 +269,16 @@ namespace lcodec {
                 if (flag == 0) break;
                 values[flag] = read_cstring(&m_packet, len);
             }
+            auto field = [&values](uint8_t flag) -> cpchar {
+                auto it = values.find(flag);
+                return it == values.end() ? "" : it->second;
+            };
             //http://www.postgres.cn/docs/current/protocol-error-fields.html
-            lua_pushfstring(L, "%s(%s): %s!\0",  values['V'], values['C'], values['M']);
+            lua_pushfstring(L, "%s(%s): %s!", field('V'), field('C'), field('M'));
         }
 
         void command_complete_decode(lua_State* L) {
             size_t len;
-            //命令标记。它通常是一个单字，标识被完成的SQL命令。
             auto msg = read_cstring(&m_packet, len);
             lua_pushlstring(L, msg, len);
         }
@@ -336,17 +339,29 @@ namespace lcodec {
             wait_cmd_type(COMMAND_COMPLETE, cmdtype);
         }
 
-        bool check_idle_cmd_type() {
-            if (m_slice->size() > PGSQL_HEADER_LEN) {
-                auto cmd =  *(cmd_type_b*)m_slice->peek(1);
-                if (cmd == READY_FOR_QUERY || cmd == BIND_COMPLETE
-                    || cmd == PARAMETER_DESCRIPTION || cmd == NO_DATA) {
-                    auto len = byteswap(*(int32_t*)m_slice->peek(sizeof(int32_t), 1));
-                    m_slice->erase(len + 1);
-                    return true;
-                }
+        bool is_end_type(cmd_type_b cmd, int offset) {
+            if (cmd == READY_FOR_QUERY) return true;
+            if (cmd == AUTH) {
+                auto auth_type = (auth_type_t)byteswap(*(int32_t*)m_slice->peek(4, offset + PGSQL_HEADER_LEN));
+                return auth_type != OK && auth_type != SASL_FINAL;
             }
             return false;
+        }
+
+        bool is_ignore_cmd_type(cmd_type_b cmd) {
+            switch (cmd) {
+                case NOTICE:
+                case NO_DATA: 
+                case BACKEND_KEY:
+                case EMPTY_QUERY:
+                case NOTIFICATION:
+                case BIND_COMPLETE:
+                case PARSE_COMPLETE:
+                case CLOSE_COMPLETE:
+                case PARAMETER_STATUS:
+                case PARAMETER_DESCRIPTION: return true;
+                default: return false;
+            }
         }
 
         void wait_cmd_type(cmd_type_b target, cmd_type_b src = NONE) {

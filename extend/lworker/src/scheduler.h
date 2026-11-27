@@ -77,9 +77,9 @@ namespace lworker {
         }
 
         int call(lua_State* L, uint8_t* data, size_t data_len) {
-            if (data_len > USHRT_MAX) {
+            if (data_len > WORKER_RPC_LEN) {
                 lua_pushboolean(L, false);
-                lua_pushstring(L, "send data large than USHRT_MAX!");
+                lua_pushstring(L, "send data large than 1M!");
                 return 2;
             }
             if (m_mbsc.push(data, data_len)) {

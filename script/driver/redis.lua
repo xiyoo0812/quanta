@@ -9,6 +9,8 @@ local log_info      = logger.info
 local log_debug     = logger.debug
 local tinsert       = table.insert
 local terase        = table.erase
+local tpack         = table.pack
+local tunpack       = table.unpack
 local mrandom       = qmath.random
 local lnext_id      = luakit.next_id
 local qhash         = codec.hash_code
@@ -34,6 +36,9 @@ local REDIS_SLOT    = 16384
 
 local function _tomap(value)
     if (type(value) == 'table') then
+        if value[1] == nil and next(value) ~= nil then
+            return value
+        end
         local maps = { }
         for i = 1, #value, 2 do
             maps[value[i]] = value[i + 1]
@@ -44,6 +49,9 @@ local function _tomap(value)
 end
 
 local function _toboolean(value)
+    if type(value) == 'boolean' then
+        return value
+    end
     local number = tonumber(value)
     if number then
         return number ~= 0
@@ -70,7 +78,6 @@ local rconvertors = {
     sscan           =   _toscan,
     hscan           =   _tohscan,
     zscan           =   _tohscan,
-    zincrby         =   tonumber,
     incrbyfloat     =   tonumber,
     hincrbyfloat    =   tonumber,
     setnx           =   _toboolean,
@@ -88,9 +95,36 @@ local rconvertors = {
     hsetnx          =   _toboolean,
     hexists         =   _toboolean,
     msetnx          =   _toboolean,
-    hgetall         =   _tomap,
-    config          =   _tomap,
 }
+
+-- RESP3 push 派发: message/pmessage 走业务回调, subscribe/unsubscribe 维护订阅状态
+local function dispatch_push(self, res)
+    if type(res) ~= "table" then
+        return
+    end
+    local kind, channel, data, data2 = tunpack(res)
+    if kind == "message" then
+        local callback = self.callbacks[channel]
+        if callback then
+            callback(channel, data)
+        end
+    elseif kind == "pmessage" then
+        local callback = self.callbacks[channel]
+        if callback then
+            callback(data, data2)   -- pattern=channel(订阅key), data=实际channel, data2=payload
+        end
+    elseif kind == "subscribe" then
+        self.subscribes[channel] = true
+    elseif kind == "psubscribe" then
+        self.psubscribes[channel] = true
+    elseif kind == "unsubscribe" then
+        self.subscribes[channel] = nil
+        self.callbacks[channel] = nil
+    elseif kind == "punsubscribe" then
+        self.psubscribes[channel] = nil
+        self.callbacks[channel] = nil
+    end
+end
 
 local RedisDB = class()
 local prop = property(RedisDB)
@@ -102,9 +136,14 @@ prop:reader("connections", {})      --connections
 prop:reader("clusters", {})         --clusters
 prop:reader("alives", {})           --alives
 prop:reader("slots", {})            --slots
-prop:reader("subscrible", false)
 prop:reader("cluster", false)       --cluster
+prop:reader("resp3", false)         --是否已升级到resp3
 prop:reader("refreshing", false)    --拓扑刷新中(防并发重入)
+-- 订阅状态(RESP3 下任意连接可订阅, 无需独立订阅连接)
+prop:reader("callbacks", {})        --channel/pattern -> callback
+prop:reader("subscribes", {})       --channel -> true
+prop:reader("psubscribes", {})      --pattern -> true
+prop:reader("sub_socks", {})        --channel/pattern -> socket(订阅所在连接, 断线重连用)
 
 function RedisDB:__init(conf)
     self.passwd = conf.passwd
@@ -260,6 +299,14 @@ function RedisDB:login(socket)
             return false
         end
     end
+    local hok, hres = self:commit(socket, "HELLO", 3)
+    if not hok or type(hres) ~= "table" or hres.proto ~= 3 then
+        log_err("[RedisDB][login] hello3 db({}:{}:{}) failed: {}", ip, port, id, hres)
+        self:delive(socket)
+        socket:close()
+        return false
+    end
+    self.resp3 = true
     self.connections[id] = nil
     tinsert(self.alives, socket)
     log_info("[RedisDB][login] login db({}:{}:{}) success!", ip, port, id)
@@ -274,6 +321,26 @@ function RedisDB:auth(sock)
 end
 
 function RedisDB:on_socket_alive(socket)
+    for channel in pairs(self.subscribes) do
+        local csock = self.sub_socks[channel]
+        if not csock or not csock:is_ready() then
+            local sock = self:choose_node(channel)
+            if sock then
+                self.sub_socks[channel] = sock
+                self:direct_send(sock, "SUBSCRIBE", channel)
+            end
+        end
+    end
+    for pattern in pairs(self.psubscribes) do
+        local csock = self.sub_socks[pattern]
+        if not csock or not csock:is_ready() then
+            local sock = self:choose_node(pattern)
+            if sock then
+                self.sub_socks[pattern] = sock
+                self:direct_send(sock, "PSUBSCRIBE", pattern)
+            end
+        end
+    end
 end
 
 function RedisDB:delive(sock)
@@ -289,18 +356,78 @@ function RedisDB:delive(sock)
 end
 
 function RedisDB:on_socket_error(sock, token, err)
-    --设置重连
+    for channel, csock in pairs(self.sub_socks) do
+        if csock == sock then
+            self.sub_socks[channel] = nil
+        end
+    end
     self:delive(sock)
     self.timer:change_period(SECOND_MS)
 end
 
-function RedisDB:on_socket_recv(sock, session_id, succ, res)
-    if self.subscrible then
-        self:do_socket_recv(res)
+function RedisDB:on_socket_recv(sock, session_id, succ, res, is_push)
+    if is_push then
+        dispatch_push(self, res)
+        self:on_cache(res)
+        return
     end
     if session_id > 0 then
         thread_mgr:response(session_id, succ, res)
     end
+end
+
+function RedisDB:on_cache(res)
+    --push 扩展点(如客户端缓存失效), 子类可重写; 订阅消息已由 dispatch_push 处理
+end
+
+function RedisDB:subscribe(callback, channel)
+    if self.callbacks[channel] then
+        return true
+    end
+    self.callbacks[channel] = callback
+    self.subscribes[channel] = true
+    local sock = self:choose_node(channel)
+    if not sock then
+        return true, "pending"
+    end
+    self.sub_socks[channel] = sock
+    return self:direct_send(sock, "SUBSCRIBE", channel)
+end
+
+function RedisDB:psubscribe(callback, pattern)
+    if self.callbacks[pattern] then
+        return true
+    end
+    self.callbacks[pattern] = callback
+    self.psubscribes[pattern] = true
+    local sock = self:choose_node(pattern)
+    if not sock then
+        return true, "pending"
+    end
+    self.sub_socks[pattern] = sock
+    return self:direct_send(sock, "PSUBSCRIBE", pattern)
+end
+
+function RedisDB:unsubscribe(channel)
+    local sock = self.sub_socks[channel]
+    if not sock then
+        return false, "watcher not found"
+    end
+    self.sub_socks[channel] = nil
+    self.callbacks[channel] = nil
+    self.subscribes[channel] = nil
+    return self:direct_send(sock, "UNSUBSCRIBE", channel)
+end
+
+function RedisDB:punsubscribe(pattern)
+    local sock = self.sub_socks[pattern]
+    if not sock then
+        return false, "watcher not found"
+    end
+    self.sub_socks[pattern] = nil
+    self.callbacks[pattern] = nil
+    self.psubscribes[pattern] = nil
+    return self:direct_send(sock, "PUNSUBSCRIBE", pattern)
 end
 
 function RedisDB:commit(socket, cmd, ...)
@@ -328,7 +455,7 @@ function RedisDB:send(cmd, key, ...)
 end
 
 function RedisDB:direct_send(sock, cmd, ...)
-    sock:send_data(0, cmd, ...)
+    return sock:send_data(0, cmd, ...)
 end
 
 function RedisDB:handle_redirect(cmd, key, res, ...)
@@ -339,7 +466,8 @@ function RedisDB:handle_redirect(cmd, key, res, ...)
         self:check_clusters()
         local sock = self:choose_node(key)
         if sock then
-            return true, self:commit(sock, cmd, key, ...)
+            local redirected = tpack(self:commit(sock, cmd, key, ...))
+            return true, tunpack(redirected, 1, redirected.n)
         end
     end
     return false
@@ -350,14 +478,14 @@ function RedisDB:execute(cmd, key, ...)
     if not sock then
         return false, "db not connected"
     end
-    local ok, res = self:commit(sock, cmd, key, ...)
-    if not ok then
-        local handled, nok, nres = self:handle_redirect(cmd, key, res, ...)
-        if handled then
-            return nok, nres
+    local res = tpack(self:commit(sock, cmd, key, ...))
+    if not res[1] then
+        local redirect = tpack(self:handle_redirect(cmd, key, res[2], ...))
+        if redirect[1] then
+            return tunpack(redirect, 2, redirect.n)
         end
     end
-    return ok, res
+    return tunpack(res, 1, res.n)
 end
 
 return RedisDB

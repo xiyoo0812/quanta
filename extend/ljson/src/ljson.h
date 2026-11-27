@@ -40,7 +40,7 @@ namespace ljson {
                 bool numkeyable = luaL_opt(L, lua_toboolean, 2, false);
                 return decode_core(L, buf, len, numkeyable);
             } catch(const std::exception& e) {
-                luaL_error(L, e.what());
+                luaL_error(L, "%s", e.what());
                 return 0;
             }
         }
@@ -54,7 +54,7 @@ namespace ljson {
                 push_string(L, json, data_len, 2, clean, &m_alc);
                 return 1;
             } catch(const std::exception& e) {
-                luaL_error(L, e.what());
+                luaL_error(L, "%s", e.what());
                 return 0;
             }
         }
@@ -197,9 +197,7 @@ namespace ljson {
                 }
                 else {
                     auto skey = unsafe_yyjson_get_str(key);
-                    if (lua_stringtonumber(L, skey) == 0) {
-                        lua_pushlstring(L, skey, unsafe_yyjson_get_len(key));
-                    }
+                    lua_push_autonum(L, skey, unsafe_yyjson_get_len(key));
                 }
                 decode_one(L, yyjson_obj_iter_get_val(key), numkeyable);
                 lua_rawset(L, -3);
@@ -254,7 +252,7 @@ namespace ljson {
                 m_yyjson->jsonfree(json);
                 return m_buf->data(len);
             } catch(const std::exception& e) {
-                luaL_error(L, e.what());
+                luaL_error(L, "%s", e.what());
                 return nullptr;
             }
         }

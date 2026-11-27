@@ -5,6 +5,10 @@
 namespace lxlsx {
 
     static excel_file* open_excel(lua_State* L, cpchar filename) {
+        if (!filename) {
+            luaL_error(L, "open excel: filename is empty");
+            return nullptr;
+        }
         auto excel = new excel_file();
         try {
             excel->open(filename);

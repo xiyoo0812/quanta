@@ -9,12 +9,6 @@ using namespace luakit;
 namespace ltoml {
 
     inline void decode_node(lua_State* L, toml::node* node);
-    inline void decode_key(lua_State* L, const toml::key* key) {
-        const char* value = key->data();
-        if (lua_stringtonumber(L, value) == 0) {
-            lua_pushlstring(L, value, key->length());
-        }
-    }
 
     inline void decode_array(lua_State* L, toml::array* arr) {
         size_t idx = 1;
@@ -28,7 +22,7 @@ namespace ltoml {
     inline void decode_table(lua_State* L, toml::table* tbl) {
         lua_createtable(L, 0, 4);
         tbl->for_each([&](const toml::key& key, auto&& node) {
-            decode_key(L, &key);
+            lua_push_autonum(L, key.data(), key.length());
             decode_node(L, &node);
             lua_settable(L, -3);
         });
@@ -61,7 +55,7 @@ namespace ltoml {
             decode_table(L, &tbl);
             return 1;
         } catch (const toml::parse_error& err) {
-            luaL_error(L, err.what());
+            luaL_error(L, "%s", err.what());
         }
         return 0;
     }
@@ -170,7 +164,7 @@ namespace ltoml {
             return 1;
         }
         catch (const toml::parse_error& err) {
-            luaL_error(L, err.what());
+            luaL_error(L, "%s", err.what());
         }
         return 0;
     }

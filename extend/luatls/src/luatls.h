@@ -1,5 +1,6 @@
 #pragma once
-#include "mbedtls/md.h"
+#include <array>
+
 #include "mbedtls/ssl.h"
 #include "mbedtls/error.h"
 #include "mbedtls/base64.h"
@@ -25,27 +26,19 @@ using namespace luakit;
 #define RSA_ENCODE_OUT_SIZE(s, m)   (((s) + (RSA_ENCODE_LEN(m)) - 1) / (RSA_ENCODE_LEN(m))) * (m) + 1
 
 namespace luatls {
-    thread_local mbedtls_pk_context TL_SSL_PKEY;
     thread_local mbedtls_x509_crt TL_SSL_SRVCERT;
-    thread_local mbedtls_ssl_config TL_SSL_CLI_CONF;
-    thread_local mbedtls_ssl_config TL_SSL_SER_CONF;
-    thread_local mbedtls_x509_crt TL_SSL_TRUSTED_CAS;
+    thread_local mbedtls_x509_crt TL_SSL_CLICERT;
+    thread_local mbedtls_pk_context TL_SSL_PKEY;
 
     inline void init_mbedtls_globals() {
-        cpchar pers = "LUATLS";
         psa_crypto_init();
         mbedtls_pk_init(&TL_SSL_PKEY);
         mbedtls_x509_crt_init(&TL_SSL_SRVCERT);
-        mbedtls_x509_crt_init(&TL_SSL_TRUSTED_CAS);
-        mbedtls_ssl_config_defaults(&TL_SSL_CLI_CONF, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
-        mbedtls_ssl_config_defaults(&TL_SSL_SER_CONF, MBEDTLS_SSL_IS_SERVER, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
-        mbedtls_ssl_conf_authmode(&TL_SSL_CLI_CONF, MBEDTLS_SSL_VERIFY_OPTIONAL);
+        mbedtls_x509_crt_init(&TL_SSL_CLICERT);
     }
 
     inline void cleanup_mbedtls_globals() {
-        mbedtls_x509_crt_free(&TL_SSL_TRUSTED_CAS);
-        mbedtls_ssl_config_free(&TL_SSL_CLI_CONF);
-        mbedtls_ssl_config_free(&TL_SSL_SER_CONF);
+        mbedtls_x509_crt_free(&TL_SSL_CLICERT);
         mbedtls_x509_crt_free(&TL_SSL_SRVCERT);
         mbedtls_pk_free(&TL_SSL_PKEY);
     }
@@ -203,7 +196,8 @@ namespace luatls {
     class tlscodec : public codec_base {
     public:
         ~tlscodec() {
-            mbedtls_ssl_free(&ssl);
+            mbedtls_ssl_free(&m_ssl);
+            mbedtls_ssl_config_free(&m_conf);
             m_outbuf.clean();
             m_inbuf.clean();
         }
@@ -221,7 +215,7 @@ namespace luatls {
                 body = (uint8_t*)(lua_tolstring(L, index, &slen));
             }
             while (slen > 0) {
-                size_t written = mbedtls_ssl_write(&ssl, body, slen);
+                size_t written = mbedtls_ssl_write(&m_ssl, body, slen);
                 if (written < 0) tls_error(L, "mbedtls_ssl_write", written);
                 if (written == 0) break;
                 body += written;
@@ -240,7 +234,7 @@ namespace luatls {
             }
             do {
                 uint8_t* outbuff = m_inbuf.peek_space(SSL_TLS_READ_SIZE);
-                int read = mbedtls_ssl_read(&ssl, outbuff, SSL_TLS_READ_SIZE);
+                int read = mbedtls_ssl_read(&m_ssl, outbuff, SSL_TLS_READ_SIZE);
                 if (read == 0) break;
                 if (read < 0) {
                     if (read == MBEDTLS_ERR_SSL_WANT_READ) break;
@@ -253,21 +247,19 @@ namespace luatls {
             m_packet_len = sz - m_slice->size();
             if (!m_inbuf.empty()) {
                 m_hcodec->set_slice(m_inbuf.get_slice());
-                if (m_hcodec->load_packet(m_inbuf.size()) > 0) {
+                if (m_hcodec->load_packet() > 0) {
                     auto argnum = m_hcodec->decode(L);
                     m_inbuf.pop_size(m_hcodec->get_packet_len());
                     return argnum;
                 }
             }
-            throw std::length_error("http text not full");
+            throw std::range_error("http text not full");
         }
 
         int isfinish(lua_State* L) {
             lua_pushboolean(L, is_handshake);
             if (is_handshake) {
-                const char* alpn_proto = mbedtls_ssl_get_alpn_protocol(&ssl);
-                size_t alpn_len = alpn_proto ? std::strlen(alpn_proto) : 0;
-                lua_pushlstring(L, alpn_proto, alpn_len);
+                lua_pushlstring(L, m_alpn.c_str(), m_alpn.size());
                 return 2;
             }
             return 1;
@@ -277,25 +269,44 @@ namespace luatls {
             m_hcodec = codec;
         }
 
-        void init_tls(lua_State* L, char* hostname, cpchar protos) {
-            mbedtls_ssl_init(&ssl);
-            auto conf = hostname ? &TL_SSL_CLI_CONF : &TL_SSL_SER_CONF;
-            if (int ret = mbedtls_ssl_setup(&ssl, conf); ret != 0) {
-                tls_error(L, "mbedtls_ssl_setup", ret);
+        void init_conf(bool is_server) {
+            mbedtls_ssl_config_init(&m_conf);
+            if (is_server) {
+                mbedtls_ssl_config_defaults(&m_conf, MBEDTLS_SSL_IS_SERVER, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+                mbedtls_ssl_conf_own_cert(&m_conf, &TL_SSL_SRVCERT, &TL_SSL_PKEY);
+                mbedtls_ssl_conf_authmode(&m_conf, MBEDTLS_SSL_VERIFY_NONE);
+            } else {
+                mbedtls_ssl_config_defaults(&m_conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT);
+                mbedtls_ssl_conf_ca_chain(&m_conf, &TL_SSL_CLICERT, nullptr);
+                mbedtls_ssl_conf_authmode(&m_conf, MBEDTLS_SSL_VERIFY_REQUIRED);
             }
-            if (hostname) mbedtls_ssl_set_hostname(&ssl, hostname);
-            mbedtls_ssl_set_bio(&ssl, this, ssl_send_cb, ssl_recv_cb, nullptr);
+        }
+
+        void init_tls(lua_State* L, cpchar hostname, cpchar protos, bool is_server) {
+            init_conf(is_server);
+            mbedtls_ssl_init(&m_ssl);
             if (protos) {
-                const char* alpn_list[] = {protos, nullptr};
-                if (int ret = mbedtls_ssl_conf_alpn_protocols(conf, alpn_list); ret != 0) {
-                    tls_error(L, "mbedtls_ssl_conf_alpn_protocols", ret);
+                m_alpn = protos;
+                m_alpn_list[0] = m_alpn.c_str();
+                if (int ret = mbedtls_ssl_conf_alpn_protocols(&m_conf, m_alpn_list); ret != 0) {
+                    tls_error(L, "mbedtls_ssl_conf_alpn_protocols", ret, true);
                 }
             }
+            if (int ret = mbedtls_ssl_setup(&m_ssl, &m_conf); ret != 0) {
+                tls_error(L, "mbedtls_ssl_setup", ret, true);
+            }
+            if (!is_server) {
+                if (!hostname) throw lua_exception("hostname is null");
+                if (int ret = mbedtls_ssl_set_hostname(&m_ssl, hostname); ret != 0) {
+                    tls_error(L, "mbedtls_ssl_set_hostname", ret, true);
+                }
+            }
+            mbedtls_ssl_set_bio(&m_ssl, this, ssl_send_cb, ssl_recv_cb, nullptr);
         }
 
     protected:
         void tls_handshake(lua_State* L, bool exception = false) {
-            int ret = mbedtls_ssl_handshake(&ssl);
+            int ret = mbedtls_ssl_handshake(&m_ssl);
             if (ret == 0) {
                 is_handshake = true;
                 return;
@@ -328,9 +339,12 @@ namespace luatls {
         }
         
     protected:
+        sstring m_alpn = "";
         luabuf m_inbuf, m_outbuf;
-        mbedtls_ssl_context ssl;
-        codec_base* m_hcodec = nullptr;
         bool is_handshake = false;
+        cpchar m_alpn_list[2] = {};
+        mbedtls_ssl_context m_ssl = {};
+        mbedtls_ssl_config m_conf = {};
+        codec_base* m_hcodec = nullptr;
     };
 }

@@ -89,7 +89,7 @@ void lua_socket_mgr::set_relay_service(uint8_t id) {
 int lua_socket_mgr::broadcast(lua_State* L, codec_base* codec, uint32_t kind) {
     size_t data_len = 0;
     char* data = (char*)codec->encode(L, 3, &data_len);
-    if (data_len <= USHRT_MAX) {
+    if (data_len <= SOCKET_RPC_MSG_LEN) {
         //发送数据
         m_mgr->broadcast(kind, data, data_len);
         lua_pushboolean(L, true);
@@ -103,12 +103,13 @@ int lua_socket_mgr::broadgroup(lua_State* L, codec_base* codec) {
     size_t data_len = 0;
     auto groups = lua_to_native<std::vector<uint32_t>>(L, 2);
     char* data = (char*)codec->encode(L, 3, &data_len);
-    if (data_len <= USHRT_MAX) {
+    if (data_len <= SOCKET_RPC_MSG_LEN) {
         //发送数据
         m_mgr->broadgroup(groups, data, data_len);
         lua_pushboolean(L, true);
         return 1;
     }
     lua_pushboolean(L, false);
-    return 1;
+    lua_pushstring(L, "send data large than 8M!");
+    return 2;
 }

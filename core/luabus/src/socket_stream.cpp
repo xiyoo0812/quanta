@@ -409,13 +409,12 @@ void socket_stream::dispatch_package() {
             on_error("codec-is-null");
             break;
         }
-        size_t data_len;
-        auto* data = m_recv_buffer->data(&data_len);
-        if (data_len == 0) break;
         slice* slice = m_recv_buffer->get_slice();
+        if (slice->empty()) break;
         m_codec->set_slice(slice);
         //解析数据包头长度
-        int32_t package_size = m_codec->load_packet(data_len);
+        bool ignore = false;
+        int32_t package_size = m_codec->load_packet(ignore);
         //当前包头长度解析失败, 关闭连接
         if (package_size < 0){
             on_error("package-length-err");
@@ -423,11 +422,18 @@ void socket_stream::dispatch_package() {
         }
         // 数据包还没有收完整
         if (package_size == 0) break;
+        // 忽略数据包
+        if (ignore) {
+            m_recv_buffer->pop_size(package_size);
+            continue;
+        }
         // 数据回调
-        slice->attach(data, package_size);
+        slice->resize(package_size);
         try {
             m_package_cb(slice);
         } catch(const std::length_error&) {
+            break;
+        } catch(const std::range_error&) {
             m_recv_buffer->pop_size(m_codec->get_packet_len());
             break;
         } catch(const std::exception& e) {

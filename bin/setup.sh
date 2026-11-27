@@ -27,13 +27,12 @@ fi
 find "$SRC_DIR" -maxdepth 1 -type f -exec cp -f {} "$SCRIPT_DIR"/ \;
 echo "copied binaries from $SRC_DIR to $SCRIPT_DIR"
 
-# generate config files
-rm -rf config
-mkdir config
-cd template
+# generate config files (keep environ/ and template/ subdirs, only refresh *.conf at config root)
+find config -maxdepth 1 -name "*.conf" -delete
+cd config/template
 
-SCRIPT=../../tools/lmake/ltemplate.lua
+SCRIPT=../../../tools/lmake/ltemplate.lua
 ENVIRON=../environ/$CONF.conf
 for file in *.conf; do
-    ../lua $SCRIPT $file ../config/$file $ENVIRON
+    ../../lua $SCRIPT $file ../$file $ENVIRON
 done

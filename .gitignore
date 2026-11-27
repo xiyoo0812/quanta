@@ -11,6 +11,7 @@
 .vs
 .vscode
 temp
+bin/temp/
 
 # Prerequisites
 *.d
@@ -61,7 +62,10 @@ temp
 bin/quanta
 bin/lua
 bin/luac
-bin/config
+# config 目录下的生成配置不入库, 但 environ/template 模板需入库
+bin/config/*
+!bin/config/environ/
+!bin/config/template/
 .gitignore
 .DS_Store
 /.idea/

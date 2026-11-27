@@ -41,6 +41,7 @@ end
 function DiscoverMgr:load_discover()
     --监听事件
     event_mgr:listen_event(self, "rpc_watch_service")
+    event_mgr:listen_event(self, "rpc_router_connected")
     --梳理服务
     for _, service_name in pairs(service.services()) do
         self.watcher_list[service_name] = {}
@@ -67,8 +68,6 @@ function DiscoverMgr:on_client_register(client, node)
         if next(routers) then
             self.rpc_server:send(client, "rpc_service_ready", "router", routers)
         end
-        local watchers = self.watcher_list[serv_name] or {}
-        self.rpc_server:groupecast(watchers, "rpc_service_ready", serv_name, { node })
     end
 end
 
@@ -91,6 +90,19 @@ function DiscoverMgr:on_client_error(client, token, err)
     else
         local watchers = self.watcher_list[serv_name] or {}
         self.rpc_server:groupecast(watchers, "rpc_service_close", node)
+    end
+end
+
+-- 路由器连接成功
+function DiscoverMgr:rpc_router_connected(client)
+    log_debug("[DiscoverMgr][rpc_router_connected] node:{}", client.name)
+    local serv_name = client.service_name
+    local services = self.service_list[serv_name]
+    if services then
+        local token = client.token
+        local node = services[token]
+        local watchers = self.watcher_list[serv_name] or {}
+        self.rpc_server:groupecast(watchers, "rpc_service_ready", serv_name, { node })
     end
 end
 

@@ -71,6 +71,7 @@ namespace luazip {
         }
 
         virtual uint8_t* decode(uint8_t* data, size_t* len) {
+            m_buf->clean();
             if (m_tag == "gzip") return decode_gzip(data, len);
             if (m_tag == "lz4") return decode_lz4(data, len);
             if (m_tag == "snappy") return decode_snappy(data, len);
@@ -101,7 +102,6 @@ namespace luazip {
             size_t dst_len = mz_compressBound(data_len);
             if (dst_len < luakit::BUFFER_MAX) {
                 auto dest = m_buf->peek_space(dst_len);
-                *(size_t*)dest = data_len;
                 uint32_t comp_flags = tdefl_create_comp_flags_from_zip_params(level, 15, MZ_DEFAULT_STRATEGY);
                 *len = tdefl_compress_mem_to_mem(dest, dst_len, message, data_len, comp_flags);
                 if (*len > 0) return dest;
@@ -182,10 +182,14 @@ namespace luazip {
         uint8_t* decode_lz4(uint8_t* data, size_t* len) {
             size_t data_len = *len;
             size_t dest_len = data_len * 16;
-            if (dest_len < luakit::BUFFER_MAX) {
+            if (dest_len < 64) dest_len = 64;
+            while (dest_len < luakit::BUFFER_MAX) {
+                m_buf->clean();
                 auto dest = m_buf->peek_space(dest_len);
-                *len = LZ4_decompress_safe((char*)data, (char*)dest, data_len, dest_len);
-                if (*len > 0) return dest;
+                if (!dest) return nullptr;
+                int out = LZ4_decompress_safe((char*)data, (char*)dest, data_len, (int)dest_len);
+                if (out > 0) { *len = out; return dest; }
+                dest_len *= 2;
             }
             return nullptr;
         }
@@ -193,55 +197,56 @@ namespace luazip {
         uint8_t* decode_zlib(uint8_t* data, size_t* len) {
             size_t data_len = *len;
             size_t dest_len = data_len * 16;
-            if (dest_len < luakit::BUFFER_MAX) {
+            if (dest_len < 64) dest_len = 64;
+            while (dest_len < luakit::BUFFER_MAX) {
+                m_buf->clean();
                 auto dest = m_buf->peek_space(dest_len);
-                size_t uncomp_size = tinfl_decompress_mem_to_mem(dest, dest_len, data, data_len, TINFL_FLAG_PARSE_ZLIB_HEADER);
-                if (uncomp_size != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED ) {
-                    *len = uncomp_size;
-                    return dest;
-                }
+                if (!dest) return nullptr;
+                size_t out = tinfl_decompress_mem_to_mem(dest, dest_len, data, data_len, TINFL_FLAG_PARSE_ZLIB_HEADER);
+                if (out != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) { *len = out; return dest; }
+                dest_len *= 2;
             }
             return nullptr;
         }
 
         uint8_t* decode_gzip(uint8_t* data, size_t* len) {
             size_t data_len = *len;
-            size_t dest_len = data_len * 16;
-            if (data_len >= 18 && dest_len < luakit::BUFFER_MAX) {
-                if (data[0] == 0x1f && data[1] == 0x8b && data[2] == 8) {
-                    int header_len = 10;
-                    uint8_t flags = data[3];
-                    if (flags & 0x04) { // FEXTRA
-                        if (header_len + 2 > data_len) return nullptr;
-                        uint16_t extra_len = (uint16_t)(data[header_len] | (data[header_len + 1] << 8));
-                        header_len += 2 + extra_len;
-                    }
-                    if (flags & 0x08) { // FNAME
-                        while (header_len < data_len && data[header_len]) header_len++;
-                        if (header_len >= data_len) return nullptr;
-                        header_len++;
-                    }
-                    if (flags & 0x10) { // FCOMMENT
-                        while (header_len < data_len && data[header_len]) header_len++;
-                        if (header_len >= data_len) return nullptr;
-                        header_len++;
-                    }
-                    if (flags & 0x02) { // FHCRC
-                        header_len += 2;
-                    }
-                    auto deflate_data = data + header_len;
-                    size_t deflate_len = data_len - header_len - 8;
-                    auto dest = m_buf->peek_space(dest_len);
-                    size_t out_size = tinfl_decompress_mem_to_mem(dest, dest_len, deflate_data, deflate_len, 0);
-                    if (out_size != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED ) {
-                        mz_ulong expected_crc = *(uint32_t*)(data + header_len + deflate_len);
-                        mz_ulong actual_crc = mz_crc32(MZ_CRC32_INIT, (cpbyte)dest, out_size);
-                        if (expected_crc == actual_crc) {
-                            *len = out_size;
-                            return dest;
-                        }
-                    }
+            if (data_len < 18 || data[0] != 0x1f || data[1] != 0x8b || data[2] != 8) return nullptr;
+            int header_len = 10;
+            uint8_t flags = data[3];
+            if (flags & 0x04) { // FEXTRA
+                if (header_len + 2 > data_len) return nullptr;
+                uint16_t extra_len = (uint16_t)(data[header_len] | (data[header_len + 1] << 8));
+                header_len += 2 + extra_len;
+            }
+            if (flags & 0x08) { // FNAME
+                while (header_len < data_len && data[header_len]) header_len++;
+                if (header_len >= data_len) return nullptr;
+                header_len++;
+            }
+            if (flags & 0x10) { // FCOMMENT
+                while (header_len < data_len && data[header_len]) header_len++;
+                if (header_len >= data_len) return nullptr;
+                header_len++;
+            }
+            if (flags & 0x02) header_len += 2; // FHCRC
+            if (header_len + 8 > (int)data_len) return nullptr;
+            auto deflate_data = data + header_len;
+            size_t deflate_len = data_len - header_len - 8;
+            uint32_t isize = *(uint32_t*)(data + data_len - 4);
+            size_t dest_len = isize > 0 ? isize : data_len * 16;
+            if (dest_len < 64) dest_len = 64;
+            while (dest_len < luakit::BUFFER_MAX) {
+                m_buf->clean();
+                auto dest = m_buf->peek_space(dest_len);
+                if (!dest) return nullptr;
+                size_t out = tinfl_decompress_mem_to_mem(dest, dest_len, deflate_data, deflate_len, 0);
+                if (out != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) {
+                    mz_ulong expected_crc = *(uint32_t*)(data + header_len + deflate_len);
+                    mz_ulong actual_crc = mz_crc32(MZ_CRC32_INIT, (cpbyte)dest, out);
+                    if (expected_crc == actual_crc) { *len = out; return dest; }
                 }
+                dest_len *= 2;
             }
             return nullptr;
         }
@@ -276,13 +281,14 @@ namespace luazip {
         uint8_t* decode_deflate(uint8_t* data, size_t* len) {
             size_t data_len = *len;
             size_t dest_len = data_len * 16;
-            if (dest_len < luakit::BUFFER_MAX) {
+            if (dest_len < 64) dest_len = 64;
+            while (dest_len < luakit::BUFFER_MAX) {
+                m_buf->clean();
                 auto dest = m_buf->peek_space(dest_len);
-                size_t uncomp_size = tinfl_decompress_mem_to_mem(dest, dest_len, data, data_len, 0);
-                if (uncomp_size != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) {
-                    *len = uncomp_size;
-                    return dest;
-                }
+                if (!dest) return nullptr;
+                size_t out = tinfl_decompress_mem_to_mem(dest, dest_len, data, data_len, 0);
+                if (out != TINFL_DECOMPRESS_MEM_TO_MEM_FAILED) { *len = out; return dest; }
+                dest_len *= 2;
             }
             return nullptr;
         }

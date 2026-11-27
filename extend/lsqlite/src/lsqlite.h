@@ -213,9 +213,7 @@ namespace lsqlite {
                 lua_createtable(L, 0, ncol);
                 for (int c = 0; c < ncol; ++c, result++) {
                     char* value = *result;
-                    if (lua_stringtonumber(L, value) == 0) {
-                        lua_pushstring(L, value);
-                    }
+                    lua_push_autonum(L, value, strlen(value));
                     lua_setfield(L, -2, titles[c]);
                 }
                 lua_seti(L, -2, r + 1);

@@ -16,26 +16,27 @@ using environ_map = std::unordered_map<sstring, sstring>;
 
 namespace lworker {
 
-    const size_t WORKER_CAPACITY = 1024 * 1024 * 8;
+    const size_t WORKER_CAPACITY    = 1024 * 1024 * 8;
+    const size_t WORKER_RPC_LEN     = 1024 * 1024;  //1m
 
     class worker_codec : public codec_base {
     public:
         virtual uint8_t* encode(lua_State* L, int index, size_t* len) {
             m_buf->clean();
-            auto base = m_buf->hold_place(sizeof(uint16_t));
+            auto base = m_buf->hold_place(sizeof(uint32_t));
             int n = lua_gettop(L) - index + 1;
             encode_slice(L, m_buf, index, n);
             auto date_len = m_buf->size();
-            m_buf->copy(base, (uint8_t*)&date_len, sizeof(uint16_t));
+            m_buf->copy(base, (uint8_t*)&date_len, sizeof(uint32_t));
             return m_buf->data(len);
         }
     };
 
     static slice* read_slice(luabuf& buff) {
-        uint16_t* plen = (uint16_t*)buff.peek_data(sizeof(uint16_t));
+        uint32_t* plen = (uint32_t*)buff.peek_data(sizeof(uint32_t));
         if (plen) {
-            buff.pop_size(sizeof(uint16_t));
-            uint16_t len = *plen - sizeof(uint16_t);
+            buff.pop_size(sizeof(uint32_t));
+            uint32_t len = *plen - sizeof(uint32_t);
             uint8_t* pdata = buff.peek_data(len);
             if (pdata) {
                 auto slice = buff.get_slice(len);
@@ -90,9 +91,9 @@ namespace lworker {
         }
 
         int call(lua_State* L, uint8_t* data, size_t data_len) {
-            if (data_len > USHRT_MAX) {
+            if (data_len > WORKER_RPC_LEN) {
                 lua_pushboolean(L, false);
-                lua_pushstring(L, "send data large than USHRT_MAX!");
+                lua_pushstring(L, "send data large than 1M!");
             }
             if (m_mbsc.push(data, data_len)) {
                 lua_pushboolean(L, true);

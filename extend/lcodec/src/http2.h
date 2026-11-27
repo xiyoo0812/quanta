@@ -291,9 +291,7 @@ namespace lcodec {
             lua_pushinteger(L, errorcode);
             lua_seti(L, -2, index++);
             if (errorcode <= 0) {
-                if (lua_stringtonumber(L, status.c_str()) == 0) {
-                    lua_pushlstring(L, status.c_str(), status.size());
-                }
+                luakit::lua_push_autonum(L, status.c_str(), status.size());
                 lua_seti(L, -2, index++);
                 native_to_lua(L, recv_headers);
                 lua_seti(L, -2, index++);
@@ -455,7 +453,7 @@ namespace lcodec {
             if (auto codec = find_codec(hcodec, recv_headers, CONTENTT); codec) {
                 slice slice((uint8_t*)body.c_str(), body.size());
                 codec->set_slice(&slice);
-                int plen = codec->load_packet(body.size());
+                int plen = codec->load_packet();
                 lua_pushstring(L, output_type.c_str());
                 codec->decode(L, (uint8_t*)body.c_str(), body.size());
                 body.erase(0, plen);
@@ -469,7 +467,7 @@ namespace lcodec {
             if (!codec) return true;
             slice slice((uint8_t*)body.c_str(), body.size());
             codec->set_slice(&slice);
-            return codec->load_packet(body.size());
+            return codec->load_packet();
         }
 
         virtual bool has_packet() {
@@ -478,7 +476,7 @@ namespace lcodec {
             if (!codec) return false;
             slice slice((uint8_t*)body.c_str(), body.size());
             codec->set_slice(&slice);
-            return codec->load_packet(body.size()) > 0;
+            return codec->load_packet() > 0;
         }
 
     protected:
@@ -523,8 +521,9 @@ namespace lcodec {
     template <typename T>
     class http2codec : public http_codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
+            size_t data_len = m_slice->size();
             size_t offset = 0;
             while (offset < data_len) {
                 auto header = (h2_frame_header*)m_slice->peek(H2_FRAME_LEN, offset);

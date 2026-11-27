@@ -77,12 +77,12 @@ function RpcClient:on_call_router(rpc, send_len)
         event_mgr:notify_trigger("on_send_rpc_message", rpc, send_len)
         return true, send_len
     end
-    log_err("[RpcClient][on_call_router] rpc {} call failed! code:{}", rpc, send_len)
+    log_err("[RpcClient][on_call_router] rpc {} call failed! len:{}", rpc, send_len)
     return false
 end
 
-function RpcClient:relay_message(router_id, session_id, target_id, service_id, ...)
-    event_mgr:notify_event("rpc_relay_message", router_id, session_id, target_id, service_id, ...)
+function RpcClient:relay_message(socket, router_id, session_id, target_id, service_id, ...)
+    event_mgr:notify_event("rpc_relay_message", socket, router_id, session_id, target_id, service_id, ...)
 end
 
 --rpc事件
@@ -92,9 +92,9 @@ function RpcClient:dispatch_message(socket, recv_len, session_id, flag, source, 
     -- 事件分发
     if flag & FLAG_REQ == FLAG_REQ then
         if session_id > 0 then
-            socket.callback(rpc, session_id, source, FLAG_RES, event_mgr:notify_event(rpc, ...))
+            socket.callback(rpc, session_id, source, FLAG_RES, event_mgr:notify_event(rpc, socket, ...))
         else
-            event_mgr:notify_event(rpc, ...)
+            event_mgr:notify_event(rpc, socket, ...)
         end
         return
     end
@@ -125,7 +125,7 @@ function RpcClient:connect()
         thread_mgr:fork(self.dispatch_message, resume_trace(trace_id, span_id), self, socket, recv_len, session_id, flag, ...)
     end
     socket.on_relay_rpc = function(recv_len, session_id, target_id, service_id, trace_id, span_id, ...)
-        thread_mgr:fork(self.relay_message, resume_trace(trace_id, span_id), self, self.id, session_id, target_id, service_id, ...)
+        thread_mgr:fork(self.relay_message, resume_trace(trace_id, span_id), self, socket, self.id, session_id, target_id, service_id, ...)
     end
     socket.call_rpc = function(rpc, session_id, flag, ...)
         local trace_id, span_id = extract_trace()

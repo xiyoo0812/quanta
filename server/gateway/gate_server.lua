@@ -156,13 +156,13 @@ end
 
 --RPC调用
 ----------------------------------------------------------------------
-function GateServer:rpc_kickout_client(player_id)
+function GateServer:rpc_kickout_client(session, player_id)
     log_debug("[GateServer][rpc_kickout_client] player_id({})!", player_id)
     self:kick_client(player_id)
     return SUCCESS
 end
 
-function GateServer:rpc_forward_client(player_id, cmd_id, data)
+function GateServer:rpc_forward_client(session, player_id, cmd_id, data)
     log_debug("[GateServer][rpc_forward_client] player_id({}) cmd_id({}) data({})!", player_id, cmd_id, data)
     local client = self.clients[player_id]
     if client then
@@ -171,7 +171,7 @@ function GateServer:rpc_forward_client(player_id, cmd_id, data)
     return SUCCESS
 end
 
-function GateServer:rpc_update_verify_code(user_id, verify_code)
+function GateServer:rpc_update_verify_code(session, user_id, verify_code)
     log_debug("[GateServer][rpc_update_verify_code] open_id({}) verify_code({})!", user_id, verify_code)
     self.verify_codes[user_id] = { code = verify_code, time = quanta.now + MINUTE_5_S }
     return SUCCESS

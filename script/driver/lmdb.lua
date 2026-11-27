@@ -21,7 +21,7 @@ local SUCCESS       = quanta.enum("KernCode", "SUCCESS")
 local BENCHMARK     = environ.number("QUANTA_DB_BENCHMARK")
 local AUTOINCKEY    = environ.get("QUANTA_DB_AUTOINCKEY", "QUANTA:COUNTER:AUTOINC")
 
-local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./kvdb/")
+local KVDB_PATH     = environ.get("QUANTA_KVDB_PATH", "./data/kvdb/")
 
 local Lmdb = singleton()
 local prop = property(Lmdb)

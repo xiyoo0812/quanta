@@ -170,7 +170,7 @@ function CacheMgr:load_document(coll_name, primary_id)
     end
 end
 
-function CacheMgr:rpc_cache_load(primary_id, coll_name)
+function CacheMgr:rpc_cache_load(session, primary_id, coll_name)
     local code, doc, from_mem = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_load] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
@@ -184,12 +184,12 @@ function CacheMgr:rpc_cache_load(primary_id, coll_name)
 end
 
 --监听其他节点加载通知，清理本节点文档
-function CacheMgr:rpc_cache_load_notify(primary_id, coll_name)
+function CacheMgr:rpc_cache_load_notify(session, primary_id, coll_name)
     self:clear_document(coll_name, primary_id)
 end
 
 --更新缓存
-function CacheMgr:rpc_cache_flush(primary_id, coll_name, wholes)
+function CacheMgr:rpc_cache_flush(session, primary_id, coll_name, wholes)
     local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_flush] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
@@ -201,7 +201,7 @@ function CacheMgr:rpc_cache_flush(primary_id, coll_name, wholes)
 end
 
 --更新缓存
-function CacheMgr:rpc_cache_update(primary_id, coll_name, increases)
+function CacheMgr:rpc_cache_update(session, primary_id, coll_name, increases)
     local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_update] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
@@ -213,7 +213,7 @@ function CacheMgr:rpc_cache_update(primary_id, coll_name, increases)
 end
 
 --删除缓存，通常由运维指令执行
-function CacheMgr:rpc_cache_delete(primary_id, coll_name)
+function CacheMgr:rpc_cache_delete(session, primary_id, coll_name)
     local code, doc = self:load_document(coll_name, primary_id)
     if qfailed(code) then
         log_err("[CacheMgr][rpc_cache_delete] load_document failed! coll_name={}, primary={}", coll_name, primary_id)
@@ -230,7 +230,7 @@ function CacheMgr:rpc_cache_delete(primary_id, coll_name)
 end
 
 --复制缓存
-function CacheMgr:rpc_cache_copy(to_id, src_id, coll_name)
+function CacheMgr:rpc_cache_copy(session, to_id, src_id, coll_name)
     log_debug("[CacheMgr][rpc_cache_copy] coll_name={}, src_id={}, to_id={}", coll_name, src_id, to_id)
     local src_code, src_doc, from_mem = self:load_document(coll_name, src_id)
     if qfailed(src_code) then

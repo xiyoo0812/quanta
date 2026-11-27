@@ -47,12 +47,12 @@ end
 
 --服务上线
 function RouterMgr:on_service_ready(id, name, info)
-    log_debug("[RouterMgr][on_service_ready] node: {}-{}, info: {}", name, id, info)
+    log_debug("[RouterMgr][on_service_ready] node: {}", info)
     self:add_router(info.id, info.host, info.port)
 end
 
 --服务被踢下线
-function RouterMgr:rpc_service_kickout(router_id, reason)
+function RouterMgr:rpc_service_kickout(session, router_id, reason)
     log_err("[RouterMgr][rpc_service_kickout] reason:{} router_id:{}", reason, router_id)
     signal_quit()
 end
@@ -171,7 +171,7 @@ end
 --发送给指定目标
 function RouterMgr:call_target(target, rpc, ...)
     if target == quanta.id then
-        return event_mgr:notify_event(rpc, ...)
+        return event_mgr:notify_event(rpc, nil, ...)
     end
     local session_id = lnext_id()
     return self:forward_target(self:hash_router(target), "call_target", rpc, session_id, target, ...)
@@ -180,7 +180,7 @@ end
 --发送给指定目标
 function RouterMgr:call_target_hash(target, hash_key, rpc, ...)
     if target == quanta.id then
-        return event_mgr:notify_event(rpc, ...)
+        return event_mgr:notify_event(rpc, nil, ...)
     end
     local session_id = lnext_id()
     return self:forward_target(self:hash_router(hash_key), "call_target", rpc, session_id, target, ...)
@@ -189,7 +189,7 @@ end
 --发送给指定目标
 function RouterMgr:send_target(target, rpc, ...)
     if target == quanta.id then
-        event_mgr:notify_event(rpc, ...)
+        event_mgr:notify_event(rpc, nil, ...)
         return true
     end
     return self:forward_target(self:hash_router(target), "call_target", rpc, 0, target, ...)
@@ -198,7 +198,7 @@ end
 --发送给指定目标
 function RouterMgr:send_target_hash(target, hash_key, rpc, ...)
     if target == quanta.id then
-        event_mgr:notify_event(rpc, ...)
+        event_mgr:notify_event(rpc, nil, ...)
         return true
     end
     return self:forward_target(self:hash_router(hash_key), "call_target", rpc, 0, target, ...)

@@ -20,7 +20,7 @@ end
 --rpc
 ------------------------------------------------
 --可靠事件分发
-function PlayerServlet:rpc_reliable_event(player_id)
+function PlayerServlet:rpc_reliable_event(session, player_id)
     local lock<close> = thread_mgr:lock(player_id)
     if lock then
         local player = player_mgr:get_entity(player_id)

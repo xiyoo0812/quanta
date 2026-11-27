@@ -40,7 +40,7 @@ end
 --rpc协议
 -------------------------------------------------------------------------
 --属性更新
-function AttributeAgent:rpc_attr_relay(player_id, attrs, service_id)
+function AttributeAgent:rpc_attr_relay(session, player_id, attrs, service_id)
     local player  = player_mgr:get_entity(player_id)
     if not player then
         log_err("[AttributeAgent][rpc_attr_relay] player not exist attrs={}, player_id={}", attrs, player_id)

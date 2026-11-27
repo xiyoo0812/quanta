@@ -27,7 +27,7 @@ namespace llmdb {
             return mdb_env_sync(_env, force);
         }
         int32_t open(const char* path, uint32_t flags, int mode) {
-            close();
+            if (!_env) return MDB_INVALID;
             return mdb_env_open(_env, path, flags, mode);
         }
         int32_t set_flags(uint32_t flags, bool onoff = true) {
@@ -305,9 +305,7 @@ namespace llmdb {
                 return;
             }
             std::string buf = { (const char*)val.mv_data, val.mv_size };
-            if (lua_stringtonumber(L, buf.c_str()) == 0) {
-                lua_pushlstring(L, (const char*)buf.c_str(), buf.size());
-            }
+            lua_push_autonum(L, buf.data(), buf.size());
         }
 
     protected:

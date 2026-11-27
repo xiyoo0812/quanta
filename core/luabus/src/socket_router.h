@@ -25,7 +25,7 @@ struct router_header {
         struct {
             rpc_type type : 4;      //rpc_type 4bit
             proto_flag flag : 5;    //flag 5bit(proto_flag)
-            uint32_t len : 23;      //23bit(8M)
+            uint32_t len : 23;      //23bit(8M-1=0x7FFFFF)
         };
     };
     uint32_t target_id = 0;

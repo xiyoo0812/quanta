@@ -233,9 +233,9 @@ namespace luatls {
         return 1;
     }
 
-    static tlscodec* tls_codec(lua_State* L, char* hostname, char* protos) {
+    static tlscodec* tls_codec(lua_State* L, cpchar hostname, cpchar protos, bool is_server) {
         tlscodec* tcodec = new tlscodec();
-        tcodec->init_tls(L, hostname, protos);
+        tcodec->init_tls(L, hostname, protos, is_server);
         return tcodec;
     }
 
@@ -245,11 +245,11 @@ namespace luatls {
     }
 
     static int init_cas(lua_State* L, std::string_view cafile) {
-        if (int ret = mbedtls_x509_crt_parse_file(&TL_SSL_TRUSTED_CAS, cafile.data()); ret != 0) {
-            luaL_error(L, "mbedtls_x509_crt_parse_file('%s') error", cafile.data());
+        if (TL_SSL_CLICERT.raw.len == 0) {
+            if (int ret = mbedtls_x509_crt_parse_file(&TL_SSL_CLICERT, cafile.data()); ret != 0) {
+                luaL_error(L, "mbedtls_x509_crt_parse_file('%s') error:%d", cafile.data(), ret);
+            }
         }
-        mbedtls_ssl_conf_authmode(&TL_SSL_CLI_CONF, MBEDTLS_SSL_VERIFY_REQUIRED);
-        mbedtls_ssl_conf_ca_chain(&TL_SSL_CLI_CONF, &TL_SSL_TRUSTED_CAS, nullptr);
         return 0;
     }
 
@@ -262,9 +262,6 @@ namespace luatls {
         }
         if (int ret = mbedtls_pk_check_pair(&TL_SSL_SRVCERT.pk, &TL_SSL_PKEY); ret != 0) {
             luaL_error(L, "certificate and private key do not match: %d", ret);
-        }
-        if (int ret = mbedtls_ssl_conf_own_cert(&TL_SSL_SER_CONF, &TL_SSL_SRVCERT, &TL_SSL_PKEY); ret != 0) {
-            luaL_error(L, "mbedtls_ssl_conf_own_cer error: %d", ret);
         }
         return 0;
     }

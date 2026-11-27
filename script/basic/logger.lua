@@ -61,9 +61,12 @@ end
 
 function logger.remove_monitor(monitor)
     for lvl = LOG_LEVEL.DEBUG, LOG_LEVEL.FATAL do
-        MONITORS[lvl][monitor] = nil
-        if not next(MONITORS[lvl]) then
-            MONITORS[lvl] = nil
+        local monitors = MONITORS[lvl]
+        if monitors then
+            monitors[monitor] = nil
+            if not next(monitors) then
+                MONITORS[lvl] = nil
+            end
         end
     end
 end

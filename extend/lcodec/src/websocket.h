@@ -4,7 +4,7 @@ namespace lcodec {
 
     class wsscodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
             uint8_t* payload = (uint8_t*)m_slice->peek(sizeof(uint8_t), 1);
             if (!payload) return 0;

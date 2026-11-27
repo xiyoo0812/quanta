@@ -14,6 +14,8 @@ local thread_mgr    = quanta.get("thread_mgr")
 local TIMEOUT       = quanta.enum("NetwkTime", "CONNECT_TIMEOUT")
 local HTTP_TIMEOUT  = quanta.enum("NetwkTime", "HTTP_CALL_TIMEOUT")
 
+local CAFILE        = "./data/cacert.pem"
+
 local Socketls = class(Socket)
 local prop = property(Socketls)
 prop:reader("tls_handshake", false) --handshake
@@ -31,7 +33,7 @@ function Socketls:close()
 end
 
 function Socketls:__static()
-    tls.init_cas("./data/cacert.pem")
+    tls.init_cas(CAFILE)
 end
 
 function Socketls:set_codec(codec)

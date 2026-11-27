@@ -38,7 +38,7 @@ end
 --rpc协议处理
 ------------------------------------------------------------------------------
 --玩家服务上线
-function OnlineMgr:rpc_service_online(player_id, service_name, server_id)
+function OnlineMgr:rpc_service_online(session, player_id, service_name, server_id)
     log_info("[OnlineMgr][rpc_service_online]: {}, {}", player_id, service_name)
     local services = self.player_services[player_id] or {}
     services[service_name] = server_id
@@ -47,21 +47,21 @@ function OnlineMgr:rpc_service_online(player_id, service_name, server_id)
 end
 
 --角色登出
-function OnlineMgr:rpc_player_logout(player_id)
+function OnlineMgr:rpc_player_logout(session, player_id)
     log_info("[OnlineMgr][rpc_player_logout]: %s", player_id)
     self.player_services[player_id] = nil
     return SUCCESS
 end
 
 --查询玩家某个服务的token
-function OnlineMgr:rpc_query_service(player_id, service_name)
+function OnlineMgr:rpc_query_service(session, player_id, service_name)
     local services = self.player_services[player_id] or {}
     return SUCCESS, services[service_name] or 0
 end
 
 -------------------------------------------------------------------
 --消息转发
-function OnlineMgr:rpc_relay_message(router_id, session_id, player_id, service_id, source, rpc, ...)
+function OnlineMgr:rpc_relay_message(session, router_id, session_id, player_id, service_id, source, rpc, ...)
     local services = self.player_services[player_id] or {}
     local orouter_id = services.router
     if orouter_id then

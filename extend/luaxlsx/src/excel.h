@@ -261,10 +261,11 @@ namespace lxlsx {
             throw runtime_error("read zip error");
         }
 
-        void save(cpchar filename) {
+        int save(lua_State* L, cpchar filename) {
+            if (!filename || !*filename) luaL_error(L, "save excel: filename is empty");
             mz_zip_archive archive = {};
             if (!mz_zip_writer_init_file(&archive, filename, 0)) {
-                throw runtime_error("save zip error");
+                luaL_error(L, "save excel failed: cannot create zip file: %s", filename);
             }
             for (auto book : workbooks) book->save();
             for (auto& [path, doc] : excelfiles) {
@@ -275,6 +276,7 @@ namespace lxlsx {
             }
             mz_zip_writer_finalize_archive(&archive);
             mz_zip_writer_end(&archive);
+            return 0;
         }
 
         void read_xlsx_files(mz_zip_archive* archive) {
@@ -286,7 +288,8 @@ namespace lxlsx {
             mz_zip_reader_end(archive);
         }
 
-        workbook* open_workbook(cpchar name) {
+        workbook* open_workbook(lua_State* L, cpchar name) {
+            if (!name || !*name) luaL_error(L, "open workbook: name is empty");
             auto it = find_if(workbooks.begin(), workbooks.end(),
                 [name](workbook* p) { return p->name == name; });
             return (it != workbooks.end()) ? *it : nullptr;

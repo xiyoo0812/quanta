@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "lua_base.h"
+#include <charconv>
 
 namespace luakit {
 
@@ -16,6 +17,21 @@ namespace luakit {
 
     inline bool lua_string_ends_with(lua_State* L, vstring str, vstring with) {
         return str.ends_with(with);
+    }
+
+    inline bool lua_push_autonum(lua_State* L, cpchar str, size_t len) {
+        lua_Integer value = 0;
+        auto [ptr, ec] = std::from_chars(str, str + len, value);
+        if (ec == std::errc{} && ptr == str + len) {
+            lua_pushinteger(L, value);
+            return true;
+        }
+        lua_pushlstring(L, str, len);
+        return false;
+    }
+
+    inline bool lua_push_autonum(lua_State* L, vstring str) {
+        return lua_push_autonum(L, str.data(), str.size());
     }
 
     inline sstring lua_string_title(sstring str) {

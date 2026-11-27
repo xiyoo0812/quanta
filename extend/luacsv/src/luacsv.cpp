@@ -9,12 +9,6 @@ using namespace luakit;
 
 namespace luacsv {
 
-    inline void decode_value(lua_State* L, cstring& key) {
-        if (const char* value = key.data(); lua_stringtonumber(L, value) == 0) {
-            lua_pushlstring(L, value, key.length());
-        }
-    }
-
     inline int decode_document(lua_State* L, Document& doc) {
         int index = 1;
         int keyidx = luaL_optinteger(L, 2, 0) - 1;
@@ -27,13 +21,13 @@ namespace luacsv {
             for (int i = 0; i < rows.size(); ++i) {
                 if (i < headers.size()) {
                     if (i == keyidx) key = &rows[i];
-                    decode_value(L, headers[i]);
-                    decode_value(L, rows[i]);
+                    lua_push_autonum(L, headers[i]);
+                    lua_push_autonum(L, rows[i]);
                     lua_rawset(L, -3);
                 }
             }
             if (key) {
-                decode_value(L, *key);
+                lua_push_autonum(L, *key);
                 lua_insert(L, -2);
                 lua_rawset(L, -3);
             } else {

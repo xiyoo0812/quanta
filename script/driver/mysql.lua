@@ -53,11 +53,45 @@ function MysqlDB:__init(conf)
     self.user = conf.user
     self.passwd = conf.passwd
     self.timer = make_timer()
-    --setup
-    self:set_options(conf.opts)
-    self:setup_pool(conf.hosts)
     --update
     update_mgr:attach_hour(self)
+    --setup
+    thread_mgr:fork(function()
+        self:set_options(conf.opts)
+        if self:init_database(conf.hosts) then
+            self:setup_pool(conf.hosts)
+        end
+    end)
+end
+
+--用临时连接连管理端(不指定库)建库, 成功后关闭临时连接
+function MysqlDB:init_database(hosts)
+    local _, host = next(hosts)
+    if not host then
+        log_err("[MysqlDB][init_database] hosts is empty")
+        return false
+    end
+    --临时连接用负数 id, 与连接池区分
+    local socket = Socket(self, host[1], host[2])
+    socket:set_id(1)
+    --mysql 不指定库时连到管理端
+    local database = self.name
+    self.name = ""
+    --登录
+    if not self:login(socket) then
+        return false
+    end
+    local sql = sformat("create database if not exists %s", database)
+    local sok, serr = self:request_on(socket, COM_QUERY, "mysql create db", sql)
+    if not sok then
+        log_err("[MysqlDB][init_database]: create database {} failed: {}", database, serr)
+        self:close()
+        return false
+    end
+    log_info("[MysqlDB][init_database] init database {} success", database)
+    self.name = database
+    self:close()
+    return true
 end
 
 function MysqlDB:close()
@@ -93,10 +127,6 @@ function MysqlDB:on_hour()
 end
 
 function MysqlDB:setup_pool(hosts)
-    if not next(hosts) then
-        log_err("[MysqlDB][setup_pool] mysql config err: hosts is empty")
-        return
-    end
     local count = 1
     for _, host in pairs(hosts) do
         for _ = 1, POOL_COUNT do
@@ -197,6 +227,16 @@ end
 
 function MysqlDB:request(cmd, quote, ...)
     return self:request_on(self.executer, cmd, quote, ...)
+end
+
+function MysqlDB:get_record_field(rdsets, field, rdset_index, rd_index)
+    local rdset = rdsets[rdset_index or 1]
+    if rdset then
+        local record = rdset[rd_index or 1]
+        if record then
+            return record[field]
+        end
+    end
 end
 
 function MysqlDB:query(query)

@@ -16,7 +16,7 @@ local THREAD_NAME   = quanta.thread
 local LOG_LEVEL     = log.LOG_LEVEL
 
 local function log_info(fmt, ...)
-    lprint(LOG_LEVEL.DEBUG, 0, THREAD_NAME, "", "", fmt, ...)
+    lprint(LOG_LEVEL.INFO, 0, THREAD_NAME, "", "", fmt, ...)
 end
 
 local function log_err(fmt, ...)

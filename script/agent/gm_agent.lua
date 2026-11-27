@@ -69,7 +69,7 @@ function GMAgent:report_command(id)
 end
 
 -- 通知执行GM指令
-function GMAgent:rpc_command_execute(cmd_name, ...)
+function GMAgent:rpc_command_execute(seesion, cmd_name, ...)
     log_info("[GMAgent][rpc_command_execute]->cmd_name:{}", cmd_name)
     local ok, res = self:notify_event(cmd_name, ...)
     return ok and SUCCESS or LOGIC_FAILED, res

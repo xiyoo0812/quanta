@@ -109,6 +109,8 @@ end
 local function notify_rpc(session_id, thread_name, rpc, ...)
     if session_id > 0 then
         wcall(thread_name, session_id, FLAG_RES, 0, 0, event_mgr:notify_event(rpc, ...))
+    else
+        event_mgr:notify_event(rpc, ...)
     end
 end
 

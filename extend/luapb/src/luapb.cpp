@@ -41,7 +41,7 @@ namespace luapb {
         if (lua_isnumber(L, index)) {
             auto cmdid = lua_tointeger(L, index);
             auto it = pb_cmd_ids.find(cmdid);
-            if (it == pb_cmd_ids.end()) luaL_error(L, "invalid pb cmd: %d", cmdid);
+            if (it == pb_cmd_ids.end()) luaL_error(L, "invalid pb cmd: " LUA_INTEGER_FMT, cmdid);
             if (cmd_id) *cmd_id = cmdid;
             return it->second;
         }
@@ -66,7 +66,7 @@ namespace luapb {
 
     class pbcodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
             pb_header* header =(pb_header*)m_slice->peek(sizeof(pb_header));
             if (!header) return 0;
@@ -95,7 +95,7 @@ namespace luapb {
             try {
                 encode_message(L, index, m_buf, msg);
             } catch (const exception& e) {
-                luaL_error(L, e.what());
+                luaL_error(L, "%s", e.what());
             }
             *len = m_buf->size();
             header.len = *len;
@@ -128,7 +128,7 @@ namespace luapb {
 
     class grpccodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
             grpc_header* header = (grpc_header*)m_slice->peek(sizeof(grpc_header));
             if (!header) return 0;
@@ -148,7 +148,7 @@ namespace luapb {
             try {
                 encode_message(L, index, m_buf, msg);
             } catch (const exception& e) {
-                luaL_error(L, e.what());
+                luaL_error(L, "%s", e.what());
             }
             //header
             grpc_header header;
@@ -220,7 +220,7 @@ namespace luapb {
         try {
             encode_message(L, 2, &lpbuf, msg);
         } catch (const exception& e){
-            luaL_error(L, e.what());
+            luaL_error(L, "%s", e.what());
         }
         push_string(L, (char*)lpbuf.head(), lpbuf.size(), 3, nullptr, nullptr);
         return 1;
@@ -235,7 +235,7 @@ namespace luapb {
         try {
             decode_message(L, &s, msg);
         } catch (const exception& e) {
-            luaL_error(L, e.what());
+            luaL_error(L, "%s", e.what());
         }
         return 1;
     }

@@ -51,7 +51,7 @@ namespace logger {
                 serialize_one(L, &llbuf, index, 1, (flag & LOG_FLAG_PRETTY) == LOG_FLAG_PRETTY);
                 return string((char*)llbuf.head(), llbuf.size());
             }
-            return lua_to_native<vstring>(L, index);
+            return format("table({})", lua_topointer(L, index));
         case LUA_TNUMBER:
             if (lua_isinteger(L, index)) {
                 return lua_tointeger(L, index);

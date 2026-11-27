@@ -209,7 +209,7 @@ end
 --rpc回执
 -----------------------------------------------------------------------------
 --服务器心跳协议
-function RpcServer:rpc_heartbeat()
+function RpcServer:rpc_heartbeat(client)
 end
 
 function RpcServer:rpc_register(client, node)

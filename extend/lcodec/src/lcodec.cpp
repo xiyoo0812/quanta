@@ -115,8 +115,8 @@ namespace lcodec {
     static int lfromhex(lua_State* L) {
         size_t sz = 0;
         upchar text = (upchar)luaL_checklstring(L, 1, &sz);
-        if (sz & 2) {
-            return luaL_error(L, "Invalid hex text size %lu", (int)sz);
+        if (sz & 1) {
+            return luaL_error(L, "Invalid hex text size %zu", sz);
         }
         size_t len = sz / 2;
         auto buffer = alloc_buff(len);

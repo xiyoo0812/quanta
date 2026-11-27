@@ -64,11 +64,15 @@ function PgsqlDB:__init(conf)
     self.user = conf.user
     self.passwd = conf.passwd
     self.timer = make_timer()
-    --setup
-    self:set_options(conf.opts)
-    self:setup_pool(conf.hosts)
     --update
     update_mgr:attach_hour(self)
+    --setup
+    thread_mgr:fork(function()
+        self:set_options(conf.opts)
+        if self:init_database(conf.hosts) then
+            self:setup_pool(conf.hosts)
+        end
+    end)
 end
 
 function PgsqlDB:close()
@@ -82,6 +86,47 @@ function PgsqlDB:close()
     self.connections = {}
     self.stmt_querys = {}
     self.alives = {}
+end
+
+--用临时连接连管理库(postgres)建库, 成功后关闭临时连接
+function PgsqlDB:init_database(hosts)
+    local _, host = next(hosts)
+    if not host then
+        log_err("[PgsqlDB][init_database] hosts is empty")
+        return false
+    end
+    --临时连接用负数 id, 与连接池区分
+    local socket = Socket(self, host[1], host[2])
+    socket:set_id(-1)
+    --连管理库
+    local database = self.name
+    self.name = "postgres"
+    --登录
+    if not self:login(socket) then
+        return false
+    end
+    local check = sformat("select count(*) from pg_database where datname = '%s'\0", database)
+    local ok, res = self:request_on(socket, REQUEST_CMD.QUERY, "pgsql check db", check)
+    if not ok then
+        log_err("[PgsqlDB][init_database] check database {} failed: {}", database, res)
+        self:close()
+        return false
+    end
+    local count = self:get_record_field(res, "count")
+    if not count or count == 0 then
+        local create = sformat("create database %s\0", database)
+        local cok, cres = self:request_on(socket, REQUEST_CMD.QUERY, "pgsql create db", create)
+        if not cok then
+            log_err("[PgsqlDB][init_database] create database {} failed: {}", database, cres)
+            self:close()
+            return false
+        end
+        log_info("[PgsqlDB][init_database] create database {} success", database)
+    end
+    log_info("[PgsqlDB][init_database] init database {} success", database)
+    self.name = database
+    self:close()
+    return true
 end
 
 function PgsqlDB:set_options(opts)
@@ -104,10 +149,6 @@ function PgsqlDB:on_hour()
 end
 
 function PgsqlDB:setup_pool(hosts)
-    if not next(hosts) then
-        log_err("[PgsqlDB][setup_pool] pgsql config err: hosts is empty")
-        return
-    end
     local count = 1
     for _, host in pairs(hosts) do
         for _ = 1, POOL_COUNT do
@@ -250,7 +291,7 @@ function PgsqlDB:on_socket_error(sock, token, err)
 end
 
 function PgsqlDB:on_socket_recv(socket, session_id, ...)
-    if session_id > 0 then
+    if session_id and session_id > 0 then
         thread_mgr:response(session_id, ...)
     end
 end
@@ -276,6 +317,16 @@ end
 
 function PgsqlDB:request(cmd, quote, ...)
     return self:request_on(self.executer, cmd, quote, ...)
+end
+
+function PgsqlDB:get_record_field(rdsets, field, rdset_index, rd_index)
+    local rdset = rdsets[rdset_index or 1]
+    if rdset then
+        local record = rdset[rd_index or 1]
+        if record then
+            return record[field]
+        end
+    end
 end
 
 function PgsqlDB:query(query)

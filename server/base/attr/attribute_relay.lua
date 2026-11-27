@@ -36,7 +36,7 @@ function AttributeRelay:open_share_attr(player, attr_db, service_name)
 end
 
 --属性回写
-function AttributeRelay:rpc_attr_writeback(player_id, attrs, service_id)
+function AttributeRelay:rpc_attr_writeback(session, player_id, attrs, service_id)
     local player  = player_mgr:get_entity(player_id)
     if not player then
         log_err("[AttributeRelay][rpc_attr_writeback] player not exist attrs={}, player_id={}", attrs, player_id)

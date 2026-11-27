@@ -37,7 +37,7 @@ public:
         size_t data_len = 0;
         char* data = (char*)m_codec->encode(L, 5, &data_len);
         uint32_t length = data_len + sizeof(router_header);
-        if (length <= USHRT_MAX) {
+        if (length <= SOCKET_RPC_MSG_LEN) {
             router_header header;
             header.type = RT;
             header.len = length;
@@ -50,7 +50,8 @@ public:
             lua_pushinteger(L, length);
             return 1;
         }
-        lua_pushinteger(L, 0);
+        int64_t err = -1 * length;
+        lua_pushinteger(L, err);
         return 1;
     }
 

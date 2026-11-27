@@ -30,32 +30,38 @@ namespace lcodec {
     #define SC_SERVERBUSY       503
 
     bool is_packet_complete(cpchar buffer, size_t buffer_size) {
-        cpchar header_end = strstr(buffer, CRLF2);
-        if (!header_end) {
-            return false;
-        }
-        cpchar body_start = header_end + LCRLF2;
-        size_t body_size = buffer_size - (body_start - buffer);
-        bool is_chunked = strstr(buffer, CHUNKED) != nullptr;
-        if (is_chunked) {
-            if (body_size < LCHUNKEND || memcmp(body_start + body_size - LCRLF2, CRLF2, LCRLF2) != 0) {
-                return false;
+        size_t pos = 0;
+        bool is_chunked = false;
+        int64_t content_length = -1;
+        size_t header_end = string_view::npos;
+        string_view data(buffer, buffer_size);
+        while (true) {
+            size_t line_end = data.find(CRLF, pos);
+            if (line_end == string_view::npos) return false;
+            if (line_end == pos) {
+                header_end = line_end;
+                break;
             }
-            cpchar chunk_end = body_start + body_size - LCHUNKEND;
-            while (chunk_end >= body_start) {
-                if (memcmp(chunk_end, CHUNKEND, LCHUNKEND) == 0) {
-                    return true;
+            string_view line = data.substr(pos, line_end - pos);
+            if (line.starts_with(TRANSFER)) {
+                if (size_t val_pos = line.find(':'); val_pos != string_view::npos) {
+                    string_view val = line.substr(val_pos + 1);
+                    while (!val.empty() && val.front() == ' ') val.remove_prefix(1);
+                    if (val.starts_with(CHUNKED)) is_chunked = true;
                 }
-                chunk_end--;
+            } else if (line.starts_with(CONTENTL)) {
+                content_length = atoll(line.data() + LCONTENTL);
             }
-            return false;
+            pos = line_end + LCRLF;
         }
-        size_t content_length = -1;
-        cpchar content_length_pos = strstr(buffer, CONTENTL);
-        if (content_length_pos) {
-            cpchar value_start = content_length_pos + LCONTENTL;
-            content_length = std::atoi(value_start);
-            return body_size >= content_length;
+        size_t body_off = header_end + LCRLF;
+        size_t body_size = buffer_size - body_off;
+        if (is_chunked) {
+            cpchar body_start = buffer + body_off;
+            return body_size >= LCHUNKEND && memcmp(body_start + body_size - LCHUNKEND, CHUNKEND, LCHUNKEND) == 0;
+        }
+        if (content_length >= 0) {
+            return body_size >= (size_t)content_length;
         }
         return true;
     }
@@ -88,8 +94,9 @@ namespace lcodec {
 
     class httpcodec : public http_codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
+            size_t data_len = m_slice->size();
             if (!is_packet_complete((char*)m_slice->head(), data_len)) return 0;
             return data_len;
         }
@@ -319,9 +326,7 @@ namespace lcodec {
             lua_pushinteger(L, session_id);
             //status
             string status = string(parts[1]);
-            if (lua_stringtonumber(L, status.c_str()) == 0) {
-                lua_pushlstring(L, status.c_str(), status.size());
-            }
+            luakit::lua_push_autonum(L, status.c_str(), status.size());
             //header + body
             http_parse_body(L, header, buf);
         }

@@ -77,7 +77,7 @@ namespace lbson {
             try {
                 unpack_dict(L, slice, false);
             } catch (const exception& e){
-                luaL_error(L, e.what());
+                luaL_error(L, "%s", e.what());
             }
             return lua_gettop(L);
         }
@@ -523,9 +523,7 @@ namespace lbson {
                 lua_pushinteger(L, std::stoll(key, nullptr, 10) + 1);
                 return;
             }
-            if (lua_stringtonumber(L, key) == 0) {
-                lua_pushlstring(L, key, klen);
-            }
+            lua_push_autonum(L, key, klen);
         }
 
         void unpack_dict(lua_State* L, slice* slice, bool isarray) {
@@ -613,13 +611,13 @@ namespace lbson {
 
     class mgocodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
             uint32_t* packet_len = (uint32_t*)m_slice->peek(sizeof(uint32_t));
             if (!packet_len) return 0;
             m_packet_len = *packet_len;
             if (m_packet_len > 0xffffff) return -1;
-            if (m_packet_len > data_len) return 0;
+            if (m_packet_len > m_slice->size()) return 0;
             if (!m_slice->peek(m_packet_len)) return 0;
             return m_packet_len;
         }

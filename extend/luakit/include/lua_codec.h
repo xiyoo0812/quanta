@@ -76,7 +76,7 @@ namespace luakit {
         size_t sz = 0;
         cpchar ptr = lua_tolstring(L, index, &sz);
         if (sz >= max_string_size) {
-            luaL_error(L, "encode string can't pack too long (%d) string", sz);
+            luaL_error(L, "encode string can't pack too long (%zu) string", sz);
             return;
         }
         string_write(buff, ptr, sz);
@@ -86,7 +86,7 @@ namespace luakit {
         size_t sz = 0;
         cpchar ptr = lua_tolstring(L, index, &sz);
         if (sz > USHRT_MAX) {
-            luaL_error(L, "encode index can't pack too long (%d) string", sz);
+            luaL_error(L, "encode index can't pack too long (%zu) string", sz);
             return;
         }
         if (sz > UCHAR_MAX || sz == 0) {
@@ -304,7 +304,7 @@ namespace luakit {
             slice input((uint8_t*)buf, data_len);
             return decode_slice(L, &input);
         } catch (const std::exception& e){
-            luaL_error(L, e.what());
+            luaL_error(L, "%s", e.what());
         }
         return 0;
     }
@@ -396,7 +396,8 @@ namespace luakit {
                 lua_pushvalue(L, index);
                 //执行sort方法，再序列化
                 if (lua_pcall(L, 1, 1, 0)) {
-                    luaL_error(L, lua_tostring(L, -1));
+                    cpchar pmsg = lua_tostring(L, -1);
+                    luaL_error(L, "%s", pmsg != nullptr ? pmsg : "sort callback failed");
                     return;
                 }
                 index = lua_absindex(L, -1);
@@ -493,10 +494,14 @@ namespace luakit {
     class codec_base {
     public:
         virtual ~codec_base() {};
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
+            size_t data_len = m_slice->size();
             m_packet_len = data_len;
             return data_len;
+        }
+        virtual int load_packet(bool& ignore) {
+            return load_packet();
         }
         virtual size_t decode(lua_State* L) {
             return decode_slice(L, m_slice);
@@ -542,13 +547,13 @@ namespace luakit {
 
     class luacodec : public codec_base {
     public:
-        virtual int load_packet(size_t data_len) {
+        virtual int load_packet() {
             if (!m_slice) return 0;
             uint32_t* packet_len = (uint32_t*)m_slice->peek(sizeof(uint32_t));
             if (!packet_len) return 0;
             m_packet_len = *packet_len;
             if (m_packet_len > 0xffffff) return -1;
-            if (m_packet_len > data_len) return 0;
+            if (m_packet_len > m_slice->size()) return 0;
             if (!m_slice->peek(m_packet_len)) return 0;
             return m_packet_len;
         }

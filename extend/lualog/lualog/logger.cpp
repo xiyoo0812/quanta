@@ -33,9 +33,9 @@ namespace logger {
         auto lvn = level_names[(int)level_];
         uint32_t ms = duration_cast<milliseconds>(point).count() % 1000;
         if (trace_id_.empty()) {
-            msg_ = std::format("[{}.{:03}][{}][{}] {}\n", secbuf, ms, tag_, lvn, msg_);
+            msg_ = std::format("[{}.{:03}][{}][{}] {}", secbuf, ms, tag_, lvn, msg_);
         } else {
-            msg_ = std::format("[{}.{:03}][{}][{}][T-{}] {}\n", secbuf, ms, tag_, lvn, trace_id_, msg_);
+            msg_ = std::format("[{}.{:03}][{}][{}][T-{}] {}", secbuf, ms, tag_, lvn, trace_id_, msg_);
         }
     }
 
@@ -98,9 +98,9 @@ namespace logger {
     // --------------------------------------------------------------------------------
     void stdio_dest::raw_write(log_message* msg) {
 #ifdef WIN32
-        std::cout << level_colors[msg->level()] << msg->data() << "\x1b[0m";
+        std::cout << level_colors[msg->level()] << msg->data() << "\x1b[0m\n";
 #else
-        std::cout << msg->data();
+        std::cout << msg->data() << '\n';
 #endif
     }
 
@@ -316,6 +316,7 @@ namespace logger {
             for (auto& agent : agents_) {
                 while (auto logmsg = agent->get_message()) {
                     if (log_std_) std_dest_->write(logmsg);
+                    logmsg->endline();
                     if (auto it = dest_features_.find(logmsg->feature()); it != dest_features_.end()) {
                         it->second->write(logmsg);
                     } else {

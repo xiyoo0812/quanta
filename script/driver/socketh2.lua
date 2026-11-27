@@ -1,7 +1,6 @@
 --socketh2.lua
 local Socketls      = import("driver/socketls.lua")
 
-local schar         = string.char
 local log_info      = logger.info
 local log_debug     = logger.debug
 local tunpack       = table.unpack
@@ -43,8 +42,7 @@ prop:reader("streams", {})          --streams
 prop:reader("protocol", "h2")       --protocol
 
 function SocketH2:__init(host, ip, port)
-    local alpn_proto = "h2"
-    self.alpn_protos = schar(#alpn_proto) .. alpn_proto
+    self.alpn_protos = "h2"
 end
 
 function SocketH2:close()

@@ -14,24 +14,19 @@ namespace luaxml {
         cpchar value = elem.text().as_string(nullptr);
         if (childs.empty() && attrs.empty()) {
             value = value ? value : "";
-            if (lua_stringtonumber(L, value) == 0) {
-                lua_pushstring(L, value);
-            }
+            lua_push_autonum(L, value, strlen(value));
             return;
         }
         lua_createtable(L, 0, 4);
         if (value) {
-            if (lua_stringtonumber(L, value) == 0) {
-                lua_pushstring(L, value);
-            }
+            lua_push_autonum(L, value, strlen(value));
             lua_setfield(L, -2, "__text");
         }
         if (!attrs.empty()) {
             lua_createtable(L, 0, 4);
             for (auto it = attrs.begin(); it != attrs.end(); ++it) {
-                if (lua_stringtonumber(L, it->value()) == 0) {
-                    lua_pushstring(L, it->value());
-                }
+                cpchar aval = it->value();
+                lua_push_autonum(L, aval, strlen(aval));
                 lua_setfield(L, -2, it->name());
             }
             lua_setfield(L, -2, "__attr");
@@ -75,18 +70,19 @@ namespace luaxml {
                 lua_pop(L, 1);
             }
         }
-        lua_pushnil(L);
-        lua_setfield(L, -3, "__attr");
-        switch (lua_getfield(L, -2, "__text")) {
+        lua_pop(L, 1);
+        switch (lua_getfield(L, -1, "__text")) {
         case LUA_TSTRING: root.text().set(lua_tostring(L, -1)); break;
         case LUA_TBOOLEAN: root.text().set(lua_toboolean(L, -1)); break;
         case LUA_TNUMBER: lua_isinteger(L, -1) ? root.text().set(lua_tointeger(L, -1)) : root.text().set(lua_tonumber(L, -1)); break;
         }
+        lua_pop(L, 1);
         lua_pushnil(L);
-        lua_setfield(L, -4, "__text");
-        lua_pushnil(L);
-        while (lua_next(L, -4) != 0) {
-            load_elem4lua(L, root);
+        while (lua_next(L, -2) != 0) {
+            cpchar k = lua_tostring(L, -2);
+            if (k && strcmp(k, "__attr") != 0 && strcmp(k, "__text") != 0) {
+                load_elem4lua(L, root);
+            }
             lua_pop(L, 1);
         }
     }

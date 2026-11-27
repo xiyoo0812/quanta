@@ -87,7 +87,7 @@ end
 --rpc请求
 ---------------------------------------------------------------------
 --注册GM
-function GM_Mgr:rpc_register_command(command_list, service_id)
+function GM_Mgr:rpc_register_command(session, command_list, service_id)
     --同服务只执行一次
     if service_id and self.services[service_id] then
         return
@@ -102,14 +102,14 @@ function GM_Mgr:rpc_register_command(command_list, service_id)
 end
 
 --执行gm, command：string
-function GM_Mgr:rpc_execute_command(command)
+function GM_Mgr:rpc_execute_command(session, command)
     log_debug("[GM_Mgr][rpc_execute_command] command: {}", command)
     local res = self:exec_command(command)
     return SUCCESS, res
 end
 
 --执行gm, packet: table
-function GM_Mgr:rpc_execute_packet(packet)
+function GM_Mgr:rpc_execute_packet(session, packet)
     log_debug("[GM_Mgr][rpc_execute_packet] packet: {}", packet)
     local res = self:exec_packet(packet)
     return SUCCESS, res

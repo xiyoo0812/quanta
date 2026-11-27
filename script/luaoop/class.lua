@@ -112,6 +112,10 @@ local function object_address(obj)
 end
 
 local function class_static_call(class)
+    local super = class.__super
+    if super then
+        class_static_call(super)
+    end
     local static_func = rawget(class.__vtbl, "__static")
     if static_func then
         rawset(class.__vtbl, "__static", nil)
